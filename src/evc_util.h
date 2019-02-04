@@ -1,0 +1,338 @@
+/* The copyright in this software is being made available under the BSD
+*  License, included below. This software may be subject to other third party
+*  and contributor rights, including patent rights, and no such rights are
+*  granted under this license.
+*  
+*  Copyright (c) 2019, ISO/IEC
+*  All rights reserved.
+*  
+*  Redistribution and use in source and binary forms, with or without
+*  modification, are permitted provided that the following conditions are met:
+*  
+*   * Redistributions of source code must retain the above copyright notice,
+*     this list of conditions and the following disclaimer.
+*   * Redistributions in binary form must reproduce the above copyright notice,
+*     this list of conditions and the following disclaimer in the documentation
+*     and/or other materials provided with the distribution.
+*   * Neither the name of the ISO/IEC nor the names of its contributors may
+*     be used to endorse or promote products derived from this software without
+*     specific prior written permission.
+*  
+*  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+*  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+*  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+*  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
+*  BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+*  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+*  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+*  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+*  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+*  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+*  THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+#ifndef _EVC_UTIL_H_
+#define _EVC_UTIL_H_
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+#include "evc_def.h"
+#include <stdlib.h>
+
+/*! macro to determine maximum */
+#define EVC_MAX(a,b)                   (((a) > (b)) ? (a) : (b))
+
+/*! macro to determine minimum */
+#define EVC_MIN(a,b)                   (((a) < (b)) ? (a) : (b))
+
+/*! macro to absolute a value */
+#define EVC_ABS(a)                     abs(a)
+
+/*! macro to absolute a 64-bit value */
+#define EVC_ABS64(a)                   (((a)^((a)>>63)) - ((a)>>63))
+
+/*! macro to absolute a 32-bit value */
+#define EVC_ABS32(a)                   (((a)^((a)>>31)) - ((a)>>31))
+
+/*! macro to absolute a 16-bit value */
+#define EVC_ABS16(a)                   (((a)^((a)>>15)) - ((a)>>15))
+
+/*! macro to clipping within min and max */
+#define EVC_CLIP3(min_x, max_x, value)   EVC_MAX((min_x), EVC_MIN((max_x), (value)))
+
+/*! macro to clipping within min and max */
+#define EVC_CLIP(n,min,max)            (((n)>(max))? (max) : (((n)<(min))? (min) : (n)))
+
+#define EVC_SIGN(x)                    (((x) < 0) ? -1 : 1)
+
+/*! macro to get a sign from a 16-bit value.\n
+operation: if(val < 0) return 1, else return 0 */
+#define EVC_SIGN_GET(val)              ((val<0)? 1: 0)
+
+/*! macro to set sign into a value.\n
+operation: if(sign == 0) return val, else if(sign == 1) return -val */
+#define EVC_SIGN_SET(val, sign)        ((sign)? -val : val)
+
+/*! macro to get a sign from a 16-bit value.\n
+operation: if(val < 0) return 1, else return 0 */
+#define EVC_SIGN_GET16(val)            (((val)>>15) & 1)
+
+/*! macro to set sign into a 16-bit value.\n
+operation: if(sign == 0) return val, else if(sign == 1) return -val */
+#define EVC_SIGN_SET16(val, sign)      (((val) ^ ((s16)((sign)<<15)>>15)) + (sign))
+
+#define EVC_ALIGN(val, align)          ((((val) + (align) - 1) / (align)) * (align))
+
+#define CONV_LOG2(v)                    (evc_tbl_log2[v])
+
+BOOL is_ptr_aligned(void* ptr, int num_bytes);
+
+u16 evc_get_avail_inter(int x_scu, int y_scu, int w_scu, int h_scu, int scup, int cuw, int cuh, u32 *map_scu);
+u16 evc_get_avail_intra(int x_scu, int y_scu, int w_scu, int h_scu, int scup, int log2_cuw, int log2_cuh, u32 *map_scu);
+#if AQS
+u16 evc_get_qs_scale_blk(pel* rec, int stride, int log2_cuw, int log2_cuh, u16 avail_cu_rec, u16* contrast_fac, u16* luminance_fac, u16 es_factor_norm);
+#endif
+EVC_PIC* evc_picbuf_alloc(int w, int h, int pad_l, int pad_c, int *err);
+void evc_picbuf_free(EVC_PIC *pic);
+void evc_picbuf_expand(EVC_PIC *pic, int exp_l, int exp_c);
+
+#if MMVD
+void evc_get_ext_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int h_scu, int scup, u16 avail, int cuw, int cuh, int tile_group_t, int real_mv[][2][3], u32 *map_scu, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME], u16 avail_lr
+#if ADMVP
+    , EVC_HISTORY_BUFFER history_buffer, int admvp_flag
+#endif
+);
+#endif
+#if ADMVP
+void evc_check_motion_availability2(int scup, int cuw, int cuh, int w_scu, int h_scu, int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], u32 *map_scu, u16 avail_lr, int num_mvp);
+#endif
+void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_scu, int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], u32 *map_scu, u16 avail_lr, int num_mvp);
+
+#if AMVR
+void evc_get_default_motion(int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], s8 cur_refi, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], s8 *refi, s16 mv[MV_D]
+#if DMVR_LAG
+    , u32 *map_scu
+    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+    , int scup
+    ,int w_scu
+#endif
+#if ADMVP
+    , EVC_HISTORY_BUFFER history_buffer
+    , int admvp_flag
+#endif
+);
+#if ABP
+s8 evc_get_first_refi(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int cuw, int cuh, int w_scu, int h_scu, u32 *map_scu, u8 mvr_idx, u16 avail_lr
+#if DMVR_LAG
+    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+#endif
+#if ADMVP
+    , EVC_HISTORY_BUFFER history_buffer
+    , int admvp_flag
+#endif
+);
+#endif
+#endif
+#if INTER_GR || ADMVP
+void evc_get_motion(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],
+    EVC_REFP (*refp)[REFP_NUM], int cuw, int cuh, int w_scu, u16 avail, s8 refi[MAX_NUM_MVP], s16 mvp[MAX_NUM_MVP][MV_D]);
+#endif
+
+void evc_get_motion_skip(int ptr, int tile_group_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],
+                          EVC_REFP refp[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, s8 refi[REFP_NUM][MAX_NUM_MVP], s16 mvp[REFP_NUM][MAX_NUM_MVP][MV_D], u32 *map_scu, u16 avail_lr
+#if DMVR_LAG
+  ,s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+#endif
+#if ADMVP
+                          , EVC_HISTORY_BUFFER history_buffer, int admvp_flag
+#endif
+                         );
+
+#if AMVR
+void evc_get_motion_from_mvr(u8 mvr_idx, int ptr, int scup, int lidx, s8 cur_refi, int num_refp, \
+                              s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
+                              int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][MV_D], s8 refi_pred[MAX_NUM_MVP], u32* map_scu, u16 avail_lr
+#if DMVR_LAG
+    ,s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+#endif
+#if ADMVP
+    , EVC_HISTORY_BUFFER history_buffer
+    , int admvp_flag
+#endif
+);
+#endif
+
+#if AFFINE || !AMVR
+void evc_get_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int num_refp, \
+    s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
+    int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][MV_D], s8 refi_pred[MAX_NUM_MVP], u32* map_scu, u16 avail_lr
+#if DMVR_LAG
+    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+#endif
+);
+#endif
+
+enum
+{
+    SPLIT_MAX_PART_COUNT = 4
+};
+
+typedef struct _EVC_SPLIT_STRUCT
+{
+    int       part_count;
+    int       cud;
+    int       width[SPLIT_MAX_PART_COUNT];
+    int       height[SPLIT_MAX_PART_COUNT];
+    int       log_cuw[SPLIT_MAX_PART_COUNT];
+    int       log_cuh[SPLIT_MAX_PART_COUNT];
+    int       x_pos[SPLIT_MAX_PART_COUNT];
+    int       y_pos[SPLIT_MAX_PART_COUNT];
+    int       cup[SPLIT_MAX_PART_COUNT];
+} EVC_SPLIT_STRUCT;
+
+//! Count of partitions, correspond to split_mode
+int evc_split_part_count(int split_mode);
+//! Get partition size
+int evc_split_get_part_size(int split_mode, int part_num, int length);
+//! Get partition size log
+int evc_split_get_part_size_idx(int split_mode, int part_num, int length_idx);
+//! Get partition split structure
+void evc_split_get_part_structure(int split_mode, int x0, int y0, int cuw, int cuh, int cup, int cud, int log2_culine, EVC_SPLIT_STRUCT* split_struct);
+//! Get array of split modes tried sequentially in RDO
+void evc_split_get_split_rdo_order(int cuw, int cuh, SPLIT_MODE splits[MAX_SPLIT_NUM]);
+//! Get split direction. Quad will return vertical direction.
+SPLIT_DIR evc_split_get_direction(SPLIT_MODE mode);
+#if SUCO
+//! Get SUCO partition order
+void evc_split_get_suco_order(int suco_flag, SPLIT_MODE mode, int suco_order[SPLIT_MAX_PART_COUNT]);
+#endif
+//! Is mode triple tree?
+int  evc_split_is_TT(SPLIT_MODE mode);
+//! Is mode BT?
+int  evc_split_is_BT(SPLIT_MODE mode);
+//! Check that mode is vertical
+int evc_split_is_vertical(SPLIT_MODE mode);
+//! Check that mode is horizontal
+int evc_split_is_horizontal(SPLIT_MODE mode);
+
+#if ADMVP    
+void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 ptr, int scup, int c_scu, u16 w_scu, u16 h_scu, s16 mvp[REFP_NUM][MV_D]
+#if ADMVP
+    , s8 *refidx
+#endif
+);
+#else
+void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 ptr, int scup, u16 w_scu, s16 mvp[REFP_NUM][MV_D]
+#if ADMVP
+    , s8 *refidx
+#endif
+);
+#endif
+
+int evc_get_avail_cu(int neb_scua[MAX_NEB2], u32 * map_cu);
+
+int evc_scan_tbl_init();
+int evc_scan_tbl_delete();
+int evc_get_split_mode(s8* split_mode, int cud, int cup, int cuw, int cuh, int lcu_s
+                        , s8(*split_mode_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]
+
+                        );
+int evc_set_split_mode(s8  split_mode, int cud, int cup, int cuw, int cuh, int lcu_s
+
+                        , s8(*split_mode_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]
+                        );
+#if SUCO
+int evc_get_suco_flag(s8* suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s
+
+                       , s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]
+
+                       );
+int evc_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s
+
+                       , s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]
+
+                       );
+u8 evc_check_suco_cond(int cuw, int cuh, s8 split_mode, int boundary, u8 log2_max_cuwh
+                        , u8 suco_max_depth, u8 suco_min_depth
+                        );
+#endif
+u16 evc_check_nev_avail(int x_scu, int y_scu, int cuw, int cuh, int w_scu, int h_scu, u32 * map_scu);
+
+void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u32* map_scu, u32* map_cu_mode, u8* ctx, u8 tile_group_type);
+
+#if AFFINE
+void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int num_refp, \
+                                    s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
+                                    int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][VER_NUM][MV_D], s8 refi[MAX_NUM_MVP]
+                                    , u32* map_scu, u32* map_affine, int vertex_num, u16 avail_lr
+#if DMVR_LAG
+    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+#endif
+);
+
+int evc_get_affine_merge_candidate(int ptr, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],
+                                    EVC_REFP(*refp)[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, u16 avail, s8 refi[AFF_MAX_CAND][REFP_NUM], s16 mvp[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D], int vertex_num[AFF_MAX_CAND], u32* map_scu, u32* map_affine
+#if DMVR_LAG
+    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+#endif
+);
+int evc_get_affine_memory_access(s16 mv[VER_NUM][MV_D], int cuw, int cuh);
+#endif
+
+/* MD5 structure */
+typedef struct _EVC_MD5
+{
+    u32     h[4]; /* hash state ABCD */
+    u8      msg[64]; /*input buffer (chunk message) */
+    u32     bits[2]; /* number of bits, modulo 2^64 (lsb first)*/
+} EVC_MD5;
+
+/* MD5 Functions */
+void evc_md5_init(EVC_MD5 * md5);
+void evc_md5_update(EVC_MD5 * md5, void * buf, u32 len);
+void evc_md5_update_16(EVC_MD5 * md5, void * buf, u32 len);
+void evc_md5_finish(EVC_MD5 * md5, u8 digest[16]);
+int evc_md5_imgb(EVC_IMGB * imgb, u8 digest[16]);
+
+int evc_picbuf_signature(EVC_PIC * pic, u8 * md5_out);
+
+int evc_atomic_inc(volatile int * pcnt);
+int evc_atomic_dec(volatile int * pcnt);
+
+#define ALLOW_SPLIT_RATIO(id, long_side, block_ratio) (block_ratio < 5 && (long_side <= evc_split_tbl[id][block_ratio][0] && long_side >= evc_split_tbl[id][block_ratio][1]) ? 1 : 0)
+#define ALLOW_SPLIT_TRI(id, long_side) ((long_side <= evc_split_tbl[id][5][0] && long_side >= evc_split_tbl[id][5][1]) ? 1 : 0)
+void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boundary, int boundary_b, int boundary_r, int log2_max_cuwh, int id
+                           , const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth
+#if FBT_ALL
+                           , int x, int y, int im_w, int im_h
+#endif
+                           , u8* remaining_split
+                           );
+
+void evc_init_scan_sr(int *scan, int size_x, int size_y, int width, int scan_type);
+void evc_get_ctx_srxy_para(int ch_type, int width, int height, int *result_offset_x, int *result_offset_y, int *result_shift_x, int *result_shift_y);
+int evc_get_ctx_gt0_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y);
+int evc_get_ctx_gt1_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y);
+int evc_get_ctx_gt2_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y);
+
+#ifdef __cplusplus
+}
+#endif
+
+int evc_get_transform_shift(int log2_size, int type);
+
+#if CABAC_INIT
+void evc_eco_sbac_ctx_initialize(SBAC_CTX_MODEL *ctx, s16 *ctx_init_model, u16 num_ctx, u8 tile_group_type, u8 tile_group_qp);
+#endif
+#if SIMD_CLIP
+void clip_simd(const pel* src, int stored_alf_para_num, pel *dst, int dst_stride, int width, int height, const int clp_rng_min, const int clp_rng_max);
+#endif
+s32 divide_tbl(s32 dividend, s32 divisor);
+
+#if ADMVP
+BOOL check_bi_applicability(int tile_group_type, int cuw, int cuh);
+#endif
+#endif /* _EVC_UTIL_H_ */

@@ -1,0 +1,122 @@
+/* The copyright in this software is being made available under the BSD
+*  License, included below. This software may be subject to other third party
+*  and contributor rights, including patent rights, and no such rights are
+*  granted under this license.
+*  
+*  Copyright (c) 2019, ISO/IEC
+*  All rights reserved.
+*  
+*  Redistribution and use in source and binary forms, with or without
+*  modification, are permitted provided that the following conditions are met:
+*  
+*   * Redistributions of source code must retain the above copyright notice,
+*     this list of conditions and the following disclaimer.
+*   * Redistributions in binary form must reproduce the above copyright notice,
+*     this list of conditions and the following disclaimer in the documentation
+*     and/or other materials provided with the distribution.
+*   * Neither the name of the ISO/IEC nor the names of its contributors may
+*     be used to endorse or promote products derived from this software without
+*     specific prior written permission.
+*  
+*  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+*  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+*  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+*  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
+*  BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+*  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+*  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+*  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+*  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+*  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+*  THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+#ifndef _EVCE_ECO_H_
+#define _EVCE_ECO_H_
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+#include "evce_def.h"
+
+#define GET_SBAC_ENC(bs)   ((EVCE_SBAC *)(bs)->pdata[1])
+
+int evce_eco_cnkh(EVC_BSW * bs, EVC_CNKH * cnkh);
+int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps);
+int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps);
+int evce_eco_tgh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh);
+int evce_eco_udata(EVCE_CTX * ctx, EVC_BSW * bs);
+
+int evce_eco_pred_mode(EVC_BSW * bs, u8 pred_mode
+#if CTX_NEV_PRED_MODE
+                        , int ctx
+#endif
+                        );
+
+int evce_eco_mvd(EVC_BSW * bs, s16 mvd[MV_D]);
+
+#if CABAC_INIT
+void evce_sbac_reset(EVCE_SBAC * sbac, u8 tile_group_type, u8 tile_group_qp);
+#else
+void evce_sbac_reset(EVCE_SBAC * sbac);
+#endif
+void evce_sbac_finish(EVC_BSW *bs);
+void evce_sbac_encode_bin(u32 bin, EVCE_SBAC *sbac, SBAC_CTX_MODEL *ctx_model, EVC_BSW *bs);
+void evce_sbac_encode_bin_trm(u32 bin, EVCE_SBAC *sbac, EVC_BSW *bs);
+int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 pred_mode, int nnz[N_C], int b_no_cbf);
+
+int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int cuw, int cuh);
+int evce_eco_split_mode(EVC_BSW *bs, EVCE_CTX *c, EVCE_CORE *core, int cud, int cup, int cuw, int cuh, int lcu_s
+                         , const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int* curr_split_allow, int qt_depth, int btt_depth, int x, int y);
+#if SUCO
+int evce_eco_suco_flag(EVC_BSW *bs, EVCE_CTX *c, EVCE_CORE *core, int cud, int cup, int cuw, int cuh, int lcu_s, s8 split_mode, int boundary, u8 log2_max_cuwh);
+#endif
+#if MMVD
+void evce_eco_new_skip_flag(EVC_BSW * bs, int flag);
+void evce_eco_inter_ext_direct(EVC_BSW *bs, int pidx);
+int evce_eco_mvp_idx_ext(EVC_BSW *bs, int mvp_idx, int type);
+#endif
+
+void evce_eco_tile_group_end_flag(EVC_BSW * bs, int flag);
+int evce_eco_mvp_idx(EVC_BSW *bs, int mvp_idx);
+int evce_eco_affine_mvp_idx( EVC_BSW *bs, int mvp_idx );
+int evce_eco_mvd(EVC_BSW *bs, s16 mvd[MV_D]);
+int evce_eco_refi(EVC_BSW * bs, int num_refp, int refi);
+void evce_eco_inter_dir(EVC_BSW * bs, s8 refi[REFP_NUM]);
+void evce_eco_inter_t_direct(EVC_BSW *bs, int t_direct_flag);
+//! \todo Change list of arguments
+void evce_eco_xcoef(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num_sig, int ch_type);
+//! \todo Change list of arguments
+int evce_eco_intra_dir(EVC_BSW *bs, u8 ipm, u8 mpm[2], u8 mpm_ext[8], u8 pims[IPD_CNT]);
+int evce_eco_intra_dir_c(EVC_BSW *bs, u8 ipm, u8 ipm_l);
+
+#if AMVR
+int evce_eco_mvr_idx(EVC_BSW *bs, u8 mvr_idx);
+#if ABP
+int evce_eco_bi_idx(EVC_BSW * bs, u8 bi_idx);
+#endif
+#endif
+
+#if AFFINE
+void evce_eco_affine_flag(EVC_BSW * bs, int flag
+#if CTX_NEV_AFFINE_FLAG
+                           , int ctx
+#endif
+                           );
+void evce_eco_affine_mode(EVC_BSW * bs, int flag);
+int evce_eco_affine_mrg_idx(EVC_BSW *bs, s16 affine_mrg_idx);
+void evce_eco_affine_mvd_flag(EVC_BSW *bs, int flag, int refi);
+#endif
+
+#if ALF
+void setAlfFilterShape(evc_AlfFilterShape *  alfShape, int shapeSize);
+int evc_lengthGolomb(int coeffVal, int k);
+int evc_getGolombKMin(evc_AlfFilterShape *  alfShape, int numFilters, int *kMinTab, int bitsCoeffScan[m_MAX_SCAN_VAL][m_MAX_EXP_GOLOMB]);
+void evc_alfGolombEncode(EVC_BSW * bs, int coeff, int kMinTab);
+int evce_eco_alf_tgh_param(EVC_BSW * bs, EVC_TGH * tgh);
+#endif
+#ifdef __cplusplus
+}
+#endif
+#endif /* _EVCE_ECO_H_ */

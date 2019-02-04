@@ -1,0 +1,193 @@
+/* The copyright in this software is being made available under the BSD
+*  License, included below. This software may be subject to other third party
+*  and contributor rights, including patent rights, and no such rights are
+*  granted under this license.
+*  
+*  Copyright (c) 2019, ISO/IEC
+*  All rights reserved.
+*  
+*  Redistribution and use in source and binary forms, with or without
+*  modification, are permitted provided that the following conditions are met:
+*  
+*   * Redistributions of source code must retain the above copyright notice,
+*     this list of conditions and the following disclaimer.
+*   * Redistributions in binary form must reproduce the above copyright notice,
+*     this list of conditions and the following disclaimer in the documentation
+*     and/or other materials provided with the distribution.
+*   * Neither the name of the ISO/IEC nor the names of its contributors may
+*     be used to endorse or promote products derived from this software without
+*     specific prior written permission.
+*  
+*  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+*  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+*  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+*  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
+*  BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+*  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+*  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+*  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+*  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+*  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+*  THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+#ifndef _EVC_PORT_H_
+#define _EVC_PORT_H_
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+
+/*****************************************************************************
+ * types
+ *****************************************************************************/
+#if defined(WIN32) || defined(WIN64)
+typedef __int8                     s8;
+typedef unsigned __int8            u8;
+typedef __int16                    s16;
+typedef unsigned __int16           u16;
+typedef __int32                    s32;
+typedef unsigned __int32           u32;
+typedef __int64                    s64;
+typedef unsigned __int64           u64;
+#elif defined(LINUX)
+#include <stdint.h>
+typedef int8_t                     s8;
+typedef uint8_t                    u8;
+typedef int16_t                    s16;
+typedef uint16_t                   u16;
+typedef int32_t                    s32;
+typedef uint32_t                   u32;
+typedef int64_t                    s64;
+typedef uint64_t                   u64;
+#else
+typedef signed char                s8;
+typedef unsigned char              u8;
+typedef signed short               s16;
+typedef unsigned short             u16;
+typedef signed int                 s32;
+typedef unsigned int               u32;
+#if defined(X86_64) && !defined(_MSC_VER) /* for 64bit-Linux */
+typedef signed long                s64;
+typedef unsigned long              u64;
+#else
+typedef signed long long           s64;
+typedef unsigned long long         u64;
+#endif
+#endif
+
+typedef s16                        pel; /* pixel type */
+typedef s32                        double_pel; /* pixel type */
+
+
+#ifndef NULL
+#define NULL                      (void*)0
+#endif
+
+/*****************************************************************************
+ * limit constant
+ *****************************************************************************/
+#define EVC_UINT16_MAX          ((u16)0xFFFF)
+#define EVC_UINT16_MIN          ((u16)0x0)
+#define EVC_INT16_MAX           ((s16)0x7FFF)
+#define EVC_INT16_MIN           ((s16)0x8000)
+
+#define EVC_UINT_MAX            ((u32)0xFFFFFFFF)
+#define EVC_UINT_MIN            ((u32)0x0)
+#define EVC_INT_MAX             ((int)0x7FFFFFFF)
+#define EVC_INT_MIN             ((int)0x80000000)
+
+#define EVC_UINT32_MAX          ((u32)0xFFFFFFFF)
+#define EVC_UINT32_MIN          ((u32)0x0)
+#define EVC_INT32_MAX           ((s32)0x7FFFFFFF)
+#define EVC_INT32_MIN           ((s32)0x80000000)
+
+#define EVC_UINT64_MAX          ((u64)0xFFFFFFFFFFFFFFFFL)
+#define EVC_UINT64_MIN          ((u64)0x0L)
+#define EVC_INT64_MAX           ((s64)0x7FFFFFFFFFFFFFFFL)
+#define EVC_INT64_MIN           ((s64)0x8000000000000000L)
+
+/*****************************************************************************
+ * memory operations
+ *****************************************************************************/
+#define evc_malloc(size)          malloc((size))
+#define evc_malloc_fast(size)     evc_malloc((size))
+
+#define evc_mfree(m)              if(m){free(m);}
+#define evc_mfree_fast(m)         if(m){evc_mfree(m);}
+
+#define evc_mcpy(dst,src,size)    memcpy((dst), (src), (size))
+#define evc_mset(dst,v,size)      memset((dst), (v), (size))
+#define evc_mset_x64a(dst,v,size) memset((dst), (v), (size))
+#define evc_mset_x128(dst,v,size) memset((dst), (v), (size))
+#define evc_mcmp(dst,src,size)    memcmp((dst), (src), (size))
+static __inline void evc_mset_16b(s16 * dst, s16 v, int cnt)
+{
+    int i;
+    for(i=0; i<cnt; i++)
+        dst[i] = v;
+}
+
+
+/*****************************************************************************
+ * trace and assert
+ *****************************************************************************/
+#ifndef EVC_TRACE
+#define EVC_TRACE               0
+#endif
+
+/* print function */
+#if defined(LINUX)
+#define evc_print(args...) printf(args)
+#else
+#define evc_print(args,...) printf(args,__VA_ARGS__)
+#endif
+
+/* trace function */
+#if EVC_TRACE
+#define evc_trace evc_print("[%s:%d] ", __FILE__, __LINE__); evc_print
+#else
+#if defined(LINUX)
+#define evc_trace(args...) {}
+#else
+#define evc_trace(...) {}
+#endif
+#endif
+
+/* assert function */
+#include <assert.h>
+#define evc_assert(x) \
+    {if(!(x)){assert(x);}}
+#define evc_assert_r(x) \
+    {if(!(x)){assert(x); return;}}
+#define evc_assert_rv(x,r) \
+    {if(!(x)){assert(x); return (r);}}
+#define evc_assert_g(x,g) \
+    {if(!(x)){assert(x); goto g;}}
+#define evc_assert_gv(x,r,v,g) \
+    {if(!(x)){assert(x); (r)=(v); goto g;}}
+
+#define X86_SSE                 1
+
+#ifdef X86_SSE
+#if defined(WIN32) || defined(WIN64)
+#include <emmintrin.h>
+#include <xmmintrin.h>
+#include <tmmintrin.h>
+#include <smmintrin.h>
+#else
+#include <x86intrin.h>
+#endif
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* _EVC_PORT_H_ */
