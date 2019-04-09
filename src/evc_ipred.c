@@ -36,7 +36,7 @@
 
 void evc_get_nbr(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_cu, pel nb[N_C][N_REF][MAX_CU_SIZE * 3], int scup, u32 * map_scu, int w_scu, int h_scu, int ch_type)
 {
-    int  i;
+    int  i, j;
     int  scuw = (ch_type == Y_C) ? (cuw >> MIN_CU_LOG2) : (cuw >> (MIN_CU_LOG2 - 1));
     int  scuh = (ch_type == Y_C) ? (cuh >> MIN_CU_LOG2) : (cuh >> (MIN_CU_LOG2 - 1));
     int  unit_size = (ch_type == Y_C) ? MIN_CU_SIZE : (MIN_CU_SIZE >> 1);
@@ -45,10 +45,7 @@ void evc_get_nbr(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_
     pel *tmp = src;
     pel *left = nb[ch_type][0] + 2;
     pel *up = nb[ch_type][1] + cuh;
-#if SUCO_INTRA
     pel *right = nb[ch_type][2] + 2;
-    int  j;
-#endif
 
     if(IS_AVAIL(avail_cu, AVAIL_UP))
     {
@@ -133,7 +130,7 @@ void evc_get_nbr(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_
     }
 
     src = tmp;
-#if SUCO_INTRA
+
     if(IS_AVAIL(avail_cu, AVAIL_RI))
     {
         src += cuw;
@@ -174,13 +171,12 @@ void evc_get_nbr(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_
             evc_mset_16b(right - 2, 1 << (BIT_DEPTH - 1), cuh + cuw + 2);
         }
     }
-#endif
 }
 
 void ipred_hor(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h)
 {
     int i, j;
-#if SUCO_INTRA
+
     if(avail_lr == LR_11)
     {
         for(i = 0; i < h; i++)
@@ -209,7 +205,6 @@ void ipred_hor(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, in
         }
     }
     else
-#endif
     {
         for(i = 0; i < h; i++)
         {
@@ -236,11 +231,11 @@ void ipred_vert(pel *src_le, pel *src_up, pel * src_ri, u16 avail_lr, pel *dst, 
     }
 }
 
-void ipred_dc(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h, u16 avail_cu)
+void ipred_dc_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h, u16 avail_cu)
 {
     int dc = 0;
     int wh, i, j;
-#if SUCO_INTRA
+
     if(avail_lr == LR_11)
     {
         for(i = 0; i < h; i++) dc += src_le[i];
@@ -265,47 +260,85 @@ void ipred_dc(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int
         }
         else
         {
-            dc = divide_tbl((dc + ((w) >> 1)), (w));
+            dc = divide_tbl((dc + ((h) >> 1)), (h));
         }
     }
     else if(avail_lr == LR_10)
-#else
-    if (IS_AVAIL(avail_cu, AVAIL_LE))
-#endif
     {
         for(i = 0; i < h; i++) dc += src_le[i];
         if(IS_AVAIL(avail_cu, AVAIL_UP))
         {
             for(j = 0; j < w; j++) dc += src_up[j];
-#if (PROFILE_IS_BASELINE(PROFILE))
             dc = (dc + ((w + h) >> 1)) / (w + h);
-#elif (PROFILE_IS_MAIN(PROFILE))
-            dc = divide_tbl((dc + ((w + h) >> 1)), (w + h));
-#else
-#error Not supported profile
-#endif
         }
         else
         {
-#if (PROFILE_IS_BASELINE(PROFILE))
             dc = (dc + (h >> 1)) / h;
-#elif (PROFILE_IS_MAIN(PROFILE))
-            dc = divide_tbl((dc + ((h) >> 1)), (h));
-#else
-#error Not supported profile
-#endif
         }
     }
     else
     {
         for(j = 0; j < w; j++) dc += src_up[j];
-#if (PROFILE_IS_BASELINE(PROFILE))
         dc = (dc + w / 2) / w;
-#elif (PROFILE_IS_MAIN(PROFILE))
+    }
+
+    wh = w * h;
+
+    for(i = 0; i < wh; i++)
+    {
+        dst[i] = (pel)dc;
+    }
+}
+
+void ipred_dc(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h, u16 avail_cu)
+{
+    int dc = 0;
+    int wh, i, j;
+
+    if(avail_lr == LR_11)
+    {
+        for(i = 0; i < h; i++) dc += src_le[i];
+        for(i = 0; i < h; i++) dc += src_ri[i];
+        if(IS_AVAIL(avail_cu, AVAIL_UP))
+        {
+            for(j = 0; j < w; j++) dc += src_up[j];
+            dc = divide_tbl((dc + ((w + h + h) >> 1)), (w + h + h));
+        }
+        else
+        {
+            dc = divide_tbl((dc + h), (h + h));
+        }
+    }
+    else if(avail_lr == LR_01)
+    {
+        for(i = 0; i < h; i++) dc += src_ri[i];
+        if(IS_AVAIL(avail_cu, AVAIL_UP))
+        {
+            for(j = 0; j < w; j++) dc += src_up[j];
+            dc = divide_tbl((dc + ((w + h) >> 1)), (w + h));
+        }
+        else
+        {
+            dc = divide_tbl((dc + ((h) >> 1)), (h));
+        }
+    }
+    else if(avail_lr == LR_10)
+    {
+        for(i = 0; i < h; i++) dc += src_le[i];
+        if(IS_AVAIL(avail_cu, AVAIL_UP))
+        {
+            for(j = 0; j < w; j++) dc += src_up[j];
+            dc = divide_tbl((dc + ((w + h) >> 1)), (w + h));
+        }
+        else
+        {
+            dc = divide_tbl((dc + ((h) >> 1)), (h));
+        }
+    }
+    else
+    {
+        for(j = 0; j < w; j++) dc += src_up[j];
         dc = divide_tbl((dc + ((w) >> 1)), (w));
-#else
-#error Not supported profile
-#endif
     }
 
     wh = w * h;
@@ -334,7 +367,6 @@ void ipred_plane(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, 
     im_v = ib_mult[idx_h];
     is_v = ib_shift[idx_h];
 
-#if SUCO_INTRA
     if(avail_lr == LR_01 || avail_lr == LR_11)
     {
         rsrc = src_up + w2;
@@ -367,7 +399,6 @@ void ipred_plane(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, 
         }
     }
     else
-#endif
     {
         rsrc = src_up + (w2 - 1);
         for(x = 1; x < w2 + 1; x++)
@@ -400,7 +431,7 @@ void ipred_plane(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, 
     }
 }
 
-int lut_size_plus1[MAX_CU_LOG2 + 1] = {2048, 1365, 819, 455, 241, 124, 63, 32, 16};// 1/(w+1) = k >> 12
+int lut_size_plus1[MAX_CU_LOG2 + 1] = {2048, 1365, 819, 455, 241, 124, 63, 32};// 1/(w+1) = k >> 12
 
 void ipred_bi(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h)
 {
@@ -413,32 +444,22 @@ void ipred_bi(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int
     int a, b, c, wt, wxy, tmp;
     int predx;
     int ref_up[MAX_CU_SIZE], ref_le[MAX_CU_SIZE], up[MAX_CU_SIZE], le[MAX_CU_SIZE], wy[MAX_CU_SIZE];
-#if SUCO_INTRA
     int ref_ri[MAX_CU_SIZE], ri[MAX_CU_SIZE];
     int dst_tmp[MAX_CU_SIZE][MAX_CU_SIZE];
-#endif
-#if FBT_BIL_FIX
     int wc, tbl_wc[6] = {-1, 341, 205, 114, 60, 31};
-#else
-    int wc, tbl_wc[4] = {-1, 341, 205, 114};
-#endif
     int log2_w = evc_tbl_log2[w];
     int log2_h = evc_tbl_log2[h];
     int multi_w = lut_size_plus1[log2_w];
     int shift_w = 12;
 
     wc = ishift_x > ishift_y ? ishift_x - ishift_y : ishift_y - ishift_x;
-#if FBT_BIL_FIX
     evc_assert(wc <= 5);
-#endif
     wc = tbl_wc[wc];
 
     for(x = 0; x < w; x++) ref_up[x] = src_up[x];
     for(y = 0; y < h; y++) ref_le[y] = src_le[y];
-#if SUCO_INTRA
     for(y = 0; y < h; y++) ref_ri[y] = src_ri[y];
-#endif
-#if SUCO_INTRA
+
     if(avail_lr == LR_11)
     {
         for(y = 0; y < h; y++)
@@ -495,10 +516,8 @@ void ipred_bi(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int
             }
             dst += w;
         }
-
     }
     else
-#endif
     {
         a = src_up[w];
         b = src_le[h];
@@ -545,7 +564,7 @@ void ipred_bi(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int
 #define ADI_4T_FILTER_OFFSET              (1<<(ADI_4T_FILTER_BITS-1))
 
 INLINE
-pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ipm, int i, int j, int w, int pos_min, int pos_max, u8 spoof_unavailable_le, int h)
+pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ipm, int i, int j, int w, int pos_min, int pos_max, int h)
 {
     int offset, offset_x, offset_y;
     int t_dx, t_dy, xx, xy, yx, yy;
@@ -572,12 +591,15 @@ pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ip
 
     evc_assert(ipm < IPD_CNT);
 
-    if(ipm == IPD_VER) return src_up[i];
-#if SUCO_INTRA
-    else if(ipm == IPD_HOR) return (avail_lr == LR_01 ? src_ri[j] : src_le[j]);
-#else
-    else if(ipm == IPD_HOR) return src_le[j];
-#endif
+    if (ipm == IPD_VER)
+    {
+        return src_up[i];
+    }
+    else if (ipm == IPD_HOR)
+    {
+        return (avail_lr == LR_01 ? src_ri[j] : src_le[j]);
+    }
+
 
     if(ipm < IPD_VER)
     {
@@ -585,7 +607,6 @@ pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ip
         GET_REF_POS(mt[0], j + 1, t_dx, offset);
         x = i + t_dx;
         y = -1;
-#if SUCO_INTRA
         if(x >= w && (avail_lr == LR_01 || avail_lr == LR_11))
         {
             GET_REF_POS(mt[1], w - i, t_dy, offset);
@@ -593,19 +614,17 @@ pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ip
             x = w;
             y = j + t_dy;
         }
-#endif
     }
     else if(ipm > IPD_HOR)
     {
-#if SUCO_INTRA
-        if((avail_lr == LR_01 || avail_lr == LR_11) && spoof_unavailable_le)
+        if (avail_lr == LR_01 || avail_lr == LR_11)
         {
             GET_REF_POS(mt[1], w - i, t_dy, offset);
             t_dy = -t_dy;
             x = w;
             y = j + t_dy;
 
-            if(y <= -1)
+            if (y <= -1)
             {
                 GET_REF_POS(mt[0], w - i, t_dx, offset);
                 x = i + t_dx;
@@ -613,7 +632,6 @@ pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ip
             }
         }
         else
-#endif
         {
             GET_REF_POS(mt[1], i + 1, t_dy, offset);
             x = -1;
@@ -640,14 +658,7 @@ pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ip
         }
         else
         {
-#if SUCO_INTRA
-            if(avail_lr == LR_00 || (avail_lr == LR_01 && !spoof_unavailable_le))
-            {
-                x = xx;
-                y = yx;
-                offset = offset_x;
-            }
-            else if(avail_lr == LR_01)
+            if (avail_lr == LR_01)
             {
                 GET_REF_POS(mt[1], w - i, t_dy, offset_y);
                 x = w;
@@ -655,7 +666,6 @@ pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ip
                 offset = offset_y;
             }
             else
-#endif
             {
                 x = xy;
                 y = yy;
@@ -705,7 +715,6 @@ pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ip
         ++num_selections;
         src_ch = src_le;
     }
-#if SUCO
     else if(x == w)
     {
         if(dxy > 0)
@@ -725,7 +734,6 @@ pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ip
         ++num_selections;
         src_ch = src_ri;
     }
-#endif
 
     evc_assert(num_selections == 1);
     evc_assert(src_ch != NULL);
@@ -766,13 +774,12 @@ void ipred_ang(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, in
     {
         for(i = 0; i < w; i++)
         {
-            dst[i] = ipred_ang_val(src_up, src_le, src_ri, avail_lr, ipm, i, j, w, pos_min, pos_max, 1, h);
+            dst[i] = ipred_ang_val(src_up, src_le, src_ri, avail_lr, ipm, i, j, w, pos_min, pos_max, h);
         }
         dst += w;
     }
 }
 
-#if INTRA_GR
 void ipred_ul(pel *src_le, pel *src_up, pel * src_ri, u16 avail_lr, pel *dst, int w, int h)
 {
     int i, j;
@@ -809,7 +816,33 @@ void ipred_ur(pel *src_le, pel *src_up, pel * src_ri, u16 avail_lr, pel *dst, in
         dst += w;
     }
 }
-#endif
+
+/* intra prediction for baseline profile */
+void evc_ipred_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm, int w, int h, u16 avail_cu)
+{
+    switch(ipm)
+    {
+        case IPD_VER_B:
+            ipred_vert(src_le, src_up, src_ri, avail_lr, dst, w, h);
+            break;
+        case IPD_HOR_B:
+            ipred_hor(src_le, src_up, src_ri, avail_lr, dst, w, h);
+            break;
+        case IPD_DC_B:
+            ipred_dc_b(src_le, src_up, src_ri, avail_lr, dst, w, h, avail_cu);
+            break;
+        case IPD_UL_B:
+            ipred_ul(src_le, src_up, src_ri, avail_lr, dst, w, h);
+            break;
+
+        case IPD_UR_B:
+            ipred_ur(src_le, src_up, src_ri, avail_lr, dst, w, h);
+            break;
+        default:
+            ipred_ang(src_le, src_up, src_ri, avail_lr, dst, w, h, ipm);
+            break;
+    }
+}
 
 void evc_ipred(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm, int w, int h, u16 avail_cu)
 {
@@ -824,15 +857,6 @@ void evc_ipred(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, in
         case IPD_DC:
             ipred_dc(src_le, src_up, src_ri, avail_lr, dst, w, h, avail_cu);
             break;
-#if INTRA_GR
-        case IPD_UL:
-            ipred_ul(src_le, src_up, src_ri, avail_lr, dst, w, h);
-            break;
-
-        case IPD_UR:
-            ipred_ur(src_le, src_up, src_ri, avail_lr, dst, w, h);
-            break;
-#else
         case IPD_PLN:
             ipred_plane(src_le, src_up, src_ri, avail_lr, dst, w, h);
             break;
@@ -840,25 +864,48 @@ void evc_ipred(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, in
         case IPD_BI:
             ipred_bi(src_le, src_up, src_ri, avail_lr, dst, w, h);
             break;
-#endif
         default:
             ipred_ang(src_le, src_up, src_ri, avail_lr, dst, w, h, ipm);
             break;
     }
 }
 
+void evc_ipred_uv_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm_c, int ipm, int w, int h, u16 avail_cu)
+{
+    switch(ipm_c)
+    {
+
+        case IPD_DC_C_B:
+            ipred_dc_b(src_le, src_up, src_ri, avail_lr, dst, w, h, avail_cu);
+            break;
+        case IPD_HOR_C_B:
+            ipred_hor(src_le, src_up, src_ri, avail_lr, dst, w, h);
+            break;
+        case IPD_VER_C_B:
+            ipred_vert(src_le, src_up, src_ri, avail_lr, dst, w, h);
+            break;
+        case IPD_UL_C_B:
+            ipred_ul(src_le, src_up, src_ri, avail_lr, dst, w, h);
+            break;
+
+        case IPD_UR_C_B:
+            ipred_ur(src_le, src_up, src_ri, avail_lr, dst, w, h);
+            break;
+        default:
+            printf("\n illegal chroma intra prediction mode\n");
+            break;
+    }
+}
+
 void evc_ipred_uv(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm_c, int ipm, int w, int h, u16 avail_cu)
 {
-#if !INTRA_GR
     if(ipm_c == IPD_DM_C && EVC_IPRED_CHK_CONV(ipm))
     {
         ipm_c = EVC_IPRED_CONV_L2C(ipm);
     }
 
-#endif
     switch(ipm_c)
     {
-#if !INTRA_GR
         case IPD_DM_C:
             switch(ipm)
             {
@@ -870,7 +917,6 @@ void evc_ipred_uv(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst,
                     break;
             }
             break;
-#endif
 
         case IPD_DC_C:
             ipred_dc(src_le, src_up, src_ri, avail_lr, dst, w, h, avail_cu);
@@ -881,31 +927,16 @@ void evc_ipred_uv(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst,
         case IPD_VER_C:
             ipred_vert(src_le, src_up, src_ri, avail_lr, dst, w, h);
             break;
-#if INTRA_GR
-        case IPD_UL_C:
-            ipred_ul(src_le, src_up, src_ri, avail_lr, dst, w, h);
-            break;
-
-        case IPD_UR_C:
-            ipred_ur(src_le, src_up, src_ri, avail_lr, dst, w, h);
-            break;
-#else
 
         case IPD_BI_C:
             ipred_bi(src_le, src_up, src_ri, avail_lr, dst, w, h);
             break;
-#endif
         default:
             printf("\n illegal chroma intra prediction mode\n");
             break;
     }
 }
 
-#if INTRA_GR
-int intra_mode_list[4][IPD_CNT] = {
-    {0,},
-};
-#else
 int intra_mode_list[4][IPD_CNT] = {
     {
         IPD_DC, IPD_BI, IPD_VER, IPD_PLN, IPD_HOR,
@@ -958,38 +989,31 @@ int intra_mode_list[4][IPD_CNT] = {
     },
 };
 
-#endif
-
-
-
-void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_ipm, int scup, int w_scu,
-#if INTRA_GR
-    u8 ** mpm,
-#else
-    u8 mpm[2],
-#endif
-                   u16 avail_lr, u8 mpm_ext[8], u8 pms[IPD_CNT] /* 10 third MPM */)
+void evc_get_mpm_b(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_ipm, int scup, int w_scu,
+                   u8 ** mpm, u16 avail_lr, u8 mpm_ext[8], u8 pms[IPD_CNT] /* 10 third MPM */)
 {
     u8 ipm_l = IPD_DC, ipm_u = IPD_DC;
-#if INTRA_GR
 
-    if (x_scu > 0 && MCU_GET_IF(map_scu[scup - 1]))
+    if(x_scu > 0 && MCU_GET_IF(map_scu[scup - 1]) && MCU_GET_COD(map_scu[scup - 1]))
     {
         ipm_l = map_ipm[scup - 1] + 1;
     }
-    if (y_scu > 0 && MCU_GET_IF(map_scu[scup - w_scu]))
+    if(y_scu > 0 && MCU_GET_IF(map_scu[scup - w_scu]) && MCU_GET_COD(map_scu[scup - w_scu]))
     {
         ipm_u = map_ipm[scup - w_scu] + 1;
     }
-
     *mpm = (u8*)&evey_tbl_mpm[ipm_l][ipm_u];
-#else
+}
+
+void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_ipm, int scup, int w_scu,
+    u8 mpm[2],
+                   u16 avail_lr, u8 mpm_ext[8], u8 pms[IPD_CNT] /* 10 third MPM */)
+{
+    u8 ipm_l = IPD_DC, ipm_u = IPD_DC;
     u8 ipm_r = IPD_DC;
     int scuw = cuw >> MIN_CU_LOG2;
     int valid_l = 0, valid_u = 0;
-#if SUCO_INTRA
     int valid_r = 0;
-#endif
     int ipd_dia = (IPD_VER + IPD_HOR) >> 1;
     int i;
     int mode_idx = 0;
@@ -1010,7 +1034,7 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
         ipm_u = map_ipm[scup - w_scu];
         valid_u = 1;
     }
-#if SUCO_INTRA
+
     if(x_scu + scuw < w_scu && MCU_GET_IF(map_scu[scup + scuw]) && MCU_GET_COD(map_scu[scup + scuw]))
     {
         ipm_r = map_ipm[scup + scuw];
@@ -1042,7 +1066,7 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
             }
         }
     }
-#endif
+
     mpm[0] = EVC_MIN(ipm_l, ipm_u);
     mpm[1] = EVC_MAX(ipm_l, ipm_u);
 
@@ -1051,14 +1075,12 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
         mpm[0] = IPD_DC;
         mpm[1] = (mpm[1] == IPD_DC) ? IPD_BI : mpm[1];
     }
-#if SUCO_INTRA
+
     if(valid_r)
     {
         int j;
         if(mpm[0] < 3 && mpm[1] < 3)
         {
-            int cnt_cand = 4;
-            int list[21] = {0, 0, 0, 0, IPD_VER, IPD_HOR, IPD_DIA_R, IPD_PLN, IPD_DIA_L, IPD_DIA_U, IPD_VER + 4, IPD_HOR - 4, IPD_VER - 4, IPD_HOR + 4, IPD_VER + 2, IPD_VER - 2, IPD_HOR - 2, IPD_HOR + 2, IPD_VER + 5, IPD_HOR - 5, IPD_VER - 5};
             if(ipm_r < 3)
             {
                 if(mpm[0] == IPD_DC)
@@ -1072,9 +1094,14 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
                 mpm_ext[1] = IPD_VER;
                 mpm_ext[2] = IPD_HOR;
                 mpm_ext[3] = ipd_dia;
+                mpm_ext[4] = IPD_DIA_L;
+                mpm_ext[5] = IPD_DIA_U;
+                mpm_ext[6] = IPD_VER + 4;
+                mpm_ext[7] = IPD_HOR - 4;
             }
             else
             {
+                int list[10] = {IPD_VER, IPD_HOR, IPD_DIA_R, IPD_PLN, IPD_DIA_L, IPD_DIA_U, IPD_VER + 4, IPD_HOR - 4, IPD_VER - 4, IPD_HOR + 4};
                 if(mpm[0] == IPD_DC)
                 {
                     mpm_ext[0] = ((mpm[1] == IPD_BI) ? IPD_PLN : IPD_BI);
@@ -1086,26 +1113,26 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
                 mpm_ext[1] = ipm_r;
                 mpm_ext[2] = ((ipm_r == 3 || ipm_r == 4) ? ipm_r + 1 : ipm_r - 2);
                 mpm_ext[3] = ((ipm_r == IPD_CNT - 1 || ipm_r == IPD_CNT - 2) ? ipm_r - 1 : ipm_r + 2);
-            }
-
-            for(i = 0; i < 21; i++)
-            {
-                for(j = 0; j < cnt_cand; j++)
+                int cnt_cand = 4;
+                for (i = 0; i < 10; i++)
                 {
-                    if(list[i] == mpm_ext[j] || list[i] == mpm[0] || list[i] == mpm[1])
+                    for (j = 0; j < cnt_cand; j++)
+                    {
+                        if (list[i] == mpm_ext[j] || list[i] == mpm[0] || list[i] == mpm[1])
+                        {
+                            break;
+                        }
+                        if (j == cnt_cand - 1)
+                        {
+                            mpm_ext[cnt_cand] = list[i];
+                            cnt_cand++;
+                            break;
+                        }
+                    }
+                    if (cnt_cand > 7)
                     {
                         break;
                     }
-                    if(j == cnt_cand - 1)
-                    {
-                        mpm_ext[cnt_cand] = list[i];
-                        cnt_cand++;
-                        break;
-                    }
-                }
-                if(cnt_cand > 7)
-                {
-                    break;
                 }
             }
         }
@@ -1161,16 +1188,12 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
             }
             else
             {
-                int list[21] = {0, 0, 0, 0, 0, 0, 0, IPD_VER, IPD_HOR, IPD_DIA_R, IPD_PLN, IPD_DIA_L, IPD_DIA_U, IPD_VER + 4, IPD_HOR - 4, IPD_VER - 4, IPD_HOR + 4, IPD_VER + 2, IPD_VER - 2, IPD_HOR - 2, IPD_HOR + 2};
+                int list[15] = { 0, 0, 0, 0, 0, 0, 0, IPD_VER, IPD_HOR, IPD_DIA_R, IPD_PLN, IPD_DIA_L, IPD_DIA_U, IPD_VER + 4, IPD_HOR - 4};
                 int cnt_cand = 0;
                 list[0] = ((ipm_r == 3 || ipm_r == 4) ? ipm_r + 1 : ipm_r - 2);
-
                 list[1] = ((ipm_r == IPD_CNT - 1 || ipm_r == IPD_CNT - 2) ? ipm_r - 1 : ipm_r + 2);
-
                 list[2] = ((mpm[1] == 3 || mpm[1] == 4) ? mpm[1] + 1 : mpm[1] - 2);
-
                 list[3] = ((mpm[1] == IPD_CNT - 1 || mpm[1] == IPD_CNT - 2) ? mpm[1] - 1 : mpm[1] + 2);
-
                 list[4] = (ipm_r + mpm[1] + 1) >> 1;
                 list[5] = (list[4] + ipm_r + 1) >> 1;
                 list[6] = (list[4] + mpm[1] + 1) >> 1;
@@ -1188,7 +1211,7 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
                 mpm_ext[2] = ipm_r;
 
                 cnt_cand = 3;
-                for(i = 0; i < 21; i++)
+                for(i = 0; i < 15; i++)
                 {
                     for(j = 0; j < cnt_cand; j++)
                     {
@@ -1214,15 +1237,12 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
         {
             if(ipm_r < 3)
             {
-                int list[21] = {0, 0, 0, 0, 0, 0, 0, IPD_VER, IPD_HOR, IPD_DIA_R, IPD_PLN, IPD_DIA_L, IPD_DIA_U, IPD_VER + 4, IPD_HOR - 4, IPD_VER - 4, IPD_HOR + 4, IPD_VER + 2, IPD_VER - 2, IPD_HOR - 2, IPD_HOR + 2};
+                int list[15] = {0, 0, 0, 0, 0, 0, 0, IPD_VER, IPD_HOR, IPD_DIA_R, IPD_PLN, IPD_DIA_L, IPD_DIA_U, IPD_VER + 4, IPD_HOR - 4};
                 int cnt_cand = 0;
                 list[0] = ((mpm[0] == 3 || mpm[0] == 4) ? mpm[0] + 1 : mpm[0] - 2);
-
-                list[1] = ((mpm[0] == IPD_CNT - 1 || mpm[0] == IPD_CNT - 2) ? mpm[0] - 1 : mpm[0] + 2);
-
-                list[2] = ((mpm[1] == 3 || mpm[1] == 4) ? mpm[1] + 1 : mpm[1] - 2);
+                list[1] = ((mpm[0] == IPD_CNT - 2) ? mpm[0] - 1 : mpm[0] + 2);
+                list[2] = ((mpm[1] == 4) ? mpm[1] + 1 : mpm[1] - 2);
                 list[3] = ((mpm[1] == IPD_CNT - 1 || mpm[1] == IPD_CNT - 2) ? mpm[1] - 1 : mpm[1] + 2);
-
                 list[4] = (mpm[0] + mpm[1] + 1) >> 1;
                 list[5] = (list[4] + mpm[0] + 1) >> 1;
                 list[6] = (list[4] + mpm[1] + 1) >> 1;
@@ -1231,7 +1251,7 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
                 mpm_ext[1] = (ipm_r == IPD_BI) ? IPD_DC : IPD_BI;
 
                 cnt_cand = 2;
-                for(i = 0; i < 21; i++)
+                for(i = 0; i < 15; i++)
                 {
                     for(j = 0; j < cnt_cand; j++)
                     {
@@ -1254,17 +1274,14 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
             }
             else
             {
-                int list[21] = {0, 0, 0, 0, 0, 0, 0, 0, IPD_VER, IPD_HOR, IPD_DIA_R, IPD_PLN, IPD_DIA_L, IPD_DIA_U, IPD_VER + 4, IPD_HOR - 4, IPD_VER - 4, IPD_HOR + 4, IPD_VER + 2, IPD_VER - 2, IPD_HOR - 2/*, IPD_HOR + 3*/};
+                int list[16] = {0, 0, 0, 0, 0, 0, 0, 0, IPD_VER, IPD_HOR, IPD_DIA_R, IPD_PLN, IPD_DIA_L, IPD_DIA_U, IPD_VER + 4, IPD_HOR - 4};
                 int cnt_cand = 0;
                 list[0] = ((mpm[0] == 3 || mpm[0] == 4) ? mpm[0] + 1 : mpm[0] - 2);
-                list[1] = ((mpm[0] == IPD_CNT - 1 || mpm[0] == IPD_CNT - 2) ? mpm[0] - 1 : mpm[0] + 2);
-
-                list[2] = ((mpm[1] == 3 || mpm[1] == 4) ? mpm[1] + 1 : mpm[1] - 2);
+                list[1] = ((mpm[0] == IPD_CNT - 2) ? mpm[0] - 1 : mpm[0] + 2);
+                list[2] = ((mpm[1] == 4) ? mpm[1] + 1 : mpm[1] - 2);
                 list[3] = ((mpm[1] == IPD_CNT - 1 || mpm[1] == IPD_CNT - 2) ? mpm[1] - 1 : mpm[1] + 2);
-
                 list[4] = ((ipm_r == 3 || ipm_r == 4) ? ipm_r + 1 : ipm_r - 2);
                 list[5] = ((ipm_r == IPD_CNT - 1 || ipm_r == IPD_CNT - 2) ? ipm_r - 1 : ipm_r + 2);
-
                 list[6] = ((ipm_r < mpm[1]) ? (mpm[0] + ipm_r + 1) >> 1 : (mpm[0] + mpm[1] + 1) >> 1);
                 list[7] = ((ipm_r < mpm[0]) ? (mpm[0] + mpm[1] + 1) >> 1 : (mpm[1] + ipm_r + 1) >> 1);
 
@@ -1273,7 +1290,7 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
                 mpm_ext[2] = ipm_r;
 
                 cnt_cand = 3;
-                for(i = 0; i < 21; i++)
+                for(i = 0; i < 16; i++)
                 {
                     for(j = 0; j < cnt_cand; j++)
                     {
@@ -1297,14 +1314,12 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
         }
     }
     else
-#endif
     {
         int j;
         if(mpm[0] < 3 && mpm[1] < 3)
         {
             int cnt_cand = 4;
-            int list[21] = {0, 0, 0, 0, IPD_VER, IPD_HOR, IPD_DIA_R, IPD_PLN, IPD_DIA_L, IPD_DIA_U, IPD_VER + 4, IPD_HOR - 4, IPD_VER - 4, IPD_HOR + 4, IPD_VER + 2, IPD_VER - 2, IPD_HOR - 2, IPD_HOR + 2, IPD_VER + 5, IPD_HOR - 5, IPD_VER - 5};
-
+            
             if(mpm[0] == IPD_DC)
             {
                 mpm_ext[0] = ((mpm[1] == IPD_BI) ? IPD_PLN : IPD_BI);
@@ -1316,28 +1331,10 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
             mpm_ext[1] = IPD_VER;
             mpm_ext[2] = IPD_HOR;
             mpm_ext[3] = ipd_dia;
-
-            for(i = 0; i < 21; i++)
-            {
-                for(j = 0; j < cnt_cand; j++)
-                {
-                    if(list[i] == mpm_ext[j] || list[i] == mpm[0] || list[i] == mpm[1])
-                    {
-                        break;
-                    }
-                    if(j == cnt_cand - 1)
-                    {
-                        mpm_ext[cnt_cand] = list[i];
-                        cnt_cand++;
-                        break;
-                    }
-                }
-                if(cnt_cand > 7)
-                {
-                    break;
-                }
-            }
-
+            mpm_ext[4] = IPD_DIA_L;
+            mpm_ext[5] = IPD_DIA_U;
+            mpm_ext[6] = IPD_VER + 4;
+            mpm_ext[7] = IPD_HOR - 4;
         }
         else if(mpm[0] < 3)
         {
@@ -1392,15 +1389,12 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
         }
         else
         {
-            int list[21] = {0, 0, 0, 0, 0, 0, 0, IPD_VER, IPD_HOR, IPD_DIA_R, IPD_PLN, IPD_DIA_L, IPD_DIA_U, IPD_VER + 4, IPD_HOR - 4, IPD_VER - 4, IPD_HOR + 4, IPD_VER + 2, IPD_VER - 2, IPD_HOR - 2, IPD_HOR + 2};
+            int list[15] = {0, 0, 0, 0, 0, 0, 0, IPD_VER, IPD_HOR, IPD_DIA_R, IPD_PLN, IPD_DIA_L, IPD_DIA_U, IPD_VER + 4, IPD_HOR - 4};
             int cnt_cand = 0;
             list[0] = ((mpm[0] == 3 || mpm[0] == 4) ? mpm[0] + 1 : mpm[0] - 2);
-
-            list[1] = ((mpm[0] == IPD_CNT - 1 || mpm[0] == IPD_CNT - 2) ? mpm[0] - 1 : mpm[0] + 2);
-
-            list[2] = ((mpm[1] == 3 || mpm[1] == 4) ? mpm[1] + 1 : mpm[1] - 2);
+            list[1] = ((mpm[0] == IPD_CNT - 2) ? mpm[0] - 1 : mpm[0] + 2);
+            list[2] = ((mpm[1] == 4) ? mpm[1] + 1 : mpm[1] - 2);
             list[3] = ((mpm[1] == IPD_CNT - 1 || mpm[1] == IPD_CNT - 2) ? mpm[1] - 1 : mpm[1] + 2);
-
             list[4] = (mpm[0] + mpm[1] + 1) >> 1;
             list[5] = (list[4] + mpm[0] + 1) >> 1;
             list[6] = (list[4] + mpm[1] + 1) >> 1;
@@ -1409,7 +1403,7 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
             mpm_ext[1] = IPD_DC;
 
             cnt_cand = 2;
-            for(i = 0; i < 21; i++)
+            for(i = 0; i < 15; i++)
             {
                 for(j = 0; j < cnt_cand; j++)
                 {
@@ -1462,5 +1456,4 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
         }
     }
     assert(mode_idx == IPD_CNT);
-#endif
 }

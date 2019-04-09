@@ -47,40 +47,22 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps);
 int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps);
 int evce_eco_tgh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh);
 int evce_eco_udata(EVCE_CTX * ctx, EVC_BSW * bs);
-
-int evce_eco_pred_mode(EVC_BSW * bs, u8 pred_mode
-#if CTX_NEV_PRED_MODE
-                        , int ctx
-#endif
-                        );
-
+int evce_eco_pred_mode(EVC_BSW * bs, u8 pred_mode, int ctx);
 int evce_eco_mvd(EVC_BSW * bs, s16 mvd[MV_D]);
-
-#if CABAC_INIT
-void evce_sbac_reset(EVCE_SBAC * sbac, u8 tile_group_type, u8 tile_group_qp);
-#else
-void evce_sbac_reset(EVCE_SBAC * sbac);
-#endif
+void evce_sbac_reset(EVCE_SBAC * sbac, u8 tile_group_type, u8 tile_group_qp, int sps_cm_init_flag);
 void evce_sbac_finish(EVC_BSW *bs);
 void evce_sbac_encode_bin(u32 bin, EVCE_SBAC *sbac, SBAC_CTX_MODEL *ctx_model, EVC_BSW *bs);
 void evce_sbac_encode_bin_trm(u32 bin, EVCE_SBAC *sbac, EVC_BSW *bs);
-int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 pred_mode, int nnz[N_C], int b_no_cbf);
-
+int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 pred_mode, int nnz_sub[N_C][MAX_SUB_TB_NUM], int b_no_cbf, int run_stats);
 int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int cuw, int cuh);
 int evce_eco_split_mode(EVC_BSW *bs, EVCE_CTX *c, EVCE_CORE *core, int cud, int cup, int cuw, int cuh, int lcu_s
-                         , const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int* curr_split_allow, int qt_depth, int btt_depth, int x, int y);
-#if SUCO
+                        , const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int* curr_split_allow, int qt_depth, int btt_depth, int x, int y);
 int evce_eco_suco_flag(EVC_BSW *bs, EVCE_CTX *c, EVCE_CORE *core, int cud, int cup, int cuw, int cuh, int lcu_s, s8 split_mode, int boundary, u8 log2_max_cuwh);
-#endif
-#if MMVD
-void evce_eco_new_skip_flag(EVC_BSW * bs, int flag);
-void evce_eco_inter_ext_direct(EVC_BSW *bs, int pidx);
-int evce_eco_mvp_idx_ext(EVC_BSW *bs, int mvp_idx, int type);
-#endif
-
+void evce_eco_mmvd_flag(EVC_BSW * bs, int flag);
+int evce_eco_mmvd_info(EVC_BSW *bs, int mvp_idx, int type);
 void evce_eco_tile_group_end_flag(EVC_BSW * bs, int flag);
-int evce_eco_mvp_idx(EVC_BSW *bs, int mvp_idx);
-int evce_eco_affine_mvp_idx( EVC_BSW *bs, int mvp_idx );
+int evce_eco_mvp_idx(EVC_BSW *bs, int mvp_idx, int sps_amis_flag);
+int evce_eco_affine_mvp_idx(EVC_BSW *bs, int mvp_idx);
 int evce_eco_mvd(EVC_BSW *bs, s16 mvd[MV_D]);
 int evce_eco_refi(EVC_BSW * bs, int num_refp, int refi);
 void evce_eco_inter_dir(EVC_BSW * bs, s8 refi[REFP_NUM]);
@@ -88,27 +70,21 @@ void evce_eco_inter_t_direct(EVC_BSW *bs, int t_direct_flag);
 //! \todo Change list of arguments
 void evce_eco_xcoef(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num_sig, int ch_type);
 //! \todo Change list of arguments
+int evce_eco_intra_dir_b(EVC_BSW *bs, u8 ipm, u8 * mpm, u8 mpm_ext[8], u8 pims[IPD_CNT]);
 int evce_eco_intra_dir(EVC_BSW *bs, u8 ipm, u8 mpm[2], u8 mpm_ext[8], u8 pims[IPD_CNT]);
 int evce_eco_intra_dir_c(EVC_BSW *bs, u8 ipm, u8 ipm_l);
-
-#if AMVR
 int evce_eco_mvr_idx(EVC_BSW *bs, u8 mvr_idx);
-#if ABP
 int evce_eco_bi_idx(EVC_BSW * bs, u8 bi_idx);
-#endif
-#endif
-
 #if AFFINE
 void evce_eco_affine_flag(EVC_BSW * bs, int flag
 #if CTX_NEV_AFFINE_FLAG
-                           , int ctx
+                          , int ctx
 #endif
-                           );
+);
 void evce_eco_affine_mode(EVC_BSW * bs, int flag);
 int evce_eco_affine_mrg_idx(EVC_BSW *bs, s16 affine_mrg_idx);
 void evce_eco_affine_mvd_flag(EVC_BSW *bs, int flag, int refi);
 #endif
-
 #if ALF
 void setAlfFilterShape(evc_AlfFilterShape *  alfShape, int shapeSize);
 int evc_lengthGolomb(int coeffVal, int k);

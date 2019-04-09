@@ -216,7 +216,6 @@ void evc_set_affine_mvf(EVCE_CTX * ctx, EVCE_CORE * core, int w, int h, s8 refi[
 
 void evce_split_tbl_init(EVCE_CTX *ctx)
 {
-#if !QT_ON_BTT_OFF
     int i;
     for(i = 0; i < 6; i++)
     {
@@ -233,5 +232,4 @@ void evce_split_tbl_init(EVCE_CTX *ctx)
         evc_split_tbl[i][5][0] = ctx->cdsc.framework_tris_max;
         evc_split_tbl[i][5][1] = ctx->cdsc.framework_tris_min;
     }
-#endif
 }

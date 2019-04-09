@@ -36,12 +36,12 @@
 
 #include "evcd_def.h"
 
-enum AlfFilterType
+typedef enum _AlfFilterType
 {
   ALF_FILTER_5,
   ALF_FILTER_7,
   ALF_NUM_OF_FILTER_TYPES
-};
+} AlfFilterType;
 
 static const u8 g_tbMax[257] = { 0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
@@ -69,6 +69,8 @@ void call_create_ALF(AdaptiveLoopFilter* p, const int picWidth, const int picHei
 void call_destroy_ALF(AdaptiveLoopFilter* p);
 
 void call_ALFProcess(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic);
+
+void init_AlfFilterShape(void * th, int size);
 
 #ifdef __cplusplus
 }

@@ -96,30 +96,34 @@ enum STRUCTURE
 };
 #endif
 
-static char op_fname_cfg[256] = "\0"; /* config file path name */
-static char op_fname_inp[256] = "\0"; /* input original video */
-static char op_fname_out[256] = "\0"; /* output bitstream */
-static char op_fname_rec[256] = "\0"; /* reconstructed video */
-static int  op_max_frm_num = 0;
-static int  op_use_pic_signature = 1;
-static int  op_w = 0;
-static int  op_h = 0;
-static int  op_qp = 0;
-static int  op_fps = 0;
-static int  op_iperiod = 0;
-static int  op_max_b_frames= 0;
-static int  op_closed_gop = 0;
-static int  op_disable_hgop = 0;
-static int  op_in_bit_depth = 8;
-static int  op_skip_frames = 0;
-static int  op_out_bit_depth = 0; /* same as input bit depth */
+static char op_fname_cfg[256]     = "\0"; /* config file path name */
+static char op_fname_inp[256]     = "\0"; /* input original video */
+static char op_fname_out[256]     = "\0"; /* output bitstream */
+static char op_fname_rec[256]     = "\0"; /* reconstructed video */
+static int  op_max_frm_num        = 0;
+static int  op_use_pic_signature  = 1;
+static int  op_w                  = 0;
+static int  op_h                  = 0;
+static int  op_qp                 = 0;
+static int  op_fps                = 0;
+static int  op_iperiod            = 0;
+static int  op_max_b_frames       = 0;
+static int  op_closed_gop         = 0;
+static int  op_disable_hgop       = 0;
+static int  op_in_bit_depth       = 8;
+static int  op_skip_frames        = 0;
+static int  op_out_bit_depth      = 0; /* same as input bit depth */
+static int  op_profile            = 2;
+static int  op_level              = 0;
+static int  op_btt                = 1;
+static int  op_suco               = 1;
 #if USE_TILE_GROUP_DQP
-static int  op_add_qp_frames = 0;
+static int  op_add_qp_frames      = 0;
 #endif
-static int  op_qp_offset_cb = 0;
-static int  op_qp_offset_cr = 0;
-static int  op_framework_ctu_size = 8;
-static int  op_framework_cu11_max = 8;
+static int  op_qp_offset_cb       = 0;
+static int  op_qp_offset_cr       = 0;
+static int  op_framework_ctu_size = 7;
+static int  op_framework_cu11_max = 7;
 static int  op_framework_cu11_min = 2;
 static int  op_framework_cu12_max = 7;
 static int  op_framework_cu12_min = 3;
@@ -137,6 +141,11 @@ static int  op_tool_alf           = 1; /* default on */
 static int  op_tool_admvp         = 1; /* default on */
 static int  op_tool_amis          = 1; /* default on */
 static int  op_tool_htdf          = 1; /* default on */
+static int  op_tool_eipd          = 1;
+static int  op_tool_iqt           = 1;
+static int  op_tool_cm_init       = 1;
+static int  op_cb_qp_offset       = 1;
+static int  op_cr_qp_offset       = 1;
 
 static char  op_rpl0[MAX_NUM_RPLS][256];
 static char  op_rpl1[MAX_NUM_RPLS][256];
@@ -161,6 +170,10 @@ typedef enum _OP_FLAGS
     OP_FLAG_OUT_BIT_DEPTH,
     OP_FLAG_IN_BIT_DEPTH,
     OP_FLAG_SKIP_FRAMES,
+    OP_PROFILE,
+    OP_LEVEL,
+    OP_BTT,
+    OP_SUCO,
 #if USE_TILE_GROUP_DQP
     OP_FLAG_ADD_QP_FRAME,
 #endif
@@ -185,7 +198,11 @@ typedef enum _OP_FLAGS
     OP_TOOL_HTDF,
     OP_TOOL_ADMVP,
     OP_TOOL_AMIS,
-
+    OP_TOOL_EIPD,
+    OP_TOOL_IQT,
+    OP_TOOL_CM_INIT,
+    OP_CB_QP_OFFSET,
+    OP_CR_QP_OFFSET,
     OP_FLAG_RPL0_0,
     OP_FLAG_RPL0_1,
     OP_FLAG_RPL0_2,
@@ -334,6 +351,26 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_FLAG_SKIP_FRAMES], &op_skip_frames,
         "number of skipped frames before encoding. default 0"
     },
+    {
+        EVC_ARGS_NO_KEY,  "profile", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_PROFILE], &op_profile,
+        "profile setting flag  2: main, 1: baseline (default 2(main)) "
+    },
+    {
+        EVC_ARGS_NO_KEY,  "level", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_LEVEL], &op_level,
+        "level setting "
+    },
+    {
+        EVC_ARGS_NO_KEY,  "btt", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_BTT], &op_btt,
+        "binary and ternary splits on/off flag"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "suco", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_SUCO], &op_suco,
+        "split unit coding ordering on/off flag"
+    },
 #if USE_TILE_GROUP_DQP
     {
         'a',  "qp_add_frm", EVC_ARGS_VAL_TYPE_INTEGER,
@@ -446,7 +483,31 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_TOOL_AMIS], &op_tool_amis,
         "amis on/off flag"
     },
-
+    {
+        EVC_ARGS_NO_KEY,  "eipd", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_TOOL_EIPD], &op_tool_eipd,
+        "eipd on/off flag"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "iqt", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_TOOL_IQT], &op_tool_iqt,
+        "iqt on/off flag"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "cm_init", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_TOOL_CM_INIT], &op_tool_cm_init,
+        "cm_init on/off flag"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "cb_qp_offset", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_CB_QP_OFFSET], &op_cb_qp_offset,
+        "cb qp offset"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "cr_qp_offset", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_CR_QP_OFFSET], &op_cr_qp_offset,
+        "cr qp offset"
+    },
     {
         EVC_ARGS_NO_KEY,  "RPL0_0", EVC_ARGS_VAL_TYPE_STRING,
         &op_flag[OP_FLAG_RPL0_0], &op_rpl0[0],
@@ -661,7 +722,6 @@ static EVC_ARGS_OPTION options[] = \
     },
 
 
-
     {0, "", EVC_ARGS_VAL_TYPE_NONE, NULL, NULL, ""} /* termination */
 };
 
@@ -690,6 +750,11 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->fps = op_fps;
     cdsc->iperiod = op_iperiod;
     cdsc->max_b_frames = op_max_b_frames;
+    cdsc->profile = op_profile;
+    cdsc->level = op_level;
+    cdsc->btt = op_btt;
+    cdsc->suco = op_suco;
+
 #if USE_TILE_GROUP_DQP
     cdsc->add_qp_frame = op_add_qp_frames;
 #endif
@@ -708,7 +773,7 @@ static int get_conf(EVCE_CDSC * cdsc)
     {
         op_out_bit_depth = op_in_bit_depth;
     }
-    cdsc->out_bit_depth = op_out_bit_depth;
+    cdsc->out_bit_depth      = op_out_bit_depth;
     cdsc->framework_ctu_size = op_framework_ctu_size;
     cdsc->framework_cu11_max = op_framework_cu11_max;
     cdsc->framework_cu11_min = op_framework_cu11_min;
@@ -728,6 +793,11 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->tool_admvp         = op_tool_admvp;
     cdsc->tool_amis          = op_tool_amis;
     cdsc->tool_htdf          = op_tool_htdf;
+    cdsc->tool_eipd          = op_tool_eipd;
+    cdsc->tool_iqt           = op_tool_iqt;
+    cdsc->tool_cm_init       = op_tool_cm_init;
+    cdsc->cb_qp_offset       = op_cb_qp_offset;
+    cdsc->cr_qp_offset       = op_cr_qp_offset;
 
     for (int i = 0; i < MAX_NUM_RPLS && op_rpl0[i][0] != 0; ++i)
     {
@@ -783,6 +853,11 @@ static int print_enc_conf(EVCE_CDSC * cdsc)
     printf("ADMVP: %d, ",  cdsc->tool_admvp);
     printf("AMIS: %d, ",   cdsc->tool_amis);
     printf("HTDF: %d ",    cdsc->tool_htdf);
+    printf("EIPD: %d, ",   cdsc->tool_eipd);
+    printf("IQT: %d, ",    cdsc->tool_iqt);
+    printf("CM_INIT: %d ", cdsc->tool_cm_init);
+    printf("CB_QP_OFFSET: %d ", cdsc->cb_qp_offset);
+    printf("CR_QP_OFFSET: %d ", cdsc->cr_qp_offset);
     printf("\n");
     return 0;
 }

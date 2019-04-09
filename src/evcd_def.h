@@ -95,11 +95,8 @@ typedef struct _EVCD_CORE
     /* intra prediction direction of current CU */
     u8             ipm[2];
     /* most probable mode for intra prediction */
-#if INTRA_GR
-    u8             * mpm;
-#else
+    u8             * mpm_b_list;
     u8             mpm[2];
-#endif
     u8             mpm_ext[8];
     u8             pims[IPD_CNT]; /* probable intra mode set*/
     /* prediction mode of current CU: INTRA, INTER, ... */
@@ -113,6 +110,7 @@ typedef struct _EVCD_CORE
     u8             log2_cuh;
     /* is there coefficient? */
     int            is_coef[N_C];
+    int            is_coef_sub[N_C][MAX_SUB_TB_NUM];
     /* QP for Luma of current encoding MB */
     u8             qp_y;
     /* QP for Chroma of current encoding MB */
@@ -134,18 +132,13 @@ typedef struct _EVCD_CORE
     /* top pel position of current LCU */
     u16            y_pel;
     /* split mode map for current LCU */
-
     s8             split_mode[MAX_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
-#if SUCO
     /* SUCO flag for current LCU */
     s8             suco_flag[MAX_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
-#endif
     /* platform specific data, if needed */
     void          *pf;
-#if MMVD
     s16            mmvd_idx;
-    u8             new_skip_flag;
-#endif
+    u8             mmvd_flag;
 #if EIF
     /* temporal pixel buffer for inter prediction */
 #if EIF_SIMD
@@ -153,9 +146,7 @@ typedef struct _EVCD_CORE
 #endif
     pel            eif_tmp_buffer[EIF_NUM_LINES_IN_PREP_DATA * EIF_PREP_DATA_STRIDE + EIF_NUM_LINES_IN_UPSCALED_DATA * EIF_UPSCALED_DATA_STRIDE];
 #endif
-#if AMVR
     u8             mvr_idx;
-#endif
 #if DMVR_FLAG
     u8            dmvr_flag;
 #endif
@@ -225,9 +216,7 @@ struct _EVCD_CTX
     u32                    *map_scu;
     /* LCU split information */
     s8                    (*map_split)[MAX_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
-#if SUCO
     s8                    (*map_suco)[MAX_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
-#endif
     /* decoded motion vector for every blocks */
     s16                   (*map_mv)[REFP_NUM][MV_D];
 #if DMVR_LAG

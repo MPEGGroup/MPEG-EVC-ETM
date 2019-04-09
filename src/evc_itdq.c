@@ -41,13 +41,11 @@
 #define ITX_CLIP(x) \
     (s16)(((x)<MIN_TX_VAL)? MIN_TX_VAL: (((x)>MAX_TX_VAL)? MAX_TX_VAL: (x)))
 
-#if TRANSFORM_SHIFT_CHAGE
 #define MAX_TX_DYNAMIC_RANGE_32               31
 #define MAX_TX_VAL_32                       2147483647
 #define MIN_TX_VAL_32                      (-2147483647-1)
 #define ITX_CLIP_32(x) \
     (s32)(((x)<=MIN_TX_VAL_32)? MIN_TX_VAL_32: (((x)>=MAX_TX_VAL_32)? MAX_TX_VAL_32: (x)))
-#endif
 
 #define DQUANT(c, scale, offset, shift) (((c)*(scale)+(offset))>>(shift))
 
@@ -154,20 +152,12 @@
 }
 #endif
 
-#if TRANSFORM_SHIFT_CHAGE
-static void itx_pb2(void *src, void *dst, int shift, int line, int step)
-#else
-static void itx_pb2(s16 *src, s16 *dst, int shift, int line)
-#endif
+/////////////////////////////////////////////////////////
+static void itx_pb2b(void *src, void *dst, int shift, int line, int step)
 {
     int j;
-#if TRANSFORM_SHIFT_CHAGE
     s64 E, O;
-#else
-    int E, O;
-#endif
     int add = shift == 0 ? 0 : 1 << (shift - 1);
-#if TRANSFORM_SHIFT_CHAGE
 #define RUN_ITX_PB2(src, dst, type_src, type_dst) \
     for (j = 0; j < line; j++)\
     {\
@@ -194,35 +184,14 @@ static void itx_pb2(s16 *src, s16 *dst, int shift, int line)
     {
         RUN_ITX_PB2(src, dst, s32, s16);
     }
-#else
-    for (j = 0; j < line; j++)
-    {
-        /* E and O */
-        E = src[0 * line + j] + src[1 * line + j];
-        O = src[0 * line + j] - src[1 * line + j];
-
-        dst[j * 2 + 0] = ITX_CLIP((evc_tbl_tm2[0][0] * E + add) >> shift);
-        dst[j * 2 + 1] = ITX_CLIP((evc_tbl_tm2[1][0] * O + add) >> shift);
-    }
-#endif
 }
 
-#if TRANSFORM_SHIFT_CHAGE 
-static void itx_pb4(void *src, void *dst, int shift, int line, int step)
-#else
-static void itx_pb4(s16 *src, s16 *dst, int shift, int line)
-#endif
+static void itx_pb4b(void *src, void *dst, int shift, int line, int step)
 {
     int j;
-#if TRANSFORM_SHIFT_CHAGE 
     s64 E[2], O[2];
     int add = shift == 0 ? 0 : 1 << (shift - 1);
-#else
-    int E[2], O[2];
-    int add = 1 << (shift - 1);
-#endif
 
-#if TRANSFORM_SHIFT_CHAGE
 #define RUN_ITX_PB4(src, dst, type_src, type_dst) \
     for (j = 0; j < line; j++)\
     {\
@@ -258,32 +227,11 @@ static void itx_pb4(s16 *src, s16 *dst, int shift, int line)
         RUN_ITX_PB4(src, dst, s32, s16);
     }
 
-#else
-    for (j = 0; j < line; j++)
-    {
-        /* Utilizing symmetry properties to the maximum to minimize the number of multiplications */
-        O[0] = evc_tbl_tm4[1][0] * src[1 * line + j] + evc_tbl_tm4[3][0] * src[3 * line + j];
-        O[1] = evc_tbl_tm4[1][1] * src[1 * line + j] + evc_tbl_tm4[3][1] * src[3 * line + j];
-        E[0] = evc_tbl_tm4[0][0] * src[0 * line + j] + evc_tbl_tm4[2][0] * src[2 * line + j];
-        E[1] = evc_tbl_tm4[0][1] * src[0 * line + j] + evc_tbl_tm4[2][1] * src[2 * line + j];
-
-        /* Combining even and odd terms at each hierarchy levels to calculate the final spatial domain vector */
-        dst[j * 4 + 0] = ITX_CLIP((E[0] + O[0] + add) >> shift);
-        dst[j * 4 + 1] = ITX_CLIP((E[1] + O[1] + add) >> shift);
-        dst[j * 4 + 2] = ITX_CLIP((E[1] - O[1] + add) >> shift);
-        dst[j * 4 + 3] = ITX_CLIP((E[0] - O[0] + add) >> shift);
-    }
-#endif
 }
 
-#if TRANSFORM_SHIFT_CHAGE
-static void itx_pb8(void *src, void *dst, int shift, int line, int step)
-#else
-static void itx_pb8(s16 *src, s16 *dst, int shift, int line)
-#endif
+static void itx_pb8b(void *src, void *dst, int shift, int line, int step)
 {
     int j, k;
-#if TRANSFORM_SHIFT_CHAGE
     s64 E[4], O[4];
     s64 EE[2], EO[2];
     int add = shift == 0 ? 0 : 1 << (shift - 1);
@@ -334,47 +282,11 @@ static void itx_pb8(s16 *src, s16 *dst, int shift, int line)
     {
         RUN_ITX_PB8(src, dst, s32, s16);
     }
-#else
-    int E[4], O[4];
-    int EE[2], EO[2];
-    int add = 1 << (shift - 1);
-
-    for (j = 0; j < line; j++)
-    {
-        /* Utilizing symmetry properties to the maximum to minimize the number of multiplications */
-        for (k = 0; k < 4; k++)
-        {
-            O[k] = evc_tbl_tm8[1][k] * src[1 * line + j] + evc_tbl_tm8[3][k] * src[3 * line + j] + evc_tbl_tm8[5][k] * src[5 * line + j] + evc_tbl_tm8[7][k] * src[7 * line + j];
-        }
-
-        EO[0] = evc_tbl_tm8[2][0] * src[2 * line + j] + evc_tbl_tm8[6][0] * src[6 * line + j];
-        EO[1] = evc_tbl_tm8[2][1] * src[2 * line + j] + evc_tbl_tm8[6][1] * src[6 * line + j];
-        EE[0] = evc_tbl_tm8[0][0] * src[0 * line + j] + evc_tbl_tm8[4][0] * src[4 * line + j];
-        EE[1] = evc_tbl_tm8[0][1] * src[0 * line + j] + evc_tbl_tm8[4][1] * src[4 * line + j];
-
-        /* Combining even and odd terms at each hierarchy levels to calculate the final spatial domain vector */
-        E[0] = EE[0] + EO[0];
-        E[3] = EE[0] - EO[0];
-        E[1] = EE[1] + EO[1];
-        E[2] = EE[1] - EO[1];
-
-        for (k = 0; k < 4; k++)
-        {
-            dst[j * 8 + k] = ITX_CLIP((E[k] + O[k] + add) >> shift);
-            dst[j * 8 + k + 4] = ITX_CLIP((E[3 - k] - O[3 - k] + add) >> shift);
-        }
-    }
-#endif
 }
 
-#if TRANSFORM_SHIFT_CHAGE
-static void itx_pb16(void *src, void *dst, int shift, int line, int step)
-#else
-static void itx_pb16(s16 *src, s16 *dst, int shift, int line)
-#endif
+static void itx_pb16b(void *src, void *dst, int shift, int line, int step)
 {
     int j, k;
-#if TRANSFORM_SHIFT_CHAGE
     s64 E[8], O[8];
     s64 EE[4], EO[4];
     s64 EEE[2], EEO[2];
@@ -439,59 +351,11 @@ static void itx_pb16(s16 *src, s16 *dst, int shift, int line)
     {
         RUN_ITX_PB16(src, dst, s32, s16);    
     }
-#else
-    int E[8], O[8];
-    int EE[4], EO[4];
-    int EEE[2], EEO[2];
-    int add = 1 << (shift - 1);
-
-    for (j = 0; j < line; j++)
-    {
-        /* Utilizing symmetry properties to the maximum to minimize the number of multiplications */
-        for (k = 0; k < 8; k++)
-        {
-            O[k] = evc_tbl_tm16[1][k] * src[1 * line + j] + evc_tbl_tm16[3][k] * src[3 * line + j] + evc_tbl_tm16[5][k] * src[5 * line + j] + evc_tbl_tm16[7][k] * src[7 * line + j] +
-                evc_tbl_tm16[9][k] * src[9 * line + j] + evc_tbl_tm16[11][k] * src[11 * line + j] + evc_tbl_tm16[13][k] * src[13 * line + j] + evc_tbl_tm16[15][k] * src[15 * line + j];
-        }
-
-        for (k = 0; k < 4; k++)
-        {
-            EO[k] = evc_tbl_tm16[2][k] * src[2 * line + j] + evc_tbl_tm16[6][k] * src[6 * line + j] + evc_tbl_tm16[10][k] * src[10 * line + j] + evc_tbl_tm16[14][k] * src[14 * line + j];
-        }
-
-        EEO[0] = evc_tbl_tm16[4][0] * src[4 * line + j] + evc_tbl_tm16[12][0] * src[12 * line + j];
-        EEE[0] = evc_tbl_tm16[0][0] * src[0 * line + j] + evc_tbl_tm16[8][0] * src[8 * line + j];
-        EEO[1] = evc_tbl_tm16[4][1] * src[4 * line + j] + evc_tbl_tm16[12][1] * src[12 * line + j];
-        EEE[1] = evc_tbl_tm16[0][1] * src[0 * line + j] + evc_tbl_tm16[8][1] * src[8 * line + j];
-
-        /* Combining even and odd terms at each hierarchy levels to calculate the final spatial domain vector */
-        for (k = 0; k < 2; k++)
-        {
-            EE[k] = EEE[k] + EEO[k];
-            EE[k + 2] = EEE[1 - k] - EEO[1 - k];
-        }
-        for (k = 0; k < 4; k++)
-        {
-            E[k] = EE[k] + EO[k];
-            E[k + 4] = EE[3 - k] - EO[3 - k];
-        }
-        for (k = 0; k < 8; k++)
-        {
-            dst[j * 16 + k] = ITX_CLIP((E[k] + O[k] + add) >> shift);
-            dst[j * 16 + k + 8] = ITX_CLIP((E[7 - k] - O[7 - k] + add) >> shift);
-        }
-    }
-#endif
 }
 
-#if TRANSFORM_SHIFT_CHAGE
-static void itx_pb32(void *src, void *dst, int shift, int line, int step)
-#else
-static void itx_pb32(s16 *src, s16 *dst, int shift, int line)
-#endif
+static void itx_pb32b(void *src, void *dst, int shift, int line, int step)
 {
     int j, k;
-#if TRANSFORM_SHIFT_CHAGE
     s64 E[16], O[16];
     s64 EE[8], EO[8];
     s64 EEE[4], EEO[4];
@@ -586,93 +450,13 @@ static void itx_pb32(s16 *src, s16 *dst, int shift, int line)
         RUN_ITX_PB32(src, dst, s32, s16);
     }
 
-#else
-    int E[16], O[16];
-    int EE[8], EO[8];
-    int EEE[4], EEO[4];
-    int EEEE[2], EEEO[2];
-    int add = 1 << (shift - 1);
-
-    for (j = 0; j < line; j++)
-    {
-        for (k = 0; k < 16; k++)
-        {
-            O[k] = evc_tbl_tm32[1][k] * src[1 * line + j] + \
-                evc_tbl_tm32[3][k] * src[3 * line + j] + \
-                evc_tbl_tm32[5][k] * src[5 * line + j] + \
-                evc_tbl_tm32[7][k] * src[7 * line + j] + \
-                evc_tbl_tm32[9][k] * src[9 * line + j] + \
-                evc_tbl_tm32[11][k] * src[11 * line + j] + \
-                evc_tbl_tm32[13][k] * src[13 * line + j] + \
-                evc_tbl_tm32[15][k] * src[15 * line + j] + \
-                evc_tbl_tm32[17][k] * src[17 * line + j] + \
-                evc_tbl_tm32[19][k] * src[19 * line + j] + \
-                evc_tbl_tm32[21][k] * src[21 * line + j] + \
-                evc_tbl_tm32[23][k] * src[23 * line + j] + \
-                evc_tbl_tm32[25][k] * src[25 * line + j] + \
-                evc_tbl_tm32[27][k] * src[27 * line + j] + \
-                evc_tbl_tm32[29][k] * src[29 * line + j] + \
-                evc_tbl_tm32[31][k] * src[31 * line + j];
-        }
-
-        for (k = 0; k < 8; k++)
-        {
-            EO[k] = evc_tbl_tm32[2][k] * src[2 * line + j] + \
-                evc_tbl_tm32[6][k] * src[6 * line + j] + \
-                evc_tbl_tm32[10][k] * src[10 * line + j] + \
-                evc_tbl_tm32[14][k] * src[14 * line + j] + \
-                evc_tbl_tm32[18][k] * src[18 * line + j] + \
-                evc_tbl_tm32[22][k] * src[22 * line + j] + \
-                evc_tbl_tm32[26][k] * src[26 * line + j] + \
-                evc_tbl_tm32[30][k] * src[30 * line + j];
-        }
-
-        for (k = 0; k < 4; k++)
-        {
-            EEO[k] = evc_tbl_tm32[4][k] * src[4 * line + j] + \
-                evc_tbl_tm32[12][k] * src[12 * line + j] + \
-                evc_tbl_tm32[20][k] * src[20 * line + j] + \
-                evc_tbl_tm32[28][k] * src[28 * line + j];
-        }
-
-        EEEO[0] = evc_tbl_tm32[8][0] * src[8 * line + j] + evc_tbl_tm32[24][0] * src[24 * line + j];
-        EEEO[1] = evc_tbl_tm32[8][1] * src[8 * line + j] + evc_tbl_tm32[24][1] * src[24 * line + j];
-        EEEE[0] = evc_tbl_tm32[0][0] * src[0 * line + j] + evc_tbl_tm32[16][0] * src[16 * line + j];
-        EEEE[1] = evc_tbl_tm32[0][1] * src[0 * line + j] + evc_tbl_tm32[16][1] * src[16 * line + j];
-
-        EEE[0] = EEEE[0] + EEEO[0];
-        EEE[3] = EEEE[0] - EEEO[0];
-        EEE[1] = EEEE[1] + EEEO[1];
-        EEE[2] = EEEE[1] - EEEO[1];
-        for (k = 0; k<4; k++)
-        {
-            EE[k] = EEE[k] + EEO[k];
-            EE[k + 4] = EEE[3 - k] - EEO[3 - k];
-        }
-        for (k = 0; k<8; k++)
-        {
-            E[k] = EE[k] + EO[k];
-            E[k + 8] = EE[7 - k] - EO[7 - k];
-        }
-        for (k = 0; k<16; k++)
-        {
-            dst[j * 32 + k] = ITX_CLIP((E[k] + O[k] + add) >> shift);
-            dst[j * 32 + k + 16] = ITX_CLIP((E[15 - k] - O[15 - k] + add) >> shift);
-        }
-    }
-#endif
 }
 
-#if TRANSFORM_SHIFT_CHAGE 
-static void itx_pb64(void *src, void *dst, int shift, int line, int step)
-#else
-static void itx_pb64(s16 *src, s16 *dst, int shift, int line)
-#endif
+static void itx_pb64b(void *src, void *dst, int shift, int line, int step)
 {
     const int tx_size = 64;
     const s8 *tm = evc_tbl_tm64[0];
     int j, k;
-#if TRANSFORM_SHIFT_CHAGE 
     s64 E[32], O[32];
     s64 EE[16], EO[16];
     s64 EEE[8], EEO[8];
@@ -781,7 +565,209 @@ static void itx_pb64(s16 *src, s16 *dst, int shift, int line)
         RUN_ITX_PB64(src, dst, s32, s16);
     }
     
-#else
+}
+
+static void itx_pb2(s16 *src, s16 *dst, int shift, int line)
+{
+    int j;
+    int E, O;
+    int add = shift == 0 ? 0 : 1 << (shift - 1);
+    for (j = 0; j < line; j++)
+    {
+        /* E and O */
+        E = src[0 * line + j] + src[1 * line + j];
+        O = src[0 * line + j] - src[1 * line + j];
+
+        dst[j * 2 + 0] = ITX_CLIP((evc_tbl_tm2[0][0] * E + add) >> shift);
+        dst[j * 2 + 1] = ITX_CLIP((evc_tbl_tm2[1][0] * O + add) >> shift);
+    }
+}
+
+static void itx_pb4(s16 *src, s16 *dst, int shift, int line)
+{
+    int j;
+    int E[2], O[2];
+    int add = 1 << (shift - 1);
+
+    for (j = 0; j < line; j++)
+    {
+        /* Utilizing symmetry properties to the maximum to minimize the number of multiplications */
+        O[0] = evc_tbl_tm4[1][0] * src[1 * line + j] + evc_tbl_tm4[3][0] * src[3 * line + j];
+        O[1] = evc_tbl_tm4[1][1] * src[1 * line + j] + evc_tbl_tm4[3][1] * src[3 * line + j];
+        E[0] = evc_tbl_tm4[0][0] * src[0 * line + j] + evc_tbl_tm4[2][0] * src[2 * line + j];
+        E[1] = evc_tbl_tm4[0][1] * src[0 * line + j] + evc_tbl_tm4[2][1] * src[2 * line + j];
+
+        /* Combining even and odd terms at each hierarchy levels to calculate the final spatial domain vector */
+        dst[j * 4 + 0] = ITX_CLIP((E[0] + O[0] + add) >> shift);
+        dst[j * 4 + 1] = ITX_CLIP((E[1] + O[1] + add) >> shift);
+        dst[j * 4 + 2] = ITX_CLIP((E[1] - O[1] + add) >> shift);
+        dst[j * 4 + 3] = ITX_CLIP((E[0] - O[0] + add) >> shift);
+    }
+}
+
+static void itx_pb8(s16 *src, s16 *dst, int shift, int line)
+{
+    int j, k;
+    int E[4], O[4];
+    int EE[2], EO[2];
+    int add = 1 << (shift - 1);
+
+    for (j = 0; j < line; j++)
+    {
+        /* Utilizing symmetry properties to the maximum to minimize the number of multiplications */
+        for (k = 0; k < 4; k++)
+        {
+            O[k] = evc_tbl_tm8[1][k] * src[1 * line + j] + evc_tbl_tm8[3][k] * src[3 * line + j] + evc_tbl_tm8[5][k] * src[5 * line + j] + evc_tbl_tm8[7][k] * src[7 * line + j];
+        }
+
+        EO[0] = evc_tbl_tm8[2][0] * src[2 * line + j] + evc_tbl_tm8[6][0] * src[6 * line + j];
+        EO[1] = evc_tbl_tm8[2][1] * src[2 * line + j] + evc_tbl_tm8[6][1] * src[6 * line + j];
+        EE[0] = evc_tbl_tm8[0][0] * src[0 * line + j] + evc_tbl_tm8[4][0] * src[4 * line + j];
+        EE[1] = evc_tbl_tm8[0][1] * src[0 * line + j] + evc_tbl_tm8[4][1] * src[4 * line + j];
+
+        /* Combining even and odd terms at each hierarchy levels to calculate the final spatial domain vector */
+        E[0] = EE[0] + EO[0];
+        E[3] = EE[0] - EO[0];
+        E[1] = EE[1] + EO[1];
+        E[2] = EE[1] - EO[1];
+
+        for (k = 0; k < 4; k++)
+        {
+            dst[j * 8 + k] = ITX_CLIP((E[k] + O[k] + add) >> shift);
+            dst[j * 8 + k + 4] = ITX_CLIP((E[3 - k] - O[3 - k] + add) >> shift);
+        }
+    }
+}
+
+static void itx_pb16(s16 *src, s16 *dst, int shift, int line)
+{
+    int j, k;
+    int E[8], O[8];
+    int EE[4], EO[4];
+    int EEE[2], EEO[2];
+    int add = 1 << (shift - 1);
+
+    for (j = 0; j < line; j++)
+    {
+        /* Utilizing symmetry properties to the maximum to minimize the number of multiplications */
+        for (k = 0; k < 8; k++)
+        {
+            O[k] = evc_tbl_tm16[1][k] * src[1 * line + j] + evc_tbl_tm16[3][k] * src[3 * line + j] + evc_tbl_tm16[5][k] * src[5 * line + j] + evc_tbl_tm16[7][k] * src[7 * line + j] +
+                evc_tbl_tm16[9][k] * src[9 * line + j] + evc_tbl_tm16[11][k] * src[11 * line + j] + evc_tbl_tm16[13][k] * src[13 * line + j] + evc_tbl_tm16[15][k] * src[15 * line + j];
+        }
+
+        for (k = 0; k < 4; k++)
+        {
+            EO[k] = evc_tbl_tm16[2][k] * src[2 * line + j] + evc_tbl_tm16[6][k] * src[6 * line + j] + evc_tbl_tm16[10][k] * src[10 * line + j] + evc_tbl_tm16[14][k] * src[14 * line + j];
+        }
+
+        EEO[0] = evc_tbl_tm16[4][0] * src[4 * line + j] + evc_tbl_tm16[12][0] * src[12 * line + j];
+        EEE[0] = evc_tbl_tm16[0][0] * src[0 * line + j] + evc_tbl_tm16[8][0] * src[8 * line + j];
+        EEO[1] = evc_tbl_tm16[4][1] * src[4 * line + j] + evc_tbl_tm16[12][1] * src[12 * line + j];
+        EEE[1] = evc_tbl_tm16[0][1] * src[0 * line + j] + evc_tbl_tm16[8][1] * src[8 * line + j];
+
+        /* Combining even and odd terms at each hierarchy levels to calculate the final spatial domain vector */
+        for (k = 0; k < 2; k++)
+        {
+            EE[k] = EEE[k] + EEO[k];
+            EE[k + 2] = EEE[1 - k] - EEO[1 - k];
+        }
+        for (k = 0; k < 4; k++)
+        {
+            E[k] = EE[k] + EO[k];
+            E[k + 4] = EE[3 - k] - EO[3 - k];
+        }
+        for (k = 0; k < 8; k++)
+        {
+            dst[j * 16 + k] = ITX_CLIP((E[k] + O[k] + add) >> shift);
+            dst[j * 16 + k + 8] = ITX_CLIP((E[7 - k] - O[7 - k] + add) >> shift);
+        }
+    }
+}
+
+static void itx_pb32(s16 *src, s16 *dst, int shift, int line)
+{
+    int j, k;
+    int E[16], O[16];
+    int EE[8], EO[8];
+    int EEE[4], EEO[4];
+    int EEEE[2], EEEO[2];
+    int add = 1 << (shift - 1);
+
+    for (j = 0; j < line; j++)
+    {
+        for (k = 0; k < 16; k++)
+        {
+            O[k] = evc_tbl_tm32[1][k] * src[1 * line + j] + \
+                evc_tbl_tm32[3][k] * src[3 * line + j] + \
+                evc_tbl_tm32[5][k] * src[5 * line + j] + \
+                evc_tbl_tm32[7][k] * src[7 * line + j] + \
+                evc_tbl_tm32[9][k] * src[9 * line + j] + \
+                evc_tbl_tm32[11][k] * src[11 * line + j] + \
+                evc_tbl_tm32[13][k] * src[13 * line + j] + \
+                evc_tbl_tm32[15][k] * src[15 * line + j] + \
+                evc_tbl_tm32[17][k] * src[17 * line + j] + \
+                evc_tbl_tm32[19][k] * src[19 * line + j] + \
+                evc_tbl_tm32[21][k] * src[21 * line + j] + \
+                evc_tbl_tm32[23][k] * src[23 * line + j] + \
+                evc_tbl_tm32[25][k] * src[25 * line + j] + \
+                evc_tbl_tm32[27][k] * src[27 * line + j] + \
+                evc_tbl_tm32[29][k] * src[29 * line + j] + \
+                evc_tbl_tm32[31][k] * src[31 * line + j];
+        }
+
+        for (k = 0; k < 8; k++)
+        {
+            EO[k] = evc_tbl_tm32[2][k] * src[2 * line + j] + \
+                evc_tbl_tm32[6][k] * src[6 * line + j] + \
+                evc_tbl_tm32[10][k] * src[10 * line + j] + \
+                evc_tbl_tm32[14][k] * src[14 * line + j] + \
+                evc_tbl_tm32[18][k] * src[18 * line + j] + \
+                evc_tbl_tm32[22][k] * src[22 * line + j] + \
+                evc_tbl_tm32[26][k] * src[26 * line + j] + \
+                evc_tbl_tm32[30][k] * src[30 * line + j];
+        }
+
+        for (k = 0; k < 4; k++)
+        {
+            EEO[k] = evc_tbl_tm32[4][k] * src[4 * line + j] + \
+                evc_tbl_tm32[12][k] * src[12 * line + j] + \
+                evc_tbl_tm32[20][k] * src[20 * line + j] + \
+                evc_tbl_tm32[28][k] * src[28 * line + j];
+        }
+
+        EEEO[0] = evc_tbl_tm32[8][0] * src[8 * line + j] + evc_tbl_tm32[24][0] * src[24 * line + j];
+        EEEO[1] = evc_tbl_tm32[8][1] * src[8 * line + j] + evc_tbl_tm32[24][1] * src[24 * line + j];
+        EEEE[0] = evc_tbl_tm32[0][0] * src[0 * line + j] + evc_tbl_tm32[16][0] * src[16 * line + j];
+        EEEE[1] = evc_tbl_tm32[0][1] * src[0 * line + j] + evc_tbl_tm32[16][1] * src[16 * line + j];
+
+        EEE[0] = EEEE[0] + EEEO[0];
+        EEE[3] = EEEE[0] - EEEO[0];
+        EEE[1] = EEEE[1] + EEEO[1];
+        EEE[2] = EEEE[1] - EEEO[1];
+        for (k = 0; k<4; k++)
+        {
+            EE[k] = EEE[k] + EEO[k];
+            EE[k + 4] = EEE[3 - k] - EEO[3 - k];
+        }
+        for (k = 0; k<8; k++)
+        {
+            E[k] = EE[k] + EO[k];
+            E[k + 8] = EE[7 - k] - EO[7 - k];
+        }
+        for (k = 0; k<16; k++)
+        {
+            dst[j * 32 + k] = ITX_CLIP((E[k] + O[k] + add) >> shift);
+            dst[j * 32 + k + 16] = ITX_CLIP((E[15 - k] - O[15 - k] + add) >> shift);
+        }
+    }
+}
+
+static void itx_pb64(s16 *src, s16 *dst, int shift, int line)
+{
+    const int tx_size = 64;
+    const s8 *tm = evc_tbl_tm64[0];
+    int j, k;
     int E[32], O[32];
     int EE[16], EO[16];
     int EEE[8], EEO[8];
@@ -854,454 +840,21 @@ static void itx_pb64(s16 *src, s16 *dst, int shift, int line)
         src++;
         dst += tx_size;
     }
-#endif
 }
 
-#if TRANSFORM_SHIFT_CHAGE
-static void itx_pb128(void *src, void *dst, int shift, int line, int step)
-#else
-static void itx_pb128(s16 *src, s16 *dst, int shift, int line)
-#endif
+typedef void(*EVC_ITXB)(void *coef, void *t, int shift, int line, int step);
+static EVC_ITXB tbl_itxb[MAX_TR_LOG2] =
 {
-    const int  tx_size = 128;
-    const s8(*tm)[128] = evc_tbl_tm128;
-#if TRANSFORM_SHIFT_CHAGE
-    int j, k;
-    s64 E[64], O[64];
-    s64 EE[32], EO[32];
-    s64 EEE[16], EEO[16];
-    s64 EEEE[8], EEEO[8];
-    s64 EEEEE[4], EEEEO[4];
-    s64 EEEEEE[2], EEEEEO[2];
-    int add = shift == 0 ? 0 : 1 << (shift - 1);
-#define RUN_ITX_PB128(src, dst, type_src, type_dst) \
-    for (j = 0; j < line; j++)\
-    {\
-        for (k = 0; k < 64; k++)\
-        {\
-            O[k] = tm[1][k]   * *((type_src * )src + line      )\
-                 + tm[3][k]   * *((type_src * )src + 3   * line)\
-                 + tm[5][k]   * *((type_src * )src + 5   * line)\
-                 + tm[7][k]   * *((type_src * )src + 7   * line)\
-                 + tm[9][k]   * *((type_src * )src + 9   * line)\
-                 + tm[11][k]  * *((type_src * )src + 11  * line)\
-                 + tm[13][k]  * *((type_src * )src + 13  * line)\
-                 + tm[15][k]  * *((type_src * )src + 15  * line)\
-                 + tm[17][k]  * *((type_src * )src + 17  * line)\
-                 + tm[19][k]  * *((type_src * )src + 19  * line)\
-                 + tm[21][k]  * *((type_src * )src + 21  * line)\
-                 + tm[23][k]  * *((type_src * )src + 23  * line)\
-                 + tm[25][k]  * *((type_src * )src + 25  * line)\
-                 + tm[27][k]  * *((type_src * )src + 27  * line)\
-                 + tm[29][k]  * *((type_src * )src + 29  * line)\
-                 + tm[31][k]  * *((type_src * )src + 31  * line)\
-                 + tm[33][k]  * *((type_src * )src + 33  * line)\
-                 + tm[35][k]  * *((type_src * )src + 35  * line)\
-                 + tm[37][k]  * *((type_src * )src + 37  * line)\
-                 + tm[39][k]  * *((type_src * )src + 39  * line)\
-                 + tm[41][k]  * *((type_src * )src + 41  * line)\
-                 + tm[43][k]  * *((type_src * )src + 43  * line)\
-                 + tm[45][k]  * *((type_src * )src + 45  * line)\
-                 + tm[47][k]  * *((type_src * )src + 47  * line)\
-                 + tm[49][k]  * *((type_src * )src + 49  * line)\
-                 + tm[51][k]  * *((type_src * )src + 51  * line)\
-                 + tm[53][k]  * *((type_src * )src + 53  * line)\
-                 + tm[55][k]  * *((type_src * )src + 55  * line)\
-                 + tm[57][k]  * *((type_src * )src + 57  * line)\
-                 + tm[59][k]  * *((type_src * )src + 59  * line)\
-                 + tm[61][k]  * *((type_src * )src + 61  * line)\
-                 + tm[63][k]  * *((type_src * )src + 63  * line)\
-                 + tm[65][k]  * *((type_src * )src + 65  * line)\
-                 + tm[67][k]  * *((type_src * )src + 67  * line)\
-                 + tm[69][k]  * *((type_src * )src + 69  * line)\
-                 + tm[71][k]  * *((type_src * )src + 71  * line)\
-                 + tm[73][k]  * *((type_src * )src + 73  * line)\
-                 + tm[75][k]  * *((type_src * )src + 75  * line)\
-                 + tm[77][k]  * *((type_src * )src + 77  * line)\
-                 + tm[79][k]  * *((type_src * )src + 79  * line)\
-                 + tm[81][k]  * *((type_src * )src + 81  * line)\
-                 + tm[83][k]  * *((type_src * )src + 83  * line)\
-                 + tm[85][k]  * *((type_src * )src + 85  * line)\
-                 + tm[87][k]  * *((type_src * )src + 87  * line)\
-                 + tm[89][k]  * *((type_src * )src + 89  * line)\
-                 + tm[91][k]  * *((type_src * )src + 91  * line)\
-                 + tm[93][k]  * *((type_src * )src + 93  * line)\
-                 + tm[95][k]  * *((type_src * )src + 95  * line)\
-                 + tm[97][k]  * *((type_src * )src + 97  * line)\
-                 + tm[99][k]  * *((type_src * )src + 99  * line)\
-                 + tm[101][k] * *((type_src * )src + 101 * line)\
-                 + tm[103][k] * *((type_src * )src + 103 * line)\
-                 + tm[105][k] * *((type_src * )src + 105 * line)\
-                 + tm[107][k] * *((type_src * )src + 107 * line)\
-                 + tm[109][k] * *((type_src * )src + 109 * line)\
-                 + tm[111][k] * *((type_src * )src + 111 * line)\
-                 + tm[113][k] * *((type_src * )src + 113 * line)\
-                 + tm[115][k] * *((type_src * )src + 115 * line)\
-                 + tm[117][k] * *((type_src * )src + 117 * line)\
-                 + tm[119][k] * *((type_src * )src + 119 * line)\
-                 + tm[121][k] * *((type_src * )src + 121 * line)\
-                 + tm[123][k] * *((type_src * )src + 123 * line)\
-                 + tm[125][k] * *((type_src * )src + 125 * line)\
-                 + tm[127][k] * *((type_src * )src + 127 * line);\
-        }\
-        \
-        for (k = 0; k < 32; k++)\
-        {\
-            EO[k] = tm[2][k]   * *((type_src * )src + 2   * line)\
-                  + tm[6][k]   * *((type_src * )src + 6   * line)\
-                  + tm[10][k]  * *((type_src * )src + 10  * line)\
-                  + tm[14][k]  * *((type_src * )src + 14  * line)\
-                  + tm[18][k]  * *((type_src * )src + 18  * line)\
-                  + tm[22][k]  * *((type_src * )src + 22  * line)\
-                  + tm[26][k]  * *((type_src * )src + 26  * line)\
-                  + tm[30][k]  * *((type_src * )src + 30  * line)\
-                  + tm[34][k]  * *((type_src * )src + 34  * line)\
-                  + tm[38][k]  * *((type_src * )src + 38  * line)\
-                  + tm[42][k]  * *((type_src * )src + 42  * line)\
-                  + tm[46][k]  * *((type_src * )src + 46  * line)\
-                  + tm[50][k]  * *((type_src * )src + 50  * line)\
-                  + tm[54][k]  * *((type_src * )src + 54  * line)\
-                  + tm[58][k]  * *((type_src * )src + 58  * line)\
-                  + tm[62][k]  * *((type_src * )src + 62  * line)\
-                  + tm[66][k]  * *((type_src * )src + 66  * line)\
-                  + tm[70][k]  * *((type_src * )src + 70  * line)\
-                  + tm[74][k]  * *((type_src * )src + 74  * line)\
-                  + tm[78][k]  * *((type_src * )src + 78  * line)\
-                  + tm[82][k]  * *((type_src * )src + 82  * line)\
-                  + tm[86][k]  * *((type_src * )src + 86  * line)\
-                  + tm[90][k]  * *((type_src * )src + 90  * line)\
-                  + tm[94][k]  * *((type_src * )src + 94  * line)\
-                  + tm[98][k]  * *((type_src * )src + 98  * line)\
-                  + tm[102][k] * *((type_src * )src + 102 * line)\
-                  + tm[106][k] * *((type_src * )src + 106 * line)\
-                  + tm[110][k] * *((type_src * )src + 110 * line)\
-                  + tm[114][k] * *((type_src * )src + 114 * line)\
-                  + tm[118][k] * *((type_src * )src + 118 * line)\
-                  + tm[122][k] * *((type_src * )src + 122 * line)\
-                  + tm[126][k] * *((type_src * )src + 126 * line);\
-        }\
-        \
-        for (k = 0; k < 16; k++)\
-        {\
-            EEO[k] = tm[4][k]   * *((type_src * )src + 4   * line)\
-                   + tm[12][k]  * *((type_src * )src + 12  * line)\
-                   + tm[20][k]  * *((type_src * )src + 20  * line)\
-                   + tm[28][k]  * *((type_src * )src + 28  * line)\
-                   + tm[36][k]  * *((type_src * )src + 36  * line)\
-                   + tm[44][k]  * *((type_src * )src + 44  * line)\
-                   + tm[52][k]  * *((type_src * )src + 52  * line)\
-                   + tm[60][k]  * *((type_src * )src + 60  * line)\
-                   + tm[68][k]  * *((type_src * )src + 68  * line)\
-                   + tm[76][k]  * *((type_src * )src + 76  * line)\
-                   + tm[84][k]  * *((type_src * )src + 84  * line)\
-                   + tm[92][k]  * *((type_src * )src + 92  * line)\
-                   + tm[100][k] * *((type_src * )src + 100 * line)\
-                   + tm[108][k] * *((type_src * )src + 108 * line)\
-                   + tm[116][k] * *((type_src * )src + 116 * line)\
-                   + tm[124][k] * *((type_src * )src + 124 * line);\
-        }\
-        \
-        for (k = 0; k < 8; k++)\
-        {\
-            EEEO[k] = tm[8][k]   * *((type_src * )src + 8   * line)\
-                    + tm[24][k]  * *((type_src * )src + 24  * line)\
-                    + tm[40][k]  * *((type_src * )src + 40  * line)\
-                    + tm[56][k]  * *((type_src * )src + 56  * line)\
-                    + tm[72][k]  * *((type_src * )src + 72  * line)\
-                    + tm[88][k]  * *((type_src * )src + 88  * line)\
-                    + tm[104][k] * *((type_src * )src + 104 * line)\
-                    + tm[120][k] * *((type_src * )src + 120 * line);\
-        }\
-        \
-        for (k = 0; k < 4; k++)\
-        {\
-            EEEEO[k] = tm[16][k]   * *((type_src * )src + 16  * line)\
-                      + tm[48][k]  * *((type_src * )src + 48  * line)\
-                      + tm[80][k]  * *((type_src * )src + 80  * line)\
-                      + tm[112][k] * *((type_src * )src + 112 * line);\
-        }\
-        \
-        for (k = 0; k < 2; k++)\
-        {\
-            EEEEEO[k] = tm[32][k] * *((type_src * )src + 32 * line)\
-                      + tm[96][k] * *((type_src * )src + 96 * line);\
-        }\
-        \
-        EEEEEE[0] = tm[0][0] * *((type_src * )src + 0) + tm[64][0] * *((type_src * )src + 64 * line);\
-        EEEEEE[1] = tm[0][1] * *((type_src * )src + 0) + tm[64][1] * *((type_src * )src + 64 * line);\
-        \
-        /* Combining even and odd terms at each hierarchy levels to calculate the final spatial domain vector */\
-        for (k = 0; k < 2; k++)\
-        {\
-            EEEEE[k] = EEEEEE[k] + EEEEEO[k];\
-            EEEEE[k + 2] = EEEEEE[1 - k] - EEEEEO[1 - k];\
-        }\
-         \
-        for (k = 0; k < 4; k++)\
-        {\
-            EEEE[k] = EEEEE[k] + EEEEO[k];\
-            EEEE[k + 4] = EEEEE[3 - k] - EEEEO[3 - k];\
-        }\
-        \
-        for (k = 0; k < 8; k++)\
-        {\
-            EEE[k] = EEEE[k] + EEEO[k];\
-            EEE[k + 8] = EEEE[7 - k] - EEEO[7 - k];\
-        }\
-        \
-        for (k = 0; k < 16; k++)\
-        {\
-            EE[k] = EEE[k] + EEO[k];\
-            EE[k + 16] = EEE[15 - k] - EEO[15 - k];\
-        }\
-        \
-        for (k = 0; k < 32; k++)\
-        {\
-            E[k] = EE[k] + EO[k];\
-            E[k + 32] = EE[31 - k] - EO[31 - k];\
-        }\
-        \
-        if(step == 0)\
-        {\
-            for (k = 0; k < 64; k++)\
-            {\
-                *((type_dst * )dst + k     ) = ITX_CLIP((E[k] + O[k] + add) >> shift);\
-                *((type_dst * )dst + k + 64) = ITX_CLIP((E[63 - k] - O[63 - k] + add) >> shift);\
-            }\
-        }\
-        else\
-        {\
-            for (k = 0; k < 64; k++)\
-            {\
-                *((type_dst * )dst + k     ) = ITX_CLIP((E[k] + O[k] + add) >> shift);\
-                *((type_dst * )dst + k + 64) = ITX_CLIP((E[63 - k] - O[63 - k] + add) >> shift);\
-            }\
-        }\
-        src = (type_src * )src + 1;\
-        dst = (type_dst * )dst + tx_size;\
-    }
+    itx_pb2b,
+    itx_pb4b,
+    itx_pb8b,
+    itx_pb16b,
+    itx_pb32b,
+    itx_pb64b
+};
 
-    if (step == 0)
-    {
-        RUN_ITX_PB128(src, dst, s16, s32);
-    }
-    else
-    {
-        RUN_ITX_PB128(src, dst, s32, s16);
-    }
-
-#else
-    int j, k;
-    int E[64], O[64];
-    int EE[32], EO[32];
-    int EEE[16], EEO[16];
-    int EEEE[8], EEEO[8];
-    int EEEEE[4], EEEEO[4];
-    int EEEEEE[2], EEEEEO[2];
-    int add = 1 << (shift - 1);
-
-    for (j = 0; j < line; j++)
-    {
-        for (k = 0; k < 64; k++)
-        {
-            O[k] = tm[1][k] * src[line]
-                + tm[3][k] * src[3 * line]
-                + tm[5][k] * src[5 * line]
-                + tm[7][k] * src[7 * line]
-                + tm[9][k] * src[9 * line]
-                + tm[11][k] * src[11 * line]
-                + tm[13][k] * src[13 * line]
-                + tm[15][k] * src[15 * line]
-                + tm[17][k] * src[17 * line]
-                + tm[19][k] * src[19 * line]
-                + tm[21][k] * src[21 * line]
-                + tm[23][k] * src[23 * line]
-                + tm[25][k] * src[25 * line]
-                + tm[27][k] * src[27 * line]
-                + tm[29][k] * src[29 * line]
-                + tm[31][k] * src[31 * line]
-                + tm[33][k] * src[33 * line]
-                + tm[35][k] * src[35 * line]
-                + tm[37][k] * src[37 * line]
-                + tm[39][k] * src[39 * line]
-                + tm[41][k] * src[41 * line]
-                + tm[43][k] * src[43 * line]
-                + tm[45][k] * src[45 * line]
-                + tm[47][k] * src[47 * line]
-                + tm[49][k] * src[49 * line]
-                + tm[51][k] * src[51 * line]
-                + tm[53][k] * src[53 * line]
-                + tm[55][k] * src[55 * line]
-                + tm[57][k] * src[57 * line]
-                + tm[59][k] * src[59 * line]
-                + tm[61][k] * src[61 * line]
-                + tm[63][k] * src[63 * line]
-                + tm[65][k] * src[65 * line]
-                + tm[67][k] * src[67 * line]
-                + tm[69][k] * src[69 * line]
-                + tm[71][k] * src[71 * line]
-                + tm[73][k] * src[73 * line]
-                + tm[75][k] * src[75 * line]
-                + tm[77][k] * src[77 * line]
-                + tm[79][k] * src[79 * line]
-                + tm[81][k] * src[81 * line]
-                + tm[83][k] * src[83 * line]
-                + tm[85][k] * src[85 * line]
-                + tm[87][k] * src[87 * line]
-                + tm[89][k] * src[89 * line]
-                + tm[91][k] * src[91 * line]
-                + tm[93][k] * src[93 * line]
-                + tm[95][k] * src[95 * line]
-                + tm[97][k] * src[97 * line]
-                + tm[99][k] * src[99 * line]
-                + tm[101][k] * src[101 * line]
-                + tm[103][k] * src[103 * line]
-                + tm[105][k] * src[105 * line]
-                + tm[107][k] * src[107 * line]
-                + tm[109][k] * src[109 * line]
-                + tm[111][k] * src[111 * line]
-                + tm[113][k] * src[113 * line]
-                + tm[115][k] * src[115 * line]
-                + tm[117][k] * src[117 * line]
-                + tm[119][k] * src[119 * line]
-                + tm[121][k] * src[121 * line]
-                + tm[123][k] * src[123 * line]
-                + tm[125][k] * src[125 * line]
-                + tm[127][k] * src[127 * line];
-        }
-
-        for (k = 0; k < 32; k++)
-        {
-            EO[k] = tm[2][k] * src[2 * line]
-                + tm[6][k] * src[6 * line]
-                + tm[10][k] * src[10 * line]
-                + tm[14][k] * src[14 * line]
-                + tm[18][k] * src[18 * line]
-                + tm[22][k] * src[22 * line]
-                + tm[26][k] * src[26 * line]
-                + tm[30][k] * src[30 * line]
-                + tm[34][k] * src[34 * line]
-                + tm[38][k] * src[38 * line]
-                + tm[42][k] * src[42 * line]
-                + tm[46][k] * src[46 * line]
-                + tm[50][k] * src[50 * line]
-                + tm[54][k] * src[54 * line]
-                + tm[58][k] * src[58 * line]
-                + tm[62][k] * src[62 * line]
-                + tm[66][k] * src[66 * line]
-                + tm[70][k] * src[70 * line]
-                + tm[74][k] * src[74 * line]
-                + tm[78][k] * src[78 * line]
-                + tm[82][k] * src[82 * line]
-                + tm[86][k] * src[86 * line]
-                + tm[90][k] * src[90 * line]
-                + tm[94][k] * src[94 * line]
-                + tm[98][k] * src[98 * line]
-                + tm[102][k] * src[102 * line]
-                + tm[106][k] * src[106 * line]
-                + tm[110][k] * src[110 * line]
-                + tm[114][k] * src[114 * line]
-                + tm[118][k] * src[118 * line]
-                + tm[122][k] * src[122 * line]
-                + tm[126][k] * src[126 * line];
-        }
-
-        for (k = 0; k < 16; k++)
-        {
-            EEO[k] = tm[4][k] * src[4 * line]
-                + tm[12][k] * src[12 * line]
-                + tm[20][k] * src[20 * line]
-                + tm[28][k] * src[28 * line]
-                + tm[36][k] * src[36 * line]
-                + tm[44][k] * src[44 * line]
-                + tm[52][k] * src[52 * line]
-                + tm[60][k] * src[60 * line]
-                + tm[68][k] * src[68 * line]
-                + tm[76][k] * src[76 * line]
-                + tm[84][k] * src[84 * line]
-                + tm[92][k] * src[92 * line]
-                + tm[100][k] * src[100 * line]
-                + tm[108][k] * src[108 * line]
-                + tm[116][k] * src[116 * line]
-                + tm[124][k] * src[124 * line];
-        }
-
-        for (k = 0; k < 8; k++)
-        {
-            EEEO[k] = tm[8][k] * src[8 * line]
-                + tm[24][k] * src[24 * line]
-                + tm[40][k] * src[40 * line]
-                + tm[56][k] * src[56 * line]
-                + tm[72][k] * src[72 * line]
-                + tm[88][k] * src[88 * line]
-                + tm[104][k] * src[104 * line]
-                + tm[120][k] * src[120 * line];
-        }
-
-        for (k = 0; k < 4; k++)
-        {
-            EEEEO[k] = tm[16][k] * src[16 * line]
-                + tm[48][k] * src[48 * line]
-                + tm[80][k] * src[80 * line]
-                + tm[112][k] * src[112 * line];
-        }
-
-        for (k = 0; k < 2; k++)
-        {
-            EEEEEO[k] = tm[32][k] * src[32 * line]
-                + tm[96][k] * src[96 * line];
-        }
-
-        EEEEEE[0] = tm[0][0] * src[0] + tm[64][0] * src[64 * line];
-        EEEEEE[1] = tm[0][1] * src[0] + tm[64][1] * src[64 * line];
-
-        /* Combining even and odd terms at each hierarchy levels to calculate the final spatial domain vector */
-        for (k = 0; k < 2; k++)
-        {
-            EEEEE[k] = EEEEEE[k] + EEEEEO[k];
-            EEEEE[k + 2] = EEEEEE[1 - k] - EEEEEO[1 - k];
-        }
-
-        for (k = 0; k < 4; k++)
-        {
-            EEEE[k] = EEEEE[k] + EEEEO[k];
-            EEEE[k + 4] = EEEEE[3 - k] - EEEEO[3 - k];
-        }
-
-        for (k = 0; k < 8; k++)
-        {
-            EEE[k] = EEEE[k] + EEEO[k];
-            EEE[k + 8] = EEEE[7 - k] - EEEO[7 - k];
-        }
-
-        for (k = 0; k < 16; k++)
-        {
-            EE[k] = EEE[k] + EEO[k];
-            EE[k + 16] = EEE[15 - k] - EEO[15 - k];
-        }
-
-        for (k = 0; k < 32; k++)
-        {
-            E[k] = EE[k] + EO[k];
-            E[k + 32] = EE[31 - k] - EO[31 - k];
-        }
-
-        for (k = 0; k < 64; k++)
-        {
-            dst[k] = ITX_CLIP((E[k] + O[k] + add) >> shift);
-            dst[k + 64] = ITX_CLIP((E[63 - k] - O[63 - k] + add) >> shift);
-        }
-        src++;
-        dst += tx_size;
-    }
-#endif
-}
-
-#if TRANSFORM_SHIFT_CHAGE
-typedef void(*EVC_ITX)(void *coef, void *t, int shift, int line, int step);
-#else
 typedef void(*EVC_ITX)(s16 *coef, s16 *t, int shift, int line);
-#endif
+
 static EVC_ITX tbl_itx[MAX_TR_LOG2] =
 {
     itx_pb2,
@@ -1309,91 +862,34 @@ static EVC_ITX tbl_itx[MAX_TR_LOG2] =
     itx_pb8,
     itx_pb16,
     itx_pb32,
-    itx_pb64,
-    itx_pb128
+    itx_pb64
 };
 
-void evc_itrans(s16 *coef, int log2_cuw, int log2_cuh)
+void evc_itrans(s16 *coef, int log2_cuw, int log2_cuh, int iqt_flag)
 {
-#if TRANSFORM_SHIFT_CHAGE
-    s32 t[MAX_TR_DIM]; /* temp buffer */
-#else
-    s16 t[MAX_TR_DIM]; /* temp buffer */
-#endif
-
-#if TU_MAX_64X64
-    if((log2_cuw > 6) || (log2_cuh > 6))
+    if(iqt_flag)
     {
-        s16 t2[MAX_TR_DIM]; /* temp buffer */
-        int j, i;
-        int log_w2 = (log2_cuw > 6) ? 6 : log2_cuw;
-        int log_h2 = (log2_cuh > 6) ? 6 : log2_cuh;
-        int log_w_loop2 = (log2_cuw > 6) ? (1 << (log2_cuw - 6)) : 1;
-        int log_h_loop2 = (log2_cuh > 6) ? (1 << (log2_cuh - 6)) : 1;
-        int stride = (1 << log2_cuw);
-        int stride1 = (1 << log_w2);
-
-        for(j = 0; j < log_h_loop2; j++)
-        {
-            for(i = 0; i < log_w_loop2; i++)
-            {
-                int l;
-                s16 * coef_temp = &coef[j * 64 * stride + i * 64];
-
-                //copy to temp
-                for(l = 0; l < (1 << log_h2); l++)
-                {
-                    memcpy(&t2[l*stride1], coef_temp, sizeof(s16)*stride1);
-                    coef_temp += stride;
-                }
-
-                tbl_itx[log_h2 - 1](t2, t, ITX_SHIFT1, 1 << log_w2);
-                tbl_itx[log_w2 - 1](t, t2, ITX_SHIFT2, 1 << log_h2);
-
-                //copy backto coefbuf
-                coef_temp = &coef[j * 64 * stride + i * 64];
-                for(l = 0; l < (1 << log_h2); l++)
-                {
-                    memcpy(coef_temp, &t2[l*stride1], sizeof(s16)*stride1);
-                    coef_temp += stride;
-                }
-            }
-        }
-    }
-    else
-#endif
-    {
-#if TRANSFORM_SHIFT_CHAGE
-        tbl_itx[log2_cuh - 1](coef, t, 0, 1 << log2_cuw, 0);
-        tbl_itx[log2_cuw - 1](t, coef, (ITX_SHIFT1 + ITX_SHIFT2), 1 << log2_cuh, 1);
-#else
+        s16 t[MAX_TR_DIM]; /* temp buffer */
         tbl_itx[log2_cuh - 1](coef, t, ITX_SHIFT1, 1 << log2_cuw);
         tbl_itx[log2_cuw - 1](t, coef, ITX_SHIFT2, 1 << log2_cuh);
-#endif
+    }
+    else
+    {
+        s32 tb[MAX_TR_DIM]; /* temp buffer */
+        tbl_itxb[log2_cuh - 1](coef, tb, 0, 1 << log2_cuw, 0);
+        tbl_itxb[log2_cuw - 1](tb, coef, (ITX_SHIFT1 + ITX_SHIFT2), 1 << log2_cuh, 1);
     }
 }
 
-
 static void evc_dquant(s16 *coef, int log2_w, int log2_h, u16 scale, s32 offset, u8 shift
 #if AQS
-                        , u16 qs_scale
+                       , u16 qs_scale
 #endif
-                        )
+)
 {
     int i;
     s32 lev;
-#if TU_MAX_64X64
-    int ns_scale = ((log2_w + log2_h) & 1) ? 181 : 1;
-    if((log2_w > 6) || (log2_h > 6))
-    {
-        int log_w2 = (log2_w > 6) ? 6 : log2_w;
-        int log_h2 = (log2_h > 6) ? 6 : log2_h;
-
-        ns_scale = ((log_w2 + log_h2) & 1) ? 181 : 1;
-    }
-#else
     const int ns_scale = ((log2_w + log2_h) & 1) ? 181 : 1;
-#endif
     for(i = 0; i < (1 << (log2_w + log2_h)); i++)
     {
 #if AQS // in de-quantization
@@ -1407,31 +903,17 @@ static void evc_dquant(s16 *coef, int log2_w, int log2_h, u16 scale, s32 offset,
 
 void evc_itdq(s16 *coef, int log2_w, int log2_h, u16 scale
 #if AQS
-               , u16 qs_scale
+              , u16 qs_scale
 #endif
-               )
+              , int iqt_flag
+)
 {
     s32 offset;
     u8 shift;
     s8 tr_shift;
-#if TU_MAX_64X64
-    int log2_size = (log2_w + log2_h) >> 1;
-    int ns_shift = ((log2_w + log2_h) & 1) ? 8 : 0;
-#else
     int log2_size = (log2_w + log2_h) >> 1;
     const int ns_shift = ((log2_w + log2_h) & 1) ? 8 : 0;
-#endif
-
-#if TU_MAX_64X64
-    if((log2_w>6)||(log2_h>6))
-    {
-        int log_w2 = (log2_w>6)?6:log2_w;
-        int log_h2 = (log2_h>6)?6:log2_h;
-
-        log2_size = (log_w2 + log_h2) >> 1;
-        ns_shift = ((log_w2 + log_h2) & 1) ? 8 : 0;  
-    }
-#endif
+    
     tr_shift = MAX_TX_DYNAMIC_RANGE - BIT_DEPTH - log2_size;
     shift = QUANT_IQUANT_SHIFT - QUANT_SHIFT - tr_shift;
     shift += ns_shift;
@@ -1439,57 +921,79 @@ void evc_itdq(s16 *coef, int log2_w, int log2_h, u16 scale
 
     evc_dquant(coef, log2_w, log2_h, scale, offset, shift
 #if AQS
-                , qs_scale
+               , qs_scale
 #endif
-                );
+    );
 
-    evc_itrans(coef, log2_w, log2_h);
+    evc_itrans(coef, log2_w, log2_h,iqt_flag);
 }
 
-void evc_itdq_yuv(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int flag[N_C]
+void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int flag[N_C], int nnz_sub[N_C][MAX_SUB_TB_NUM]
 #if AQS
-                   , u16 qs_scale
-#endif
-                   )
+
+                        , u16 qs_scale
+
+#endif      
+                        , int iqt_flag
+)
 {
-    int scale;
+    s16 *coef_temp[N_C];
+    s16 coef_temp_buf[N_C][MAX_TR_DIM];
+    int i, j, c;
+    int log2_w_sub = (log2_cuw > MAX_TR_LOG2) ? MAX_TR_LOG2 : log2_cuw;
+    int log2_h_sub = (log2_cuh > MAX_TR_LOG2) ? MAX_TR_LOG2 : log2_cuh;
+    int loop_w = (log2_cuw > MAX_TR_LOG2) ? (1 << (log2_cuw - MAX_TR_LOG2)) : 1;
+    int loop_h = (log2_cuh > MAX_TR_LOG2) ? (1 << (log2_cuh - MAX_TR_LOG2)) : 1;
+    int stride = (1 << log2_cuw);
+    int sub_stride = (1 << log2_w_sub);
+    u8 qp[N_C] = { qp_y, qp_u, qp_v };
+    int scale = 0;
 
-    /* Y */
-    if(flag[Y_C])
+    for(j = 0; j < loop_h; j++)
     {
-        scale = evc_tbl_dq_scale[qp_y % 6] << (qp_y / 6);
-        evc_itdq(coef[Y_C], log2_cuw, log2_cuh, scale
+        for(i = 0; i < loop_w; i++)
+        {
+            for(c = 0; c < N_C; c++)
+            {
+                if(nnz_sub[c][(j << 1) | i])
+                {
+                    int pos_sub_x = i * (1 << (log2_w_sub - !!c));
+                    int pos_sub_y = j * (1 << (log2_h_sub - !!c)) * (stride >> (!!c));
+
+                    if(loop_h + loop_w > 2)
+                    {
+                        evc_block_copy(coef[c] + pos_sub_x + pos_sub_y, stride >> (!!c), coef_temp_buf[c], sub_stride >> (!!c), log2_w_sub - (!!c), log2_h_sub - (!!c));
+                        coef_temp[c] = coef_temp_buf[c];
+                    }
+                    else
+                    {
+                        coef_temp[c] = coef[c];
+                    }
+
+                    if(iqt_flag)
+                    {
+                        scale = evc_tbl_dq_scale[qp[c] % 6] << (qp[c] / 6);
+                    }
+                    else
+                    {
+                        scale = evc_tbl_dq_scale_b[qp[c] % 6] << (qp[c] / 6);
+                    }
+
+                    evc_itdq(coef_temp[c], log2_w_sub - !!c, log2_h_sub - !!c, scale
 #if AQS
-                  , qs_scale
+                             , qs_scale
 #endif
-                  );
-    }
+                             , iqt_flag
 
-    /* UV */
-    log2_cuw--;
-    log2_cuh--;
+                    );
 
-    scale = evc_tbl_dq_scale[qp_u % 6] << (qp_u / 6);
+                    if(loop_h + loop_w > 2)
+                    {
+                        evc_block_copy(coef_temp_buf[c], sub_stride >> (!!c), coef[c] + pos_sub_x + pos_sub_y, stride >> (!!c), log2_w_sub - (!!c), log2_h_sub - (!!c));
+                    }
+                }
+            }
+        }
 
-    if(flag[U_C])
-    {
-        /* U */
-        evc_itdq(coef[U_C], log2_cuw, log2_cuh, scale
-#if AQS
-            , ESM_DEFAULT
-#endif
-        );
-    }
-
-    scale = evc_tbl_dq_scale[qp_v % 6] << (qp_v / 6);
-
-    if(flag[V_C])
-    {
-        /* V */
-        evc_itdq(coef[V_C], log2_cuw, log2_cuh, scale
-#if AQS
-            , ESM_DEFAULT
-#endif
-        );
     }
 }

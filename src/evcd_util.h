@@ -42,7 +42,7 @@ int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16]);
 /* set decoded information, such as MVs, inter_dir, etc. */
 void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
 #if ENC_DEC_TRACE
-    , u8 write_trace
+                       , u8 write_trace
 #endif
 );
 

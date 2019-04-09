@@ -103,16 +103,10 @@ typedef struct _EVCE_MODE
     s8    refi[REFP_NUM];
     /* MVP indices */
     u8    mvp_idx[REFP_NUM];
-#if AMVR
     /* MVR indices */
     u8    mvr_idx;
-#if ABP
     u8    bi_idx;
-#endif
-#endif
-#if MMVD
     s16   mmvd_idx;
-#endif
     /* mv difference */
     s16   mvd[REFP_NUM][MV_D];    
 #if DMVR_LAG
@@ -181,7 +175,7 @@ typedef struct _EVCE_PINTRA
 {
     /* temporary prediction buffer */
     pel                 pred[N_C][MAX_CU_DIM];
-    pel                 pred_cache[IPD_CNT][MAX_TR_DIM]; // only for luma
+    pel                 pred_cache[IPD_CNT][MAX_CU_DIM]; // only for luma
 
     /* reconstruction buffer */
     pel                 rec[N_C][MAX_CU_DIM];
@@ -189,6 +183,7 @@ typedef struct _EVCE_PINTRA
     s16                 coef_tmp[N_C][MAX_CU_DIM];
     s16                 coef_best[N_C][MAX_CU_DIM];
     int                 nnz_best[N_C];
+    int                 nnz_sub_best[N_C][MAX_SUB_TB_NUM];
     pel                 rec_best[N_C][MAX_CU_DIM];
 
     /* original (input) picture buffer */
@@ -241,20 +236,14 @@ struct _EVCE_PINTER
     s16  mvp_scale[REFP_NUM][MAX_NUM_ACTIVE_REF_FRAME][MAX_NUM_MVP][MV_D];
     s16  mv_scale[REFP_NUM][MAX_NUM_ACTIVE_REF_FRAME][MV_D];
     u8   mvp_idx_temp_for_bi[PRED_NUM][REFP_NUM][MAX_NUM_ACTIVE_REF_FRAME];
-#if MMVD
     int  best_index[PRED_NUM][4];
     s16  mmvd_idx[PRED_NUM];
-#endif
-#if AMVR
     u8   mvr_idx[PRED_NUM];
     u8   curr_mvr;
     int  max_imv[MV_D];
-#if ABP
     s8   first_refi[PRED_NUM][REFP_NUM];
     u8   bi_idx[PRED_NUM];
     u8   curr_bi;
-#endif
-#endif
     int max_search_range;
 #if AFFINE
     s16  affine_mvp_scale[REFP_NUM][MAX_NUM_ACTIVE_REF_FRAME][MAX_NUM_MVP][VER_NUM][MV_D];
@@ -298,6 +287,8 @@ struct _EVCE_PINTER
 
     s16  residue[N_C][MAX_CU_DIM];
     int  nnz_best[PRED_NUM][N_C];
+    int  nnz_sub_best[PRED_NUM][N_C][MAX_SUB_TB_NUM];
+
     u8   num_refp;
     /* minimum clip value */
     s16  min_clip[MV_D];
@@ -350,6 +341,7 @@ struct _EVCE_PINTER
     int              ptr;
     /* gop size */
     int              gop_size;
+    int              sps_amvr_flag;
     /* ME function (Full-ME or Fast-ME) */
     u32            (*fn_me)(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2_cuh, s8 *refi, int lidx, s16 mvp[MV_D], s16 mv[MV_D], int bi);
 #if AFFINE
@@ -415,7 +407,7 @@ typedef struct _EVCE_SBAC
     u32            stacked_zero;
     u32            pending_byte;
     u32            is_pending_byte;
-    EVC_SBAC_CTX  ctx;
+    EVC_SBAC_CTX   ctx;
     u32            bitcounter;
     u8             is_bitcount;
 } EVCE_SBAC;
@@ -423,9 +415,7 @@ typedef struct _EVCE_SBAC
 typedef struct _EVCE_CU_DATA
 {
     s8  split_mode[MAX_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
-#if SUCO
     s8  suco_flag[MAX_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
-#endif
     u8  *qp_y;
     u8  *qp_u;
     u8  *qp_v;
@@ -439,22 +429,17 @@ typedef struct _EVCE_CU_DATA
 #endif
     s8  **refi;    
     u8  **mvp_idx; 
-#if AMVR
     u8  *mvr_idx;
-#if ABP
     u8  *bi_idx;
-#endif
-#endif
-#if MMVD
     s16 *mmvd_idx;
-    u8  *new_skip_flag;
-#endif    
+    u8  *mmvd_flag;
     s16 mv[MAX_CU_CNT_IN_LCU][REFP_NUM][MV_D];
 #if DMVR_LAG
     s16 unrefined_mv[MAX_CU_CNT_IN_LCU][REFP_NUM][MV_D];
 #endif
     s16 mvd[MAX_CU_CNT_IN_LCU][REFP_NUM][MV_D];
     int *nnz[N_C];
+    int *nnz_sub[N_C][4];
     u32 *map_scu;
 #if AFFINE
     u8  *affine_flag;
@@ -484,18 +469,10 @@ typedef struct _EVCE_BEF_DATA
     double split_cost[MAX_SPLIT_NUM];
     /* splits which are not tried in the first visit (each bit corresponds to one split mode)*/
     u8     remaining_split;
-#if SUCO
     int    suco[3];
-#endif
-#if AMVR
     int    mvr_idx;
-#if ABP
     int    bi_idx;
-#endif
-#endif
-#if MMVD
     s16    mmvd_idx;
-#endif
 #if AFFINE
     int    affine_flag;
 #endif
@@ -552,11 +529,8 @@ typedef struct _EVCE_CORE
     /* CU mode */
     int            cu_mode;
     /* intra prediction mode */
-#if INTRA_GR
-    u8              * mpm; /* mpm table pointer*/
-#else
-    u8             mpm[2];
-#endif
+    u8             mpm[2]; /* mpm table pointer*/
+    u8            *mpm_b_list;
     u8             mpm_ext[8];
     u8             pims[IPD_CNT]; /* probable intra mode set*/
     s8             ipm[2];
@@ -568,10 +542,8 @@ typedef struct _EVCE_CORE
     EVC_HISTORY_BUFFER  m_pBestMotLUTs[MAX_CU_DEPTH][MAX_CU_DEPTH];
     EVC_HISTORY_BUFFER  history_buffer;
 #endif
-#if MMVD
-    /* new skip flag for MODE_INTER */
-    u8             new_skip_flag;
-#endif
+    /* mmvd_flag for MODE_INTER */
+    u8             mmvd_flag;
 #if AFFINE
     /* affine flag for MODE_INTER */
     u8             affine_flag;
@@ -585,7 +557,8 @@ typedef struct _EVCE_CORE
     /* log2 of cuh */
     u8             log2_cuh;
     /* number of non-zero coefficient */
-    int            nnz[N_C];
+    int            nnz[N_C]; 
+    int            nnz_sub[N_C][MAX_SUB_TB_NUM];
     /* platform specific data, if needed */
     void          *pf;
     /* bitstream structure for RDO */
@@ -601,11 +574,8 @@ typedef struct _EVCE_CORE
     EVCE_SBAC     s_temp_prev_comp_best;
     EVCE_SBAC     s_temp_prev_comp_run;
     EVCE_SBAC     s_curr_before_split[MAX_CU_DEPTH][MAX_CU_DEPTH];
-#if SUCO
     EVCE_BEF_DATA bef_data[MAX_CU_DEPTH][MAX_CU_DEPTH][MAX_CU_CNT_IN_LCU][NUM_NEIB];
-#else
-    EVCE_BEF_DATA bef_data[MAX_CU_DEPTH][MAX_CU_DEPTH][MAX_CU_CNT_IN_LCU];
-#endif
+
     double         cost_best;
     u32            inter_satd;
     s32            dist_cu;

@@ -99,78 +99,71 @@ EVC_PIC* evc_picbuf_alloc(int w, int h, int pad_l, int pad_c, int *err);
 void evc_picbuf_free(EVC_PIC *pic);
 void evc_picbuf_expand(EVC_PIC *pic, int exp_l, int exp_c);
 
-#if MMVD
-void evc_get_ext_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int h_scu, int scup, u16 avail, int cuw, int cuh, int tile_group_t, int real_mv[][2][3], u32 *map_scu, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME], u16 avail_lr
+void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int h_scu, int scup, u16 avail, int cuw, int cuh, int tile_group_t, int real_mv[][2][3], u32 *map_scu, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME], u16 avail_lr
 #if ADMVP
-    , EVC_HISTORY_BUFFER history_buffer, int admvp_flag
+                           , EVC_HISTORY_BUFFER history_buffer, int admvp_flag
 #endif
 );
-#endif
+
 #if ADMVP
 void evc_check_motion_availability2(int scup, int cuw, int cuh, int w_scu, int h_scu, int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], u32 *map_scu, u16 avail_lr, int num_mvp);
 #endif
 void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_scu, int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], u32 *map_scu, u16 avail_lr, int num_mvp);
 
-#if AMVR
 void evc_get_default_motion(int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], s8 cur_refi, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], s8 *refi, s16 mv[MV_D]
 #if DMVR_LAG
-    , u32 *map_scu
-    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
-    , int scup
-    ,int w_scu
+                            , u32 *map_scu
+                            , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+                            , int scup
+                            , int w_scu
 #endif
 #if ADMVP
-    , EVC_HISTORY_BUFFER history_buffer
-    , int admvp_flag
+                            , EVC_HISTORY_BUFFER history_buffer
+                            , int admvp_flag
 #endif
 );
-#if ABP
+
 s8 evc_get_first_refi(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int cuw, int cuh, int w_scu, int h_scu, u32 *map_scu, u8 mvr_idx, u16 avail_lr
 #if DMVR_LAG
-    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+                      , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
 #if ADMVP
-    , EVC_HISTORY_BUFFER history_buffer
-    , int admvp_flag
+                      , EVC_HISTORY_BUFFER history_buffer
+                      , int admvp_flag
 #endif
 );
-#endif
-#endif
-#if INTER_GR || ADMVP
+
 void evc_get_motion(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],
-    EVC_REFP (*refp)[REFP_NUM], int cuw, int cuh, int w_scu, u16 avail, s8 refi[MAX_NUM_MVP], s16 mvp[MAX_NUM_MVP][MV_D]);
-#endif
+                    EVC_REFP(*refp)[REFP_NUM], int cuw, int cuh, int w_scu, u16 avail, s8 refi[MAX_NUM_MVP], s16 mvp[MAX_NUM_MVP][MV_D]);
 
 void evc_get_motion_skip(int ptr, int tile_group_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],
-                          EVC_REFP refp[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, s8 refi[REFP_NUM][MAX_NUM_MVP], s16 mvp[REFP_NUM][MAX_NUM_MVP][MV_D], u32 *map_scu, u16 avail_lr
+                         EVC_REFP refp[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, s8 refi[REFP_NUM][MAX_NUM_MVP], s16 mvp[REFP_NUM][MAX_NUM_MVP][MV_D], u32 *map_scu, u16 avail_lr
 #if DMVR_LAG
-  ,s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+                         , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
 #if ADMVP
-                          , EVC_HISTORY_BUFFER history_buffer, int admvp_flag
-#endif
-                         );
-
-#if AMVR
-void evc_get_motion_from_mvr(u8 mvr_idx, int ptr, int scup, int lidx, s8 cur_refi, int num_refp, \
-                              s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
-                              int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][MV_D], s8 refi_pred[MAX_NUM_MVP], u32* map_scu, u16 avail_lr
-#if DMVR_LAG
-    ,s16(*map_unrefined_mv)[REFP_NUM][MV_D]
-#endif
-#if ADMVP
-    , EVC_HISTORY_BUFFER history_buffer
-    , int admvp_flag
+                         , EVC_HISTORY_BUFFER history_buffer, int admvp_flag
 #endif
 );
-#endif
 
-#if AFFINE || !AMVR
-void evc_get_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int num_refp, \
-    s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
-    int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][MV_D], s8 refi_pred[MAX_NUM_MVP], u32* map_scu, u16 avail_lr
+void evc_get_motion_from_mvr(u8 mvr_idx, int ptr, int scup, int lidx, s8 cur_refi, int num_refp, \
+                             s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
+                             int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][MV_D], s8 refi_pred[MAX_NUM_MVP], u32* map_scu, u16 avail_lr
 #if DMVR_LAG
-    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+                             , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+#endif
+#if ADMVP
+                             , EVC_HISTORY_BUFFER history_buffer
+                             , int admvp_flag
+#endif
+);
+
+#if AFFINE
+void evc_get_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int num_refp, \
+                            s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
+                            int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][MV_D], s8 refi_pred[MAX_NUM_MVP], u32* map_scu, u16 avail_lr
+#if DMVR_LAG
+                            , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
 );
 #endif
@@ -183,7 +176,7 @@ enum
 typedef struct _EVC_SPLIT_STRUCT
 {
     int       part_count;
-    int       cud;
+    int       cud[SPLIT_MAX_PART_COUNT];
     int       width[SPLIT_MAX_PART_COUNT];
     int       height[SPLIT_MAX_PART_COUNT];
     int       log_cuw[SPLIT_MAX_PART_COUNT];
@@ -205,10 +198,8 @@ void evc_split_get_part_structure(int split_mode, int x0, int y0, int cuw, int c
 void evc_split_get_split_rdo_order(int cuw, int cuh, SPLIT_MODE splits[MAX_SPLIT_NUM]);
 //! Get split direction. Quad will return vertical direction.
 SPLIT_DIR evc_split_get_direction(SPLIT_MODE mode);
-#if SUCO
 //! Get SUCO partition order
 void evc_split_get_suco_order(int suco_flag, SPLIT_MODE mode, int suco_order[SPLIT_MAX_PART_COUNT]);
-#endif
 //! Is mode triple tree?
 int  evc_split_is_TT(SPLIT_MODE mode);
 //! Is mode BT?
@@ -221,8 +212,9 @@ int evc_split_is_horizontal(SPLIT_MODE mode);
 #if ADMVP    
 void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 ptr, int scup, int c_scu, u16 w_scu, u16 h_scu, s16 mvp[REFP_NUM][MV_D]
 #if ADMVP
-    , s8 *refidx
+                    , s8 *refidx
 #endif
+                    , int sps_admvp_flag
 );
 #else
 void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 ptr, int scup, u16 w_scu, s16 mvp[REFP_NUM][MV_D]
@@ -236,47 +228,30 @@ int evc_get_avail_cu(int neb_scua[MAX_NEB2], u32 * map_cu);
 
 int evc_scan_tbl_init();
 int evc_scan_tbl_delete();
-int evc_get_split_mode(s8* split_mode, int cud, int cup, int cuw, int cuh, int lcu_s
-                        , s8(*split_mode_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]
+int evc_get_split_mode(s8* split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*split_mode_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]);
+int evc_set_split_mode(s8  split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*split_mode_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]);
+int evc_get_suco_flag(s8* suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]);
+int evc_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]);
 
-                        );
-int evc_set_split_mode(s8  split_mode, int cud, int cup, int cuw, int cuh, int lcu_s
-
-                        , s8(*split_mode_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]
-                        );
-#if SUCO
-int evc_get_suco_flag(s8* suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s
-
-                       , s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]
-
-                       );
-int evc_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s
-
-                       , s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]
-
-                       );
-u8 evc_check_suco_cond(int cuw, int cuh, s8 split_mode, int boundary, u8 log2_max_cuwh
-                        , u8 suco_max_depth, u8 suco_min_depth
-                        );
-#endif
+u8  evc_check_suco_cond(int cuw, int cuh, s8 split_mode, int boundary, u8 log2_max_cuwh, u8 suco_max_depth, u8 suco_depth);
 u16 evc_check_nev_avail(int x_scu, int y_scu, int cuw, int cuh, int w_scu, int h_scu, u32 * map_scu);
 
-void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u32* map_scu, u32* map_cu_mode, u8* ctx, u8 tile_group_type);
+void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u32* map_scu, u32* map_cu_mode, u8* ctx, u8 tile_group_type, int sps_cm_init_flag);
 
 #if AFFINE
 void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int num_refp, \
-                                    s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
-                                    int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][VER_NUM][MV_D], s8 refi[MAX_NUM_MVP]
-                                    , u32* map_scu, u32* map_affine, int vertex_num, u16 avail_lr
+                                   s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
+                                   int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][VER_NUM][MV_D], s8 refi[MAX_NUM_MVP]
+                                   , u32* map_scu, u32* map_affine, int vertex_num, u16 avail_lr
 #if DMVR_LAG
-    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+                                   , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
 );
 
 int evc_get_affine_merge_candidate(int ptr, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],
-                                    EVC_REFP(*refp)[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, u16 avail, s8 refi[AFF_MAX_CAND][REFP_NUM], s16 mvp[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D], int vertex_num[AFF_MAX_CAND], u32* map_scu, u32* map_affine
+                                   EVC_REFP(*refp)[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, u16 avail, s8 refi[AFF_MAX_CAND][REFP_NUM], s16 mvp[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D], int vertex_num[AFF_MAX_CAND], u32* map_scu, u32* map_affine
 #if DMVR_LAG
-    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+                                   , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
 );
 int evc_get_affine_memory_access(s16 mv[VER_NUM][MV_D], int cuw, int cuh);
@@ -305,18 +280,9 @@ int evc_atomic_dec(volatile int * pcnt);
 #define ALLOW_SPLIT_RATIO(id, long_side, block_ratio) (block_ratio < 5 && (long_side <= evc_split_tbl[id][block_ratio][0] && long_side >= evc_split_tbl[id][block_ratio][1]) ? 1 : 0)
 #define ALLOW_SPLIT_TRI(id, long_side) ((long_side <= evc_split_tbl[id][5][0] && long_side >= evc_split_tbl[id][5][1]) ? 1 : 0)
 void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boundary, int boundary_b, int boundary_r, int log2_max_cuwh, int id
-                           , const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth
-#if FBT_ALL
-                           , int x, int y, int im_w, int im_h
-#endif
-                           , u8* remaining_split
-                           );
-
-void evc_init_scan_sr(int *scan, int size_x, int size_y, int width, int scan_type);
-void evc_get_ctx_srxy_para(int ch_type, int width, int height, int *result_offset_x, int *result_offset_y, int *result_shift_x, int *result_shift_y);
-int evc_get_ctx_gt0_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y);
-int evc_get_ctx_gt1_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y);
-int evc_get_ctx_gt2_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y);
+                          , const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth
+                          , int x, int y, int im_w, int im_h
+                          , u8* remaining_split, int sps_btt_flag);
 
 #ifdef __cplusplus
 }
@@ -324,15 +290,16 @@ int evc_get_ctx_gt2_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_t
 
 int evc_get_transform_shift(int log2_size, int type);
 
-#if CABAC_INIT
 void evc_eco_sbac_ctx_initialize(SBAC_CTX_MODEL *ctx, s16 *ctx_init_model, u16 num_ctx, u8 tile_group_type, u8 tile_group_qp);
-#endif
+
 #if SIMD_CLIP
-void clip_simd(const pel* src, int stored_alf_para_num, pel *dst, int dst_stride, int width, int height, const int clp_rng_min, const int clp_rng_max);
+void clip_simd(const pel* src, int src_stride, pel *dst, int dst_stride, int width, int height, const int clp_rng_min, const int clp_rng_max);
 #endif
 s32 divide_tbl(s32 dividend, s32 divisor);
 
 #if ADMVP
 BOOL check_bi_applicability(int tile_group_type, int cuw, int cuh);
 #endif
+
+void evc_block_copy(s16 * src, int src_stride, s16 * dst, int dst_stride, int log2_copy_w, int log2_copy_h);
 #endif /* _EVC_UTIL_H_ */

@@ -273,10 +273,9 @@ void scaling_mv(int ratio, s16 mvp[MV_D], s16 mv[MV_D])
     mv[MV_Y] = EVC_CLIP3(-(1 << 15), (1 << 15) - 1, tmp_mv);
 }
 
-#if MMVD
-void evc_get_ext_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int h_scu, int scup, u16 avail, int log2_cuw, int log2_cuh, int tile_group_t, int real_mv[][2][3], u32 *map_scu, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME], u16 avail_lr
+void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int h_scu, int scup, u16 avail, int log2_cuw, int log2_cuh, int tile_group_t, int real_mv[][2][3], u32 *map_scu, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME], u16 avail_lr
 #if ADMVP
-    , EVC_HISTORY_BUFFER history_buffer, int admvp_flag
+                           , EVC_HISTORY_BUFFER history_buffer, int admvp_flag
 #endif
 )
 {
@@ -342,21 +341,21 @@ void evc_get_ext_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16(
         }
     }
 #if ADMVP
-    if (admvp_flag==0)
+    if(admvp_flag == 0)
         evc_get_motion_skip(REF_SET[2][0], tile_group_t, scup, map_refi, map_mv, refp, cuw, cuh, w_scu, h_scu, srefi, smvp, map_scu, avail
-            , NULL
-            , history_buffer, admvp_flag
+                            , NULL
+                            , history_buffer, admvp_flag
         );
     else
 #endif
-    evc_get_motion_skip(REF_SET[2][0], tile_group_t, scup, map_refi, map_mv, refp, cuw, cuh, w_scu, h_scu, srefi, smvp, map_scu, avail_lr
+        evc_get_motion_skip(REF_SET[2][0], tile_group_t, scup, map_refi, map_mv, refp, cuw, cuh, w_scu, h_scu, srefi, smvp, map_scu, avail_lr
 #if DMVR_LAG
-      , NULL
+                            , NULL
 #endif
 #if ADMVP
-        , history_buffer, admvp_flag
+                            , history_buffer, admvp_flag
 #endif
-    );
+        );
 
     for (z = 0; z < MAX_NUM_MVP; z++)
     {
@@ -802,21 +801,14 @@ void evc_get_ext_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16(
                     real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][0][2] = base_mv[base_mv_idx][0][2];
                     real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][1][2] = base_mv[base_mv_idx][1][2];
                 }
-
             }
         }
     }
 }
-#endif
+
 #if ADMVP
-static int isMvpPositionValid(int x, int y, int maxX, int maxY)
-{
-    return (x >= 0 && x < maxX) && (y >= 0 && y < maxY);
-}
 void evc_check_motion_availability2(int scup, int cuw, int cuh, int w_scu, int h_scu, int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], u32* map_scu, u16 avail_lr, int num_mvp)
 {
-    int maxX = w_scu;
-    int maxY = h_scu;
     int dx = 0;
     int dy = 0;
 
@@ -826,102 +818,7 @@ void evc_check_motion_availability2(int scup, int cuw, int cuh, int w_scu, int h
     int scuh = cuh >> MIN_CU_LOG2;
     memset(valid_flag, 0, 5 * sizeof(int));
     
-#if SUCO_INTER
-    if (avail_lr == LR_00)
-    {
-        neb_addr[0] = scup - w_scu;
-        neb_addr[1] = scup - w_scu + scuw;
-        neb_addr[2] = scup - w_scu - 1;
-        valid_flag[0] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[0]]) && !MCU_GET_IF(map_scu[neb_addr[0]]);
-        valid_flag[1] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]);
-        valid_flag[2] = x_scu > 0 && y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]);
-
-        if (num_mvp == 1)
-        {
-            neb_addr[3] = scup - w_scu + scuw - 1;
-            neb_addr[4] = scup - w_scu + (scuw >> 1);
-            valid_flag[3] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[3]]) && !MCU_GET_IF(map_scu[neb_addr[3]]);
-            valid_flag[4] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[4]]) && !MCU_GET_IF(map_scu[neb_addr[4]]);
-        }
-    }
-    else if (avail_lr == LR_10)
-#endif
-    {
-        dx = -1; //H
-        dy = scuh - 1;
-        if (isMvpPositionValid(x_scu + dx, y_scu + dy, maxX, maxY)) {
-            neb_addr[0] = scup + dy * w_scu + dx;
-            valid_flag[0] = MCU_GET_COD(map_scu[neb_addr[0]]) && !MCU_GET_IF(map_scu[neb_addr[0]]);
-        }
-        dx = scuw - 1;  //D
-        dy = - 1;
-        if (isMvpPositionValid(x_scu + dx, y_scu + dy, maxX, maxY)) {
-            neb_addr[1] = scup + dy * w_scu + dx;
-            valid_flag[1] = MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]);
-        }
-        dx = scuw;  // E
-        dy = -1;
-        if (isMvpPositionValid(x_scu + dx, y_scu + dy, maxX, maxY)) {
-            neb_addr[2] = scup + dy * w_scu + dx;
-            valid_flag[2] = MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]);
-        }
-        if (num_mvp == 1)
-        {
-
-        dx = -1; // I
-        dy = scuh;
-        if (isMvpPositionValid(x_scu + dx, y_scu + dy, maxX, maxY)) {
-            neb_addr[3] = scup + dy * w_scu + dx;
-            valid_flag[3] = MCU_GET_COD(map_scu[neb_addr[3]]) && !MCU_GET_IF(map_scu[neb_addr[3]]);
-        }
-
-        dx = - 1; // A
-        dy = -1;
-        if (isMvpPositionValid(x_scu + dx, y_scu + dy, maxX, maxY)) {
-            neb_addr[4] = scup + dy * w_scu + dx;
-            valid_flag[4] = MCU_GET_COD(map_scu[neb_addr[4]]) && !MCU_GET_IF(map_scu[neb_addr[4]]);
-        }
-       }
-    }
-#if SUCO_INTER
-    else if (avail_lr == LR_01)
-    {// inverse location
-        dx = scuw; //inverse H
-        dy = (scuh - 1);
-        if (isMvpPositionValid(x_scu + dx, y_scu + dy, maxX, maxY)) {
-            neb_addr[0] = scup + dy * w_scu + dx;
-            valid_flag[0] = MCU_GET_COD(map_scu[neb_addr[0]]) && !MCU_GET_IF(map_scu[neb_addr[0]]);
-        }
-        dx = 0;  //inverse D
-        dy = -1;
-        if (isMvpPositionValid(x_scu + dx, y_scu + dy, maxX, maxY)) {
-            neb_addr[1] = scup + dy * w_scu + dx;
-            valid_flag[1] = MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]);
-        }
-        dx = -1;  // inverse E
-        dy = -1;
-        if (isMvpPositionValid(x_scu + dx, y_scu + dy, maxX, maxY)) {
-            neb_addr[2] = scup + dy * w_scu + dx;
-            valid_flag[2] = MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]);
-        }
-        if (num_mvp == 1)
-        {
-        dx = scuw; // inverse I
-        dy = scuh;
-        if (isMvpPositionValid(x_scu + dx, y_scu + dy, maxX, maxY)) {
-            neb_addr[3] = scup + dy * w_scu + dx;
-            valid_flag[3] = MCU_GET_COD(map_scu[neb_addr[3]]) && !MCU_GET_IF(map_scu[neb_addr[3]]);
-        }
-
-        dx = scuw; // inverse A
-        dy = -1;
-        if (isMvpPositionValid(x_scu + dx, y_scu + dy, maxX, maxY)) {
-            neb_addr[4] = scup + dy * w_scu + dx;
-            valid_flag[4] = MCU_GET_COD(map_scu[neb_addr[4]]) && !MCU_GET_IF(map_scu[neb_addr[4]]);
-          }
-        }
-    }
-    else
+    if (avail_lr == LR_11)
     {
         neb_addr[0] = scup - 1;
         neb_addr[1] = scup + scuw;
@@ -938,8 +835,38 @@ void evc_check_motion_availability2(int scup, int cuw, int cuh, int w_scu, int h
             valid_flag[4] = x_scu > 0 && y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[4]]) && !MCU_GET_IF(map_scu[neb_addr[4]]);
         }
     }
-#endif
-
+    else if (avail_lr == LR_01)
+    {
+        neb_addr[0] = scup + (scuh - 1) * w_scu + scuw; // inverse H
+        neb_addr[1] = scup - w_scu; // inverse D
+        neb_addr[2] = scup - w_scu - 1;  // inverse E
+        valid_flag[0] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[0]]) && !MCU_GET_IF(map_scu[neb_addr[0]]);
+        valid_flag[1] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]);
+        valid_flag[2] = y_scu > 0 && x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]);
+        if (num_mvp == 1)
+        {
+            neb_addr[3] = scup + scuh * w_scu + scuw; // inverse I
+            neb_addr[4] = scup - w_scu + scuw; // inverse A
+            valid_flag[3] = y_scu + scuh < h_scu && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[3]]) && !MCU_GET_IF(map_scu[neb_addr[3]]);
+            valid_flag[4] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[4]]) && !MCU_GET_IF(map_scu[neb_addr[4]]);
+        }
+    }
+    else
+    {
+        neb_addr[0] = scup + (scuh - 1) * w_scu - 1; // H
+        neb_addr[1] = scup - w_scu + scuw - 1; // D
+        neb_addr[2] = scup - w_scu + scuw;  // E
+        valid_flag[0] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[0]]) && !MCU_GET_IF(map_scu[neb_addr[0]]);
+        valid_flag[1] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]);
+        valid_flag[2] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]);
+        if (num_mvp == 1)
+        {
+            neb_addr[3] = scup + scuh * w_scu - 1; // I
+            neb_addr[4] = scup - w_scu - 1; // A
+            valid_flag[3] = y_scu + scuh < h_scu && x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[3]]) && !MCU_GET_IF(map_scu[neb_addr[3]]);
+            valid_flag[4] = y_scu > 0 && x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[4]]) && !MCU_GET_IF(map_scu[neb_addr[4]]);
+        }
+    }
 }
 #endif
 
@@ -971,6 +898,7 @@ int evc_use_refine_mv(int scup,int neb_scup, int w_scu)
     return 0;
 }
 #endif
+
 void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_scu, int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], u32* map_scu, u16 avail_lr, int num_mvp)
 {
     int x_scu = scup % w_scu;
@@ -978,57 +906,24 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
     int scuw = cuw >> MIN_CU_LOG2;
     int scuh = cuh >> MIN_CU_LOG2;
 
-#if SUCO_INTER
-    if(avail_lr == LR_00)
-    {
-        neb_addr[0] = scup - w_scu;
-        neb_addr[1] = scup - w_scu + scuw;
-        neb_addr[2] = scup - w_scu - 1;
-        valid_flag[0] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[0]]) && !MCU_GET_IF(map_scu[neb_addr[0]]);
-        valid_flag[1] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]);
-        valid_flag[2] = x_scu > 0 && y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]);
-
-        if(num_mvp == 1)
-        {
-            neb_addr[3] = scup - w_scu + scuw - 1;
-            neb_addr[4] = scup - w_scu + (scuw >> 1);
-            valid_flag[3] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[3]]) && !MCU_GET_IF(map_scu[neb_addr[3]]);
-            valid_flag[4] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[4]]) && !MCU_GET_IF(map_scu[neb_addr[4]]);
-        }
-    }
-    else if(avail_lr == LR_10)
-#endif
+    if (avail_lr == LR_11)
     {
         neb_addr[0] = scup - 1;
-        neb_addr[1] = scup - w_scu;
-        neb_addr[2] = scup - w_scu + scuw;
+        neb_addr[1] = scup + scuw;
+        neb_addr[2] = scup - w_scu;
         valid_flag[0] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[0]]) && !MCU_GET_IF(map_scu[neb_addr[0]]);
-        valid_flag[1] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]);
-        valid_flag[2] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]);
-        if(!valid_flag[2])
-        {
-            if(cuw >= cuh)
-            {
-                neb_addr[2] = scup - w_scu + scuw - 1;
-                valid_flag[2] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]);
-            }
-            else
-            {
-                neb_addr[2] = scup + (scuh - 1) * w_scu - 1;
-                valid_flag[2] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]);
-            }
-        }
+        valid_flag[1] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]);
+        valid_flag[2] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]);
 
-        if(num_mvp == 1)
+        if (num_mvp == 1)
         {
-            neb_addr[3] = scup - w_scu - 1;
-            neb_addr[4] = scup + scuh * w_scu - 1;
-            valid_flag[3] = x_scu > 0 && y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[3]]) && !MCU_GET_IF(map_scu[neb_addr[3]]);
-            valid_flag[4] = x_scu > 0 && y_scu + scuh < h_scu && MCU_GET_COD(map_scu[neb_addr[4]]) && !MCU_GET_IF(map_scu[neb_addr[4]]);
+            neb_addr[3] = scup - w_scu + scuw;
+            neb_addr[4] = scup - w_scu - 1;
+            valid_flag[3] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[3]]) && !MCU_GET_IF(map_scu[neb_addr[3]]);
+            valid_flag[4] = x_scu > 0 && y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[4]]) && !MCU_GET_IF(map_scu[neb_addr[4]]);
         }
     }
-#if SUCO_INTER
-    else if(avail_lr == LR_01)
+    else if (avail_lr == LR_01)
     {
         neb_addr[0] = scup + scuw;
         neb_addr[1] = scup - w_scu + scuw - 1;
@@ -1036,9 +931,9 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
         valid_flag[0] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[0]]) && !MCU_GET_IF(map_scu[neb_addr[0]]);
         valid_flag[1] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]);
         valid_flag[2] = x_scu > 0 && y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]);
-        if(!valid_flag[2])
+        if (!valid_flag[2])
         {
-            if(cuw >= cuh)
+            if (cuw >= cuh)
             {
                 neb_addr[2] = scup - w_scu;
                 valid_flag[2] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]);
@@ -1050,7 +945,7 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
             }
         }
 
-        if(num_mvp == 1)
+        if (num_mvp == 1)
         {
             neb_addr[3] = scup - w_scu + scuw;
             neb_addr[4] = scup + scuh * w_scu + scuw;
@@ -1061,32 +956,42 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
     else
     {
         neb_addr[0] = scup - 1;
-        neb_addr[1] = scup + scuw;
-        neb_addr[2] = scup - w_scu;
+        neb_addr[1] = scup - w_scu;
+        neb_addr[2] = scup - w_scu + scuw;
         valid_flag[0] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[0]]) && !MCU_GET_IF(map_scu[neb_addr[0]]);
-        valid_flag[1] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]);
-        valid_flag[2] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]);
-
-        if(num_mvp == 1)
+        valid_flag[1] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]);
+        valid_flag[2] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]);
+        if (!valid_flag[2])
         {
-            neb_addr[3] = scup - w_scu + scuw;
-            neb_addr[4] = scup - w_scu - 1;
-            valid_flag[3] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[3]]) && !MCU_GET_IF(map_scu[neb_addr[3]]);
-            valid_flag[4] = x_scu > 0 && y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[4]]) && !MCU_GET_IF(map_scu[neb_addr[4]]);
+            if (cuw >= cuh)
+            {
+                neb_addr[2] = scup - w_scu + scuw - 1;
+                valid_flag[2] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]);
+            }
+            else
+            {
+                neb_addr[2] = scup + (scuh - 1) * w_scu - 1;
+                valid_flag[2] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]);
+            }
+        }
+
+        if (num_mvp == 1)
+        {
+            neb_addr[3] = scup - w_scu - 1;
+            neb_addr[4] = scup + scuh * w_scu - 1;
+            valid_flag[3] = x_scu > 0 && y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[3]]) && !MCU_GET_IF(map_scu[neb_addr[3]]);
+            valid_flag[4] = x_scu > 0 && y_scu + scuh < h_scu && MCU_GET_COD(map_scu[neb_addr[4]]) && !MCU_GET_IF(map_scu[neb_addr[4]]);
         }
     }
-#endif
 }
 
-#if AMVR
-#if ABP
 s8 evc_get_first_refi(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int cuw, int cuh, int w_scu, int h_scu, u32 *map_scu, u8 mvr_idx, u16 avail_lr
 #if DMVR_LAG
-    ,s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+                      , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
 #if ADMVP
-    , EVC_HISTORY_BUFFER history_buffer
-    , int admvp_flag
+                      , EVC_HISTORY_BUFFER history_buffer
+                      , int admvp_flag
 #endif
 )
 {
@@ -1102,16 +1007,16 @@ s8 evc_get_first_refi(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[
 #endif
     evc_get_default_motion(neb_addr, valid_flag, 0, lidx, map_refi, map_mv, &default_refi, default_mv
 #if DMVR_LAG
-     , map_scu
-     , map_unrefined_mv
-     ,scup
-     ,w_scu
+                           , map_scu
+                           , map_unrefined_mv
+                           , scup
+                           , w_scu
 #endif
 #if ADMVP
-                            , history_buffer
-        , admvp_flag
+                           , history_buffer
+                           , admvp_flag
 #endif
-                           );
+    );
 
     for(cnt = mvr_idx; cnt < mvr_idx + 1 && cnt != 5; cnt++)
     {
@@ -1132,18 +1037,17 @@ s8 evc_get_first_refi(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[
 
     return refi;
 }
-#endif
 
-void evc_get_default_motion(int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], s8 cur_refi, int lidx, s8 (*map_refi)[REFP_NUM], s16 (*map_mv)[REFP_NUM][MV_D], s8 *refi, s16 mv[MV_D]
+void evc_get_default_motion(int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], s8 cur_refi, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], s8 *refi, s16 mv[MV_D]
 #if DMVR_LAG
-    , u32 *map_scu
-    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
-    , int scup
-    , int w_scu
+                            , u32 *map_scu
+                            , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+                            , int scup
+                            , int w_scu
 #endif
 #if ADMVP
-    , EVC_HISTORY_BUFFER history_buffer
-    , int admvp_flag
+                            , EVC_HISTORY_BUFFER history_buffer
+                            , int admvp_flag
 #endif
 )
 {
@@ -1197,11 +1101,11 @@ void evc_get_default_motion(int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag
                     found = 1;
                     *refi = tmp_refi;
 #if DMVR_LAG
-                    if (MCU_GET_DMVRF(map_scu[neb_addr[k]])
+                    if(MCU_GET_DMVRF(map_scu[neb_addr[k]])
 #if (DMVR_LAG == 2)
-                        && (!evc_use_refine_mv(scup, neb_addr[k], w_scu))
+                       && (!evc_use_refine_mv(scup, neb_addr[k], w_scu))
 #endif
-                        )
+                       )
                     {
                         mv[MV_X] = map_unrefined_mv[neb_addr[k]][lidx][MV_X];
                         mv[MV_Y] = map_unrefined_mv[neb_addr[k]][lidx][MV_Y];
@@ -1209,8 +1113,8 @@ void evc_get_default_motion(int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag
                     else
 #endif
                     {
-                    mv[MV_X] = map_mv[neb_addr[k]][lidx][MV_X];
-                    mv[MV_Y] = map_mv[neb_addr[k]][lidx][MV_Y];
+                        mv[MV_X] = map_mv[neb_addr[k]][lidx][MV_X];
+                        mv[MV_Y] = map_mv[neb_addr[k]][lidx][MV_Y];
                     }
                     break;
                 }
@@ -1219,54 +1123,52 @@ void evc_get_default_motion(int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag
     }
 
 #if ADMVP
-    if (admvp_flag)
+    if(admvp_flag)
     {
-    if (!found)
-    {
-        for (k = 1; k <= min(history_buffer.currCnt, ALLOWED_CHECKED_AMVP_NUM); k++)
+        if(!found)
         {
-            tmp_refi = REFI_IS_VALID(history_buffer.history_refi_table[history_buffer.currCnt - k][lidx]) ? history_buffer.history_refi_table[history_buffer.currCnt - k][lidx] : REFI_INVALID;
-            if (tmp_refi == cur_refi)
+            for(k = 1; k <= min(history_buffer.currCnt, ALLOWED_CHECKED_AMVP_NUM); k++)
             {
-                found = 1;
-                *refi = tmp_refi;
-                mv[MV_X] = history_buffer.history_mv_table[history_buffer.currCnt - k][lidx][MV_X];
-                mv[MV_Y] = history_buffer.history_mv_table[history_buffer.currCnt - k][lidx][MV_Y];
-                break;
+                tmp_refi = REFI_IS_VALID(history_buffer.history_refi_table[history_buffer.currCnt - k][lidx]) ? history_buffer.history_refi_table[history_buffer.currCnt - k][lidx] : REFI_INVALID;
+                if(tmp_refi == cur_refi)
+                {
+                    found = 1;
+                    *refi = tmp_refi;
+                    mv[MV_X] = history_buffer.history_mv_table[history_buffer.currCnt - k][lidx][MV_X];
+                    mv[MV_Y] = history_buffer.history_mv_table[history_buffer.currCnt - k][lidx][MV_Y];
+                    break;
+                }
             }
         }
-    }
 
-    if (!found)
-    {
-        for (k = 1; k <= min(history_buffer.currCnt, ALLOWED_CHECKED_AMVP_NUM); k++)
+        if(!found)
         {
-            tmp_refi = REFI_IS_VALID(history_buffer.history_refi_table[history_buffer.currCnt - k][lidx]) ? history_buffer.history_refi_table[history_buffer.currCnt - k][lidx] : REFI_INVALID;
-            if (tmp_refi != REFI_INVALID)
+            for(k = 1; k <= min(history_buffer.currCnt, ALLOWED_CHECKED_AMVP_NUM); k++)
             {
-                found = 1;
-                *refi = tmp_refi;
-                mv[MV_X] = history_buffer.history_mv_table[history_buffer.currCnt - k][lidx][MV_X];
-                mv[MV_Y] = history_buffer.history_mv_table[history_buffer.currCnt - k][lidx][MV_Y];
-                break;
+                tmp_refi = REFI_IS_VALID(history_buffer.history_refi_table[history_buffer.currCnt - k][lidx]) ? history_buffer.history_refi_table[history_buffer.currCnt - k][lidx] : REFI_INVALID;
+                if(tmp_refi != REFI_INVALID)
+                {
+                    found = 1;
+                    *refi = tmp_refi;
+                    mv[MV_X] = history_buffer.history_mv_table[history_buffer.currCnt - k][lidx][MV_X];
+                    mv[MV_Y] = history_buffer.history_mv_table[history_buffer.currCnt - k][lidx][MV_Y];
+                    break;
                 }
             }
         }
 #endif
     }
 }
-#endif
 
-#if AMVR
 void evc_get_motion_from_mvr(u8 mvr_idx, int ptr, int scup, int lidx, s8 cur_refi, int num_refp, \
-                              s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
-                              int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][MV_D], s8 refi[MAX_NUM_MVP], u32* map_scu, u16 avail_lr
+                             s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
+                             int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][MV_D], s8 refi[MAX_NUM_MVP], u32* map_scu, u16 avail_lr
 #if DMVR_FLAG
-    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+                             , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
 #if ADMVP
-    , EVC_HISTORY_BUFFER history_buffer
-    , int admvp_flag
+                             , EVC_HISTORY_BUFFER history_buffer
+                             , int admvp_flag
 #endif
 )
 {
@@ -1285,16 +1187,16 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int ptr, int scup, int lidx, s8 cur_ref
 #endif
     evc_get_default_motion(neb_addr, valid_flag, cur_refi, lidx, map_refi, map_mv, &default_refi, default_mv
 #if DMVR_LAG
-    ,map_scu
-    , map_unrefined_mv
-    , scup
-    ,w_scu
+                           , map_scu
+                           , map_unrefined_mv
+                           , scup
+                           , w_scu
 #endif
 #if ADMVP
-        , history_buffer
-        , admvp_flag
+                           , history_buffer
+                           , admvp_flag
 #endif
-                           );
+    );
 
     ptr_refi_cur = refp[cur_refi][lidx].ptr;
     for(i = 0; i < num_refp; i++)
@@ -1320,11 +1222,11 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int ptr, int scup, int lidx, s8 cur_ref
             if(refi[0] == cur_refi)
             {
 #if DMVR_LAG
-                if (MCU_GET_DMVRF(map_scu[neb_addr[cnt]])
+                if(MCU_GET_DMVRF(map_scu[neb_addr[cnt]])
 #if (DMVR_LAG == 2)
-                    && (!evc_use_refine_mv(scup, neb_addr[cnt], w_scu))
+                   && (!evc_use_refine_mv(scup, neb_addr[cnt], w_scu))
 #endif
-                    )
+                   )
                 {
                     mvp_temp[MV_X] = map_unrefined_mv[neb_addr[cnt]][lidx][MV_X];
                     mvp_temp[MV_Y] = map_unrefined_mv[neb_addr[cnt]][lidx][MV_Y];
@@ -1332,9 +1234,9 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int ptr, int scup, int lidx, s8 cur_ref
                 else
 #endif
                 {
-                mvp_temp[MV_X] = map_mv[neb_addr[cnt]][lidx][MV_X];
-                mvp_temp[MV_Y] = map_mv[neb_addr[cnt]][lidx][MV_Y];
-            }
+                    mvp_temp[MV_X] = map_mv[neb_addr[cnt]][lidx][MV_X];
+                    mvp_temp[MV_Y] = map_mv[neb_addr[cnt]][lidx][MV_Y];
+                }
             }
             else if(refi[0] == REFI_INVALID)
             {
@@ -1352,20 +1254,20 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int ptr, int scup, int lidx, s8 cur_ref
             else
             {
 #if DMVR_LAG
-                if (MCU_GET_DMVRF(map_scu[neb_addr[cnt]])
+                if(MCU_GET_DMVRF(map_scu[neb_addr[cnt]])
 #if (DMVR_LAG == 2)
-                    && (!evc_use_refine_mv(scup, neb_addr[cnt], w_scu))
+                   && (!evc_use_refine_mv(scup, neb_addr[cnt], w_scu))
 #endif
-                    )
+                   )
                 {
                     scaling_mv(ratio[refi[0]], map_unrefined_mv[neb_addr[cnt]][lidx], mvp_temp);
                 }
                 else
 #endif    
                 {
-                scaling_mv(ratio[refi[0]], map_mv[neb_addr[cnt]][lidx], mvp_temp);
-            }
-                
+                    scaling_mv(ratio[refi[0]], map_mv[neb_addr[cnt]][lidx], mvp_temp);
+                }
+
             }
         }
         else
@@ -1407,12 +1309,10 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int ptr, int scup, int lidx, s8 cur_ref
         mvp[0][MV_Y] = (mvp_temp[MV_Y] >= 0) ? (((mvp_temp[MV_Y] + rounding) >> mvr_idx) << mvr_idx) : -(((-mvp_temp[MV_Y] + rounding) >> mvr_idx) << mvr_idx);
     }
 }
-#endif
-#if INTER_GR || ADMVP
 
 void evc_get_motion(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],
-    EVC_REFP(*refp)[REFP_NUM],
-    int cuw, int cuh, int w_scu, u16 avail, s8 refi[MAX_NUM_MVP], s16 mvp[MAX_NUM_MVP][MV_D])
+                    EVC_REFP(*refp)[REFP_NUM],
+                    int cuw, int cuh, int w_scu, u16 avail, s8 refi[MAX_NUM_MVP], s16 mvp[MAX_NUM_MVP][MV_D])
 {
 
     if (IS_AVAIL(avail, AVAIL_LE))
@@ -1427,7 +1327,7 @@ void evc_get_motion(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[RE
         mvp[0][MV_X] = 1;
         mvp[0][MV_Y] = 1;
     }
-#if MAX_NUM_MVP > 1
+
     if (IS_AVAIL(avail, AVAIL_UP))
     {
         refi[1] = 0;
@@ -1440,8 +1340,7 @@ void evc_get_motion(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[RE
         mvp[1][MV_X] = 1;
         mvp[1][MV_Y] = 1;
     }
-#endif
-#if MAX_NUM_MVP > 2
+
     if (IS_AVAIL(avail, AVAIL_UP_RI))
     {
         refi[2] = 0;
@@ -1454,31 +1353,21 @@ void evc_get_motion(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[RE
         mvp[2][MV_X] = 1;
         mvp[2][MV_Y] = 1;
     }
-#endif
-#if MAX_NUM_MVP > 3
     refi[3] = 0;
     mvp[3][MV_X] = refp[0][lidx].map_mv[scup][0][MV_X];
     mvp[3][MV_Y] = refp[0][lidx].map_mv[scup][0][MV_Y];
-#endif
-#if MAX_NUM_MVP > 4
-    refi[4] = 0;
-    mvp[4][MV_X] = 0;
-    mvp[4][MV_Y] = 0;
-#endif
 }
 
-#endif
-
-#if AFFINE || !AMVR
+#if AFFINE
 void evc_get_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int num_refp, s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM],
-                             int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][MV_D], s8 refi[MAX_NUM_MVP], u32* map_scu, u16 avail_lr
+                            int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][MV_D], s8 refi[MAX_NUM_MVP], u32* map_scu, u16 avail_lr
 #if DMVR_LAG
-    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+                            , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
 )
 {
     int cnt, i, t0, ptr_refi_cur, dptr_co;
-    int ratio[MAX_NUM_REF_PICS] = {0, }, ratio_tmvp = 0;
+    int ratio[MAX_NUM_REF_PICS] = {0,}, ratio_tmvp = 0;
     int neb_addr[MAX_NUM_POSSIBLE_SCAND], valid_flag[MAX_NUM_POSSIBLE_SCAND];
     s8(*map_refi_co)[REFP_NUM];
 
@@ -1505,7 +1394,7 @@ void evc_get_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int num_re
 #if INCREASE_MVP_NUM
     for(cnt = 0; cnt < ORG_MAX_NUM_MVP - 1; cnt++)
 #else
-    for (cnt = 0; cnt < MAX_NUM_MVP - 1; cnt++)
+    for(cnt = 0; cnt < MAX_NUM_MVP - 1; cnt++)
 #endif
     {
         if(valid_flag[cnt])
@@ -1514,11 +1403,11 @@ void evc_get_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int num_re
             if(refi[cnt] == cur_refi)
             {
 #if DMVR_LAG
-                if (MCU_GET_DMVRF(map_scu[neb_addr[cnt]])
+                if(MCU_GET_DMVRF(map_scu[neb_addr[cnt]])
 #if (DMVR_LAG == 2)
-                    && (!evc_use_refine_mv(scup, neb_addr[cnt], w_scu))
+                   && (!evc_use_refine_mv(scup, neb_addr[cnt], w_scu))
 #endif
-                    )
+                   )
                 {
                     mvp[cnt][MV_X] = map_unrefined_mv[neb_addr[cnt]][lidx][MV_X];
                     mvp[cnt][MV_Y] = map_unrefined_mv[neb_addr[cnt]][lidx][MV_Y];
@@ -1527,9 +1416,9 @@ void evc_get_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int num_re
 #endif
                 {
 
-                mvp[cnt][MV_X] = map_mv[neb_addr[cnt]][lidx][MV_X];
-                mvp[cnt][MV_Y] = map_mv[neb_addr[cnt]][lidx][MV_Y];
-            }
+                    mvp[cnt][MV_X] = map_mv[neb_addr[cnt]][lidx][MV_X];
+                    mvp[cnt][MV_Y] = map_mv[neb_addr[cnt]][lidx][MV_Y];
+                }
             }
             else if(refi[cnt] == REFI_INVALID)
             {
@@ -1539,20 +1428,20 @@ void evc_get_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int num_re
             else
             {
 #if DMVR_LAG
-                if (MCU_GET_DMVRF(map_scu[neb_addr[cnt]])
+                if(MCU_GET_DMVRF(map_scu[neb_addr[cnt]])
 #if (DMVR_LAG == 2)
-                    && (!evc_use_refine_mv(scup, neb_addr[cnt], w_scu))
+                   && (!evc_use_refine_mv(scup, neb_addr[cnt], w_scu))
 #endif
-                    )
+                   )
                 {
                     scaling_mv(ratio[refi[cnt]], map_unrefined_mv[neb_addr[cnt]][lidx], mvp[cnt]);
                 }
                 else
 #endif
                 {
-                scaling_mv(ratio[refi[cnt]], map_mv[neb_addr[cnt]][lidx], mvp[cnt]);
+                    scaling_mv(ratio[refi[cnt]], map_mv[neb_addr[cnt]][lidx], mvp[cnt]);
+                }
             }
-        }
         }
         else
         {
@@ -1614,6 +1503,7 @@ static int evc_get_right_below_scup_qc_merge(int scup, int cuw, int cuh, int w_s
     }
     return -1;
 }
+
 static int evc_get_right_below_scup_qc_merge_suco(int scup, int cuw, int cuh, int w_scu, int h_scu, int bottom_right)
 {
     int scuw = cuw >> MIN_CU_LOG2;
@@ -1671,9 +1561,9 @@ static int evc_get_right_below_scup(int scup, int cuw, int cuh, int w_scu, int h
 BOOL check_bi_applicability(int tile_group_type, int cuw, int cuh)
 {
     BOOL is_applicable = FALSE;
-    if ((tile_group_type == TILE_GROUP_B) &&
-        !((max(cuw, cuh) < 8 && min(cuw, cuh) < 8))
-        )
+    if((tile_group_type == TILE_GROUP_B) &&
+       !((max(cuw, cuh) < 8 && min(cuw, cuh) < 8))
+       )
     {
         is_applicable = TRUE;
     }
@@ -1721,19 +1611,19 @@ __inline static void check_redundancy(int tile_group_type, s16 mvp[REFP_NUM][MAX
 }
 
 void evc_get_motion_skip(int ptr, int tile_group_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],
-                          EVC_REFP refp[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, s8 refi[REFP_NUM][MAX_NUM_MVP], s16 mvp[REFP_NUM][MAX_NUM_MVP][MV_D], u32 *map_scu, u16 avail_lr
+                         EVC_REFP refp[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, s8 refi[REFP_NUM][MAX_NUM_MVP], s16 mvp[REFP_NUM][MAX_NUM_MVP][MV_D], u32 *map_scu, u16 avail_lr
 #if DMVR_LAG
-  , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+                         , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
 #if ADMVP
-    , EVC_HISTORY_BUFFER history_buffer, int admvp_flag
+                         , EVC_HISTORY_BUFFER history_buffer, int admvp_flag
 #endif
 )
 {
     BOOL tmpvBottomRight = 0; // Bottom first
 #if ADMVP
-    int small_cu=0;
-    if (cuw*cuh <= NUM_SAMPLES_BLOCK)
+    int small_cu = 0;
+    if(cuw*cuh <= NUM_SAMPLES_BLOCK)
         small_cu = 1;
 #endif
     int k, cnt = 0;
@@ -1780,61 +1670,61 @@ void evc_get_motion_skip(int ptr, int tile_group_type, int scup, s8(*map_refi)[R
         {
 #if DMVR_LAG
 
-          if ((NULL != map_unrefined_mv) && MCU_GET_DMVRF(map_scu[neb_addr[k]])
+            if((NULL != map_unrefined_mv) && MCU_GET_DMVRF(map_scu[neb_addr[k]])
 #if (DMVR_LAG == 2)
-              && (!evc_use_refine_mv(scup,neb_addr[k],w_scu))
+               && (!evc_use_refine_mv(scup, neb_addr[k], w_scu))
 #endif
-              )
-          {
-              assert(map_unrefined_mv[neb_addr[k]][REFP_0][MV_X] != SHRT_MAX);
-              assert(map_unrefined_mv[neb_addr[k]][REFP_0][MV_Y] != SHRT_MAX);
-            refi[REFP_0][cnt] = REFI_IS_VALID(map_refi[neb_addr[k]][REFP_0]) ? map_refi[neb_addr[k]][REFP_0] : REFI_INVALID;
-            mvp[REFP_0][cnt][MV_X] = map_unrefined_mv[neb_addr[k]][REFP_0][MV_X];
-            mvp[REFP_0][cnt][MV_Y] = map_unrefined_mv[neb_addr[k]][REFP_0][MV_Y];
-            if (tile_group_type == TILE_GROUP_B)
+               )
             {
-                assert(map_unrefined_mv[neb_addr[k]][REFP_1][MV_X] != SHRT_MAX);
-                assert(map_unrefined_mv[neb_addr[k]][REFP_1][MV_Y] != SHRT_MAX);
-              refi[REFP_1][cnt] = REFI_IS_VALID(map_refi[neb_addr[k]][REFP_1]) ? map_refi[neb_addr[k]][REFP_1] : REFI_INVALID;
-              mvp[REFP_1][cnt][MV_X] = map_unrefined_mv[neb_addr[k]][REFP_1][MV_X];
-              mvp[REFP_1][cnt][MV_Y] = map_unrefined_mv[neb_addr[k]][REFP_1][MV_Y];
-            }
-          }
-          else          
-#endif
-          {
-            refi[REFP_0][cnt] = REFI_IS_VALID(map_refi[neb_addr[k]][REFP_0]) ? map_refi[neb_addr[k]][REFP_0] : REFI_INVALID;
-            mvp[REFP_0][cnt][MV_X] = map_mv[neb_addr[k]][REFP_0][MV_X];
-            mvp[REFP_0][cnt][MV_Y] = map_mv[neb_addr[k]][REFP_0][MV_Y];
-#if ADMVP
-            if (!check_bi_applicability(tile_group_type, cuw, cuh))
-            {
-                refi[REFP_1][cnt] = REFI_INVALID;
-                mvp[REFP_1][cnt][MV_X] = 0;
-                mvp[REFP_1][cnt][MV_Y] = 0;
+                assert(map_unrefined_mv[neb_addr[k]][REFP_0][MV_X] != SHRT_MAX);
+                assert(map_unrefined_mv[neb_addr[k]][REFP_0][MV_Y] != SHRT_MAX);
+                refi[REFP_0][cnt] = REFI_IS_VALID(map_refi[neb_addr[k]][REFP_0]) ? map_refi[neb_addr[k]][REFP_0] : REFI_INVALID;
+                mvp[REFP_0][cnt][MV_X] = map_unrefined_mv[neb_addr[k]][REFP_0][MV_X];
+                mvp[REFP_0][cnt][MV_Y] = map_unrefined_mv[neb_addr[k]][REFP_0][MV_Y];
+                if(tile_group_type == TILE_GROUP_B)
+                {
+                    assert(map_unrefined_mv[neb_addr[k]][REFP_1][MV_X] != SHRT_MAX);
+                    assert(map_unrefined_mv[neb_addr[k]][REFP_1][MV_Y] != SHRT_MAX);
+                    refi[REFP_1][cnt] = REFI_IS_VALID(map_refi[neb_addr[k]][REFP_1]) ? map_refi[neb_addr[k]][REFP_1] : REFI_INVALID;
+                    mvp[REFP_1][cnt][MV_X] = map_unrefined_mv[neb_addr[k]][REFP_1][MV_X];
+                    mvp[REFP_1][cnt][MV_Y] = map_unrefined_mv[neb_addr[k]][REFP_1][MV_Y];
+                }
             }
             else
-#else
-            if(tile_group_type == TILE_GROUP_B)
 #endif
             {
-              refi[REFP_1][cnt] = REFI_IS_VALID(map_refi[neb_addr[k]][REFP_1]) ? map_refi[neb_addr[k]][REFP_1] : REFI_INVALID;
-              mvp[REFP_1][cnt][MV_X] = map_mv[neb_addr[k]][REFP_1][MV_X];
-              mvp[REFP_1][cnt][MV_Y] = map_mv[neb_addr[k]][REFP_1][MV_Y];
+                refi[REFP_0][cnt] = REFI_IS_VALID(map_refi[neb_addr[k]][REFP_0]) ? map_refi[neb_addr[k]][REFP_0] : REFI_INVALID;
+                mvp[REFP_0][cnt][MV_X] = map_mv[neb_addr[k]][REFP_0][MV_X];
+                mvp[REFP_0][cnt][MV_Y] = map_mv[neb_addr[k]][REFP_0][MV_Y];
+#if ADMVP
+                if(!check_bi_applicability(tile_group_type, cuw, cuh))
+                {
+                    refi[REFP_1][cnt] = REFI_INVALID;
+                    mvp[REFP_1][cnt][MV_X] = 0;
+                    mvp[REFP_1][cnt][MV_Y] = 0;
+                }
+                else
+#else
+                if(tile_group_type == TILE_GROUP_B)
+#endif
+                {
+                    refi[REFP_1][cnt] = REFI_IS_VALID(map_refi[neb_addr[k]][REFP_1]) ? map_refi[neb_addr[k]][REFP_1] : REFI_INVALID;
+                    mvp[REFP_1][cnt][MV_X] = map_mv[neb_addr[k]][REFP_1][MV_X];
+                    mvp[REFP_1][cnt][MV_Y] = map_mv[neb_addr[k]][REFP_1][MV_Y];
+                }
             }
-          }
             check_redundancy(tile_group_type, mvp, refi, &cnt);
             cnt++;
         }
 #if ADMVP
-        if(cnt == (small_cu?MAX_NUM_MVP_SMALL_CU - 1: MAX_NUM_MVP-1))
+        if(cnt == (small_cu ? MAX_NUM_MVP_SMALL_CU - 1 : MAX_NUM_MVP - 1))
 #else
-        if (cnt == MAX_NUM_MVP - 1)
+        if(cnt == MAX_NUM_MVP - 1)
 #endif
         {
             break;
         }
-        }
+    }
 #if ADMVP
     int tmvp_cnt_pos0 = 0, tmvp_cnt_pos1 = 0;
     int tmvp_added = 0;
@@ -1842,18 +1732,19 @@ void evc_get_motion_skip(int ptr, int tile_group_type, int scup, s8(*map_refi)[R
 #if ADMVP                            
     evc_get_mv_dir(refp, ptr, scup + ((cuw >> 1) >> MIN_CU_LOG2) + ((cuh >> 1) >> MIN_CU_LOG2) * w_scu, scup, w_scu, h_scu, tmvp
 #if ADMVP
-        , &refidx
+                   , &refidx
 #endif
+                   , admvp_flag
     );
 #else
     evc_get_mv_dir(refp, ptr, scup + ((cuw >> 1) >> MIN_CU_LOG2) + ((cuh >> 1) >> MIN_CU_LOG2) * w_scu, w_scu, tmvp
 #if ADMVP
-        , &refidx
+                   , &refidx
 #endif
     );
 #endif
 #if ADMVP
-    if (refidx != REFI_INVALID)
+    if(refidx != REFI_INVALID)
     {
 #endif
         refi[REFP_0][cnt] = 0;
@@ -1869,13 +1760,13 @@ void evc_get_motion_skip(int ptr, int tile_group_type, int scup, s8(*map_refi)[R
     }
     else
 #else
-    if (tile_group_type == TILE_GROUP_B)
+        if(tile_group_type == TILE_GROUP_B)
 #endif
-    {
-        refi[REFP_1][cnt] = 0;
-        mvp[REFP_1][cnt][MV_X] = tmvp[REFP_1][MV_X];
-        mvp[REFP_1][cnt][MV_Y] = tmvp[REFP_1][MV_Y];
-    }
+        {
+            refi[REFP_1][cnt] = 0;
+            mvp[REFP_1][cnt][MV_X] = tmvp[REFP_1][MV_X];
+            mvp[REFP_1][cnt][MV_Y] = tmvp[REFP_1][MV_Y];
+        }
 #if ADMVP
         tmvp_cnt_pos0 = cnt;
 #endif
@@ -1883,7 +1774,7 @@ void evc_get_motion_skip(int ptr, int tile_group_type, int scup, s8(*map_refi)[R
         cnt++;
 #if ADMVP
         tmvp_cnt_pos1 = cnt;
-        if (tmvp_cnt_pos1 == tmvp_cnt_pos0 + 1)
+        if(tmvp_cnt_pos1 == tmvp_cnt_pos0 + 1)
             tmvp_added = 1;
 #endif
 #if ADMVP
@@ -1892,178 +1783,177 @@ void evc_get_motion_skip(int ptr, int tile_group_type, int scup, s8(*map_refi)[R
 
 #if MERGE_MVP
 #if ADMVP
-    if (cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
+    if(cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
 #else
-    if (cnt >= MAX_NUM_MVP)
+    if(cnt >= MAX_NUM_MVP)
 #endif
     {
         return;
     }
 #if ADMVP
-    if (!tmvp_added)
+    if(!tmvp_added)
     {
 #endif
 #if !ADMVP
-    scup_tmp = evc_get_right_below_scup(scup, cuw, cuh, w_scu, h_scu); // right bottom
+        scup_tmp = evc_get_right_below_scup(scup, cuw, cuh, w_scu, h_scu); // right bottom
 #else
         tmpvBottomRight = 0; // Bottom first
 #if ADMVP
-        if (avail_lr == LR_01)
+        if(avail_lr == LR_01)
             scup_tmp = evc_get_right_below_scup_qc_merge_suco(scup, cuw, cuh, w_scu, h_scu, tmpvBottomRight);
         else
-    scup_tmp = evc_get_right_below_scup_qc_merge(scup, cuw, cuh, w_scu, h_scu, tmpvBottomRight); 
+            scup_tmp = evc_get_right_below_scup_qc_merge(scup, cuw, cuh, w_scu, h_scu, tmpvBottomRight);
 #endif
 #endif
 #if ADMVP
-    if (scup_tmp != -1)  // if available, add it to candidate list
+        if(scup_tmp != -1)  // if available, add it to candidate list
 #endif
-    {
+        {
 
 #if ADMVP                            
-        evc_get_mv_dir(refp, ptr, scup_tmp, scup, w_scu, h_scu, tmvp
+            evc_get_mv_dir(refp, ptr, scup_tmp, scup, w_scu, h_scu, tmvp
 #if ADMVP
-            , &refidx
+                           , &refidx
 #endif
-        );
+                           , admvp_flag
+            );
 #else
-        evc_get_mv_dir(refp, ptr, scup_tmp, w_scu, tmvp
+            evc_get_mv_dir(refp, ptr, scup_tmp, w_scu, tmvp
 #if ADMVP
-            , &refidx
+                           , &refidx
 #endif
-        );
+            );
 #endif
 #if ADMVP
-        if (refidx != REFI_INVALID)
-        {
-#endif
-            refi[REFP_0][cnt] = 0;
-            mvp[REFP_0][cnt][MV_X] = tmvp[REFP_0][MV_X];
-            mvp[REFP_0][cnt][MV_Y] = tmvp[REFP_0][MV_Y];
-#if ADMVP
-            if (!check_bi_applicability(tile_group_type, cuw, cuh))
+            if(refidx != REFI_INVALID)
             {
-                refi[REFP_1][cnt] = REFI_INVALID;
-                mvp[REFP_1][cnt][MV_X] = 0;
-                mvp[REFP_1][cnt][MV_Y] = 0;
-            }
-            else
+#endif
+                refi[REFP_0][cnt] = 0;
+                mvp[REFP_0][cnt][MV_X] = tmvp[REFP_0][MV_X];
+                mvp[REFP_0][cnt][MV_Y] = tmvp[REFP_0][MV_Y];
+#if ADMVP
+                if(!check_bi_applicability(tile_group_type, cuw, cuh))
+                {
+                    refi[REFP_1][cnt] = REFI_INVALID;
+                    mvp[REFP_1][cnt][MV_X] = 0;
+                    mvp[REFP_1][cnt][MV_Y] = 0;
+                }
+                else
 #else
-            if (tile_group_type == TILE_GROUP_B)
+                if(tile_group_type == TILE_GROUP_B)
 #endif
-            {
-                refi[REFP_1][cnt] = 0;
-                mvp[REFP_1][cnt][MV_X] = tmvp[REFP_1][MV_X];
-                mvp[REFP_1][cnt][MV_Y] = tmvp[REFP_1][MV_Y];
-            }
+                {
+                    refi[REFP_1][cnt] = 0;
+                    mvp[REFP_1][cnt][MV_X] = tmvp[REFP_1][MV_X];
+                    mvp[REFP_1][cnt][MV_Y] = tmvp[REFP_1][MV_Y];
+                }
 #if ADMVP
                 tmvp_cnt_pos0 = cnt;
 #endif
-            check_redundancy(tile_group_type, mvp, refi, &cnt);
-            cnt++;
+                check_redundancy(tile_group_type, mvp, refi, &cnt);
+                cnt++;
 #if ADMVP
                 tmvp_cnt_pos1 = cnt;
-                if (tmvp_cnt_pos1 == tmvp_cnt_pos0 + 1)
+                if(tmvp_cnt_pos1 == tmvp_cnt_pos0 + 1)
                     tmvp_added = 1;
 #endif
 #if ADMVP
-        }
+            }
 #endif
 #if ADMVP
-    if (cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
+            if(cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
 #else
-    if (cnt >= MAX_NUM_MVP)
+            if(cnt >= MAX_NUM_MVP)
 #endif
+            {
+                return;
+            }
+        }
+#if ADMVP
+    }
+#endif
+#if ADMVP
+    if(!tmvp_added)
     {
-        return;
-    }
-    }
-#if ADMVP
-    }
-#endif
-#if ADMVP
-    if (!tmvp_added)
-    {
 #endif
 #if ADMVP
 #if ADMVP
-        if (avail_lr == LR_01)
+        if(avail_lr == LR_01)
             scup_tmp = evc_get_right_below_scup_qc_merge_suco(scup, cuw, cuh, w_scu, h_scu, !tmpvBottomRight);
         else
             scup_tmp = evc_get_right_below_scup_qc_merge(scup, cuw, cuh, w_scu, h_scu, !tmpvBottomRight);
 #endif
-    if (scup_tmp != -1)  // if available, add it to candidate list
-    {
+        if(scup_tmp != -1)  // if available, add it to candidate list
+        {
 #if ADMVP                            
-        evc_get_mv_dir(refp, ptr, scup_tmp, scup, w_scu, h_scu, tmvp
+            evc_get_mv_dir(refp, ptr, scup_tmp, scup, w_scu, h_scu, tmvp
 #if ADMVP
-            , &refidx
+                           , &refidx
 #endif
-        );
+                           , admvp_flag
+            );
 #else
-        evc_get_mv_dir(refp, ptr, scup_tmp, w_scu, tmvp
+            evc_get_mv_dir(refp, ptr, scup_tmp, w_scu, tmvp
 #if ADMVP
-            , &refidx
+                           , &refidx
 #endif
-        );
+            );
 #endif
 #if ADMVP
-        if (refidx != REFI_INVALID)
-        {
-#endif
-            refi[REFP_0][cnt] = 0;
-            mvp[REFP_0][cnt][MV_X] = tmvp[REFP_0][MV_X];
-            mvp[REFP_0][cnt][MV_Y] = tmvp[REFP_0][MV_Y];
-#if ADMVP
-            if (!check_bi_applicability(tile_group_type, cuw, cuh))
+            if(refidx != REFI_INVALID)
             {
-                refi[REFP_1][cnt] = REFI_INVALID;
-                mvp[REFP_1][cnt][MV_X] = 0;
-                mvp[REFP_1][cnt][MV_Y] = 0;
-            }
-            else
+#endif
+                refi[REFP_0][cnt] = 0;
+                mvp[REFP_0][cnt][MV_X] = tmvp[REFP_0][MV_X];
+                mvp[REFP_0][cnt][MV_Y] = tmvp[REFP_0][MV_Y];
+#if ADMVP
+                if(!check_bi_applicability(tile_group_type, cuw, cuh))
+                {
+                    refi[REFP_1][cnt] = REFI_INVALID;
+                    mvp[REFP_1][cnt][MV_X] = 0;
+                    mvp[REFP_1][cnt][MV_Y] = 0;
+                }
+                else
 #else
-            if (tile_group_type == TILE_GROUP_B)
+                if(tile_group_type == TILE_GROUP_B)
 #endif
-            {
-                refi[REFP_1][cnt] = 0;
-                mvp[REFP_1][cnt][MV_X] = tmvp[REFP_1][MV_X];
-                mvp[REFP_1][cnt][MV_Y] = tmvp[REFP_1][MV_Y];
-            }
+                {
+                    refi[REFP_1][cnt] = 0;
+                    mvp[REFP_1][cnt][MV_X] = tmvp[REFP_1][MV_X];
+                    mvp[REFP_1][cnt][MV_Y] = tmvp[REFP_1][MV_Y];
+                }
 
-            check_redundancy(tile_group_type, mvp, refi, &cnt);
-            cnt++;
+                check_redundancy(tile_group_type, mvp, refi, &cnt);
+                cnt++;
 #if ADMVP
+            }
+#endif
+#if ADMVP
+            if(cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
+#else
+            if(cnt >= MAX_NUM_MVP)
+#endif
+            {
+                return;
+            }
         }
 #endif
 #if ADMVP
-    if (cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
-#else
-    if (cnt >= MAX_NUM_MVP)
-#endif
-        {
-            return;
-        }
     }
 #endif
 #if ADMVP
-    }
-#endif
-
-
-#if ADMVP
-
     //only temporal MV candidates need scaling
     //thus MV stored in history buffer do not need scaling
 #if ADMVP
-    if (cnt < (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP - 1))
+    if(cnt < (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP - 1))
 #endif
     {
         // take the MV from last to first
 #if ADMVP
-        for (k = 3; k <= min(history_buffer.currCnt, small_cu?ALLOWED_CHECKED_NUM-(MAX_NUM_MVP- MAX_NUM_MVP_SMALL_CU)*4 : ALLOWED_CHECKED_NUM); k += 4)
+        for(k = 3; k <= min(history_buffer.currCnt, small_cu ? ALLOWED_CHECKED_NUM - (MAX_NUM_MVP - MAX_NUM_MVP_SMALL_CU) * 4 : ALLOWED_CHECKED_NUM); k += 4)
 #endif
         {
-            if (tile_group_type == TILE_GROUP_P)
+            if(tile_group_type == TILE_GROUP_P)
             {
                 refi[REFP_0][cnt] = history_buffer.history_refi_table[history_buffer.currCnt - k][REFP_0];
                 mvp[REFP_0][cnt][MV_X] = history_buffer.history_mv_table[history_buffer.currCnt - k][REFP_0][MV_X];
@@ -2072,23 +1962,23 @@ void evc_get_motion_skip(int ptr, int tile_group_type, int scup, s8(*map_refi)[R
                 check_redundancy(tile_group_type, mvp, refi, &cnt);
                 cnt++;
 #if ADMVP
-                if (cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
+                if(cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
 #else
-                if (cnt >= MAX_NUM_MVP)
+                if(cnt >= MAX_NUM_MVP)
 #endif
                 {
                     return;
                 }
             }
 
-            if (tile_group_type == TILE_GROUP_B)
+            if(tile_group_type == TILE_GROUP_B)
             {
                 refi[REFP_0][cnt] = history_buffer.history_refi_table[history_buffer.currCnt - k][REFP_0];
                 mvp[REFP_0][cnt][MV_X] = history_buffer.history_mv_table[history_buffer.currCnt - k][REFP_0][MV_X];
                 mvp[REFP_0][cnt][MV_Y] = history_buffer.history_mv_table[history_buffer.currCnt - k][REFP_0][MV_Y];
 
 #if ADMVP
-                if (!check_bi_applicability(tile_group_type, cuw, cuh))
+                if(!check_bi_applicability(tile_group_type, cuw, cuh))
                 {
                     refi[REFP_1][cnt] = REFI_INVALID;
                     mvp[REFP_1][cnt][MV_X] = 0;
@@ -2105,9 +1995,9 @@ void evc_get_motion_skip(int ptr, int tile_group_type, int scup, s8(*map_refi)[R
                 check_redundancy(tile_group_type, mvp, refi, &cnt);
                 cnt++;
 #if ADMVP
-                if (cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
+                if(cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
 #else
-                if (cnt >= MAX_NUM_MVP)
+                if(cnt >= MAX_NUM_MVP)
 #endif
                 {
                     return;
@@ -2118,15 +2008,15 @@ void evc_get_motion_skip(int ptr, int tile_group_type, int scup, s8(*map_refi)[R
 #endif
     // B tile_group mv combination
 #if ADMVP
-    if (check_bi_applicability(tile_group_type, cuw, cuh))
+    if(check_bi_applicability(tile_group_type, cuw, cuh))
 #else
     if(tile_group_type == TILE_GROUP_B)
 #endif
     {
 #if ADMVP
-        for (z = 1; z <= 2 * (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP) - 3; z++)
+        for(z = 1; z <= 2 * (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP) - 3; z++)
 #else
-        for (z = 1; z <= 2 * MAX_NUM_MVP - 3; z++)
+        for(z = 1; z <= 2 * MAX_NUM_MVP - 3; z++)
 #endif
         {
             for(s = z / 2; s >= 0; s--)
@@ -2182,8 +2072,6 @@ void evc_get_motion_skip(int ptr, int tile_group_type, int scup, s8(*map_refi)[R
         }
     }
 #endif
-
-
 #if ADMVP
     for(k = cnt; k < (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP); k++)
 #else
@@ -2229,17 +2117,17 @@ void evc_clip_mv_pic(int x, int y, int maxX, int maxY, s16 mvp[REFP_NUM][MV_D])
 
 void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 ptr, int scup, int c_scu, u16 w_scu, u16 h_scu, s16 mvp[REFP_NUM][MV_D]
 #if ADMVP
-    ,s8 *refidx
+                    , s8 *refidx
 #endif
+                    , int sps_admvp_flag
 )
 #else
 void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 ptr, int scup, u16 w_scu, s16 mvp[REFP_NUM][MV_D]
 #if ADMVP
-    , s8 *refidx
+                    , s8 *refidx
 #endif
 )
 #endif
-
 {
 #if ADMVP                            
     int maxX = PIC_PAD_SIZE_L + (w_scu << MIN_CU_LOG2) - 1;
@@ -2247,13 +2135,12 @@ void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 ptr, int scup, u16 w_scu, s16 m
     int x = (c_scu % w_scu) << MIN_CU_LOG2;
     int y = (c_scu / w_scu) << MIN_CU_LOG2;
 #endif
-
     s16 mvc[MV_D];
     int dptr_co, dptr_L0, dptr_L1;
 
     mvc[MV_X] = refp[REFP_1].map_mv[scup][0][MV_X];
     mvc[MV_Y] = refp[REFP_1].map_mv[scup][0][MV_Y];
-#if    ADMVP
+#if ADMVP
     *refidx = refp[REFP_1].map_refi[scup][0];
 #endif
 
@@ -2271,23 +2158,36 @@ void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 ptr, int scup, u16 w_scu, s16 m
     else
 #if ADMVP
     {
-        if ((dptr_L0 & (dptr_L0 - 1)) == 0 && (dptr_L1 & (dptr_L1 - 1)) == 0 && (dptr_co & (dptr_co - 1)) == 0)
-    {
-        mvp[REFP_0][MV_X] = dptr_L0 * mvc[MV_X] / dptr_co;
-        mvp[REFP_0][MV_Y] = dptr_L0 * mvc[MV_Y] / dptr_co;
-        mvp[REFP_1][MV_X] = -dptr_L1 * mvc[MV_X] / dptr_co;
-        mvp[REFP_1][MV_Y] = -dptr_L1 * mvc[MV_Y] / dptr_co;
+        if(sps_admvp_flag == 1)
+        {
+            if((dptr_L0 & (dptr_L0 - 1)) == 0 && (dptr_L1 & (dptr_L1 - 1)) == 0 && (dptr_co & (dptr_co - 1)) == 0)
+            {
+                mvp[REFP_0][MV_X] = dptr_L0 * mvc[MV_X] / dptr_co;
+                mvp[REFP_0][MV_Y] = dptr_L0 * mvc[MV_Y] / dptr_co;
+                mvp[REFP_1][MV_X] = -dptr_L1 * mvc[MV_X] / dptr_co;
+                mvp[REFP_1][MV_Y] = -dptr_L1 * mvc[MV_Y] / dptr_co;
 #if ADMVP
-        evc_clip_mv_pic(x, y, maxX, maxY, mvp);
+                evc_clip_mv_pic(x, y, maxX, maxY, mvp);
 #endif
+            }
+            else
+            {
+                mvp[REFP_0][MV_X] = 0;
+                mvp[REFP_0][MV_Y] = 0;
+                mvp[REFP_1][MV_X] = 0;
+                mvp[REFP_1][MV_Y] = 0;
+                *refidx = REFI_INVALID;
+            }
         }
         else
         {
-            mvp[REFP_0][MV_X] = 0;
-            mvp[REFP_0][MV_Y] = 0;
-            mvp[REFP_1][MV_X] = 0;
-            mvp[REFP_1][MV_Y] = 0;
-            *refidx = REFI_INVALID;
+            mvp[REFP_0][MV_X] = dptr_L0 * mvc[MV_X] / dptr_co;
+            mvp[REFP_0][MV_Y] = dptr_L0 * mvc[MV_Y] / dptr_co;
+            mvp[REFP_1][MV_X] = -dptr_L1 * mvc[MV_X] / dptr_co;
+            mvp[REFP_1][MV_Y] = -dptr_L1 * mvc[MV_Y] / dptr_co;
+#if ADMVP && 0 // is this a fix?
+            evc_clip_mv_pic(x, y, maxX, maxY, mvp);
+#endif
         }
     }
 #else
@@ -2479,23 +2379,14 @@ u16 evc_get_qs_scale_blk(pel* rec, int stride, int log2_cuw, int log2_cuh, u16 a
     int blk_h = 1 << log2_cuh;
     int avail_up = IS_AVAIL(avail_cu_rec, AVAIL_UP);
     int avail_le = IS_AVAIL(avail_cu_rec, AVAIL_LE);
-#if SUCO_AQS
     int avail_ri = IS_AVAIL(avail_cu_rec, AVAIL_RI);
-#endif
     int num_line = 2;
-#if SUCO_AQS
     int num_pxl = (blk_w + blk_h + blk_h)*num_line; //harmonize with suco
-#else
-    int num_pxl = (blk_w + blk_h)*num_line;
-#endif
+
     pel* bg_pxl = (pel*)malloc(num_pxl * sizeof(pel));
 
     //(left & up & right neighbors are all not all available)
-#if SUCO_AQS
     if (!(avail_up || avail_le || avail_ri))
-#else
-    if (!(avail_up || avail_le))
-#endif
     {
         qs_scale = ESM_DEFAULT;
         return qs_scale;
@@ -2527,7 +2418,6 @@ u16 evc_get_qs_scale_blk(pel* rec, int stride, int log2_cuw, int log2_cuh, u16 a
                 pos++;
             }
         }
-#if SUCO_AQS
         if(avail_ri)
         {
             for(i = 0; i < blk_h; i++)
@@ -2538,7 +2428,6 @@ u16 evc_get_qs_scale_blk(pel* rec, int stride, int log2_cuw, int log2_cuh, u16 a
                 pos++;
             }
         }
-#endif
     }
     num_pxl = pos;
     avg = (avg + (num_pxl >> 1)) / num_pxl; //todo: remove division later
@@ -2953,33 +2842,25 @@ int evc_set_split_mode(s8 split_mode, int cud, int cup, int cuw, int cuh, int lc
 }
 
 void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boundary, int boundary_b, int boundary_r, int log2_max_cuwh, int id
-                           , const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth
-#if FBT_ALL
-                           , int x, int y, int im_w, int im_h
-#endif
-                           , u8 *remaining_split
-                           )
+                          , const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth
+                          , int x, int y, int im_w, int im_h
+                          , u8 *remaining_split, int sps_btt_flag)
 {
-#if QT_ON_BTT_OFF
-  evc_mset(split_allow, 0, sizeof(int) * SPLIT_CHECK_NUM);
-  split_allow[SPLIT_QUAD] = 1;
-#else
+    if(!sps_btt_flag)
+    {
+        evc_mset(split_allow, 0, sizeof(int) * SPLIT_CHECK_NUM);
+        split_allow[SPLIT_QUAD] = 1;
+        return;
+    }
+
     int log2_sub_cuw, log2_sub_cuh;
     int long_side, ratio;
-#if FBT_ALL
     int cu_max, from_boundary_b, from_boundary_r;
     cu_max = 1 << (log2_max_cuwh - 1);
     from_boundary_b = (y >= im_h - im_h%cu_max) && !(x >= im_w - im_w % cu_max);
     from_boundary_r = (x >= im_w - im_w % cu_max) && !(y >= im_h - im_h%cu_max);
-#endif
 
     evc_mset(split_allow, 0, sizeof(int) * SPLIT_CHECK_NUM);
-
-    if(log2_cuw == log2_max_cuwh && log2_cuh == log2_max_cuwh)
-    {
-        split_allow[SPLIT_QUAD] = 1; /* needed only for processing unit*/
-    }
-    else
     {
         split_allow[SPLIT_QUAD] = 0;
 
@@ -2987,18 +2868,22 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
         {
             if(boundary_b)
             {
+              if(log2_cuw == 7 && log2_cuh ==7)
+                split_allow[SPLIT_BI_VER] = 1;
+              else
                 split_allow[SPLIT_BI_HOR] = 1;
             }
             else if(boundary_r)
             {
+              if (log2_cuw == 7 && log2_cuh ==7)
+                split_allow[SPLIT_BI_HOR] = 1;
+              else
                 split_allow[SPLIT_BI_VER] = 1;
             }
-#if FBT_ALL
             else if(boundary && !boundary_b && !boundary_r)
             {
                 split_allow[SPLIT_QUAD] = 1;
             }
-#endif
             else
             {
                 split_allow[SPLIT_BI_HOR] = ALLOW_SPLIT_RATIO(id, log2_cuw, 1);
@@ -3017,7 +2902,6 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                     log2_sub_cuh = log2_cuh;
                     long_side = log2_sub_cuw > log2_sub_cuh ? log2_sub_cuw : log2_sub_cuh;
                     ratio = EVC_ABS(log2_sub_cuw - log2_sub_cuh);
-#if FBT_ALL
                     if(boundary_b)
                     {
                         split_allow[SPLIT_BI_HOR] = 1;
@@ -3030,20 +2914,6 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                     {
                         split_allow[SPLIT_QUAD] = 1;
                     }
-#else
-                    if(boundary_b && ALLOW_SPLIT_RATIO(id, log2_cuw, log2_cuw - log2_cuh + 1))
-                    {
-                        split_allow[SPLIT_BI_HOR] = 1;
-                    }
-                    else if(boundary_r && ALLOW_SPLIT_RATIO(id, long_side, ratio))
-                    {
-                        split_allow[SPLIT_BI_VER] = 1;
-                    }
-                    else
-                    {
-                        split_allow[SPLIT_BI_VER] = 1;
-                    }
-#endif
                 }
                 else
                 {
@@ -3055,10 +2925,8 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                     ratio = EVC_ABS(log2_sub_cuw - log2_sub_cuh);
 
                     split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(id, long_side, ratio);
-#if FBT_ALL
                     if(from_boundary_b && (ratio == 3 || ratio == 4))
                         split_allow[SPLIT_BI_VER] = 1;
-#endif
 
                     log2_sub_cuw = log2_cuw - 2;
                     log2_sub_cuh = log2_cuh;
@@ -3066,12 +2934,10 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                     ratio = EVC_ABS(log2_sub_cuw - log2_sub_cuh);
 
                     split_allow[SPLIT_TRI_VER] = ALLOW_SPLIT_RATIO(id, long_side, ratio) & ALLOW_SPLIT_TRI(id, log2_cuw);
-#if FBT_ALL
                     if(from_boundary_b && (log2_cuw == 7 || ratio == 3))
                     {
                         split_allow[SPLIT_TRI_VER] = 1;
                     }
-#endif
                     split_allow[SPLIT_TRI_HOR] = 0;
                 }
             }
@@ -3083,7 +2949,6 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                     log2_sub_cuw = log2_cuw;
                     long_side = log2_sub_cuw > log2_sub_cuh ? log2_sub_cuw : log2_sub_cuh;
                     ratio = EVC_ABS(log2_sub_cuw - log2_sub_cuh);
-#if FBT_ALL
                     if(boundary_b)
                     {
                         split_allow[SPLIT_BI_HOR] = 1;
@@ -3096,20 +2961,6 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                     {
                         split_allow[SPLIT_QUAD] = 1;
                     }
-#else
-                    if(boundary_b && ALLOW_SPLIT_RATIO(id, long_side, ratio))
-                    {
-                        split_allow[SPLIT_BI_HOR] = 1;
-                    }
-                    else if(boundary_r && ALLOW_SPLIT_RATIO(id, log2_cuh, log2_cuh - log2_cuw + 1))
-                    {
-                        split_allow[SPLIT_BI_VER] = 1;
-                    }
-                    else
-                    {
-                        split_allow[SPLIT_BI_HOR] = 1;
-                    }
-#endif
                 }
                 else
                 {
@@ -3119,10 +2970,8 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                     ratio = EVC_ABS(log2_sub_cuw - log2_sub_cuh);
 
                     split_allow[SPLIT_BI_HOR] = ALLOW_SPLIT_RATIO(id, long_side, ratio);
-#if FBT_ALL
                     if(from_boundary_r && (ratio == 3 || ratio == 4))
                         split_allow[SPLIT_BI_HOR] = 1;
-#endif
                     split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(id, log2_cuh, log2_cuh - log2_cuw + 1);
 
                     split_allow[SPLIT_TRI_VER] = 0;
@@ -3133,12 +2982,10 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                     ratio = EVC_ABS(log2_sub_cuw - log2_sub_cuh);
 
                     split_allow[SPLIT_TRI_HOR] = ALLOW_SPLIT_RATIO(id, long_side, ratio) & ALLOW_SPLIT_TRI(id, log2_cuh);
-#if FBT_ALL
                     if(from_boundary_r && (log2_cuh == 7 || ratio == 3))
                     {
                         split_allow[SPLIT_TRI_HOR] = 1;
                     }
-#endif
                 }
             }
         }
@@ -3173,10 +3020,8 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
             }
         }
     }
-#endif
 }
 
-#if SUCO
 int evc_get_suco_flag(s8* suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU])
 {
     int ret = EVC_OK;
@@ -3210,17 +3055,12 @@ int evc_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lcu
     return ret;
 }
 
-u8 evc_check_suco_cond(int cuw, int cuh, s8 split_mode, int boundary, u8 log2_max_cuwh, u8 suco_max_depth, u8 suco_min_depth)
+u8 evc_check_suco_cond(int cuw, int cuh, s8 split_mode, int boundary, u8 log2_max_cuwh, u8 suco_max_depth, u8 suco_depth)
 {
-#if SUCO_CONFIG
-    int suco_minsize = max(1 << (log2_max_cuwh - SUCO_MIN_DEPTH), 4);
-    int suco_maxsize = 1 << (log2_max_cuwh - SUCO_MAX_DEPTH);
-#else
-    int suco_minsize = max(1 << (log2_max_cuwh - suco_min_depth), 4);
+    int suco_minsize = 1 << max((log2_max_cuwh - suco_max_depth - suco_depth), MIN_CU_LOG2);
     int suco_maxsize = 1 << (log2_max_cuwh - suco_max_depth);
-#endif
 
-    if(EVC_MIN(cuw, cuh) < suco_minsize || EVC_MAX(cuw,cuh) > suco_maxsize)
+    if(EVC_MIN(cuw, cuh) < suco_minsize || EVC_MAX(cuw, cuh) > suco_maxsize)
     {
         return 0;
     }
@@ -3235,14 +3075,13 @@ u8 evc_check_suco_cond(int cuw, int cuh, s8 split_mode, int boundary, u8 log2_ma
         return 0;
     }
 
-    if(cuw <= cuh)
+    if(split_mode != SPLIT_QUAD && cuw <= cuh)
     {
         return 0;
     }
 
     return 1;
 }
-#endif
 
 u16 evc_check_nev_avail(int x_scu, int y_scu, int cuw, int cuh, int w_scu, int h_scu, u32 * map_scu)
 {
@@ -3263,7 +3102,7 @@ u16 evc_check_nev_avail(int x_scu, int y_scu, int cuw, int cuh, int w_scu, int h
     return avail_lr;
 }
 
-void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u32* map_scu, u32* map_cu_mode, u8* ctx, u8 tile_group_type)
+void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u32* map_scu, u32* map_cu_mode, u8* ctx, u8 tile_group_type, int sps_cm_init_flag)
 {
     int nev_info[NUM_CNID][3];
     int scun[3], avail[3];
@@ -3282,6 +3121,7 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
         nev_info[i][0] = nev_info[i][1] = nev_info[i][2] = 0;
         ctx[i] = 0;
     }
+
     scun[0] = scup - w_scu;
     scun[1] = scup - 1 + (scuh - 1)*w_scu;
     scun[2] = scup + scuw + (scuh - 1)*w_scu;
@@ -3319,16 +3159,37 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
 
             if(i == CNID_SKIP_FLAG)
             {
-                ctx[i] = min(ctx[i], CTX_NEV_SKIP_FLAG - 1);
+                if(sps_cm_init_flag == 1)
+                {
+                    ctx[i] = min(ctx[i], CTX_NEV_SKIP_FLAG - 1);
+                }
+                else
+                {
+                    ctx[i] = 0;
+                }
             }
             else if(i == CNID_PRED_MODE)
             {
-                ctx[i] = min(ctx[i], CTX_NEV_PRED_MODE - 1);
+                if(sps_cm_init_flag == 1)
+                {
+                    ctx[i] = min(ctx[i], CTX_NEV_PRED_MODE - 1);
+                }
+                else
+                {
+                    ctx[i] = 0;
+                }
             }
 #if AFFINE
             else if(i == CNID_AFFN_FLAG)
             {
-                ctx[i] = min(ctx[i], CTX_NEV_AFFINE_FLAG - 1);
+                if(sps_cm_init_flag == 1)
+                {
+                    ctx[i] = min(ctx[i], CTX_NEV_AFFINE_FLAG - 1);
+                }
+                else
+                {
+                    ctx[i] = 0;
+                }
             }
 #endif
         }
@@ -3437,9 +3298,9 @@ int evc_affine_check_valid_and_scale(int ptr, EVC_REFP (*refp)[REFP_NUM], int cu
         {
             if(REFI_IS_VALID(ver_refi[lidx][idx0]) && REFI_IS_VALID(ver_refi[lidx][idx1]) && REFI_IS_VALID(ver_refi[lidx][idx2])
 #if AFFINE_MERGE_SAME_REF_IDX
-              && ver_refi[lidx][idx0] == ver_refi[lidx][idx1] && ver_refi[lidx][idx0] == ver_refi[lidx][idx2]
+               && ver_refi[lidx][idx0] == ver_refi[lidx][idx1] && ver_refi[lidx][idx0] == ver_refi[lidx][idx2]
 #endif
-              )
+               )
             {
 #if AFFINE_MERGE_SAME_REF_IDX
                 valid_model[lidx] = 1;
@@ -3674,10 +3535,10 @@ int evc_affine_check_valid_and_scale(int ptr, EVC_REFP (*refp)[REFP_NUM], int cu
     return 1;
 }
 
-void evc_derive_affine_model_mv(int scup, int scun, int lidx, s16 (*map_mv)[REFP_NUM][MV_D], int cuw, int cuh, int w_scu, int h_scu, s16 mvp[VER_NUM][MV_D], u32 *map_affine, int vertex_num
+void evc_derive_affine_model_mv(int scup, int scun, int lidx, s16(*map_mv)[REFP_NUM][MV_D], int cuw, int cuh, int w_scu, int h_scu, s16 mvp[VER_NUM][MV_D], u32 *map_affine, int vertex_num
 #if DMVR_LAG
-    ,u32 *map_scu
-    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+                                , u32 *map_scu
+                                , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
 )
 {
@@ -3751,16 +3612,16 @@ void evc_derive_affine_model_mv(int scup, int scun, int lidx, s16 (*map_mv)[REFP
 
 /* inter affine mode */
 void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int num_refp, \
-                                    s16 (*map_mv)[REFP_NUM][MV_D], s8 (*map_refi)[REFP_NUM], EVC_REFP (*refp)[REFP_NUM], \
-                                    int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][VER_NUM][MV_D], s8 refi[MAX_NUM_MVP]
-    , u32* map_scu, u32* map_affine, int vertex_num, u16 avail_lr
+                                   s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
+                                   int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][VER_NUM][MV_D], s8 refi[MAX_NUM_MVP]
+                                   , u32* map_scu, u32* map_affine, int vertex_num, u16 avail_lr
 #if DMVR_LAG
-    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+                                   , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
 )
 {
 #if !AFFINE_AMVP_LIST
-    int ratio[MAX_NUM_REF_PICS] = {0, };
+    int ratio[MAX_NUM_REF_PICS] = {0,};
     int t0, ptr_refi_cur;
 #endif
     int x_scu = scup % w_scu;
@@ -3807,7 +3668,7 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
 #endif
 
 #if INCREASE_MVP_NUM
-    for (i = 0; i < ORG_MAX_NUM_MVP; i++)
+    for(i = 0; i < ORG_MAX_NUM_MVP; i++)
 #else
     for(i = 0; i < MAX_NUM_MVP; i++)
 #endif
@@ -3828,16 +3689,16 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
     valid_flag[0] = x_scu > 0 && y_scu + scuh < h_scu && MCU_GET_COD(map_scu[neb_addr[0]]) && !MCU_GET_IF(map_scu[neb_addr[0]]) && MCU_GET_AFF(map_scu[neb_addr[0]]);
     valid_flag[1] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]) && MCU_GET_AFF(map_scu[neb_addr[1]]);
 
-    for (k = 0; k < 2; k++)
+    for(k = 0; k < 2; k++)
     {
-        if (valid_flag[k] && REFI_IS_VALID(map_refi[neb_addr[k]][lidx]) 
-          && map_refi[neb_addr[k]][lidx] == cur_refi)
+        if(valid_flag[k] && REFI_IS_VALID(map_refi[neb_addr[k]][lidx])
+           && map_refi[neb_addr[k]][lidx] == cur_refi)
         {
             refi[cnt_tmp] = map_refi[neb_addr[k]][lidx];
             evc_derive_affine_model_mv(scup, neb_addr[k], lidx, map_mv, cuw, cuh, w_scu, h_scu, mvp_tmp, map_affine, vertex_num
 #if DMVR_LAG
-                ,map_scu
-                ,map_unrefined_mv
+                                       , map_scu
+                                       , map_unrefined_mv
 #endif
             );
             mvp[cnt_tmp][0][MV_X] = mvp_tmp[0][MV_X];
@@ -3850,9 +3711,9 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
             break;
         }
     }
-    if (cnt_tmp >= AFF_MAX_NUM_MVP)
+    if(cnt_tmp >= AFF_MAX_NUM_MVP)
     {
-      return;
+        return;
     }
 
     // above inherited affine MVP, first of {B0, B1, B2}
@@ -3862,33 +3723,33 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
     valid_flag[0] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[0]]) && !MCU_GET_IF(map_scu[neb_addr[0]]) && MCU_GET_AFF(map_scu[neb_addr[0]]);
     valid_flag[1] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]) && MCU_GET_AFF(map_scu[neb_addr[1]]);
     valid_flag[2] = x_scu > 0 && y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]) && MCU_GET_AFF(map_scu[neb_addr[2]]);
-    for (k = 0; k < 3; k++)
+    for(k = 0; k < 3; k++)
     {
-      if (valid_flag[k] && REFI_IS_VALID(map_refi[neb_addr[k]][lidx])
-        && map_refi[neb_addr[k]][lidx] == cur_refi)
-      {
-        refi[cnt_tmp] = map_refi[neb_addr[k]][lidx];
-        evc_derive_affine_model_mv(scup, neb_addr[k], lidx, map_mv, cuw, cuh, w_scu, h_scu, mvp_tmp, map_affine, vertex_num
+        if(valid_flag[k] && REFI_IS_VALID(map_refi[neb_addr[k]][lidx])
+           && map_refi[neb_addr[k]][lidx] == cur_refi)
+        {
+            refi[cnt_tmp] = map_refi[neb_addr[k]][lidx];
+            evc_derive_affine_model_mv(scup, neb_addr[k], lidx, map_mv, cuw, cuh, w_scu, h_scu, mvp_tmp, map_affine, vertex_num
 #if DMVR_LAG
-                ,map_scu
-                ,map_unrefined_mv
+                                       , map_scu
+                                       , map_unrefined_mv
 #endif
             );
-        mvp[cnt_tmp][0][MV_X] = mvp_tmp[0][MV_X];
-        mvp[cnt_tmp][0][MV_Y] = mvp_tmp[0][MV_Y];
-        mvp[cnt_tmp][1][MV_X] = mvp_tmp[1][MV_X];
-        mvp[cnt_tmp][1][MV_Y] = mvp_tmp[1][MV_Y];
-        mvp[cnt_tmp][2][MV_X] = mvp_tmp[2][MV_X];
-        mvp[cnt_tmp][2][MV_Y] = mvp_tmp[2][MV_Y];
-        cnt_tmp++;
-        break;
-      }
+            mvp[cnt_tmp][0][MV_X] = mvp_tmp[0][MV_X];
+            mvp[cnt_tmp][0][MV_Y] = mvp_tmp[0][MV_Y];
+            mvp[cnt_tmp][1][MV_X] = mvp_tmp[1][MV_X];
+            mvp[cnt_tmp][1][MV_Y] = mvp_tmp[1][MV_Y];
+            mvp[cnt_tmp][2][MV_X] = mvp_tmp[2][MV_X];
+            mvp[cnt_tmp][2][MV_Y] = mvp_tmp[2][MV_Y];
+            cnt_tmp++;
+            break;
+        }
     }
-    if (cnt_tmp >= AFF_MAX_NUM_MVP)
+    if(cnt_tmp >= AFF_MAX_NUM_MVP)
     {
-      return;
+        return;
     }
-    
+
 #else
     neb_addr[0] = scup + w_scu * scuh - 1;       // A0
     neb_addr[1] = scup + w_scu * (scuh - 1) - 1; // A1
@@ -3911,16 +3772,16 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
         {
             refi[cnt_tmp] = map_refi[neb_addr[k]][lidx];
 #if AFFINE_AMVP_LIST
-            if (refi[cnt_tmp] != cur_refi)
+            if(refi[cnt_tmp] != cur_refi)
             {
-              continue;
+                continue;
             }
 #endif
 
             evc_derive_affine_model_mv(scup, neb_addr[k], lidx, map_mv, cuw, cuh, w_scu, h_scu, mvp_tmp, map_affine, vertex_num
 #if DMVR_LAG
-                ,map_scu
-                ,map_unrefined_mv
+                                       , map_scu
+                                       , map_unrefined_mv
 #endif
             );
 #if !AFFINE_AMVP_LIST
@@ -4000,11 +3861,11 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
             if(refi[cnt_lt] == cur_refi)
             {
 #if DMVR_LAG
-                if (MCU_GET_DMVRF(map_scu[neb_addr_lt[k]])
+                if(MCU_GET_DMVRF(map_scu[neb_addr_lt[k]])
 #if (DMVR_LAG == 2)
-                    && (!evc_use_refine_mv(scup, neb_addr_lt[k], w_scu))
+                   && (!evc_use_refine_mv(scup, neb_addr_lt[k], w_scu))
 #endif
-                    )
+                   )
                 {
                     mvp_cand_lt[cnt_lt][MV_X] = map_unrefined_mv[neb_addr_lt[k]][lidx][MV_X];
                     mvp_cand_lt[cnt_lt][MV_Y] = map_unrefined_mv[neb_addr_lt[k]][lidx][MV_Y];
@@ -4024,19 +3885,19 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
             else
             {
 #if DMVR_LAG
-                if (MCU_GET_DMVRF(map_scu[neb_addr_lt[k]])
+                if(MCU_GET_DMVRF(map_scu[neb_addr_lt[k]])
 #if (DMVR_LAG == 2)
-                    && (!evc_use_refine_mv(scup, neb_addr_lt[k], w_scu))
+                   && (!evc_use_refine_mv(scup, neb_addr_lt[k], w_scu))
 #endif
-                    )
+                   )
                 {
                     scaling_mv(ratio[refi[cnt_lt]], map_unrefined_mv[neb_addr_lt[k]][lidx], mvp_cand_lt[cnt_lt]);
                 }
-            else
+                else
 #endif
-            {
-                scaling_mv(ratio[refi[cnt_lt]], map_mv[neb_addr_lt[k]][lidx], mvp_cand_lt[cnt_lt]);
-            }
+                {
+                    scaling_mv(ratio[refi[cnt_lt]], map_mv[neb_addr_lt[k]][lidx], mvp_cand_lt[cnt_lt]);
+                }
             }
 
             if(cnt_lt > 0)
@@ -4099,11 +3960,11 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
             if(refi[cnt_rt] == cur_refi)
             {
 #if DMVR_LAG
-                if (MCU_GET_DMVRF(map_scu[neb_addr_rt[k]])
+                if(MCU_GET_DMVRF(map_scu[neb_addr_rt[k]])
 #if (DMVR_LAG == 2)
-                    && (!evc_use_refine_mv(scup, neb_addr_rt[k], w_scu))
+                   && (!evc_use_refine_mv(scup, neb_addr_rt[k], w_scu))
 #endif
-                    )
+                   )
                 {
                     mvp_cand_rt[cnt_rt][MV_X] = map_unrefined_mv[neb_addr_rt[k]][lidx][MV_X];
                     mvp_cand_rt[cnt_rt][MV_Y] = map_unrefined_mv[neb_addr_rt[k]][lidx][MV_Y];
@@ -4123,19 +3984,19 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
             else
             {
 #if DMVR_LAG
-                if (MCU_GET_DMVRF(map_scu[neb_addr_rt[k]])
+                if(MCU_GET_DMVRF(map_scu[neb_addr_rt[k]])
 #if (DMVR_LAG == 2)
-                    && (!evc_use_refine_mv(scup, neb_addr_rt[k], w_scu))
+                   && (!evc_use_refine_mv(scup, neb_addr_rt[k], w_scu))
 #endif
-                    )
+                   )
                 {
                     scaling_mv(ratio[refi[cnt_rt]], map_unrefined_mv[neb_addr_rt[k]][lidx], mvp_cand_rt[cnt_rt]);
                 }
-            else
+                else
 #endif
-            {
-                scaling_mv(ratio[refi[cnt_rt]], map_mv[neb_addr_rt[k]][lidx], mvp_cand_rt[cnt_rt]);
-            }
+                {
+                    scaling_mv(ratio[refi[cnt_rt]], map_mv[neb_addr_rt[k]][lidx], mvp_cand_rt[cnt_rt]);
+                }
             }
 
             if(cnt_rt > 0)
@@ -4250,85 +4111,85 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
     //-------------------  organize  -------------------//
     {
 #if AFFINE_AMVP_LIST
-      if (cnt_lt && cnt_rt)
-      {
-          mvp[cnt_tmp][0][MV_X] = mvp_cand_lt[0][MV_X];
-          mvp[cnt_tmp][0][MV_Y] = mvp_cand_lt[0][MV_Y];
-          mvp[cnt_tmp][1][MV_X] = mvp_cand_rt[0][MV_X];
-          mvp[cnt_tmp][1][MV_Y] = mvp_cand_rt[0][MV_Y];
-          mvp[cnt_tmp][2][MV_X] = mvp_cand_lb[0][MV_X];
-          mvp[cnt_tmp][2][MV_Y] = mvp_cand_lb[0][MV_Y];
-          if (vertex_num == 2 || cnt_lb == 0)
-          {
-            mvp[cnt_tmp][2][MV_X] = mvp[cnt_tmp][0][MV_X] + (mvp[cnt_tmp][1][MV_Y] - mvp[cnt_tmp][1][MV_Y]) * cuh / cuw;
-            mvp[cnt_tmp][2][MV_Y] = mvp[cnt_tmp][0][MV_Y] + (mvp[cnt_tmp][1][MV_X] - mvp[cnt_tmp][1][MV_X]) * cuh / cuw;
-          }
-          cnt_tmp++;
-      }
-      if (cnt_tmp == AFF_MAX_NUM_MVP)
-      {
-          return;
-      }
+        if(cnt_lt && cnt_rt)
+        {
+            mvp[cnt_tmp][0][MV_X] = mvp_cand_lt[0][MV_X];
+            mvp[cnt_tmp][0][MV_Y] = mvp_cand_lt[0][MV_Y];
+            mvp[cnt_tmp][1][MV_X] = mvp_cand_rt[0][MV_X];
+            mvp[cnt_tmp][1][MV_Y] = mvp_cand_rt[0][MV_Y];
+            mvp[cnt_tmp][2][MV_X] = mvp_cand_lb[0][MV_X];
+            mvp[cnt_tmp][2][MV_Y] = mvp_cand_lb[0][MV_Y];
+            if(vertex_num == 2 || cnt_lb == 0)
+            {
+                mvp[cnt_tmp][2][MV_X] = mvp[cnt_tmp][0][MV_X] + (mvp[cnt_tmp][1][MV_Y] - mvp[cnt_tmp][1][MV_Y]) * cuh / cuw;
+                mvp[cnt_tmp][2][MV_Y] = mvp[cnt_tmp][0][MV_Y] + (mvp[cnt_tmp][1][MV_X] - mvp[cnt_tmp][1][MV_X]) * cuh / cuw;
+            }
+            cnt_tmp++;
+        }
+        if(cnt_tmp == AFF_MAX_NUM_MVP)
+        {
+            return;
+        }
 
-      // Add translation mv, left
-      if (cnt_lb)
-      {
-          mvp[cnt_tmp][0][MV_X] = mvp_cand_lb[0][MV_X];
-          mvp[cnt_tmp][0][MV_Y] = mvp_cand_lb[0][MV_Y];
-          mvp[cnt_tmp][1][MV_X] = mvp_cand_lb[0][MV_X];
-          mvp[cnt_tmp][1][MV_Y] = mvp_cand_lb[0][MV_Y];
-          mvp[cnt_tmp][2][MV_X] = mvp_cand_lb[0][MV_X];
-          mvp[cnt_tmp][2][MV_Y] = mvp_cand_lb[0][MV_Y];
-          cnt_tmp++;
-      }
-      if (cnt_tmp == AFF_MAX_NUM_MVP)
-      {
-        return;
-      }
+        // Add translation mv, left
+        if(cnt_lb)
+        {
+            mvp[cnt_tmp][0][MV_X] = mvp_cand_lb[0][MV_X];
+            mvp[cnt_tmp][0][MV_Y] = mvp_cand_lb[0][MV_Y];
+            mvp[cnt_tmp][1][MV_X] = mvp_cand_lb[0][MV_X];
+            mvp[cnt_tmp][1][MV_Y] = mvp_cand_lb[0][MV_Y];
+            mvp[cnt_tmp][2][MV_X] = mvp_cand_lb[0][MV_X];
+            mvp[cnt_tmp][2][MV_Y] = mvp_cand_lb[0][MV_Y];
+            cnt_tmp++;
+        }
+        if(cnt_tmp == AFF_MAX_NUM_MVP)
+        {
+            return;
+        }
 
-      // Add translation mv, above
-      if (cnt_rt)
-      {
-        mvp[cnt_tmp][0][MV_X] = mvp_cand_rt[0][MV_X];
-        mvp[cnt_tmp][0][MV_Y] = mvp_cand_rt[0][MV_Y];
-        mvp[cnt_tmp][1][MV_X] = mvp_cand_rt[0][MV_X];
-        mvp[cnt_tmp][1][MV_Y] = mvp_cand_rt[0][MV_Y];
-        mvp[cnt_tmp][2][MV_X] = mvp_cand_rt[0][MV_X];
-        mvp[cnt_tmp][2][MV_Y] = mvp_cand_rt[0][MV_Y];
-        cnt_tmp++;
-      }
-      if (cnt_tmp == AFF_MAX_NUM_MVP)
-      {
-        return;
-      }
+        // Add translation mv, above
+        if(cnt_rt)
+        {
+            mvp[cnt_tmp][0][MV_X] = mvp_cand_rt[0][MV_X];
+            mvp[cnt_tmp][0][MV_Y] = mvp_cand_rt[0][MV_Y];
+            mvp[cnt_tmp][1][MV_X] = mvp_cand_rt[0][MV_X];
+            mvp[cnt_tmp][1][MV_Y] = mvp_cand_rt[0][MV_Y];
+            mvp[cnt_tmp][2][MV_X] = mvp_cand_rt[0][MV_X];
+            mvp[cnt_tmp][2][MV_Y] = mvp_cand_rt[0][MV_Y];
+            cnt_tmp++;
+        }
+        if(cnt_tmp == AFF_MAX_NUM_MVP)
+        {
+            return;
+        }
 
-      // Add translation mv, above left
-      if (cnt_lt)
-      {
-        mvp[cnt_tmp][0][MV_X] = mvp_cand_lt[0][MV_X];
-        mvp[cnt_tmp][0][MV_Y] = mvp_cand_lt[0][MV_Y];
-        mvp[cnt_tmp][1][MV_X] = mvp_cand_lt[0][MV_X];
-        mvp[cnt_tmp][1][MV_Y] = mvp_cand_lt[0][MV_Y];
-        mvp[cnt_tmp][2][MV_X] = mvp_cand_lt[0][MV_X];
-        mvp[cnt_tmp][2][MV_Y] = mvp_cand_lt[0][MV_Y];
-        cnt_tmp++;
-      }
-      if (cnt_tmp == AFF_MAX_NUM_MVP)
-      {
-        return;
-      }
+        // Add translation mv, above left
+        if(cnt_lt)
+        {
+            mvp[cnt_tmp][0][MV_X] = mvp_cand_lt[0][MV_X];
+            mvp[cnt_tmp][0][MV_Y] = mvp_cand_lt[0][MV_Y];
+            mvp[cnt_tmp][1][MV_X] = mvp_cand_lt[0][MV_X];
+            mvp[cnt_tmp][1][MV_Y] = mvp_cand_lt[0][MV_Y];
+            mvp[cnt_tmp][2][MV_X] = mvp_cand_lt[0][MV_X];
+            mvp[cnt_tmp][2][MV_Y] = mvp_cand_lt[0][MV_Y];
+            cnt_tmp++;
+        }
+        if(cnt_tmp == AFF_MAX_NUM_MVP)
+        {
+            return;
+        }
 
-      // Add zero MVP
-      for (; cnt_tmp < AFF_MAX_NUM_MVP; cnt_tmp++)
-      {
-          mvp[cnt_tmp][0][MV_X] = 0;
-          mvp[cnt_tmp][0][MV_Y] = 0;
-          mvp[cnt_tmp][1][MV_X] = 0;
-          mvp[cnt_tmp][1][MV_Y] = 0;
-          mvp[cnt_tmp][2][MV_X] = 0;
-          mvp[cnt_tmp][2][MV_Y] = 0;
-          cnt_tmp++;
-      }
+        // Add zero MVP
+        for(; cnt_tmp < AFF_MAX_NUM_MVP; cnt_tmp++)
+        {
+            mvp[cnt_tmp][0][MV_X] = 0;
+            mvp[cnt_tmp][0][MV_Y] = 0;
+            mvp[cnt_tmp][1][MV_X] = 0;
+            mvp[cnt_tmp][1][MV_Y] = 0;
+            mvp[cnt_tmp][2][MV_X] = 0;
+            mvp[cnt_tmp][2][MV_Y] = 0;
+            cnt_tmp++;
+        }
 #else
         int record[AFFINE_MAX_NUM_COMB][3];
         int dv[AFFINE_MAX_NUM_COMB];
@@ -4395,7 +4256,7 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
             s16 mvp_add[MAX_NUM_MVP][MV_D];
             evc_get_motion_scaling(ptr, scup, lidx, cur_refi, num_refp, map_mv, map_refi, refp, cuw, cuh, w_scu, h_scu, avail, mvp_add, refi, map_scu, avail_lr
 #if DMVR_LAG
-                ,map_unrefined_mv
+                                   , map_unrefined_mv
 #endif
             );
             for(i = 0; i < add; i++)
@@ -4415,10 +4276,10 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
 }
 
 /* merge affine mode */
-int evc_get_affine_merge_candidate(int ptr, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], EVC_REFP(*refp)[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, u16 avail, 
-                                    s8 refi[AFF_MAX_CAND][REFP_NUM], s16 mvp[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D], int vertex_num[AFF_MAX_CAND], u32* map_scu, u32* map_affine
+int evc_get_affine_merge_candidate(int ptr, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], EVC_REFP(*refp)[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, u16 avail,
+                                   s8 refi[AFF_MAX_CAND][REFP_NUM], s16 mvp[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D], int vertex_num[AFF_MAX_CAND], u32* map_scu, u32* map_affine
 #if DMVR_LAG
-    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+                                   , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
 )
 {
@@ -4460,12 +4321,12 @@ int evc_get_affine_merge_candidate(int ptr, int scup, s8(*map_refi)[REFP_NUM], s
             valid_flag[2] = 0;
         }
 
-        if ( valid_flag[3] && valid_flag[0] && top_left[0] == top_left[3] )
+        if(valid_flag[3] && valid_flag[0] && top_left[0] == top_left[3])
         {
             valid_flag[3] = 0;
         }
 
-        if ( (valid_flag[4] && valid_flag[0] && top_left[4] == top_left[0]) || (valid_flag[4] && valid_flag[1] && top_left[4] == top_left[1]) )
+        if((valid_flag[4] && valid_flag[0] && top_left[4] == top_left[0]) || (valid_flag[4] && valid_flag[1] && top_left[4] == top_left[1]))
         {
             valid_flag[4] = 0;
         }
@@ -4484,8 +4345,8 @@ int evc_get_affine_merge_candidate(int ptr, int scup, s8(*map_refi)[REFP_NUM], s
                         refi[cnt][lidx] = map_refi[neb_addr[k]][lidx];
                         evc_derive_affine_model_mv(scup, neb_addr[k], lidx, map_mv, cuw, cuh, w_scu, h_scu, mvp[cnt][lidx], map_affine, vertex_num[cnt]
 #if DMVR_LAG
-                            , map_scu
-                            , map_unrefined_mv
+                                                   , map_scu
+                                                   , map_unrefined_mv
 #endif
                         );
                     }
@@ -4560,8 +4421,21 @@ int evc_get_affine_merge_candidate(int ptr, int scup, s8(*map_refi)[REFP_NUM], s
                 for (lidx = 0; lidx < REFP_NUM; lidx++)
                 {
                     ver_refi[lidx][0] = map_refi[neb_addr_lt[k]][lidx];
+
+                    if (MCU_GET_DMVRF(map_scu[neb_addr_lt[k]])
+#if (DMVR_LAG == 2)
+                      && (!evc_use_refine_mv(scup, neb_addr_lt[k], w_scu))
+#endif
+                      )
+                    {
+                      ver_mv[lidx][0][MV_X] = map_unrefined_mv[neb_addr_lt[k]][lidx][MV_X];
+                      ver_mv[lidx][0][MV_Y] = map_unrefined_mv[neb_addr_lt[k]][lidx][MV_Y];
+                    }
+                    else
+                    {
                     ver_mv[lidx][0][MV_X] = map_mv[neb_addr_lt[k]][lidx][MV_X];
                     ver_mv[lidx][0][MV_Y] = map_mv[neb_addr_lt[k]][lidx][MV_Y];
+                    }
                 }
                 break;
             }
@@ -4583,8 +4457,20 @@ int evc_get_affine_merge_candidate(int ptr, int scup, s8(*map_refi)[REFP_NUM], s
                 for (lidx = 0; lidx < REFP_NUM; lidx++)
                 {
                     ver_refi[lidx][1] = map_refi[neb_addr_rt[k]][lidx];
+                    if (MCU_GET_DMVRF(map_scu[neb_addr_rt[k]])
+#if (DMVR_LAG == 2)
+                      && (!evc_use_refine_mv(scup, neb_addr_rt[k], w_scu))
+                      )
+                    {
+                      ver_mv[lidx][0][MV_X] = map_unrefined_mv[neb_addr_rt[k]][lidx][MV_X];
+                      ver_mv[lidx][0][MV_Y] = map_unrefined_mv[neb_addr_rt[k]][lidx][MV_Y];
+                    }
+                    else
+                    {
+#endif
                     ver_mv[lidx][1][MV_X] = map_mv[neb_addr_rt[k]][lidx][MV_X];
                     ver_mv[lidx][1][MV_Y] = map_mv[neb_addr_rt[k]][lidx][MV_Y];
+                    }
                 }
                 break;
             }
@@ -4608,8 +4494,20 @@ int evc_get_affine_merge_candidate(int ptr, int scup, s8(*map_refi)[REFP_NUM], s
                 for (lidx = 0; lidx < REFP_NUM; lidx++)
                 {
                     ver_refi[lidx][2] = map_refi[neb_addr_lb[k]][lidx];
-                    ver_mv[lidx][2][MV_X] = map_mv[neb_addr_lb[k]][lidx][MV_X];
-                    ver_mv[lidx][2][MV_Y] = map_mv[neb_addr_lb[k]][lidx][MV_Y];
+#if DMVR_LAG_FIX
+                    if (MCU_GET_DMVRF(map_scu[neb_addr_lb[k]]))
+                    {
+                      ver_mv[lidx][2][MV_X] = map_unrefined_mv[neb_addr_lb[k]][lidx][MV_X];
+                      ver_mv[lidx][2][MV_Y] = map_unrefined_mv[neb_addr_lb[k]][lidx][MV_Y];
+                    }
+                    else
+                    {
+#endif
+                      ver_mv[lidx][2][MV_X] = map_mv[neb_addr_lb[k]][lidx][MV_X];
+                      ver_mv[lidx][2][MV_Y] = map_mv[neb_addr_lb[k]][lidx][MV_Y];
+#if DMVR_LAG_FIX
+                    }
+#endif
                 }
                 break;
             }
@@ -4695,214 +4593,56 @@ int evc_get_affine_merge_candidate(int ptr, int scup, s8(*map_refi)[REFP_NUM], s
 }
 #endif
 
-void evc_get_ctx_srxy_para(int ch_type, int width, int height, int *result_offset_x, int *result_offset_y, int *result_shift_x, int *result_shift_y)
-{
-    const int g_prefix_ctx[8] = {0, 0, 0, 3, 6, 10, 15, 21}; //for 1, 2, 4, 8, 16, 32,64,128 side length
-    const int log2_w = CONV_LOG2(width);
-    const int log2_h = CONV_LOG2(height);
-
-    *result_offset_x = (ch_type != Y_C) ? 0 : g_prefix_ctx[log2_w];
-    *result_offset_y = (ch_type != Y_C) ? 0 : g_prefix_ctx[log2_h];
-    *result_shift_x = (ch_type != Y_C) ? EVC_CLIP3(0, 2, (width >> 3)) : ((log2_w + 1) >> 2);
-    *result_shift_y = (ch_type != Y_C) ? EVC_CLIP3(0, 2, (height >> 3)) : ((log2_h + 1) >> 2);
-}
-
-int evc_get_ctx_gt0_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y)
-{
-    const s16 *pdata = pcoeff + blkpos;
-    const int width_m1 = width - 1;
-    const int height_m1 = height - 1;
-    const int log2_w = CONV_LOG2(width);
-    const int pos_y = blkpos >> log2_w;
-    const int pos_x = blkpos - (pos_y << log2_w);
-    int diag = pos_x + pos_y;
-    int num_gt0 = 0;
-    int ctx_idx;
-    int ctx_ofs;
-
-    if(pos_x < width_m1)
-    {
-        num_gt0 += pdata[1] != 0;
-        if(pos_x < width_m1 - 1)
-        {
-            num_gt0 += pdata[2] != 0;
-        }
-        if(pos_y < height_m1)
-        {
-            num_gt0 += pdata[width + 1] != 0;
-        }
-    }
-
-    if(pos_y < height_m1)
-    {
-        num_gt0 += pdata[width] != 0;
-        if(pos_y < height_m1 - 1)
-        {
-            num_gt0 += pdata[2 * width] != 0;
-        }
-    }
-
-    ctx_idx = EVC_MIN(num_gt0, 4) + 1;
-
-    if(diag < 2)
-    {
-        ctx_idx = EVC_MIN(ctx_idx, 2);
-    }
-
-    if(ch_type == Y_C)
-    {
-        ctx_ofs = diag < 2 ? 0 : (diag < 5 ? 2 : 7);
-    }
-    else
-    {
-        ctx_ofs = diag < 2 ? 0 : 2;
-    }
-
-    return ctx_ofs + ctx_idx;
-}
-
-int evc_get_ctx_gt1_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y)
-{
-    const s16 *pdata = pcoeff + blkpos;
-    const int width_m1 = width - 1;
-    const int height_m1 = height - 1;
-    const int log2_w = CONV_LOG2(width);
-    const int pos_y = blkpos >> log2_w;
-    const int pos_x = blkpos - (pos_y << log2_w);
-    int num_gt1 = 0;
-
-    if(pos_x < width_m1)
-    {
-        num_gt1 += EVC_ABS16(pdata[1]) > 1;
-        if(pos_x < width_m1 - 1)
-        {
-            num_gt1 += EVC_ABS16(pdata[2]) > 1;
-        }
-        if(pos_y < height_m1)
-        {
-            num_gt1 += EVC_ABS16(pdata[width + 1]) > 1;
-        }
-    }
-
-    if(pos_y < height_m1)
-    {
-        num_gt1 += EVC_ABS16(pdata[width]) > 1;
-        if(pos_y < height_m1 - 1)
-        {
-            num_gt1 += EVC_ABS16(pdata[2 * width]) > 1;
-        }
-    }
-
-    num_gt1 = EVC_MIN(num_gt1, 3) + 1;
-    if(ch_type == Y_C)
-    {
-        num_gt1 += (pos_x == 0 && pos_y == 0) ? 0 : ((pos_x <= sr_x / 2 && pos_y <= sr_y / 2) ? 4 : 8);
-    }
-    return num_gt1;
-}
-
-int evc_get_ctx_gt2_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y)
-{
-    const s16 *pdata = pcoeff + blkpos;
-    const int width_m1 = width - 1;
-    const int height_m1 = height - 1;
-    const int log2_w = CONV_LOG2(width);
-    const int pos_y = blkpos >> log2_w;
-    const int pos_x = blkpos - (pos_y << log2_w);
-    int num_gt2 = 0;
-
-    if(pos_x < width_m1)
-    {
-        num_gt2 += EVC_ABS16(pdata[1]) > 2;
-        if(pos_x < width_m1 - 1)
-        {
-            num_gt2 += EVC_ABS16(pdata[2]) > 2;
-        }
-        if(pos_y < height_m1)
-        {
-            num_gt2 += EVC_ABS16(pdata[width + 1]) > 2;
-        }
-    }
-
-    if(pos_y < height_m1)
-    {
-        num_gt2 += EVC_ABS16(pdata[width]) > 2;
-        if(pos_y < height_m1 - 1)
-        {
-            num_gt2 += EVC_ABS16(pdata[2 * width]) > 2;
-        }
-    }
-
-    num_gt2 = EVC_MIN(num_gt2, 3) + 1;
-    if(ch_type == Y_C)
-    {
-        num_gt2 += (pos_x == 0 && pos_y == 0) ? 0 : ((pos_x <= sr_x / 2 && pos_y <= sr_y / 2) ? 4 : 8);
-    }
-    return num_gt2;
-}
-
-void evc_init_scan_sr(int *scan, int size_x, int size_y, int width, int scan_type)
-{
-    int x, y, l, pos, num_line;
-
-    pos = 0;
-    num_line = size_x + size_y - 1;
-    if(scan_type == COEF_SCAN_ZIGZAG)
-    {
-        /* starting point */
-        scan[pos] = 0;
-        pos++;
-
-        /* loop */
-        for(l = 1; l < num_line; l++)
-        {
-            if(l % 2) /* decreasing loop */
-            {
-                x = EVC_MIN(l, size_x - 1);
-                y = EVC_MAX(0, l - (size_x - 1));
-
-                while(x >= 0 && y < size_y)
-                {
-                    scan[pos] = y * width + x;
-                    pos++;
-                    x--;
-                    y++;
-                }
-            }
-            else /* increasing loop */
-            {
-                y = EVC_MIN(l, size_y - 1);
-                x = EVC_MAX(0, l - (size_y - 1));
-                while(y >= 0 && x < size_x)
-                {
-                    scan[pos] = y * width + x;
-                    pos++;
-                    x++;
-                    y--;
-                }
-            }
-        }
-    }
-}
-
 int evc_get_transform_shift(int log2_size, int type)
 {
     return (type == 0) ? TX_SHIFT1(log2_size) : TX_SHIFT2(log2_size);
 }
 
-#if CABAC_INIT
 void evc_eco_sbac_ctx_initialize(SBAC_CTX_MODEL *ctx, s16 *ctx_init_model, u16 num_ctx, u8 tile_group_type, u8 tile_group_qp)
 {
     int i, slope, offset;
     u16 cmps, p0, p1;
     int qp = EVC_CLIP3(0, 51, tile_group_qp);
     int is_inter_tile_group = (tile_group_type == TILE_GROUP_B || tile_group_type == TILE_GROUP_P);
+#if CTX_REPRESENTATION_IMPROVEMENT
+    ctx_init_model += (is_inter_tile_group * num_ctx * 1);
+#else
     ctx_init_model += (is_inter_tile_group * num_ctx * 2);
+#endif
     for(i = 0; i < num_ctx; i++)
     {
+#if CTX_REPRESENTATION_IMPROVEMENT
+      int tmp = *(ctx_init_model);
+      int m;
+      int SLOPE_BITS = 4;
+      m = (tmp & 0b1110) >> 1;
+      m = m << 5;
+      m = (tmp & 0b1)? -m : m;
+
+      tmp = *(ctx_init_model) >> SLOPE_BITS;
+      int c;
+      c = (tmp & 0b111110) >> 1;
+      c = c << 8;
+      c = (tmp & 0b1)? -c : c;;
+      c += 4096;
+      slope = m;
+      offset = c;
+#else
         slope = *(ctx_init_model);
         offset = *(ctx_init_model + 1);
+#endif
+
+#if PROB_INIT_FIX
+        int p = slope * qp + offset;
+        int shift = MCABAC_PROB_BITS - 13;
+        if (shift < 0)
+          p >>= (-shift);
+        else
+          p <<= shift;
+        p0 = (u16)EVC_CLIP3(1, MAX_PROB - 1, p);
+#else
         p0 = (u16)EVC_CLIP3(1, MAX_PROB - 1, slope * qp + offset);
+#endif
         p1 = p0;
         cmps = 1;
         if(p0 + p1 > MAX_PROB)
@@ -4912,10 +4652,13 @@ void evc_eco_sbac_ctx_initialize(SBAC_CTX_MODEL *ctx, s16 *ctx_init_model, u16 n
             cmps = 0;
         }
         ctx[i] = (p0 << MPS_SHIFT) + (p1 << 1) + cmps;
+#if CTX_REPRESENTATION_IMPROVEMENT
+        ctx_init_model += 1;
+#else
         ctx_init_model += 2;
+#endif
     }
 }
-#endif
 
 int evc_split_part_count(int split_mode)
 {
@@ -5025,7 +4768,10 @@ void evc_split_get_part_structure(int split_mode, int x0, int y0, int cuw, int c
             split_struct->cup[1] = cup + cup_w;
             split_struct->cup[2] = cup + cup_h;
             split_struct->cup[3] = split_struct->cup[1] + cup_h;
-            split_struct->cud = cud + 1;
+            split_struct->cud[0] = cud + 2;
+            split_struct->cud[1] = cud + 2;
+            split_struct->cud[2] = cud + 2;
+            split_struct->cud[3] = cud + 2;
         }
         break;
 
@@ -5066,14 +4812,18 @@ void evc_split_get_part_structure(int split_mode, int x0, int y0, int cuw, int c
             switch(split_mode)
             {
                 case SPLIT_BI_VER:
-                    split_struct->cud = cud + ((cuw == cuh || cuw < cuh) ? 0 : 1);
+                    split_struct->cud[0] = cud + 1;
+                    split_struct->cud[1] = cud + 1;
                     break;
                 case SPLIT_BI_HOR:
-                    split_struct->cud = cud + ((cuw == cuh || cuw > cuh) ? 0 : 1);
+                    split_struct->cud[0] = cud + 1;
+                    split_struct->cud[1] = cud + 1;
                     break;
                 default:
                     // Triple tree case
-                    split_struct->cud = cud + (cuw == cuh ? 0 : 1);
+                    split_struct->cud[0] = cud + 2;
+                    split_struct->cud[1] = cud + 1;
+                    split_struct->cud[2] = cud + 2;
                     break;
             }
         }
@@ -5121,7 +4871,6 @@ int evc_split_is_horizontal(SPLIT_MODE mode)
     return evc_split_get_direction(mode) == SPLIT_HOR ? 1 : 0;
 }
 
-#if SUCO
 void evc_split_get_suco_order(int suco_flag, SPLIT_MODE mode, int suco_order[SPLIT_MAX_PART_COUNT])
 {
     int i, i2;
@@ -5153,7 +4902,6 @@ void evc_split_get_suco_order(int suco_flag, SPLIT_MODE mode, int suco_order[SPL
         }
     }
 }
-#endif
 
 int  evc_split_is_TT(SPLIT_MODE mode)
 {
@@ -5168,7 +4916,7 @@ int  evc_split_is_BT(SPLIT_MODE mode)
 #if SIMD_CLIP
 __inline void do_clip(__m128i *vreg, __m128i *vbdmin, __m128i *vbdmax) { *vreg = _mm_min_epi16(*vbdmax, _mm_max_epi16(*vbdmin, *vreg)); }
 
-void clip_simd(const pel* src, int stored_alf_para_num, pel *dst, int dst_stride, int width, int height, const int clp_rng_min, const int clp_rng_max )
+void clip_simd(const pel* src, int src_stride, pel *dst, int dst_stride, int width, int height, const int clp_rng_min, const int clp_rng_max )
 {
     __m128i vzero = _mm_setzero_si128();
     __m128i vbdmin = _mm_set1_epi16(clp_rng_min);
@@ -5187,7 +4935,7 @@ void clip_simd(const pel* src, int stored_alf_para_num, pel *dst, int dst_stride
                 do_clip(&val, &vbdmin, &vbdmax);
                 _mm_storel_epi64((__m128i *)&dst[col], val);
             }
-            src += stored_alf_para_num;
+            src += src_stride;
             dst += dst_stride;
         }
     }
@@ -5199,7 +4947,7 @@ void clip_simd(const pel* src, int stored_alf_para_num, pel *dst, int dst_stride
             {
                 dst[col] = EVC_CLIP3(clp_rng_min , clp_rng_max, src[col]);
             }
-            src += stored_alf_para_num;
+            src += src_stride;
             dst += dst_stride;
         }
     }
@@ -5242,4 +4990,18 @@ s32 divide_tbl(s32 dividend, s32 divisor)
     }
 
     return (sign_dividend + sign_divisor == 1) ? -quotient : quotient;
+}
+
+void evc_block_copy(s16 * src, int src_stride, s16 * dst, int dst_stride, int log2_copy_w, int log2_copy_h)
+{
+    int h;
+    int copy_size = (1 << log2_copy_w) * (int)sizeof(s16);
+    s16 *tmp_src = src;
+    s16 *tmp_dst = dst;
+    for (h = 0; h < (1<< log2_copy_h); h++)
+    {
+        memcpy(tmp_dst, tmp_src, copy_size);
+        tmp_dst += dst_stride;
+        tmp_src += src_stride;
+    }
 }

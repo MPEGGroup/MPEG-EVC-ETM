@@ -216,26 +216,26 @@ void filter_block_luma(pel *block, const u8 HTDF_table[HTDF_LUT_QP_NUM][1 << HTD
 
 BOOL evc_htdf_skip_condition(int width, int height, int IntraBlockFlag, int *qp)
 {
-    if (*qp <= 17)
+    if(*qp <= 17)
         return TRUE;
 
-    if ((width == 4) && (height == 4))
+    if((width == 4) && (height == 4))
         return TRUE;
 
     int min_size = min(width, height);
     int max_size = max(width, height);
 
-    if (max_size >= 128)
+    if(max_size >= 128)
         return TRUE;
 
-    if (IntraBlockFlag == 0)
+    if(IntraBlockFlag == 0)
     {
-        if (min_size >= 32)
+        if(min_size >= 32)
             return TRUE;
     }
     else
     {
-        if ((width == height) && (min_size >= 32))
+        if((width == height) && (min_size >= 32))
             *qp -= 1 << HTDF_LUT_STEP_QP_LOG2;
     }
 
@@ -302,4 +302,3 @@ void evc_htdf(s16* rec, int qp, int w, int h, int s, BOOL intra_block_flag, pel*
 }
 
 #endif
-
