@@ -108,6 +108,7 @@ static int  op_qp = 0;
 static int  op_fps = 0;
 static int  op_iperiod = 0;
 static int  op_max_b_frames= 0;
+static int  op_ref_pic_gap_length = 0;
 static int  op_closed_gop = 0;
 static int  op_disable_hgop = 0;
 static int  op_in_bit_depth = 8;
@@ -318,6 +319,11 @@ static EVC_ARGS_OPTION options[] = \
         EVC_ARGS_NO_KEY,  "output_bit_depth", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_FLAG_OUT_BIT_DEPTH], &op_out_bit_depth,
         "output bitdepth (8, 10)(default: same as input bitdpeth) "
+    },
+    {
+        EVC_ARGS_NO_KEY,  "ref_pic_gap_length", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_FLAG_OUT_BIT_DEPTH], &op_ref_pic_gap_length,
+        "reference picture gap length (1, 2, 4, 8, 16) only available when -g is 0"
     },
     {
         EVC_ARGS_NO_KEY,  "closed_gop", EVC_ARGS_VAL_TYPE_NONE,
@@ -690,6 +696,7 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->fps = op_fps;
     cdsc->iperiod = op_iperiod;
     cdsc->max_b_frames = op_max_b_frames;
+    cdsc->ref_pic_gap_length = op_ref_pic_gap_length;
 #if USE_TILE_GROUP_DQP
     cdsc->add_qp_frame = op_add_qp_frames;
 #endif
@@ -1342,8 +1349,8 @@ void print_psnr(EVCE_STAT * stat, double * psnr, int bitrate, EVC_CLK clk_end)
     }
 
 #if CALC_SSIM
-    v1print("%-7d(%c) %-5d%-10.4f%-10.4f%-10.4f%-10d%-10d%-12.7f", \
-        stat->poc, stype, stat->qp, psnr[0], psnr[1], psnr[2], \
+    v1print("%-7d%-3d(%c) %-5d%-10.4f%-10.4f%-10.4f%-10d%-10d%-12.7f", \
+        stat->poc, stat->tid, stype, stat->qp, psnr[0], psnr[1], psnr[2], \
         bitrate, evc_clk_msec(clk_end), ms_ssim);
 #else
     v1print("%-7d(%c) %-5d%-10.4f%-10.4f%-10.4f%-10d%-10d", \

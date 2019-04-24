@@ -81,7 +81,7 @@
 #define ME_LEV_QPEL              3
 
 /* maximum inbuf count */
-#define EVCE_MAX_INBUF_CNT      32
+#define EVCE_MAX_INBUF_CNT      33
 
 /* maximum cost value */
 #define MAX_COST                (1.7e+308)
@@ -154,7 +154,8 @@ typedef struct _EVCE_MODE
 #define FRM_DEPTH_3                   3
 #define FRM_DEPTH_4                   4
 #define FRM_DEPTH_5                   5
-#define FRM_DEPTH_MAX                 6
+#define FRM_DEPTH_6                   6
+#define FRM_DEPTH_MAX                 7
 /* I-tile_group, P-tile_group, B-tile_group + depth + 1 (max for GOP 8 size)*/
 #define LIST_NUM                      1
 
@@ -394,6 +395,7 @@ typedef struct _EVCE_PARAM
     /* use picture signature embedding */
     int                 use_pic_sign;
     int                 max_b_frames;
+    int                 ref_pic_gap_length;
     /* start bumping process if force_output is on */
     int                 force_output;
     int                 gop_size;
@@ -686,6 +688,10 @@ struct _EVCE_CTX
     u16                    h;
     /* encoding picture width * height */
     u16                    f;
+    /* the picture order count of the previous Tid0 picture */
+    u32                     prev_pic_order_cnt_val;
+    /* the decoding order count of the previous picture */
+    u32                     prev_doc_offset;
     /* current encoding picture count(This is not PicNum or FrameNum.
     Just count of encoded picture correctly) */
     u32                    pic_cnt;
@@ -708,10 +714,9 @@ struct _EVCE_CTX
     u8                     tile_group_type;
     /* tile_group depth for current picture */
     u8                     tile_group_depth;
-    /* whether current picture is referred or not */
-    u8                     ref_depth;
     /* flag whether current picture is refecened picture or not */
     u8                     tile_group_ref_flag;
+    int                    ref_pic_gap_length;
     /* current picture POC number */
     int                    poc;
     /* maximum CU depth */

@@ -275,6 +275,7 @@ static int write_data(char * fname, unsigned char * data, int size)
         v0print("cannot open an writing file=%s\n", fname);
         return -1;
     }
+    //fwrite(&size, 4, 1, fp);
     fwrite(data, 1, size, fp);
     fclose(fp);
     return 0;

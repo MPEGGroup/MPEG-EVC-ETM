@@ -348,8 +348,8 @@ typedef struct _EVCD_STAT
     int            refpic[2][16];
 } EVCD_STAT;
 
-#define MAX_NUM_REF_PICS                   17
-#define MAX_NUM_ACTIVE_REF_FRAME           4
+#define MAX_NUM_REF_PICS                   21
+#define MAX_NUM_ACTIVE_REF_FRAME           5
 #define MAX_NUM_RPLS                       32
 
 /* rpl structure */
@@ -392,6 +392,7 @@ typedef struct _EVCE_CDSC
        - disable (1) means frame type will be decided automatically
        - Default: enable(0)                                                       */
     int            disable_hgop;
+    int            ref_pic_gap_length;
     /* use closed GOP sturcture
        - 0 : use open GOP (default)
        - 1 : use closed GOP */

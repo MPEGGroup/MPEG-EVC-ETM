@@ -2381,7 +2381,21 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
 #endif
 
 #endif
-    sps->log2_max_pic_order_cnt_lsb_minus4 = (u32)evc_bsr_read_ue(bs);
+    sps->tool_rpl = evc_bsr_read1(bs);
+    sps->tool_pocs = evc_bsr_read1(bs);
+    if (!sps->tool_rpl)
+    {
+        sps->log2_max_pic_order_cnt_lsb_minus4 = (u32)evc_bsr_read_ue(bs);
+    }
+    if (!sps->tool_rpl || !sps->tool_pocs)
+    {
+        sps->log2_sub_gop_length = (u32)evc_bsr_read_ue(bs);
+        if (sps->log2_sub_gop_length == 0)
+        {
+            sps->log2_ref_pic_gap_length = (u32)evc_bsr_read_ue(bs);
+        }
+
+    }
     sps->sps_max_dec_pic_buffering_minus1 = (u32)evc_bsr_read_ue(bs);
     sps->picture_num_present_flag = evc_bsr_read1(bs);
     if (sps->picture_num_present_flag)
@@ -2767,6 +2781,8 @@ int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_TGH * tgh)
 int evcd_eco_tgh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh)
 {
     int NumTilesInTileGroup = 0;    //TBD according to the spec
+    tgh->dtr = evc_bsr_read(bs, DTR_BIT_CNT);
+    tgh->layer_id = evc_bsr_read(bs, 3);
     tgh->tile_group_pic_parameter_set_id = evc_bsr_read_ue(bs);
     tgh->single_tile_in_tile_group_flag = evc_bsr_read1(bs);
     tgh->first_tile_id = evc_bsr_read(bs, pps->tile_id_len_minus1 + 1);
@@ -2805,7 +2821,10 @@ int evcd_eco_tgh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh)
 
     // if (NalUnitType != IDR_NUT)  TBD: NALU types to be implemented
     {
-        tgh->poc = evc_bsr_read_ue(bs);
+        if (sps->tool_pocs)
+        {
+            tgh->poc = evc_bsr_read_ue(bs);
+        }
         if (sps->picture_num_present_flag)
         {
             tgh->ref_pic_flag = evc_bsr_read1(bs);
@@ -2892,7 +2911,6 @@ int evcd_eco_tgh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh)
         }
     }
 
-    tgh->dtr                   = evc_bsr_read(bs, DTR_BIT_CNT);
     tgh->keyframe = evc_bsr_read1(bs);
     tgh->udata_exist = evc_bsr_read1(bs);
 
@@ -2917,7 +2935,6 @@ int evcd_eco_tgh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh)
     }
 
     tgh->poc = tgh->dtr + tgh->dptr;
-    tgh->layer_id = evc_bsr_read(bs, 3);
 
     /* parse MMCO */
     tgh->mmco_on = evc_bsr_read1(bs);
