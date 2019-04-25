@@ -2692,7 +2692,7 @@ int evcd_eco_tgh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh)
 
     // if (NalUnitType != IDR_NUT)  TBD: NALU types to be implemented
     {
-        tgh->poc = evc_bsr_read_ue(bs);
+        tgh->poc = evc_bsr_read(bs, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
         if (sps->picture_num_present_flag)
         {
             tgh->ref_pic_flag = evc_bsr_read1(bs);

@@ -37,25 +37,10 @@
 #include <math.h>
 
 #if LINUX
-#include <execinfo.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-
-void handler(int sig)
-{
-    void *array[10];
-    size_t size;
-
-    // get void*'s for all entries on the stack
-    size = backtrace(array, 10);
-
-    // print out all the frames to stderr
-    fprintf(stderr, "Error: signal %d:\n", sig);
-    backtrace_symbols_fd(array, size, STDERR_FILENO);
-    exit(1);
-}
 #endif
 
 #define SCRIPT_REPORT              1
@@ -809,7 +794,7 @@ static int get_conf(EVCE_CDSC * cdsc)
         int j = 0;
         do
         {
-            char* val = strtok(NULL, " ");
+            char* val = strtok(NULL, " \r");
             if (!val)
                 break;
             cdsc->rpls_l0[i].ref_pics[j++] = atoi(val);
@@ -1479,9 +1464,6 @@ int main(int argc, const char **argv)
 #if !CALC_SSIM
     double              seq_header_bit = 0;
 #endif
-#if LINUX
-    signal(SIGSEGV, handler);   // install our handler
-#endif
 
     /* parse options */
     ret = evc_args_parse_all(argc, argv, options);
@@ -1601,10 +1583,12 @@ int main(int argc, const char **argv)
             v0print("Cannot write header information (SPS)\n");
             return -1;
         }
+    }
+
 #if PRECISE_BS_SIZE
-        bitrate += stat.write;
+    bitrate += stat.write;
 #if !CALC_SSIM
-        seq_header_bit = stat.write;
+    seq_header_bit = stat.write;
 #endif
 #else
     bitrate += (stat.write - 4)/* 4-byte prefix (length field of chunk) */;
@@ -1612,7 +1596,6 @@ int main(int argc, const char **argv)
     seq_header_bit = (stat.write - 4)/* 4-byte prefix (length field of chunk) */;
 #endif
 #endif
-    }
 
     if(op_flag[OP_FLAG_SKIP_FRAMES] && op_skip_frames > 0)
     {
@@ -1662,7 +1645,7 @@ int main(int argc, const char **argv)
             }
 
             /* read original image */
-            if(imgb_read(fp_inp, ilist_t->imgb))
+            if (pic_icnt >= op_max_frm_num ||imgb_read(fp_inp, ilist_t->imgb))
             {
                 v2print("reached end of original file (or reading error)\n");
                 state = STATE_BUMPING;
@@ -1844,11 +1827,16 @@ int main(int argc, const char **argv)
     v1print("Average encoding time for a frame = %.3f msec\n",
         (float)evc_clk_msec(clk_tot)/pic_ocnt);
     v1print("Average encoding speed            = %.3f frames/sec\n",
-        ((float)pic_ocnt*1000)/((float)evc_clk_msec(clk_tot)));
+        ((float)pic_ocnt * 1000) / ((float)evc_clk_msec(clk_tot)));
     v1print("=======================================================================================\n");
 
+    if (pic_ocnt != op_max_frm_num)
+    {
+        v2print("Wrong frames count: should be %d was %d\n", op_max_frm_num, (int)pic_ocnt);
+    }
+
 ERR:
-     evce_delete(id);
+    evce_delete(id);
 
     imgb_list_free(ilist_org);
     imgb_list_free(ilist_rec);
