@@ -38,25 +38,10 @@
 #include "evca_args.h"
 
 #if LINUX
-#include <execinfo.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-
-void handler(int sig)
-{
-    void *array[10];
-    size_t size;
-
-    // get void*'s for all entries on the stack
-    size = backtrace(array, 10);
-
-    // print out all the frames to stderr
-    fprintf(stderr, "Error: signal %d:\n", sig);
-    backtrace_symbols_fd(array, size, STDERR_FILENO);
-    exit(1);
-}
 #endif
 
 #define VERBOSE_NONE               VERBOSE_0
@@ -316,10 +301,6 @@ int main(int argc, const char **argv)
     int                bs_size, bs_read_pos = 0;
     int                w, h;
     FILE             * fp_bs = NULL;
-
-#if LINUX
-    signal(SIGSEGV, handler);   // install our handler
-#endif
 
 #if DECODING_TIME_TEST
             clk_beg = evc_clk_get();

@@ -49,34 +49,20 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps);
 int evcd_eco_tgh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh);
 
 int evcd_eco_udata(EVCD_CTX * ctx, EVC_BSR * bs);
-#if CABAC_INIT
-void evcd_eco_sbac_reset(EVC_BSR * bs, u8 tile_group_type, u8 tile_group_qp);
-#else
-void evcd_eco_sbac_reset(EVC_BSR * bs);
-#endif
-int evcd_eco_inter_dir(EVC_BSR * bs, EVCD_SBAC * sbac
-#if MMVD
-                        , int *direct_idx, int type
-#endif
-#if AMVR
-                        , u8 mvr_idx
-#endif
-                        , u16 avail_lr);
+
+void evcd_eco_sbac_reset(EVC_BSR * bs, u8 tile_group_type, u8 tile_group_qp, int sps_cm_init_flag);
+
+int evcd_eco_inter_dir(EVC_BSR * bs, EVCD_SBAC * sbac, int *direct_idx, int type, u8 mvr_idx, u16 avail_lr);
 int evcd_eco_intra_dir(EVC_BSR * bs, EVCD_SBAC * sbac, u8 mpm[2], u8 mpm_ext[8], u8 pims[IPD_CNT]);
+int evcd_eco_intra_dir_b(EVC_BSR * bs, EVCD_SBAC * sbac, u8 * mpm, u8 mpm_ext[8], u8 pims[IPD_CNT]);
 int evcd_eco_intra_dir_c(EVC_BSR * bs, EVCD_SBAC * sbac, u8 ipm_l);
 
 int evcd_eco_coef(EVCD_CTX * ctx, EVCD_CORE * core);
 
 int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core);
 
-s8 evcd_eco_split_mode(EVCD_CTX * ctx, EVC_BSR *bs, EVCD_SBAC *sbac, int cuw, int cuh
-                        , const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int* curr_split_allow, int qt_depth, int btt_depth, int x, int y);
-#if SUCO
-s8 evcd_eco_suco_flag(EVC_BSR *bs, EVCD_SBAC *sbac, EVCD_CORE *core, int cuw, int cuh, s8 split_mode, int boundary, u8 log2_max_cuwh, int parent_suco
-
-                       , u8 suco_max, u8 suco_min
-                       );
-#endif
+s8 evcd_eco_split_mode(EVCD_CTX * ctx, EVC_BSR *bs, EVCD_SBAC *sbac, int cuw, int cuh, const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int* curr_split_allow, int qt_depth, int btt_depth, int x, int y);
+s8 evcd_eco_suco_flag(EVC_BSR *bs, EVCD_SBAC *sbac, EVCD_CTX *c, EVCD_CORE *core, int cuw, int cuh, s8 split_mode, int boundary, u8 log2_max_cuwh, int parent_suco);
 #define evcd_eco_tile_group_end_flag(bs, sbac) \
     ((int)evcd_sbac_decode_bin_trm((bs), (sbac)))
 

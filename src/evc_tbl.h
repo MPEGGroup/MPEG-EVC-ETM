@@ -48,15 +48,13 @@ extern const s8 evc_tbl_tm8[8][8];
 extern const s8 evc_tbl_tm16[16][16];
 extern const s8 evc_tbl_tm32[32][32];
 extern const s8 evc_tbl_tm64[64][64];
-extern const s8 evc_tbl_tm128[128][128];
 extern const s8 *evc_tbl_tm[MAX_CU_DEPTH];
 extern int evc_scan_sr[MAX_TR_SIZE*MAX_TR_SIZE];
 extern u16 * evc_scan_tbl[COEF_SCAN_TYPE_NUM][MAX_CU_LOG2 - 1][MAX_CU_LOG2 - 1];
-#if INTRA_GR
 extern const u8 evey_tbl_mpm[6][6][5];
-#endif
 
 extern const int evc_tbl_dq_scale[6];
+extern const int evc_tbl_dq_scale_b[6];
 #if AQS
 extern const int evc_sqrt[49]; //ev_val is 8 bit
 #endif
@@ -65,45 +63,77 @@ extern const u8 evc_tbl_df_st[4][52];
 extern const int evc_tbl_ipred_adi[32][4];
 extern const int evc_tbl_ipred_dxdy[IPD_CNT][2];
 
-#if !QT_ON_BTT_OFF
 extern u16 evc_split_tbl[6][SPLIT_CHECK_NUM][2];
-#endif
 extern const u8  evc_split_order[2][SPLIT_CHECK_NUM];
 
-extern const int evc_tbl_qp_chroma_ajudst[58];
+extern int evc_tbl_qp_chroma_ajudst_main[58];
+extern int evc_tbl_qp_chroma_ajudst_base[58];
+extern int* evc_tbl_qp_chroma_ajudst;
 
-#if CABAC_INIT
+#if CTX_REPRESENTATION_IMPROVEMENT
+extern const s16 init_cbf[2][NUM_QT_CBF_CTX][1];
+extern const s16 init_all_cbf[2][NUM_QT_ROOT_CBF_CTX][1];
+extern const s16 init_pred_mode[2][NUM_PRED_MODE_CTX][1];
+extern const s16 init_inter_dir[2][NUM_INTER_DIR_CTX][1];
+extern const s16 init_intra_dir[2][NUM_INTRA_DIR_CTX][1];
+extern const s16 init_mmvd_flag[2][NUM_SBAC_CTX_MMVD_FLAG][1];
+extern const s16 init_mmvd_merge_idx[2][NUM_SBAC_CTX_MMVD_MERGE_IDX][1];
+extern const s16 init_mmvd_distance_idx[2][NUM_SBAC_CTX_MMVD_DIST_IDX][1];
+extern const s16 init_mmvd_direction_idx[2][NUM_SBAC_CTX_DIRECTION_IDX][1];
+extern const s16 init_mmvd_group_idx[2][NUM_SBAC_CTX_MMVD_GRP_IDX][1];
+extern const s16 init_mvp_idx[2][NUM_MVP_IDX_CTX][1];
+extern const s16 init_affine_mvp_idx[2][NUM_AFFINE_MVP_IDX_CTX][1];
+extern const s16 init_mvr_idx[2][NUM_MVR_IDX_CTX][1];
+extern const s16 init_bi_idx[2][NUM_BI_IDX_CTX][1];
+extern const s16 init_mvd[2][NUM_MV_RES_CTX][1];
+extern const s16 init_refi[2][NUM_REFI_CTX][1];
+extern const s16 init_btt_split_flag[2][NUM_SBAC_CTX_BTT_SPLIT_FLAG][1];
+extern const s16 init_btt_split_dir[2][NUM_SBAC_CTX_BTT_SPLIT_DIR][1];
+extern const s16 init_btt_split_type[2][NUM_SBAC_CTX_BTT_SPLIT_TYPE][1];
+extern const s16 init_run[2][NUM_SBAC_CTX_RUN][1];
+extern const s16 init_last[2][NUM_SBAC_CTX_LAST][1];
+extern const s16 init_level[2][NUM_SBAC_CTX_LEVEL][1];
+extern const s16 init_suco_flag[2][NUM_SBAC_CTX_SUCO_FLAG][1];
+#if ALF
+extern const s16 init_ctb_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG][1];
+#endif
+#if AFFINE
+#if CTX_NEV_AFFINE_FLAG
+extern const s16 init_affine_flag[2][NUM_SBAC_CTX_AFFINE_FLAG][1];
+#endif
+extern const s16 init_affine_mode[2][NUM_SBAC_CTX_AFFINE_MODE][1];
+extern const s16 init_affine_mrg[2][AFF_MAX_CAND][1];
+extern const s16 init_affine_mvd_flag[2][NUM_SBAC_CTX_AFFINE_MVD_FLAG][1];
+#endif
+extern const s16 init_skip_flag[2][NUM_SBAC_CTX_SKIP_FLAG][1];
+#else
+
 extern const s16 init_cbf[2][NUM_QT_CBF_CTX][2];
 extern const s16 init_all_cbf[2][NUM_QT_ROOT_CBF_CTX][2];
 extern const s16 init_pred_mode[2][NUM_PRED_MODE_CTX][2];
 extern const s16 init_inter_dir[2][NUM_INTER_DIR_CTX][2];
 extern const s16 init_intra_dir[2][NUM_INTRA_DIR_CTX][2];
-#if MMVD
-extern const s16 init_new_skip_flag[2][NUM_SBAC_CTX_NEW_SKIP_FLAG][2];
-extern const s16 init_base_mvp_idx[2][NUM_BASE_MVP_IDX_CTX][2];
-extern const s16 init_step_mvp_idx[2][NUM_STEP_MVP_IDX_CTX][2];
-extern const s16 init_position[2][NUM_POSITION_CTX][2];
-extern const s16 init_ext_mode_idx[2][MMVD_MODE_STEP][2];
-extern const s16 init_ext_mode_dev0[2][MMVD_MODE_SG0][2];
-#endif
+extern const s16 init_mmvd_flag[2][NUM_SBAC_CTX_MMVD_FLAG][2];
+extern const s16 init_mmvd_merge_idx[2][NUM_SBAC_CTX_MMVD_MERGE_IDX][2];
+extern const s16 init_mmvd_distance_idx[2][NUM_SBAC_CTX_MMVD_DIST_IDX][2];
+extern const s16 init_mmvd_direction_idx[2][NUM_SBAC_CTX_DIRECTION_IDX][2];
+extern const s16 init_mmvd_group_idx[2][NUM_SBAC_CTX_MMVD_GRP_IDX][2];
 extern const s16 init_mvp_idx[2][NUM_MVP_IDX_CTX][2];
 extern const s16 init_affine_mvp_idx[2][NUM_AFFINE_MVP_IDX_CTX][2];
-#if AMVR
 extern const s16 init_mvr_idx[2][NUM_MVR_IDX_CTX][2];
-#if ABP
 extern const s16 init_bi_idx[2][NUM_BI_IDX_CTX][2];
-#endif
-#endif
 extern const s16 init_mvd[2][NUM_MV_RES_CTX][2];
 extern const s16 init_refi[2][NUM_REFI_CTX][2];
-extern const s16 init_split_mode[2][NUM_SBAC_CTX_SPLIT_MODE][2];
-#if SUCO
+extern const s16 init_btt_split_flag[2][NUM_SBAC_CTX_BTT_SPLIT_FLAG][2];
+extern const s16 init_btt_split_dir[2][NUM_SBAC_CTX_BTT_SPLIT_DIR][2];
+extern const s16 init_btt_split_type[2][NUM_SBAC_CTX_BTT_SPLIT_TYPE][2];
+extern const s16 init_run[2][NUM_SBAC_CTX_RUN][2];
+extern const s16 init_last[2][NUM_SBAC_CTX_LAST][2];
+extern const s16 init_level[2][NUM_SBAC_CTX_LEVEL][2];
 extern const s16 init_suco_flag[2][NUM_SBAC_CTX_SUCO_FLAG][2];
-#endif
 #if ALF
 extern const s16 init_ctb_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG][2];
 #endif
-
 #if AFFINE
 #if CTX_NEV_AFFINE_FLAG
 extern const s16 init_affine_flag[2][NUM_SBAC_CTX_AFFINE_FLAG][2];
@@ -112,12 +142,9 @@ extern const s16 init_affine_mode[2][NUM_SBAC_CTX_AFFINE_MODE][2];
 extern const s16 init_affine_mrg[2][AFF_MAX_CAND][2];
 extern const s16 init_affine_mvd_flag[2][NUM_SBAC_CTX_AFFINE_MVD_FLAG][2];
 #endif
-
-#if CTX_NEV_SKIP_FLAG
 extern const s16 init_skip_flag[2][NUM_SBAC_CTX_SKIP_FLAG][2];
-#endif
-#endif
 
+#endif
 #if DBF == DBF_AVC
 extern const u8 ALPHA_TABLE[52];
 extern const u8 BETA_TABLE[52];

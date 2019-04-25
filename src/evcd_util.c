@@ -162,7 +162,7 @@ void evcd_set_affine_mvf(EVCD_CTX * ctx, EVCD_CORE * core)
 
 void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
 #if ENC_DEC_TRACE
-    , u8 write_trace
+                       , u8 write_trace
 #endif
 )
 {
@@ -203,7 +203,6 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
 #endif
     map_cu_mode = ctx->map_cu_mode + scup;
 
-
 #if DMVR_LAG
     idx = 0;
 #endif
@@ -220,27 +219,27 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
                 MCU_CLR_SF(map_scu[j]);
             }
 #if DMVR_FLAG
-                if ((core->pred_mode == MODE_SKIP) || (core->pred_mode == MODE_DIR))
+            if((core->pred_mode == MODE_SKIP) || (core->pred_mode == MODE_DIR))
+            {
+                if(core->dmvr_flag)
                 {
-                    if (core->dmvr_flag)
-                    {
-                        MCU_SET_DMVRF(map_scu[j]);
-                    }
-                    else
-                    {
-                        MCU_CLR_DMVRF(map_scu[j]);
-                    }
-                }
-#endif
-
-                if(core->is_coef[Y_C])
-                {
-                    MCU_SET_CBFL(map_scu[j]);
+                    MCU_SET_DMVRF(map_scu[j]);
                 }
                 else
                 {
-                    MCU_CLR_CBFL(map_scu[j]);
+                    MCU_CLR_DMVRF(map_scu[j]);
                 }
+            }
+#endif
+            int sub_idx = ((!!(i & 32)) << 1) | (!!(j & 32));
+            if (core->is_coef_sub[Y_C][sub_idx])
+            {
+                MCU_SET_CBFL(map_scu[j]);
+            }
+            else
+            {
+                MCU_CLR_CBFL(map_scu[j]);
+            }
 
 #if AFFINE
             if(core->affine_flag)
@@ -260,8 +259,8 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
 
             MCU_SET_LOGW(map_cu_mode[j], core->log2_cuw);
             MCU_SET_LOGH(map_cu_mode[j], core->log2_cuh);
-#if MMVD
-            if(core->new_skip_flag)
+
+            if(core->mmvd_flag)
             {
                 MCU_SET_MMVDS(map_cu_mode[j]);
             }
@@ -269,51 +268,51 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
             {
                 MCU_CLR_MMVDS(map_cu_mode[j]);
             }
-#endif
+
             MCU_SET_IF_COD_SN_QP(map_scu[j], flag, ctx->tile_group_num, ctx->tgh.qp);
 
             map_refi[j][REFP_0] = core->refi[REFP_0];
             map_refi[j][REFP_1] = core->refi[REFP_1];
 
 #if DMVR_LAG
-                if(core->dmvr_flag)
-                {                  
-                  map_mv[j][REFP_0][MV_X] = core->dmvr_mv[idx + j][REFP_0][MV_X];
-                  map_mv[j][REFP_0][MV_Y] = core->dmvr_mv[idx + j][REFP_0][MV_Y];
-                  map_mv[j][REFP_1][MV_X] = core->dmvr_mv[idx + j][REFP_1][MV_X];
-                  map_mv[j][REFP_1][MV_Y] = core->dmvr_mv[idx + j][REFP_1][MV_Y];
+            if(core->dmvr_flag)
+            {
+                map_mv[j][REFP_0][MV_X] = core->dmvr_mv[idx + j][REFP_0][MV_X];
+                map_mv[j][REFP_0][MV_Y] = core->dmvr_mv[idx + j][REFP_0][MV_Y];
+                map_mv[j][REFP_1][MV_X] = core->dmvr_mv[idx + j][REFP_1][MV_X];
+                map_mv[j][REFP_1][MV_Y] = core->dmvr_mv[idx + j][REFP_1][MV_Y];
 
-                  map_unrefined_mv[j][REFP_0][MV_X] = core->mv[REFP_0][MV_X];
-                  map_unrefined_mv[j][REFP_0][MV_Y] = core->mv[REFP_0][MV_Y];
-                  map_unrefined_mv[j][REFP_1][MV_X] = core->mv[REFP_1][MV_X];
-                  map_unrefined_mv[j][REFP_1][MV_Y] = core->mv[REFP_1][MV_Y];                  
-                }
-                else
+                map_unrefined_mv[j][REFP_0][MV_X] = core->mv[REFP_0][MV_X];
+                map_unrefined_mv[j][REFP_0][MV_Y] = core->mv[REFP_0][MV_Y];
+                map_unrefined_mv[j][REFP_1][MV_X] = core->mv[REFP_1][MV_X];
+                map_unrefined_mv[j][REFP_1][MV_Y] = core->mv[REFP_1][MV_Y];
+            }
+            else
 #endif
-                {
+            {
 
-                  map_mv[j][REFP_0][MV_X] = core->mv[REFP_0][MV_X];
-                  map_mv[j][REFP_0][MV_Y] = core->mv[REFP_0][MV_Y];
-                  map_mv[j][REFP_1][MV_X] = core->mv[REFP_1][MV_X];
-                  map_mv[j][REFP_1][MV_Y] = core->mv[REFP_1][MV_Y];
+                map_mv[j][REFP_0][MV_X] = core->mv[REFP_0][MV_X];
+                map_mv[j][REFP_0][MV_Y] = core->mv[REFP_0][MV_Y];
+                map_mv[j][REFP_1][MV_X] = core->mv[REFP_1][MV_X];
+                map_mv[j][REFP_1][MV_Y] = core->mv[REFP_1][MV_Y];
 #if DMVR_LAG
-                  map_unrefined_mv[j][REFP_0][MV_X] = SHRT_MAX;
-                  map_unrefined_mv[j][REFP_0][MV_Y] = SHRT_MAX;
-                  map_unrefined_mv[j][REFP_1][MV_X] = SHRT_MAX;
-                  map_unrefined_mv[j][REFP_1][MV_Y] = SHRT_MAX;
+                map_unrefined_mv[j][REFP_0][MV_X] = SHRT_MAX;
+                map_unrefined_mv[j][REFP_0][MV_Y] = SHRT_MAX;
+                map_unrefined_mv[j][REFP_1][MV_X] = SHRT_MAX;
+                map_unrefined_mv[j][REFP_1][MV_Y] = SHRT_MAX;
 #endif
 
-                }
+            }
 
-                map_ipm[j] = core->ipm[0];
+            map_ipm[j] = core->ipm[0];
         }
         map_refi += w_scu;
-        map_mv   += w_scu;
+        map_mv += w_scu;
 #if DMVR_LAG
         map_unrefined_mv += w_scu;
         idx += w_cu;
 #endif
-        map_scu  += w_scu;
+        map_scu += w_scu;
         map_ipm += w_scu;
 
 #if AFFINE
@@ -335,7 +334,6 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
 
     evc_mcpy(core->mv, map_mv, sizeof(core->mv));
     evc_mcpy(core->refi, map_refi, sizeof(core->refi));
-
 #endif
 
 #if MVF_TRACE
@@ -421,7 +419,6 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
 
 void evcd_split_tbl_init(EVCD_CTX *ctx)
 {
-#if !QT_ON_BTT_OFF
     int i;
     for(i = 0; i < 6; i++)
     {
@@ -438,7 +435,6 @@ void evcd_split_tbl_init(EVCD_CTX *ctx)
         evc_split_tbl[i][5][0] = evc_split_tbl[i][0][0] - ctx->sps.log2_diff_max_11_max_tt_cb_size;
         evc_split_tbl[i][5][1] = evc_split_tbl[i][0][1] + 2 + ctx->sps.log2_diff_min_11_min_tt_cb_size_minus2;
     }
-#endif
 }
 
 #if USE_DRAW_PARTITION_DEC
@@ -537,7 +533,7 @@ static int draw_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y,
     {
         if (split_mode == SPLIT_BI_VER)
         {
-            int sub_cud = cud + ((cuw == cuh || cuw < cuh) ? 0 : 1);
+            int sub_cud = cud + 1;
             int sub_cuw = cuw >> 1;
             int sub_cuh = cuh;
 
@@ -556,7 +552,7 @@ static int draw_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y,
         }
         else if (split_mode == SPLIT_BI_HOR)
         {
-            int sub_cud = cud + ((cuw == cuh || cuw > cuh) ? 0 : 1);
+            int sub_cud = cud + 1;
             int sub_cuw = cuw;
             int sub_cuh = cuh >> 1;
 
@@ -575,7 +571,7 @@ static int draw_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y,
         }
         else if (split_mode == SPLIT_TRI_VER)
         {
-            int sub_cud = cud + (cuw == cuh ? 0 : 1);
+            int sub_cud = cud + 2;
             int sub_cuw = cuw >> 2;
             int sub_cuh = cuh;
             int x2, cup_x2;
@@ -587,7 +583,7 @@ static int draw_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y,
             sub_cuw = cuw >> 1;
             if (x1 < pic->w_l)
             {
-                draw_tree(ctx, pic, x1, y, sub_cuw, sub_cuh, sub_cud, cup_x1, (next_split - 1) == 0 ? 0 : 0);
+                draw_tree(ctx, pic, x1, y, sub_cuw, sub_cuh, sub_cud - 1, cup_x1, (next_split - 1) == 0 ? 0 : 0);
             }
 
             x2 = x1 + sub_cuw;
@@ -600,7 +596,7 @@ static int draw_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y,
         }
         else if (split_mode == SPLIT_TRI_HOR)
         {
-            int sub_cud = cud + (cuw == cuh ? 0 : 1);
+            int sub_cud = cud + 2;
             int sub_cuw = cuw;
             int sub_cuh = cuh >> 2;
             int y2, cup_y2;
@@ -612,7 +608,7 @@ static int draw_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y,
             sub_cuh = cuh >> 1;
             if (y1 < pic->h_l)
             {
-                draw_tree(ctx, pic, x, y1, sub_cuw, sub_cuh, sub_cud, cup + cup_y1, (next_split - 1) == 0 ? 0 : 0);
+                draw_tree(ctx, pic, x, y1, sub_cuw, sub_cuh, sub_cud - 1, cup + cup_y1, (next_split - 1) == 0 ? 0 : 0);
             }
 
             y2 = y1 + sub_cuh;
@@ -625,7 +621,7 @@ static int draw_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y,
         }
         else if (split_mode == SPLIT_QUAD)
         {
-            cud++;
+            cud+=2;
             cuw >>= 1;
             cuh >>= 1;
             x1 = x + cuw;

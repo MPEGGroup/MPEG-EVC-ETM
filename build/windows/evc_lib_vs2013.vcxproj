@@ -11,11 +11,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\AdaptiveLoopFilter.cpp">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CompileAsCpp</CompileAs>
-    </ClCompile>
     <ClCompile Include="..\..\src\evc.c" />
+    <ClCompile Include="..\..\src\evc_alf.c" />
     <ClCompile Include="..\..\src\evc_df.c" />
     <ClCompile Include="..\..\src\evc_img.c" />
     <ClCompile Include="..\..\src\evc_picman.c" />
@@ -28,7 +25,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\inc\evc.h" />
-    <ClInclude Include="..\..\src\AdaptiveLoopFilter.h" />
+    <ClInclude Include="..\..\src\evc_alf.h" />
     <ClInclude Include="..\..\src\evc_img.h" />
     <ClInclude Include="..\..\src\evc_picman.h" />
     <ClInclude Include="..\..\src\evc_def.h" />

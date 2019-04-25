@@ -37,25 +37,10 @@
 #include <math.h>
 
 #if LINUX
-#include <execinfo.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-
-void handler(int sig)
-{
-    void *array[10];
-    size_t size;
-
-    // get void*'s for all entries on the stack
-    size = backtrace(array, 10);
-
-    // print out all the frames to stderr
-    fprintf(stderr, "Error: signal %d:\n", sig);
-    backtrace_symbols_fd(array, size, STDERR_FILENO);
-    exit(1);
-}
 #endif
 
 #define SCRIPT_REPORT              1
@@ -96,30 +81,34 @@ enum STRUCTURE
 };
 #endif
 
-static char op_fname_cfg[256] = "\0"; /* config file path name */
-static char op_fname_inp[256] = "\0"; /* input original video */
-static char op_fname_out[256] = "\0"; /* output bitstream */
-static char op_fname_rec[256] = "\0"; /* reconstructed video */
-static int  op_max_frm_num = 0;
-static int  op_use_pic_signature = 1;
-static int  op_w = 0;
-static int  op_h = 0;
-static int  op_qp = 0;
-static int  op_fps = 0;
-static int  op_iperiod = 0;
-static int  op_max_b_frames= 0;
-static int  op_closed_gop = 0;
-static int  op_disable_hgop = 0;
-static int  op_in_bit_depth = 8;
-static int  op_skip_frames = 0;
-static int  op_out_bit_depth = 0; /* same as input bit depth */
+static char op_fname_cfg[256]     = "\0"; /* config file path name */
+static char op_fname_inp[256]     = "\0"; /* input original video */
+static char op_fname_out[256]     = "\0"; /* output bitstream */
+static char op_fname_rec[256]     = "\0"; /* reconstructed video */
+static int  op_max_frm_num        = 0;
+static int  op_use_pic_signature  = 1;
+static int  op_w                  = 0;
+static int  op_h                  = 0;
+static int  op_qp                 = 0;
+static int  op_fps                = 0;
+static int  op_iperiod            = 0;
+static int  op_max_b_frames       = 0;
+static int  op_closed_gop         = 0;
+static int  op_disable_hgop       = 0;
+static int  op_in_bit_depth       = 8;
+static int  op_skip_frames        = 0;
+static int  op_out_bit_depth      = 0; /* same as input bit depth */
+static int  op_profile            = 2;
+static int  op_level              = 0;
+static int  op_btt                = 1;
+static int  op_suco               = 1;
 #if USE_TILE_GROUP_DQP
-static int  op_add_qp_frames = 0;
+static int  op_add_qp_frames      = 0;
 #endif
-static int  op_qp_offset_cb = 0;
-static int  op_qp_offset_cr = 0;
-static int  op_framework_ctu_size = 8;
-static int  op_framework_cu11_max = 8;
+static int  op_qp_offset_cb       = 0;
+static int  op_qp_offset_cr       = 0;
+static int  op_framework_ctu_size = 7;
+static int  op_framework_cu11_max = 7;
 static int  op_framework_cu11_min = 2;
 static int  op_framework_cu12_max = 7;
 static int  op_framework_cu12_min = 3;
@@ -137,6 +126,11 @@ static int  op_tool_alf           = 1; /* default on */
 static int  op_tool_admvp         = 1; /* default on */
 static int  op_tool_amis          = 1; /* default on */
 static int  op_tool_htdf          = 1; /* default on */
+static int  op_tool_eipd          = 1;
+static int  op_tool_iqt           = 1;
+static int  op_tool_cm_init       = 1;
+static int  op_cb_qp_offset       = 1;
+static int  op_cr_qp_offset       = 1;
 
 static char  op_rpl0[MAX_NUM_RPLS][256];
 static char  op_rpl1[MAX_NUM_RPLS][256];
@@ -161,6 +155,10 @@ typedef enum _OP_FLAGS
     OP_FLAG_OUT_BIT_DEPTH,
     OP_FLAG_IN_BIT_DEPTH,
     OP_FLAG_SKIP_FRAMES,
+    OP_PROFILE,
+    OP_LEVEL,
+    OP_BTT,
+    OP_SUCO,
 #if USE_TILE_GROUP_DQP
     OP_FLAG_ADD_QP_FRAME,
 #endif
@@ -185,7 +183,11 @@ typedef enum _OP_FLAGS
     OP_TOOL_HTDF,
     OP_TOOL_ADMVP,
     OP_TOOL_AMIS,
-
+    OP_TOOL_EIPD,
+    OP_TOOL_IQT,
+    OP_TOOL_CM_INIT,
+    OP_CB_QP_OFFSET,
+    OP_CR_QP_OFFSET,
     OP_FLAG_RPL0_0,
     OP_FLAG_RPL0_1,
     OP_FLAG_RPL0_2,
@@ -334,6 +336,26 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_FLAG_SKIP_FRAMES], &op_skip_frames,
         "number of skipped frames before encoding. default 0"
     },
+    {
+        EVC_ARGS_NO_KEY,  "profile", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_PROFILE], &op_profile,
+        "profile setting flag  2: main, 1: baseline (default 2(main)) "
+    },
+    {
+        EVC_ARGS_NO_KEY,  "level", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_LEVEL], &op_level,
+        "level setting "
+    },
+    {
+        EVC_ARGS_NO_KEY,  "btt", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_BTT], &op_btt,
+        "binary and ternary splits on/off flag"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "suco", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_SUCO], &op_suco,
+        "split unit coding ordering on/off flag"
+    },
 #if USE_TILE_GROUP_DQP
     {
         'a',  "qp_add_frm", EVC_ARGS_VAL_TYPE_INTEGER,
@@ -446,7 +468,31 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_TOOL_AMIS], &op_tool_amis,
         "amis on/off flag"
     },
-
+    {
+        EVC_ARGS_NO_KEY,  "eipd", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_TOOL_EIPD], &op_tool_eipd,
+        "eipd on/off flag"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "iqt", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_TOOL_IQT], &op_tool_iqt,
+        "iqt on/off flag"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "cm_init", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_TOOL_CM_INIT], &op_tool_cm_init,
+        "cm_init on/off flag"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "cb_qp_offset", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_CB_QP_OFFSET], &op_cb_qp_offset,
+        "cb qp offset"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "cr_qp_offset", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_CR_QP_OFFSET], &op_cr_qp_offset,
+        "cr qp offset"
+    },
     {
         EVC_ARGS_NO_KEY,  "RPL0_0", EVC_ARGS_VAL_TYPE_STRING,
         &op_flag[OP_FLAG_RPL0_0], &op_rpl0[0],
@@ -661,7 +707,6 @@ static EVC_ARGS_OPTION options[] = \
     },
 
 
-
     {0, "", EVC_ARGS_VAL_TYPE_NONE, NULL, NULL, ""} /* termination */
 };
 
@@ -690,6 +735,11 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->fps = op_fps;
     cdsc->iperiod = op_iperiod;
     cdsc->max_b_frames = op_max_b_frames;
+    cdsc->profile = op_profile;
+    cdsc->level = op_level;
+    cdsc->btt = op_btt;
+    cdsc->suco = op_suco;
+
 #if USE_TILE_GROUP_DQP
     cdsc->add_qp_frame = op_add_qp_frames;
 #endif
@@ -708,7 +758,7 @@ static int get_conf(EVCE_CDSC * cdsc)
     {
         op_out_bit_depth = op_in_bit_depth;
     }
-    cdsc->out_bit_depth = op_out_bit_depth;
+    cdsc->out_bit_depth      = op_out_bit_depth;
     cdsc->framework_ctu_size = op_framework_ctu_size;
     cdsc->framework_cu11_max = op_framework_cu11_max;
     cdsc->framework_cu11_min = op_framework_cu11_min;
@@ -728,6 +778,11 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->tool_admvp         = op_tool_admvp;
     cdsc->tool_amis          = op_tool_amis;
     cdsc->tool_htdf          = op_tool_htdf;
+    cdsc->tool_eipd          = op_tool_eipd;
+    cdsc->tool_iqt           = op_tool_iqt;
+    cdsc->tool_cm_init       = op_tool_cm_init;
+    cdsc->cb_qp_offset       = op_cb_qp_offset;
+    cdsc->cr_qp_offset       = op_cr_qp_offset;
 
     for (int i = 0; i < MAX_NUM_RPLS && op_rpl0[i][0] != 0; ++i)
     {
@@ -739,7 +794,7 @@ static int get_conf(EVCE_CDSC * cdsc)
         int j = 0;
         do
         {
-            char* val = strtok(NULL, " ");
+            char* val = strtok(NULL, " \r");
             if (!val)
                 break;
             cdsc->rpls_l0[i].ref_pics[j++] = atoi(val);
@@ -783,6 +838,11 @@ static int print_enc_conf(EVCE_CDSC * cdsc)
     printf("ADMVP: %d, ",  cdsc->tool_admvp);
     printf("AMIS: %d, ",   cdsc->tool_amis);
     printf("HTDF: %d ",    cdsc->tool_htdf);
+    printf("EIPD: %d, ",   cdsc->tool_eipd);
+    printf("IQT: %d, ",    cdsc->tool_iqt);
+    printf("CM_INIT: %d ", cdsc->tool_cm_init);
+    printf("CB_QP_OFFSET: %d ", cdsc->cb_qp_offset);
+    printf("CR_QP_OFFSET: %d ", cdsc->cr_qp_offset);
     printf("\n");
     return 0;
 }
@@ -1404,9 +1464,6 @@ int main(int argc, const char **argv)
 #if !CALC_SSIM
     double              seq_header_bit = 0;
 #endif
-#if LINUX
-    signal(SIGSEGV, handler);   // install our handler
-#endif
 
     /* parse options */
     ret = evc_args_parse_all(argc, argv, options);
@@ -1526,10 +1583,12 @@ int main(int argc, const char **argv)
             v0print("Cannot write header information (SPS)\n");
             return -1;
         }
+    }
+
 #if PRECISE_BS_SIZE
-        bitrate += stat.write;
+    bitrate += stat.write;
 #if !CALC_SSIM
-        seq_header_bit = stat.write;
+    seq_header_bit = stat.write;
 #endif
 #else
     bitrate += (stat.write - 4)/* 4-byte prefix (length field of chunk) */;
@@ -1537,7 +1596,6 @@ int main(int argc, const char **argv)
     seq_header_bit = (stat.write - 4)/* 4-byte prefix (length field of chunk) */;
 #endif
 #endif
-    }
 
     if(op_flag[OP_FLAG_SKIP_FRAMES] && op_skip_frames > 0)
     {
@@ -1587,7 +1645,7 @@ int main(int argc, const char **argv)
             }
 
             /* read original image */
-            if(imgb_read(fp_inp, ilist_t->imgb))
+            if (pic_icnt >= op_max_frm_num ||imgb_read(fp_inp, ilist_t->imgb))
             {
                 v2print("reached end of original file (or reading error)\n");
                 state = STATE_BUMPING;
@@ -1769,11 +1827,16 @@ int main(int argc, const char **argv)
     v1print("Average encoding time for a frame = %.3f msec\n",
         (float)evc_clk_msec(clk_tot)/pic_ocnt);
     v1print("Average encoding speed            = %.3f frames/sec\n",
-        ((float)pic_ocnt*1000)/((float)evc_clk_msec(clk_tot)));
+        ((float)pic_ocnt * 1000) / ((float)evc_clk_msec(clk_tot)));
     v1print("=======================================================================================\n");
 
+    if (pic_ocnt != op_max_frm_num)
+    {
+        v2print("Wrong frames count: should be %d was %d\n", op_max_frm_num, (int)pic_ocnt);
+    }
+
 ERR:
-     evce_delete(id);
+    evce_delete(id);
 
     imgb_list_free(ilist_org);
     imgb_list_free(ilist_rec);

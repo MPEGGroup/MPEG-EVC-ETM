@@ -37,121 +37,20 @@
 #include "evc.h"
 #include "evc_port.h"
 
-/******************************************************************************
- * Profiles definitions                                                       *
- *  [GP] : Green (baseline) profile - configuration with minimum IPR load     *
- *  [LP] : Main profile             - configuration for main profile          *
- ******************************************************************************/
-#define PROFILE_BASELINE                   1
-#define PROFILE_MAIN                       2
- 
-#define PROFILE_IS_BASELINE(profile)       ((profile) == PROFILE_BASELINE)
-#define PROFILE_IS_MAIN(profile)           ((profile) == PROFILE_MAIN)
+#define TU_ZONAL_CODING                    1
+#define CTX_MODEL_FOR_RESIDUAL_IN_BASE     1
 
-/******************************************************************************
- * Profile configurations                                                     *
- * - Configurations for each profiles                                         *
- * - Coding technology should be selected carefully based on IP availability, *
- *   which can be paper, patent, proposal of standardization, and so on.      *
- ******************************************************************************/
-#if !defined(PROFILE)
-#define PROFILE                            PROFILE_MAIN
-#endif
-
-////////////////////////////////////////////////////////////////////////////////
-//                                                                            //
-//                                 SDR Section                                //
-//                                                                            //
-////////////////////////////////////////////////////////////////////////////////
-
-#if (PROFILE_IS_BASELINE(PROFILE))
-/******************************************************************************
-* Green profile                                                               *
-******************************************************************************/
-
-#define INTRA_GR                           1 // intra for green profile
-#define INTER_GR                           1 // inter for green profile
-
-//Coding structure
-#define QT_ON_BTT_OFF                      1  // max CTU 64, no implicit split at CTU,
-                                              // using quad-split only, no ctx modeling, implicit boundary quad-split
-//inter
-#define AMVR                               0  // Adaptive Motion Vector Resolution
-#define AFFINE                             0  // Affine Prediction
-#define MMVD                               0  // Merge with Motion Vector Difference
-#define DMVR                               0  // Decoder-side Motion Vector Refinement
-#define ADMVP                              0  // History-based Motion Vector Prediction
-
-//pvc
-#define AQS                                0 // perceptual adaptive quantization step for coeff coding
-
-//framework
-#define SUCO                               0
-
-//loop filter
-#define DBF_LONGF                          0
-#define DBF_IMPROVE                        0
-#define ALF                                0  // Adaptive Loop Filter 
-
-//fast algorithm
-#define FAST_RECURSE_OPT                   1
-#define FAST_ALG_EXT                       0
-#if FAST_ALG_EXT
-#define MODE_SAVE_LOAD_UPDATE              1 // improve mode save load
-#define ET_ME_REFIDX1                      1 // skip ME of one ref pic based on mvd of ref pic 0
-#define ET_AMVP                            1 // skip AMVP based on skip/merge cost
-#define ET_BY_RDC_CHILD_SPLIT              0 // early termination of split based on RD cost & child split (10% EncT)
-#endif
-
-//platform tools & trivial improvement
-#define CABAC_INIT                         0 // Context Initialization
-
-#define DBF                                1 // 0 - None; 1 - H.263; 2 - AVC; 3 - HEVC
-#define MERGE                              0
-#define MC_PRECISION_ADD                   0 
-#if AFFINE 
-#define EIF                                1 // Enhanced bilinear Interpolation Filter
-#endif
-#define CHROMA_QP_OFFSET                   0
-#define FBP                                0 // forced boundary partition
-#define USE_RDOQ                           1 // Use RDOQ
-#define RDO_DBK                            1 // include DBK changes into distortion
-#if AQS 
-#define ESM_SHIFT                          8 //bit depth for integerized es_val (in range of [0.5, 2.0]); this value must be 8 in this version
-#define ESM_DEFAULT                        (1<<ESM_SHIFT)
-#define AQS_SYNTAX                         1 //send normalizer index in tile_group header
-#define AQS_ENC                            1 //encoder optimization for deriving normalizer index
-#endif
-
-//fast algorithm
-#define ENC_ECU_DEPTH                      4 // for early CU termination
-#define ENC_ECU_ADAPTIVE                   1 // for early CU termination
-#define MULTI_REF_ME_STEP                  1 // for ME speed-up
-#if MERGE
-#define FAST_MERGE_THR                     1.1
-#endif
-
-// transform change
-#define TRANSFORM_SHIFT_CHAGE              1
-
-#elif (PROFILE_IS_MAIN(PROFILE))
-/******************************************************************************
-* Main profile                                                                *
-******************************************************************************/
+/* Profiles definitions */
+#define PROFILE_BASELINE                   0
+#define PROFILE_MAIN                       1
 
 //inter
-#define AMVR                               1  // Adaptive Motion Vector Resolution
 #define AFFINE                             1  // Affine Prediction
-#define MMVD                               1  // Merge with Motion Vector Difference
 #define DMVR                               1  // Decoder-side Motion Vector Refinement
 #define ADMVP                              1
-#define AMIS                               1
 
 //pvc
 #define AQS                                0  // perceptual adaptive quantization step for coeff coding
-
-//framework
-#define SUCO                               1
 
 //loop filter
 #define DBF_LONGF                          0
@@ -161,6 +60,7 @@
 
 //fast algorithm
 #define FAST_RECURSE_OPT                   1
+#define FAST_RECURSE_OPT_FIX               1 
 #define FAST_ALG_EXT                       0
 #if FAST_ALG_EXT
 #define MODE_SAVE_LOAD_UPDATE              1 // improve mode save load
@@ -170,7 +70,6 @@
 #endif
 
 //platform tools & trivial improvement
-#define CABAC_INIT                         1 // Context Initialization
 #if ADMVP
 #define MERGE                              1
 #endif
@@ -178,26 +77,24 @@
 #if AFFINE 
 #define EIF                                1 // Enhanced bilinear Interpolation Filter
 #endif
-#define CHROMA_QP_OFFSET                   1
-#define FBP                                1 // forced boundary partition
 #define USE_RDOQ                           1 // Use RDOQ
 #define RDO_DBK                            1 // include DBK changes into distortion
 #define HTDF                               1 // enable Hadamard transform domain filter
 #define HTDF_CBF0_INTRA                    1
 #if AQS 
 #define ESM_SHIFT                          8 //bit depth for integerized es_val (in range of [0.5, 2.0]); this value must be 8 in this version
-#define ESM_DEFAULT                        (1<<ESM_SHIFT)
-#define AQS_SYNTAX                          1 //send normalizer index in tile_group header
-#define AQS_ENC                             1 //encoder optimization for deriving normalizer index
+#define ESM_DEFAULT                       (1<<ESM_SHIFT)
+#define AQS_SYNTAX                         1 //send normalizer index in tile_group header
+#define AQS_ENC                            1 //encoder optimization for deriving normalizer index
 #endif
 
 //fast algorithm
-#define ENC_ECU_DEPTH                      4 // for early CU termination
+#define ENC_ECU_DEPTH                      8 // for early CU termination
 #define ENC_ECU_ADAPTIVE                   1 // for early CU termination
+#define ENC_ECU_DEPTH_B                    8 // for early CU termination
 #define MULTI_REF_ME_STEP                  1 // for ME speed-up
 #if MERGE
 #define FAST_MERGE_THR                     1.1
-#endif
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -206,31 +103,31 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 #ifdef X86_SSE
-#define OPT_SIMD                                        1 ///< Enable all SIMD related optimizations
+#define OPT_SIMD                           1 ///< Enable all SIMD related optimizations
 #else
-#define OPT_SIMD                                        0 ///< Enable all SIMD related optimizations
+#define OPT_SIMD                           0 ///< Enable all SIMD related optimizations
 #endif
 
 /* OPT_SIMD (START) */
 #if OPT_SIMD
-#define OPT_SIMD_MC_L                                   1
-#define OPT_SIMD_MC_C                                   1
-#define OPT_SIMD_MC_BL                                  1
+#define OPT_SIMD_MC_L                      1
+#define OPT_SIMD_MC_C                      1
+#define OPT_SIMD_MC_BL                     1
 
-#define OPT_SIMD_SAD                                    1
-#define OPT_SIMD_MR_SAD                                 1
-#define OPT_SIMD_HAD_SAD                                1
-#define OPT_SIMD_DMVR_MR_SAD                            1
-#define OPT_SIMD_STR                                    1
+#define OPT_SIMD_SAD                       1
+#define OPT_SIMD_MR_SAD                    1
+#define OPT_SIMD_HAD_SAD                   1
+#define OPT_SIMD_DMVR_MR_SAD               1
+#define OPT_SIMD_STR                       1
 #else
-#define OPT_SIMD_MC_L                                   0
-#define OPT_SIMD_MC_C                                   0
-#define OPT_SIMD_MC_BL                                  0
-#define OPT_SIMD_SAD                                    0
-#define OPT_SIMD_MR_SAD                                 0
-#define OPT_SIMD_HAD_SAD                                0
-#define OPT_SIMD_DMVR_MR_SAD                            0
-#define OPT_SIMD_STR                                    0
+#define OPT_SIMD_MC_L                      0
+#define OPT_SIMD_MC_C                      0
+#define OPT_SIMD_MC_BL                     0
+#define OPT_SIMD_SAD                       0
+#define OPT_SIMD_MR_SAD                    0
+#define OPT_SIMD_HAD_SAD                   0
+#define OPT_SIMD_DMVR_MR_SAD               0
+#define OPT_SIMD_STR                       0
 #endif
 /* OPT_SIMD (END) */
 
@@ -239,44 +136,35 @@
 //                         Certain Tools Parameters                           //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
-
 /* Partitioning (START) */
 #define INC_QT_DEPTH(qtd, smode)           (smode == SPLIT_QUAD? (qtd + 1) : qtd)
 #define INC_BTT_DEPTH(bttd, smode, bound)  (bound? 0: (smode != SPLIT_QUAD? (bttd + 1) : bttd))
-
 #define MAX_SPLIT_NUM                      6
 #define SPLIT_CHECK_NUM                    6
 /* Partitioning (END) */
 
-/* SUCO (START) */
-#if SUCO
-#define SUCO_MAX_DEPTH                     1 // max depth from top
-#define SUCO_MIN_DEPTH                     4 // min depth from top
-#define NUM_SUCO_FAST_NEIB                 1 // /* 1 / 2 / 4 */
-
-#define SUCO_INTRA                         1 // harmonize with intra prediction
-#define SUCO_INTER                         1 // harmonize with inter prediction
-#define SUCO_DBK                           1 // harmonize with Deblock
-
-#define SUCO_AQS                           1 // harmonize with AQS
-#endif
-/* SUCO (END) */
-
 /* MCABAC (START) */
-#define MCABAC_PROB_BITS                   13
+#define MCABAC_PROB_BITS                  9 
 #define MPS_SHIFT                         (MCABAC_PROB_BITS + 1)
 #define PROB_MASK                         ((1 << MCABAC_PROB_BITS) - 1)
 #define MAX_PROB                          (1 << MCABAC_PROB_BITS)
 #define MAX_PROB_2                        (MAX_PROB << 1)
 
 #define MCABAC_SHIFT_0                     5
-#define MCABAC_SHIFT_1                     5
 
 #define MCABAC_OFFSET_0                   (1 << (MCABAC_SHIFT_0 - 1))
-#define MCABAC_OFFSET_1                   (1 << (MCABAC_SHIFT_1 - 1))
 #define PROB_INIT                         ((1 << (MCABAC_PROB_BITS << 1)) + (1 << MCABAC_PROB_BITS)) /* 1/2 of initialization */
-#define PROB_COUNTER_BITS                 ((MCABAC_PROB_BITS << 1) + 1)
-#define FAST_PROB_UPDATE                   31  /* Threshold for counter */
+
+#define VARIABLE_RANGE                     1
+#if VARIABLE_RANGE
+#define RANGE_BITS                         14 /* Can be set between 11 and 16 */
+#define MAX_RANGE                          (1<<RANGE_BITS)
+#define HALF_RANGE                         (1<<(RANGE_BITS-1))
+#endif
+
+#define PROB_INIT_FIX                      1
+
+#define CTX_REPRESENTATION_IMPROVEMENT     1 /* Init state stored in 10 bits per context model */
 /* MCABAC (END) */
 
 /* Multiple Referene (START) */
@@ -286,30 +174,20 @@
 /* Multiple Reference (END) */
 
 /* MMVD (START) */
-#if MMVD
 #define MMVD_BASE_MV_NUM                   4
-#define MMVD_REFINE_STEP                   8
-#define MMVD_MAX_REFINE_NUM               (MMVD_REFINE_STEP * 4)
+#define MMVD_DIST_NUM                      8
+#define MMVD_MAX_REFINE_NUM               (MMVD_DIST_NUM * 4)
 #define MMVD_SKIP_CON_NUM                  4
-#define MMVD_MODE_GRP                      3
-#define MMVD_MODE_STEP                     2
-#define MMVD_MODE_SG0                      1
+#define MMVD_GRP_NUM                       3
 #define MMVD_THRESHOLD                     1.5
-#endif
 /* MMVD (END) */
 
 /* AMVR (START) */
-#if AMVR
-#define MAX_NUM_MVR                        5  /* 1 (1/4-pel) ~ 6 (8-pel) */
+#define MAX_NUM_MVR                        5
 #define FAST_MVR_IDX                       2
-
 #define SKIP_MVR_IDX                       1
-#define ABP                                1  /* AMVR-based Bi-Prediction */
-#if ABP
 #define MAX_NUM_BI                         4
 #define SKIP_BI_IDX                        1
-#endif
-#endif
 /* AMVR (END)  */
 
 /* DBF (START) */
@@ -339,31 +217,31 @@
 
 /* MERGE (START) */
 #if MERGE
-#define MERGE_MVP                                       1
-#define INCREASE_MVP_NUM                                1
+#define MERGE_MVP                          1
+#define INCREASE_MVP_NUM                   1
 #endif
 /* MERGE (END) */
 
 /* DMVR (START) */
 #if DMVR
-#define USE_MR_SAD                                      0
-#define DMVR_SUBCU                                      1
+#define USE_MR_SAD                         0
+#define DMVR_SUBCU                         1
 #if DMVR_SUBCU
-#define DMVR_SUBCU_SIZE                                 16
+#define DMVR_SUBCU_SIZE                    16
 #endif
-#define DMVR_PADDING                                    1
-#define DMVR_LAG                                        2 /* 0 - refined MV used only for MC, 1- refined MV used for deblocking and TMVP, 2 -  refined MV used for spatial neighbors as per lag2 CTB pipeline*/
+#define DMVR_PADDING                       1
+#define DMVR_LAG                           2 /* 0 - refined MV used only for MC, 1- refined MV used for deblocking and TMVP, 2 -  refined MV used for spatial neighbors as per lag2 CTB pipeline*/
 #if DMVR_LAG
-#define DMVR_FLAG                                       1
+#define DMVR_FLAG                          1
 #endif
 
-#define DMVR_ITER_COUNT                                 2
-#define REF_PRED_POINTS_NUM                             9
-#define REF_PRED_EXTENTION_PEL_COUNT                    1
-#define REF_PRED_POINTS_PER_LINE_NUM                    3
-#define REF_PRED_POINTS_LINES_NUM                       3
-#define DMVR_NEW_VERSION_ITER_COUNT                     8
-#define REF_PRED_POINTS_CROSS                           5
+#define DMVR_ITER_COUNT                    2
+#define REF_PRED_POINTS_NUM                9
+#define REF_PRED_EXTENTION_PEL_COUNT       1
+#define REF_PRED_POINTS_PER_LINE_NUM       3
+#define REF_PRED_POINTS_LINES_NUM          3
+#define DMVR_NEW_VERSION_ITER_COUNT        8
+#define REF_PRED_POINTS_CROSS              5
 
 enum SAD_POINT_INDEX
 {
@@ -379,113 +257,98 @@ enum SAD_POINT_INDEX
     SAD_CENTER,
     SAD_COUNT
 };
-
 #endif
 /* DMVR (END) */
 
 /* HISTORY (START) */
 #if ADMVP
-#define HISTORY_LCU_COPY_BUG_FIX                        1
-#define ALLOWED_CHECKED_NUM                            23
-#define ALLOWED_CHECKED_AMVP_NUM                        4
-#define AFFINE_UPDATE                                   1
+#define HISTORY_LCU_COPY_BUG_FIX           1
+#define ALLOWED_CHECKED_NUM                23
+#define ALLOWED_CHECKED_AMVP_NUM           4
+#define AFFINE_UPDATE                      1
 #endif
 /* ADMVP (END) */
 
 /* ALF (START) */
 #if ALF
-#define MAX_NUM_TLAYER                  6      
-#define MAX_NUM_ALFS_PER_TLAYER         6
-#define ALF_LAMBDA_SCALE                17
+#define MAX_NUM_TLAYER                     6      
+#define MAX_NUM_ALFS_PER_TLAYER            6
+#define ALF_LAMBDA_SCALE                   17
 
-#define MAX_NUM_ALF_CLASSES             25
-#define MAX_NUM_ALF_LUMA_COEFF          13
-#define MAX_NUM_ALF_CHROMA_COEFF        7
-#define MAX_ALF_FILTER_LENGTH           7
-#define MAX_NUM_ALF_COEFF               (MAX_ALF_FILTER_LENGTH * MAX_ALF_FILTER_LENGTH / 2 + 1)
+#define MAX_NUM_ALF_CLASSES                25
+#define MAX_NUM_ALF_LUMA_COEFF             13
+#define MAX_NUM_ALF_CHROMA_COEFF           7
+#define MAX_ALF_FILTER_LENGTH              7
+#define MAX_NUM_ALF_COEFF                 (MAX_ALF_FILTER_LENGTH * MAX_ALF_FILTER_LENGTH / 2 + 1)
 #endif
 /* ALF (END) */
 
-/* FBP (START) */
-#if FBP
-#define FBT_ALL                                         1 // using forced BT till the deepest forced level
-#define FBT_BIL_FIX                                     1 // Bilinear fix for 16:1 aspect ratio
-#endif
-/* FBP (END) */
-
 /* CTX_NEV (START) */
-#if (PROFILE_IS_BASELINE(PROFILE))
-#define CTX_NEV_SKIP_FLAG                               1 // number of ctx for skip_flag
-#define CTX_NEV_PRED_MODE                               1 // number of ctx for pred_mode
-#elif (PROFILE_IS_MAIN(PROFILE))
-#define CTX_NEV_SKIP_FLAG                               2 // number of ctx for skip_flag (-0.10%)
-#define CTX_NEV_PRED_MODE                               3 // number of ctx for pred_mode
-#else
-#error Not supported profile
-#endif
+#define CTX_NEV_SKIP_FLAG                  2 // number of ctx for skip_flag (-0.10%)
+#define CTX_NEV_PRED_MODE                  3 // number of ctx for pred_mode
 #if AFFINE
-#define CTX_NEV_AFFINE_FLAG                             2 // number of ctx for affine_flag
+#define CTX_NEV_AFFINE_FLAG                2 // number of ctx for affine_flag
 #endif
 /* CTX_NEV (END) */
 
 /* AFFINE (START) */
 #if AFFINE
-#define AFFINE_AMVP_LIST                                1 // simplification of affine AMVP list construction
-#define AFFINE_MERGE_PRUNE                              1 // simplification of affine merge candidate pruning
-#define AFFINE_MERGE_SAME_REF_IDX                       1 // alwasy check same refIdx for constructed affine candidate, no scaling
-#define AFFINE_MVD_PREDICTION                           1 // affine MVD prediction
+#define AFFINE_AMVP_LIST                   1 // simplification of affine AMVP list construction
+#define AFFINE_MERGE_PRUNE                 1 // simplification of affine merge candidate pruning
+#define AFFINE_MERGE_SAME_REF_IDX          1 // alwasy check same refIdx for constructed affine candidate, no scaling
+#define AFFINE_MVD_PREDICTION              1 // affine MVD prediction
 
  // AFFINE Constant
-#define VER_NUM                                         4
-#define AFFINE_MAX_NUM_LT                               3 ///< max number of motion candidates in top-left corner
-#define AFFINE_MAX_NUM_RT                               2 ///< max number of motion candidates in top-right corner
-#define AFFINE_MAX_NUM_LB                               2 ///< max number of motion candidates in left-bottom corner
-#define AFFINE_MAX_NUM_RB                               1 ///< max number of motion candidates in right-bottom corner
-#define AFFINE_MAX_NUM_COMB                            12 ///< max number of combined motion candidates
-#define AFFINE_MIN_BLOCK_SIZE                           4 ///< Minimum affine MC block size
+#define VER_NUM                            4
+#define AFFINE_MAX_NUM_LT                  3 ///< max number of motion candidates in top-left corner
+#define AFFINE_MAX_NUM_RT                  2 ///< max number of motion candidates in top-right corner
+#define AFFINE_MAX_NUM_LB                  2 ///< max number of motion candidates in left-bottom corner
+#define AFFINE_MAX_NUM_RB                  1 ///< max number of motion candidates in right-bottom corner
+#define AFFINE_MAX_NUM_COMB                12 ///< max number of combined motion candidates
+#define AFFINE_MIN_BLOCK_SIZE              4 ///< Minimum affine MC block size
 
-#define AFF_MAX_NUM_MVP                                 2 // maximum affine inter candidates
-#define NUM_AFFINE_MVP_IDX_CTX                          AFF_MAX_NUM_MVP - 1
-#define AFF_MAX_CAND                                    5 // maximum affine merge candidates
-#define AFF_MODEL_CAND                                  5 // maximum affine model based candidates
+#define AFF_MAX_NUM_MVP                    2 // maximum affine inter candidates
+#define NUM_AFFINE_MVP_IDX_CTX             AFF_MAX_NUM_MVP - 1
+#define AFF_MAX_CAND                       5 // maximum affine merge candidates
+#define AFF_MODEL_CAND                     5 // maximum affine model based candidates
 
-#define MAX_MEMORY_ACCESS_BI                            ((8 + 7) * (8 + 7) / 64)
-#define MAX_MEMORY_ACCESS_UNI                           ((8 + 7) * (4 + 7) / 32)
+#define MAX_MEMORY_ACCESS_BI             ((8 + 7) * (8 + 7) / 64)
+#define MAX_MEMORY_ACCESS_UNI            ((8 + 7) * (4 + 7) / 32)
 
 // AFFINE ME configuration (non-normative)
-#define AF_ITER_UNI                                     7 // uni search iteration time
-#define AF_ITER_BI                                      5 // bi search iteration time
-#define AFFINE_BI_ITER                                  1
+#define AF_ITER_UNI                        7 // uni search iteration time
+#define AF_ITER_BI                         5 // bi search iteration time
+#define AFFINE_BI_ITER                     1
 #if X86_SSE
-#define AFFINE_SIMD                                     1
+#define AFFINE_SIMD                        1
 #else
-#define AFFINE_SIMD                                     0
+#define AFFINE_SIMD                        0
 #endif
 
 /* EIF (START) */
 #if EIF
-#define AFFINE_ADAPT_EIF_SIZE                           8
+#define AFFINE_ADAPT_EIF_SIZE              8
 
-#define EIF_MV_ADDITIONAL_PRECISION                     9
-#define EIF_IF_FILTER_PREC_HP                           6 ///EIF filter precision for interpolation
-#define EIF_NUM_LINES_IN_UPSCALED_DATA                  ( 2 * MAX_CU_SIZE + 4)
-#define EIF_NUM_COLUMNS_IN_UPSCALED_DATA                ( 2 * MAX_CU_SIZE + 4)
-#define EIF_UPSCALED_DATA_STRIDE                        ( ( 2 * MAX_CU_SIZE + 4) + 4 ) // % NUM_PELS_IN_SSE_REG == 0
-#define EIF_NUM_LINES_IN_PREP_DATA                      2
-#define EIF_PREP_DATA_STRIDE                            ( 2 * EIF_NUM_COLUMNS_IN_UPSCALED_DATA ) // % NUM_PELS_IN_SSE_REG == 0
-#define EIF_3TAP                                        1 //3-Tap interpolation fiter without sub-pel support pixels
+#define EIF_MV_ADDITIONAL_PRECISION        9
+#define EIF_IF_FILTER_PREC_HP              6 ///EIF filter precision for interpolation
+#define EIF_NUM_LINES_IN_UPSCALED_DATA    ( 2 * MAX_CU_SIZE + 4)
+#define EIF_NUM_COLUMNS_IN_UPSCALED_DATA  ( 2 * MAX_CU_SIZE + 4)
+#define EIF_UPSCALED_DATA_STRIDE          ( ( 2 * MAX_CU_SIZE + 4) + 4 ) // % NUM_PELS_IN_SSE_REG == 0
+#define EIF_NUM_LINES_IN_PREP_DATA         2
+#define EIF_PREP_DATA_STRIDE               ( 2 * EIF_NUM_COLUMNS_IN_UPSCALED_DATA ) // % NUM_PELS_IN_SSE_REG == 0
+#define EIF_3TAP                           1 //3-Tap interpolation fiter without sub-pel support pixels
 #if EIF_3TAP && (CHROMA_FILTERS_TYPE == CHROMA_FILTERS_3TAP)
-#define EIF_3TAP_HALFFIX                                1
+#define EIF_3TAP_HALFFIX                   1
 #else
-#define EIF_3TAP_HALFFIX                                0
+#define EIF_3TAP_HALFFIX                   0
 #endif
 
 #if X86_SSE
-#define EIF_SIMD                                        1
-#define EIF_NUM_BYTES_IN_SSE_REG                        16
-#define EIF_NUM_PELS_IN_SSE_REG                         ( 16 / sizeof(pel) )
+#define EIF_SIMD                           1
+#define EIF_NUM_BYTES_IN_SSE_REG           16
+#define EIF_NUM_PELS_IN_SSE_REG          ( 16 / sizeof(pel) )
 #else
-#define EIF_SIMD                                        0
+#define EIF_SIMD                           0
 #endif
 #endif
 /* EIF (END) */
@@ -494,15 +357,16 @@ enum SAD_POINT_INDEX
 
 /* ALF (START) */
 #if ALF
-#define m_MAX_SCAN_VAL  11
-#define m_MAX_EXP_GOLOMB  16
-#define MAX_NUM_ALF_LUMA_COEFF          13
-#define MAX_NUM_ALF_CLASSES             25
-#define MAX_NUM_ALF_LUMA_COEFF          13
-#define MAX_NUM_ALF_CHROMA_COEFF        7
-#define MAX_ALF_FILTER_LENGTH           7
-#define MAX_NUM_ALF_COEFF               (MAX_ALF_FILTER_LENGTH * MAX_ALF_FILTER_LENGTH / 2 + 1)
+#define m_MAX_SCAN_VAL                     11
+#define m_MAX_EXP_GOLOMB                   16
+#define MAX_NUM_ALF_LUMA_COEFF             13
+#define MAX_NUM_ALF_CLASSES                25
+#define MAX_NUM_ALF_LUMA_COEFF             13
+#define MAX_NUM_ALF_CHROMA_COEFF           7
+#define MAX_ALF_FILTER_LENGTH              7
+#define MAX_NUM_ALF_COEFF                 (MAX_ALF_FILTER_LENGTH * MAX_ALF_FILTER_LENGTH / 2 + 1)
 
+// The structure below must be aligned to identical structure in evc_alf.c!
 typedef struct _evc_AlfFilterShape
 {
     int filterType;
@@ -512,7 +376,7 @@ typedef struct _evc_AlfFilterShape
     int pattern[25];
     int weights[14];
     int golombIdx[14];
-    int patternToLargeFilter[25];
+    int patternToLargeFilter[13];
 } evc_AlfFilterShape;
 #endif 
 /* ALF (END) */
@@ -539,19 +403,17 @@ typedef int BOOL;
 /* Common stuff (END) */
 
 /* For debugging (START) */
-#define USE_DRAW_PARTITION_DEC                          0
-#define ENC_DEC_TRACE                                   0
+#define USE_DRAW_PARTITION_DEC             0
+#define ENC_DEC_TRACE                      0
 #if ENC_DEC_TRACE
-#if PROFILE_IS_MAIN(profile) 
-#define TRACE_ENC_CU_DATA                               1 ///< Trace CU index on encoder
-#define TRACE_ENC_CU_DATA_CHECK                         1 ///< Trace CU index on encoder
-#define MVF_TRACE                                       1 ///< use for tracing MVF
-#define TRACE_ENC_HISTORIC                              1
-#endif
-#define TRACE_RDO                                       0 //!< Trace only encode stream (0), only RDO (1) or all of them (2)
-#define TRACE_BIN                                       0 //!< trace each bin
+#define TRACE_ENC_CU_DATA                  1 ///< Trace CU index on encoder
+#define TRACE_ENC_CU_DATA_CHECK            1 ///< Trace CU index on encoder
+#define MVF_TRACE                          1 ///< use for tracing MVF
+#define TRACE_ENC_HISTORIC                 1
+#define TRACE_RDO                          0 //!< Trace only encode stream (0), only RDO (1) or all of them (2)
+#define TRACE_BIN                          0 //!< trace each bin
 #if TRACE_RDO
-#define TRACE_RDO_EXCLUDE_I                             0 //!< Exclude I frames
+#define TRACE_RDO_EXCLUDE_I                0 //!< Exclude I frames
 #endif
 extern FILE *fp_trace;
 extern int fp_trace_print;
@@ -614,16 +476,18 @@ extern int fp_trace_counter;
 
 #define N_REF                              3  /* left, up, right */
 #define NUM_NEIB                           4  /* LR: 00, 10, 01, 11*/
+#define NUM_SUCO_FAST_NEIB                 1  /* other config, 1, 2, 4 */
+#define SUCO_SPLIT_HIGH_COMP               0  /* high complexity */
 
-#define MAX_CU_LOG2                        8
+#define MAX_CU_LOG2                        7
 #define MIN_CU_LOG2                        2
 #define MAX_CU_SIZE                       (1 << MAX_CU_LOG2)
 #define MIN_CU_SIZE                       (1 << MIN_CU_LOG2)
 #define MAX_CU_DIM                        (MAX_CU_SIZE * MAX_CU_SIZE)
 #define MIN_CU_DIM                        (MIN_CU_SIZE * MIN_CU_SIZE)
-#define MAX_CU_DEPTH                       7  /* 256x256 ~ 4x4 */
+#define MAX_CU_DEPTH                       10  /* 128x128 ~ 4x4 */
 
-#define MAX_TR_LOG2                        7  /* 128x128 */
+#define MAX_TR_LOG2                        6  /* 64x64 */
 #define MIN_TR_LOG2                        1  /* 2x2 */
 #define MAX_TR_SIZE                       (1 << MAX_TR_LOG2)
 #define MIN_TR_SIZE                       (1 << MIN_TR_LOG2)
@@ -643,7 +507,7 @@ extern int fp_trace_counter;
 #if ADMVP
 #define MAX_NUM_MVP_SMALL_CU               4
 #define MAX_NUM_MVP                        6
-#define NUM_SAMPLES_BLOCK                   32 // 16..64
+#define NUM_SAMPLES_BLOCK                  32 // 16..64
 #else
 #if ADMVP
 #define MAX_NUM_MVP                        6
@@ -722,10 +586,8 @@ extern int fp_trace_counter;
 #define MODE_INTER                         1
 #define MODE_SKIP                          2
 #define MODE_DIR                           3
-#if MMVD
 #define MODE_SKIP_MMVD                     4
 #define MODE_DIR_MMVD                      5
-#endif
 
 /*****************************************************************************
  * prediction direction
@@ -741,48 +603,16 @@ extern int fp_trace_counter;
 /* inter pred direction, look both list0, list1 side */
 #define PRED_DIR                           4
 
-#if AMVR
-#if MMVD
 #define PRED_SKIP_MMVD                     5
 #define PRED_DIR_MMVD                      6
-#if ABP
 #define PRED_FL0_BI                        10
 #define PRED_FL1_BI                        11
 #define PRED_BI_REF                        12
 #define ORG_PRED_NUM                       13
-#else
-#define ORG_PRED_NUM                       10
-#endif
 #define PRED_NUM                          (ORG_PRED_NUM * MAX_NUM_MVR)
-#else
-#if ABP
-#define PRED_FL0_BI                        8
-#define PRED_FL1_BI                        9
-#define PRED_BI_REF                        10
-#define ORG_PRED_NUM                       11
-#else
-#define ORG_PRED_NUM                       8
-#endif
-#define PRED_NUM                          (ORG_PRED_NUM * MAX_NUM_MVR)
-#endif
-#else
-#if MMVD
-#define PRED_SKIP_MMVD                     5
-#define PRED_DIR_MMVD                      6
-#define PRED_NUM                           10
-#else
-#define PRED_NUM                           8
-#endif
-#endif
 
 #if AFFINE
-#if AMVR
 #define START_NUM                         (ORG_PRED_NUM * MAX_NUM_MVR)
-#elif MMVD
-#define START_NUM                          7
-#else
-#define START_NUM                          5
-#endif
 
 #define AFF_L0                            (START_NUM)          // 5  7  42
 #define AFF_L1                            (START_NUM + 1)      // 6  8  43
@@ -797,13 +627,12 @@ extern int fp_trace_counter;
 #undef PRED_NUM
 #define PRED_NUM                          (START_NUM + 8)
 #endif
-#if SUCO
+
 #define LR_00                              0
 #define LR_10                              1
 #define LR_01                              2
 #define LR_11                              3
-#endif
-#if ABP
+
 /*****************************************************************************
  * bi-prediction type
  *****************************************************************************/
@@ -811,29 +640,16 @@ extern int fp_trace_counter;
 #define BI_NORMAL                          1
 #define BI_FL0                             2
 #define BI_FL1                             3
-#endif
 
 /*****************************************************************************
  * intra prediction direction
  *****************************************************************************/
-#if INTRA_GR
-#define IPD_DC                             0
-#define IPD_HOR                            1 /* Luma, Horizontal */
-#define IPD_VER                            2 /* Luma, Vertical */
-#define IPD_UL                             3
-#define IPD_UR                             4
-
-#define IPD_BI                             99  /* Luma, Bilinear */
-#define IPD_PLN                            99  /* Luma, Planar */
-#define IPD_DM_C                           99  /* Chroma, DM */
-#else
 #define IPD_DC                             0
 #define IPD_PLN                            1  /* Luma, Planar */
 #define IPD_BI                             2  /* Luma, Bilinear */
 #define IPD_HOR                            24 /* Luma, Horizontal */
 #define IPD_VER                            12 /* Luma, Vertical */
 #define IPD_DM_C                           0  /* Chroma, DM */
-#endif
 
 #if LM_MULTI_DIREC
 #if LMMD_IMP_CONTEXT_LMMD
@@ -848,34 +664,34 @@ extern int fp_trace_counter;
 #define IPD_VER_C                          6  /* Chroma, Vertical */
 #endif
 #else
-#if INTRA_GR
-#define IPD_DC_C                           0  /* Chroma, DC */
-#define IPD_HOR_C                          1  /* Chroma, Horizontal*/
-#define IPD_VER_C                          2  /* Chroma, Vertical */
-#define IPD_UL_C                           3 
-#define IPD_UR_C                           4 
-#define IPD_BI_C                           99  /* Chroma, Bilinear */
-#else
 #define IPD_BI_C                           1  /* Chroma, Bilinear */
 #define IPD_DC_C                           2  /* Chroma, DC */
 #define IPD_HOR_C                          3  /* Chroma, Horizontal*/
 #define IPD_VER_C                          4  /* Chroma, Vertical */
 #endif
-#endif
 #define IPD_RDO_CNT                        5
 
-#if INTRA_GR
-#define IPD_CNT                            5
-#else
+#define IPD_DC_B                           0
+#define IPD_HOR_B                          1 /* Luma, Horizontal */
+#define IPD_VER_B                          2 /* Luma, Vertical */
+#define IPD_UL_B                           3
+#define IPD_UR_B                           4
+
+#define IPD_DC_C_B                         0  /* Chroma, DC */
+#define IPD_HOR_C_B                        1  /* Chroma, Horizontal*/
+#define IPD_VER_C_B                        2  /* Chroma, Vertical */
+#define IPD_UL_C_B                         3 
+#define IPD_UR_C_B                         4 
+
+#define IPD_CNT_B                          5
 #define IPD_CNT                            33
-#endif
 
 #define IPD_CHROMA_CNT                     5
 #define IPD_INVALID                       (-1)
 
-#define IPD_DIA_R                         18 /* Luma, Right diagonal */
-#define IPD_DIA_L                         6  /* Luma, Left diagonal */
-#define IPD_DIA_U                         30 /* Luma, up diagonal */
+#define IPD_DIA_R                          18 /* Luma, Right diagonal */
+#define IPD_DIA_L                          6  /* Luma, Left diagonal */
+#define IPD_DIA_U                          30 /* Luma, up diagonal */
 
 /*****************************************************************************
 * Transform
@@ -985,14 +801,12 @@ extern int fp_trace_counter;
 #define MCU_GET_AFF_YOFF(m)          (int)(((m)>>24)&0xFF)
 #endif
 
-#if MMVD
 /* set MMVD skip flag to map */
 #define MCU_SET_MMVDS(m)            (m)=((m)|(1<<2))
 /* get MMVD skip flag from map */
 #define MCU_GET_MMVDS(m)            (int)(((m)>>2) & 1)
 /* clear MMVD skip flag in map */
 #define MCU_CLR_MMVDS(m)            (m)=((m) & (~(1<<2)))
-#endif
 
 /* set log2_cuw & log2_cuh to map */
 #define MCU_SET_LOGW(m, v)       (m)=((m & 0xF0FFFFFF)|((v)&0x0F)<<24)
@@ -1003,47 +817,27 @@ extern int fp_trace_counter;
 
 typedef u32 SBAC_CTX_MODEL;
 
-#if MMVD
-#define NUM_SBAC_CTX_NEW_SKIP_FLAG         1
-#endif
-
-#define NUM_BASE_MVP_IDX_CTX               (MMVD_BASE_MV_NUM - 1)
-#define NUM_STEP_MVP_IDX_CTX               (MMVD_REFINE_STEP - 1)
-#define NUM_POSITION_CTX                   2
+#define NUM_SBAC_CTX_MMVD_FLAG             1
+#define NUM_SBAC_CTX_MMVD_GRP_IDX         (MMVD_GRP_NUM - 1)
+#define NUM_SBAC_CTX_MMVD_MERGE_IDX       (MMVD_BASE_MV_NUM - 1)
+#define NUM_SBAC_CTX_MMVD_DIST_IDX        (MMVD_DIST_NUM - 1)
+#define NUM_SBAC_CTX_DIRECTION_IDX         2
 #define NUM_SBAC_CTX_AFFINE_MVD_FLAG       2
-
-#define CABAC_MSET_ZERO                    1
-
-#if CTX_NEV_SKIP_FLAG
 #define NUM_SBAC_CTX_SKIP_FLAG             CTX_NEV_SKIP_FLAG
-#else
-#define NUM_SBAC_CTX_SKIP_FLAG             1
-#endif
-
-#define NUM_SBAC_CTX_SPLIT_MODE            23
-#if SUCO
+#define NUM_SBAC_CTX_BTT_SPLIT_FLAG        15
+#define NUM_SBAC_CTX_BTT_SPLIT_DIR         5
+#define NUM_SBAC_CTX_BTT_SPLIT_TYPE        1
 #define NUM_SBAC_CTX_SUCO_FLAG             14
-#endif
 #define NUM_QT_CBF_CTX                     3       /* number of context models for QT CBF */
 #define NUM_QT_ROOT_CBF_CTX                1       /* number of context models for QT ROOT CBF */
-#if CTX_NEV_PRED_MODE
 #define NUM_PRED_MODE_CTX                  CTX_NEV_PRED_MODE
-#else
-#define NUM_PRED_MODE_CTX                  2       /* number of context models for prediction mode */
-#endif
-
 #define NUM_INTER_DIR_CTX                  3       /* number of context models for inter prediction direction */
 #define NUM_REFI_CTX                       2
-#define NUM_MVP_IDX_CTX                    MAX_NUM_MVP - 1
-#if AMVR
-#define NUM_MVR_IDX_CTX                   (MAX_NUM_MVR - 1)
-#if ABP
+#define NUM_MVP_IDX_CTX                    5
+#define NUM_MVR_IDX_CTX                    4
 #define NUM_BI_IDX_CTX                     2
-#endif
-#endif
 #define NUM_MV_RES_CTX                     1       /* number of context models for motion vector difference */
 #define NUM_INTRA_DIR_CTX                  3
-
 #if AFFINE
 #if CTX_NEV_AFFINE_FLAG
 #define NUM_SBAC_CTX_AFFINE_FLAG           CTX_NEV_AFFINE_FLAG
@@ -1053,30 +847,25 @@ typedef u32 SBAC_CTX_MODEL;
 #define NUM_SBAC_CTX_AFFINE_MODE           1
 #define NUM_SBAC_CTX_AFFINE_MRG            AFF_MAX_CAND
 #endif
-
 #define NUM_SBAC_CTX_RUN                   24
 #define NUM_SBAC_CTX_LAST                  2
 #define NUM_SBAC_CTX_LEVEL                 24
-
 #if ALF
-#define NUM_SBAC_CTX_ALF_FLAG                9
+#define NUM_SBAC_CTX_ALF_FLAG              9
 #endif
 
 /* context models for arithemetic coding */
 typedef struct _EVC_SBAC_CTX
 {
 #if ALF
-    SBAC_CTX_MODEL   alf_flag         [NUM_SBAC_CTX_ALF_FLAG]; 
+    SBAC_CTX_MODEL   alf_flag        [NUM_SBAC_CTX_ALF_FLAG]; 
 #endif
     SBAC_CTX_MODEL   skip_flag       [NUM_SBAC_CTX_SKIP_FLAG];
-#if MMVD
-    SBAC_CTX_MODEL   new_skip_flag   [NUM_SBAC_CTX_NEW_SKIP_FLAG];
-    SBAC_CTX_MODEL   base_mvp_idx    [NUM_BASE_MVP_IDX_CTX];
-    SBAC_CTX_MODEL   step_mvp_idx    [NUM_STEP_MVP_IDX_CTX];
-    SBAC_CTX_MODEL   position        [2];
-    SBAC_CTX_MODEL   ext_mode_idx    [MMVD_MODE_STEP];
-    SBAC_CTX_MODEL   ext_mode_dev0   [MMVD_MODE_SG0];
-#endif
+    SBAC_CTX_MODEL   mmvd_flag       [NUM_SBAC_CTX_MMVD_FLAG];
+    SBAC_CTX_MODEL   mmvd_merge_idx  [NUM_SBAC_CTX_MMVD_MERGE_IDX];
+    SBAC_CTX_MODEL   mmvd_distance_idx[NUM_SBAC_CTX_MMVD_DIST_IDX];
+    SBAC_CTX_MODEL   mmvd_direction_idx[2];
+    SBAC_CTX_MODEL   mmvd_group_idx  [NUM_SBAC_CTX_MMVD_GRP_IDX];
     SBAC_CTX_MODEL   inter_dir       [NUM_INTER_DIR_CTX];
     SBAC_CTX_MODEL   intra_dir       [NUM_INTRA_DIR_CTX];
     SBAC_CTX_MODEL   pred_mode       [NUM_PRED_MODE_CTX];
@@ -1085,34 +874,28 @@ typedef struct _EVC_SBAC_CTX
 #if AFFINE
     SBAC_CTX_MODEL   affine_mvp_idx  [NUM_AFFINE_MVP_IDX_CTX];
 #endif
-#if AMVR
     SBAC_CTX_MODEL   mvr_idx         [NUM_MVR_IDX_CTX];
-#if ABP
     SBAC_CTX_MODEL   bi_idx          [NUM_BI_IDX_CTX];
-#endif
-#endif
     SBAC_CTX_MODEL   mvd             [NUM_MV_RES_CTX];
     SBAC_CTX_MODEL   all_cbf         [NUM_QT_ROOT_CBF_CTX];
     SBAC_CTX_MODEL   cbf             [NUM_QT_CBF_CTX];
-
     SBAC_CTX_MODEL   run             [NUM_SBAC_CTX_RUN];
     SBAC_CTX_MODEL   last            [NUM_SBAC_CTX_LAST];
     SBAC_CTX_MODEL   level           [NUM_SBAC_CTX_LEVEL];
-
-    SBAC_CTX_MODEL   split_mode      [NUM_SBAC_CTX_SPLIT_MODE];
-
+    SBAC_CTX_MODEL   btt_split_flag  [NUM_SBAC_CTX_BTT_SPLIT_FLAG];
+    SBAC_CTX_MODEL   btt_split_dir   [NUM_SBAC_CTX_BTT_SPLIT_DIR];
+    SBAC_CTX_MODEL   btt_split_type  [NUM_SBAC_CTX_BTT_SPLIT_TYPE];
 #if AFFINE
     SBAC_CTX_MODEL   affine_flag     [NUM_SBAC_CTX_AFFINE_FLAG];
     SBAC_CTX_MODEL   affine_mode     [NUM_SBAC_CTX_AFFINE_MODE];
     SBAC_CTX_MODEL   affine_mrg      [NUM_SBAC_CTX_AFFINE_MRG];
     SBAC_CTX_MODEL   affine_mvd_flag [2];
 #endif
-#if SUCO
     SBAC_CTX_MODEL   suco_flag       [NUM_SBAC_CTX_SUCO_FLAG];
-#endif
 #if ALF
     SBAC_CTX_MODEL   ctb_alf_flag    [NUM_SBAC_CTX_ALF_FLAG]; //todo: add *3 for every component
 #endif
+    int              sps_cm_init_flag;
 
 } EVC_SBAC_CTX;
 
@@ -1314,13 +1097,8 @@ typedef struct _EVC_SPS
     int              log2_diff_min_11_min_tt_cb_size_minus2;
     int              log2_diff_ctu_size_max_suco_cb_size;
     int              log2_diff_max_suco_min_suco_cb_size;
-#if PROFILE_IS_MAIN(PROFILE)
-#if AMVR
     int              tool_amvr;
-#endif
-#if MMVD
     int              tool_mmvd;
-#endif
 #if AFFINE
     int              tool_affine;
 #endif
@@ -1336,10 +1114,10 @@ typedef struct _EVC_SPS
 #if ADMVP
     int              tool_admvp;
 #endif
-#if AMIS
     int              tool_amis;
-#endif
-#endif
+    int              tool_eipd;
+    int              tool_iqt;
+    int              tool_cm_init;
     int              log2_max_pic_order_cnt_lsb_minus4;
     int              sps_max_dec_pic_buffering_minus1;
     int              picture_num_present_flag;
@@ -1349,9 +1127,9 @@ typedef struct _EVC_SPS
     int              rpl_candidates_present_flag;
     int              rpl1_same_as_rpl0_flag;
     int              rpls_l0_num;
-    EVC_RPL         rpls_l0[MAX_NUM_RPLS];
+    EVC_RPL          rpls_l0[MAX_NUM_RPLS];
     int              rpls_l1_num;
-    EVC_RPL         rpls_l1[MAX_NUM_RPLS];
+    EVC_RPL          rpls_l1[MAX_NUM_RPLS];
 
     int              picture_cropping_flag;
     int              picture_crop_left_offset;
@@ -1580,9 +1358,7 @@ typedef enum _SPLIT_DIR
 
 typedef enum _BLOCK_SHAPE
 {
-#if FBT_ALL
     NON_SQUARE_116,
-#endif
     NON_SQUARE_18,
     NON_SQUARE_14,
     NON_SQUARE_12,
@@ -1590,9 +1366,7 @@ typedef enum _BLOCK_SHAPE
     NON_SQUARE_21,
     NON_SQUARE_41,
     NON_SQUARE_81,
-#if FBT_ALL
     NON_SQUARE_161,
-#endif
     NUM_BLOCK_SHAPE,
 
 } BLOCK_SHAPE;
@@ -1642,6 +1416,13 @@ typedef enum _MSL_IDX
 static const int NTAPS_LUMA = 8; ///< Number of taps for luma
 static const int NTAPS_CHROMA = 4; ///< Number of taps for chroma
 #endif
+
+#define MAX_SUB_TB_NUM 4
+enum TQC_RUN {
+    RUN_L = 1,
+    RUN_CB = 2,
+    RUN_CR = 4
+};
 
 #include "evc_tbl.h"
 #include "evc_util.h"

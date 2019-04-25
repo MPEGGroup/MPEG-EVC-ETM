@@ -400,6 +400,10 @@ typedef struct _EVCE_CDSC
     int            in_bit_depth;
     /* bit depth of output video */
     int            out_bit_depth;
+    int            profile;
+    int            level;
+    int            btt;
+    int            suco;
 #if USE_TILE_GROUP_DQP
     int            add_qp_frame;
 #endif
@@ -422,6 +426,11 @@ typedef struct _EVCE_CDSC
     int            tool_htdf;
     int            tool_admvp;
     int            tool_amis;
+    int            tool_eipd;
+    int            tool_iqt;
+    int            tool_cm_init;
+    int            cb_qp_offset;
+    int            cr_qp_offset;
 
     EVC_RPL rpls_l0[MAX_NUM_RPLS];
     EVC_RPL rpls_l1[MAX_NUM_RPLS];

@@ -107,10 +107,10 @@ extern EVC_MC_C evc_tbl_bl_mc_l[2][2];
 
 #if DMVR
 void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16(*mv)[MV_D], EVC_REFP(*refp)[REFP_NUM], pel pred[REFP_NUM][N_C][MAX_CU_DIM], int poc_c, pel dmvr_ref_pred_template[MAX_CU_SIZE*MAX_CU_SIZE], pel dmvr_ref_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT)) * (MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT))]
-             , pel dmvr_half_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + 1) * (MAX_CU_SIZE + 1)]
-             , BOOL apply_DMVR
+            , pel dmvr_half_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + 1) * (MAX_CU_SIZE + 1)]
+            , BOOL apply_DMVR
 #if DMVR_PADDING
-             , pel dmvr_padding_buf[REFP_NUM][N_C][PAD_BUFFER_STRIDE * PAD_BUFFER_STRIDE]
+            , pel dmvr_padding_buf[REFP_NUM][N_C][PAD_BUFFER_STRIDE * PAD_BUFFER_STRIDE]
 #endif
 #if DMVR_FLAG 
             , u8 *cu_dmvr_flag
@@ -118,30 +118,31 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
             , s16 dmvr_mv[MAX_CU_CNT_IN_LCU][REFP_NUM][MV_D]
 #endif
 #endif
+            , int sps_amis_flag
 #else
 void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16 mv[REFP_NUM][MV_D], EVC_REFP(*refp)[REFP_NUM], pel pred[2][N_C][MAX_CU_DIM]
 #endif
-             );
+);
 
 void mv_clip(int x, int y, int pic_w, int pic_h, int w, int h,
              s8 refi[REFP_NUM], s16 mv[REFP_NUM][MV_D], s16(*mv_t)[MV_D]);
 #if AFFINE
 void evc_affine_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16 mv[REFP_NUM][VER_NUM][MV_D], EVC_REFP(*refp)[REFP_NUM], pel pred[2][N_C][MAX_CU_DIM], int vertex_num
 #if EIF
-                    , pel* tmp_buffer
+                   , pel* tmp_buffer
 #endif
 
-                    );
+);
 void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 ac_mv[VER_NUM][MV_D], EVC_PIC* ref_pic, pel pred[MAX_CU_DIM], int vertex_num
+#if EIF
+                     , pel* tmp_buffer
+#endif
+);
+void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 ac_mv[VER_NUM][MV_D], EVC_PIC* ref_pic, pel pred[N_C][MAX_CU_DIM], int vertex_num
 #if EIF
                       , pel* tmp_buffer
 #endif
-                      );
-void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 ac_mv[VER_NUM][MV_D], EVC_PIC* ref_pic, pel pred[N_C][MAX_CU_DIM], int vertex_num
-#if EIF
-                       , pel* tmp_buffer
-#endif
-                       );
+);
 
 #if EIF
 void evc_affine_mc_eif(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 ac_mv[VER_NUM][MV_D], EVC_PIC *ref_pic, pel pred[MAX_CU_DIM], int vertex_num, pel *tmp_buffer, s8 comp);

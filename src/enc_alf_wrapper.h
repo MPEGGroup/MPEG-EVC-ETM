@@ -54,10 +54,6 @@ void call_destroy_enc_ALF(EncAdaptiveLoopFilter* p);
 void set_resetALFBufferFlag(EncAdaptiveLoopFilter* p, int flag);
 
 void call_enc_ALFProcess(EncAdaptiveLoopFilter* p, const double* lambdas, EVCE_CTX * ctx, EVC_PIC * pic, evc_AlfTileGroupParam* iAlfTileGroupParam);
-
-AlfFilterShape* new_AlfFilterShape(int size);
-void delete_AlfFilterShape( AlfFilterShape* p );
-void portAlfFilterShape(evc_AlfFilterShape* p0, AlfFilterShape* p1);
 #endif
 #ifdef __cplusplus
 }

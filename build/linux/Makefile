@@ -4,11 +4,19 @@ DIR_SRC = $(DIR_TOP)/src
 DIR_APP = $(DIR_TOP)/app
 DIR_LIB = $(DIR_TOP)/lib
 DIR_BIN = $(DIR_TOP)/bin
+DIR_DEP := .d
+
+$(shell mkdir -p $(DIR_DEP) >/dev/null)
+
+DEPFLAGS = -MT $@ -MMD -MP -MF $(DIR_DEP)/$*.Td
+POSTCOMPILE = @mv -f $(DIR_DEP)/$*.Td $(DIR_DEP)/$*.d && touch $@
 
 CC = gcc
 CXX = g++ 
 AR = ar
 LD = ld
+SED = sed
+MV = mv
 
 MKDIR = mkdir -p
 RM = rm -rf
@@ -25,10 +33,10 @@ CXXFLAGS += -I$(DIR_INC)
 LDFLAGS = -L$(DIR_LIB) -levc -lm -lstdc++
 ARFLAGS = r
 
-CXXSRCS = $(DIR_SRC)/AdaptiveLoopFilter.cpp \
-		  $(DIR_SRC)/EncAdaptiveLoopFilter.cpp
+CXXSRCS = $(DIR_SRC)/EncAdaptiveLoopFilter.cpp
 
-CSRCS = $(DIR_SRC)/evc.c \
+CSRCS = $(DIR_SRC)/evc_alf.c \
+		$(DIR_SRC)/evc.c \
 		$(DIR_SRC)/evc_img.c \
 		$(DIR_SRC)/evc_ipred.c \
 		$(DIR_SRC)/evc_mc.c \
@@ -58,16 +66,14 @@ CSRCS_APP =	$(DIR_APP)/evca_encoder.c \
 			$(DIR_APP)/evca_decoder.c \
 			$(DIR_APP)/evca_bitstream_merge.c
 
-OBJS = $(CSRCS:.c=.o)
-
-CXXOBJS = $(CXXSRCS:.cpp=.o)
+OBJS = $(subst .c,.o,$(subst $(DIR_SRC)/,,$(CSRCS)))
+HEADS = $(subst .c,.h,$(subst $(DIR_SRC)/,,$(CSRCS)))
+CXXOBJS = $(subst .cpp,.o,$(subst $(DIR_SRC)/,,$(CXXSRCS)))
+CXXHEADS = $(subst .cpp,.h,$(subst $(DIR_SRC)/,,$(CXXSRCS)))
 
 all: RELEASE
 
-# target for release mode
-RELEASE: Makefile $(CSRCS) $(CXXSRCS) $(CSRCS_APP)
-	$(CXX) -c $(CXXFLAGS) $(CXXSRCS)
-	$(CC) -c $(CFLAGS) $(CSRCS) $(CSRCS_APP)
+RELEASE: Makefile $(CSRCS) $(CXXHEADS) $(CXXOBJS) $(OBJS)
 	$(MKDIR) $(DIR_LIB)
 	$(AR) $(ARFLAGS) $(DIR_LIB)/libevc.a *.o
 	$(MKDIR) $(DIR_BIN)
@@ -75,18 +81,21 @@ RELEASE: Makefile $(CSRCS) $(CXXSRCS) $(CSRCS_APP)
 	$(CC) -o $(DIR_BIN)/evca_decoder $(CFLAGS) $(DIR_APP)/evca_decoder.c $(LDFLAGS)
 	$(CC) -o $(DIR_BIN)/evca_bitstream_merge $(CFLAGS) $(DIR_APP)/evca_bitstream_merge.c $(LDFLAGS)
 
-#depend: Makefile $(CSRCS) $(CXXSRCS) $(CSRCS_APP)
-#	$(CXX) -M $(CXXFLAGS) $(CXXSRCS) 
-#	$(CC) -M $(CFLAGS) $(CSRCS) $(CSRCS_APP) # > .$@
-
+.PHONY: clean
 clean:
-	$(RM) $(OBJS) $(CXXOBJS) $(DIR_LIB) $(DIR_BIN) *.o *.s *.i *.ii
+	$(RM) $(OBJS) $(CXXOBJS) $(DIR_LIB) $(DIR_BIN) *.o *.s *.i *.ii *.d
 
-%.o: %.c
-	$(CC) -c -o $@ $(CFLAGS) $<
-	
-%.o: %.cpp
-	$(CXX) -c -o $@ $(CXXFLAGS) $<	
+.PHONY: $(CXXHEADS) $(HEADS)
 
-#-include .depend
+%.o: $(DIR_SRC)/%.c $(DIR_DEP)/%.d
+	$(CC) $(DEPFLAGS) -c -o $(subst $(DIR_SRC)/,,$@) $(CFLAGS) $<
+	$(POSTCOMPILE)
 
+%.o: $(DIR_SRC)/%.cpp $(DIR_DEP)/%.d
+	$(CXX) $(DEPFLAGS) -c -o $(subst $(DIR_SRC)/,,$@) $(CXXFLAGS) $<
+	$(POSTCOMPILE)
+
+$(DIR_DEP)/%.d: ;
+.PRECIOUS: $(DIR_DEP)/%.d
+
+include $(wildcard $(patsubst %,$(DIR_DEP)/%.d,$(basename $(CSRCS) $(CXXSRCS))))
