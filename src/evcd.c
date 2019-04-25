@@ -31,6 +31,7 @@
 *  THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include <math.h>
 #include "evcd_def.h"
 #include "evcd_eco.h"
 #include "evc_df.h"
@@ -204,6 +205,7 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
     ctx->pa.h = ctx->h;
     ctx->pa.pad_l = PIC_PAD_SIZE_L;
     ctx->pa.pad_c = PIC_PAD_SIZE_C;
+    ctx->ref_pic_gap_length = (int)pow(2.0, sps->log2_ref_pic_gap_length);
 
     ret = evc_picman_init(&ctx->dpm, MAX_PB_SIZE, MAX_NUM_REF_PICS, sps->closed_gop, &ctx->pa);
     evc_assert_g(EVC_SUCCEEDED(ret), ERR);
@@ -276,6 +278,52 @@ static int tile_group_init(EVCD_CTX * ctx, EVCD_CORE * core, EVC_TGH * tgh)
     return EVC_OK;
 }
 
+int is_ref_pic(EVCD_CTX * ctx, EVC_TGH * tgh)
+{
+    return (tgh->layer_id == 0 || tgh->layer_id < ctx->sps.log2_sub_gop_length);
+}
+
+
+int poc_derivation(EVCD_CTX * ctx, EVC_TGH * tgh)
+{
+    int sub_gop_length = (int)pow(2.0, ctx->sps.log2_sub_gop_length);
+    int expected_temporal_id = 0;
+    int doc_offset, poc_offset;
+    if (tgh->layer_id == 0)
+    {
+        tgh->poc = ctx->prev_pic_order_cnt_val + sub_gop_length;
+        ctx->prev_doc_offset = 0;
+        ctx->prev_pic_order_cnt_val = tgh->poc;
+        return EVC_OK;
+    }
+    doc_offset = (ctx->prev_doc_offset + 1) % sub_gop_length;
+    if (doc_offset == 0)
+    {
+        ctx->prev_pic_order_cnt_val += sub_gop_length;
+    }
+    else
+    {
+        expected_temporal_id = 1 + (int)log2(doc_offset);
+    }
+    while (tgh->layer_id != expected_temporal_id)
+    {
+        doc_offset = (doc_offset + 1) % sub_gop_length;
+        if (doc_offset == 0)
+        {
+            expected_temporal_id = 0;
+        }
+        else
+        {
+            expected_temporal_id = 1 + (int)log2(doc_offset);
+        }
+    }
+    poc_offset = (int)(sub_gop_length * ((2.0 * doc_offset + 1) / (int)pow(2.0, tgh->layer_id) - 2));
+    tgh->poc = ctx->prev_pic_order_cnt_val + poc_offset;
+    ctx->prev_doc_offset = doc_offset;
+
+    return EVC_OK;
+}
+
 static void make_stat(EVCD_CTX * ctx, int btype, EVCD_STAT * stat)
 {
     int i, j;
@@ -297,6 +345,7 @@ static void make_stat(EVCD_CTX * ctx, int btype, EVCD_STAT * stat)
             stat->poc = ctx->ptr;
 
             stat->tid = ctx->tgh.layer_id;
+
             for(i = 0; i < 2; i++)
             {
                 stat->refpic_num[i] = ctx->dpm.num_refp[i];
@@ -1172,7 +1221,25 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 #endif
         ret = tile_group_init(ctx, ctx->core, tgh);
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
-
+        if(!sps->tool_pocs)
+        {
+            if (ctx->dtr == 0) // TBD: Check instead if picture is IDR
+            {
+                tgh->poc = 0;
+                ctx->prev_doc_offset = 0;
+                ctx->prev_pic_order_cnt_val = tgh->poc;
+                ctx->tile_group_ref_flag = is_ref_pic(ctx, tgh);
+            }
+            else
+            {
+                ctx->tile_group_ref_flag = is_ref_pic(ctx, tgh);
+                poc_derivation(ctx, tgh);
+            }
+        }
+        else
+        {
+            ctx->tile_group_ref_flag = 1;
+        }
 
         if (sps->picture_num_present_flag)
         {
@@ -1247,7 +1314,7 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 #endif
 
         /* put decoded picture to DPB */
-        ret = evc_picman_put_pic(&ctx->dpm, ctx->pic, ctx->tgh.tile_group_type, ctx->ptr, ctx->dtr, ctx->tgh.layer_id, 1, ctx->refp, (ctx->tgh.mmco_on ? &ctx->tgh.mmco : NULL), sps->picture_num_present_flag);
+        ret = evc_picman_put_pic(&ctx->dpm, ctx->pic, ctx->tgh.tile_group_type, ctx->ptr, ctx->dtr, ctx->tgh.layer_id, 1, ctx->refp, ctx->tile_group_ref_flag, sps->picture_num_present_flag, ctx->ref_pic_gap_length);
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
 
         tile_group_deinit(ctx);

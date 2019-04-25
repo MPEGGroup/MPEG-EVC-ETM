@@ -131,7 +131,20 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
     evc_bsw_write1(bs, sps->tool_htdf);
 #endif
     evc_bsw_write1(bs, sps->tool_cm_init);
-    evc_bsw_write_ue(bs, (u32)sps->log2_max_pic_order_cnt_lsb_minus4); 
+    evc_bsw_write1(bs, sps->tool_rpl);
+    evc_bsw_write1(bs, sps->tool_pocs);
+    if (!sps->tool_rpl)
+    {
+        evc_bsw_write_ue(bs, (u32)sps->log2_max_pic_order_cnt_lsb_minus4);
+    }
+    if (!sps->tool_rpl || !sps->tool_pocs)
+    {
+        evc_bsw_write_ue(bs, (u32)sps->log2_sub_gop_length);
+        if (sps->log2_sub_gop_length == 0)
+        {
+            evc_bsw_write_ue(bs, sps->log2_ref_pic_gap_length);
+        }
+    }
     evc_bsw_write_ue(bs, (u32)sps->sps_max_dec_pic_buffering_minus1);
     evc_bsw_write1(bs, sps->picture_num_present_flag);
     if (sps->picture_num_present_flag)
@@ -245,6 +258,8 @@ int evce_eco_tgh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh)
 {
     int NumTilesInTileGroup = 0; //TBD according to the spec
 
+    evc_bsw_write(bs, tgh->dtr, DTR_BIT_CNT);
+    evc_bsw_write(bs, tgh->layer_id, 3);
     evc_bsw_write_ue(bs, tgh->tile_group_pic_parameter_set_id);
     evc_bsw_write1(bs, tgh->single_tile_in_tile_group_flag);
     evc_bsw_write(bs, tgh->first_tile_id, pps->tile_id_len_minus1 + 1);
@@ -284,7 +299,10 @@ int evce_eco_tgh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh)
 
     // if (NalUnitType != IDR_NUT)  TBD: NALU types to be implemented
     {
-        evc_bsw_write(bs, tgh->poc, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
+        if (sps->tool_pocs)
+        {
+            evc_bsw_write(bs, tgh->poc, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
+        }
         if (sps->picture_num_present_flag)
         {
             evc_bsw_write1(bs, tgh->ref_pic_flag);
@@ -364,7 +382,6 @@ int evce_eco_tgh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh)
         }
     }
 
-    evc_bsw_write(bs, tgh->dtr, DTR_BIT_CNT);
     evc_bsw_write1(bs, tgh->keyframe);
     evc_bsw_write1(bs, tgh->udata_exist);
 
@@ -377,7 +394,6 @@ int evce_eco_tgh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh)
         evc_bsw_write_se(bs, tgh->dptr);
     }
 
-    evc_bsw_write(bs, tgh->layer_id, 3);
 
     /* write MMCO */
     evc_bsw_write1(bs, tgh->mmco_on);

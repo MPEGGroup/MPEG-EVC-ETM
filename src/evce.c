@@ -153,54 +153,60 @@ static const s8 tbl_poc_gop_offset[5][15] =
     { -8,   -12, -14,  -15,  -13,  -10,  -11,   -9,   -4,   -6,   -7,   -5,   -2,   -3,   -1}   /* gop_size = 16 */
 };
 
-static const s8 tbl_ref_depth[5][15] =
+static const s8 tbl_tile_group_depth_P_orig[GOP_P] = { FRM_DEPTH_3,  FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_1 };
+
+static const s8 tbl_tile_group_depth_P[5][16] =
 {
     /* gop_size = 2 */
-    { FRM_DEPTH_1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
+    { FRM_DEPTH_2, FRM_DEPTH_1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, \
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
     /* gop_size = 4 */
-    { FRM_DEPTH_1, FRM_DEPTH_2, FRM_DEPTH_2, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
+    { FRM_DEPTH_3, FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_1, 0xFF, 0xFF, 0xFF, 0xFF, \
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
     /* gop_size = 8 */
-    { FRM_DEPTH_1, FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_3, FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_3, \
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
+    { FRM_DEPTH_4, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_2, FRM_DEPTH_4, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_1,\
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
     /* gop_size = 12 */
-    {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},  /* gop_size = 12 */
+    {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
     /* gop_size = 16 */
-    { FRM_DEPTH_1, FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_4, FRM_DEPTH_3, FRM_DEPTH_4, \
-     FRM_DEPTH_4,  FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_4, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_4}
+    { FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_3, FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_2, \
+      FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_3, FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_1 }
 };
-
-static const s8 tbl_tile_group_ref[5][15] =
-{
-    /* gop_size = 2 */
-    { 1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-    /* gop_size = 4 */
-    { 1, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-    /* gop_size = 8 */
-    { 1, 1, 0, 0, 1, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-    /* gop_size = 12 */
-    {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-    /* gop_size = 16 */
-    {1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0}
-};
-
-static const s8 tbl_tile_group_depth_P[GOP_P] = { FRM_DEPTH_3,  FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_1};
 
 static const s8 tbl_tile_group_depth[5][15] =
 {
     /* gop_size = 2 */
     { FRM_DEPTH_2, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, \
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
     /* gop_size = 4 */
     { FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_3, 0xFF, 0xFF, 0xFF, 0xFF, \
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    /* gop_size = 8 */
+    { FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_4, FRM_DEPTH_4, FRM_DEPTH_4,\
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    /* gop_size = 12 */
+    {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    /* gop_size = 16 */
+    { FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_4, FRM_DEPTH_4, FRM_DEPTH_4, FRM_DEPTH_5, \
+      FRM_DEPTH_5,  FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_5 }
+};
+
+static const s8 tbl_tile_group_depth_orig[5][15] =
+{
+    /* gop_size = 2 */
+    { FRM_DEPTH_2, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, \
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    /* gop_size = 4 */
+    { FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_3, 0xFF, 0xFF, 0xFF, 0xFF, \
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
     /* gop_size = 8 */
     { FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_4, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_4,\
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
     /* gop_size = 12 */
-    {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
+    {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
     /* gop_size = 16 */
-    { FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, \
-      FRM_DEPTH_5, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5}
+    { FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5, \
+      FRM_DEPTH_3,  FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5 }
 };
 
 static EVCE_CTX * ctx_alloc(void)
@@ -279,6 +285,24 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
         }
     }
 
+    if (cdsc->ref_pic_gap_length != 0)
+    {
+        evc_assert_rv(cdsc->max_b_frames == 0, EVC_ERR_INVALID_ARGUMENT);
+    }
+
+
+    if (cdsc->max_b_frames == 0)
+    {
+        if (cdsc->ref_pic_gap_length == 0)
+        {
+            cdsc->ref_pic_gap_length = 1;
+        }
+        evc_assert_rv(cdsc->ref_pic_gap_length == 1 || cdsc->ref_pic_gap_length == 2 || \
+                      cdsc->ref_pic_gap_length == 4 || cdsc->ref_pic_gap_length == 8 || \
+                      cdsc->ref_pic_gap_length == 16, EVC_ERR_INVALID_ARGUMENT);
+    }
+
+
     /* set default encoding parameter */
     param->w              = cdsc->w;
     param->h              = cdsc->h;
@@ -292,6 +316,7 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
     param->qp_min         = MIN_QUANT;
     param->use_pic_sign   = 0;
     param->max_b_frames   = cdsc->max_b_frames;
+    param->ref_pic_gap_length = cdsc->ref_pic_gap_length;
     param->gop_size       = param->max_b_frames +1;
     param->use_closed_gop = (cdsc->closed_gop)? 1: 0;
     param->use_hgop       = (cdsc->disable_hgop)? 0: 1;
@@ -392,10 +417,18 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     {
         sps->picture_num_present_flag = 0;
         sps->log2_ctu_size_minus2 = ctx->log2_max_cuwh - 2;
+        sps->tool_rpl = 1;
+        sps->tool_pocs = 1;
     }
     else
     {
         sps->picture_num_present_flag = 1;
+        sps->tool_rpl = 0;
+        sps->tool_pocs = 0;
+        sps->max_num_ref_pics = MAX_NUM_REF_PICS;
+        sps->log2_sub_gop_length = (int)(log2(ctx->param.gop_size) + .5);
+        ctx->ref_pic_gap_length = ctx->param.ref_pic_gap_length;
+        sps->log2_ref_pic_gap_length = (int)(log2(ctx->param.ref_pic_gap_length) + .5);
     }
 
     sps->long_term_ref_pics_flag = 0;
@@ -703,8 +736,8 @@ static void set_tgh(EVCE_CTX *ctx, EVC_TGH *tgh)
     {
         double dqp_offset;
         int qp_offset;
-        qp += qp_adapt_param[ctx->layer_id].qp_offset_layer;
-        dqp_offset = qp * qp_adapt_param[ctx->layer_id].qp_offset_model_scale + qp_adapt_param[ctx->layer_id].qp_offset_model_offset + 0.5;
+        qp += qp_adapt_param[ctx->tile_group_depth].qp_offset_layer;
+        dqp_offset = qp * qp_adapt_param[ctx->tile_group_depth].qp_offset_model_scale + qp_adapt_param[ctx->tile_group_depth].qp_offset_model_offset + 0.5;
         qp_offset = (int)floor(EVC_CLIP3(0.0, 3.0, dqp_offset));
         qp += qp_offset;
     }
@@ -727,19 +760,8 @@ static void set_tgh(EVCE_CTX *ctx, EVC_TGH *tgh)
 
     if (ctx->sps.picture_num_present_flag)
     {
-        /* set MMCO command */
-        if (ctx->tile_group_ref_flag == 0)
-        {
-            tgh->mmco_on = 1;
-            tgh->mmco.cnt = 1;
-            tgh->mmco.type[0] = MMCO_UNUSED;
-            tgh->mmco.data[0] = 0; /* current picture */
-        }
-        else
-        {
-            tgh->mmco_on = 0;
-            tgh->mmco.cnt = 0;
-        }
+        tgh->mmco_on = 0;
+        tgh->mmco.cnt = 0;
     }
 }
 static int evce_eco_tree(EVCE_CTX * ctx, EVCE_CORE * core, int x0, int y0, int cup, int cuw, int cuh, int cud, int next_split, const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth)
@@ -1224,6 +1246,45 @@ int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     return EVC_OK;
 }
 
+
+int poc_derivation(EVCE_CTX * ctx, int layer_id)
+{
+    int sub_gop_length = (int)pow(2.0, ctx->sps.log2_sub_gop_length);
+    int expected_temporal_id = 0;
+    int doc_offset, poc_offset;
+    if (layer_id == 0)
+    {
+        ctx->poc = ctx->prev_pic_order_cnt_val + sub_gop_length;
+        ctx->prev_doc_offset = 0;
+        ctx->prev_pic_order_cnt_val = ctx->poc;
+        return EVC_OK;
+    }
+    doc_offset = (ctx->prev_doc_offset + 1) % sub_gop_length;
+    if (doc_offset == 0)
+    {
+        ctx->prev_pic_order_cnt_val += sub_gop_length;
+    } else
+    {
+        expected_temporal_id = 1 + (int)log2(doc_offset);
+    }
+    while (layer_id != expected_temporal_id)
+    {
+        doc_offset = (doc_offset + 1) % sub_gop_length;
+        if (doc_offset == 0)
+        {
+            expected_temporal_id = 0;
+        } else
+        {
+            expected_temporal_id = 1 + (int)log2(doc_offset);
+        }
+    }
+    poc_offset = (int)(sub_gop_length * ((2.0 * doc_offset + 1) / (int)pow(2.0, layer_id) - 2));
+    ctx->poc = ctx->prev_pic_order_cnt_val + poc_offset;
+    ctx->prev_doc_offset = doc_offset;
+
+    return EVC_OK;
+}
+
 static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
 {
     int i_period, gop_size, pos;
@@ -1237,6 +1298,8 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
         ctx->tile_group_type = TILE_GROUP_I;
         ctx->tile_group_depth = FRM_DEPTH_0;
         ctx->poc = pic_imcnt;
+        ctx->prev_doc_offset = 0;
+        ctx->prev_pic_order_cnt_val = ctx->poc;
         ctx->tile_group_ref_flag = 1;
     }
     else if((i_period != 0) && pic_imcnt % i_period == 0)
@@ -1244,6 +1307,8 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
         ctx->tile_group_type = TILE_GROUP_I;
         ctx->tile_group_depth = FRM_DEPTH_0;
         ctx->poc = pic_imcnt;
+        ctx->prev_doc_offset = 0;
+        ctx->prev_pic_order_cnt_val = ctx->poc;
         ctx->tile_group_ref_flag = 1;
     }
     else if(pic_imcnt % gop_size == 0)
@@ -1252,6 +1317,8 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
         ctx->tile_group_ref_flag = 1;
         ctx->tile_group_depth = FRM_DEPTH_1;
         ctx->poc = pic_imcnt;
+        ctx->prev_doc_offset = 0;
+        ctx->prev_pic_order_cnt_val = ctx->poc;
         ctx->tile_group_ref_flag = 1;
     }
     else
@@ -1260,17 +1327,31 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
         if(ctx->param.use_hgop)
         {
             pos = (pic_imcnt % gop_size) - 1;
-            ctx->tile_group_depth = tbl_tile_group_depth[gop_size >> 2][pos];
-            ctx->ref_depth = tbl_ref_depth[gop_size >> 2][pos];
-            ctx->poc = ((pic_imcnt / gop_size) * gop_size) +
-                tbl_poc_gop_offset[gop_size >> 2][pos];
-            ctx->tile_group_ref_flag = tbl_tile_group_ref[gop_size >> 2][pos];
+            if (ctx->sps.tool_pocs)
+            {
+                ctx->tile_group_depth = tbl_tile_group_depth_orig[gop_size >> 2][pos];
+                ctx->poc = ((pic_imcnt / gop_size) * gop_size) +
+                    tbl_poc_gop_offset[gop_size >> 2][pos];
+            }
+            else
+            {
+                ctx->tile_group_depth = tbl_tile_group_depth[gop_size >> 2][pos];
+                int layer_id = ctx->tile_group_depth - (ctx->tile_group_depth > 0);
+                poc_derivation(ctx, layer_id);
+            }
+            if (!ctx->sps.tool_pocs && gop_size >= 2)
+            {
+                ctx->tile_group_ref_flag = (ctx->tile_group_depth == tbl_tile_group_depth[gop_size >> 2][gop_size - 2] ? 0 : 1);
+            }
+            else
+            {
+                ctx->tile_group_ref_flag = 1;
+            }
         }
         else
         {
             pos = (pic_imcnt % gop_size) - 1;
             ctx->tile_group_depth = FRM_DEPTH_2;
-            ctx->ref_depth = FRM_DEPTH_1;
             ctx->poc = ((pic_imcnt / gop_size) * gop_size) - gop_size + pos + 1;
             ctx->tile_group_ref_flag = 0;
         }
@@ -1315,7 +1396,14 @@ static void decide_tile_group_type(EVCE_CTX * ctx)
             ctx->tile_group_type = TILE_GROUP_B;
             if(ctx->param.use_hgop)
             {
-                ctx->tile_group_depth = tbl_tile_group_depth_P[(pic_imcnt - 1) % GOP_P];
+                if (ctx->sps.tool_rpl)
+                {
+                    ctx->tile_group_depth = tbl_tile_group_depth_P_orig[(pic_imcnt - 1) % GOP_P];
+                }
+                else
+                {
+                    ctx->tile_group_depth = tbl_tile_group_depth_P[ctx->param.ref_pic_gap_length >> 2][(pic_imcnt - 1) % ctx->param.ref_pic_gap_length];
+                }
             }
             else
             {
@@ -1332,6 +1420,8 @@ static void decide_tile_group_type(EVCE_CTX * ctx)
             ctx->tile_group_type = TILE_GROUP_I;
             ctx->tile_group_depth = FRM_DEPTH_0;
             ctx->poc = 0;
+            ctx->prev_doc_offset = 0;
+            ctx->prev_pic_order_cnt_val = ctx->poc;
             ctx->tile_group_ref_flag = 1;
 
             /* flush the first IDR picture */
@@ -1359,16 +1449,14 @@ static void decide_tile_group_type(EVCE_CTX * ctx)
             decide_normal_gop(ctx, pic_imcnt);
         }
     }
-
-    if(ctx->param.use_hgop)
+    if(ctx->param.use_hgop && gop_size > 1)
     {
-        ctx->layer_id = ctx->tile_group_depth;
+        ctx->layer_id = ctx->tile_group_depth - (ctx->tile_group_depth > 0);
     }
     else
     {
         ctx->layer_id = 0;
     }
-
     ctx->ptr = ctx->poc;
     ctx->dtr = ctx->ptr;
 }
@@ -1564,7 +1652,7 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     /* picture buffer management */
     ret = evc_picman_put_pic(&ctx->rpm, PIC_CURR(ctx), ctx->tile_group_type,
                               ctx->ptr, ctx->dtr, ctx->layer_id, 0, ctx->refp,
-                              (ctx->tgh.mmco_on ? &ctx->tgh.mmco : NULL), ctx->sps.picture_num_present_flag);
+                              ctx->tile_group_ref_flag, ctx->sps.picture_num_present_flag, ctx->ref_pic_gap_length);
 
     evc_assert_rv(ret == EVC_OK, ret);
 
@@ -1582,9 +1670,7 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     stat->fnum = ctx->pic_cnt;
     stat->qp = ctx->tgh.qp;
     stat->poc = ctx->ptr;
-#if ALF
     stat->tid = ctx->tgh.layer_id;
-#endif
     for(i = 0; i < 2; i++)
     {
         stat->refpic_num[i] = ctx->rpm.num_refp[i];
@@ -1963,27 +2049,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         ret = evc_picman_refp_rpl_based_init(&ctx->rpm, tgh, ctx->refp);
     }
     evc_assert_rv(ret == EVC_OK, ret);
-
-    if (ctx->sps.picture_num_present_flag)
-    {
-        if (ctx->tile_group_type != TILE_GROUP_I)
-        {
-            if (ctx->param.max_b_frames == 0)
-            {
-                tgh->rmpni_on = check_reorder(&ctx->param, &ctx->rpm, ctx->sps.num_ref_pics_act, ctx->tile_group_type, ctx->ptr, ctx->refp, reorder_arg_ldb, ctx->last_intra_ptr, tgh->rmpni);
-            }
-            else
-            {
-                tgh->rmpni_on = check_reorder(&ctx->param, &ctx->rpm, ctx->sps.num_ref_pics_act, ctx->tile_group_type, ctx->ptr, ctx->refp, reorder_arg, ctx->last_intra_ptr, tgh->rmpni);
-            }
-        }
-
-        if (tgh->rmpni_on && ctx->tile_group_type != TILE_GROUP_I)
-        {
-            ret = evc_picman_refp_reorder(&ctx->rpm, ctx->sps.num_ref_pics_act, tgh->tile_group_type, ctx->ptr, ctx->refp, ctx->last_intra_ptr, tgh->rmpni);
-            evc_assert_rv(ret == EVC_OK, ret);
-        }
-    }
 
     /* initialize mode decision for frame encoding */
     ret = ctx->fn_mode_init_frame(ctx);

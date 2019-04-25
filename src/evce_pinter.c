@@ -5234,7 +5234,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 #endif
 
 #if AFFINE
-    if(ctx->layer_id < 4)
+    if(ctx->tile_group_depth < 4)
     {
         if(allow_affine && cuw >= 8 && cuh >= 8)
         {
