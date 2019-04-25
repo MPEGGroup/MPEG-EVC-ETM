@@ -68,31 +68,6 @@ static int picman_move_pic(EVC_PM *pm, int from, int to)
     return 0;
 }
 
-static void picman_sliding_window(EVC_PM * pm)
-{
-    int i;
-    EVC_PIC * pic;
-
-    while(pm->cur_num_ref_pics >= pm->max_num_ref_pics)
-    {
-        for(i = 0; i < MAX_PB_SIZE; i++) /* this is coding order */
-        {
-            if(pm->pic[i] && IS_REF(pm->pic[i]))
-            {
-                pic = pm->pic[i];
-
-                /* unmark for reference */
-                SET_REF_UNMARK(pic);
-                picman_move_pic(pm, i, MAX_PB_SIZE - 1);
-
-                pm->cur_num_ref_pics--;
-
-                break;
-            }
-        }
-    }
-}
-
 static void pic_marking_no_rpl(EVC_PM * pm, int ref_pic_gap_length)
 {
     int i;
@@ -676,7 +651,7 @@ int evc_picman_put_pic(EVC_PM * pm, EVC_PIC * pic, int tile_group_type,
         pm->pic_lease = NULL;
     }
 
-    PRINT_DPB(pm);
+    /*PRINT_DPB(pm);*/
 
     return EVC_OK;
 }

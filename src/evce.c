@@ -155,6 +155,8 @@ static const s8 tbl_poc_gop_offset[5][15] =
     { -8,   -12, -14,  -15,  -13,  -10,  -11,   -9,   -4,   -6,   -7,   -5,   -2,   -3,   -1}   /* gop_size = 16 */
 };
 
+static const s8 tbl_tile_group_depth_P_orig[GOP_P] = { FRM_DEPTH_3,  FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_1 };
+
 static const s8 tbl_tile_group_depth_P[5][16] =
 {
     /* gop_size = 2 */
@@ -189,6 +191,24 @@ static const s8 tbl_tile_group_depth[5][15] =
     /* gop_size = 16 */
     { FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_4, FRM_DEPTH_4, FRM_DEPTH_4, FRM_DEPTH_5, \
       FRM_DEPTH_5,  FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_5 }
+};
+
+static const s8 tbl_tile_group_depth_orig[5][15] =
+{
+    /* gop_size = 2 */
+    { FRM_DEPTH_2, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, \
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    /* gop_size = 4 */
+    { FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_3, 0xFF, 0xFF, 0xFF, 0xFF, \
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    /* gop_size = 8 */
+    { FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_4, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_4,\
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    /* gop_size = 12 */
+    {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    /* gop_size = 16 */
+    { FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5, \
+      FRM_DEPTH_3,  FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5 }
 };
 
 static EVCE_CTX * ctx_alloc(void)
@@ -1292,18 +1312,19 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
         if(ctx->param.use_hgop)
         {
             pos = (pic_imcnt % gop_size) - 1;
-            ctx->tile_group_depth = tbl_tile_group_depth[gop_size >> 2][pos];
             if (ctx->sps.tool_pocs)
             {
+                ctx->tile_group_depth = tbl_tile_group_depth_orig[gop_size >> 2][pos];
                 ctx->poc = ((pic_imcnt / gop_size) * gop_size) +
                     tbl_poc_gop_offset[gop_size >> 2][pos];
             }
             else
             {
+                ctx->tile_group_depth = tbl_tile_group_depth[gop_size >> 2][pos];
                 int layer_id = ctx->tile_group_depth - (ctx->tile_group_depth > 0);
                 poc_derivation(ctx, layer_id);
             }
-            if (gop_size >= 2)
+            if (!ctx->sps.tool_pocs && gop_size >= 2)
             {
                 ctx->tile_group_ref_flag = (ctx->tile_group_depth == tbl_tile_group_depth[gop_size >> 2][gop_size - 2] ? 0 : 1);
             }
@@ -1360,7 +1381,14 @@ static void decide_tile_group_type(EVCE_CTX * ctx)
             ctx->tile_group_type = TILE_GROUP_B;
             if(ctx->param.use_hgop)
             {
-                ctx->tile_group_depth = tbl_tile_group_depth_P[ctx->param.ref_pic_gap_length >> 2][(pic_imcnt - 1) % ctx->param.ref_pic_gap_length];
+                if (ctx->sps.tool_rpl)
+                {
+                    ctx->tile_group_depth = tbl_tile_group_depth_P_orig[(pic_imcnt - 1) % GOP_P];
+                }
+                else
+                {
+                    ctx->tile_group_depth = tbl_tile_group_depth_P[ctx->param.ref_pic_gap_length >> 2][(pic_imcnt - 1) % ctx->param.ref_pic_gap_length];
+                }
             }
             else
             {
@@ -1414,7 +1442,6 @@ static void decide_tile_group_type(EVCE_CTX * ctx)
     {
         ctx->layer_id = 0;
     }
-
     ctx->ptr = ctx->poc;
     ctx->dtr = ctx->ptr;
 }

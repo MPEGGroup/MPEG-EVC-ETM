@@ -1316,6 +1316,10 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
                 poc_derivation(ctx, tgh);
             }
         }
+        else
+        {
+            ctx->tile_group_ref_flag = 1;
+        }
 
         if (sps->picture_num_present_flag)
         {
