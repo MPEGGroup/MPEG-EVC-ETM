@@ -130,7 +130,11 @@ static void print_usage(void)
 
 static int read_a_bs(FILE * fp, int * pos, unsigned char * bs_buf)
 {
+#if HLS_M47668
     int read_size, bs_size;
+#else
+    int read_size, bs_size, tmp;
+#endif
     unsigned char b = 0;
 
     bs_size = 0;
@@ -139,8 +143,17 @@ static int read_a_bs(FILE * fp, int * pos, unsigned char * bs_buf)
     if(!fseek(fp, *pos, SEEK_SET))
     {
         /* read size first */
+#if HLS_M47668
         if(4 == fread(&bs_size, 1, 4, fp))
         {
+#else
+        if (4 == fread(&tmp, 1, 4, fp))
+        {
+            bs_size |= (0xff000000 & tmp) >> 24;
+            bs_size |= (0x00ff0000 & tmp) >> 8;
+            bs_size |= (0x0000ff00 & tmp) << 8;
+            bs_size |= (0x000000ff & tmp) << 24;
+#endif
             if(bs_size <= 0)
             {
                 v0print("Invalid bitstream size![%d]\n", bs_size);
@@ -221,7 +234,11 @@ static int print_stat(EVCD_STAT * stat, int ret)
         {
             v0print("Unknown bitstream");
         }
+#if HLS_M47668
         v1print(" (read=%d, poc=%d, tid=%d) ", stat->read, (int)stat->poc, (int)stat->tid);
+#else 
+        v1print(" (read=%d, poc=%d) ", stat->read, (int)stat->poc);
+#endif
         for(i=0; i < 2; i++)
         {
             v1print("[L%d ", i);

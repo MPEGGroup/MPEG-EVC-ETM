@@ -371,6 +371,9 @@ enum SAD_POINT_INDEX
 #define  APS_MAX_NUM                       32
 #endif
 
+#define HLS_M7668                          1
+
+
 // The structure below must be aligned to identical structure in evc_alf.c!
 typedef struct _evc_AlfFilterShape
 {
@@ -531,7 +534,11 @@ extern int fp_trace_counter;
 /* for GOP 16 test, increase to 32 */
 
 /* DPB Extra size */
+#if HLS_M47668
 #define EXTRA_FRAME                        MAX_NUM_ACTIVE_REF_FRAME
+#else
+#define EXTRA_FRAME                        MAX_NUM_REF_PICS
+#endif
 
 /* maximum picture buffer size */
 #define MAX_PB_SIZE                       (MAX_NUM_REF_PICS + EXTRA_FRAME)
@@ -1123,10 +1130,12 @@ typedef struct _EVC_SPS
     int              tool_eipd;
     int              tool_iqt;
     int              tool_cm_init;
+#if HLS_M47668
     int              tool_rpl;
     int              tool_pocs;
     int              log2_sub_gop_length;
     int              log2_ref_pic_gap_length;
+#endif
     int              log2_max_pic_order_cnt_lsb_minus4;
     int              sps_max_dec_pic_buffering_minus1;
     int              picture_num_present_flag;

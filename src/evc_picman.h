@@ -41,8 +41,11 @@ int evc_picman_refpic_marking(EVC_PM *pm, EVC_TGH *tgh);
 int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int tile_group_type, u32 ptr, u8 layer_id, int last_intra, EVC_REFP (*refp)[REFP_NUM]);
 
 EVC_PIC * evc_picman_get_empty_pic(EVC_PM *pm, int *err);
-
+#if HLS_M47668
 int evc_picman_put_pic(EVC_PM *pm, EVC_PIC *pic, int tile_group_type, u32 ptr, u32 dtr, u8 layer_id, int need_for_output, EVC_REFP (*refp)[REFP_NUM], int ref_pic, int pnpf, int ref_pic_gap_length);
+#else
+int evc_picman_put_pic(EVC_PM *pm, EVC_PIC *pic, int tile_group_type, u32 ptr, u32 dtr, u8 layer_id, int need_for_output, EVC_REFP(*refp)[REFP_NUM], EVC_MMCO *mmco, int pnpf);
+#endif
 EVC_PIC * evc_picman_out_pic(EVC_PM *pm, int *err);
 int evc_picman_deinit(EVC_PM *pm);
 int evc_picman_refp_reorder(EVC_PM *pm, int num_ref_pics_act, u8 tile_group_type, u32 ptr, EVC_REFP (*refp)[REFP_NUM], int last_intra, EVC_RMPNI *rmpni);
