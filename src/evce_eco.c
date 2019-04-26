@@ -254,6 +254,36 @@ int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps)
     return EVC_OK;
 }
 
+#if ALF_PARAMETER_APS
+int evce_eco_aps(EVC_BSW * bs, EVC_APS * aps)
+{
+    evc_bsw_write(bs, aps->aps_id, 5); // signal APS ID
+    evce_eco_alf_aps_param(bs, aps); // signal ALF filter parameter except ALF map
+
+    u8 aps_extension_flag = 0;
+    evc_bsw_write1(bs, aps_extension_flag);
+
+    // Dmytro: This is a temporal solution for: Decoder confirming EVC specification version 1, shall not depend on the value of aps_extension_data_flag. 
+    // Assert shall be removed after implementing more_rbsp_data function
+    assert(aps_extension_flag == 0);
+    if (aps_extension_flag)
+    {
+        while (0/*more_rbsp_data()*/)
+        {
+            u8 aps_extension_data_flag;
+            evc_bsw_write1(bs, aps_extension_data_flag);
+        }
+    }
+
+    while (!EVC_BSW_IS_BYTE_ALIGN(bs))
+    {
+        evc_bsw_write1(bs, 0);
+    }
+
+    return EVC_OK;
+}
+#endif
+
 int evce_eco_tgh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh)
 {
     int NumTilesInTileGroup = 0; //TBD according to the spec
@@ -290,10 +320,18 @@ int evce_eco_tgh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh)
     if (sps->tool_alf)
     {
         evc_bsw_write1(bs, tgh->alf_on);
+#if ALF_PARAMETER_APS
+        if (tgh->alf_on)
+        {
+            evc_bsw_write(bs, tgh->aps_signaled, 5); //encode tile group aps id
+            evce_eco_alf_tgh_param(bs, tgh); // signaling ALF map
+        }
+#else
         if (tgh->alf_on)
         {
             evce_eco_alf_tgh_param(bs, tgh);
         }
+#endif
     }
 #endif
 
@@ -2879,7 +2917,86 @@ void evce_eco_alf_filter(EVC_BSW * bs, evc_AlfTileGroupParam asp, const BOOL isC
         }
     }
 }
+#if ALF_PARAMETER_APS
+int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS * aps)
+{
+    evc_AlfTileGroupParam alfTileGroupParam = aps->alf_aps_param;
 
+    evc_bsw_write1(bs, alfTileGroupParam.enabledFlag[0]); //"alf_tile_group_enable_flag"
+    if (!alfTileGroupParam.enabledFlag[0])
+    {
+        return 0;
+    }
+
+    const int alfChromaIdc = alfTileGroupParam.enabledFlag[1] * 2 + alfTileGroupParam.enabledFlag[2];
+    evce_truncatedUnaryEqProb(bs, alfChromaIdc, 3);
+    {
+        evce_xWriteTruncBinCode(bs, alfTileGroupParam.numLumaFilters - 1, MAX_NUM_ALF_CLASSES);
+        evc_bsw_write1(bs, !alfTileGroupParam.lumaFilterType); //  "filter_type_flag"
+
+        if (alfTileGroupParam.numLumaFilters > 1)
+        {
+            for (int i = 0; i < MAX_NUM_ALF_CLASSES; i++)
+            {
+                evce_xWriteTruncBinCode(bs, (u32)(alfTileGroupParam.filterCoeffDeltaIdx[i]), alfTileGroupParam.numLumaFilters);  //filter_coeff_delta[i]
+            }
+        }
+
+        char codetab_pred[3] = { 1, 0, 2 };
+        const int iNumFixedFilterPerClass = 16;
+        if (iNumFixedFilterPerClass > 0)
+        {
+            evc_alfGolombEncode(bs, codetab_pred[alfTileGroupParam.fixedFilterPattern], 0);
+
+            if (alfTileGroupParam.fixedFilterPattern == 2)
+            {
+                for (int classIdx = 0; classIdx < MAX_NUM_ALF_CLASSES; classIdx++)
+                {
+                    evc_bsw_write1(bs, alfTileGroupParam.fixedFilterIdx[classIdx] > 0 ? 1 : 0); // "fixed_filter_flag"
+                }
+            }
+
+            if (alfTileGroupParam.fixedFilterPattern > 0 && iNumFixedFilterPerClass > 1)
+            {
+                for (int classIdx = 0; classIdx < MAX_NUM_ALF_CLASSES; classIdx++)
+                {
+                    if (alfTileGroupParam.fixedFilterIdx[classIdx] > 0)
+                    {
+                        evce_xWriteTruncBinCode(bs, alfTileGroupParam.fixedFilterIdx[classIdx] - 1, iNumFixedFilterPerClass);
+                    }
+                }
+            }
+        }
+
+        evce_eco_alf_filter(bs, aps->alf_aps_param, FALSE);
+    }
+
+    if (alfChromaIdc)
+    {
+        evc_bsw_write1(bs, alfTileGroupParam.chromaCtbPresentFlag);
+        if (!(alfTileGroupParam.temporalAlfFlag))
+        {
+            evce_eco_alf_filter(bs, aps->alf_aps_param, TRUE);
+        }
+    }
+
+    return EVC_OK;
+}
+
+int evce_eco_alf_tgh_param(EVC_BSW * bs, EVC_TGH * tgh)
+{
+    evc_AlfTileGroupParam alfTileGroupParam = tgh->alf_tgh_param;
+
+    evc_bsw_write1(bs, alfTileGroupParam.isCtbAlfOn);
+    if (alfTileGroupParam.isCtbAlfOn)
+    {
+        for (int i = 0; i < tgh->num_ctb; i++)
+            evc_bsw_write1(bs, (int)(alfTileGroupParam.alfCtuEnableFlag[0][i]));
+    }
+
+    return EVC_OK;
+}
+#else
 int evce_eco_alf_tgh_param(EVC_BSW * bs, EVC_TGH * tgh)
 {
     evc_AlfTileGroupParam alfTileGroupParam = tgh->alf_tgh_param;
@@ -2965,4 +3082,5 @@ int evce_eco_alf_tgh_param(EVC_BSW * bs, EVC_TGH * tgh)
 
     return EVC_OK;
 }
+#endif
 #endif

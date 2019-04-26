@@ -644,6 +644,12 @@ struct _EVCE_CTX
     EVC_SPS               sps;
     /* picture parameter set */
     EVC_PPS               pps;
+#if ALF_PARAMETER_APS
+    /* adaptation parameter set */
+    EVC_APS               aps;
+    u8                    aps_counter;
+    u8                    aps_temp;
+#endif
     /* tile_group header */
     EVC_TGH                tgh;
     /* reference picture manager */
@@ -788,7 +794,11 @@ struct _EVCE_CTX
 
 #if ALF
     void* enc_alf;
+#if ALF_PARAMETER_APS
+    int(*fn_alf)(EVCE_CTX * ctx, EVC_PIC * pic, EVC_TGH* tgh, EVC_APS* aps);
+#else
     int (*fn_alf)(EVCE_CTX * ctx, EVC_PIC * pic, EVC_TGH* tgh);
+#endif
 #endif
 
     void (*fn_picbuf_expand)(EVCE_CTX * ctx, EVC_PIC * pic);

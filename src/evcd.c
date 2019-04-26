@@ -973,7 +973,11 @@ int evcd_alf(EVCD_CTX * ctx, EVC_PIC * pic)
 {
     AdaptiveLoopFilter* p = (AdaptiveLoopFilter*)(ctx->alf);
 
+#if ALF_PARAMETER_APS
+    call_alf_process_aps(p, ctx, pic);
+#else
     call_ALFProcess(p, ctx, pic);
+#endif
 
     return EVC_OK;
 }
@@ -1133,6 +1137,9 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     EVC_BSR  *bs = &ctx->bs;
     EVC_SPS  *sps = &ctx->sps;
     EVC_PPS  *pps = &ctx->pps;
+#if ALF_PARAMETER_APS
+    EVC_APS  *aps = &ctx->aps;
+#endif
     EVC_TGH   *tgh = &ctx->tgh;
     EVC_CNKH *cnkh = &ctx->cnkh;
     int        ret;
@@ -1167,7 +1174,9 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     evc_assert_rv(EVC_SUCCEEDED(ret), ret);
     /* check evc version */
     evc_assert_rv(cnkh->ver == EVC_VER_1, EVC_ERR_UNSUPPORTED);
-
+#if ALF_PARAMETER_APS
+    ctx->aps_temp = -1;
+#endif
     if(cnkh->ctype == EVC_CT_SPS)
     {
         ret = evcd_eco_sps(bs, sps);
@@ -1184,7 +1193,25 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         tgh->alf_on = sps->tool_alf;
 #endif
     }
+#if ALF_PARAMETER_APS
+    else if (cnkh->ctype == EVC_CT_APS)
+    {
+        ret = evcd_eco_aps(bs, aps);
+        evc_assert_rv(EVC_SUCCEEDED(ret), ret);
+        aps->alf_aps_param.prevIdx = aps->aps_id;
+        store_aps_to_buffer(ctx);
+        ctx->aps_temp = 0;
+
+        /* parse chunk header */
+        ret = evcd_eco_cnkh(bs, cnkh);
+        evc_assert_rv(EVC_SUCCEEDED(ret), ret);
+        /* check evc version */
+        evc_assert_rv(cnkh->ver == EVC_VER_1, EVC_ERR_UNSUPPORTED);
+    }
+    if (cnkh->ctype == EVC_CT_TILE_GROUP)
+#else
     else if (cnkh->ctype == EVC_CT_TILE_GROUP)
+#endif
     {
         /* decode tile_group header */
 #if ALF
@@ -1319,7 +1346,11 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 
         tile_group_deinit(ctx);
     }
+#if ALF_PARAMETER_APS
+    if ( ! ( (cnkh->ctype == EVC_CT_TILE_GROUP) || (cnkh->ctype == EVC_CT_SPS) || (cnkh->ctype == EVC_CT_APS) ) )
+#else
     else
+#endif
     {
         return EVC_ERR_MALFORMED_BITSTREAM;
     }

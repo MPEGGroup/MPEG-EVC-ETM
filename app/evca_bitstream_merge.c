@@ -335,6 +335,9 @@ int main(int argc, const char **argv)
     EVC_TGH          * tgh;
     EVC_CNKH        * cnkh;
     EVCD_CTX        * ctx;
+#if ALF_PARAMETER_APS
+    EVC_APS         * aps;
+#endif
 
     // set line buffering (_IOLBF) for stdout to prevent incomplete logs when app crashed.
     setvbuf(stdout, NULL, _IOLBF, 1024);
@@ -403,7 +406,9 @@ int main(int argc, const char **argv)
             sps = &ctx->sps;
             tgh = &ctx->tgh;
             cnkh = &ctx->cnkh;
-
+#if ALF_PARAMETER_APS
+            aps = &ctx->aps;
+#endif
             /* set error status */
             ctx->bs_err = bitb.err = 0;
             EVC_TRACE_SET(1);
@@ -445,7 +450,10 @@ int main(int argc, const char **argv)
                 ctx->f_lcu = ctx->w_lcu * ctx->h_lcu;
                 tgh->num_ctb = ctx->f_lcu;
 #endif
-
+#if ALF_PARAMETER_APS
+                ret = evcd_eco_aps(bs, aps);
+                evc_assert_rv(EVC_SUCCEEDED(ret), ret);
+#endif
                 ret = evcd_eco_tgh(bs, &ctx->sps, &ctx->pps, tgh);
                 evc_assert_rv(EVC_SUCCEEDED(ret), ret);
 

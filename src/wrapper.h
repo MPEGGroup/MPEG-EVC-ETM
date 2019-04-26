@@ -72,6 +72,10 @@ void call_ALFProcess(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic);
 
 void init_AlfFilterShape(void * th, int size);
 
+#if ALF_PARAMETER_APS
+void store_aps_to_buffer(EVCD_CTX * ctx);
+void call_alf_process_aps(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic);
+#endif
 #ifdef __cplusplus
 }
 #endif

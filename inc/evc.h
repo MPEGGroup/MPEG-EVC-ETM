@@ -181,7 +181,12 @@ extern "C"
 #define EVC_CT_UNKNOWN                  (0)
 #define EVC_CT_TILE_GROUP                    (1) /* tile_group */
 #define EVC_CT_SPS                      (2) /* sequence parameter set */
+#if 1 //ALF_PARAMETER_APS
+#define EVC_CT_APS                     (5) /* adaptation parameter set  */
+#endif
+
 #define EVC_CT_SIGN                     (6) /* picture signature */
+
 
 /*****************************************************************************
  * tile_group type

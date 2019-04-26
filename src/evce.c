@@ -457,6 +457,12 @@ static void set_pps(EVCE_CTX * ctx, EVC_PPS * pps)
     pps->single_tile_in_pic_flag = 1;
 }
 
+#if ALF_PARAMETER_APS
+static void set_aps(EVCE_CTX * ctx, EVC_APS * aps)
+{
+}
+#endif
+
 typedef struct _QP_ADAPT_PARAM
 {
     int qp_offset_layer;
@@ -1148,7 +1154,11 @@ int evce_deblock_h263(EVCE_CTX * ctx, EVC_PIC * pic)
     return EVC_OK;
 }
 #if ALF
+#if ALF_PARAMETER_APS
+int evce_alf(EVCE_CTX * ctx, EVC_PIC * pic, EVC_TGH* tgh, EVC_APS* aps)
+#else
 int evce_alf(EVCE_CTX * ctx, EVC_PIC * pic, EVC_TGH* tgh)
+#endif
 {
     EncAdaptiveLoopFilter* p = (EncAdaptiveLoopFilter*)(ctx->enc_alf);
 
@@ -1158,7 +1168,35 @@ int evce_alf(EVCE_CTX * ctx, EVC_PIC * pic, EVC_TGH* tgh)
 
 
     set_resetALFBufferFlag(p, tgh->tile_group_type == TILE_GROUP_I ? 1 : 0);
+#if ALF_PARAMETER_APS
     call_enc_ALFProcess(p, lambdas, ctx, pic, &(tgh->alf_tgh_param));
+
+    aps->alf_aps_param = tgh->alf_tgh_param;
+    if (tgh->alf_tgh_param.resetALFBufferFlag) // reset aps index counter (buffer) if ALF flag reset is present
+    {
+        ctx->aps_counter = -1;
+    }
+    tgh->alf_on = tgh->alf_tgh_param.enabledFlag[0];
+    if (tgh->alf_on)
+    {
+        if (aps->alf_aps_param.temporalAlfFlag)
+        {
+            aps->aps_id = tgh->alf_tgh_param.prevIdx;
+            tgh->aps_signaled = aps->aps_id;
+            //printf("TempId: %d, [%d %d %d] ", aps->aps_id, tgh->alf_tgh_param.enabledFlag[0], tgh->alf_tgh_param.enabledFlag[1], tgh->alf_tgh_param.enabledFlag[2]);
+        }
+        else
+        {
+            ctx->aps_counter++;
+            ctx->aps_counter = ctx->aps_counter % 6; // encoder side limmitation, current encoder support ALF buffer size of 6.
+            aps->aps_id = ctx->aps_counter;
+            tgh->aps_signaled = aps->aps_id;
+            //printf("NewID: %d, [%d %d %d]  ", aps->aps_id, tgh->alf_tgh_param.enabledFlag[0], tgh->alf_tgh_param.enabledFlag[1], tgh->alf_tgh_param.enabledFlag[2]);
+        }
+    }
+#else
+    call_enc_ALFProcess(p, lambdas, ctx, pic, &(tgh->alf_tgh_param) );
+#endif
     return EVC_OK;
 }
 #endif
@@ -1203,6 +1241,48 @@ int evce_picbuf_get_inbuf(EVCE_CTX * ctx, EVC_IMGB ** imgb)
     return EVC_ERR_UNEXPECTED;
 }
 
+
+#if ALF_PARAMETER_APS
+int evce_aps_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, EVC_APS * aps)
+{
+    EVC_BSW * bs = &ctx->bs;
+    EVC_SPS * sps = &ctx->sps;
+    EVC_PPS * pps = &ctx->pps;
+
+    evc_assert_rv(bitb->addr && bitb->bsize > 0, EVC_ERR_INVALID_ARGUMENT);
+
+    /* bitsteam initialize for sequence */
+    evc_bsw_init(bs, bitb->addr, bitb->bsize, NULL);
+    bs->pdata[1] = &ctx->sbac_enc;
+
+    /* encode sequence parameter set */
+    /* skip first four byte to write the bitstream size */
+    evce_bsw_skip_tile_group_size(bs);
+
+    /* chunk header */
+
+    /* Encode APS chunk header */
+    EVC_CNKH aps_cnkh;
+    set_cnkh(ctx, &aps_cnkh, EVC_VER_1, EVC_CT_APS);
+
+    /* Write ALF-APS */
+    set_aps(ctx, aps); // TBD: empty function call
+    evc_assert_rv(evce_eco_aps(bs, aps) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
+
+    /* de-init BSW */
+    evc_bsw_deinit(bs);
+
+    /* write the bitstream size */
+    evce_bsw_write_tile_group_size(bs);
+
+    /* set stat ***************************************************************/
+    evc_mset(stat, 0, sizeof(EVCE_STAT));
+    stat->write = EVC_BSW_GET_WRITE_BYTE(bs);
+    stat->ctype = EVC_CT_APS;
+
+    return EVC_OK;
+}
+#endif
 int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 {
     EVC_BSW * bs = &ctx->bs;
@@ -2008,6 +2088,9 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     EVCE_CORE * core;
     EVC_BSW   * bs;
     EVC_TGH    * tgh;
+#if ALF_PARAMETER_APS
+    EVC_APS   * aps;
+#endif
     EVC_CNKH    cnkh;
     int          ret;
     u32          i;
@@ -2017,7 +2100,16 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     bs = &ctx->bs;
     core = ctx->core;
     tgh = &ctx->tgh;
-
+#if ALF_PARAMETER_APS
+    aps = &ctx->aps;
+    if (ctx->tile_group_type == TILE_GROUP_I )
+    {
+        ctx->aps_counter = -1;
+        aps->aps_id = -1;
+        ctx->tgh.aps_signaled = -1; // reset stored aps id in tile group header
+        ctx->aps_temp = 0;
+    }
+#endif
     if (ctx->sps.picture_num_present_flag)
     {
         /* initialize reference pictures */
@@ -2173,7 +2265,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     tgh->alf_on = ctx->sps.tool_alf;
     if(tgh->alf_on)
     {
+#if ALF_PARAMETER_APS
+        ret = ctx->fn_alf(ctx, PIC_MODE(ctx), tgh, aps);
+#else
         ret = ctx->fn_alf(ctx, PIC_MODE(ctx), tgh);
+#endif
         evc_assert_rv(ret == EVC_OK, ret);
     }
 #endif
@@ -2201,6 +2297,28 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
     /* Encode skip tile_group_size field */
     evce_bsw_skip_tile_group_size(bs);
+
+#if ALF_PARAMETER_APS
+    /* Encode ALF in APS */
+    if ((ctx->sps.tool_alf) && (ctx->tgh.alf_on)) // User defined params
+    {
+        if ((aps->alf_aps_param.enabledFlag[0]) && (aps->alf_aps_param.temporalAlfFlag == 0))    // Encoder defined parameters (RDO): ALF is selected, and new ALF was derived for TG
+        {
+            /* Encode APS chunk header */
+            EVC_CNKH aps_cnkh = cnkh;
+            aps_cnkh.ctype = EVC_CT_APS;
+
+            ret = evce_eco_cnkh(bs, &aps_cnkh);
+            evc_assert_rv(ret == EVC_OK, ret);
+
+            /* Write ALF-APS */
+            set_aps(ctx, aps); // TBD: empty function call
+            evc_assert_rv(evce_eco_aps(bs, aps) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
+
+        }
+    }
+#endif
+
 
     /* Encode chunk header */
     ret = evce_eco_cnkh(bs, &cnkh);
@@ -2430,6 +2548,9 @@ EVCE evce_create(EVCE_CDSC * cdsc, int * err)
     /* set default value for ctx */
     ctx->magic = EVCE_MAGIC_CODE;
     ctx->id = (EVCE)ctx;
+#if ALF_PARAMETER_APS
+    ctx->tgh.aps_signaled = -1;
+#endif
 
     return (ctx->id);
 ERR:

@@ -69,10 +69,10 @@ void copy_and_extend( pel* tmpYuv, const int s, const pel* recYuv, const int s2,
 
 typedef struct Area
 {
-	int x;
-	int y;
-	int width;
-	int height;
+    int x;
+    int y;
+    int width;
+    int height;
 } Area;
 
 /// chroma formats (according to semantics of chroma_format_idc)
@@ -143,11 +143,11 @@ typedef struct CodingStructure
 
 static const int pattern5[25] =
 {
-	      0,
-	      1,  2,  3,
-	      4,  5,  6,  5,  4,
-	      3,  2,  1,
-	      0
+          0,
+          1,  2,  3,
+          4,  5,  6,  5,  4,
+          3,  2,  1,
+          0
 };
 
 static const int pattern7[25] =
@@ -288,7 +288,12 @@ extern short m_coeffFinal[MAX_NUM_ALF_CLASSES * MAX_NUM_ALF_LUMA_COEFF];
 extern int   m_inputBitDepth[MAX_NUM_CHANNEL_TYPE];
 
 extern unsigned m_acAlfLineBufferCurrentSize;
+
+#if ALF_PARAMETER_APS
+extern AlfTileGroupParam m_acAlfLineBuffer[APS_MAX_NUM];
+#else
 extern AlfTileGroupParam m_acAlfLineBuffer[ALF_TEMPORAL_WITH_LINE_BUFFER];
+#endif
 extern AlfTileGroupParam m_IRAPFilter;
 
 extern void init_AlfFilterShape(void* _th, int size);
@@ -298,6 +303,11 @@ extern void deriveClassification( AlfClassifier** classifier, const pel * srcLum
 
 extern void copyAlfParam(AlfTileGroupParam* dst, AlfTileGroupParam* src);
 extern void storeALFParamLine(AlfTileGroupParam* pAlfParam, unsigned tLayer);
+#if ALF_PARAMETER_APS
+void store_alf_paramline_from_aps(AlfTileGroupParam* pAlfParam, u8 idx);
+void load_alf_paramline_from_aps_buffer(AlfTileGroupParam* pAlfParam, u8 idx);
+#endif
+
 extern void resetTemporalAlfBufferLine();
 extern void resetTemporalAlfBufferLine2First();
 

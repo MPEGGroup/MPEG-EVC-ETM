@@ -366,6 +366,11 @@ enum SAD_POINT_INDEX
 #define MAX_ALF_FILTER_LENGTH              7
 #define MAX_NUM_ALF_COEFF                 (MAX_ALF_FILTER_LENGTH * MAX_ALF_FILTER_LENGTH / 2 + 1)
 
+#define ALF_PARAMETER_APS                  1  // move the signaling of ALF parameter from TGH to APS
+#if ALF_PARAMETER_APS
+#define  APS_MAX_NUM                       32
+#endif
+
 // The structure below must be aligned to identical structure in evc_alf.c!
 typedef struct _evc_AlfFilterShape
 {
@@ -1246,6 +1251,16 @@ typedef struct _evc_AlfTileGroupParam
     BOOL store2ALFBufferFlag;
 
 } evc_AlfTileGroupParam;
+
+#if ALF_PARAMETER_APS
+typedef struct _EVC_APS
+{
+    int                               aps_id;                    // adaptation_parameter_set_id
+    evc_AlfTileGroupParam          alf_aps_param;              // alf data
+} EVC_APS;
+
+#endif
+
 #endif
 
 typedef struct _EVC_TGH
@@ -1296,7 +1311,11 @@ typedef struct _EVC_TGH
     u8               alf_on;
     u8               ctb_alf_on;
     u16              num_ctb;
-    evc_AlfTileGroupParam alf_tgh_param;
+#if ALF_PARAMETER_APS
+    int                 aps_signaled;
+    EVC_APS*         aps;
+#endif
+    evc_AlfTileGroupParam    alf_tgh_param;
 #endif
 
     /* delta of presentation temporal reference */

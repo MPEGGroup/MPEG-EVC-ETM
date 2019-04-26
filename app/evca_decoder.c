@@ -211,6 +211,12 @@ static int print_stat(EVCD_STAT * stat, int ret)
         {
             v1print("Sequence Parameter Set");
         }
+#if ALF_PARAMETER_APS
+        else if (stat->ctype == EVC_CT_APS)
+        {
+            v1print("Adaptation Parameter Set");
+        }
+#endif
         else
         {
             v0print("Unknown bitstream");
