@@ -349,7 +349,7 @@ int evce_eco_tgh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh)
             evc_bsw_write(bs, tgh->poc, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
         }
 #else
-        evc_bsw_write_ue(bs, tgh->poc);
+        evc_bsw_write(bs, tgh->poc, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
 #endif
         if (sps->picture_num_present_flag)
         {
