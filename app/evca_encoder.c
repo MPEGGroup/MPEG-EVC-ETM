@@ -93,6 +93,9 @@ static int  op_qp                 = 0;
 static int  op_fps                = 0;
 static int  op_iperiod            = 0;
 static int  op_max_b_frames       = 0;
+#if HLS_M47668
+static int  op_ref_pic_gap_length = 0;
+#endif
 static int  op_closed_gop         = 0;
 static int  op_disable_hgop       = 0;
 static int  op_in_bit_depth       = 8;
@@ -321,6 +324,13 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_FLAG_OUT_BIT_DEPTH], &op_out_bit_depth,
         "output bitdepth (8, 10)(default: same as input bitdpeth) "
     },
+#if HLS_M47668
+    {
+        EVC_ARGS_NO_KEY,  "ref_pic_gap_length", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_FLAG_OUT_BIT_DEPTH], &op_ref_pic_gap_length,
+        "reference picture gap length (1, 2, 4, 8, 16) only available when -g is 0"
+    },
+#endif
     {
         EVC_ARGS_NO_KEY,  "closed_gop", EVC_ARGS_VAL_TYPE_NONE,
         &op_flag[OP_FLAG_CLOSED_GOP], &op_closed_gop,
@@ -339,7 +349,7 @@ static EVC_ARGS_OPTION options[] = \
     {
         EVC_ARGS_NO_KEY,  "profile", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_PROFILE], &op_profile,
-        "profile setting flag  2: main, 1: baseline (default 2(main)) "
+        "profile setting flag  1: main, 0: baseline (default 1 (main)) "
     },
     {
         EVC_ARGS_NO_KEY,  "level", EVC_ARGS_VAL_TYPE_INTEGER,
@@ -739,6 +749,9 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->level = op_level;
     cdsc->btt = op_btt;
     cdsc->suco = op_suco;
+#if HLS_M47668
+    cdsc->ref_pic_gap_length = op_ref_pic_gap_length;
+#endif
 
 #if USE_TILE_GROUP_DQP
     cdsc->add_qp_frame = op_add_qp_frames;
@@ -1402,9 +1415,15 @@ void print_psnr(EVCE_STAT * stat, double * psnr, int bitrate, EVC_CLK clk_end)
     }
 
 #if CALC_SSIM
+#if HLS_M47668
+    v1print("%-7d%-3d(%c) %-5d%-10.4f%-10.4f%-10.4f%-10d%-10d%-12.7f", \
+        stat->poc, stat->tid, stype, stat->qp, psnr[0], psnr[1], psnr[2], \
+        bitrate, evc_clk_msec(clk_end), ms_ssim);
+#else
     v1print("%-7d(%c) %-5d%-10.4f%-10.4f%-10.4f%-10d%-10d%-12.7f", \
         stat->poc, stype, stat->qp, psnr[0], psnr[1], psnr[2], \
         bitrate, evc_clk_msec(clk_end), ms_ssim);
+#endif
 #else
     v1print("%-7d(%c) %-5d%-10.4f%-10.4f%-10.4f%-10d%-10d", \
         stat->poc, stype, stat->qp, psnr[0], psnr[1], psnr[2], \

@@ -153,6 +153,63 @@ static const s8 tbl_poc_gop_offset[5][15] =
     { -8,   -12, -14,  -15,  -13,  -10,  -11,   -9,   -4,   -6,   -7,   -5,   -2,   -3,   -1}   /* gop_size = 16 */
 };
 
+#if HLS_M47668
+static const s8 tbl_tile_group_depth_P_orig[GOP_P] = { FRM_DEPTH_3,  FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_1 };
+
+static const s8 tbl_tile_group_depth_P[5][16] =
+{
+    /* gop_size = 2 */
+    { FRM_DEPTH_2, FRM_DEPTH_1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, \
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    /* gop_size = 4 */
+    { FRM_DEPTH_3, FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_1, 0xFF, 0xFF, 0xFF, 0xFF, \
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    /* gop_size = 8 */
+    { FRM_DEPTH_4, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_2, FRM_DEPTH_4, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_1,\
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    /* gop_size = 12 */
+    {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
+    /* gop_size = 16 */
+    { FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_3, FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_2, \
+      FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_3, FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_1 }
+};
+
+static const s8 tbl_tile_group_depth[5][15] =
+{
+    /* gop_size = 2 */
+    { FRM_DEPTH_2, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, \
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    /* gop_size = 4 */
+    { FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_3, 0xFF, 0xFF, 0xFF, 0xFF, \
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    /* gop_size = 8 */
+    { FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_4, FRM_DEPTH_4, FRM_DEPTH_4,\
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    /* gop_size = 12 */
+    {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    /* gop_size = 16 */
+    { FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_4, FRM_DEPTH_4, FRM_DEPTH_4, FRM_DEPTH_5, \
+      FRM_DEPTH_5,  FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_5 }
+};
+
+static const s8 tbl_tile_group_depth_orig[5][15] =
+{
+    /* gop_size = 2 */
+    { FRM_DEPTH_2, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, \
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    /* gop_size = 4 */
+    { FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_3, 0xFF, 0xFF, 0xFF, 0xFF, \
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    /* gop_size = 8 */
+    { FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_4, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_4,\
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    /* gop_size = 12 */
+    {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
+    /* gop_size = 16 */
+    { FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5, \
+      FRM_DEPTH_3,  FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5 }
+};
+#else
 static const s8 tbl_ref_depth[5][15] =
 {
     /* gop_size = 2 */
@@ -183,7 +240,7 @@ static const s8 tbl_tile_group_ref[5][15] =
     {1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0}
 };
 
-static const s8 tbl_tile_group_depth_P[GOP_P] = { FRM_DEPTH_3,  FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_1};
+static const s8 tbl_tile_group_depth_P[GOP_P] = { FRM_DEPTH_3,  FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_1 };
 
 static const s8 tbl_tile_group_depth[5][15] =
 {
@@ -202,6 +259,7 @@ static const s8 tbl_tile_group_depth[5][15] =
     { FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, \
       FRM_DEPTH_5, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5}
 };
+#endif
 
 static EVCE_CTX * ctx_alloc(void)
 {
@@ -278,6 +336,24 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
             }
         }
     }
+#if HLS_M47668
+    if (cdsc->ref_pic_gap_length != 0)
+    {
+        evc_assert_rv(cdsc->max_b_frames == 0, EVC_ERR_INVALID_ARGUMENT);
+    }
+
+
+    if (cdsc->max_b_frames == 0)
+    {
+        if (cdsc->ref_pic_gap_length == 0)
+        {
+            cdsc->ref_pic_gap_length = 1;
+        }
+        evc_assert_rv(cdsc->ref_pic_gap_length == 1 || cdsc->ref_pic_gap_length == 2 || \
+                      cdsc->ref_pic_gap_length == 4 || cdsc->ref_pic_gap_length == 8 || \
+                      cdsc->ref_pic_gap_length == 16, EVC_ERR_INVALID_ARGUMENT);
+    }
+#endif
 
     /* set default encoding parameter */
     param->w              = cdsc->w;
@@ -292,6 +368,9 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
     param->qp_min         = MIN_QUANT;
     param->use_pic_sign   = 0;
     param->max_b_frames   = cdsc->max_b_frames;
+#if HLS_M47668
+    param->ref_pic_gap_length = cdsc->ref_pic_gap_length;
+#endif
     param->gop_size       = param->max_b_frames +1;
     param->use_closed_gop = (cdsc->closed_gop)? 1: 0;
     param->use_hgop       = (cdsc->disable_hgop)? 0: 1;
@@ -392,10 +471,22 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     {
         sps->picture_num_present_flag = 0;
         sps->log2_ctu_size_minus2 = ctx->log2_max_cuwh - 2;
+#if HLS_M47668
+        sps->tool_rpl = 1;
+        sps->tool_pocs = 1;
+#endif
     }
     else
     {
         sps->picture_num_present_flag = 1;
+#if HLS_M47668
+        sps->tool_rpl = 0;
+        sps->tool_pocs = 0;
+        sps->max_num_ref_pics = MAX_NUM_REF_PICS;
+        sps->log2_sub_gop_length = (int)(log2(ctx->param.gop_size) + .5);
+        ctx->ref_pic_gap_length = ctx->param.ref_pic_gap_length;
+        sps->log2_ref_pic_gap_length = (int)(log2(ctx->param.ref_pic_gap_length) + .5);
+#endif
     }
 
     sps->long_term_ref_pics_flag = 0;
@@ -423,6 +514,12 @@ static void set_pps(EVCE_CTX * ctx, EVC_PPS * pps)
 {
     pps->single_tile_in_pic_flag = 1;
 }
+
+#if ALF_PARAMETER_APS
+static void set_aps(EVCE_CTX * ctx, EVC_APS * aps)
+{
+}
+#endif
 
 typedef struct _QP_ADAPT_PARAM
 {
@@ -703,8 +800,13 @@ static void set_tgh(EVCE_CTX *ctx, EVC_TGH *tgh)
     {
         double dqp_offset;
         int qp_offset;
+#if HLS_M47668
+        qp += qp_adapt_param[ctx->tile_group_depth].qp_offset_layer;
+        dqp_offset = qp * qp_adapt_param[ctx->tile_group_depth].qp_offset_model_scale + qp_adapt_param[ctx->tile_group_depth].qp_offset_model_offset + 0.5;
+#else
         qp += qp_adapt_param[ctx->layer_id].qp_offset_layer;
         dqp_offset = qp * qp_adapt_param[ctx->layer_id].qp_offset_model_scale + qp_adapt_param[ctx->layer_id].qp_offset_model_offset + 0.5;
+#endif
         qp_offset = (int)floor(EVC_CLIP3(0.0, 3.0, dqp_offset));
         qp += qp_offset;
     }
@@ -727,6 +829,10 @@ static void set_tgh(EVCE_CTX *ctx, EVC_TGH *tgh)
 
     if (ctx->sps.picture_num_present_flag)
     {
+#if HLS_M47668
+        tgh->mmco_on = 0;
+        tgh->mmco.cnt = 0;
+#else
         /* set MMCO command */
         if (ctx->tile_group_ref_flag == 0)
         {
@@ -734,12 +840,12 @@ static void set_tgh(EVCE_CTX *ctx, EVC_TGH *tgh)
             tgh->mmco.cnt = 1;
             tgh->mmco.type[0] = MMCO_UNUSED;
             tgh->mmco.data[0] = 0; /* current picture */
-        }
-        else
+        } else
         {
             tgh->mmco_on = 0;
             tgh->mmco.cnt = 0;
         }
+#endif
     }
 }
 static int evce_eco_tree(EVCE_CTX * ctx, EVCE_CORE * core, int x0, int y0, int cup, int cuw, int cuh, int cud, int next_split, const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth)
@@ -1126,7 +1232,11 @@ int evce_deblock_h263(EVCE_CTX * ctx, EVC_PIC * pic)
     return EVC_OK;
 }
 #if ALF
+#if ALF_PARAMETER_APS
+int evce_alf(EVCE_CTX * ctx, EVC_PIC * pic, EVC_TGH* tgh, EVC_APS* aps)
+#else
 int evce_alf(EVCE_CTX * ctx, EVC_PIC * pic, EVC_TGH* tgh)
+#endif
 {
     EncAdaptiveLoopFilter* p = (EncAdaptiveLoopFilter*)(ctx->enc_alf);
 
@@ -1136,7 +1246,35 @@ int evce_alf(EVCE_CTX * ctx, EVC_PIC * pic, EVC_TGH* tgh)
 
 
     set_resetALFBufferFlag(p, tgh->tile_group_type == TILE_GROUP_I ? 1 : 0);
+#if ALF_PARAMETER_APS
     call_enc_ALFProcess(p, lambdas, ctx, pic, &(tgh->alf_tgh_param));
+
+    aps->alf_aps_param = tgh->alf_tgh_param;
+    if (tgh->alf_tgh_param.resetALFBufferFlag) // reset aps index counter (buffer) if ALF flag reset is present
+    {
+        ctx->aps_counter = -1;
+    }
+    tgh->alf_on = tgh->alf_tgh_param.enabledFlag[0];
+    if (tgh->alf_on)
+    {
+        if (aps->alf_aps_param.temporalAlfFlag)
+        {
+            aps->aps_id = tgh->alf_tgh_param.prevIdx;
+            tgh->aps_signaled = aps->aps_id;
+            //printf("TempId: %d, [%d %d %d] ", aps->aps_id, tgh->alf_tgh_param.enabledFlag[0], tgh->alf_tgh_param.enabledFlag[1], tgh->alf_tgh_param.enabledFlag[2]);
+        }
+        else
+        {
+            ctx->aps_counter++;
+            ctx->aps_counter = ctx->aps_counter % 6; // encoder side limmitation, current encoder support ALF buffer size of 6.
+            aps->aps_id = ctx->aps_counter;
+            tgh->aps_signaled = aps->aps_id;
+            //printf("NewID: %d, [%d %d %d]  ", aps->aps_id, tgh->alf_tgh_param.enabledFlag[0], tgh->alf_tgh_param.enabledFlag[1], tgh->alf_tgh_param.enabledFlag[2]);
+        }
+    }
+#else
+    call_enc_ALFProcess(p, lambdas, ctx, pic, &(tgh->alf_tgh_param) );
+#endif
     return EVC_OK;
 }
 #endif
@@ -1181,6 +1319,48 @@ int evce_picbuf_get_inbuf(EVCE_CTX * ctx, EVC_IMGB ** imgb)
     return EVC_ERR_UNEXPECTED;
 }
 
+
+#if ALF_PARAMETER_APS
+int evce_aps_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, EVC_APS * aps)
+{
+    EVC_BSW * bs = &ctx->bs;
+    EVC_SPS * sps = &ctx->sps;
+    EVC_PPS * pps = &ctx->pps;
+
+    evc_assert_rv(bitb->addr && bitb->bsize > 0, EVC_ERR_INVALID_ARGUMENT);
+
+    /* bitsteam initialize for sequence */
+    evc_bsw_init(bs, bitb->addr, bitb->bsize, NULL);
+    bs->pdata[1] = &ctx->sbac_enc;
+
+    /* encode sequence parameter set */
+    /* skip first four byte to write the bitstream size */
+    evce_bsw_skip_tile_group_size(bs);
+
+    /* chunk header */
+
+    /* Encode APS chunk header */
+    EVC_CNKH aps_cnkh;
+    set_cnkh(ctx, &aps_cnkh, EVC_VER_1, EVC_CT_APS);
+
+    /* Write ALF-APS */
+    set_aps(ctx, aps); // TBD: empty function call
+    evc_assert_rv(evce_eco_aps(bs, aps) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
+
+    /* de-init BSW */
+    evc_bsw_deinit(bs);
+
+    /* write the bitstream size */
+    evce_bsw_write_tile_group_size(bs);
+
+    /* set stat ***************************************************************/
+    evc_mset(stat, 0, sizeof(EVCE_STAT));
+    stat->write = EVC_BSW_GET_WRITE_BYTE(bs);
+    stat->ctype = EVC_CT_APS;
+
+    return EVC_OK;
+}
+#endif
 int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 {
     EVC_BSW * bs = &ctx->bs;
@@ -1224,6 +1404,57 @@ int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     return EVC_OK;
 }
 
+#if HLS_M47668
+
+static const s8 poc_offset_from_doc_offset[5][16] =
+{
+    { 0,  -1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},  /* gop_size = 2 */
+    { 0,  -2,   -3,   -1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},  /* gop_size = 4 */
+    { 0,  -4,   -6,   -2,   -7,   -5,   -3,   -1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},  /* gop_size = 8 */
+    { 0,0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},  /* gop_size = 12 */
+    { 0,  -8,   -12,   -4,  -14,  -10,  -6,   -2,  -15,  -13,  -11,   -9,   -7,   -5,   -3,   -1}   /* gop_size = 16 */
+};
+
+int poc_derivation(EVCE_CTX * ctx, int layer_id)
+{
+    int sub_gop_length = (int)pow(2.0, ctx->sps.log2_sub_gop_length);
+    int expected_temporal_id = 0;
+    int doc_offset, poc_offset;
+    if (layer_id == 0)
+    {
+        ctx->poc = ctx->prev_pic_order_cnt_val + sub_gop_length;
+        ctx->prev_doc_offset = 0;
+        ctx->prev_pic_order_cnt_val = ctx->poc;
+        return EVC_OK;
+    }
+    doc_offset = (ctx->prev_doc_offset + 1) % sub_gop_length;
+    if (doc_offset == 0)
+    {
+        ctx->prev_pic_order_cnt_val += sub_gop_length;
+    } else
+    {
+        expected_temporal_id = 1 + (int)log2(doc_offset);
+    }
+    while (layer_id != expected_temporal_id)
+    {
+        doc_offset = (doc_offset + 1) % sub_gop_length;
+        if (doc_offset == 0)
+        {
+            expected_temporal_id = 0;
+        } else
+        {
+            expected_temporal_id = 1 + (int)log2(doc_offset);
+        }
+    }
+    //poc_offset = (int)(sub_gop_length * ((2.0 * doc_offset + 1) / (int)pow(2.0, layer_id) - 2));
+    poc_offset = poc_offset_from_doc_offset[sub_gop_length >> 2][doc_offset];
+    ctx->poc = ctx->prev_pic_order_cnt_val + poc_offset;
+    ctx->prev_doc_offset = doc_offset;
+
+    return EVC_OK;
+}
+#endif
+
 static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
 {
     int i_period, gop_size, pos;
@@ -1237,6 +1468,10 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
         ctx->tile_group_type = TILE_GROUP_I;
         ctx->tile_group_depth = FRM_DEPTH_0;
         ctx->poc = pic_imcnt;
+#if HLS_M47668
+        ctx->prev_doc_offset = 0;
+        ctx->prev_pic_order_cnt_val = ctx->poc;
+#endif
         ctx->tile_group_ref_flag = 1;
     }
     else if((i_period != 0) && pic_imcnt % i_period == 0)
@@ -1244,6 +1479,10 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
         ctx->tile_group_type = TILE_GROUP_I;
         ctx->tile_group_depth = FRM_DEPTH_0;
         ctx->poc = pic_imcnt;
+#if HLS_M47668
+        ctx->prev_doc_offset = 0;
+        ctx->prev_pic_order_cnt_val = ctx->poc;
+#endif
         ctx->tile_group_ref_flag = 1;
     }
     else if(pic_imcnt % gop_size == 0)
@@ -1252,6 +1491,10 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
         ctx->tile_group_ref_flag = 1;
         ctx->tile_group_depth = FRM_DEPTH_1;
         ctx->poc = pic_imcnt;
+#if HLS_M47668
+        ctx->prev_doc_offset = 0;
+        ctx->prev_pic_order_cnt_val = ctx->poc;
+#endif
         ctx->tile_group_ref_flag = 1;
     }
     else
@@ -1260,17 +1503,42 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
         if(ctx->param.use_hgop)
         {
             pos = (pic_imcnt % gop_size) - 1;
+#if HLS_M47668
+            if (ctx->sps.tool_pocs)
+            {
+                ctx->tile_group_depth = tbl_tile_group_depth_orig[gop_size >> 2][pos];
+                ctx->poc = ((pic_imcnt / gop_size) * gop_size) +
+                    tbl_poc_gop_offset[gop_size >> 2][pos];
+            }
+            else
+            {
+                ctx->tile_group_depth = tbl_tile_group_depth[gop_size >> 2][pos];
+                int layer_id = ctx->tile_group_depth - (ctx->tile_group_depth > 0);
+                poc_derivation(ctx, layer_id);
+            }
+            if (!ctx->sps.tool_pocs && gop_size >= 2)
+            {
+                ctx->tile_group_ref_flag = (ctx->tile_group_depth == tbl_tile_group_depth[gop_size >> 2][gop_size - 2] ? 0 : 1);
+            }
+            else
+            {
+                ctx->tile_group_ref_flag = 1;
+            }
+#else
             ctx->tile_group_depth = tbl_tile_group_depth[gop_size >> 2][pos];
             ctx->ref_depth = tbl_ref_depth[gop_size >> 2][pos];
             ctx->poc = ((pic_imcnt / gop_size) * gop_size) +
                 tbl_poc_gop_offset[gop_size >> 2][pos];
             ctx->tile_group_ref_flag = tbl_tile_group_ref[gop_size >> 2][pos];
+#endif
         }
         else
         {
             pos = (pic_imcnt % gop_size) - 1;
             ctx->tile_group_depth = FRM_DEPTH_2;
+#if !HLS_M47668
             ctx->ref_depth = FRM_DEPTH_1;
+#endif
             ctx->poc = ((pic_imcnt / gop_size) * gop_size) - gop_size + pos + 1;
             ctx->tile_group_ref_flag = 0;
         }
@@ -1315,7 +1583,18 @@ static void decide_tile_group_type(EVCE_CTX * ctx)
             ctx->tile_group_type = TILE_GROUP_B;
             if(ctx->param.use_hgop)
             {
+#if HLS_M47668
+                if (ctx->sps.tool_rpl)
+                {
+                    ctx->tile_group_depth = tbl_tile_group_depth_P_orig[(pic_imcnt - 1) % GOP_P];
+                }
+                else
+                {
+                    ctx->tile_group_depth = tbl_tile_group_depth_P[ctx->param.ref_pic_gap_length >> 2][(pic_imcnt - 1) % ctx->param.ref_pic_gap_length];
+                }
+#else
                 ctx->tile_group_depth = tbl_tile_group_depth_P[(pic_imcnt - 1) % GOP_P];
+#endif
             }
             else
             {
@@ -1332,6 +1611,10 @@ static void decide_tile_group_type(EVCE_CTX * ctx)
             ctx->tile_group_type = TILE_GROUP_I;
             ctx->tile_group_depth = FRM_DEPTH_0;
             ctx->poc = 0;
+#if HLS_M47668
+            ctx->prev_doc_offset = 0;
+            ctx->prev_pic_order_cnt_val = ctx->poc;
+#endif
             ctx->tile_group_ref_flag = 1;
 
             /* flush the first IDR picture */
@@ -1359,16 +1642,21 @@ static void decide_tile_group_type(EVCE_CTX * ctx)
             decide_normal_gop(ctx, pic_imcnt);
         }
     }
-
-    if(ctx->param.use_hgop)
+#if HLS_M47668
+    if(ctx->param.use_hgop && gop_size > 1)
+    {
+        ctx->layer_id = ctx->tile_group_depth - (ctx->tile_group_depth > 0);
+    }
+#else
+    if (ctx->param.use_hgop)
     {
         ctx->layer_id = ctx->tile_group_depth;
     }
+#endif
     else
     {
         ctx->layer_id = 0;
     }
-
     ctx->ptr = ctx->poc;
     ctx->dtr = ctx->ptr;
 }
@@ -1562,9 +1850,15 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     ctx->fn_picbuf_expand(ctx, PIC_CURR(ctx));
 
     /* picture buffer management */
+#if HLS_M47668
     ret = evc_picman_put_pic(&ctx->rpm, PIC_CURR(ctx), ctx->tile_group_type,
                               ctx->ptr, ctx->dtr, ctx->layer_id, 0, ctx->refp,
-                              (ctx->tgh.mmco_on ? &ctx->tgh.mmco : NULL), ctx->sps.picture_num_present_flag);
+                              ctx->tile_group_ref_flag, ctx->sps.picture_num_present_flag, ctx->ref_pic_gap_length);
+#else
+    ret = evc_picman_put_pic(&ctx->rpm, PIC_CURR(ctx), ctx->tile_group_type,
+                             ctx->ptr, ctx->dtr, ctx->layer_id, 0, ctx->refp,
+                             (ctx->tgh.mmco_on ? &ctx->tgh.mmco : NULL), ctx->sps.picture_num_present_flag);
+#endif
 
     evc_assert_rv(ret == EVC_OK, ret);
 
@@ -1582,8 +1876,12 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     stat->fnum = ctx->pic_cnt;
     stat->qp = ctx->tgh.qp;
     stat->poc = ctx->ptr;
+#if HLS_M47668
+    stat->tid = ctx->tgh.layer_id;
+#else
 #if ALF
     stat->tid = ctx->tgh.layer_id;
+#endif
 #endif
     for(i = 0; i < 2; i++)
     {
@@ -1922,6 +2220,9 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     EVCE_CORE * core;
     EVC_BSW   * bs;
     EVC_TGH    * tgh;
+#if ALF_PARAMETER_APS
+    EVC_APS   * aps;
+#endif
     EVC_CNKH    cnkh;
     int          ret;
     u32          i;
@@ -1931,7 +2232,16 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     bs = &ctx->bs;
     core = ctx->core;
     tgh = &ctx->tgh;
-
+#if ALF_PARAMETER_APS
+    aps = &ctx->aps;
+    if (ctx->tile_group_type == TILE_GROUP_I )
+    {
+        ctx->aps_counter = -1;
+        aps->aps_id = -1;
+        ctx->tgh.aps_signaled = -1; // reset stored aps id in tile group header
+        ctx->aps_temp = 0;
+    }
+#endif
     if (ctx->sps.picture_num_present_flag)
     {
         /* initialize reference pictures */
@@ -1964,6 +2274,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     }
     evc_assert_rv(ret == EVC_OK, ret);
 
+#if !HLS_M47668
     if (ctx->sps.picture_num_present_flag)
     {
         if (ctx->tile_group_type != TILE_GROUP_I)
@@ -1971,8 +2282,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             if (ctx->param.max_b_frames == 0)
             {
                 tgh->rmpni_on = check_reorder(&ctx->param, &ctx->rpm, ctx->sps.num_ref_pics_act, ctx->tile_group_type, ctx->ptr, ctx->refp, reorder_arg_ldb, ctx->last_intra_ptr, tgh->rmpni);
-            }
-            else
+            } else
             {
                 tgh->rmpni_on = check_reorder(&ctx->param, &ctx->rpm, ctx->sps.num_ref_pics_act, ctx->tile_group_type, ctx->ptr, ctx->refp, reorder_arg, ctx->last_intra_ptr, tgh->rmpni);
             }
@@ -1985,6 +2295,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         }
     }
 
+#endif
     /* initialize mode decision for frame encoding */
     ret = ctx->fn_mode_init_frame(ctx);
     evc_assert_rv(ret == EVC_OK, ret);
@@ -2108,7 +2419,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     tgh->alf_on = ctx->sps.tool_alf;
     if(tgh->alf_on)
     {
+#if ALF_PARAMETER_APS
+        ret = ctx->fn_alf(ctx, PIC_MODE(ctx), tgh, aps);
+#else
         ret = ctx->fn_alf(ctx, PIC_MODE(ctx), tgh);
+#endif
         evc_assert_rv(ret == EVC_OK, ret);
     }
 #endif
@@ -2136,6 +2451,28 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
     /* Encode skip tile_group_size field */
     evce_bsw_skip_tile_group_size(bs);
+
+#if ALF_PARAMETER_APS
+    /* Encode ALF in APS */
+    if ((ctx->sps.tool_alf) && (ctx->tgh.alf_on)) // User defined params
+    {
+        if ((aps->alf_aps_param.enabledFlag[0]) && (aps->alf_aps_param.temporalAlfFlag == 0))    // Encoder defined parameters (RDO): ALF is selected, and new ALF was derived for TG
+        {
+            /* Encode APS chunk header */
+            EVC_CNKH aps_cnkh = cnkh;
+            aps_cnkh.ctype = EVC_CT_APS;
+
+            ret = evce_eco_cnkh(bs, &aps_cnkh);
+            evc_assert_rv(ret == EVC_OK, ret);
+
+            /* Write ALF-APS */
+            set_aps(ctx, aps); // TBD: empty function call
+            evc_assert_rv(evce_eco_aps(bs, aps) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
+
+        }
+    }
+#endif
+
 
     /* Encode chunk header */
     ret = evce_eco_cnkh(bs, &cnkh);
@@ -2365,6 +2702,9 @@ EVCE evce_create(EVCE_CDSC * cdsc, int * err)
     /* set default value for ctx */
     ctx->magic = EVCE_MAGIC_CODE;
     ctx->id = (EVCE)ctx;
+#if ALF_PARAMETER_APS
+    ctx->tgh.aps_signaled = -1;
+#endif
 
     return (ctx->id);
 ERR:

@@ -67,11 +67,17 @@ void evce_bsw_write_tile_group_size(EVC_BSW *bs)
     u32 size;
 
     size = EVC_BSW_GET_WRITE_BYTE(bs) - 4;
-
+#if HLS_M47668
+    bs->beg[0] = size & 0x000000ff;
+    bs->beg[1] = (size & 0x0000ff00) >> 8;
+    bs->beg[2] = (size & 0x00ff0000) >> 16;
+    bs->beg[3] = (size & 0xff000000) >> 24;
+#else
     bs->beg[0] = (size & 0xff000000) >> 24;
     bs->beg[1] = (size & 0x00ff0000) >> 16;
     bs->beg[2] = (size & 0x0000ff00) >> 8;
     bs->beg[3] = (size & 0x000000ff) >> 0;
+#endif
 }
 
 void evce_diff_pred(int x, int y, int log2_cuw, int log2_cuh, EVC_PIC *org, pel pred[N_C][MAX_CU_DIM], s16 diff[N_C][MAX_CU_DIM])

@@ -366,6 +366,14 @@ enum SAD_POINT_INDEX
 #define MAX_ALF_FILTER_LENGTH              7
 #define MAX_NUM_ALF_COEFF                 (MAX_ALF_FILTER_LENGTH * MAX_ALF_FILTER_LENGTH / 2 + 1)
 
+#define ALF_PARAMETER_APS                  0  // move the signaling of ALF parameter from TGH to APS
+#if ALF_PARAMETER_APS
+#define  APS_MAX_NUM                       32
+#endif
+
+#define HLS_M7668                          0
+
+
 // The structure below must be aligned to identical structure in evc_alf.c!
 typedef struct _evc_AlfFilterShape
 {
@@ -526,7 +534,11 @@ extern int fp_trace_counter;
 /* for GOP 16 test, increase to 32 */
 
 /* DPB Extra size */
+#if HLS_M47668
+#define EXTRA_FRAME                        MAX_NUM_ACTIVE_REF_FRAME
+#else
 #define EXTRA_FRAME                        MAX_NUM_REF_PICS
+#endif
 
 /* maximum picture buffer size */
 #define MAX_PB_SIZE                       (MAX_NUM_REF_PICS + EXTRA_FRAME)
@@ -1118,6 +1130,12 @@ typedef struct _EVC_SPS
     int              tool_eipd;
     int              tool_iqt;
     int              tool_cm_init;
+#if HLS_M47668
+    int              tool_rpl;
+    int              tool_pocs;
+    int              log2_sub_gop_length;
+    int              log2_ref_pic_gap_length;
+#endif
     int              log2_max_pic_order_cnt_lsb_minus4;
     int              sps_max_dec_pic_buffering_minus1;
     int              picture_num_present_flag;
@@ -1242,6 +1260,16 @@ typedef struct _evc_AlfTileGroupParam
     BOOL store2ALFBufferFlag;
 
 } evc_AlfTileGroupParam;
+
+#if ALF_PARAMETER_APS
+typedef struct _EVC_APS
+{
+    int                               aps_id;                    // adaptation_parameter_set_id
+    evc_AlfTileGroupParam          alf_aps_param;              // alf data
+} EVC_APS;
+
+#endif
+
 #endif
 
 typedef struct _EVC_TGH
@@ -1292,7 +1320,11 @@ typedef struct _EVC_TGH
     u8               alf_on;
     u8               ctb_alf_on;
     u16              num_ctb;
-    evc_AlfTileGroupParam alf_tgh_param;
+#if ALF_PARAMETER_APS
+    int                 aps_signaled;
+    EVC_APS*         aps;
+#endif
+    evc_AlfTileGroupParam    alf_tgh_param;
 #endif
 
     /* delta of presentation temporal reference */

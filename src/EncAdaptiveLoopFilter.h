@@ -160,8 +160,8 @@ struct AlfCovariance
 
 //for 4:2:0 only
 typedef struct _YUV {
-	pel* yuv[3];
-	int s[3];
+    pel* yuv[3];
+    int s[3];
 } YUV;
 
 class EncAdaptiveLoopFilter

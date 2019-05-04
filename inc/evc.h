@@ -42,6 +42,7 @@ extern "C"
 #endif
 
 #define USE_TILE_GROUP_DQP              1
+#define HLS_M47668                      0
 
 /*****************************************************************************
  * return values and error code
@@ -181,7 +182,12 @@ extern "C"
 #define EVC_CT_UNKNOWN                  (0)
 #define EVC_CT_TILE_GROUP                    (1) /* tile_group */
 #define EVC_CT_SPS                      (2) /* sequence parameter set */
+#if 1 //ALF_PARAMETER_APS
+#define EVC_CT_APS                     (5) /* adaptation parameter set  */
+#endif
+
 #define EVC_CT_SIGN                     (6) /* picture signature */
+
 
 /*****************************************************************************
  * tile_group type
@@ -348,8 +354,13 @@ typedef struct _EVCD_STAT
     int            refpic[2][16];
 } EVCD_STAT;
 
+#if HLS_M47668
+#define MAX_NUM_REF_PICS                   21
+#define MAX_NUM_ACTIVE_REF_FRAME           5
+#else
 #define MAX_NUM_REF_PICS                   17
 #define MAX_NUM_ACTIVE_REF_FRAME           4
+#endif
 #define MAX_NUM_RPLS                       32
 
 /* rpl structure */
@@ -392,6 +403,9 @@ typedef struct _EVCE_CDSC
        - disable (1) means frame type will be decided automatically
        - Default: enable(0)                                                       */
     int            disable_hgop;
+#if HLS_M47668
+    int            ref_pic_gap_length;
+#endif
     /* use closed GOP sturcture
        - 0 : use open GOP (default)
        - 1 : use closed GOP */
