@@ -1747,6 +1747,11 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
     int cbf_all = 0;
 #if ATS_INTER_PROCESS
     u8 ats_inter_avail = check_ats_inter_info_coded(1 << log2_cuw, 1 << log2_cuh, pred_mode, tool_ats_inter);
+    if( ats_inter_avail )
+    {
+        get_tu_size( ats_inter_info, log2_cuw, log2_cuh, &log2_w_sub, &log2_h_sub );
+        sub_stride = (1 << log2_w_sub);
+    }
 #endif
     for (j = 0; j < loop_h; j++)
     {
@@ -1778,8 +1783,6 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
                 {
                     assert(loop_w == 1 && loop_h == 1);
                     evce_eco_ats_inter_info(bs, log2_cuw, log2_cuh, ats_inter_info, ats_inter_avail);
-                    get_tu_size(ats_inter_info, log2_cuw, log2_cuh, &log2_w_sub, &log2_h_sub);
-                    sub_stride = (1 << log2_w_sub);
                 }
                 else
                 {

@@ -5418,7 +5418,7 @@ static double pinter_analyze_cu_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, 
     get_tu_size(get_ats_inter_idx(core->ats_inter_info), log2_cuw, log2_cuh, &log2_tuw, &log2_tuh);
 #if ATS_INTER_DEBUG
     assert(core->cost_best == cost_inter[best_idx]);
-    if (pi->nnz_best[best_idx][Y_C] && log2_cuw <= 6 && log2_cuw <= 6)
+    if( pi->nnz_best[best_idx][Y_C] && log2_cuw <= MAX_TR_LOG2 && log2_cuh <= MAX_TR_LOG2 )
     {
         int sum_y_coef = 0;
         for (int a = 0; a < (1 << (log2_tuw + log2_tuh)); a++)
@@ -6470,7 +6470,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
     get_tu_size(get_ats_inter_idx(core->ats_inter_info), log2_cuw, log2_cuh, &log2_tuw, &log2_tuh);
 #if ATS_INTER_DEBUG
     assert(core->cost_best == cost_inter[best_idx]);
-    if (pi->nnz_best[best_idx][Y_C] && log2_cuw <= MAX_TR_SIZE && log2_cuh <= MAX_TR_SIZE)
+    if (pi->nnz_best[best_idx][Y_C] && log2_cuw <= MAX_TR_LOG2 && log2_cuh <= MAX_TR_LOG2 )
     {
         int sum_y_coef = 0;
         for (int a = 0; a < (1 << (log2_tuw + log2_tuh)); a++)
