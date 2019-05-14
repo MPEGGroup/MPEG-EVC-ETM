@@ -86,18 +86,22 @@ void call_enc_ALFProcess(EncAdaptiveLoopFilter* p, const double* lambdas, EVCE_C
         iAlfTileGroupParam->resetALFBufferFlag = true;
     }
 
-#if ETM201_FIX_SEQUENTIAL_CODING
-	m_pendingRasInit = FALSE;
-	if (ctx->ptr > m_lastRasPoc)
-	{
-		m_lastRasPoc = INT_MAX;
-		m_pendingRasInit = TRUE;
-	}
-	if (ctx->tgh.tile_group_type == TILE_GROUP_I)
-		m_lastRasPoc = ctx->ptr;
+#if FIX_SEQUENTIAL_CODING
+    m_pendingRasInit = FALSE;
+    if (ctx->ptr > m_lastRasPoc)
+    {
+        m_lastRasPoc = INT_MAX;
+        m_pendingRasInit = TRUE;
+    }
+    if (ctx->tgh.tile_group_type == TILE_GROUP_I)
+    {
+        m_lastRasPoc = ctx->ptr;
+    }
 
-	if (m_pendingRasInit)
-		resetTemporalAlfBufferLine2First();
+    if (m_pendingRasInit)
+    {
+        resetTemporalAlfBufferLine2First();
+    }
 #endif
 
     AlfTileGroupParam alfTileGroupParam;
