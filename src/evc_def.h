@@ -370,7 +370,7 @@ enum SAD_POINT_INDEX
 #if ALF_PARAMETER_APS
 #define  APS_MAX_NUM                       32
 #endif
-#define ETM201_FIX_SEQUENTIAL_CODING      1
+#define FIX_SEQUENTIAL_CODING              1
 #define HLS_M7668                          0
 
 
