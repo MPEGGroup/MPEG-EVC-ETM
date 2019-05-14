@@ -65,8 +65,8 @@ int  m_numCTUsInPic;
 AlfClassifier** m_classifier;
 ChromaFormat    m_chromaFormat;
 
-int m_lastRasPoc;
-BOOL m_pendingRasInit;
+int m_lastRasPoc = INT_MAX;
+BOOL m_pendingRasInit = FALSE;
 u8* m_ctuEnableFlag[MAX_NUM_COMPONENT];
 ClpRngs m_clpRngs;
 
