@@ -44,6 +44,8 @@
 #define PROFILE_BASELINE                   0
 #define PROFILE_MAIN                       1
 
+#define REMOVE_UNSPEC_CODE                 1
+
 //inter
 #define AFFINE                             1  // Affine Prediction
 #define DMVR                               1  // Decoder-side Motion Vector Refinement

@@ -2989,7 +2989,7 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                 }
             }
         }
-
+#if !REMOVE_UNSPEC_CODE
         //conditional split restriction
         /* remove conditionally disallowed split modes*/
         if(!boundary)
@@ -3019,6 +3019,7 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                 }
             }
         }
+#endif
     }
 }
 
