@@ -138,6 +138,13 @@ typedef struct _EVCE_MODE
     s8    refi_sp[REFP_NUM];
     s16   mv_sp[REFP_NUM][MV_D];
 #endif
+
+#if ATS_INTRA_PROCESS   
+    u8    ats_intra_cu;
+    u8    ats_intra_tu_h;
+    u8    ats_intra_tu_v;
+#endif
+
 #if TRACE_ENC_CU_DATA
     u64   trace_cu_idx;
 #endif
@@ -266,6 +273,11 @@ struct _EVCE_PINTER
 
     pel  p_error[MAX_CU_DIM];
     int  i_gradient[2][MAX_CU_DIM];
+#endif
+#if ATS_INTER_PROCESS
+    s16  resi[N_C][MAX_CU_DIM];
+    s16  coff_save[N_C][MAX_CU_DIM];
+    u8   ats_inter_info_mode[PRED_NUM];
 #endif
 
     /* MV predictor */
@@ -458,6 +470,14 @@ typedef struct _EVCE_CU_DATA
     u8  *affine_flag;
     u32 *map_affine;
 #endif
+#if ATS_INTRA_PROCESS
+    u8* ats_intra_cu;
+    u8* ats_tu_h;
+    u8* ats_tu_v;
+#endif
+#if ATS_INTER_PROCESS
+    u8  *ats_inter_info;
+#endif
     u32 *map_cu_mode;
     s16 **block_size;
     s8  *depth;
@@ -488,6 +508,10 @@ typedef struct _EVCE_BEF_DATA
     s16    mmvd_idx;
 #if AFFINE
     int    affine_flag;
+#endif
+#if ATS_INTRA_PROCESS
+    int    ats_intra_cu_idx_intra;
+    int    ats_intra_cu_idx_inter;
 #endif
 
 } EVCE_BEF_DATA;
@@ -561,6 +585,14 @@ typedef struct _EVCE_CORE
     /* affine flag for MODE_INTER */
     u8             affine_flag;
 #endif
+#if ATS_INTRA_PROCESS
+    u8             ats_intra_cu;
+    u8             ats_tu;
+#endif
+#if ATS_INTER_PROCESS
+    /* ats_inter info (index + position)*/
+    u8             ats_inter_info;
+#endif
     /* width of current CU */
     u16            cuw;
     /* height of current CU */
@@ -600,9 +632,17 @@ typedef struct _EVCE_CORE
     ALIGNED_(EIF_NUM_BYTES_IN_SSE_REG)
 #endif
 #if EIF_3TAP
+#if EIF_BUFIX
+    pel           *eif_tmp_buffer;
+#else
     pel            eif_tmp_buffer[EIF_NUM_LINES_IN_PREP_DATA * (EIF_PREP_DATA_STRIDE + 8) + EIF_NUM_LINES_IN_UPSCALED_DATA * EIF_UPSCALED_DATA_STRIDE];
+#endif
+#else
+#if EIF_BUFIX
+    pel           *eif_tmp_buffer;
 #else
     pel            eif_tmp_buffer[EIF_NUM_LINES_IN_PREP_DATA * EIF_PREP_DATA_STRIDE + EIF_NUM_LINES_IN_UPSCALED_DATA * EIF_UPSCALED_DATA_STRIDE];
+#endif
 #endif
 #endif
 #if MERGE
@@ -799,6 +839,19 @@ struct _EVCE_CTX
     double                 lambda[3];
     double                 sqrt_lambda[3];
     double                 dist_chroma_weight[2];
+
+#if ATS_INTRA_PROCESS
+    /* map for ats intra */
+    u8                    *map_ats_intra_cu;
+    u8                    *map_ats_tu_h;
+    u8                    *map_ats_tu_v;
+#endif
+#if ATS_INTER_PROCESS
+    u8                    *map_ats_inter;
+    u32                   *ats_inter_pred_dist;
+    u8                    *ats_inter_info_pred;   //best-mode ats_inter info
+    u8                    *ats_inter_num_pred;
+#endif
 
     int (*fn_ready)(EVCE_CTX * ctx);
     void (*fn_flush)(EVCE_CTX * ctx);

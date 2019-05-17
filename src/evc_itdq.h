@@ -40,13 +40,26 @@ void evc_itdq(s16 * coef, int log2_w, int log2_h, u16 scale
               , u16 qs_scale
 #endif
               , int iqt_flag
+#if ATS_INTRA_PROCESS
+              , u8 ats_intra_cu, u8 ats_tu
+#endif
 );
 
-void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int flag[N_C], int nnz_sub[N_C][MAX_SUB_TB_NUM]
+void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int flag[N_C], int nnz_sub[N_C][MAX_SUB_TB_NUM], int iqt_flag
 #if AQS
                         , u16 qs_scale
 #endif
-                        , int iqt_flag
+#if ATS_INTRA_PROCESS
+                        , u8 ats_intra_cu, u8 ats_tu
+#endif
+#if ATS_INTER_PROCESS
+                        , u8 ats_inter_info
+#endif
 );
+
+#if ATS_INTRA_PROCESS
+void evc_init_multi_tbl();
+void evc_init_multi_inv_tbl();
+#endif
 
 #endif /* _EVC_ITDQ_H_ */

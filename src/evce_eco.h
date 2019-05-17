@@ -56,7 +56,17 @@ void evce_sbac_reset(EVCE_SBAC * sbac, u8 tile_group_type, u8 tile_group_qp, int
 void evce_sbac_finish(EVC_BSW *bs);
 void evce_sbac_encode_bin(u32 bin, EVCE_SBAC *sbac, SBAC_CTX_MODEL *ctx_model, EVC_BSW *bs);
 void evce_sbac_encode_bin_trm(u32 bin, EVCE_SBAC *sbac, EVC_BSW *bs);
-int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 pred_mode, int nnz_sub[N_C][MAX_SUB_TB_NUM], int b_no_cbf, int run_stats);
+int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 pred_mode, int nnz_sub[N_C][MAX_SUB_TB_NUM], int b_no_cbf, int run_stats
+#if ATS_INTRA_PROCESS
+                  , int tool_ats_intra, u8 ats_intra_cu, u8 ats_tu
+#endif
+#if ATS_INTER_PROCESS
+                  , int tool_ats_inter, u8 ats_inter_info
+#endif
+#if COEFF_CODE_ADCC  
+                  , EVCE_CTX * ctx
+#endif
+);
 int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int cuw, int cuh);
 int evce_eco_split_mode(EVC_BSW *bs, EVCE_CTX *c, EVCE_CORE *core, int cud, int cup, int cuw, int cuh, int lcu_s
                         , const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int* curr_split_allow, int qt_depth, int btt_depth, int x, int y);
@@ -71,7 +81,14 @@ int evce_eco_refi(EVC_BSW * bs, int num_refp, int refi);
 void evce_eco_inter_dir(EVC_BSW * bs, s8 refi[REFP_NUM]);
 void evce_eco_inter_t_direct(EVC_BSW *bs, int t_direct_flag);
 //! \todo Change list of arguments
-void evce_eco_xcoef(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num_sig, int ch_type);
+void evce_eco_xcoef(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num_sig, int ch_type
+#if ATS_INTRA_PROCESS
+                    , int tool_ats_intra, int is_intra, u8 ats_intra_cu, u8 ats_tu
+#endif
+#if COEFF_CODE_ADCC  
+    , int tool_adcc
+#endif
+);
 //! \todo Change list of arguments
 int evce_eco_intra_dir_b(EVC_BSW *bs, u8 ipm, u8 * mpm, u8 mpm_ext[8], u8 pims[IPD_CNT]);
 int evce_eco_intra_dir(EVC_BSW *bs, u8 ipm, u8 mpm[2], u8 mpm_ext[8], u8 pims[IPD_CNT]);

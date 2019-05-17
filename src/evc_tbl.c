@@ -255,6 +255,11 @@ const s8 * evc_tbl_tm[MAX_CU_DEPTH] =
 
 u16 *evc_scan_tbl[COEF_SCAN_TYPE_NUM][MAX_CU_LOG2 - 1][MAX_CU_LOG2 - 1];
 int evc_scan_sr[MAX_TR_SIZE*MAX_TR_SIZE];
+
+#if COEFF_CODE_ADCC
+int evc_inv_scan_sr[MAX_TR_SIZE*MAX_TR_SIZE];
+int evc_scan_cg[(MAX_TR_SIZE*MAX_TR_SIZE) >> LOG2_CG_SIZE];
+#endif
 const int evc_tbl_dq_scale[6] = {40, 45, 51, 57, 64, 72};
 const int evc_tbl_dq_scale_b[6] = {40, 45, 51, 57, 64, 71};
 #if AQS
@@ -601,6 +606,24 @@ const s16 init_cbf[2][NUM_QT_CBF_CTX][1] = {
         { 288 }
     }
 };
+
+#if COEFF_CODE_ADCC   // tables below to be optimized for the final design
+#define initA 0
+#define initB 128
+const s16 init_cc_gt0[2][NUM_CTX_GT0] = { 
+        { initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA },
+        { initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB } };
+const s16 init_cc_gtA[2][NUM_CTX_GTA] = { 
+        { initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA },
+        { initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB } };
+const s16 init_cc_scanr_x[2][NUM_CTX_SCANR] = { 
+        { initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA },
+        { initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB }};
+const s16 init_cc_scanr_y[2][NUM_CTX_SCANR] = { 
+        { initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA },
+        { initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB }};
+#endif
+
 const s16 init_run[2][NUM_SBAC_CTX_RUN][1] = {
     {
         { 48 },
@@ -885,6 +908,94 @@ const s16 init_ctb_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG][1] = {
     }
 };
 #endif
+
+#if ATS_INTRA_PROCESS   
+const s16 init_ats_intra_cu[2][NUM_ATS_INTRA_CU_FLAG_CTX][1] = {
+    {
+        { 999  },
+        { 514  },
+        { 452  },
+        { 546  },
+        { 1001 },
+        { 992  },
+        { 960  },
+        { 960  }
+        },
+    {
+        { 1003 },
+        { 292  },
+        { 354  },
+        { 544  },
+        { 999  },
+        { 960  },
+        { 928  },
+        { 960  }
+    }
+};
+const s16 init_ats_tu_h[2][NUM_ATS_INTRA_TU_FLAG_CTX][1] = {
+    {
+        { 512  },
+        { 993  }
+    },
+    {
+        { 673 },
+        { 993 }
+    }
+};
+const s16 init_ats_tu_v[2][NUM_ATS_INTRA_TU_FLAG_CTX][1] = {
+    {
+        { 512 },
+        { 993 }
+    },
+    {
+        { 641 },
+        { 929 }
+    }
+};
+#endif
+#if ATS_INTER_PROCESS
+const s16 init_ats_inter_info[2][NUM_SBAC_CTX_ATS_INTER_INFO][1] = {
+    {
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0 },
+    },
+    {
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0 },
+    }
+};
+#endif
+#endif
+
+#if ATS_INTRA_PROCESS
+s16 evc_tbl_tr2[NUM_TRANS_TYPE][2][2];
+s16 evc_tbl_tr4[NUM_TRANS_TYPE][4][4];
+s16 evc_tbl_tr8[NUM_TRANS_TYPE][8][8];
+s16 evc_tbl_tr16[NUM_TRANS_TYPE][16][16];
+s16 evc_tbl_tr32[NUM_TRANS_TYPE][32][32];
+s16 evc_tbl_tr64[NUM_TRANS_TYPE][64][64];
+s16 evc_tbl_tr128[NUM_TRANS_TYPE][128][128];
+
+int evc_tbl_tr_subset_intra[4] = { DST7, DCT8 };
+
+s16 evc_tbl_inv_tr2[NUM_TRANS_TYPE][2][2];
+s16 evc_tbl_inv_tr4[NUM_TRANS_TYPE][4][4];
+s16 evc_tbl_inv_tr8[NUM_TRANS_TYPE][8][8];
+s16 evc_tbl_inv_tr16[NUM_TRANS_TYPE][16][16];
+s16 evc_tbl_inv_tr32[NUM_TRANS_TYPE][32][32];
+s16 evc_tbl_inv_tr64[NUM_TRANS_TYPE][64][64];
+s16 evc_tbl_inv_tr128[NUM_TRANS_TYPE][128][128];
+
 #endif
 
 
@@ -901,4 +1012,19 @@ const u8 CLIP_TAB[52][5] =
     { 0, 4, 5, 7, 7 },{ 0, 4, 5, 8, 8 },{ 0, 4, 6, 9, 9 },{ 0, 5, 7,10,10 },{ 0, 6, 8,11,11 },{ 0, 6, 8,13,13 },{ 0, 7,10,14,14 },{ 0, 8,11,16,16 },
     { 0, 9,12,18,18 },{ 0,10,13,20,20 },{ 0,11,15,23,23 },{ 0,13,17,25,25 }
 };
+#endif
+#if COEFF_CODE_ADCC 
+const int g_min_in_group[LAST_SIGNIFICANT_GROUPS] = { 0,1,2,3,4,6,8,12,16,24,32,48,64,96 };
+const int g_group_idx[MAX_TR_SIZE] = { 0,1,2,3,4,4,5,5,6,6,6,6,7,7,7,7,8,8,8,8,8,8,8,8,9,9,9,9,9,9,9,9, 10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11 };
+
+const int g_go_rice_range[MAX_GR_ORDER_RESIDUAL] =
+{
+    6, 5, 6, COEF_REMAIN_BIN_REDUCTION, COEF_REMAIN_BIN_REDUCTION, COEF_REMAIN_BIN_REDUCTION, COEF_REMAIN_BIN_REDUCTION, COEF_REMAIN_BIN_REDUCTION, COEF_REMAIN_BIN_REDUCTION, COEF_REMAIN_BIN_REDUCTION
+};
+
+const int g_go_rice_para_coeff[32] =
+{
+    0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3
+};
+
 #endif

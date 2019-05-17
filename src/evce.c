@@ -294,7 +294,13 @@ static EVCE_CORE * core_alloc(void)
             evce_create_cu_data(&core->cu_data_temp[i][j], i, j);
         }
     }
-
+#if EIF_BUFIX && EIF
+#if EIF_3TAP
+    core->eif_tmp_buffer = (pel *)evc_malloc_fast((EIF_NUM_LINES_IN_PREP_DATA * (EIF_PREP_DATA_STRIDE + 8) + EIF_NUM_LINES_IN_UPSCALED_DATA * EIF_UPSCALED_DATA_STRIDE) * sizeof(pel));
+#else
+    core->eif_tmp_buffer = (pel *)evc_malloc_fast((EIF_NUM_LINES_IN_PREP_DATA * EIF_PREP_DATA_STRIDE + EIF_NUM_LINES_IN_UPSCALED_DATA * EIF_UPSCALED_DATA_STRIDE) * sizeof(pel));
+#endif
+#endif
     return core;
 }
 
@@ -310,6 +316,12 @@ static void core_free(EVCE_CORE * core)
             evce_delete_cu_data(&core->cu_data_temp[i][j], i, j);
         }
     }
+#if EIF_BUFIX && EIF
+    if (core->eif_tmp_buffer != NULL)
+    {
+        evc_mfree_fast(core->eif_tmp_buffer);
+    }
+#endif
     evc_mfree_fast(core);
 }
 
@@ -465,7 +477,16 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->tool_amis = ctx->cdsc.tool_amis;
     sps->tool_eipd = ctx->cdsc.tool_eipd;
     sps->tool_iqt = ctx->cdsc.tool_iqt;
+#if COEFF_CODE_ADCC
+    sps->tool_adcc = ctx->cdsc.tool_adcc;
+#endif
     sps->tool_cm_init = ctx->cdsc.tool_cm_init;
+#if ATS_INTRA_PROCESS
+    sps->tool_ats_intra = ctx->cdsc.tool_ats_intra;
+#endif
+#if ATS_INTER_PROCESS
+    sps->tool_ats_inter = ctx->cdsc.tool_ats_inter;
+#endif
 
     if(sps->profile_idc == PROFILE_MAIN)
     {
@@ -919,6 +940,12 @@ int evce_ready(EVCE_CTX * ctx)
     EVCE_CORE * core = NULL;
     int          w, h, ret, i;
     s64          size;
+#if ATS_INTER_PROCESS
+    ctx->map_ats_inter = NULL;
+    ctx->ats_inter_info_pred = NULL;
+    ctx->ats_inter_pred_dist = NULL;
+    ctx->ats_inter_num_pred = NULL;
+#endif
 
     evc_assert(ctx);
 
@@ -1030,6 +1057,55 @@ int evce_ready(EVCE_CTX * ctx)
         evc_mset_x64a(ctx->map_cu_mode, 0, size);
     }
 
+#if ATS_INTRA_PROCESS
+    if (ctx->map_ats_intra_cu == NULL)
+    {
+        size = sizeof(u8) * ctx->f_scu;
+        ctx->map_ats_intra_cu = evc_malloc_fast(size);
+        evc_assert_gv(ctx->map_ats_intra_cu, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
+        evc_mset(ctx->map_ats_intra_cu, 0, size);
+    }
+    if (ctx->map_ats_tu_h == NULL)
+    {
+        size = sizeof(u8) * ctx->f_scu;
+        ctx->map_ats_tu_h = evc_malloc_fast(size);
+        evc_assert_gv(ctx->map_ats_tu_h, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
+        evc_mset(ctx->map_ats_tu_h, 0, size);
+    }
+    if (ctx->map_ats_tu_v == NULL)
+    {
+        size = sizeof(u8) * ctx->f_scu;
+        ctx->map_ats_tu_v = evc_malloc_fast(size);
+        evc_assert_gv(ctx->map_ats_tu_v, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
+        evc_mset(ctx->map_ats_tu_v, 0, size);
+    }
+#endif
+#if ATS_INTER_PROCESS
+    if (ctx->map_ats_inter == NULL)
+    {
+        size = sizeof(u8) * ctx->f_scu;
+        ctx->map_ats_inter = evc_malloc_fast(size);
+        evc_assert_gv(ctx->map_ats_inter, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
+        evc_mset(ctx->map_ats_inter, -1, size);
+    }
+    if (ctx->ats_inter_info_pred == NULL)
+    {
+        int num_route = ATS_INTER_SL_NUM;
+        int num_size_idx = MAX_TR_LOG2 - MIN_CU_LOG2 + 1;
+        size = sizeof(u32) * num_size_idx * num_size_idx * (ctx->max_cuwh >> MIN_CU_LOG2) * (ctx->max_cuwh >> MIN_CU_LOG2) * num_route; //only correct when the largest cu is <=128
+        ctx->ats_inter_pred_dist = evc_malloc_fast(size);
+        evc_assert_gv(ctx->ats_inter_pred_dist, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
+
+        size = sizeof(u8)  * num_size_idx * num_size_idx * (ctx->max_cuwh >> MIN_CU_LOG2) * (ctx->max_cuwh >> MIN_CU_LOG2) * num_route;
+        ctx->ats_inter_info_pred = evc_malloc_fast(size);
+        evc_assert_gv(ctx->ats_inter_info_pred, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
+
+        size = sizeof(u8)  * num_size_idx * num_size_idx * (ctx->max_cuwh >> MIN_CU_LOG2) * (ctx->max_cuwh >> MIN_CU_LOG2);
+        ctx->ats_inter_num_pred = evc_malloc_fast(size);
+        evc_assert_gv(ctx->ats_inter_num_pred, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
+    }
+#endif
+
     /* initialize reference picture manager */
     ctx->pa.fn_alloc = evce_pic_alloc;
     ctx->pa.fn_free  = evce_pic_free;
@@ -1072,6 +1148,17 @@ ERR:
 #if AFFINE
     evc_mfree_fast(ctx->map_affine);
 #endif
+#if ATS_INTRA_PROCESS
+    evc_mfree_fast(ctx->map_ats_intra_cu);
+    evc_mfree_fast(ctx->map_ats_tu_h);
+    evc_mfree_fast(ctx->map_ats_tu_v);
+#endif
+#if ATS_INTER_PROCESS
+    evc_mfree_fast(ctx->map_ats_inter);
+    evc_mfree_fast(ctx->ats_inter_pred_dist);
+    evc_mfree_fast(ctx->ats_inter_info_pred);
+    evc_mfree_fast(ctx->ats_inter_num_pred);
+#endif
     evc_mfree_fast(ctx->map_cu_mode);
 
     for(i = 0; i < ctx->pico_max_cnt; i++)
@@ -1105,6 +1192,17 @@ void evce_flush(EVCE_CTX * ctx)
 #endif
 #if AFFINE
     evc_mfree_fast(ctx->map_affine);
+#endif
+#if ATS_INTRA_PROCESS
+    evc_mfree_fast(ctx->map_ats_intra_cu);
+    evc_mfree_fast(ctx->map_ats_tu_h);
+    evc_mfree_fast(ctx->map_ats_tu_v);
+#endif
+#if ATS_INTER_PROCESS
+    evc_mfree_fast(ctx->map_ats_inter);
+    evc_mfree_fast(ctx->ats_inter_pred_dist);
+    evc_mfree_fast(ctx->ats_inter_info_pred);
+    evc_mfree_fast(ctx->ats_inter_num_pred);
 #endif
     evc_mfree_fast(ctx->map_cu_mode);
 #if RDO_DBK
@@ -1154,6 +1252,12 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
     }
     else
     {
+#if ATS_INTER_PROCESS // deblock
+        int t = (x >> MIN_CU_LOG2) + (y >> MIN_CU_LOG2) * ctx->w_scu;
+        u8 ats_inter_info = ctx->map_ats_inter[t];
+        u8 ats_inter_idx = get_ats_inter_idx(ats_inter_info);
+        u8 ats_inter_pos = get_ats_inter_pos(ats_inter_info);
+#endif
         if(is_hor)
         {
             if (cuh > MAX_TR_SIZE)
@@ -1164,6 +1268,17 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
             else
             {
                 evc_deblock_cu_hor(pic, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp);
+#if ATS_INTER_PROCESS // deblock
+                if (ats_inter_idx && is_ats_inter_horizontal(ats_inter_idx))
+                {
+                    int y_offset = is_ats_inter_quad_size(ats_inter_idx) ? cuh / 4 : cuh / 2;
+                    y_offset = ats_inter_pos == 0 ? y_offset : cuh - y_offset;
+                    if ((y + y_offset) % 8 == 0)
+                    {
+                        evc_deblock_cu_hor(pic, x, y + y_offset, cuw, cuh - y_offset, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp);
+                    }
+                }
+#endif
             }
         }
         else
@@ -1191,6 +1306,22 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
                                    , ctx->refp
                 );
+#if ATS_INTER_PROCESS // deblock
+                if (ats_inter_idx && !is_ats_inter_horizontal(ats_inter_idx))
+                {
+                    int x_offset = is_ats_inter_quad_size(ats_inter_idx) ? cuw / 4 : cuw / 2;
+                    x_offset = ats_inter_pos == 0 ? x_offset : cuw - x_offset;
+                    if ((x + x_offset) % 8 == 0)
+                    {
+                        evc_deblock_cu_ver(pic, x + x_offset, y, cuw - x_offset, cuh, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh
+#if FIX_PARALLEL_DBF
+                                           , ctx->map_cu_mode
+#endif
+                                           , ctx->refp
+                        );
+                    }
+                }
+#endif
             }
         }
     }
@@ -1818,6 +1949,9 @@ int evce_enc_pic_prepare(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
 #if AFFINE
     evc_mset_x64a(ctx->map_affine, 0, sizeof(u32) * ctx->f_scu);
+#endif
+#if ATS_INTER_PROCESS
+    evc_mset_x64a(ctx->map_ats_inter, 0, sizeof(u8) * ctx->f_scu);
 #endif
     evc_mset_x64a(ctx->map_cu_mode, 0, sizeof(u32) * ctx->f_scu);
 
@@ -2706,6 +2840,11 @@ EVCE evce_create(EVCE_CDSC * cdsc, int * err)
     ctx->tgh.aps_signaled = -1;
 #endif
 
+#if ATS_INTRA_PROCESS
+    evc_init_multi_tbl();
+    evc_init_multi_inv_tbl();
+#endif
+
     return (ctx->id);
 ERR:
     if(ctx)
@@ -3007,6 +3146,15 @@ int evce_create_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
     evce_malloc_1d((void**)&cu_data->mmvd_idx, size_16b);
     evce_malloc_1d((void**)&cu_data->mmvd_flag, size_8b);
 
+#if ATS_INTRA_PROCESS
+    evce_malloc_1d((void**)& cu_data->ats_intra_cu, size_8b);
+    evce_malloc_1d((void**)& cu_data->ats_tu_h, size_8b);
+    evce_malloc_1d((void**)& cu_data->ats_tu_v, size_8b);
+#endif
+#if ATS_INTER_PROCESS
+    evce_malloc_1d((void**)&cu_data->ats_inter_info, size_8b);
+#endif
+
     for(i = 0; i < N_C; i++)
     {
         evce_malloc_1d((void**)&cu_data->nnz[i], size_32b);
@@ -3093,7 +3241,15 @@ int evce_delete_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
 #if AFFINE
     evce_free_1d((void*)cu_data->affine_flag);
     evce_free_1d((void*)cu_data->map_affine);
-#endif    
+#endif   
+#if ATS_INTRA_PROCESS
+    evce_free_1d((void*)cu_data->ats_intra_cu);
+    evce_free_1d((void*)cu_data->ats_tu_h);
+    evce_free_1d((void*)cu_data->ats_tu_v);
+#endif
+#if ATS_INTER_PROCESS
+    evce_free_1d((void*)cu_data->ats_inter_info);
+#endif
     evce_free_1d((void*)cu_data->map_cu_mode);
     evce_free_2d((void**)cu_data->block_size);
     evce_free_1d((void*)cu_data->depth);

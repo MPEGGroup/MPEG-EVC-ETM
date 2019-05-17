@@ -174,6 +174,9 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
 #endif
     u32  *map_scu;
     s8   *map_ipm;
+#if ATS_INTER_PROCESS
+    u8   *map_ats_inter;
+#endif
     int   w_cu;
     int   h_cu;
     int   scup;
@@ -202,6 +205,9 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
     map_affine = ctx->map_affine + scup;
 #endif
     map_cu_mode = ctx->map_cu_mode + scup;
+#if ATS_INTER_PROCESS
+    map_ats_inter = ctx->map_ats_inter + scup;
+#endif
 
 #if DMVR_LAG
     idx = 0;
@@ -273,6 +279,9 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
 
             map_refi[j][REFP_0] = core->refi[REFP_0];
             map_refi[j][REFP_1] = core->refi[REFP_1];
+#if ATS_INTER_PROCESS
+            map_ats_inter[j] = core->ats_inter_info;
+#endif
 
 #if DMVR_LAG
             if(core->dmvr_flag)
@@ -319,7 +328,19 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
         map_affine += w_scu;
 #endif
         map_cu_mode += w_scu;
+#if ATS_INTER_PROCESS
+        map_ats_inter += w_scu;
+#endif
     }
+#if ATS_INTER_PROCESS //set cbf
+    if (core->ats_inter_info)
+    {
+        assert(core->is_coef_sub[Y_C][0] == core->is_coef[Y_C]);
+        assert(core->is_coef_sub[U_C][0] == core->is_coef[U_C]);
+        assert(core->is_coef_sub[V_C][0] == core->is_coef[V_C]);
+        set_cu_cbf_flags(core->is_coef[Y_C], core->ats_inter_info, core->log2_cuw, core->log2_cuh, ctx->map_scu + core->scup, ctx->w_scu);
+    }
+#endif
 
 #if AFFINE
     if(core->affine_flag)

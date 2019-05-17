@@ -100,6 +100,9 @@ static void sequence_deinit(EVCD_CTX * ctx)
     evc_mfree(ctx->map_affine);
 #endif
     evc_mfree(ctx->map_cu_mode);
+#if ATS_INTER_PROCESS
+    evc_mfree(ctx->map_ats_inter);
+#endif
 
     evc_picman_deinit(&ctx->dpm);
 }
@@ -170,6 +173,15 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
         evc_assert_gv(ctx->map_cu_mode, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
         evc_mset_x64a(ctx->map_cu_mode, 0, size);
     }
+#if ATS_INTER_PROCESS
+    if (ctx->map_ats_inter == NULL)
+    {
+        size = sizeof(u8) * ctx->f_scu;
+        ctx->map_ats_inter = (u8 *)evc_malloc(size);
+        evc_assert_gv(ctx->map_ats_inter, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
+        evc_mset_x64a(ctx->map_ats_inter, 0, size);
+    }
+#endif
 
     /* alloc map for CU split flag */
     if(ctx->map_split == NULL)
@@ -253,6 +265,9 @@ static int tile_group_init(EVCD_CTX * ctx, EVCD_CORE * core, EVC_TGH * tgh)
     evc_mset_x64a(ctx->map_scu, 0, sizeof(u32) * ctx->f_scu);
 #if AFFINE
     evc_mset_x64a(ctx->map_affine, 0, sizeof(u32) * ctx->f_scu);
+#endif
+#if ATS_INTER_PROCESS
+    evc_mset_x64a(ctx->map_ats_inter, 0, sizeof(u8) * ctx->f_scu);
 #endif
     evc_mset_x64a(ctx->map_cu_mode, 0, sizeof(u32) * ctx->f_scu);
     if(ctx->tgh.tile_group_type == TILE_GROUP_I)
@@ -378,12 +393,16 @@ static void evcd_itdq(EVCD_CTX * ctx, EVCD_CORE * core
 )
 {
 
-    evc_sub_block_itdq(core->coef, core->log2_cuw, core->log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->is_coef, core->is_coef_sub
-
+    evc_sub_block_itdq(core->coef, core->log2_cuw, core->log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->is_coef, core->is_coef_sub, ctx->sps.tool_iqt
 #if AQS
                        , ctx->aqs.qs_scale
 #endif
-                       , ctx->sps.tool_iqt
+#if ATS_INTRA_PROCESS
+                       , core->ats_intra_cu, ((core->ats_intra_tu_h << 1) | core->ats_intra_tu_v)
+#endif
+#if ATS_INTER_PROCESS
+                       , core->ats_inter_info
+#endif
     );
 }
 
@@ -536,6 +555,10 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
     EVC_TRACE_INT(cuh);
     EVC_TRACE_STR("\n");
 
+#if ATS_INTRA_PROCESS
+    core->ats_intra_cu = core->ats_intra_tu_h = core->ats_intra_tu_v = 0;
+#endif
+
     /* parse CU info */
     ret = evcd_eco_cu(ctx, core);
     evc_assert_g(ret == EVC_OK, ERR);
@@ -675,7 +698,11 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
     }
 
     /* reconstruction */
-    evc_recon_yuv(x, y, cuw, cuh, core->coef, core->pred[0], core->is_coef, ctx->pic);
+    evc_recon_yuv(x, y, cuw, cuh, core->coef, core->pred[0], core->is_coef, ctx->pic
+#if ATS_INTER_PROCESS
+                  , core->ats_inter_info
+#endif
+    );
 #if HTDF
     if(ctx->sps.tool_htdf == 1 && (core->is_coef[Y_C]
 #if HTDF_CBF0_INTRA
@@ -903,6 +930,12 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
     }
     else
     {
+#if ATS_INTER_PROCESS // deblock
+        int t = (x >> MIN_CU_LOG2) + (y >> MIN_CU_LOG2) * ctx->w_scu;
+        u8 ats_inter_info = ctx->map_ats_inter[t];
+        u8 ats_inter_idx = get_ats_inter_idx(ats_inter_info);
+        u8 ats_inter_pos = get_ats_inter_pos(ats_inter_info);
+#endif
         if(is_hor)
         {
             if (cuh > MAX_TR_SIZE)
@@ -913,6 +946,17 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
             else
             {
                 evc_deblock_cu_hor(pic, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp);
+#if ATS_INTER_PROCESS // deblock
+                if (ats_inter_idx && is_ats_inter_horizontal(ats_inter_idx))
+                {
+                    int y_offset = is_ats_inter_quad_size(ats_inter_idx) ? cuh / 4 : cuh / 2;
+                    y_offset = ats_inter_pos == 0 ? y_offset : cuh - y_offset;
+                    if ((y + y_offset) % 8 == 0)
+                    {
+                        evc_deblock_cu_hor(pic, x, y + y_offset, cuw, cuh - y_offset, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp);
+                    }
+                }
+#endif
             }
         }
         else
@@ -940,6 +984,22 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
                                    , ctx->refp
                 );
+#if ATS_INTER_PROCESS // deblock
+                if (ats_inter_idx && !is_ats_inter_horizontal(ats_inter_idx))
+                {
+                    int x_offset = is_ats_inter_quad_size(ats_inter_idx) ? cuw / 4 : cuw / 2;
+                    x_offset = ats_inter_pos == 0 ? x_offset : cuw - x_offset;
+                    if ((x + x_offset) % 8 == 0)
+                    {
+                        evc_deblock_cu_ver(pic, x + x_offset, y, cuw - x_offset, cuh, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh
+#if FIX_PARALLEL_DBF
+                                           , ctx->map_cu_mode
+#endif
+                                           , ctx->refp
+                        );
+                    }
+                }
+#endif
             }
         }
     }
@@ -1471,6 +1531,11 @@ EVCD evcd_create(EVCD_CDSC * cdsc, int * err)
     /* Set CTX variables to default value */
     ctx->magic = EVCD_MAGIC_CODE;
     ctx->id = (EVCD)ctx;
+
+#if ATS_INTRA_PROCESS
+    evc_init_multi_tbl();
+    evc_init_multi_inv_tbl();
+#endif
 
     return (ctx->id);
 ERR:

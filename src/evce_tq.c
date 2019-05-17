@@ -44,13 +44,35 @@ static double err_scale_tbl[6][MAX_CU_DEPTH];
 
 extern int rdoq_est_all_cbf[2];
 extern int rdoq_est_cbf[NUM_QT_CBF_CTX][2];
-
+#if COEFF_CODE_ADCC
+extern int rdoq_est_gt0[NUM_CTX_GT0][2];
+extern int rdoq_est_gtA[NUM_CTX_GTA][2];
+extern int rdoq_est_scanr_x[NUM_CTX_SCANR][2];
+extern int rdoq_est_scanr_y[NUM_CTX_SCANR][2];
+#endif
 extern s32 rdoq_est_run[NUM_SBAC_CTX_RUN][2];
 extern s32 rdoq_est_level[NUM_SBAC_CTX_LEVEL][2];
 extern s32 rdoq_est_last[NUM_SBAC_CTX_LAST][2];
 
 const int quant_scale[6] = {26214, 23302, 20560, 18396, 16384, 14564};
 
+#if ATS_INTRA_PROCESS
+void evce_trans_DST7_B4(s16* block, s16* coeff, s32 shift, s32 line, int skip_line, int skip_line_2);
+void evce_trans_DST7_B8(s16* block, s16* coeff, s32 shift, s32 line, int skip_line, int skip_line_2);
+void evce_trans_DST7_B16(s16* block, s16* coeff, s32 shift, s32 line, int skip_line, int skip_line_2);
+void evce_trans_DST7_B32(s16* block, s16* coeff, s32 shift, s32 line, int skip_line, int skip_line_2);
+void evce_trans_DCT8_B4(s16* block, s16* coeff, s32 shift, s32 line, int skip_line, int skip_line_2);
+void evce_trans_DCT8_B8(s16* block, s16* coeff, s32 shift, s32 line, int skip_line, int skip_line_2);
+void evce_trans_DCT8_B16(s16* block, s16* coeff, s32 shift, s32 line, int skip_line, int skip_line_2);
+void evce_trans_DCT8_B32(s16* block, s16* coeff, s32 shift, s32 line, int skip_line, int skip_line_2);
+typedef void Trans(s16*, s16*, s32, s32, int, int);
+
+Trans* evce_trans_map_tbl[16][5] =
+{
+    { NULL, evce_trans_DCT8_B4, evce_trans_DCT8_B8, evce_trans_DCT8_B16, evce_trans_DCT8_B32 },
+    { NULL, evce_trans_DST7_B4, evce_trans_DST7_B8, evce_trans_DST7_B16, evce_trans_DST7_B32 },
+};
+#endif
 
 static void tx_pb2b(void * src, void * dst, int shift, int line, int step)
 {
@@ -729,6 +751,372 @@ static void tx_pb64(s16 *src, s16 *dst, int shift, int line)
     }
 }
 
+#if ATS_INTRA_PROCESS
+/********************************** DST-VII **********************************/
+void evce_trans_DST7_B4(s16 *block, s16 *coef, s32 shift, s32 line, int skip_line, int skip_line_2)  /* input block, output coef */
+{
+    int i;
+    int rnd_factor = 1 << (shift - 1);
+    const s16 *tm = evc_tbl_tr4[DST7][0];
+    int c[4];
+    s16 *tmp = coef;
+    const int reduced_line = line - skip_line;
+
+    for (i = 0; i < reduced_line; i++)
+    {
+        /* Intermediate Variables */
+
+        c[0] = block[0] + block[3];
+        c[1] = block[1] + block[3];
+        c[2] = block[0] - block[1];
+        c[3] = tm[2] * block[2];
+
+        coef[0] = (tm[0] * c[0] + tm[1] * c[1] + c[3] + rnd_factor) >> shift;
+        coef[line] = (tm[2] * (block[0] + block[1] - block[3]) + rnd_factor) >> shift;
+        coef[2 * line] = (tm[0] * c[2] + tm[1] * c[0] - c[3] + rnd_factor) >> shift;
+        coef[3 * line] = (tm[1] * c[2] - tm[0] * c[1] + c[3] + rnd_factor) >> shift;
+        block += 4;
+        coef++;
+    }
+
+    if (skip_line)
+    {
+        coef = tmp + reduced_line;
+        for (i = 0; i < 4; i++)
+        {
+            evc_mset(coef, 0, sizeof(s16)* skip_line);
+            coef += line;
+        }
+    }
+}
+
+void evce_trans_DST7_B8(s16 *block, s16 *coef, s32 shift, s32 line, int skip_line, int skip_line_2)  /* input block, output coef */
+{
+    int i, j, k, sum;
+    int rnd_factor = 1 << (shift - 1);
+    const int tr_size = 8;
+    const s16 *tm;
+    s16 *coef_tmp;
+    const int reduced_line = line - skip_line;
+    const int cut_off = tr_size - skip_line_2;
+
+    for (i = 0; i < reduced_line; i++)
+    {
+        coef_tmp = coef;
+        tm = evc_tbl_tr8[DST7][0];
+        for (j = 0; j < cut_off; j++)
+        {
+            sum = 0;
+            for (k = 0; k < tr_size; k++)
+            {
+                sum += tm[k] * block[k];
+            }
+            coef_tmp[i] = (sum + rnd_factor) >> shift;
+            coef_tmp += line;
+            tm += tr_size;
+        }
+        block += tr_size;
+    }
+
+    if (skip_line)
+    {
+        coef_tmp = coef + reduced_line;
+        for (j = 0; j < cut_off; j++)
+        {
+            evc_mset(coef_tmp, 0, sizeof(s16)* skip_line);
+            coef_tmp += line;
+        }
+    }
+
+    if (skip_line_2)
+    {
+        coef_tmp = coef + line * cut_off;
+        evc_mset(coef_tmp, 0, sizeof(s16)* line * skip_line_2);
+    }
+}
+
+void evce_trans_DST7_B16(s16 *block, s16 *coef, s32 shift, s32 line, int skip_line, int skip_line_2)  /* input block, output coef */
+{
+    int i, j, k, sum;
+    int rnd_factor = 1 << (shift - 1);
+    const int tr_size = 16;
+    const s16 *tm;
+    s16 *coef_tmp;
+    const int reduced_line = line - skip_line;
+    const int cut_off = tr_size - skip_line_2;
+
+    for (i = 0; i < reduced_line; i++)
+    {
+        coef_tmp = coef;
+        tm = evc_tbl_tr16[DST7][0];
+        for (j = 0; j < cut_off; j++)
+        {
+            sum = 0;
+            for (k = 0; k < tr_size; k++)
+            {
+                sum += tm[k] * block[k];
+            }
+            coef_tmp[i] = (sum + rnd_factor) >> shift;
+            coef_tmp += line;
+            tm += tr_size;
+        }
+        block += tr_size;
+    }
+
+    if (skip_line)
+    {
+        coef_tmp = coef + reduced_line;
+        for (j = 0; j < cut_off; j++)
+        {
+            evc_mset(coef_tmp, 0, sizeof(s16)* skip_line);
+            coef_tmp += line;
+        }
+    }
+
+    if (skip_line_2)
+    {
+        coef_tmp = coef + line * cut_off;
+        evc_mset(coef_tmp, 0, sizeof(s16)* line * skip_line_2);
+    }
+}
+
+void evce_trans_DST7_B32(s16 *block, s16 *coef, s32 shift, s32 line, int skip_line, int skip_line_2)  /* input block, output coef */
+{
+    int i, j, k, sum;
+    int rnd_factor = 1 << (shift - 1);
+    const int tr_size = 32;
+    const s16 *tm;
+    s16 *coef_tmp;
+    const int reduced_line = line - skip_line;
+    const int cut_off = tr_size - skip_line_2;
+
+    for (i = 0; i < reduced_line; i++)
+    {
+        coef_tmp = coef;
+        tm = evc_tbl_tr32[DST7][0];
+        for (j = 0; j < cut_off; j++)
+        {
+            sum = 0;
+            for (k = 0; k < tr_size; k++)
+            {
+                sum += block[k] * tm[k];
+            }
+            coef_tmp[i] = (sum + rnd_factor) >> shift;
+            tm += tr_size;
+            coef_tmp += line;
+        }
+        block += tr_size;
+    }
+
+    if (skip_line)
+    {
+        coef_tmp = coef + reduced_line;
+        for (j = 0; j < cut_off; j++)
+        {
+            evc_mset(coef_tmp, 0, sizeof(s16)* skip_line);
+            coef_tmp += line;
+        }
+    }
+
+    if (skip_line_2)
+    {
+        coef_tmp = coef + line * cut_off;
+        evc_mset(coef_tmp, 0, sizeof(s16)* line * skip_line_2);
+    }
+}
+
+/********************************** DCT-VIII **********************************/
+void evce_trans_DCT8_B4(s16 *block, s16 *coef, s32 shift, s32 line, int skip_line, int skip_line_2)  /* input block, output coef */
+{
+    int i;
+    int rnd_factor = 1 << (shift - 1);
+    const s16 *tm = evc_tbl_tr4[DCT8][0];
+    int c[4];
+    s16 *tmp = coef;
+    const int reduced_line = line - skip_line;
+
+    for (i = 0; i < reduced_line; i++)
+    {
+        /* Intermediate Variables */
+        c[0] = block[0] + block[3];
+        c[1] = block[2] + block[0];
+        c[2] = block[3] - block[2];
+        c[3] = tm[1] * block[1];
+
+        coef[0] = (tm[3] * c[0] + tm[2] * c[1] + c[3] + rnd_factor) >> shift;
+        coef[line] = (tm[1] * (block[0] - block[2] - block[3]) + rnd_factor) >> shift;
+        coef[2 * line] = (tm[3] * c[2] + tm[2] * c[0] - c[3] + rnd_factor) >> shift;
+        coef[3 * line] = (tm[3] * c[1] - tm[2] * c[2] - c[3] + rnd_factor) >> shift;
+        block += 4;
+        coef++;
+    }
+
+    if (skip_line)
+    {
+        coef = tmp + reduced_line;
+        for (i = 0; i < 4; i++)
+        {
+            evc_mset(coef, 0, sizeof(s16)* skip_line);
+            coef += line;
+        }
+    }
+}
+
+void evce_trans_DCT8_B8(s16 *block, s16 *coef, s32 shift, s32 line, int skip_line, int skip_line_2)  /* input block, output coef */
+{
+    int i, j, k, sum;
+    int rnd_factor = 1 << (shift - 1);
+    const int tr_size = 8;
+    const s16 *tm;
+    s16 *coef_tmp;
+    const int reduced_line = line - skip_line;
+    const int cut_off = tr_size - skip_line_2;
+
+    for (i = 0; i < reduced_line; i++)
+    {
+        coef_tmp = coef;
+        tm = evc_tbl_tr8[DCT8][0];
+        for (j = 0; j < cut_off; j++)
+        {
+            sum = 0;
+            for (k = 0; k < tr_size; k++)
+            {
+                sum += tm[k] * block[k];
+            }
+            coef_tmp[i] = (sum + rnd_factor) >> shift;
+            coef_tmp += line;
+            tm += tr_size;
+        }
+        block += tr_size;
+    }
+
+    if (skip_line)
+    {
+        coef_tmp = coef + reduced_line;
+        for (j = 0; j < cut_off; j++)
+        {
+            evc_mset(coef_tmp, 0, sizeof(s16)* skip_line);
+            coef_tmp += line;
+        }
+    }
+
+    if (skip_line_2)
+    {
+        coef_tmp = coef + line * cut_off;
+        evc_mset(coef_tmp, 0, sizeof(s16)* line * skip_line_2);
+    }
+}
+
+void evce_trans_DCT8_B16(s16 *block, s16 *coef, s32 shift, s32 line, int skip_line, int skip_line_2)  /* input block, output coef */
+{
+    int i, j, k, sum;
+    int rnd_factor = 1 << (shift - 1);
+    const int tr_size = 16;
+    const s16 *tm;
+    s16 *coef_tmp;
+    const int reduced_line = line - skip_line;
+    const int cut_off = tr_size - skip_line_2;
+
+    for (i = 0; i < reduced_line; i++)
+    {
+        coef_tmp = coef;
+        tm = evc_tbl_tr16[DCT8][0];
+        for (j = 0; j < tr_size; j++)
+        {
+            sum = 0;
+            for (k = 0; k < tr_size; k++)
+            {
+                sum += tm[k] * block[k];
+            }
+            coef_tmp[i] = (sum + rnd_factor) >> shift;
+            coef_tmp += line;
+            tm += tr_size;
+        }
+        block += tr_size;
+    }
+
+    if (skip_line)
+    {
+        coef_tmp = coef + reduced_line;
+        for (j = 0; j < cut_off; j++)
+        {
+            evc_mset(coef_tmp, 0, sizeof(s16)* skip_line);
+            coef_tmp += line;
+        }
+    }
+
+    if (skip_line_2)
+    {
+        coef_tmp = coef + line * cut_off;
+        evc_mset(coef_tmp, 0, sizeof(s16)* line * skip_line_2);
+    }
+}
+
+void evce_trans_DCT8_B32(s16 *block, s16 *coef, s32 shift, s32 line, int skip_line, int skip_line_2)  /* input block, output coef */
+{
+    int i, j, k, sum;
+    int rnd_factor = 1 << (shift - 1);
+    const int tr_size = 32;
+    const s16 *tm;
+    s16 *coef_tmp;
+    const int reduced_line = line - skip_line;
+    const int cut_off = tr_size - skip_line_2;
+
+    for (i = 0; i < reduced_line; i++)
+    {
+        coef_tmp = coef;
+        tm = evc_tbl_tr32[DCT8][0];
+        for (j = 0; j < cut_off; j++)
+        {
+            sum = 0;
+            for (k = 0; k < tr_size; k++)
+            {
+                sum += block[k] * tm[k];
+            }
+            coef_tmp[i] = (sum + rnd_factor) >> shift;
+            tm += tr_size;
+            coef_tmp += line;
+        }
+        block += tr_size;
+    }
+
+    if (skip_line)
+    {
+        coef_tmp = coef + reduced_line;
+        for (j = 0; j < cut_off; j++)
+        {
+            evc_mset(coef_tmp, 0, sizeof(s16)* skip_line);
+            coef_tmp += line;
+        }
+    }
+
+    if (skip_line_2)
+    {
+        coef_tmp = coef + line * cut_off;
+        evc_mset(coef_tmp, 0, sizeof(s16)* line * skip_line_2);
+    }
+}
+
+void evc_t_MxN_ats_intra(s16 *coef, int tuw, int tuh, int bit_depth, u8 ats_intra_mode, u8 ats_intra_tridx)
+{
+    const int shift_1st = CONV_LOG2(tuw) - 1 + bit_depth - 8;
+    const int shift_2nd = CONV_LOG2(tuh) + 6;
+    const u8 log2_minus1_w = CONV_LOG2(tuw) - 1;
+    const u8 log2_minus1_h = CONV_LOG2(tuh) - 1;
+    s16 t[MAX_TR_DIM]; /* temp buffer */
+    u8  t_idx_h = 0, t_idx_v = 0;
+    int skip_w = 0;
+    int skip_h = 0;
+
+    t_idx_h = evc_tbl_tr_subset_intra[ats_intra_tridx >> 1];
+    t_idx_v = evc_tbl_tr_subset_intra[ats_intra_tridx & 1];
+
+    evce_trans_map_tbl[t_idx_h][log2_minus1_w](coef, t, shift_1st, tuh, 0, skip_w);
+    evce_trans_map_tbl[t_idx_v][log2_minus1_h](t, coef, shift_2nd, tuw, skip_w, skip_h);
+}
+#endif
+
+
 typedef void(*EVC_TXB)(void * coef, void * t, int shift, int line, int step);
 static EVC_TXB evce_tbl_txb[MAX_TR_LOG2] =
 {
@@ -750,6 +1138,14 @@ static EVC_TX evce_tbl_tx[MAX_TR_LOG2] =
     tx_pb32,
     tx_pb64
 };
+
+#if ATS_INTRA_PROCESS
+void evce_trans_ats_intra(s16* coef, int log2_cuw, int log2_cuh, u8 ats_intra_cu, u8 ats_tu)
+{
+    evc_t_MxN_ats_intra(coef, (1 << log2_cuw), (1 << log2_cuh), BIT_DEPTH, ats_intra_cu, ats_tu);
+}
+#endif
+
 
 void evce_trans(s16 * coef, int log2_cuw, int log2_cuh, int iqt_flag)
 {    
@@ -821,6 +1217,346 @@ void evce_init_err_scale()
 #define GET_I_COST(rate, lamba)  (rate*lamba)
 #define GET_IEP_RATE             (32768)
 
+#if COEFF_CODE_ADCC
+#if USE_RDOQ
+__inline static s64 get_rate_positionLastXY(int pos_x, int pos_y, int width, int height, int ch_type, s64 lambda)
+#else
+__inline static double get_rate_positionLastXY(int pos_x, int pos_y, int width, int height, int ch_type, double lambda)
+#endif
+{
+    int group_idx_x;
+    int group_idx_y;
+    int blk_offset_x, blk_offset_y, shift_x, shift_y;
+    int bin, cnt;
+    int rate = 0;
+    int offset_x = (ch_type == Y_C ? 0 : NUM_CTX_SCANR_LUMA);
+    int offset_y = (ch_type == Y_C ? 0 : NUM_CTX_SCANR_LUMA);
+
+    group_idx_x = g_group_idx[pos_x];
+    group_idx_y = g_group_idx[pos_y];
+
+    evc_get_ctx_last_pos_xy_para(ch_type, width, height, &blk_offset_x, &blk_offset_y, &shift_x, &shift_y);
+    //------------------
+
+    // posX
+
+    for (bin = 0; bin < group_idx_x; bin++)
+    {
+        rate += rdoq_est_scanr_x[offset_x + blk_offset_x + (bin >> shift_x)][1];
+    }
+    if (group_idx_x < g_group_idx[width - 1])
+    {
+        rate += rdoq_est_scanr_x[offset_x + blk_offset_x + (bin >> shift_x)][0];
+    }
+
+    // posY
+
+    for (bin = 0; bin < group_idx_y; bin++)
+    {
+        rate += rdoq_est_scanr_y[offset_y + blk_offset_y + (bin >> shift_y)][1];
+    }
+    if (group_idx_y < g_group_idx[height - 1])
+    {
+        rate += rdoq_est_scanr_y[offset_y + blk_offset_y + (bin >> shift_y)][0];
+    }
+
+    // EP-coded part
+
+    if (group_idx_x > 3)
+    {
+        cnt = (group_idx_x - 2) >> 1;
+        pos_x = pos_x - g_min_in_group[group_idx_x];
+        rate += (cnt * GET_IEP_RATE);
+    }
+    if (group_idx_y > 3)
+    {
+        cnt = (group_idx_y - 2) >> 1;
+        pos_y = pos_y - g_min_in_group[group_idx_y];
+        rate += (cnt * GET_IEP_RATE);
+    }
+
+    return GET_I_COST(rate, lambda);
+}
+#if USE_RDOQ
+__inline static s64 get_rate_gt0(int significance, int ctx_gt0, s64 lambda)
+{
+    s64 rate = rdoq_est_gt0[ctx_gt0][significance];
+    return GET_I_COST(rate, lambda);
+}
+#else
+__inline static double get_rate_gt0(int significance, int ctx_gt0, double lambda)
+{
+    int rate = rdoq_est_gt0[ctx_gt0][significance];
+    return GET_I_COST(rate, lambda);
+}
+#endif
+__inline static int get_ic_rate(int abs_level, int ctx_gtA, int ctx_gtB, int rparam, int c1_idx, int c2_idx, int num_gtA, int num_gtB)
+{
+    int rate = GET_IEP_RATE; // cost of sign bit
+    int base_level = (c1_idx < num_gtA) ? (2 + (c2_idx < num_gtB ? 1 : 0)) : 1;
+
+    if (abs_level >= base_level)
+    {
+        int symbol = abs_level - base_level;
+        int length;
+
+        if (symbol < (g_go_rice_range[rparam] << rparam))
+        {
+            length = symbol >> rparam;
+            rate += (length + 1 + rparam) << 15;
+        }
+        else
+        {
+            length = rparam;
+            symbol = symbol - (g_go_rice_range[rparam] << rparam);
+            while (symbol >= (1 << length))
+            {
+                symbol -= (1 << (length++));
+            }
+            rate += (g_go_rice_range[rparam] + length + 1 - rparam + length) << 15;
+        }
+
+        if (c1_idx < num_gtA)
+        {
+            rate += rdoq_est_gtA[ctx_gtA][1];
+            if (c2_idx < num_gtB)
+            {
+                rate += rdoq_est_gtA[ctx_gtB][1];
+            }
+        }
+    }
+    else if (abs_level == 1)
+    {
+        rate += rdoq_est_gtA[ctx_gtA][0];
+    }
+    else if (abs_level == 2)
+    {
+        rate += rdoq_est_gtA[ctx_gtA][1];
+        rate += rdoq_est_gtA[ctx_gtB][0];
+    }
+    else
+    {
+        rate = 0;
+    }
+
+    return  rate;
+}
+
+__inline static int get_coded_level(
+#if USE_RDOQ
+    s64*    rd_coded_cost,          //< reference to coded cost
+    s64*    rd_coded_cost0,         //< reference to cost when coefficient is 0
+    s64*    rd_coded_cost_sig,       //< rd_coded_cost_sig reference to cost of significant coefficient
+#else
+    double* rd_coded_cost,          //< reference to coded cost
+    double* rd_coded_cost0,         //< reference to cost when coefficient is 0
+    double* rd_coded_cost_sig,       //< rd_coded_cost_sig reference to cost of significant coefficient
+#endif
+    s64     level_double,           //< reference to unscaled quantized level
+    int     max_abs_level,          //< scaled quantized level
+    int     ctx_gt0,          //< current ctxInc for coeff_abs_significant_flag
+    int     ctx_gtA,          //< current ctxInc for coeff_abs_level_greater1 (1st bin of coeff_abs_level_minus1 in AVC)
+    int     ctx_gtB,          //< current ctxInc for coeff_abs_level_greater2 (remaining bins of coeff_abs_level_minus1 in AVC)
+    int     rparam,          //< current Rice parameter for coeff_abs_level_minus3
+    int     c1_idx,                  //< 
+    int     c2_idx,                  //< 
+    int     num_gtA,
+    int     num_gtB,
+    int     qbits,                 //< quantization step size
+#if USE_RDOQ
+    s64     error_scale,             //< 
+    s64     lambda,
+#else
+    double  error_scale,             //< 
+    double  lambda,
+#endif
+    int     bypass_sigmap,
+    int*    rate_inc_up,
+    int*    rate_inc_down
+)
+{
+#if USE_RDOQ
+    s64 curr_cost_sig = 0;
+    s64 curr_cost;
+#else
+    double curr_cost_sig = 0;
+    double curr_cost;
+#endif
+    int best_abs_level = 0;
+    int min_abs_level;
+    int abs_level;
+    int rate_best = 0;
+    int rate_max = 0;
+    int rate = 0;
+
+    if (bypass_sigmap == 0 && max_abs_level < 3)
+    {
+        *rd_coded_cost_sig = get_rate_gt0(0, ctx_gt0, lambda);
+        *rd_coded_cost = *rd_coded_cost0 + *rd_coded_cost_sig;
+
+        if (max_abs_level == 0)
+        {
+            *rate_inc_up = rdoq_est_gtA[ctx_gtA][0];
+            *rate_inc_down = 0;
+            return best_abs_level;
+        }
+    }
+    else
+    {
+#if USE_RDOQ
+        *rd_coded_cost = EVC_INT64_MAX;
+#else
+        *rd_coded_cost = 1.7e+308;
+#endif
+    }
+
+    if (bypass_sigmap == 0)
+    {
+        curr_cost_sig = get_rate_gt0(1, ctx_gt0, lambda);
+    }
+
+    min_abs_level = (max_abs_level > 1 ? max_abs_level - 1 : 1);
+    for (abs_level = max_abs_level; abs_level >= min_abs_level; abs_level--)
+    {
+#if USE_RDOQ
+        s64 err = (s64)(level_double - ((s64)abs_level << qbits));
+        rate = get_ic_rate(abs_level, ctx_gtA, ctx_gtB, rparam, c1_idx, c2_idx, num_gtA, num_gtB);
+        err = (err * error_scale) >> ERR_SCALE_PRECISION_BITS;
+        curr_cost = err * err + GET_I_COST(rate, lambda);
+#else
+        double err = (double)(level_double - ((s64)abs_level << qbits));
+        rate = get_ic_rate(abs_level, ctx_gtA, ctx_gtB, rparam, c1_idx, c2_idx, num_gtA, num_gtB);
+        curr_cost = err * err * error_scale + GET_I_COST(rate, lambda);
+#endif
+        curr_cost += curr_cost_sig;
+
+        if (curr_cost < *rd_coded_cost)
+        {
+            best_abs_level = abs_level;
+            *rd_coded_cost = curr_cost;
+            *rd_coded_cost_sig = curr_cost_sig;
+            rate_best = rate;
+        }
+        if (abs_level == max_abs_level)
+        {
+            rate_max = rate;
+        }
+    }
+
+    if (best_abs_level > 0)
+    {
+        if (best_abs_level == max_abs_level)
+        {
+            *rate_inc_up = get_ic_rate(best_abs_level + 1, ctx_gtA, ctx_gtB, rparam, c1_idx, c2_idx, num_gtA, num_gtB) - rate_best;
+        }
+        else
+        {
+            *rate_inc_up = rate_max - rate_best;
+        }
+
+        if (best_abs_level == 1)
+        {
+            *rate_inc_down = get_ic_rate(best_abs_level - 1, ctx_gtA, ctx_gtB, rparam, c1_idx, c2_idx, num_gtA, num_gtB) - rate_best;
+        }
+        else
+        {
+            *rate_inc_down = rate - rate_best;
+        }
+    }
+    else
+    {
+        *rate_inc_up = rdoq_est_gtA[ctx_gtA][0];
+        *rate_inc_down = 0;
+    }
+    return best_abs_level;
+}
+
+__inline static int get_ctx_gt012_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int *num1, int *num2, int sr_x, int sr_y)
+{
+    const s16 *pdata = pcoeff + blkpos;
+    const int width_m1 = width - 1;
+    const int height_m1 = height - 1;
+    const int log2_w = CONV_LOG2(width);
+    const int pos_y = blkpos >> log2_w;
+    const int pos_x = blkpos - (pos_y << log2_w);
+    const int diag = pos_x + pos_y;
+    int num_gt0 = 0;
+    int num_gtA = 0;
+    int num_gtB = 0;
+    int ctx_idx;
+    int ctx_ofs;
+    s16 tmp;
+
+    if (pos_x < width_m1)
+    {
+        tmp = EVC_ABS16(pdata[1]);
+        num_gt0 += !!(tmp);
+        num_gtA += (tmp > 1 ? 1 : 0);
+        num_gtB += (tmp > 2 ? 1 : 0);
+        if (pos_x < width_m1 - 1)
+        {
+            tmp = EVC_ABS16(pdata[2]);
+            num_gt0 += !!(tmp);
+            num_gtA += (tmp > 1 ? 1 : 0);
+            num_gtB += (tmp > 2 ? 1 : 0);
+        }
+        if (pos_y < height_m1)
+        {
+            tmp = EVC_ABS16(pdata[width + 1]);
+            num_gt0 += !!(tmp);
+            num_gtA += (tmp > 1 ? 1 : 0);
+            num_gtB += (tmp > 2 ? 1 : 0);
+        }
+    }
+    if (pos_y < height_m1)
+    {
+        tmp = EVC_ABS16(pdata[width]);
+        num_gt0 += !!(tmp);
+        num_gtA += (tmp > 1 ? 1 : 0);
+        num_gtB += (tmp > 2 ? 1 : 0);
+        if (pos_y < height_m1 - 1)
+        {
+            tmp = EVC_ABS16(pdata[2 * width]);
+            num_gt0 += !!(tmp);
+            num_gtA += (tmp > 1 ? 1 : 0);
+            num_gtB += (tmp > 2 ? 1 : 0);
+        }
+    }
+
+    ctx_idx = EVC_MIN(num_gt0, 4) + 1;
+#if 0// COEFF_REAL_LAST  JEM alinged
+
+    if (ch_type == Y_C)
+    {
+        ctx_idx += diag < 3 ? 10 : (diag < 10 ? 5 : 0);
+    }
+#else // Context derivation by SRCC
+    if (diag < 2)
+    {
+        ctx_idx = EVC_MIN(ctx_idx, 2);
+    }
+
+    if (ch_type == Y_C)
+    {
+        ctx_ofs = diag < 2 ? 0 : (diag < 5 ? 2 : 7);
+    }
+    else
+    {
+        ctx_ofs = diag < 2 ? 0 : 2;
+    }
+
+    *num1 = EVC_MIN(num_gtA, 3) + 1;
+    *num2 = EVC_MIN(num_gtB, 3) + 1;
+    if (ch_type == Y_C)
+    {
+        *num1 += (pos_x + pos_y == 0) ? 0 : ((pos_x <= sr_x / 2 && pos_y <= sr_y / 2) ? 4 : 8);
+        *num2 += (pos_x + pos_y == 0) ? 0 : ((pos_x <= sr_x / 2 && pos_y <= sr_y / 2) ? 4 : 8);
+    }
+#endif
+
+    return ctx_ofs + ctx_idx;
+}
+#endif
 #if USE_RDOQ
 static __inline s64 get_ic_rate_cost_rl(u32 abs_level, u32 run, s32 ctx_run, u32 ctx_level, s64 lambda)
 #else
@@ -1101,9 +1837,642 @@ int evce_rdoq_run_length_cc(u8 qp, double lambda, u8 is_intra, s16 *src_coef, s1
     return nnz;
 }
 
+#if COEFF_CODE_ADCC
+int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s16 *dst_tmp, int log2_cuw, int log2_cuh, int ch_type)
+{
+    const int ns_shift = ((log2_cuw + log2_cuh) & 1) ? 7 : 0;
+    const int ns_scale = ((log2_cuw + log2_cuh) & 1) ? 181 : 1;
+    const int qp_rem = qp % 6;
+    const int q_value = (quant_scale[qp_rem] * ns_scale) >> ns_shift;
+    const int log2_size = (log2_cuw + log2_cuh) >> 1;
+    const int tr_shift = MAX_TX_DYNAMIC_RANGE - BIT_DEPTH - (log2_size);
+
+    s64 err_scale = err_scale_tbl[qp_rem][log2_size - 1];
+    s64 lambda = (s64)(d_lambda * (double)(1 << SCALE_BITS) + 0.5);
+    int q_bits;
+    const int width = (1 << log2_cuw);
+    const int height = (1 << log2_cuh);
+    const int max_num_coef = width * height;
+    int scan_type = COEF_SCAN_ZIGZAG;
+    int log2_block_size = min(log2_cuw, log2_cuh);
+    int *scan = evc_scan_sr;
+    int scan_pos_last = -1;
+    int sr_x = 0, sr_y = 0;
+    int sr_x_tmp = 0, sr_y_tmp = 0;
+    int sr_width, sr_height;
+    int num_coef;
+    int ipos;
+    int cg_log2_size = LOG2_CG_SIZE;
+    int cg_size = 1 << cg_log2_size;
+    int last_scan_set;
+    int sub_set;
+
+    int offset1 = (ch_type == Y_C) ? 0 : NUM_CTX_GTA_LUMA;
+    int offset0 = (ch_type == Y_C) ? (log2_block_size <= 2 ? 0 : NUM_CTX_GT0_LUMA_TU << (EVC_MIN(1, (log2_block_size - 3)))) : NUM_CTX_GT0_LUMA;
+    int c1_idx = 0;
+    int c2_idx = 0;
+    s64 cost_base = 0;
+    s64 cost_best = 0;
+    s64 cbf_cost = 0;
+    int abs_sum;
+    int nnz = 0;
+    int rice_param = 0;
+    s64 dcost_block_uncoded = 0;
+    s64 pdcost_coeff[MAX_TR_DIM];
+    s64 pdcost_sig[MAX_TR_DIM];
+    s64 pdcost_coeff0[MAX_TR_DIM];
+    static int rate_inc_up[MAX_TR_DIM];
+    static int rate_inc_down[MAX_TR_DIM];
+    static int sig_rate_delta[MAX_TR_DIM];
+    static int delta_u[MAX_TR_DIM];
+    static s16 coef_dst[MAX_TR_DIM];
+    static int rate_inc_up0[MAX_TR_DIM];
+    static int rate_inc_down0[MAX_TR_DIM];
+    int sum_all = 0;
+    int blk_pos, sx, sy;
+    static s64 tmp_level_double[MAX_TR_DIM];
+    int num_nz = 0;
+    int j, i;
+    int is_last_x = 0;
+    int is_last_y = 0;
+    int is_last_nz = 0;
+    int num_gtA, num_gtB;
+    static int row[MAX_TR_SIZE];
+    static int col[MAX_TR_SIZE];
+    static int row_tmp[MAX_TR_SIZE];
+    static int col_tmp[MAX_TR_SIZE];
+
+    s64 sig_last_cost[MAX_TR_DIM];
+    s64 sig_last_cost0[MAX_TR_DIM];
+    s64 sig_cost_delta[MAX_TR_DIM];
+
+    evc_mset(row, 0, sizeof(int) * height);
+    evc_mset(col, 0, sizeof(int) * width);
+    evc_mset(rate_inc_up0, 0, sizeof(int) * max_num_coef);
+    evc_mset(rate_inc_down0, 0, sizeof(int) * max_num_coef);
+    q_bits = QUANT_SHIFT + tr_shift + (qp / 6);
+
+    for(blk_pos = 0; blk_pos < max_num_coef; blk_pos++)
+    {
+        int max_abs_level;
+        s64 err;
+        s64 temp_level;
+        int level_double;
+
+        temp_level = ((s64)EVC_ABS(src_coef[blk_pos]) * (s64)q_value);
+        level_double = (int)EVC_MIN(((s64)temp_level), (s64)EVC_INT32_MAX - (s64)(1 << (q_bits - 1)));
+        tmp_level_double[blk_pos] = (s64)level_double;
+        max_abs_level = EVC_MIN(MAX_TX_VAL, ((level_double + ((int)1 << (q_bits - 1))) >> q_bits));
+        err = (s64)level_double;
+        err = (err * err_scale) >> ERR_SCALE_PRECISION_BITS;
+        pdcost_coeff0[blk_pos] = err * err;
+        dcost_block_uncoded += pdcost_coeff0[blk_pos];
+        coef_dst[blk_pos] = (s16)max_abs_level;
+        sum_all += max_abs_level;
+
+        if(max_abs_level != 0)
+        {
+            i = blk_pos & (width - 1);
+            j = blk_pos >> log2_cuw;            
+
+            num_nz++;
+
+            sr_x = i > sr_x ? i : sr_x;
+            sr_y = j > sr_y ? j : sr_y;
+
+            row[j]++;
+            col[i]++;
+        }
+    }
+    if(sum_all == 0)
+    {
+        evc_mset(dst_tmp, 0, sizeof(s16) * max_num_coef);
+        return 0;
+    }
+
+    sr_width = sr_x + 1;
+    sr_height = sr_y + 1;
+    num_coef = sr_width * sr_height;
+    evc_init_scan_sr(scan, sr_width, sr_height, width, height, scan_type);
+    num_gtA = max(num_coef >> LOG2_RATIO_GTA, 8);
+    num_gtB = max(num_coef >> LOG2_RATIO_GTB, 1);
+    last_scan_set = (num_coef - 1) >> cg_log2_size;
+    scan_pos_last = sr_y * width + sr_x;
+    rice_param = 0;
+    ipos = num_coef - 1;
+    cost_base = dcost_block_uncoded;
+
+    for(sub_set = last_scan_set; sub_set >= 0; sub_set--)
+    {
+        int sub_pos = sub_set << cg_log2_size;
+
+        for(; ipos >= sub_pos; ipos--)
+        {
+            //===== coefficient level estimation =====
+            int  level;
+            int  ctx_gt0 = 0;
+            int  ctx_gtA = 0;
+            int  ctx_gtB = 0;
+
+            blk_pos = scan[ipos];
+            sx = blk_pos & (width - 1);
+            sy = blk_pos >> log2_cuw;            
+
+            if (sx <= sr_x && sy <= sr_y)
+            {
+                s64 level_double = tmp_level_double[blk_pos];
+                int max_abs_level = coef_dst[blk_pos];
+                int bypass_sigmap = (max_abs_level) && ((sx == 0 && sy == sr_y && row[sr_y] == 1) || (sy == 0 && sx == sr_x && col[sr_x] == 1)) ? 1 : 0;
+
+                int base_level = (c1_idx < num_gtA) ? (2 + (c2_idx < num_gtB ? 1 : 0)) : 1;
+                ctx_gt0 = get_ctx_gt012_inc(coef_dst, blk_pos, width, height, ch_type, &ctx_gtA, &ctx_gtB, sr_x, sr_y);
+
+                if (blk_pos == scan_pos_last)
+                {
+                    ctx_gt0 = 0;
+                }
+                ctx_gt0 += offset0;
+                if (max_abs_level != 0 && is_last_nz == 0)
+                {
+                    ctx_gtA = 0;
+                    ctx_gtB = 0;
+                }
+                ctx_gtA += offset1;
+                ctx_gtB += offset1;
+                rice_param = get_rice_para(coef_dst, blk_pos, width, height, base_level);
+                level = get_coded_level(&pdcost_coeff[blk_pos], &pdcost_coeff0[blk_pos], &pdcost_sig[blk_pos], level_double, max_abs_level, ctx_gt0, ctx_gtA, ctx_gtB, rice_param,
+                                        c1_idx, c2_idx, num_gtA, num_gtB, q_bits, err_scale, lambda, bypass_sigmap, &rate_inc_up[blk_pos], &rate_inc_down[blk_pos]);
+
+                sig_rate_delta[blk_pos] = rdoq_est_gt0[ctx_gt0][1] - rdoq_est_gt0[ctx_gt0][0];
+                delta_u[blk_pos] = (int)((level_double - (((s64)level) << q_bits)) >> (q_bits - 8));
+                sig_cost_delta[blk_pos] = GET_I_COST(sig_rate_delta[blk_pos], lambda);
+                sig_last_cost[blk_pos] = GET_I_COST(rdoq_est_gt0[offset0][!!(level)], lambda);
+                sig_last_cost0[blk_pos] = GET_I_COST(rdoq_est_gt0[offset0][0], lambda);
+                coef_dst[blk_pos] = (s16)level;
+
+                if(level > 0)
+                {
+                    rate_inc_up0[blk_pos] = rdoq_est_gtA[ctx_gtA][0];
+                    rate_inc_down0[blk_pos] = 0;
+
+                    if (is_last_nz == 0)
+                    {
+                        is_last_nz = 1;
+                    }
+
+                    sr_x_tmp = sx > sr_x_tmp ? sx : sr_x_tmp;
+                    sr_y_tmp = sy > sr_y_tmp ? sy : sr_y_tmp;
+
+                    c1_idx++;
+                    if(level > 1)
+                    {
+                        c2_idx++;
+                    }
+                }
+                else if(max_abs_level)
+                {
+                    num_nz--;
+                    if(num_nz == 0)
+                    {
+                        evc_mset(dst_tmp, 0, sizeof(s16) * max_num_coef);
+                        return 0;
+                    }
+
+                    row[sy]--;
+                    col[sx]--;
+
+                    if(row[sr_y] == 0)
+                    {
+                        while(row[sr_y] == 0 && sr_y >= 0)
+                        {
+                            sr_y--;
+                        }
+                    }
+
+                    if(col[sr_x] == 0)
+                    {
+                        while(col[sr_x] == 0 && sr_x >= 0)
+                        {
+                            sr_x--;
+                        }
+                    }
+
+                    num_coef = (sr_x + 1) * (sr_y + 1);
+                    num_gtA = max(num_coef >> LOG2_RATIO_GTA, 8);
+                    num_gtB = max(num_coef >> LOG2_RATIO_GTB, 1);
+                    scan_pos_last = sr_y * width + sr_x;
+                }
+            }
+        }
+    }
+
+    if(num_nz == 0)
+    {
+        evc_mset(dst_tmp, 0, sizeof(s16) * max_num_coef);
+        return 0;
+    }
+
+    {
+        s64 in_sr_cost0 = 0;
+        s64 in_sr_cost = 0;
+        sr_x = sr_x_tmp;
+        sr_y = sr_y_tmp;
+        sr_width = sr_x + 1;
+        sr_height = sr_y + 1;
+        
+        cost_base = 0;
+
+        for(j = 0; j <= sr_y; j++)
+        {
+            blk_pos = j * width;
+            for(i = 0; i <= sr_x; i++)
+            {                
+                in_sr_cost += pdcost_coeff[blk_pos];
+                in_sr_cost0 += pdcost_coeff0[blk_pos];
+                ++blk_pos;
+            }            
+        }
+
+        cost_base = dcost_block_uncoded - in_sr_cost0 + in_sr_cost;
+    }
+
+    cost_best = 0;
+
+    if(is_intra == 0 && ch_type == Y_C)
+    {
+        cost_best = dcost_block_uncoded + GET_I_COST(rdoq_est_all_cbf[0], lambda);
+        cbf_cost = GET_I_COST(rdoq_est_all_cbf[1], lambda);
+        cost_base += cbf_cost;
+    }
+    else
+    {
+        int ctx_qt_cbf = ch_type;
+        cost_best = dcost_block_uncoded + GET_I_COST(rdoq_est_cbf[ctx_qt_cbf][0], lambda);
+        cbf_cost = GET_I_COST(rdoq_est_cbf[ctx_qt_cbf][1], lambda);
+        cost_base += cbf_cost;
+    }
+
+    sr_x_tmp = sr_x;
+    sr_y_tmp = sr_y;
+
+    evc_mcpy(row_tmp, row, sizeof(int) * height);
+    evc_mcpy(col_tmp, col, sizeof(int) * width);
+
+    {
+        int sr_x_best = -1;
+        int sr_y_best = -1;
+        s64 removal_cost = 0;
+        s64 cost_last;
+        s64 total_cost;
+        s64 total_cost_tmp;
+        int k = 0;
+        int best_case = 0;
+        int best_cutpos = 0;
+
+        if(coef_dst[0])
+        {
+            s64 level_double = tmp_level_double[0];
+            s64 err = (s64)(level_double - ((s64)coef_dst[0] << q_bits));
+            s64 curr_cost0 = cbf_cost + dcost_block_uncoded - pdcost_coeff0[0];
+            s64 cost1 = GET_I_COST(get_ic_rate((int)coef_dst[0], offset1, offset1, 0, 0, 0, 1, 1), lambda);
+
+            err = (err * err_scale) >> ERR_SCALE_PRECISION_BITS;
+            curr_cost0 += err * err + cost1;
+            curr_cost0 += get_rate_positionLastXY(0, 0, width, height, ch_type, lambda);
+            if(curr_cost0 < cost_best)
+            {
+                cost_best = curr_cost0;
+                sr_x_best = 0;
+                sr_y_best = 0;
+                best_case = 0;
+            }
+        }
+        while(k < sr_width + sr_height)
+        {
+            if(sr_x == 0 && sr_y == 0)
+            {
+                break;
+            }
+            cost_last = get_rate_positionLastXY(sr_x, sr_y, width, height, ch_type, lambda);
+            total_cost = cost_base + cost_last - removal_cost;
+            if(sr_x == 0 || sr_y == 0)
+            {
+                total_cost -= pdcost_sig[sr_y * width + sr_x];
+            }
+            else
+            {
+                if(col[sr_x] == 1 && coef_dst[sr_x] != 0)
+                {
+                    total_cost -= pdcost_sig[sr_x];
+                }
+
+                if(row[sr_y] == 1 && coef_dst[sr_y*width] != 0)
+                {
+                    total_cost -= pdcost_sig[sr_y*width];
+                }
+
+                if(sr_x > 0 && sr_y > 0)
+                {
+                    blk_pos = sr_y * width + sr_x;
+                    total_cost -= pdcost_sig[blk_pos];
+                    total_cost += sig_last_cost[blk_pos];
+                }
+            }
+
+            if(total_cost < cost_best)
+            {
+                cost_best = total_cost;
+                sr_x_best = sr_x;
+                sr_y_best = sr_y;
+                best_case = 0;
+            }
+
+            if(col[sr_x] > 1 && coef_dst[sr_x] && (coef_dst[sr_y * width + sr_x] == 0 || row[sr_y] > 1))
+            {
+                total_cost_tmp = total_cost;
+                if(sr_x > 0 && sr_y > 0 && coef_dst[sr_y * width + sr_x])
+                {
+                    blk_pos = sr_y * width + sr_x;
+                    total_cost_tmp -= (pdcost_sig[blk_pos] - sig_cost_delta[blk_pos]);
+                    total_cost_tmp += pdcost_sig[blk_pos];
+                    total_cost_tmp -= sig_last_cost[blk_pos];
+                    total_cost_tmp += sig_last_cost0[blk_pos];
+                }
+                j = sr_y;
+                while(j > 0)
+                {
+                    blk_pos = j * width + sr_x;
+                    if(coef_dst[blk_pos])
+                    {
+                        total_cost_tmp -= pdcost_coeff[blk_pos];
+                        total_cost_tmp += pdcost_sig[blk_pos];
+                        total_cost_tmp -= sig_cost_delta[blk_pos];
+                        total_cost_tmp += pdcost_coeff0[blk_pos];
+                    }
+                    if(j == 1)
+                    {
+                        total_cost_tmp -= pdcost_sig[sr_x];
+                    }
+                    if(total_cost_tmp < cost_best)
+                    {
+                        cost_best = total_cost_tmp;
+                        sr_x_best = sr_x;
+                        sr_y_best = sr_y;
+                        best_case = 1;
+                        best_cutpos = j;
+                    }
+                    j--;
+                }
+            }
+
+            if(row[sr_y] > 1 && coef_dst[sr_y * width] && (coef_dst[sr_y * width + sr_x] == 0 || col[sr_x] > 1))
+            {
+                total_cost_tmp = total_cost;
+                if(sr_x > 0 && sr_y > 0 && coef_dst[sr_y * width + sr_x])
+                {
+                    blk_pos = sr_y * width + sr_x;
+                    total_cost_tmp -= (pdcost_sig[blk_pos] - sig_cost_delta[blk_pos]);
+                    total_cost_tmp += pdcost_sig[blk_pos];
+                    total_cost_tmp -= sig_last_cost[blk_pos];
+                    total_cost_tmp += sig_last_cost0[blk_pos];
+                }
+
+                i = sr_x;
+                while(i > 0)
+                {
+                    blk_pos = sr_y * width + i;
+                    if(coef_dst[blk_pos])
+                    {
+                        total_cost_tmp -= pdcost_coeff[blk_pos];
+                        total_cost_tmp += pdcost_sig[blk_pos];
+                        total_cost_tmp -= sig_cost_delta[blk_pos];
+                        total_cost_tmp += pdcost_coeff0[blk_pos];
+                    }
+                    if(i == 1)
+                    {
+                        total_cost_tmp -= pdcost_sig[sr_y * width];
+                    }
+                    if(total_cost_tmp < cost_best)
+                    {
+                        cost_best = total_cost_tmp;
+                        sr_x_best = sr_x;
+                        sr_y_best = sr_y;
+                        best_case = 2;
+                        best_cutpos = i;
+                    }
+                    i--;
+                }
+            }
+
+            if(col[sr_x] > 1 && coef_dst[sr_x] && row[sr_y] > 1 && coef_dst[sr_y * width])
+            {
+                total_cost_tmp = total_cost - pdcost_sig[sr_x] - pdcost_sig[sr_y * width];
+                j = sr_y;
+                while(j > 0)
+                {
+                    blk_pos = j * width + sr_x;
+                    if(coef_dst[blk_pos])
+                    {
+                        total_cost_tmp -= pdcost_coeff[blk_pos];
+                        total_cost_tmp += pdcost_sig[blk_pos];
+                        total_cost_tmp -= sig_cost_delta[blk_pos];
+                        total_cost_tmp += pdcost_coeff0[blk_pos];
+                    }
+                    j--;
+                }
+
+                i = sr_x - 1;
+                while(i > 0)
+                {
+                    blk_pos = sr_y * width + i;
+                    if(coef_dst[blk_pos])
+                    {
+                        total_cost_tmp -= pdcost_coeff[blk_pos];
+                        total_cost_tmp += pdcost_sig[blk_pos];
+                        total_cost_tmp -= sig_cost_delta[blk_pos];
+                        total_cost_tmp += pdcost_coeff0[blk_pos];
+                    }
+                    i--;
+                }
+
+                if(sr_x > 0 && sr_y > 0 && coef_dst[sr_y * width + sr_x])
+                {
+                    blk_pos = sr_y * width + sr_x;
+                    total_cost_tmp -= (pdcost_sig[blk_pos] - sig_cost_delta[blk_pos]);
+                    total_cost_tmp -= sig_last_cost[blk_pos];
+                    total_cost_tmp += sig_last_cost0[blk_pos];
+                    total_cost_tmp += pdcost_sig[blk_pos];
+                }
+
+                if(total_cost_tmp < cost_best)
+                {
+                    cost_best = total_cost_tmp;
+                    sr_x_best = sr_x;
+                    sr_y_best = sr_y;
+                    best_case = 3;
+                }
+            }
+
+            if(sr_x == 0 && sr_y == 0)
+            {
+                break;
+            }
+
+            if((col[sr_x] < row[sr_y] && sr_x > 0) || (col[sr_x] == row[sr_y] && sr_x > sr_y))
+            {
+                do
+                {
+                    for(j = sr_y; j >= 0; j--)
+                    {
+                        blk_pos = j * width + sr_x;
+                        removal_cost += (pdcost_coeff[blk_pos] - pdcost_coeff0[blk_pos]);
+                        if(coef_dst[blk_pos])
+                        {
+                            row[j]--;
+                        }
+                    }
+                    sr_x--;
+                    k++;
+                } while(col[sr_x] == 0 && sr_x >= 0);
+
+                if(sr_x < 0)
+                {
+                    break;
+                }
+
+                if(row[sr_y] == 0 && sr_y > 0)
+                {
+                    do
+                    {
+                        for(i = sr_x; i >= 0; i--)
+                        {
+                            blk_pos = sr_y * width + i;
+                            removal_cost += (pdcost_coeff[blk_pos] - pdcost_coeff0[blk_pos]);
+                        }
+                        sr_y--;
+                        k++;
+                    } while(row[sr_y] == 0 && sr_y >= 0);
+
+                    if(sr_y < 0)
+                    {
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                if (sr_y > 0)
+                {
+                    do
+                    {
+                        for (i = sr_x; i >= 0; i--)
+                        {
+                            blk_pos = sr_y * width + i;
+                            removal_cost += (pdcost_coeff[blk_pos] - pdcost_coeff0[blk_pos]);
+                            if (coef_dst[blk_pos])
+                            {
+                                col[i]--;
+                            }
+                        }
+                        sr_y--;
+                        k++;
+                    } while (row[sr_y] == 0 && sr_y >= 0);
+
+                    if (sr_y < 0)
+                    {
+                        break;
+                    }
+
+                    if (col[sr_x] == 0 && sr_x > 0)
+                    {
+                        do
+                        {
+                            for (j = sr_y; j >= 0; j--)
+                            {
+                                blk_pos = j * width + sr_x;
+                                removal_cost += (pdcost_coeff[blk_pos] - pdcost_coeff0[blk_pos]);
+                            }
+                            sr_x--;
+                            k++;
+                        } while (col[sr_x] == 0 && sr_x >= 0);
+
+                        if (sr_x < 0)
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        if(sr_x_best == -1 && sr_y_best == -1)
+        {
+            evc_mset(dst_tmp, 0, sizeof(s16) * max_num_coef);
+            return 0;
+        }
+        else if(sr_x_best == 0 && sr_y_best == 0)
+        {
+            s16 level = coef_dst[0];
+
+            sr_x = sr_x_best;
+            sr_y = sr_y_best;
+            evc_mset(coef_dst, 0, sizeof(s16) * max_num_coef);
+            coef_dst[0] = (src_coef[0] < 0) ? -level : level;
+            abs_sum = (int)level;
+            nnz = 1;
+        }
+        else
+        {
+            abs_sum = 0;
+            nnz = 0;
+            sr_x = sr_x_best;
+            sr_y = sr_y_best;
+
+            for(j = 0; j <= sr_y_tmp; j++)
+            {
+                blk_pos = j * width;
+                for(i = 0; i <= sr_x_tmp; i++)
+                {
+                    if(j > sr_y || i > sr_x)
+                    {
+                        coef_dst[blk_pos] = 0;
+                    }
+                    else
+                    {
+                        s16 level = coef_dst[blk_pos];
+                        if(level && best_case && ((j == sr_y && i && ((best_case == 2 && i >= best_cutpos) || best_case == 3)) || (i == sr_x && j && ((best_case == 1 && j >= best_cutpos) || best_case == 3))))
+                        {
+                            level = 0;
+                            rate_inc_up[blk_pos] = rate_inc_up0[blk_pos];
+                            rate_inc_down[blk_pos] = rate_inc_down0[blk_pos];
+                            delta_u[blk_pos] = (int)((tmp_level_double[blk_pos] - 0) >> (q_bits - 8));
+                        }
+
+                        abs_sum += (int)level;
+                        coef_dst[blk_pos] = (src_coef[blk_pos] < 0) ? -level : level;
+                        nnz += !!(level);
+                    }
+                    ++blk_pos;
+                }
+            }
+        }
+    }
+
+    nnz = 0;
+    for(j = 0; j < (int)max_num_coef; j++)
+    {
+        dst_tmp[j] = coef_dst[j];
+        nnz += !!(coef_dst[j]);
+    }
+    return nnz;
+}
+#endif
+
 int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw, int log2_cuh, u16 scale, int ch_type, int tile_group_type, int sps_cm_init_flag
 #if AQS
                    , u16 qs_scale
+#endif
+#if COEFF_CODE_ADCC
+                    , int tool_adcc
 #endif
 )
 {
@@ -1149,7 +2518,12 @@ int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw,
 
     if(USE_RDOQ)
     {
-        nnz = evce_rdoq_run_length_cc(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type
+#if COEFF_CODE_ADCC
+        if (tool_adcc)
+            nnz = ifvce_rdoq_method_ccA(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type);
+        else
+#endif
+            nnz = evce_rdoq_run_length_cc(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type
 #if AQS
                                       , qs_scale
 #endif
@@ -1197,25 +2571,51 @@ int evce_tq_nnz(u8 qp, double lambda, s16 * coef, int log2_cuw, int log2_cuh, u1
 #if AQS
                 , u16 qs_scale
 #endif
+#if ATS_INTRA_PROCESS
+                , u8 ats_intra_cu, u8 ats_tu
+#endif
+#if COEFF_CODE_ADCC
+                 , int tool_adcc
+#endif
 )
 {
+#if ATS_INTRA_PROCESS
+    if (ats_intra_cu)
+    {
+        evce_trans_ats_intra(coef, log2_cuw, log2_cuh, ats_intra_cu, ats_tu);
+    }
+    else
+    {
+        evce_trans(coef, log2_cuw, log2_cuh, iqt_flag);
+    }
+#else
     evce_trans(coef, log2_cuw, log2_cuh, iqt_flag);
+#endif
 
     return evce_quant_nnz(qp, lambda, is_intra, coef, log2_cuw, log2_cuh, scale, ch_type, tile_group_type, sps_cm_init_flag
 #if AQS
                           , qs_scale
 #endif
+#if COEFF_CODE_ADCC
+                         , tool_adcc
+#endif
     );
 }
 
 int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int tile_group_type, int nnz[N_C]
-                      , int nnz_sub[N_C][MAX_SUB_TB_NUM], int is_intra, double lambda_y, double lambda_u, double lambda_v
+                      , int nnz_sub[N_C][MAX_SUB_TB_NUM], int is_intra, double lambda_y, double lambda_u, double lambda_v, int run_stats, int sps_cm_init_flag, int iqt_flag
 #if AQS
                       , u16 qs_scale
 #endif
-                      , int run_stats
-                      , int sps_cm_init_flag
-                      , int iqt_flag
+#if ATS_INTRA_PROCESS
+                      , u8 ats_intra_cu, u8 ats_tu
+#endif
+#if ATS_INTER_PROCESS
+                      , u8 ats_inter_info
+#endif
+#if COEFF_CODE_ADCC
+                     , int tool_adcc
+#endif
 )
 {
     int run[N_C] = {run_stats & 1, (run_stats >> 1) & 1, (run_stats >> 2) & 1};
@@ -1232,6 +2632,17 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
     double lambda[N_C] = { lambda_y , lambda_u , lambda_v };
     int nnz_temp[N_C] = {0};
     evc_mset(nnz_sub, 0, sizeof(int) * N_C * MAX_SUB_TB_NUM);
+#if ATS_INTRA_PROCESS
+    u8 ats_intra_cu_on = 0;
+    u8 ats_tu_mode = 0;
+#endif
+#if ATS_INTER_PROCESS
+    if (ats_inter_info)
+    {
+        get_tu_size(ats_inter_info, log2_cuw, log2_cuh, &log2_w_sub, &log2_h_sub);
+        sub_stride = (1 << log2_w_sub);
+    }
+#endif
 
     for(j = 0; j < loop_h; j++)
     {
@@ -1239,6 +2650,16 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
         {
             for(c = 0; c < N_C; c++)
             {
+#if ATS_INTRA_PROCESS
+                ats_intra_cu_on = (c == 0)? ats_intra_cu : 0;
+                ats_tu_mode = (c == 0) ? ats_tu : 0;
+#if ATS_INTER_PROCESS
+                if (c == 0)
+                {
+                    get_ats_inter_trs(ats_inter_info, log2_cuw, log2_cuh, &ats_intra_cu_on, &ats_tu_mode);
+                }
+#endif
+#endif
                 if(run[c])
                 {
                     int pos_sub_x = i * (1 << (log2_w_sub - !!c));
@@ -1255,11 +2676,16 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
                     }
 
                     int scale = quant_scale[qp[c] % 6];
-                    nnz_sub[c][(j << 1) | i] = evce_tq_nnz(qp[c], lambda[c], coef_temp[c], log2_w_sub - !!c, log2_h_sub - !!c, scale, tile_group_type, c, is_intra
+                    nnz_sub[c][(j << 1) | i] = evce_tq_nnz(qp[c], lambda[c], coef_temp[c], log2_w_sub - !!c, log2_h_sub - !!c, scale, tile_group_type, c, is_intra, sps_cm_init_flag, iqt_flag
 #if AQS
                                                            , qs_scale
 #endif
-                                                           , sps_cm_init_flag, iqt_flag
+#if ATS_INTRA_PROCESS
+                                                           , ats_intra_cu_on, ats_tu_mode
+#endif
+#if COEFF_CODE_ADCC
+                            , tool_adcc
+#endif
                     );
                     nnz_temp[c] += nnz_sub[c][(j << 1) | i];
 

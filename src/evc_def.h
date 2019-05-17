@@ -389,6 +389,33 @@ typedef struct _evc_AlfFilterShape
 #endif 
 /* ALF (END) */
 
+/* TRANSFORM PACKAGE (START) */
+#if ATS_INTRA_PROCESS
+#define ATS_INTRA_FAST                     1
+#define EIF_BUFIX                          0 /* bug fix - This bug is related to fixed memory size of EIF. It should be fixed with bugfix of EIF tool*/
+#if ATS_INTRA_FAST
+#define ATS_INTER_INTRA_SKIP_THR           1.05
+#define ATS_INTRA_Y_NZZ_THR                1.00
+#define ATS_INTRA_IPD_THR                  1.10
+#endif
+#endif
+/* TRANSFORM PACKAGE (END) */
+/* COEFF_CODE_ADCC (START) */
+#if COEFF_CODE_ADCC
+#define LOG2_RATIO_GTA                     1
+#define LOG2_RATIO_GTB                     4
+#define LOG2_CG_SIZE                       4
+#define MLS_GRP_NUM                        1024
+#define CAFLAG_NUMBER                      8 
+#define CBFLAG_NUMBER                      1 
+
+#define SBH_THRESHOLD                      4  
+#define MAX_GR_ORDER_RESIDUAL              10
+#define COEF_REMAIN_BIN_REDUCTION          3
+#define LAST_SIGNIFICANT_GROUPS            14
+#endif
+/* COEFF_CODE_ADCC (END) */
+
 /* Common routines (START) */
 #if defined(_MSC_VER)
 #define ALIGNED_(x) __declspec(align(x))
@@ -708,7 +735,16 @@ extern int fp_trace_counter;
 /*****************************************************************************
 * Transform
 *****************************************************************************/
+#if ATS_INTRA_PROCESS
+typedef enum _TRANS_TYPE
+{
+    DCT8, DST7, NUM_TRANS_TYPE,
+} TRANS_TYPE;
+#endif
 
+#if ATS_INTRA_PROCESS
+#define PI                                (3.14159265358979323846)
+#endif
 
 /*****************************************************************************
  * reference index
@@ -862,10 +898,33 @@ typedef u32 SBAC_CTX_MODEL;
 #define NUM_SBAC_CTX_RUN                   24
 #define NUM_SBAC_CTX_LAST                  2
 #define NUM_SBAC_CTX_LEVEL                 24
+
+#if COEFF_CODE_ADCC
+#define NUM_CTX_SCANR_LUMA                 25
+#define NUM_CTX_SCANR_CHROMA               3
+#define NUM_CTX_SCANR                      (NUM_CTX_SCANR_LUMA + NUM_CTX_SCANR_CHROMA)
+
+#define NUM_CTX_GT0_LUMA                   39  /* number of context models for luma gt0 flag */
+#define NUM_CTX_GT0_CHROMA                 8   /* number of context models for chroma gt0 flag */
+#define NUM_CTX_GT0_LUMA_TU                13  /* number of context models for luma gt0 flag per TU */
+#define NUM_CTX_GT0                        (NUM_CTX_GT0_LUMA + NUM_CTX_GT0_CHROMA)  /* number of context models for gt0 flag */
+
+#define NUM_CTX_GTA_LUMA                   13
+#define NUM_CTX_GTA_CHROMA                 5     
+#define NUM_CTX_GTA                        (NUM_CTX_GTA_LUMA + NUM_CTX_GTA_CHROMA)  /* number of context models for gtA/B flag */
+#endif
+
 #if ALF
 #define NUM_SBAC_CTX_ALF_FLAG              9
 #endif
 
+#if ATS_INTRA_PROCESS 
+#define NUM_ATS_INTRA_CU_FLAG_CTX                8
+#define NUM_ATS_INTRA_TU_FLAG_CTX                2
+#endif
+#if ATS_INTER_PROCESS
+#define NUM_SBAC_CTX_ATS_INTER_INFO        7
+#endif
 /* context models for arithemetic coding */
 typedef struct _EVC_SBAC_CTX
 {
@@ -894,6 +953,14 @@ typedef struct _EVC_SBAC_CTX
     SBAC_CTX_MODEL   run             [NUM_SBAC_CTX_RUN];
     SBAC_CTX_MODEL   last            [NUM_SBAC_CTX_LAST];
     SBAC_CTX_MODEL   level           [NUM_SBAC_CTX_LEVEL];
+
+#if COEFF_CODE_ADCC
+    SBAC_CTX_MODEL   cc_gt0[NUM_CTX_GT0];
+    SBAC_CTX_MODEL   cc_gtA[NUM_CTX_GTA];
+    SBAC_CTX_MODEL   cc_scanr_x[NUM_CTX_SCANR];
+    SBAC_CTX_MODEL   cc_scanr_y[NUM_CTX_SCANR];
+#endif
+
     SBAC_CTX_MODEL   btt_split_flag  [NUM_SBAC_CTX_BTT_SPLIT_FLAG];
     SBAC_CTX_MODEL   btt_split_dir   [NUM_SBAC_CTX_BTT_SPLIT_DIR];
     SBAC_CTX_MODEL   btt_split_type  [NUM_SBAC_CTX_BTT_SPLIT_TYPE];
@@ -908,11 +975,26 @@ typedef struct _EVC_SBAC_CTX
     SBAC_CTX_MODEL   ctb_alf_flag    [NUM_SBAC_CTX_ALF_FLAG]; //todo: add *3 for every component
 #endif
     int              sps_cm_init_flag;
-
+#if ATS_INTRA_PROCESS   
+    SBAC_CTX_MODEL   ats_intra_cu          [NUM_ATS_INTRA_CU_FLAG_CTX];
+    SBAC_CTX_MODEL   ats_tu_h        [NUM_ATS_INTRA_TU_FLAG_CTX];
+    SBAC_CTX_MODEL   ats_tu_v        [NUM_ATS_INTRA_TU_FLAG_CTX];
+#endif
+#if ATS_INTER_PROCESS
+    SBAC_CTX_MODEL   ats_inter_info  [NUM_SBAC_CTX_ATS_INTER_INFO];
+#endif
 } EVC_SBAC_CTX;
 
+
+#if COEFF_CODE_ADCC
+#define COEF_SCAN_ZIGZAG                   0
+#define COEF_SCAN_DIAG                     1
+#define COEF_SCAN_DIAG_CG                  2
+#define COEF_SCAN_TYPE_NUM                 3
+#else
 #define COEF_SCAN_ZIGZAG                   0
 #define COEF_SCAN_TYPE_NUM                 1
+#endif
 
 /* Maximum transform dynamic range (excluding sign bit) */
 #define MAX_TX_DYNAMIC_RANGE               15
@@ -1130,11 +1212,20 @@ typedef struct _EVC_SPS
     int              tool_eipd;
     int              tool_iqt;
     int              tool_cm_init;
+#if ATS_INTRA_PROCESS
+    int              tool_ats_intra;
+#endif
+#if ATS_INTER_PROCESS
+    int              tool_ats_inter;
+#endif
 #if HLS_M47668
     int              tool_rpl;
     int              tool_pocs;
     int              log2_sub_gop_length;
     int              log2_ref_pic_gap_length;
+#endif
+#if COEFF_CODE_ADCC  
+    int              tool_adcc;
 #endif
     int              log2_max_pic_order_cnt_lsb_minus4;
     int              sps_max_dec_pic_buffering_minus1;

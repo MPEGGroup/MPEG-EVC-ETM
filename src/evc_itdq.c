@@ -33,7 +33,9 @@
 
 #include "evc_def.h"
 #include "evc_tbl.h"
-
+#if ATS_INTRA_PROCESS
+#include <math.h>
+#endif
 
 #define ITX_SHIFT1   (7)                     /* shift after 1st IT stage */
 #define ITX_SHIFT2   (12 - (BIT_DEPTH - 8))  /* shift after 2nd IT stage */
@@ -152,7 +154,6 @@
 }
 #endif
 
-/////////////////////////////////////////////////////////
 static void itx_pb2b(void *src, void *dst, int shift, int line, int step)
 {
     int j;
@@ -567,6 +568,388 @@ static void itx_pb64b(void *src, void *dst, int shift, int line, int step)
     
 }
 
+#if ATS_INTRA_PROCESS
+void evc_itrans_ats_intra_DST7_B4(s16 *coeff, s16 *block, int shift, int line, int skip_line, int skip_line_2);
+void evc_itrans_ats_intra_DST7_B8(s16 *coeff, s16 *block, int shift, int line, int skip_line, int skip_line_2);
+void evc_itrans_ats_intra_DST7_B16(s16 *coeff, s16 *block, int shift, int line, int skip_line, int skip_line_2);
+void evc_itrans_ats_intra_DST7_B32(s16 *coeff, s16 *block, int shift, int line, int skip_line, int skip_line_2);
+void evc_itrans_ats_intra_DCT8_B4(s16 *coeff, s16 *block, int shift, int line, int skip_line, int skip_line_2);
+void evc_itrans_ats_intra_DCT8_B8(s16 *coeff, s16 *block, int shift, int line, int skip_line, int skip_line_2);
+void evc_itrans_ats_intra_DCT8_B16(s16 *coeff, s16 *block, int shift, int line, int skip_line, int skip_line_2);
+void evc_itrans_ats_intra_DCT8_B32(s16 *coeff, s16 *block, int shift, int line, int skip_line, int skip_line_2);
+
+typedef void INV_TRANS(s16 *, s16 *, int, int, int, int);
+
+INV_TRANS *evc_itrans_map_tbl[16][5] =
+{
+    { NULL, evc_itrans_ats_intra_DCT8_B4, evc_itrans_ats_intra_DCT8_B8, evc_itrans_ats_intra_DCT8_B16, evc_itrans_ats_intra_DCT8_B32 },
+    { NULL, evc_itrans_ats_intra_DST7_B4, evc_itrans_ats_intra_DST7_B8, evc_itrans_ats_intra_DST7_B16, evc_itrans_ats_intra_DST7_B32 },
+};
+
+void evc_itrans_ats_intra(s16 *coef, int log2_cuw, int log2_cuh, u8 ats_tu, int skip_w, int skip_h);
+void evc_it_MxN_ats_intra(s16 *coef, int tuw, int tuh, int bit_depth, const int max_log2_tr_dynamic_range, u8 ats_intra_tridx, int skip_w, int skip_h);
+#endif
+
+#if ATS_INTRA_PROCESS
+void evc_init_multi_tbl()
+{
+    int c, k, n, i;
+
+    c = 2;
+    for (i = 0; i < 7; i++)
+    {
+        const double s = sqrt((double)c) * (64);
+        s16 *tm = NULL;
+
+        switch (i)
+        {
+        case 0: tm = evc_tbl_tr2[0][0]; break;
+        case 1: tm = evc_tbl_tr4[0][0]; break;
+        case 2: tm = evc_tbl_tr8[0][0]; break;
+        case 3: tm = evc_tbl_tr16[0][0]; break;
+        case 4: tm = evc_tbl_tr32[0][0]; break;
+        case 5: tm = evc_tbl_tr64[0][0]; break;
+        case 6: tm = evc_tbl_tr128[0][0]; break;
+        case 7: exit(0); break;
+        }
+
+        for (k = 0; k < c; k++)
+        {
+            for (n = 0; n < c; n++)
+            {
+                double v;
+
+                /* DCT-VIII */
+                v = cos(PI*(k + 0.5)*(n + 0.5) / (c + 0.5)) * sqrt(2.0 / (c + 0.5));
+                tm[DCT8*c*c + k*c + n] = (s16)(s * v + (v > 0 ? 0.5 : -0.5));
+
+                /* DST-VII */
+                v = sin(PI*(k + 0.5)*(n + 1) / (c + 0.5)) * sqrt(2.0 / (c + 0.5));
+                tm[DST7*c*c + k*c + n] = (s16)(s * v + (v > 0 ? 0.5 : -0.5));
+            }
+        }
+        c <<= 1;
+    }
+}
+
+void evc_init_multi_inv_tbl()
+{
+    int c, k, n, i;
+
+    c = 2;
+    for (i = 0; i < 7; i++)
+    {
+        const double s = sqrt((double)c) * (64);
+        s16 *tm = NULL;
+
+        switch (i)
+        {
+        case 0: tm = evc_tbl_inv_tr2[0][0]; break;
+        case 1: tm = evc_tbl_inv_tr4[0][0]; break;
+        case 2: tm = evc_tbl_inv_tr8[0][0]; break;
+        case 3: tm = evc_tbl_inv_tr16[0][0]; break;
+        case 4: tm = evc_tbl_inv_tr32[0][0]; break;
+        case 5: tm = evc_tbl_inv_tr64[0][0]; break;
+        case 6: tm = evc_tbl_inv_tr128[0][0]; break;
+        case 7: exit(0); break;
+        }
+
+        for (k = 0; k < c; k++)
+        {
+            for (n = 0; n < c; n++)
+            {
+                double v;
+
+                /* DCT-VIII */
+                v = cos(PI*(k + 0.5)*(n + 0.5) / (c + 0.5)) * sqrt(2.0 / (c + 0.5));
+                tm[DCT8*c*c + n*c + k] = (s16)(s * v + (v > 0 ? 0.5 : -0.5));
+
+                /* DST-VII */
+                v = sin(PI*(k + 0.5)*(n + 1) / (c + 0.5)) * sqrt(2.0 / (c + 0.5));
+                tm[DST7*c*c + n*c + k] = (s16)(s * v + (v > 0 ? 0.5 : -0.5));
+            }
+        }
+        c <<= 1;
+    }
+}
+
+void evc_itrans_ats_intra_DST7_B4(s16 *coef, s16 *block, int shift, int line, int skip_line, int skip_line_2)
+{
+    int i, c[4];
+    int rnd_factor = 1 << (shift - 1);
+    const s16 *tm = evc_tbl_tr4[DST7][0];
+    const int reduced_line = line - skip_line;
+
+    for (i = 0; i < reduced_line; i++)
+    {
+        /* Intermediate Variables */
+        c[0] = coef[0] + coef[2 * line];
+        c[1] = coef[2 * line] + coef[3 * line];
+        c[2] = coef[0] - coef[3 * line];
+        c[3] = tm[2] * coef[1 * line];
+
+        block[0] = EVC_CLIP3(-32768, 32767, (tm[0] * c[0] + tm[1] * c[1] + c[3] + rnd_factor) >> shift);
+        block[1] = EVC_CLIP3(-32768, 32767, (tm[1] * c[2] - tm[0] * c[1] + c[3] + rnd_factor) >> shift);
+        block[2] = EVC_CLIP3(-32768, 32767, (tm[2] * (coef[0] - coef[2 * line] + coef[3 * line]) + rnd_factor) >> shift);
+        block[3] = EVC_CLIP3(-32768, 32767, (tm[1] * c[0] + tm[0] * c[2] - c[3] + rnd_factor) >> shift);
+
+        block += 4;
+        coef++;
+    }
+
+    if (skip_line)
+    {
+        evc_mset(block, 0, (skip_line << 2) * sizeof(s16));
+    }
+}
+
+void evc_itrans_ats_intra_DST7_B8(s16 *coef, s16 *block, int shift, int line, int skip_line, int skip_line_2)
+{
+#ifdef X86_SSE
+    ITX_MATRIX(coef, block, 8, line, shift, evc_tbl_inv_tr8[DST7][0], skip_line);
+#else
+    int i, j, k, sum;
+    int rnd_factor = 1 << (shift - 1);
+    const int tr_size = 8;
+    const s16 *tm = evc_tbl_tr8[DST7][0];
+    const int reduced_line = line - skip_line;
+    const int cut_off = tr_size - skip_line_2;
+
+    for (i = 0; i < reduced_line; i++)
+    {
+        for (j = 0; j < tr_size; j++)
+        {
+            sum = 0;
+            for (k = 0; k < cut_off; k++)
+            {
+                sum += coef[k*line] * tm[k*tr_size + j];
+            }
+            block[j] = EVC_CLIP3(-32768, 32767, (int)(sum + rnd_factor) >> shift);
+        }
+        block += tr_size;
+        coef++;
+    }
+#endif
+    if (skip_line)
+    {
+        evc_mset(block, 0, (skip_line << 3) * sizeof(s16));
+    }
+}
+
+void evc_itrans_ats_intra_DST7_B16(s16 *coef, s16 *block, int shift, int line, int skip_line, int skip_line_2)
+{
+#ifdef X86_SSE
+    ITX_MATRIX(coef, block, 16, line, shift, evc_tbl_inv_tr16[DST7][0], skip_line);
+#else
+    int i, j, k, sum;
+    int rnd_factor = 1 << (shift - 1);
+    const int tr_size = 16;
+    const s16 *tm = evc_tbl_tr16[DST7][0];
+    const int reduced_line = line - skip_line;
+    const int cut_off = tr_size - skip_line_2;
+
+    for (i = 0; i < reduced_line; i++)
+    {
+        for (j = 0; j < tr_size; j++)
+        {
+            sum = 0;
+            for (k = 0; k < cut_off; k++)
+            {
+                sum += coef[k*line] * tm[k*tr_size + j];
+            }
+            block[j] = EVC_CLIP3(-32768, 32767, (int)(sum + rnd_factor) >> shift);
+        }
+        block += tr_size;
+        coef++;
+    }
+#endif
+    if (skip_line)
+    {
+        evc_mset(block, 0, (skip_line << 4) * sizeof(s16));
+    }
+}
+
+void evc_itrans_ats_intra_DST7_B32(s16 *coef, s16 *block, int shift, int line, int skip_line, int skip_line_2)
+{
+#ifdef X86_SSE
+    ITX_MATRIX(coef, block, 32, line, shift, evc_tbl_inv_tr32[DST7][0], skip_line);
+#else
+    int i, j, k, sum;
+    int rnd_factor = 1 << (shift - 1);
+    const int tr_size = 32;
+    const s16 *tm = evc_tbl_tr32[DST7][0];
+    const int reduced_line = line - skip_line;
+    const int cut_off = tr_size - skip_line_2;
+
+    for (i = 0; i < reduced_line; i++)
+    {
+        for (j = 0; j < tr_size; j++)
+        {
+            sum = 0;
+            for (k = 0; k < cut_off; k++)
+            {
+                sum += coef[k*line] * tm[k*tr_size + j];
+            }
+            block[j] = EVC_CLIP3(-32768, 32767, (int)(sum + rnd_factor) >> shift);
+        }
+        block += tr_size;
+        coef++;
+    }
+#endif
+    if (skip_line)
+    {
+        evc_mset(block, 0, (skip_line << 5) * sizeof(s16));
+    }
+}
+
+void evc_itrans_ats_intra_DCT8_B4(s16 *coef, s16 *block, int shift, int line, int skip_line, int skip_line_2)
+{
+    int i;
+    int rnd_factor = 1 << (shift - 1);
+    const s16 *tm = evc_tbl_tr4[DCT8][0];
+    int c[4];
+    const int reduced_line = line - skip_line;
+
+    for (i = 0; i < reduced_line; i++)
+    {
+        /* Intermediate Variables */
+        c[0] = coef[0] + coef[3 * line];
+        c[1] = coef[2 * line] + coef[0];
+        c[2] = coef[3 * line] - coef[2 * line];
+        c[3] = tm[1] * coef[1 * line];
+
+        block[0] = EVC_CLIP3(-32768, 32767, (tm[3] * c[0] + tm[2] * c[1] + c[3] + rnd_factor) >> shift);
+        block[1] = EVC_CLIP3(-32768, 32767, (tm[1] * (coef[0 * line] - coef[2 * line] - coef[3 * line]) + rnd_factor) >> shift);
+        block[2] = EVC_CLIP3(-32768, 32767, (tm[3] * c[2] + tm[2] * c[0] - c[3] + rnd_factor) >> shift);
+        block[3] = EVC_CLIP3(-32768, 32767, (tm[3] * c[1] - tm[2] * c[2] - c[3] + rnd_factor) >> shift);
+
+        block += 4;
+        coef++;
+    }
+
+    if (skip_line)
+    {
+        evc_mset(block, 0, (skip_line << 2) * sizeof(s16));
+    }
+}
+
+void evc_itrans_ats_intra_DCT8_B8(s16 *coef, s16 *block, int shift, int line, int skip_line, int skip_line_2)
+{
+#ifdef X86_SSE
+    ITX_MATRIX(coef, block, 8, line, shift, evc_tbl_inv_tr8[DCT8][0], skip_line);
+#else
+    int i, j, k, sum;
+    int rnd_factor = 1 << (shift - 1);
+    const int tr_size = 8;
+    const s16 *tm = evc_tbl_tr8[DCT8][0];
+    const int reduced_line = line - skip_line;
+    const int cut_off = tr_size - skip_line_2;
+
+    for (i = 0; i < reduced_line; i++)
+    {
+        for (j = 0; j < tr_size; j++)
+        {
+            sum = 0;
+            for (k = 0; k < cut_off; k++)
+            {
+                sum += coef[k*line] * tm[k*tr_size + j];
+            }
+            block[j] = EVC_CLIP3(-32768, 32767, (int)(sum + rnd_factor) >> shift);
+        }
+        block += tr_size;
+        coef++;
+    }
+#endif
+    if (skip_line)
+    {
+        evc_mset(block, 0, (skip_line << 3) * sizeof(s16));
+    }
+}
+
+void evc_itrans_ats_intra_DCT8_B16(s16 *coef, s16 *block, int shift, int line, int skip_line, int skip_line_2)
+{
+#ifdef X86_SSE
+    ITX_MATRIX(coef, block, 16, line, shift, evc_tbl_inv_tr16[DCT8][0], skip_line);
+#else
+    int i, j, k, sum;
+    int rnd_factor = 1 << (shift - 1);
+    const int tr_size = 16;
+    const s16 *tm = evc_tbl_tr16[DCT8][0];
+    const int reduced_line = line - skip_line;
+    const int cut_off = tr_size - skip_line_2;
+
+    for (i = 0; i < reduced_line; i++)
+    {
+        for (j = 0; j < tr_size; j++)
+        {
+            sum = 0;
+            for (k = 0; k < cut_off; k++)
+            {
+                sum += coef[k*line] * tm[k*tr_size + j];
+            }
+            block[j] = EVC_CLIP3(-32768, 32767, (int)(sum + rnd_factor) >> shift);
+        }
+        block += tr_size;
+        coef++;
+    }
+#endif
+    if (skip_line)
+    {
+        evc_mset(block, 0, (skip_line << 4) * sizeof(s16));
+    }
+}
+
+void evc_itrans_ats_intra_DCT8_B32(s16 *coef, s16 *block, int shift, int line, int skip_line, int skip_line_2)
+{
+#ifdef X86_SSE
+    ITX_MATRIX(coef, block, 32, line, shift, evc_tbl_inv_tr32[DCT8][0], skip_line);
+#else
+    int i, j, k, sum;
+    int rnd_factor = 1 << (shift - 1);
+    const int tr_size = 32;
+    const s16 *tm = evc_tbl_tr32[DCT8][0];
+    const int reduced_line = line - skip_line;
+    const int cut_off = tr_size - skip_line_2;
+
+    for (i = 0; i < reduced_line; i++)
+    {
+        for (j = 0; j < tr_size; j++)
+        {
+            sum = 0;
+            for (k = 0; k < cut_off; k++)
+            {
+                sum += coef[k*line] * tm[k*tr_size + j];
+            }
+            block[j] = EVC_CLIP3(-32768, 32767, (int)(sum + rnd_factor) >> shift);
+        }
+        block += tr_size;
+        coef++;
+    }
+#endif
+    if (skip_line)
+    {
+        evc_mset(block, 0, (skip_line << 5) * sizeof(s16));
+    }
+}
+
+void evc_it_MxN_ats_intra(s16 *coef, int tuw, int tuh, int bit_depth, const int max_log2_tr_dynamic_range, u8 ats_intra_tridx, int skip_w, int skip_h)
+{
+    const int TRANSFORM_MATRIX_SHIFT = 6;
+    const int shift_1st = TRANSFORM_MATRIX_SHIFT + 1;
+    const int shift_2nd = (TRANSFORM_MATRIX_SHIFT + max_log2_tr_dynamic_range - 1) - bit_depth;
+    const u8 log2_minus1_w = CONV_LOG2(tuw) - 1;
+    const u8 log2_minus1_h = CONV_LOG2(tuh) - 1;
+    s16 t[MAX_TR_DIM]; /* temp buffer */
+    u8  t_idx_h = 0, t_idx_v = 0;
+
+    t_idx_h = evc_tbl_tr_subset_intra[ats_intra_tridx >> 1];
+    t_idx_v = evc_tbl_tr_subset_intra[ats_intra_tridx & 1];
+
+    evc_itrans_map_tbl[t_idx_v][log2_minus1_h](coef, t, shift_1st, tuw, skip_w, skip_h);
+    evc_itrans_map_tbl[t_idx_h][log2_minus1_w](t, coef, shift_2nd, tuh, 0, skip_w);
+}
+#endif
+
 static void itx_pb2(s16 *src, s16 *dst, int shift, int line)
 {
     int j;
@@ -881,6 +1264,13 @@ void evc_itrans(s16 *coef, int log2_cuw, int log2_cuh, int iqt_flag)
     }
 }
 
+#if ATS_INTRA_PROCESS
+void evc_itrans_ats_intra(s16* coef, int log2_w, int log2_h, u8 ats_tu, int skip_w, int skip_h)
+{
+    evc_it_MxN_ats_intra(coef, (1 << log2_w), (1 << log2_h), BIT_DEPTH, 15, ats_tu, skip_w, skip_h);
+}
+#endif
+
 static void evc_dquant(s16 *coef, int log2_w, int log2_h, u16 scale, s32 offset, u8 shift
 #if AQS
                        , u16 qs_scale
@@ -906,6 +1296,9 @@ void evc_itdq(s16 *coef, int log2_w, int log2_h, u16 scale
               , u16 qs_scale
 #endif
               , int iqt_flag
+#if ATS_INTRA_PROCESS
+              , u8 ats_intra_cu, u8 ats_tu
+#endif
 )
 {
     s32 offset;
@@ -913,7 +1306,18 @@ void evc_itdq(s16 *coef, int log2_w, int log2_h, u16 scale
     s8 tr_shift;
     int log2_size = (log2_w + log2_h) >> 1;
     const int ns_shift = ((log2_w + log2_h) & 1) ? 8 : 0;
-    
+
+#if ATS_INTRA_PROCESS
+    int skip_w = 1 << log2_w;
+    int skip_h = 1 << log2_h;
+    int max_x = 0;
+    int max_y = 0;
+    s16* coef_tmp = coef;
+    int i, j;
+    int cuw = 1 << log2_w;
+    int cuh = 1 << log2_h;
+#endif
+
     tr_shift = MAX_TX_DYNAMIC_RANGE - BIT_DEPTH - log2_size;
     shift = QUANT_IQUANT_SHIFT - QUANT_SHIFT - tr_shift;
     shift += ns_shift;
@@ -925,16 +1329,52 @@ void evc_itdq(s16 *coef, int log2_w, int log2_h, u16 scale
 #endif
     );
 
-    evc_itrans(coef, log2_w, log2_h,iqt_flag);
+#if ATS_INTRA_PROCESS
+    for(j = 0; j < cuh; j++)
+    {
+        for(i = 0; i < cuw; i++)
+        {
+            if(coef_tmp[i] != 0)
+            {
+                if(i > max_x)
+                {
+                    max_x = i;
+                }
+                if(j > max_y)
+                {
+                    max_y = j;
+                }
+            }
+        }
+        coef_tmp += cuw;
+    }
+
+    skip_w = cuw - 1 - max_x;
+    skip_h = cuh - 1 - max_y;
+
+    if(ats_intra_cu)
+    {
+        evc_itrans_ats_intra(coef, log2_w, log2_h, ats_tu, skip_w, skip_h);
+    }
+    else
+    {
+        evc_itrans(coef, log2_w, log2_h, iqt_flag);
+    }
+#else
+    evc_itrans(coef, log2_w, log2_h, iqt_flag);
+#endif
 }
 
-void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int flag[N_C], int nnz_sub[N_C][MAX_SUB_TB_NUM]
+void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int flag[N_C], int nnz_sub[N_C][MAX_SUB_TB_NUM], int iqt_flag
 #if AQS
-
                         , u16 qs_scale
-
 #endif      
-                        , int iqt_flag
+#if ATS_INTRA_PROCESS
+                        , u8 ats_intra_cu, u8 ats_tu
+#endif
+#if ATS_INTER_PROCESS
+                        , u8 ats_inter_info
+#endif
 )
 {
     s16 *coef_temp[N_C];
@@ -948,6 +1388,15 @@ void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u
     int sub_stride = (1 << log2_w_sub);
     u8 qp[N_C] = { qp_y, qp_u, qp_v };
     int scale = 0;
+    u8 ats_intra_cu_on = 0;
+    u8 ats_tu_mode = 0;
+#if ATS_INTER_PROCESS
+    if (ats_inter_info)
+    {
+        get_tu_size(ats_inter_info, log2_cuw, log2_cuh, &log2_w_sub, &log2_h_sub);
+        sub_stride = (1 << log2_w_sub);
+    }
+#endif
 
     for(j = 0; j < loop_h; j++)
     {
@@ -955,6 +1404,16 @@ void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u
         {
             for(c = 0; c < N_C; c++)
             {
+#if ATS_INTRA_PROCESS
+                ats_intra_cu_on = (c == 0)? ats_intra_cu : 0;
+                ats_tu_mode = (c == 0) ? ats_tu : 0;
+#endif
+#if ATS_INTER_PROCESS
+                if (c == 0)
+                {
+                    get_ats_inter_trs(ats_inter_info, log2_cuw, log2_cuh, &ats_intra_cu_on, &ats_tu_mode);
+                }
+#endif
                 if(nnz_sub[c][(j << 1) | i])
                 {
                     int pos_sub_x = i * (1 << (log2_w_sub - !!c));
@@ -984,6 +1443,9 @@ void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u
                              , qs_scale
 #endif
                              , iqt_flag
+#if ATS_INTRA_PROCESS
+                             , ats_intra_cu_on, ats_tu_mode
+#endif
 
                     );
 

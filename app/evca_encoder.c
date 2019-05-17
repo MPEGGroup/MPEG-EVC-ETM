@@ -132,8 +132,18 @@ static int  op_tool_htdf          = 1; /* default on */
 static int  op_tool_eipd          = 1;
 static int  op_tool_iqt           = 1;
 static int  op_tool_cm_init       = 1;
+#if COEFF_CODE_ADCC
+static int  op_tool_adcc          = 1; /* default on */
+#endif
 static int  op_cb_qp_offset       = 1;
 static int  op_cr_qp_offset       = 1;
+#if ATS_INTRA_PROCESS
+static int op_tool_ats_intra      = 1; /* default on */
+#endif
+#if ATS_INTER_PROCESS
+static int  op_tool_ats_inter     = 1; /* default on */
+#endif
+
 
 static char  op_rpl0[MAX_NUM_RPLS][256];
 static char  op_rpl1[MAX_NUM_RPLS][256];
@@ -189,8 +199,19 @@ typedef enum _OP_FLAGS
     OP_TOOL_EIPD,
     OP_TOOL_IQT,
     OP_TOOL_CM_INIT,
+#if COEFF_CODE_ADCC
+    OP_TOOL_ADCC,
+#endif
+
+
     OP_CB_QP_OFFSET,
     OP_CR_QP_OFFSET,
+#if ATS_INTRA_PROCESS
+    OP_TOOL_ATS_INTRA,
+#endif
+#if ATS_INTER_PROCESS
+    OP_TOOL_ATS_INTER,
+#endif
     OP_FLAG_RPL0_0,
     OP_FLAG_RPL0_1,
     OP_FLAG_RPL0_2,
@@ -493,6 +514,13 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_TOOL_CM_INIT], &op_tool_cm_init,
         "cm_init on/off flag"
     },
+#if COEFF_CODE_ADCC
+    {
+        EVC_ARGS_NO_KEY,  "adcc", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_TOOL_ADCC], &op_tool_adcc,
+        "adcc on/off flag"
+    },
+#endif
     {
         EVC_ARGS_NO_KEY,  "cb_qp_offset", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_CB_QP_OFFSET], &op_cb_qp_offset,
@@ -503,6 +531,20 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_CR_QP_OFFSET], &op_cr_qp_offset,
         "cr qp offset"
     },
+#if ATS_INTRA_PROCESS
+    {
+         EVC_ARGS_NO_KEY,  "ats_intra", EVC_ARGS_VAL_TYPE_INTEGER,
+         &op_flag[OP_TOOL_ATS_INTRA], &op_tool_ats_intra,
+         "ats intra on/off flag"
+    },
+#endif
+#if ATS_INTER_PROCESS
+    {
+        EVC_ARGS_NO_KEY, "ats_inter", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_TOOL_ATS_INTER], &op_tool_ats_inter,
+        "ats inter on/off flag"
+    },
+#endif
     {
         EVC_ARGS_NO_KEY,  "RPL0_0", EVC_ARGS_VAL_TYPE_STRING,
         &op_flag[OP_FLAG_RPL0_0], &op_rpl0[0],
@@ -794,8 +836,17 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->tool_eipd          = op_tool_eipd;
     cdsc->tool_iqt           = op_tool_iqt;
     cdsc->tool_cm_init       = op_tool_cm_init;
+#if COEFF_CODE_ADCC
+    cdsc->tool_adcc          = op_tool_adcc;
+#endif
     cdsc->cb_qp_offset       = op_cb_qp_offset;
     cdsc->cr_qp_offset       = op_cr_qp_offset;
+#if ATS_INTRA_PROCESS
+    cdsc->tool_ats_intra     = op_tool_ats_intra;
+#endif
+#if ATS_INTER_PROCESS
+    cdsc->tool_ats_inter     = op_tool_ats_inter;
+#endif
 
     for (int i = 0; i < MAX_NUM_RPLS && op_rpl0[i][0] != 0; ++i)
     {
@@ -854,8 +905,18 @@ static int print_enc_conf(EVCE_CDSC * cdsc)
     printf("EIPD: %d, ",   cdsc->tool_eipd);
     printf("IQT: %d, ",    cdsc->tool_iqt);
     printf("CM_INIT: %d ", cdsc->tool_cm_init);
+#if COEFF_CODE_ADCC
+    printf("COEFF_CODE_ADCC: %d ",    cdsc->tool_adcc);
+#endif
+    // TODO: These are not tools, i suggest not report it here, instead as encoder parameters.
     printf("CB_QP_OFFSET: %d ", cdsc->cb_qp_offset);
     printf("CR_QP_OFFSET: %d ", cdsc->cr_qp_offset);
+#if ATS_INTRA_PROCESS
+    printf("ATS_INTRA: %d ",    cdsc->tool_ats_intra);
+#endif
+#if ATS_INTER_PROCESS
+    printf("ATS_INTER: %d ", cdsc->tool_ats_inter);
+#endif
     printf("\n");
     return 0;
 }

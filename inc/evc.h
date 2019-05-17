@@ -44,6 +44,22 @@ extern "C"
 #define USE_TILE_GROUP_DQP              1
 #define HLS_M47668                      0
 
+#define COEFF_CODE_ADCC                 1   /* CE1.1: Advanced coefficient coding */
+#define ATS                             1   /* CE1.2: Adaptive transform selection */
+
+#define ATS_INTRA_PROCESS               ATS
+#define ATS_INTER_PROCESS               ATS
+#if ATS_INTER_PROCESS
+#define ATS_INTER_DEBUG                 0
+#define ATS_INTER_SL_NUM                16
+#define get_ats_inter_idx(s)            (s & 0xf)
+#define get_ats_inter_pos(s)            ((s>>4) & 0xf)
+#define get_ats_inter_info(idx, pos)    (idx + (pos << 4))
+#define is_ats_inter_horizontal(idx)    (idx == 2 || idx == 4)
+#define is_ats_inter_quad_size(idx)     (idx == 3 || idx == 4)
+#endif
+
+#define ROOT_CBF_RDO_BIT_FIX            0
 /*****************************************************************************
  * return values and error code
  *****************************************************************************/
@@ -443,8 +459,17 @@ typedef struct _EVCE_CDSC
     int            tool_eipd;
     int            tool_iqt;
     int            tool_cm_init;
+#if COEFF_CODE_ADCC
+    int            tool_adcc;
+#endif
     int            cb_qp_offset;
     int            cr_qp_offset;
+#if ATS_INTRA_PROCESS
+    int            tool_ats_intra;
+#endif
+#if ATS_INTER_PROCESS
+    int            tool_ats_inter;
+#endif
 
     EVC_RPL rpls_l0[MAX_NUM_RPLS];
     EVC_RPL rpls_l1[MAX_NUM_RPLS];

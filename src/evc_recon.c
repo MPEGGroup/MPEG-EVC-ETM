@@ -37,7 +37,11 @@
 #include <math.h>
 
 
-void evc_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, pel *rec)
+void evc_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, pel *rec
+#if ATS_INTER_PROCESS
+               , u8 ats_inter_info
+#endif
+)
 {
     int i, j;
     s16 t0;
@@ -57,6 +61,60 @@ void evc_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, p
     }
     else  /* add b/w pred and coef and copy it into rec */
     {
+#if ATS_INTER_PROCESS
+        if (ats_inter_info != 0)
+        {
+            u8  ats_inter_idx = get_ats_inter_idx(ats_inter_info);
+            u8  ats_inter_pos = get_ats_inter_pos(ats_inter_info);
+            assert(ats_inter_idx >= 1 && ats_inter_idx <= 4);
+            int tu0_w, tu0_h;
+            int tu1_w, tu1_h;
+            pel resi;
+            if (!is_ats_inter_horizontal(ats_inter_idx))
+            {
+                tu0_w = is_ats_inter_quad_size(ats_inter_idx) ? (cuw / 4) : (cuw / 2);
+                tu0_w = ats_inter_pos == 0 ? tu0_w : cuw - tu0_w;
+                tu1_w = cuw - tu0_w;
+                for (i = 0; i < cuh; i++)
+                {
+                    for (j = 0; j < tu0_w; j++)
+                    {
+                        resi = ats_inter_pos == 0 ? coef[i * tu0_w + j] : 0;
+                        t0 = resi + pred[i * cuw + j];
+                        rec[i * s_rec + j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, t0);
+                    }
+                    for (j = tu0_w; j < cuw; j++)
+                    {
+                        resi = ats_inter_pos == 1 ? coef[i * tu1_w + j - tu0_w] : 0;
+                        t0 = resi + pred[i * cuw + j];
+                        rec[i * s_rec + j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, t0);
+                    }
+                }
+            }
+            else
+            {
+                tu0_h = is_ats_inter_quad_size(ats_inter_idx) ? (cuh / 4) : (cuh / 2);
+                tu0_h = ats_inter_pos == 0 ? tu0_h : cuh - tu0_h;
+                tu1_h = cuh - tu0_h;
+                for (j = 0; j < cuw; j++)
+                {
+                    for (i = 0; i < tu0_h; i++)
+                    {
+                        resi = ats_inter_pos == 0 ? coef[i * cuw + j] : 0;
+                        t0 = resi + pred[i * cuw + j];
+                        rec[i * s_rec + j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, t0);
+                    }
+                    for (i = tu0_h; i < cuh; i++)
+                    {
+                        resi = ats_inter_pos == 1 ? coef[(i - tu0_h) * cuw + j] : 0;
+                        t0 = resi + pred[i * cuw + j];
+                        rec[i * s_rec + j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, t0);
+                    }
+                }
+            }
+            return;
+        }
+#endif
         for(i = 0; i < cuh; i++)
         {
             for(j = 0; j < cuw; j++)
@@ -71,7 +129,11 @@ void evc_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, p
     }
 }
 
-void evc_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pel pred[N_C][MAX_CU_DIM], int nnz[N_C], EVC_PIC *pic)
+void evc_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pel pred[N_C][MAX_CU_DIM], int nnz[N_C], EVC_PIC *pic
+#if ATS_INTER_PROCESS
+                   , u8 ats_inter_info
+#endif
+)
 {
     pel * rec;
     int s_rec, off;
@@ -79,14 +141,26 @@ void evc_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pe
     /* Y */
     s_rec = pic->s_l;
     rec = pic->y + (y * s_rec) + x;
-    evc_recon(coef[Y_C], pred[Y_C], nnz[Y_C], cuw, cuh, s_rec, rec);
+    evc_recon(coef[Y_C], pred[Y_C], nnz[Y_C], cuw, cuh, s_rec, rec
+#if ATS_INTER_PROCESS
+              , ats_inter_info
+#endif
+    );
 
     /* chroma */
     cuw >>= 1;
     cuh >>= 1;
     off = (x >> 1) + (y >> 1) * pic->s_c;
-    evc_recon(coef[U_C], pred[U_C], nnz[U_C], cuw, cuh, pic->s_c, pic->u + off);
-    evc_recon(coef[V_C], pred[V_C], nnz[V_C], cuw, cuh, pic->s_c, pic->v + off);
+    evc_recon(coef[U_C], pred[U_C], nnz[U_C], cuw, cuh, pic->s_c, pic->u + off
+#if ATS_INTER_PROCESS
+              , ats_inter_info
+#endif
+    );
+    evc_recon(coef[V_C], pred[V_C], nnz[V_C], cuw, cuh, pic->s_c, pic->v + off
+#if ATS_INTER_PROCESS
+              , ats_inter_info
+#endif
+    );
 }
 
 #if HTDF

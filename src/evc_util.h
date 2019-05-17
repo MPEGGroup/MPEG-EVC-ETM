@@ -284,6 +284,17 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                           , int x, int y, int im_w, int im_h
                           , u8* remaining_split, int sps_btt_flag);
 
+#if COEFF_CODE_ADCC
+void evc_init_scan_sr(int *scan, int size_x, int size_y, int width, int height, int scan_type);
+void evc_init_inverse_scan_sr(int *scan_inv, int *scan_orig, int width, int height, int scan_type);
+void evc_get_ctx_last_pos_xy_para(int ch_type, int width, int height, int *result_offset_x, int *result_offset_y, int *result_shift_x, int *result_shift_y);
+int evc_get_ctx_gt0_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y);
+int evc_get_ctx_gtA_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y);
+int evc_get_ctx_gtB_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y);
+int evc_get_ctx_remain_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y);
+int get_rice_para(s16 *pcoeff, int blkpos, int width, int height, int base_level);
+#endif
+
 #ifdef __cplusplus
 }
 #endif
@@ -296,6 +307,15 @@ void evc_eco_sbac_ctx_initialize(SBAC_CTX_MODEL *ctx, s16 *ctx_init_model, u16 n
 void clip_simd(const pel* src, int src_stride, pel *dst, int dst_stride, int width, int height, const int clp_rng_min, const int clp_rng_max);
 #endif
 s32 divide_tbl(s32 dividend, s32 divisor);
+#if ATS_INTER_PROCESS
+u8 check_ats_inter_info_coded(int cuw, int cuh, int pred_mode, int tool_ats_inter);
+void get_tu_size(u8 ats_inter_info, int log2_cuw, int log2_cuh, int* log2_tuw, int* log2_tuh);
+void get_tu_pos_offset(u8 ats_inter_info, int log2_cuw, int log2_cuh, int* x_offset, int* y_offset);
+#if ATS_INTRA_PROCESS
+void get_ats_inter_trs(u8 ats_inter_info, int log2_cuw, int log2_cuh, u8* ats_cu, u8* ats_tu);
+#endif
+void set_cu_cbf_flags(u8 cbf_y, u8 ats_inter_info, int log2_cuw, int log2_cuh, u32 *map_scu, int w_scu);
+#endif
 
 #if ADMVP
 BOOL check_bi_applicability(int tile_group_type, int cuw, int cuh);
