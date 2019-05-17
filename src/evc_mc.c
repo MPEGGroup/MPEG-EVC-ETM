@@ -7123,7 +7123,67 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
 #endif
     }
 }
+#if USE_IBC
+void evc_IBC_mc(int x, int y, int log2_cuw, int log2_cuh, s16 mv[MV_D], EVC_PIC *ref_pic, pel pred[N_C][MAX_CU_DIM])
+{
+  int i = 0, j = 0;
+  int size = 0;
 
+  int cuw = 0, cuh = 0;
+  int stride = 0;
+  int mv_x = 0, mv_y = 0;
+
+  pel *dst = NULL;
+  pel *ref = NULL;
+
+  cuw = 1 << log2_cuw;
+  cuh = 1 << log2_cuh;
+  mv_x = mv[0];
+  mv_y = mv[1];
+  stride = ref_pic->s_l;
+
+  dst = pred[0];
+  ref = ref_pic->y + (mv_y + y) * stride + (mv_x + x);
+  size = sizeof(pel) * cuw;
+
+  for (i = 0; i < cuh; i++)
+  {
+    evc_mcpy(dst, ref, size);
+    ref += stride;
+    dst += cuw;
+  }
+
+  cuw >>= 1;
+  cuh >>= 1;
+  x >>= 1;
+  y >>= 1;
+  mv_x >>= 1;
+  mv_y >>= 1;
+  log2_cuw--;
+  log2_cuh--;
+  stride = ref_pic->s_c;
+
+  dst = pred[1];
+  ref = ref_pic->u + (mv_y + y) * stride + (mv_x + x);
+  size = sizeof(pel) * cuw;
+  for (i = 0; i < cuh; i++)
+  {
+    evc_mcpy(dst, ref, size);
+    ref += stride;
+    dst += cuw;
+  }
+
+  dst = pred[2];
+  ref = ref_pic->v + (mv_y + y) * stride + (mv_x + x);
+  size = sizeof(pel) * cuw;
+  for (i = 0; i < cuh; i++)
+  {
+    evc_mcpy(dst, ref, size);
+    ref += stride;
+    dst += cuw;
+  }
+}
+#endif
 #if AFFINE
 static void derive_affine_subblock_size(s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num)
 {

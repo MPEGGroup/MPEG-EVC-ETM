@@ -38,7 +38,9 @@
 #include "evc_df.h"
 #include <math.h>
 #include "evc_util.h"
-
+#if USE_IBC
+#include "evce_ibc_hash_wrapper.h"
+#endif
 
 #define ENTROPY_BITS_TABLE_BiTS          10
 #define ENTROPY_BITS_TABLE_BiTS_SHIFP   (MPS_SHIFT-ENTROPY_BITS_TABLE_BiTS)
@@ -305,6 +307,41 @@ void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM],
         );
     }
 }
+#if USE_IBC
+void evce_rdo_bit_cnt_cu_ibc(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_type, s32 cup, s16 mvd[MV_D],
+  s16 coef[N_C][MAX_CU_DIM], u8 mvp_idx, u8 ibc_flag)
+{
+  int b_no_cbf = 0;
+
+  if (!(core->skip_flag == 1 && tile_group_type == TILE_GROUP_I))
+  {
+    evce_eco_ibc(&core->bs_temp, ibc_flag
+#if CTX_NEV_IBC_FLAG
+      , ctx->ctx_flags[CNID_IBC_FLAG]
+#endif
+    );
+  }
+
+#if 0//!AMVR
+  evce_eco_mvp_idx(&core->bs_temp, mvp_idx);
+#endif
+
+  evce_eco_mvd(&core->bs_temp, mvd);
+
+  evce_eco_coef(&core->bs_temp, coef, core->log2_cuw, core->log2_cuh, MODE_IBC, core->nnz_sub, b_no_cbf
+    , RUN_L | RUN_CB | RUN_CR 
+#if ATS_INTRA_PROCESS
+    , 0, 0, 0
+#endif
+#if ATS_INTER_PROCESS
+    , 0, 0
+#endif
+#if COEFF_CODE_ADCC  
+    , ctx
+#endif   
+  );
+}
+#endif
 
 void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_type, s32 cup, s8 refi[REFP_NUM], s16 mvd[REFP_NUM][MV_D], s16 coef[N_C][MAX_CU_DIM], int pidx, u8 * mvp_idx, u8 mvr_idx, u8 bi_idx
 #if AFFINE
@@ -818,6 +855,9 @@ static int copy_cu_data(EVCE_CU_DATA *dst, EVCE_CU_DATA *src, int x, int y, int 
             evc_mcpy(dst->mpm_ext[i] + idx_dst, src->mpm_ext[i] + idx_src, size);
         }
         evc_mcpy(dst->skip_flag + idx_dst, src->skip_flag + idx_src, size);
+#if USE_IBC
+        evc_mcpy(dst->ibc_flag + idx_dst, src->ibc_flag + idx_src, size);
+#endif
 #if DMVR_FLAG
         evc_mcpy(dst->dmvr_flag + idx_dst, src->dmvr_flag + idx_src, size);
 #endif
@@ -1012,9 +1052,17 @@ static int get_cu_pred_data(EVCE_CU_DATA *src, int x, int y, int log2_cuw, int l
             valid_flag[k] = 0;
         }
 #if ADMVP
-        evc_check_motion_availability2(core->scup, cuw, cuh, ctx->w_scu, ctx->h_scu, neb_addr, valid_flag, ctx->map_scu, core->avail_lr, 1);
+        evc_check_motion_availability2(core->scup, cuw, cuh, ctx->w_scu, ctx->h_scu, neb_addr, valid_flag, ctx->map_scu, core->avail_lr, 1
+#if USE_IBC
+          , 0
+#endif    
+        );
 #else
-        evc_check_motion_availability(core->scup, cuw, cuh, ctx->w_scu, ctx->h_scu, neb_addr, valid_flag, ctx->map_scu, core->avail_lr, 1);
+        evc_check_motion_availability(core->scup, cuw, cuh, ctx->w_scu, ctx->h_scu, neb_addr, valid_flag, ctx->map_scu, core->avail_lr, 1
+#if USE_IBC
+          , 0
+#endif
+        );
 #endif
 
         for (k = 0; k < 5; k++)
@@ -1067,6 +1115,9 @@ static int mode_cu_init(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int log2
 #endif
 #if DMVR_FLAG
     core->dmvr_flag = 0;
+#endif
+#if USE_IBC
+    core->ibc_flag = 0;
 #endif
 #if ATS_INTER_PROCESS
     core->ats_inter_info = 0;
@@ -1341,6 +1392,20 @@ static void copy_to_cu_data(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi, s16 c
                 MCU_CLR_AFF(cu_data->map_scu[idx + i]);
             }
 #endif
+#if USE_IBC
+            if (ctx->param.use_ibc_flag)
+            {
+              cu_data->ibc_flag[idx + i] = core->ibc_flag;
+              if (core->ibc_flag)
+              {
+                MCU_SET_IBC(cu_data->map_scu[idx + i]);
+              }
+              else
+              {
+                MCU_CLR_IBC(cu_data->map_scu[idx + i]);
+              }
+            }
+#endif
             MCU_SET_LOGW(cu_data->map_cu_mode[idx + i], log2_cuw);
             MCU_SET_LOGH(cu_data->map_cu_mode[idx + i], log2_cuh);
 
@@ -1367,6 +1432,22 @@ static void copy_to_cu_data(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi, s16 c
                 cu_data->refi[idx + i][REFP_1] = -1;
 #endif
             }
+#if USE_IBC
+            else if (core->cu_mode == MODE_IBC)
+            {
+              cu_data->refi[idx + i][REFP_0] = -1;
+              cu_data->refi[idx + i][REFP_1] = -1;
+              cu_data->mvp_idx[idx + i][REFP_0] = mi->mvp_idx[REFP_0];
+              cu_data->mvp_idx[idx + i][REFP_1] = 0;
+              cu_data->mv[idx + i][REFP_0][MV_X] = mi->mv[REFP_0][MV_X];
+              cu_data->mv[idx + i][REFP_0][MV_Y] = mi->mv[REFP_0][MV_Y];
+              cu_data->mv[idx + i][REFP_1][MV_X] = 0;
+              cu_data->mv[idx + i][REFP_1][MV_Y] = 0;
+
+              cu_data->mvd[idx + i][REFP_0][MV_X] = mi->mvd[REFP_0][MV_X];
+              cu_data->mvd[idx + i][REFP_0][MV_Y] = mi->mvd[REFP_0][MV_Y];
+            }
+#endif
             else
             {
                 cu_data->refi[idx + i][REFP_0] = mi->refi[REFP_0];
@@ -1783,7 +1864,11 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
     avail_cu_rec = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu);
     ctx->aqs.qs_scale = evc_get_qs_scale_blk(PIC_MODE(ctx)->y + (y * PIC_MODE(ctx)->s_l) + x, PIC_MODE(ctx)->s_l, log2_cuw, log2_cuh, avail_cu_rec, ctx->aqs.contrast_factor, ctx->aqs.luminance_factor, ctx->aqs.es_map_norm);
 #endif
-    evc_get_ctx_some_flags(core->x_scu, core->y_scu, 1 << log2_cuw, 1 << log2_cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->tgh.tile_group_type, ctx->sps.tool_cm_init);
+    evc_get_ctx_some_flags(core->x_scu, core->y_scu, 1 << log2_cuw, 1 << log2_cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->tgh.tile_group_type, ctx->sps.tool_cm_init
+#if USE_IBC
+      , ctx->param.use_ibc_flag
+#endif
+    );
 
     /* inter *************************************************************/
     cost_best = MAX_COST;
@@ -1815,14 +1900,68 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
             copy_to_cu_data(ctx, core, mi, coef);
         }
     }
+#if USE_IBC
+    {
+      if (ctx->param.use_ibc_flag == 1 && (core->nnz[Y_C] != 0 || core->nnz[U_C] != 0 || core->nnz[V_C] != 0 || cost_best == MAX_COST))
+      {
+        if ((1 << log2_cuw) <= IBC_MAX_CAND_SIZE && (1 << log2_cuh) <= IBC_MAX_CAND_SIZE)
+        {
+          core->avail_cu = evc_get_avail_ibc(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, core->cuw, core->cuh, ctx->map_scu);
+          cost = ctx->fn_pibc_analyze_cu(ctx, core, x, y, log2_cuw, log2_cuh, mi, coef, rec, s_rec);
 
+          if (cost < cost_best)
+          {
+            cost_best = cost;
+            core->cu_mode = MODE_IBC;
+            core->ibc_flag = 1;
+
+            SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best);
+
+            mi->pred_y_best = ctx->pibc.pred[0][Y_C];
+
+            /* save all cu inforamtion ********************/
+            mi->mvp_idx[0] = ctx->pibc.mvp_idx;
+            {
+              mi->mv[0][MV_X] = ctx->pibc.mv[0][MV_X];
+              mi->mv[0][MV_Y] = ctx->pibc.mv[0][MV_Y];
+            }
+
+            mi->mvd[0][MV_X] = ctx->pibc.mvd[MV_X];
+            mi->mvd[0][MV_Y] = ctx->pibc.mvd[MV_Y];
+
+            for (i = 0; i < N_C; i++)
+            {
+              mi->rec[i] = rec[i];
+              mi->s_rec[i] = s_rec[i];
+            }
+
+            core->skip_flag = 0;
+#if AFFINE
+            core->affine_flag = 0;
+#endif
+#if MMVD
+            core->new_skip_flag = 0;
+#endif
+#if DMVR_FLAG
+            core->dmvr_flag = 0;
+#endif
+            copy_to_cu_data(ctx, core, mi, coef);
+          }
+        }
+      }
+    }
+#endif
     /* intra *************************************************************/
     if(ctx->tile_group_type == TILE_GROUP_I || core->nnz[Y_C] != 0 || core->nnz[U_C] != 0 || core->nnz[V_C] != 0 || cost_best == MAX_COST)
     {
         core->cost_best = cost_best;
         core->dist_cu_best = EVC_INT32_MAX;
 
-        if(core->cost_best != MAX_COST)
+        if(
+#if USE_IBC
+          core->cu_mode != MODE_IBC &&
+#endif
+          core->cost_best != MAX_COST)
         {
             EVCE_PINTRA *pi = &ctx->pintra;
             core->inter_satd = evce_satd_16b(log2_cuw, log2_cuh, pi->o[Y_C] + (y * pi->s_o[Y_C]) + x, mi->pred_y_best, pi->s_o[Y_C], 1 << log2_cuw);
@@ -1848,6 +1987,9 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
             evc_assert(core->trace_idx != 0);
 #endif
             core->cu_mode = MODE_INTRA;
+#if USE_IBC
+            core->ibc_flag = 0;
+#endif
             SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best);
             core->dist_cu_best = core->dist_cu;
 
@@ -2871,6 +3013,9 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
 
 #if AFFINE_UPDATE && AFFINE
             if (mi->cu_mode != MODE_INTRA
+#if USE_IBC
+              && mi->cu_mode != MODE_IBC
+#endif
                 )
             {
                 update_history_buffer_affine(&core->history_buffer, mi, ctx->tile_group_type
@@ -2900,7 +3045,11 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
         next_split = 0;
     }
 
-    if(cost_best != MAX_COST && ctx->tgh.tile_group_type == TILE_GROUP_I)
+    if(cost_best != MAX_COST && ctx->tgh.tile_group_type == TILE_GROUP_I
+#if USE_IBC
+      && core->ibc_flag != 1
+#endif
+      )
     {
         int dist_cu = core->dist_cu_best;
         int dist_cu_th = 1 << (log2_cuw + log2_cuh + 7);
@@ -3252,7 +3401,11 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
             );
 
 #if AFFINE_UPDATE && AFFINE
-            if(mi->cu_mode != MODE_INTRA)
+            if(mi->cu_mode != MODE_INTRA
+#if USE_IBC
+              && mi->cu_mode != MODE_IBC
+#endif
+              )
             {
                 update_history_buffer_affine(&core->history_buffer, mi, ctx->tile_group_type);
             }
@@ -3345,6 +3498,19 @@ static int mode_init_frame(EVCE_CTX *ctx)
         ret = ctx->fn_pinter_init_frame(ctx);
         evc_assert_rv(ret == EVC_OK, ret);
     }
+#if USE_IBC
+    if (ctx->param.use_ibc_flag)
+    {
+      /* initialize pibc */
+      if (ctx->fn_pibc_init_frame)
+      {
+        ret = ctx->fn_pibc_init_frame(ctx);
+        evc_assert_rv(ret == EVC_OK, ret);
+      }
+      if (ctx->param.ibc_hash_search_flag)
+        rebuild_hashmap(ctx->ibc_hash_handle, PIC_ORIG(ctx));
+    }
+#endif
     return EVC_OK;
 }
 
@@ -3369,6 +3535,17 @@ static int mode_init_lcu(EVCE_CTX *ctx, EVCE_CORE *core)
         ret = ctx->fn_pinter_init_lcu(ctx, core);
         evc_assert_rv(ret == EVC_OK, ret);
     }
+#if USE_IBC
+    if (ctx->param.use_ibc_flag)
+    {
+      /* initialize pibc */
+      if (ctx->fn_pibc_init_lcu)
+      {
+        ret = ctx->fn_pibc_init_lcu(ctx, core);
+        evc_assert_rv(ret == EVC_OK, ret);
+      }
+    }
+#endif
 
     return EVC_OK;
 }
@@ -3448,6 +3625,10 @@ static void update_to_ctx_map(EVCE_CTX *ctx, EVCE_CORE *core)
 #endif
 #if ATS_INTER_PROCESS
             map_ats_inter[ctx_idx + j] = cu_data->ats_inter_info[core_idx + j];
+#if USE_IBC
+            if(core->cu_mode == MODE_IBC)
+              map_ats_inter[ctx_idx + j] = 0;
+#endif
 #endif
             if(cu_data->pred_mode[core_idx + j] == MODE_INTRA)
             {

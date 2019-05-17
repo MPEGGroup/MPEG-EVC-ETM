@@ -134,6 +134,9 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
     evc_bsw_write1(bs, sps->tool_adcc);
 #endif
     evc_bsw_write1(bs, sps->tool_cm_init);
+#if USE_IBC
+    evc_bsw_write1(bs, sps->ibc_flag);
+#endif
 #if ATS_INTRA_PROCESS
     evc_bsw_write1(bs, sps->tool_ats_intra);
 #endif
@@ -911,6 +914,9 @@ void evce_sbac_reset(EVCE_SBAC *sbac, u8 tile_group_type, u8 tile_group_qp, int 
         evc_eco_sbac_ctx_initialize(sbac_ctx->affine_mvd_flag, (s16*)init_affine_mvd_flag, NUM_SBAC_CTX_AFFINE_MVD_FLAG, tile_group_type, tile_group_qp);
 #endif
         evc_eco_sbac_ctx_initialize(sbac_ctx->skip_flag, (s16*)init_skip_flag, NUM_SBAC_CTX_SKIP_FLAG, tile_group_type, tile_group_qp);
+#if USE_IBC
+        evc_eco_sbac_ctx_initialize(sbac_ctx->ibc_flag, (s16*)init_ibc_flag, NUM_SBAC_CTX_IBC_FLAG, tile_group_type, tile_group_qp);
+#endif
 #if ATS_INTRA_PROCESS
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_intra_cu, (s16*)init_ats_intra_cu, NUM_ATS_INTRA_CU_FLAG_CTX, tile_group_type, tile_group_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_tu_h, (s16*)init_ats_tu_h, NUM_ATS_INTRA_TU_FLAG_CTX, tile_group_type, tile_group_qp);
@@ -964,6 +970,9 @@ void evce_sbac_reset(EVCE_SBAC *sbac, u8 tile_group_type, u8 tile_group_qp, int 
         sbac_ctx->affine_mvd_flag[1] = PROB_INIT;
 #endif
         for(i = 0; i < NUM_SBAC_CTX_SKIP_FLAG; i++) sbac_ctx->skip_flag[i] = PROB_INIT;
+#if USE_IBC
+        for (i = 0; i < NUM_SBAC_CTX_IBC_FLAG; i++) sbac_ctx->ibc_flag[i] = PROB_INIT;
+#endif
 #if ATS_INTRA_PROCESS
         for (i = 0; i < NUM_ATS_INTRA_CU_FLAG_CTX; i++) sbac_ctx->ats_intra_cu[i] = PROB_INIT;
         for (i = 0; i < NUM_ATS_INTRA_TU_FLAG_CTX; i++) sbac_ctx->ats_tu_h[i] = PROB_INIT;
@@ -1081,7 +1090,22 @@ static void evce_eco_skip_flag(EVC_BSW * bs, int flag, int ctx)
     sbac = GET_SBAC_ENC(bs);
     evce_sbac_encode_bin(flag, sbac, sbac->ctx.skip_flag + ctx, bs);
 }
-
+#if USE_IBC
+static void evce_eco_ibc_flag(EVC_BSW * bs, int flag
+#if CTX_NEV_IBC_FLAG
+  , int ctx
+#endif
+)
+{
+  EVCE_SBAC *sbac;
+  sbac = GET_SBAC_ENC(bs);
+#if CTX_NEV_IBC_FLAG
+  evce_sbac_encode_bin(flag, sbac, sbac->ctx.ibc_flag + ctx, bs);
+#else
+  evce_sbac_encode_bin(flag, sbac, sbac->ctx.ibc_flag, bs);
+#endif
+}
+#endif
 void evce_eco_inter_t_direct(EVC_BSW *bs, int t_direct_flag)
 {
     EVCE_SBAC *sbac;
@@ -1742,7 +1766,11 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
         {
             evce_eco_cbf(bs, !!nnz_sub[Y_C][(j << 1) | i], !!nnz_sub[U_C][(j << 1) | i], !!nnz_sub[V_C][(j << 1) | i], pred_mode, b_no_cbf, is_sub, j + i, cbf_all, run);
 #if ATS_INTER_PROCESS
+#if USE_IBC
+            if (pred_mode != MODE_INTRA && pred_mode != MODE_IBC && run[Y_C] && run[U_C] && run[V_C])
+#else
             if (pred_mode != MODE_INTRA && run[Y_C] && run[U_C] && run[V_C])
+#endif
             {
                 if (ats_inter_avail && cbf_all)
                 {
@@ -1808,7 +1836,29 @@ int evce_eco_pred_mode(EVC_BSW * bs, u8 pred_mode, int ctx)
 
     return EVC_OK;
 }
+#if USE_IBC
+int evce_eco_ibc(EVC_BSW * bs, u8 pred_mode_ibc_flag
+#if CTX_NEV_IBC_FLAG
+  , int ctx
+#endif
+)
+{
+  EVCE_SBAC * sbac = GET_SBAC_ENC(bs);
 
+  EVC_TRACE_COUNTER;
+  EVC_TRACE_STR("IBC pred mode ");
+  EVC_TRACE_INT(!!pred_mode_ibc_flag);
+  EVC_TRACE_STR("\n");
+
+#if CTX_NEV_IBC_FLAG
+  evce_sbac_encode_bin(pred_mode_ibc_flag, sbac, sbac->ctx.ibc_flag + ctx, bs);
+#else
+  evce_sbac_encode_bin(1, sbac, sbac->ctx.ibc_flag, bs);
+#endif
+
+  return EVC_OK;
+}
+#endif
 static void intra_mode_write_trunc_binary(int symbol, int max_symbol, EVCE_SBAC *sbac, EVC_BSW *bs)
 {
     int threshold = 4; /* we use 5 bits to signal the default mode */
@@ -2253,6 +2303,9 @@ static int cu_init(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int cup, int cu
     core->scup = ((u32)core->y_scu * ctx->w_scu) + core->x_scu;
     core->avail_cu = 0;
     core->skip_flag = 0;
+#if USE_IBC
+    core->ibc_flag = 0;
+#endif
     core->mmvd_flag = 0;
 #if AFFINE
     core->affine_flag = cu_data->affine_flag[cup];
@@ -2266,6 +2319,15 @@ static int cu_init(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int cup, int cu
     {
         core->avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, core->log2_cuw, core->log2_cuh, ctx->map_scu);
     }
+#if USE_IBC
+    else if (cu_data->pred_mode[cup] == MODE_IBC)
+    {
+      core->ibc_flag = 1;
+      core->mmvd_flag = 0; // core->new_skip_flag = 0;
+      core->affine_flag = 0;
+      core->avail_cu = evc_get_avail_ibc(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, core->cuw, core->cuh, ctx->map_scu);
+    }
+#endif
     else
     {
         if((cu_data->pred_mode[cup] == MODE_SKIP) || (cu_data->pred_mode[cup] == MODE_SKIP_MMVD))
@@ -2609,7 +2671,11 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
     EVC_TRACE_INT(cuh);
     EVC_TRACE_STR("\n");
 
-    evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->tgh.tile_group_type, ctx->sps.tool_cm_init);
+    evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->tgh.tile_group_type, ctx->sps.tool_cm_init
+#if USE_IBC
+      , ctx->param.use_ibc_flag
+#endif
+    );
     
     if (core->skip_flag == 0)
     {
@@ -2633,8 +2699,17 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
     }
 
     /* entropy coding a CU */
-    if(tile_group_type != TILE_GROUP_I && (ctx->sps.tool_amis == 0 || !(core->log2_cuw <= MIN_CU_LOG2 && core->log2_cuh <= MIN_CU_LOG2)))
+    if(tile_group_type != TILE_GROUP_I && 
+#if USE_IBC
+    (ctx->sps.tool_amis == 0 || !(core->log2_cuw <= MIN_CU_LOG2 && core->log2_cuh <= MIN_CU_LOG2) || ctx->param.use_ibc_flag)
+#else  
+      (ctx->sps.tool_amis == 0 || !(core->log2_cuw <= MIN_CU_LOG2 && core->log2_cuh <= MIN_CU_LOG2))
+#endif
+      )
     {
+#if USE_IBC
+      if (core->log2_cuw > MIN_CU_LOG2 || core->log2_cuh > MIN_CU_LOG2)
+#endif
         evce_eco_skip_flag(bs, core->skip_flag, ctx->ctx_flags[CNID_SKIP_FLAG]);
 
         EVC_TRACE_COUNTER;
@@ -2699,8 +2774,23 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
         else
         {
             evce_eco_pred_mode(bs, cu_data->pred_mode[cup], ctx->ctx_flags[CNID_PRED_MODE]);
+#if USE_IBC
+            if (cu_data->pred_mode[cup] != MODE_INTRA && ctx->param.use_ibc_flag && core->log2_cuw <= IBC_MAX_CU_LOG2 && core->log2_cuh <= IBC_MAX_CU_LOG2)
+            {
 
-            if(cu_data->pred_mode[cup] != MODE_INTRA)
+              evce_eco_ibc_flag(bs, core->ibc_flag
+#if CTX_NEV_IBC_FLAG
+                , ctx->ctx_flags[CNID_IBC_FLAG]
+#endif
+              );
+            }
+#endif
+            if(cu_data->pred_mode[cup] != MODE_INTRA
+#if USE_IBC
+              && cu_data->pred_mode[cup] != MODE_IBC
+#endif   
+
+              )
             {
                 if(ctx->sps.tool_amvr)
                 {
@@ -2985,7 +3075,22 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
             }
         }
     }
-
+#if USE_IBC
+    else if ((ctx->tgh.tile_group_type == TILE_GROUP_I && ctx->param.use_ibc_flag))
+    {
+      if (core->skip_flag == 0)
+      {
+        if (core->log2_cuw <= IBC_MAX_CU_LOG2 && core->log2_cuh <= IBC_MAX_CU_LOG2)
+        {
+          evce_eco_ibc_flag(bs, core->ibc_flag
+#if CTX_NEV_IBC_FLAG
+            , ctx->ctx_flags[CNID_IBC_FLAG]
+#endif
+          );
+        }
+      }
+    }
+#endif
     if(cu_data->pred_mode[cup] == MODE_INTRA)
     {
         evc_assert(cu_data->ipm[0][cup] != IPD_INVALID);
@@ -3005,6 +3110,18 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
             evce_eco_intra_dir_b(bs, cu_data->ipm[0][cup], core->mpm_b_list, core->mpm_ext, core->pims);
         }
     }
+#if USE_IBC
+    else if (core->ibc_flag)
+    {
+      if (core->skip_flag == 0)
+      {
+        if (cu_data->pred_mode[cup] == MODE_IBC)
+        {
+          evce_eco_mvd(bs, cu_data->mvd[cup][REFP_0]);
+        }
+      }
+    }
+#endif
 
     if((core->skip_flag == 0) && (core->mmvd_flag == 0))
     {
@@ -3076,6 +3193,16 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
             else
             {
                 MCU_CLR_AFF(map_scu[j]);
+            }
+#endif
+#if USE_IBC
+            if (core->ibc_flag)
+            {
+              MCU_SET_IBC(map_scu[j]);
+            }
+            else
+            {
+              MCU_CLR_IBC(map_scu[j]);
             }
 #endif
             MCU_SET_LOGW(map_cu_mode[j], core->log2_cuw);

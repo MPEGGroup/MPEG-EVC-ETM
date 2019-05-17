@@ -398,10 +398,19 @@ static void evcd_itdq(EVCD_CTX * ctx, EVCD_CORE * core
                        , ctx->aqs.qs_scale
 #endif
 #if ATS_INTRA_PROCESS
+#if USE_IBC
+                       , core->pred_mode == MODE_IBC ? 0 : core->ats_intra_cu
+                       , core->pred_mode == MODE_IBC ? 0 : ((core->ats_intra_tu_h << 1) | core->ats_intra_tu_v)
+#else
                        , core->ats_intra_cu, ((core->ats_intra_tu_h << 1) | core->ats_intra_tu_v)
 #endif
+#endif
 #if ATS_INTER_PROCESS
+#if USE_IBC
+                         , core->pred_mode == MODE_IBC ? 0 : core->ats_inter_info
+#else
                        , core->ats_inter_info
+#endif
 #endif
     );
 }
@@ -616,6 +625,14 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
     );
 
     /* prediction */
+#if USE_IBC
+    if (core->pred_mode == MODE_IBC)
+    {
+      evc_IBC_mc(x, y, log2_cuw, log2_cuh, core->mv[0], ctx->pic, core->pred[0]);
+      get_nbr_yuv(x, y, cuw, cuh, core->avail_cu, ctx->pic, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu);
+    }
+    else
+#endif
     if(core->pred_mode != MODE_INTRA)
     {
 #if AFFINE
@@ -663,7 +680,11 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
         );
 #endif
 #if AFFINE && ADMVP && AFFINE_UPDATE 
-        if(core->pred_mode != MODE_INTRA)
+        if(core->pred_mode != MODE_INTRA
+#if USE_IBC
+          && core->pred_mode != MODE_IBC
+#endif
+          )
         {
             update_history_buffer_parse_affine(core, ctx->tgh.tile_group_type
             );
@@ -700,9 +721,17 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
     /* reconstruction */
     evc_recon_yuv(x, y, cuw, cuh, core->coef, core->pred[0], core->is_coef, ctx->pic
 #if ATS_INTER_PROCESS
+#if USE_IBC
+      , core->pred_mode == MODE_IBC ? 0 : core->ats_inter_info
+#else
                   , core->ats_inter_info
 #endif
+#endif
     );
+#if USE_IBC
+    if (core->pred_mode != MODE_IBC)
+    {
+#endif
 #if HTDF
     if(ctx->sps.tool_htdf == 1 && (core->is_coef[Y_C]
 #if HTDF_CBF0_INTRA
@@ -714,7 +743,9 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
         evc_htdf(ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->tgh.qp, cuw, cuh, ctx->pic->s_l, core->pred_mode == MODE_INTRA, core->nb[0][0] + 2, core->nb[0][1] + cuh - 1, core->nb[0][2] + 2, core->avail_cu);
     }
 #endif
-
+#if USE_IBC
+    }
+#endif
     return EVC_OK;
 ERR:
     return ret;

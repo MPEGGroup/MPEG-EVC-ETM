@@ -49,7 +49,10 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_
                                , s16 affine_mvd[REFP_NUM][VER_NUM][MV_D]
 #endif
 );
-
+#if USE_IBC
+void evce_rdo_bit_cnt_cu_ibc(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_type, s32 cup, s16 mvd[MV_D],
+  s16 coef[N_C][MAX_CU_DIM], u8 mvp_idx, u8 pred_mode);
+#endif
 void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM], int ch_type, int pidx
 #if ATS_INTRA_PROCESS || COEFF_CODE_ADCC
                                     , EVCE_CTX * ctx

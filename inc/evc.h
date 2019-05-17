@@ -43,7 +43,17 @@ extern "C"
 
 #define USE_TILE_GROUP_DQP              1
 #define HLS_M47668                      0
-
+#define USE_IBC                         1 // use intra-block copy feature
+#if USE_IBC
+#define SUCO                            1
+#endif
+  
+#if USE_IBC
+#define IBC_SEARCH_RANGE                     64
+#define IBC_NUM_CANDIDATES                   64
+#define IBC_FAST_METHOD_BUFFERBV             0X01
+#define IBC_FAST_METHOD_ADAPTIVE_SEARCHRANGE 0X02
+#endif
 #define COEFF_CODE_ADCC                 1   /* CE1.1: Advanced coefficient coding */
 #define ATS                             1   /* CE1.2: Adaptive transform selection */
 
@@ -425,7 +435,20 @@ typedef struct _EVCE_CDSC
     /* use closed GOP sturcture
        - 0 : use open GOP (default)
        - 1 : use closed GOP */
-    int            closed_gop;
+    int            closed_gop; 
+#if USE_IBC
+    /* enable intra-block copy feature
+    - 0 : disable IBC (default)
+    - 1 : enable IBC featuer */
+    int  ibc_flag;
+
+    int  ibc_search_range_x;
+    int  ibc_search_range_y;
+    int  ibc_hash_search_flag;
+    int  ibc_hash_search_max_cand;
+    int  ibc_hash_search_range_4smallblk;
+    int  ibc_fast_method;
+#endif
     /* bit depth of input video */
     int            in_bit_depth;
     /* bit depth of output video */

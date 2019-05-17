@@ -393,7 +393,8 @@ const s16 init_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG][1] = {
         { 512 }
     }
 };
-#endif
+#endif
+
 const s16 init_skip_flag[2][NUM_SBAC_CTX_SKIP_FLAG][1] = {
     {
         { 0 },
@@ -404,6 +405,18 @@ const s16 init_skip_flag[2][NUM_SBAC_CTX_SKIP_FLAG][1] = {
         { 233 }
     }
 };
+#if USE_IBC
+const s16 init_ibc_flag[2][NUM_SBAC_CTX_IBC_FLAG][2] = {
+    {
+        { 0, 4096 },
+        { 0, 4096 }
+    },
+    {
+        { -100, 9884 },
+        { -144, 7652 }
+    }
+};
+#endif
 const s16 init_mmvd_flag[2][NUM_SBAC_CTX_MMVD_FLAG][1] = {
     {
         { 0 }
@@ -526,7 +539,8 @@ const s16 init_mvp_idx[2][NUM_MVP_IDX_CTX][1] = {
         { 69 }
     }
 };
-#if AFFINE
+#if AFFINE
+
 const s16 init_affine_mvp_idx[2][NUM_AFFINE_MVP_IDX_CTX][1] = {
     {
         { 0 },
@@ -553,7 +567,8 @@ const s16 init_affine_mvp_idx[2][NUM_AFFINE_MVP_IDX_CTX][1] = {
 #endif
     }
 };
-#endif
+#endif
+
 const s16 init_mvr_idx[2][NUM_MVR_IDX_CTX][1] = {
     {
         { 0 },
@@ -802,7 +817,8 @@ const s16 init_btt_split_type[2][NUM_SBAC_CTX_BTT_SPLIT_TYPE][1] = {
         { 225 }
     }
 };
-#if AFFINE
+#if AFFINE
+
 const s16 init_affine_flag[2][NUM_SBAC_CTX_AFFINE_FLAG][1] = {
     {
         { 0 },
@@ -847,7 +863,8 @@ const s16 init_affine_mvd_flag[2][2][1] = {
         { 645 }
     }
 };
-#endif
+#endif
+
 const s16 init_suco_flag[2][NUM_SBAC_CTX_SUCO_FLAG][1] = {
     {
         { 0 },

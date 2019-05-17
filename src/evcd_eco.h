@@ -56,7 +56,11 @@ int evcd_eco_udata(EVCD_CTX * ctx, EVC_BSR * bs);
 
 void evcd_eco_sbac_reset(EVC_BSR * bs, u8 tile_group_type, u8 tile_group_qp, int sps_cm_init_flag);
 
-int evcd_eco_inter_dir(EVC_BSR * bs, EVCD_SBAC * sbac, int *direct_idx, int type, u8 mvr_idx, u16 avail_lr);
+int evcd_eco_inter_dir(EVC_BSR * bs, EVCD_SBAC * sbac, int *direct_idx, int type, u8 mvr_idx
+#if USE_IBC
+  , u8 ibc_flag
+#endif
+  , u16 avail_lr);
 int evcd_eco_intra_dir(EVC_BSR * bs, EVCD_SBAC * sbac, u8 mpm[2], u8 mpm_ext[8], u8 pims[IPD_CNT]);
 int evcd_eco_intra_dir_b(EVC_BSR * bs, EVCD_SBAC * sbac, u8 * mpm, u8 mpm_ext[8], u8 pims[IPD_CNT]);
 int evcd_eco_intra_dir_c(EVC_BSR * bs, EVCD_SBAC * sbac, u8 ipm_l);

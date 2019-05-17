@@ -40,6 +40,9 @@
 #if ALF
 #include "enc_alf_wrapper.h"
 #endif
+#if USE_IBC
+#include "evce_ibc_hash_wrapper.h"
+#endif
 /* Convert EVCE into EVCE_CTX */
 #define EVCE_ID_TO_CTX_R(id, ctx) \
     evc_assert_r((id)); \
@@ -385,6 +388,15 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
 #endif
     param->gop_size       = param->max_b_frames +1;
     param->use_closed_gop = (cdsc->closed_gop)? 1: 0;
+#if USE_IBC
+    param->use_ibc_flag = (cdsc->ibc_flag) ? 1 : 0;
+    param->ibc_search_range_x = cdsc->ibc_search_range_x;
+    param->ibc_search_range_y = cdsc->ibc_search_range_y;
+    param->ibc_hash_search_flag = cdsc->ibc_hash_search_flag;
+    param->ibc_hash_search_max_cand = cdsc->ibc_hash_search_max_cand;
+    param->ibc_hash_search_range_4smallblk = cdsc->ibc_hash_search_range_4smallblk;
+    param->ibc_fast_method = cdsc->ibc_fast_method;
+#endif
     param->use_hgop       = (cdsc->disable_hgop)? 0: 1;
 #if USE_TILE_GROUP_DQP
     param->qp_incread_frame = cdsc->add_qp_frame;
@@ -423,6 +435,9 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->pic_width_in_luma_samples = ctx->param.w;
     sps->pic_height_in_luma_samples = ctx->param.h;
     sps->closed_gop = (ctx->param.use_closed_gop) ? 1 : 0;
+#if USE_IBC
+    sps->ibc_flag = (ctx->param.use_ibc_flag) ? 1 : 0;
+#endif
     if(ctx->param.max_b_frames > 0)
     {
         sps->num_ref_pics_act = MAX_NUM_ACTIVE_REF_FRAME_B;
@@ -997,7 +1012,12 @@ int evce_ready(EVCE_CTX * ctx)
     EncAdaptiveLoopFilter* p = (EncAdaptiveLoopFilter*)(ctx->enc_alf);
     call_create_enc_ALF(p, ctx->w, ctx->h, ctx->max_cuwh, ctx->max_cuwh, 5);
 #endif
-
+#if USE_IBC
+    if (ctx->param.use_ibc_flag)
+    {
+      ctx->ibc_hash_handle = create_enc_IBC(ctx->w, ctx->h);
+    }
+#endif
     /*  allocate CU data map*/
     if(ctx->map_cu_data == NULL)
     {
@@ -2505,7 +2525,12 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
         ret = ctx->fn_mode_analyze_lcu(ctx, core);
         evc_assert_rv(ret == EVC_OK, ret);
-
+#if USE_IBC
+        if (ctx->param.use_ibc_flag && (ctx->param.ibc_fast_method & IBC_FAST_METHOD_ADAPTIVE_SEARCHRANGE) && ctx->param.ibc_hash_search_flag)
+        {
+          reset_ibc_search_range(ctx, core->x_pel, core->y_pel, ctx->max_cuwh, ctx->max_cuwh);
+        }
+#endif
         /* entropy coding ************************************************/
 
         ret = evce_eco_tree(ctx, core, core->x_pel, core->y_pel, 0, ctx->max_cuwh, ctx->max_cuwh, 0, 1
@@ -2745,6 +2770,14 @@ int evce_platform_init(EVCE_CTX * ctx)
     /* create inter prediction analyzer */
     ret = evce_pinter_create(ctx, 0);
     evc_assert_rv(EVC_OK == ret, ret);
+#if USE_IBC
+    if (ctx->param.use_ibc_flag)
+    {
+      /* create ibc prediction analyzer */
+      ret = evce_pibc_create(ctx, 0);
+      evc_assert_rv(EVC_OK == ret, ret);
+    }
+#endif
 #if RDO_DBK
     ctx->pic_dbk = NULL;
 #endif
@@ -2785,6 +2818,13 @@ void evce_platform_deinit(EVCE_CTX * ctx)
     call_destroy_enc_ALF(p);
     delete_enc_ALF(ctx->enc_alf);
     ctx->fn_alf = NULL;
+#endif
+#if USE_IBC
+    if (ctx->param.use_ibc_flag)
+    {
+      destroy_enc_IBC(ctx->ibc_hash_handle);
+      ctx->ibc_hash_handle = NULL;
+    }
 #endif
     ctx->fn_picbuf_expand = NULL;
     ctx->fn_get_inbuf = NULL;
@@ -3136,6 +3176,9 @@ int evce_create_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
     evce_malloc_2d((s8***)&cu_data->ipm, 2, cu_cnt, sizeof(u8));
     evce_malloc_2d((s8***)&cu_data->mpm_ext, 8, cu_cnt, sizeof(u8));
     evce_malloc_1d((void**)&cu_data->skip_flag, size_8b);
+#if USE_IBC
+    evce_malloc_1d((void**)&cu_data->ibc_flag, size_8b);
+#endif
 #if DMVR_FLAG
     evce_malloc_1d((void**)&cu_data->dmvr_flag, size_8b);
 #endif
@@ -3216,6 +3259,9 @@ int evce_delete_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
     evce_free_2d((void**)cu_data->ipm);
     evce_free_2d((void**)cu_data->mpm_ext);
     evce_free_1d((void*)cu_data->skip_flag);
+#if USE_IBC
+    evce_free_1d((void*)cu_data->ibc_flag);
+#endif
 #if DMVR_FLAG
     evce_free_1d((void*)cu_data->dmvr_flag);
 #endif

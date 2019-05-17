@@ -1289,6 +1289,9 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 tile_group_type, u8 tile_group_qp, int
         evc_eco_sbac_ctx_initialize(sbac_ctx->affine_mvd_flag, (s16*)init_affine_mvd_flag, NUM_SBAC_CTX_AFFINE_MVD_FLAG, tile_group_type, tile_group_qp);
 #endif
         evc_eco_sbac_ctx_initialize(sbac_ctx->skip_flag, (s16*)init_skip_flag, NUM_SBAC_CTX_SKIP_FLAG, tile_group_type, tile_group_qp);
+#if USE_IBC
+        evc_eco_sbac_ctx_initialize(sbac_ctx->ibc_flag, (s16*)init_ibc_flag, NUM_SBAC_CTX_IBC_FLAG, tile_group_type, tile_group_qp);
+#endif
 #if ATS_INTRA_PROCESS
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_intra_cu, (s16*)init_ats_intra_cu, NUM_ATS_INTRA_CU_FLAG_CTX, tile_group_type, tile_group_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_tu_h, (s16*)init_ats_tu_h, NUM_ATS_INTRA_TU_FLAG_CTX, tile_group_type, tile_group_qp);
@@ -1341,6 +1344,9 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 tile_group_type, u8 tile_group_qp, int
         sbac_ctx->affine_mvd_flag[1] = PROB_INIT;
 #endif
         for(i = 0; i < NUM_SBAC_CTX_SKIP_FLAG; i++) sbac_ctx->skip_flag[i] = PROB_INIT;
+#if USE_IBC
+        for (i = 0; i < NUM_SBAC_CTX_IBC_FLAG; i++) sbac_ctx->ibc_flag[i] = PROB_INIT;
+#endif
 #if ATS_INTRA_PROCESS
         for (i = 0; i < NUM_ATS_INTRA_CU_FLAG_CTX; i++) sbac_ctx->ats_intra_cu[i] = PROB_INIT;
         for (i = 0; i < NUM_ATS_INTRA_TU_FLAG_CTX; i++) sbac_ctx->ats_tu_h[i] = PROB_INIT;
@@ -1455,7 +1461,11 @@ int evcd_eco_intra_dir_c(EVC_BSR * bs, EVCD_SBAC * sbac, u8 ipm_l)
     return ipm;
 }
 
-int evcd_eco_inter_dir(EVC_BSR * bs, EVCD_SBAC * sbac, int *direct_idx, int type, u8 mvr_idx, u16 avail_lr)
+int evcd_eco_inter_dir(EVC_BSR * bs, EVCD_SBAC * sbac, int *direct_idx, int type, u8 mvr_idx
+#if USE_IBC
+  , u8 ibc_flag
+#endif
+  , u16 avail_lr)
 {
     u32 t0 = 0;
 
@@ -1495,7 +1505,18 @@ int evcd_eco_inter_dir(EVC_BSR * bs, EVCD_SBAC * sbac, int *direct_idx, int type
         else
         {
             t0 = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.inter_dir + 2);
+#if USE_IBC //??
+            if (t0)
+            {
+              return PRED_L1;
+            }
+            else
+            {
+              return ibc_flag ? PRED_IBC : PRED_L0;
+            }
+#else
             return t0 ? PRED_L1 : PRED_L0;
+#endif
         }
     }
 }
@@ -1737,6 +1758,9 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
 
     core->affine_flag = 0;
 #endif
+#if USE_IBC
+    core->ibc_flag = 0;
+#endif
     core->mmvd_idx = 0;
     core->mvr_idx = 0;
     core->mmvd_flag = 0;
@@ -1752,12 +1776,26 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
     cuh = (1 << core->log2_cuh);
     core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu);
 
-    evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->tgh.tile_group_type, ctx->sps.tool_cm_init);
+    evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->tgh.tile_group_type, ctx->sps.tool_cm_init
+#if USE_IBC
+      , ctx->sps.ibc_flag
+#endif
+    );
   
     /* get pred_mode */
-    if (ctx->tgh.tile_group_type != TILE_GROUP_I && (ctx->sps.tool_amis == 0 || !(core->log2_cuw <= MIN_CU_LOG2 && core->log2_cuh <= MIN_CU_LOG2)))
+    if (ctx->tgh.tile_group_type != TILE_GROUP_I 
+#if USE_IBC
+      && (ctx->sps.tool_amis == 0 || !(core->log2_cuw <= MIN_CU_LOG2 && core->log2_cuh <= MIN_CU_LOG2) || ctx->sps.ibc_flag)
+#else
+      && (ctx->sps.tool_amis == 0 || !(core->log2_cuw <= MIN_CU_LOG2 && core->log2_cuh <= MIN_CU_LOG2))
+#endif
+      )
     {
-        if(evcd_sbac_decode_bin(bs, sbac, sbac->ctx.skip_flag + ctx->ctx_flags[CNID_SKIP_FLAG])) /* is skip mode? */
+        if(
+#if USE_IBC
+        (core->log2_cuw > MIN_CU_LOG2 || core->log2_cuh > MIN_CU_LOG2) &&
+#endif
+          evcd_sbac_decode_bin(bs, sbac, sbac->ctx.skip_flag + ctx->ctx_flags[CNID_SKIP_FLAG])) /* is skip mode? */
         {
             core->pred_mode = MODE_SKIP;
             EVC_TRACE_COUNTER;
@@ -1804,13 +1842,55 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
             EVC_TRACE_STR("pred mode ");
             EVC_TRACE_INT(core->pred_mode);
             EVC_TRACE_STR("\n");
+#if USE_IBC
+            if (core->pred_mode != MODE_INTRA && ctx->sps.ibc_flag && core->log2_cuw <= IBC_MAX_CU_LOG2 && core->log2_cuh <= IBC_MAX_CU_LOG2)
+            {
+              if (evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ibc_flag + ctx->ctx_flags[CNID_IBC_FLAG])) /* is ibc mode? */
+              {
+                core->pred_mode = MODE_IBC;
+                core->ibc_flag = 1;
+                core->mmvd_flag = 0;//core->new_skip_flag = 0;
+                core->affine_flag = 0;
+              }
+            }
+#endif
 
+#if USE_IBC
+          if (core->pred_mode != MODE_IBC)
+          {
+#endif
             if((core->pred_mode != MODE_INTRA) && ctx->sps.tool_amvr)
             {
                 core->mvr_idx = evcd_eco_mvr_idx(bs, sbac);
             }
+#if USE_IBC
+          }
+#endif
         }
     }
+#if USE_IBC
+    else if ((ctx->tgh.tile_group_type == TILE_GROUP_I && ctx->sps.ibc_flag) /*&& !(core->log2_cuw <= MIN_CU_LOG2 && core->log2_cuh <= MIN_CU_LOG2)*/)
+    {
+      core->pred_mode = MODE_INTRA;
+      core->mmvd_flag = 0;//core->new_skip_flag = 0;
+      core->affine_flag = 0;
+
+      if (core->log2_cuw <= IBC_MAX_CU_LOG2 && core->log2_cuh <= IBC_MAX_CU_LOG2)
+      {
+#if CTX_NEV_IBC_FLAG
+        if (evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ibc_flag + ctx->ctx_flags[CNID_IBC_FLAG])) /* is ibc mode? */
+#else
+        if (evcd_eco_ibc_flag(bs, sbac)) /* is ibc mode? */
+#endif
+        {
+          core->pred_mode = MODE_IBC;
+          core->ibc_flag = 1;
+        }
+      }
+
+    }
+#endif
+
     else /* TILE_GROUP_I */
     {
         core->pred_mode = MODE_INTRA;
@@ -1820,6 +1900,12 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
     {
         core->avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, core->log2_cuw, core->log2_cuh, ctx->map_scu);
     }
+#if USE_IBC
+    else if (core->pred_mode == MODE_IBC)
+    {
+      core->avail_cu = evc_get_avail_ibc(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, cuw, cuh, ctx->map_scu);
+    }
+#endif
     else
     {
         core->avail_cu = evc_get_avail_inter(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, cuw, cuh, ctx->map_scu);
@@ -1832,7 +1918,11 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
         if(!core->affine_flag)
         {
 #endif
-            if(ctx->sps.tool_mmvd)
+            if(ctx->sps.tool_mmvd
+#if USE_IBC
+              && core->ibc_flag == 0
+#endif
+              )
             {
                 if(mmvd_flag == 1)
                 {
@@ -1877,6 +1967,9 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                         evc_get_motion_skip(ctx->ptr, ctx->tgh.tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, srefi, smvp, ctx->map_scu, core->avail_cu
                                             , ctx->map_unrefined_mv
                                             , core->history_buffer, ctx->sps.tool_admvp
+#if USE_IBC
+                          , core->ibc_flag
+#endif
                         );
                     else
 #endif
@@ -1886,6 +1979,9 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
 #endif
 #if ADMVP
                                             , core->history_buffer, ctx->sps.tool_admvp
+#endif
+#if USE_IBC
+                          , core->ibc_flag
 #endif
                         );
 
@@ -1970,6 +2066,9 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                         evc_get_motion_skip(ctx->ptr, ctx->tgh.tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, srefi, smvp, ctx->map_scu, core->avail_cu
                                             , ctx->map_unrefined_mv
                                             , core->history_buffer, ctx->sps.tool_admvp
+#if USE_IBC
+                          , core->ibc_flag
+#endif
                         );
                     else
 #endif
@@ -1979,6 +2078,9 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
 #endif
 #if ADMVP
                                             , core->history_buffer, ctx->sps.tool_admvp
+#endif
+#if USE_IBC
+                          , core->ibc_flag
 #endif
                         );
 
@@ -2017,6 +2119,23 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
         core->is_coef[Y_C] = core->is_coef[U_C] = core->is_coef[V_C] = 0;
         evc_mset(core->is_coef_sub, 0, sizeof(int) * N_C * MAX_SUB_TB_NUM);
     }
+#if USE_IBC
+    else if (core->pred_mode == MODE_IBC)
+    {
+      core->affine_flag = 0;
+      SET_REFI(core->refi, REFI_INVALID, REFI_INVALID);
+
+      mvp_idx[REFP_0] = 0;
+
+      evcd_eco_get_mvd(bs, sbac, mvd);
+
+      core->mv[REFP_0][MV_X] = mvd[MV_X];
+      core->mv[REFP_0][MV_Y] = mvd[MV_Y];
+      core->mv[REFP_1][MV_X] = 0;
+      core->mv[REFP_1][MV_Y] = 0;
+
+    }
+#endif
     else if(core->pred_mode == MODE_INTER || core->pred_mode == MODE_DIR)
     {
 #if ADMVP
@@ -2034,7 +2153,11 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                 u32 t0 = 0;
                 inter_dir = PRED_L0;
 
-                if(ctx->sps.tool_mmvd)
+                if(ctx->sps.tool_mmvd
+#if USE_IBC
+                  && core->ibc_flag == 0
+#endif
+                  )
                 {
                     if(core->mvr_idx == 0)
                     {
@@ -2071,6 +2194,9 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                 if(cuw >= 8 && cuh >= 8
                    && core->mvr_idx == 0
                    && ctx->sps.tool_mmvd == 0
+#if USE_IBC
+                  && core->ibc_flag == 0
+#endif
                    && ctx->sps.tool_affine
                    && evcd_sbac_decode_bin(bs, sbac, sbac->ctx.inter_dir))
                 {
@@ -2083,7 +2209,11 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
         else /* if(ctx->tgh.tile_group_type == TILE_GROUP_B) */
         {
             direct_idx = -1;
-            inter_dir = evcd_eco_inter_dir(bs, sbac, ctx->sps.tool_mmvd ? &direct_idx : NULL, !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr), core->mvr_idx, core->avail_lr);
+            inter_dir = evcd_eco_inter_dir(bs, sbac, ctx->sps.tool_mmvd ? &direct_idx : NULL, !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr), core->mvr_idx
+#if USE_IBC
+              , core->ibc_flag
+#endif
+              , core->avail_lr);
             EVC_TRACE_COUNTER;
             EVC_TRACE_STR("inter dir ");
             EVC_TRACE_INT(inter_dir);
@@ -2581,9 +2711,17 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
             valid_flag[k] = 0;
         }
 #if ADMVP
-        evc_check_motion_availability2(core->scup, cuw, cuh, ctx->w_scu, ctx->h_scu, neb_addr, valid_flag, ctx->map_scu, core->avail_lr, 1);
+        evc_check_motion_availability2(core->scup, cuw, cuh, ctx->w_scu, ctx->h_scu, neb_addr, valid_flag, ctx->map_scu, core->avail_lr, 1
+#if USE_IBC
+          , 0
+#endif    
+        );
 #else
-        evc_check_motion_availability(core->scup, cuw, cuh, ctx->w_scu, ctx->h_scu, neb_addr, valid_flag, ctx->map_scu, core->avail_lr, 1);
+        evc_check_motion_availability(core->scup, cuw, cuh, ctx->w_scu, ctx->h_scu, neb_addr, valid_flag, ctx->map_scu, core->avail_lr, 1
+#if USE_IBC
+          , 0
+#endif    
+        );
 #endif
 
         for (k = 0; k < 5; k++)
@@ -2616,6 +2754,9 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
             evc_get_motion_skip(ctx->ptr, ctx->tgh.tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, srefi, smvp, ctx->map_scu, core->avail_cu
                                 , ctx->map_unrefined_mv
                                 , core->history_buffer, ctx->sps.tool_admvp
+#if USE_IBC
+              , core->ibc_flag
+#endif
             );
         else
 #endif
@@ -2625,6 +2766,9 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
 #endif
 #if ADMVP
                                 , core->history_buffer, ctx->sps.tool_admvp
+#endif
+#if USE_IBC
+              , core->ibc_flag
 #endif
             );
 
@@ -2793,6 +2937,9 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
     sps->tool_adcc = evc_bsr_read1(bs);
 #endif
     sps->tool_cm_init = evc_bsr_read1(bs);
+#if USE_IBC
+    sps->ibc_flag = evc_bsr_read1(bs);
+#endif
 #if ATS_INTRA_PROCESS
     sps->tool_ats_intra = evc_bsr_read1(bs);
 #endif

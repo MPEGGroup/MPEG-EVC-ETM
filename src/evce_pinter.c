@@ -2243,6 +2243,9 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
         evc_get_motion_skip(ctx->ptr, ctx->tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, pi->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, pi->refi_pred, pi->mvp, ctx->map_scu, core->avail_cu
                             , ctx->map_unrefined_mv
                             , core->history_buffer, ctx->sps.tool_admvp
+#if USE_IBC
+          , core->ibc_flag
+#endif
         );
     else
 #endif
@@ -2253,6 +2256,10 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
 #if ADMVP
                             , core->history_buffer, ctx->sps.tool_admvp
 #endif
+#if USE_IBC
+          , core->ibc_flag
+#endif
+
         );
 
     pi->mvp_idx[PRED_SKIP][REFP_0] = 0;
@@ -2494,6 +2501,9 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
         evc_get_motion_skip(ctx->ptr, ctx->tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, pi->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, pi->refi_pred, pi->mvp, ctx->map_scu, core->avail_cu
                             , ctx->map_unrefined_mv
                             , core->history_buffer, ctx->sps.tool_admvp
+#if USE_IBC
+          , core->ibc_flag
+#endif
         );
     else
 #endif
@@ -2503,6 +2513,9 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
 #endif
 #if ADMVP
                             , core->history_buffer, ctx->sps.tool_admvp
+#endif
+#if USE_IBC
+          , core->ibc_flag
 #endif
         );
 #if ADMVP

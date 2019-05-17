@@ -286,6 +286,9 @@ enum SAD_POINT_INDEX
 /* CTX_NEV (START) */
 #define CTX_NEV_SKIP_FLAG                  2 // number of ctx for skip_flag (-0.10%)
 #define CTX_NEV_PRED_MODE                  3 // number of ctx for pred_mode
+#if USE_IBC
+#define CTX_NEV_IBC_FLAG                   2 // number of ctx for ibc_flag
+#endif
 #if AFFINE
 #define CTX_NEV_AFFINE_FLAG                2 // number of ctx for affine_flag
 #endif
@@ -627,7 +630,9 @@ extern int fp_trace_counter;
 #define MODE_DIR                           3
 #define MODE_SKIP_MMVD                     4
 #define MODE_DIR_MMVD                      5
-
+#if USE_IBC
+#define MODE_IBC                           6
+#endif
 /*****************************************************************************
  * prediction direction
  *****************************************************************************/
@@ -644,6 +649,10 @@ extern int fp_trace_counter;
 
 #define PRED_SKIP_MMVD                     5
 #define PRED_DIR_MMVD                      6
+#if USE_IBC
+/* IBC pred direction, look current picture as reference */
+#define PRED_IBC                           7
+#endif
 #define PRED_FL0_BI                        10
 #define PRED_FL1_BI                        11
 #define PRED_BI_REF                        12
@@ -732,6 +741,11 @@ extern int fp_trace_counter;
 #define IPD_DIA_L                          6  /* Luma, Left diagonal */
 #define IPD_DIA_U                          30 /* Luma, up diagonal */
 
+#if USE_IBC
+#define IBC_MAX_CU_LOG2                      4 /* max block size for ibc search in unit of log2 */
+#define IBC_MAX_CAND_SIZE                    (1 << IBC_MAX_CU_LOG2)
+#endif
+
 /*****************************************************************************
 * Transform
 *****************************************************************************/
@@ -753,6 +767,22 @@ typedef enum _TRANS_TYPE
 #define REFI_IS_VALID(refi)               ((refi) >= 0)
 #define SET_REFI(refi, idx0, idx1)        (refi)[REFP_0] = (idx0); (refi)[REFP_1] = (idx1)
 
+#if USE_IBC
+ /*****************************************************************************
+ * macros for CU map
+
+ - [ 0: 6] : tile_group number (0 ~ 128)
+ - [ 7:14] : reserved
+ - [15:15] : 1 -> intra CU, 0 -> inter CU
+ - [16:22] : QP
+ - [23:23] : skip mode flag
+ - [24:24] : luma cbf
+ - [25:25] : dmvr_flag
+ - [26:26] : IBC mode flag
+ - [27:30] : reserved
+ - [31:31] : 0 -> no encoded/decoded CU, 1 -> encoded/decoded CU
+ *****************************************************************************/
+#else
 /*****************************************************************************
  * macros for CU map
 
@@ -766,6 +796,7 @@ typedef enum _TRANS_TYPE
  - [26:30] : reserved
  - [31:31] : 0 -> no encoded/decoded CU, 1 -> encoded/decoded CU
  *****************************************************************************/
+#endif
 /* set tile_group number to map */
 #define MCU_SET_SN(m, sn)       (m)=(((m) & 0xFFFFFF80)|((sn) & 0x7F))
 /* get tile_group number from map */
@@ -804,6 +835,14 @@ typedef enum _TRANS_TYPE
 #define MCU_GET_DMVRF(m)         (int)(((m)>>25) & 1)
 /* clear dmvr flag */
 #define MCU_CLR_DMVRF(m)         (m)=((m) & (~(1<<25)))
+#endif
+#if USE_IBC
+/* set ibc mode flag */
+#define MCU_SET_IBC(m)          (m)=((m)|(1<<26))
+/* get ibc mode flag */
+#define MCU_GET_IBC(m)          (int)(((m)>>26) & 1)
+/* clear ibc mode flag */
+#define MCU_CLR_IBC(m)          (m)=((m) & (~(1<<26)))
 #endif
 /* set encoded/decoded CU to map */
 #define MCU_SET_COD(m)          (m)=((m)|(1<<31))
@@ -872,6 +911,9 @@ typedef u32 SBAC_CTX_MODEL;
 #define NUM_SBAC_CTX_DIRECTION_IDX         2
 #define NUM_SBAC_CTX_AFFINE_MVD_FLAG       2
 #define NUM_SBAC_CTX_SKIP_FLAG             CTX_NEV_SKIP_FLAG
+#if USE_IBC
+#define NUM_SBAC_CTX_IBC_FLAG             CTX_NEV_IBC_FLAG
+#endif
 #define NUM_SBAC_CTX_BTT_SPLIT_FLAG        15
 #define NUM_SBAC_CTX_BTT_SPLIT_DIR         5
 #define NUM_SBAC_CTX_BTT_SPLIT_TYPE        1
@@ -932,6 +974,9 @@ typedef struct _EVC_SBAC_CTX
     SBAC_CTX_MODEL   alf_flag        [NUM_SBAC_CTX_ALF_FLAG]; 
 #endif
     SBAC_CTX_MODEL   skip_flag       [NUM_SBAC_CTX_SKIP_FLAG];
+#if USE_IBC
+    SBAC_CTX_MODEL   ibc_flag[NUM_SBAC_CTX_IBC_FLAG];
+#endif
     SBAC_CTX_MODEL   mmvd_flag       [NUM_SBAC_CTX_MMVD_FLAG];
     SBAC_CTX_MODEL   mmvd_merge_idx  [NUM_SBAC_CTX_MMVD_MERGE_IDX];
     SBAC_CTX_MODEL   mmvd_distance_idx[NUM_SBAC_CTX_MMVD_DIST_IDX];
@@ -1248,6 +1293,9 @@ typedef struct _EVC_SPS
 
     u8               closed_gop;                 /* 1 bit  : flag of closed_gop or not */
     u8               num_ref_pics_act;           /* 4 bits : number of reference pictures active */
+#if USE_IBC
+    u8               ibc_flag;                   /* 1 bit : flag of enabling IBC or not */
+#endif
 } EVC_SPS;
 
 /*****************************************************************************
@@ -1516,6 +1564,9 @@ typedef enum _CTX_NEV_IDX
     CNID_PRED_MODE,
 #if AFFINE
     CNID_AFFN_FLAG,
+#endif
+#if USE_IBC
+    CNID_IBC_FLAG,
 #endif
     NUM_CNID,
 
