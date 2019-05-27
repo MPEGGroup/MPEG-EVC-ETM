@@ -344,7 +344,7 @@ enum SAD_POINT_INDEX
 #endif
 
 #if X86_SSE
-#define EIF_SIMD                           1
+#define EIF_SIMD                           0
 #define EIF_NUM_BYTES_IN_SSE_REG           16
 #define EIF_NUM_PELS_IN_SSE_REG          ( 16 / sizeof(pel) )
 #else
@@ -366,13 +366,10 @@ enum SAD_POINT_INDEX
 #define MAX_ALF_FILTER_LENGTH              7
 #define MAX_NUM_ALF_COEFF                 (MAX_ALF_FILTER_LENGTH * MAX_ALF_FILTER_LENGTH / 2 + 1)
 
-#define ALF_PARAMETER_APS                  0  // move the signaling of ALF parameter from TGH to APS
 #if ALF_PARAMETER_APS
 #define  APS_MAX_NUM                       32
 #endif
 #define FIX_SEQUENTIAL_CODING              1
-#define HLS_M7668                          0
-
 
 // The structure below must be aligned to identical structure in evc_alf.c!
 typedef struct _evc_AlfFilterShape
