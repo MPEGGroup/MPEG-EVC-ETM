@@ -730,6 +730,7 @@ void EncAdaptiveLoopFilter::alfTemporalEncoder(CodingStructure& cs, AlfTileGroup
 
   if (pcStoredAlfPara != NULL && m_acAlfLineBufferCurrentSize > 0)
   {
+    int prevIdx = 0;
     for (int bufIdx = 0; bufIdx < m_acAlfLineBufferCurrentSize && bufIdx < ALF_TEMPORAL_WITH_LINE_BUFFER; bufIdx++)
     {
       if (pcStoredAlfPara[bufIdx].tLayer > tempLayerId) // this condition ensures that encoder does not break temporal scalability
@@ -789,7 +790,12 @@ void EncAdaptiveLoopFilter::alfTemporalEncoder(CodingStructure& cs, AlfTileGroup
         }
         if (channel == CHANNEL_TYPE_LUMA)
         {
+#if ALF_PARAMETER_APS
             cost[channel] += m_lambda[channel] * lengthUvlc(bufIdx);
+#else
+          cost[channel] += m_lambda[channel] * lengthUvlc(prevIdx); 
+#endif
+
           
           for( int i = 0; i < ctx->f_lcu; i++ )
           {
@@ -810,12 +816,19 @@ void EncAdaptiveLoopFilter::alfTemporalEncoder(CodingStructure& cs, AlfTileGroup
         m_costAlfEncoder[CHANNEL_TYPE_LUMA] = cost[CHANNEL_TYPE_LUMA];
 
         copyAlfParam( alfTileGroupParam, &m_alfTileGroupParamTemp);
+#if ALF_PARAMETER_APS
         alfTileGroupParam->prevIdx = bufIdx;
+#else
+        alfTileGroupParam->prevIdx = prevIdx;
+#endif
         alfTileGroupParam->temporalAlfFlag = true;
         alfTileGroupParam->chromaCtbPresentFlag = false;   //to check
         copyCtuEnableFlag(m_ctuEnableFlagTmp, m_ctuEnableFlag, CHANNEL_TYPE_LUMA);
         copyCtuEnableFlag(m_ctuEnableFlagTmp, m_ctuEnableFlag, CHANNEL_TYPE_CHROMA);
       }
+#if !ALF_PARAMETER_APS
+      prevIdx++;
+#endif
     } // prevIdx search
     copyCtuEnableFlag(m_ctuEnableFlag, m_ctuEnableFlagTmp, CHANNEL_TYPE_LUMA);
     copyCtuEnableFlag(m_ctuEnableFlag, m_ctuEnableFlagTmp, CHANNEL_TYPE_CHROMA);
