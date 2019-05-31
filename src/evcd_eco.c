@@ -1851,6 +1851,9 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                 core->ibc_flag = 1;
                 core->mmvd_flag = 0;//core->new_skip_flag = 0;
                 core->affine_flag = 0;
+#if ATS_INTER_PROCESS
+                core->ats_inter_info = 0;
+#endif
               }
             }
 #endif
@@ -1885,6 +1888,9 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
         {
           core->pred_mode = MODE_IBC;
           core->ibc_flag = 1;
+#if ATS_INTER_PROCESS
+          core->ats_inter_info = 0;
+#endif
         }
       }
 

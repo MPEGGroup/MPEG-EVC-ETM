@@ -87,7 +87,9 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 #if RDO_DBK
     u8     is_from_mv_field = 0;
 #endif
-
+#if ATS_INTER_PROCESS
+    core->ats_inter_info = 0;
+#endif
     rec = pi->unfiltered_rec_buf;
     nnz = core->nnz;
     cuw = 1 << log2_cuw;
@@ -826,7 +828,9 @@ static double pibc_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int 
   double cost, cost_best = MAX_COST;
   double cost_ibc;
   u8 found_available_ibc = 0;
-
+#if ATS_INTER_PROCESS
+  core->ats_inter_info = 0;
+#endif
   pi = &ctx->pibc;
   cuw = (1 << log2_cuw);
   cuh = (1 << log2_cuh);
