@@ -1156,7 +1156,11 @@ int evce_eco_cbf(EVC_BSW * bs, int cbf_y, int cbf_u, int cbf_v, u8 pred_mode, in
         {
             evc_assert(cbf_all != 0);
         }
+#if ROOT_CBF_RDO_BIT_FIX
+        else if(sub_pos == 0 && (run[Y_C] + run[U_C] + run[V_C]) == 3) // not count bits of root_cbf when checking each component
+#else
         else if(sub_pos == 0)
+#endif
         {
             if(cbf_all == 0)
             {
