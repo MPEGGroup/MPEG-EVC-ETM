@@ -394,7 +394,7 @@ typedef struct _evc_AlfFilterShape
 
 /* TRANSFORM PACKAGE (START) */
 #if ATS_INTRA_PROCESS
-#define ATS_INTRA_FAST                     1
+#define ATS_INTRA_FAST                     0
 #define EIF_BUFIX                          0 /* bug fix - This bug is related to fixed memory size of EIF. It should be fixed with bugfix of EIF tool*/
 #if ATS_INTRA_FAST
 #define ATS_INTER_INTRA_SKIP_THR           1.05
