@@ -801,8 +801,16 @@ static void set_tgh(EVCE_CTX *ctx, EVC_TGH *tgh)
         double dqp_offset;
         int qp_offset;
 #if HLS_M47668
-        qp += qp_adapt_param[ctx->tile_group_depth].qp_offset_layer;
-        dqp_offset = qp * qp_adapt_param[ctx->tile_group_depth].qp_offset_model_scale + qp_adapt_param[ctx->tile_group_depth].qp_offset_model_offset + 0.5;
+        if (ctx->sps.tool_rpl)
+        {
+            qp += qp_adapt_param[ctx->layer_id].qp_offset_layer;
+            dqp_offset = qp * qp_adapt_param[ctx->layer_id].qp_offset_model_scale + qp_adapt_param[ctx->layer_id].qp_offset_model_offset + 0.5;
+        }
+        else
+        {
+            qp += qp_adapt_param[ctx->tile_group_depth].qp_offset_layer;
+            dqp_offset = qp * qp_adapt_param[ctx->tile_group_depth].qp_offset_model_scale + qp_adapt_param[ctx->tile_group_depth].qp_offset_model_offset + 0.5;
+        }
 #else
         qp += qp_adapt_param[ctx->layer_id].qp_offset_layer;
         dqp_offset = qp * qp_adapt_param[ctx->layer_id].qp_offset_model_scale + qp_adapt_param[ctx->layer_id].qp_offset_model_offset + 0.5;
@@ -1643,9 +1651,15 @@ static void decide_tile_group_type(EVCE_CTX * ctx)
         }
     }
 #if HLS_M47668
-    if(ctx->param.use_hgop && gop_size > 1)
+    if (ctx->param.use_hgop && (gop_size > 1 || ctx->sps.tool_rpl))
     {
-        ctx->layer_id = ctx->tile_group_depth - (ctx->tile_group_depth > 0);
+        if (ctx->sps.tool_rpl)
+        {
+            ctx->layer_id = ctx->tile_group_depth;
+        } else
+        {
+            ctx->layer_id = ctx->tile_group_depth - (ctx->tile_group_depth > 0);
+        }
     }
 #else
     if (ctx->param.use_hgop)
