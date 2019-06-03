@@ -743,7 +743,7 @@ extern int fp_trace_counter;
 
 #if USE_IBC
 #define IBC_MAX_CU_LOG2                      4 /* max block size for ibc search in unit of log2 */
-#define IBC_MAX_CAND_SIZE                    (1 << IBC_MAX_CU_LOG2)
+//#define IBC_MAX_CAND_SIZE                    (1 << IBC_MAX_CU_LOG2)
 #endif
 
 /*****************************************************************************
@@ -1295,6 +1295,7 @@ typedef struct _EVC_SPS
     u8               num_ref_pics_act;           /* 4 bits : number of reference pictures active */
 #if USE_IBC
     u8               ibc_flag;                   /* 1 bit : flag of enabling IBC or not */
+	int              ibc_log_max_size;           /* log2 max ibc size */
 #endif
 } EVC_SPS;
 

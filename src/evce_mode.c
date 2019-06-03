@@ -1866,7 +1866,7 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 #endif
     evc_get_ctx_some_flags(core->x_scu, core->y_scu, 1 << log2_cuw, 1 << log2_cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->tgh.tile_group_type, ctx->sps.tool_cm_init
 #if USE_IBC
-      , ctx->param.use_ibc_flag
+      , ctx->param.use_ibc_flag, ctx->sps.ibc_log_max_size
 #endif
     );
 
@@ -1904,7 +1904,7 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
     {
       if (ctx->param.use_ibc_flag == 1 && (core->nnz[Y_C] != 0 || core->nnz[U_C] != 0 || core->nnz[V_C] != 0 || cost_best == MAX_COST))
       {
-        if ((1 << log2_cuw) <= IBC_MAX_CAND_SIZE && (1 << log2_cuh) <= IBC_MAX_CAND_SIZE)
+		if (log2_cuw <= ctx->sps.ibc_log_max_size && log2_cuh <= ctx->sps.ibc_log_max_size)
         {
           core->avail_cu = evc_get_avail_ibc(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, core->cuw, core->cuh, ctx->map_scu);
           cost = ctx->fn_pibc_analyze_cu(ctx, core, x, y, log2_cuw, log2_cuh, mi, coef, rec, s_rec);

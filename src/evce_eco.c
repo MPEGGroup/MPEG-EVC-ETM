@@ -136,6 +136,8 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
     evc_bsw_write1(bs, sps->tool_cm_init);
 #if USE_IBC
     evc_bsw_write1(bs, sps->ibc_flag);
+	if (sps->ibc_flag)
+       evc_bsw_write_ue(bs, (u32)(sps->ibc_log_max_size - 2));
 #endif
 #if ATS_INTRA_PROCESS
     evc_bsw_write1(bs, sps->tool_ats_intra);
@@ -2673,7 +2675,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 
     evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->tgh.tile_group_type, ctx->sps.tool_cm_init
 #if USE_IBC
-      , ctx->param.use_ibc_flag
+      , ctx->param.use_ibc_flag, ctx->sps.ibc_log_max_size
 #endif
     );
     
@@ -2775,7 +2777,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
         {
             evce_eco_pred_mode(bs, cu_data->pred_mode[cup], ctx->ctx_flags[CNID_PRED_MODE]);
 #if USE_IBC
-            if (cu_data->pred_mode[cup] != MODE_INTRA && ctx->param.use_ibc_flag && core->log2_cuw <= IBC_MAX_CU_LOG2 && core->log2_cuh <= IBC_MAX_CU_LOG2)
+            if (cu_data->pred_mode[cup] != MODE_INTRA && ctx->param.use_ibc_flag && core->log2_cuw <= ctx->sps.ibc_log_max_size && core->log2_cuh <= ctx->sps.ibc_log_max_size)
             {
 
               evce_eco_ibc_flag(bs, core->ibc_flag
@@ -3080,7 +3082,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
     {
       if (core->skip_flag == 0)
       {
-        if (core->log2_cuw <= IBC_MAX_CU_LOG2 && core->log2_cuh <= IBC_MAX_CU_LOG2)
+        if (core->log2_cuw <= ctx->sps.ibc_log_max_size && core->log2_cuh <= ctx->sps.ibc_log_max_size)
         {
           evce_eco_ibc_flag(bs, core->ibc_flag
 #if CTX_NEV_IBC_FLAG

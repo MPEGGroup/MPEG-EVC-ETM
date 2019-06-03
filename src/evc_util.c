@@ -3444,7 +3444,7 @@ u16 evc_check_nev_avail(int x_scu, int y_scu, int cuw, int cuh, int w_scu, int h
 
 void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u32* map_scu, u32* map_cu_mode, u8* ctx, u8 tile_group_type, int sps_cm_init_flag
 #if USE_IBC    
-  , u8 ibc_flag
+  , u8 ibc_flag, u8 ibc_log_max_size
 #endif
 )
 {
@@ -3456,7 +3456,7 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
     int i, j;
 #if USE_IBC
     if ((tile_group_type == TILE_GROUP_I && ibc_flag == 0)
-      || (tile_group_type == TILE_GROUP_I && (cuw > IBC_MAX_CAND_SIZE || cuh > IBC_MAX_CAND_SIZE)))
+      || (tile_group_type == TILE_GROUP_I && (cuw > (1 << ibc_log_max_size) || cuh > (1 << ibc_log_max_size))))
     {
       return;
     }

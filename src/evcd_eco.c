@@ -1778,7 +1778,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
 
     evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->tgh.tile_group_type, ctx->sps.tool_cm_init
 #if USE_IBC
-      , ctx->sps.ibc_flag
+      , ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size
 #endif
     );
   
@@ -1843,7 +1843,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
             EVC_TRACE_INT(core->pred_mode);
             EVC_TRACE_STR("\n");
 #if USE_IBC
-            if (core->pred_mode != MODE_INTRA && ctx->sps.ibc_flag && core->log2_cuw <= IBC_MAX_CU_LOG2 && core->log2_cuh <= IBC_MAX_CU_LOG2)
+            if (core->pred_mode != MODE_INTRA && ctx->sps.ibc_flag && core->log2_cuw <= ctx->sps.ibc_log_max_size && core->log2_cuh <= ctx->sps.ibc_log_max_size)
             {
               if (evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ibc_flag + ctx->ctx_flags[CNID_IBC_FLAG])) /* is ibc mode? */
               {
@@ -1878,7 +1878,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
       core->mmvd_flag = 0;//core->new_skip_flag = 0;
       core->affine_flag = 0;
 
-      if (core->log2_cuw <= IBC_MAX_CU_LOG2 && core->log2_cuh <= IBC_MAX_CU_LOG2)
+      if (core->log2_cuw <= ctx->sps.ibc_log_max_size && core->log2_cuh <= ctx->sps.ibc_log_max_size)
       {
 #if CTX_NEV_IBC_FLAG
         if (evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ibc_flag + ctx->ctx_flags[CNID_IBC_FLAG])) /* is ibc mode? */
@@ -2945,6 +2945,8 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
     sps->tool_cm_init = evc_bsr_read1(bs);
 #if USE_IBC
     sps->ibc_flag = evc_bsr_read1(bs);
+    if(sps->ibc_flag)
+       sps->ibc_log_max_size = (u32)evc_bsr_read_ue(bs) + 2;
 #endif
 #if ATS_INTRA_PROCESS
     sps->tool_ats_intra = evc_bsr_read1(bs);

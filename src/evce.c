@@ -437,6 +437,7 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->closed_gop = (ctx->param.use_closed_gop) ? 1 : 0;
 #if USE_IBC
     sps->ibc_flag = (ctx->param.use_ibc_flag) ? 1 : 0;
+	sps->ibc_log_max_size = IBC_MAX_CU_LOG2;
 #endif
     if(ctx->param.max_b_frames > 0)
     {
