@@ -225,7 +225,11 @@ extern void init_AlfFilterShape(void* _th, int size);
 struct AlfTileGroupParam
 {
   BOOL                         isCtbAlfOn;
+#if ALF_CTU_MAP_DYNAMIC
+  u8                           *alfCtuEnableFlag;
+#else
   u8                           alfCtuEnableFlag[3][512];                                // put into tile_group header
+#endif
   BOOL                         enabledFlag[MAX_NUM_COMPONENT];                          // alf_tile_group_enable_flag, alf_chroma_idc
   AlfFilterType                lumaFilterType;                                          // filter_type_flag
   BOOL                         chromaCtbPresentFlag;                                    // alf_chroma_ctb_present_flag

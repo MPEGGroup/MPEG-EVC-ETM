@@ -2531,7 +2531,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         {
             EVCE_SBAC *sbac;
             sbac = GET_SBAC_ENC(bs);
+#if ALF_CTU_MAP_DYNAMIC
+            evce_sbac_encode_bin((int)(*(alfTileGroupParam->alfCtuEnableFlag + core->lcu_num)), sbac, sbac->ctx.ctb_alf_flag, bs);
+#else
             evce_sbac_encode_bin((int)(alfTileGroupParam->alfCtuEnableFlag[0][core->lcu_num]), sbac, sbac->ctx.ctb_alf_flag, bs);
+#endif
         }
 #endif
         ret = evce_eco_tree(ctx, core, core->x_pel, core->y_pel, 0, ctx->max_cuwh, ctx->max_cuwh, 0, 1, NO_SPLIT, split_mode_child, 0, split_allow, 0, 0);

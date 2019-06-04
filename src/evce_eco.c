@@ -329,7 +329,7 @@ int evce_eco_tgh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh)
 #if ALF_PARAMETER_APS
         if (tgh->alf_on)
         {
-            evc_bsw_write(bs, tgh->aps_signaled, 5); //encode tile group aps id
+            evc_bsw_write(bs, tgh->aps_signaled, APS_MAX_NUM_IN_BITS); //encode tile group aps id
             evce_eco_alf_tgh_param(bs, tgh); // signaling ALF map
         }
 #else
@@ -3097,7 +3097,11 @@ int evce_eco_alf_tgh_param(EVC_BSW * bs, EVC_TGH * tgh)
     if( alfTileGroupParam.isCtbAlfOn )
     {
         for(int i = 0; i < tgh->num_ctb; i++)
+#if ALF_CTU_MAP_DYNAMIC
+            evc_bsw_write1(bs, (int)(*(alfTileGroupParam.alfCtuEnableFlag + i)));
+#else
             evc_bsw_write1(bs, (int)(alfTileGroupParam.alfCtuEnableFlag[0][i]));
+#endif
     }
 
     return EVC_OK;

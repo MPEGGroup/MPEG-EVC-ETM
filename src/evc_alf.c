@@ -108,6 +108,7 @@ void call_destroy_ALF(AdaptiveLoopFilter* p)
 {
     AdaptiveLoopFilter_destroy();
 }
+
 #if ALF_PARAMETER_APS
 void store_dec_aps_to_buffer(EVCD_CTX * ctx)
 {
@@ -160,18 +161,25 @@ void call_dec_alf_process_aps(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * p
     cs.pPic = pic;
 
     AlfTileGroupParam alfTileGroupParam;
+#if ALF_CTU_MAP_DYNAMIC
+    alfTileGroupParam.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
+    memset(alfTileGroupParam.alfCtuEnableFlag, 0, N_C * ctx->f_lcu * sizeof(u8));
+#endif
     // load filter from buffer
     u8 idx = ctx->tgh.aps_signaled;
     load_alf_paramline_from_aps_buffer(&(alfTileGroupParam), idx);
 
     // load filter map buffer
     alfTileGroupParam.isCtbAlfOn = ctx->tgh.alf_tgh_param.isCtbAlfOn;
+#if ALF_CTU_MAP_DYNAMIC
+    memcpy(alfTileGroupParam.alfCtuEnableFlag, ctx->tgh.alf_tgh_param.alfCtuEnableFlag, N_C * ctx->f_lcu * sizeof(u8));
+#else
     memcpy(alfTileGroupParam.alfCtuEnableFlag, ctx->tgh.alf_tgh_param.alfCtuEnableFlag, 3 * 512 * sizeof(u8));
-    //printf(" id: %d, map: %d, [%d %d %d] ", ctx->tgh.aps_signaled, alfTileGroupParam.isCtbAlfOn, alfTileGroupParam.enabledFlag[0], alfTileGroupParam.enabledFlag[1], alfTileGroupParam.enabledFlag[2]);
+#endif
     ALFProcess(p, &cs, &alfTileGroupParam);
 }
-#endif
 
+#else
 void call_ALFProcess(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic)
 {
     CodingStructure cs;
@@ -180,7 +188,10 @@ void call_ALFProcess(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic)
 
     AlfTileGroupParam alfTileGroupParam;
     evc_AlfTileGroupParam iAlfTileGroupParam = ctx->tgh.alf_tgh_param;
-
+#if ALF_CTU_MAP_DYNAMIC
+    alfTileGroupParam.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
+    memset(alfTileGroupParam.alfCtuEnableFlag, 0, N_C * ctx->f_lcu * sizeof(u8));
+#endif
     //port
 
     alfTileGroupParam.enabledFlag[COMPONENT_Y]  = ( iAlfTileGroupParam.enabledFlag[0] );
@@ -254,7 +265,11 @@ void call_ALFProcess(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic)
 #endif
 
     alfTileGroupParam.isCtbAlfOn = (iAlfTileGroupParam.isCtbAlfOn == 1 ? TRUE : FALSE);
+#if ALF_CTU_MAP_DYNAMIC
+    memcpy(alfTileGroupParam.alfCtuEnableFlag, iAlfTileGroupParam.alfCtuEnableFlag, N_C * ctx->f_lcu * sizeof(u8));
+#else
     memcpy(alfTileGroupParam.alfCtuEnableFlag, iAlfTileGroupParam.alfCtuEnableFlag, 3*512 * sizeof(u8));
+#endif
 
     ALFProcess(p, &cs, &alfTileGroupParam );
 
@@ -265,6 +280,7 @@ void call_ALFProcess(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic)
 
 }
 
+#endif
 
 AlfFilterShape m_filterShapes[MAX_NUM_CHANNEL_TYPE][2];
 
@@ -479,7 +495,11 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfTileGroupParam* a
   // set CTU enable flags
   for (int compIdx = 0; compIdx < MAX_NUM_COMPONENT; compIdx++)
   {
+#if ALF_CTU_MAP_DYNAMIC
+     m_ctuEnableFlag[compIdx] = alfTileGroupParam->alfCtuEnableFlag + ctx->f_lcu * compIdx;
+#else
      m_ctuEnableFlag[compIdx] = &(alfTileGroupParam->alfCtuEnableFlag[compIdx][0]);
+#endif
   }
 
   reconstructCoeff(alfTileGroupParam, CHANNEL_TYPE_LUMA, FALSE, TRUE);
@@ -1166,7 +1186,9 @@ void resetAlfParam(AlfTileGroupParam* dst)
 {
     //Reset destination
     dst->isCtbAlfOn = FALSE;
+#if !ALF_CTU_MAP_DYNAMIC
     memset(dst->alfCtuEnableFlag, 1, sizeof(dst->alfCtuEnableFlag));
+#endif
     memset(dst->enabledFlag, 0, sizeof(dst->enabledFlag)); //false is still 0
     dst->lumaFilterType = ALF_FILTER_5;
     memset(dst->lumaCoeff, 0, sizeof(dst->lumaCoeff));
