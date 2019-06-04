@@ -305,9 +305,9 @@ extern short m_coeffFinal[MAX_NUM_ALF_CLASSES * MAX_NUM_ALF_LUMA_COEFF];
 extern int   m_inputBitDepth[MAX_NUM_CHANNEL_TYPE];
 
 extern u8 m_acAlfLineBufferCurrentSize;
-extern u8 m_alfIndxInScanOrder[APS_MAX_NUM];
 
 #if ALF_PARAMETER_APS
+extern u8 m_alfIndxInScanOrder[APS_MAX_NUM];
 extern AlfTileGroupParam m_acAlfLineBuffer[APS_MAX_NUM];
 #else
 extern AlfTileGroupParam m_acAlfLineBuffer[ALF_TEMPORAL_WITH_LINE_BUFFER];
