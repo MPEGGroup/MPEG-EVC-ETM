@@ -2162,20 +2162,6 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
 #endif
 #endif
 
-#if DMVR
-    core->DMVRenable = 0;
-    if(core->pred_mode == MODE_SKIP && !mmvd_flag)
-       core->DMVRenable = 1;
-
-    if(inter_dir == PRED_DIR)
-        core->DMVRenable = 1;
-
-#if AFFINE
-    if(core->affine_flag)
-        core->DMVRenable = 0;
-#endif 
-#endif
-
     return EVC_OK;
 }
 
