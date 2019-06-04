@@ -261,7 +261,7 @@ int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps)
 #if ALF_PARAMETER_APS
 int evce_eco_aps(EVC_BSW * bs, EVC_APS * aps)
 {
-    evc_bsw_write(bs, aps->aps_id, 5); // signal APS ID
+    evc_bsw_write(bs, aps->aps_id, APS_MAX_NUM_IN_BITS); // signal APS ID
     evce_eco_alf_aps_param(bs, aps); // signal ALF filter parameter except ALF map
 
     u8 aps_extension_flag = 0;
@@ -3007,12 +3007,13 @@ int evce_eco_alf_tgh_param(EVC_BSW * bs, EVC_TGH * tgh)
     evc_AlfTileGroupParam alfTileGroupParam = tgh->alf_tgh_param;
 
     evc_bsw_write1(bs, alfTileGroupParam.isCtbAlfOn);
+#if !APS_ALF_CTU_FLAG
     if (alfTileGroupParam.isCtbAlfOn)
     {
         for (int i = 0; i < tgh->num_ctb; i++)
             evc_bsw_write1(bs, (int)(alfTileGroupParam.alfCtuEnableFlag[0][i]));
     }
-
+#endif
     return EVC_OK;
 }
 #else

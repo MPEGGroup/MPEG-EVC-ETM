@@ -368,6 +368,10 @@ enum SAD_POINT_INDEX
 
 #if ALF_PARAMETER_APS
 #define  APS_MAX_NUM                       32
+#define  APS_MAX_NUM_IN_BITS               5 
+
+#define  APS_ALF_CTU_FLAG                  1
+#define  APS_ALF_SEQ_FIX                   1
 #endif
 #define FIX_SEQUENTIAL_CODING              1
 

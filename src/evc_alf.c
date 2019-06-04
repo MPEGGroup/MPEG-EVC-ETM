@@ -50,8 +50,22 @@ AlfTileGroupParam m_acAlfLineBuffer[APS_MAX_NUM];
 AlfTileGroupParam m_acAlfLineBuffer[ALF_TEMPORAL_WITH_LINE_BUFFER];
 #endif
 
+#if APS_ALF_SEQ_FIX
+// Encoder side variables
+u8  m_alfIndxInScanOrder[APS_MAX_NUM] = { 0 };
+u8  m_nextFreeAlfIdxInBuffer = 0;  
+u32 m_firstIdrPoc = INT_MAX;
+u32 m_lastIdrPoc = INT_MAX;
+u32 m_currentPoc = INT_MAX;
+u32 m_currentTempLayer = INT_MAX;
+u32 m_i_period;   
+int m_alf_present_idr = 0;
+int m_alf_idx_idr = INT_MAX;
+#endif
+
+
 AlfTileGroupParam m_IRAPFilter;
-unsigned m_acAlfLineBufferCurrentSize;
+u8 m_acAlfLineBufferCurrentSize = 0;
 
 pel* m_tempBuf, *m_tempBuf1, *m_tempBuf2;
 int  m_picWidth;
@@ -95,7 +109,7 @@ void call_destroy_ALF(AdaptiveLoopFilter* p)
     AdaptiveLoopFilter_destroy();
 }
 #if ALF_PARAMETER_APS
-void store_aps_to_buffer(EVCD_CTX * ctx)
+void store_dec_aps_to_buffer(EVCD_CTX * ctx)
 {
     AlfTileGroupParam alfTileGroupParam;
     evc_AlfTileGroupParam iAlfTileGroupParam = ctx->aps.alf_aps_param;
@@ -130,9 +144,16 @@ void store_aps_to_buffer(EVCD_CTX * ctx)
     alfTileGroupParam.temporalAlfFlag = (iAlfTileGroupParam.temporalAlfFlag);
     const unsigned tidx = ctx->tgh.layer_id;
 
+#if APS_ALF_SEQ_FIX
+    // Initialize un-used variables at the decoder side  TODO: Modify structure
+    alfTileGroupParam.m_filterPoc = INT_MAX;
+    alfTileGroupParam.m_maxIdrPoc = INT_MAX;
+    alfTileGroupParam.m_minIdrPoc = INT_MAX;
+#endif
+
     store_alf_paramline_from_aps(&(alfTileGroupParam), alfTileGroupParam.prevIdx);
 }
-void call_alf_process_aps(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic)
+void call_dec_alf_process_aps(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic)
 {
     CodingStructure cs;
     cs.pCtx = (void*)ctx;
@@ -150,6 +171,7 @@ void call_alf_process_aps(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic)
     ALFProcess(p, &cs, &alfTileGroupParam);
 }
 #endif
+
 void call_ALFProcess(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic)
 {
     CodingStructure cs;
@@ -1117,6 +1139,12 @@ void copyAlfParam(AlfTileGroupParam* dst, AlfTileGroupParam* src)
   dst->temporalAlfFlag = src->temporalAlfFlag;
   dst->prevIdx = src->prevIdx;
   dst->tLayer = src->tLayer;
+#if APS_ALF_SEQ_FIX
+  // variables are not used at the decoder side. TODO: Modify the strcuture
+  dst->m_filterPoc = src->m_filterPoc;
+  dst->m_minIdrPoc = src->m_minIdrPoc;
+  dst->m_maxIdrPoc = src->m_maxIdrPoc;
+#endif
 }
 
 void storeALFParamLine(AlfTileGroupParam* pAlfParam, unsigned tLayer)
@@ -1133,10 +1161,151 @@ void storeALFParamLine(AlfTileGroupParam* pAlfParam, unsigned tLayer)
 }
 
 #if ALF_PARAMETER_APS
+#if APS_ALF_SEQ_FIX
+void resetAlfParam(AlfTileGroupParam* dst)
+{
+    //Reset destination
+    dst->isCtbAlfOn = FALSE;
+    memset(dst->alfCtuEnableFlag, 1, sizeof(dst->alfCtuEnableFlag));
+    memset(dst->enabledFlag, 0, sizeof(dst->enabledFlag)); //false is still 0
+    dst->lumaFilterType = ALF_FILTER_5;
+    memset(dst->lumaCoeff, 0, sizeof(dst->lumaCoeff));
+    memset(dst->chromaCoeff, 0, sizeof(dst->chromaCoeff));
+    memset(dst->filterCoeffDeltaIdx, 0, sizeof(dst->filterCoeffDeltaIdx));
+    for (int i = 0; i < MAX_NUM_ALF_CLASSES; i++)
+        dst->filterCoeffFlag[i] = TRUE;
+    dst->numLumaFilters = 1;
+    dst->coeffDeltaFlag = FALSE;
+    dst->coeffDeltaPredModeFlag = FALSE;
+    dst->chromaCtbPresentFlag = FALSE;
+    dst->fixedFilterPattern = 0;
+    memset(dst->fixedFilterIdx, 0, sizeof(dst->fixedFilterIdx));
+    dst->temporalAlfFlag = FALSE;
+    dst->prevIdx = 0;
+    dst->tLayer = 0;
+    dst->resetALFBufferFlag = FALSE;
+    dst->store2ALFBufferFlag = FALSE;
+
+    // variables are not used at the decoder side. TODO: Modify the strcuture
+    dst->m_filterPoc = INT_MAX;  // store POC value for which filter was produced
+    dst->m_minIdrPoc = INT_MAX;  // Minimal of 2 IDR POC available for current coded chunk  (to identify availability of this filter for temp prediction)
+    dst->m_maxIdrPoc = INT_MAX;  // Max of 2 IDR POC available for current coded chunk  (to identify availability of this filter for temp prediction)
+}
+
+void resetIdrIndexListBufferAPS()
+{
+    if (m_alf_present_idr)
+    {
+        m_alfIndxInScanOrder[0] = m_alf_idx_idr;
+        m_acAlfLineBufferCurrentSize = 1;
+        m_nextFreeAlfIdxInBuffer = (m_alf_idx_idr + 1) % APS_MAX_NUM;
+        m_alf_present_idr = 0;
+    }
+    else
+    {
+        m_alfIndxInScanOrder[0] = 0;
+        m_acAlfLineBufferCurrentSize = 0;
+        m_nextFreeAlfIdxInBuffer = 0;
+    }
+}
+
+int  getProtectIdxFromList(int idx)
+{
+    u8 i_slice_idx = 0;
+    AlfTileGroupParam *p_ATGP = NULL;
+    int protectEntry = 0;
+    if (m_i_period == 0)
+        return protectEntry;
+
+    p_ATGP = &(m_acAlfLineBuffer[idx]);
+    // check if current idx is protected (e.g. idr filter idx)
+    if ((m_acAlfLineBuffer[idx].m_filterPoc == m_acAlfLineBuffer[idx].m_maxIdrPoc))
+    {
+        protectEntry = 1; // previent overwrite of the protected ALF id (e.g. id of IDR pic)
+    }
+    if ((m_currentPoc > m_acAlfLineBuffer[idx].m_maxIdrPoc + m_i_period))
+    {
+        protectEntry = 0;
+    }
+
+    if ((m_currentPoc > m_lastIdrPoc) // current POC is after 2nd IDR 
+        && (m_acAlfLineBuffer[idx].m_filterPoc < m_lastIdrPoc) // POC of checked ALF is before 2nd IDR
+        )
+    {
+        protectEntry = 0;
+    }
+
+    if ((m_currentPoc > m_acAlfLineBuffer[idx].m_maxIdrPoc) // current POC is after 2nd IDR 
+        && (m_acAlfLineBuffer[idx].m_filterPoc < m_acAlfLineBuffer[idx].m_maxIdrPoc) // POC of checked ALF is before 2nd IDR
+        )
+    {
+        protectEntry = 0;
+    }
+
+    return protectEntry;
+}
+
+void storeEncALFParamLineAPS(AlfTileGroupParam* pAlfParam, unsigned tLayer)
+{
+    m_acAlfLineBufferCurrentSize++; // There is new filter, increment computed ALF buffer size
+    if (m_acAlfLineBufferCurrentSize > APS_MAX_NUM)
+    { // new filter to be stored in occupied location, check if this location is not protected
+        while (getProtectIdxFromList(m_nextFreeAlfIdxInBuffer) && m_nextFreeAlfIdxInBuffer < APS_MAX_NUM)
+        {
+            m_nextFreeAlfIdxInBuffer = (m_nextFreeAlfIdxInBuffer + 1) % APS_MAX_NUM;  // Compute next availble ALF circular buffer index
+        }
+    }
+    u8 idx = m_nextFreeAlfIdxInBuffer;  // Take in use next availble ALF circular buffer index
+    pAlfParam->m_filterPoc = m_currentPoc;
+    pAlfParam->m_minIdrPoc = m_firstIdrPoc;
+    pAlfParam->m_maxIdrPoc = m_lastIdrPoc;
+    pAlfParam->temporalAlfFlag = FALSE;
+    pAlfParam->tLayer = tLayer;
+    pAlfParam->chromaCtbPresentFlag = FALSE;
+
+    if (m_acAlfLineBufferCurrentSize > APS_MAX_NUM)
+    {
+        // New ALF beyond ALF buffer capacity, index list is shifted left, by removing the most old  index (preserving protected indexes) from m_alfIndxInScanOrder
+        for (int i = 1; i < APS_MAX_NUM; i++)
+        {
+            int idx_to_check = i - 1;
+            if (getProtectIdxFromList(m_alfIndxInScanOrder[idx_to_check]))
+            {
+                continue;
+            }
+            m_alfIndxInScanOrder[idx_to_check] = m_alfIndxInScanOrder[i];
+        }
+    }
+
+    resetAlfParam(&(m_acAlfLineBuffer[idx]));
+    copyAlfParam(&(m_acAlfLineBuffer[idx]), pAlfParam);
+
+    m_acAlfLineBufferCurrentSize = m_acAlfLineBufferCurrentSize > APS_MAX_NUM ? APS_MAX_NUM : m_acAlfLineBufferCurrentSize;  // Increment size of the circular buffer  (there are 2 buffers - ALF and indexes)
+    m_alfIndxInScanOrder[m_acAlfLineBufferCurrentSize - 1] = m_nextFreeAlfIdxInBuffer;                                       // store new alf idx in the indexes circular buffer 
+    m_nextFreeAlfIdxInBuffer = (m_nextFreeAlfIdxInBuffer + 1) % APS_MAX_NUM;  // Compute next availble ALF circular buffer index
+}
+
+void loadALFParamLineAPS(AlfTileGroupParam* pAlfParam, unsigned idx, unsigned tLayer)
+{
+    BOOL enable[3];
+    BOOL ctbPresentFlag = pAlfParam->chromaCtbPresentFlag;
+    memcpy(enable, pAlfParam->enabledFlag, sizeof(pAlfParam->enabledFlag));
+    int bufIdx = 0; BOOL isFound = FALSE;
+    copyAlfParam(pAlfParam, &(m_acAlfLineBuffer[idx]));
+    isFound = TRUE;
+    memcpy(pAlfParam->enabledFlag, enable, sizeof(pAlfParam->enabledFlag));
+    pAlfParam->temporalAlfFlag = TRUE;
+    pAlfParam->chromaCtbPresentFlag = ctbPresentFlag;
+    CHECK(!isFound, "ALF : loadALFParamLine cannot load from the buffer");
+}
+#endif
+
 void store_alf_paramline_from_aps(AlfTileGroupParam* pAlfParam, u8 idx)
 {
+    assert(idx < APS_MAX_NUM);
     copyAlfParam(&(m_acAlfLineBuffer[idx]), pAlfParam);
     m_acAlfLineBufferCurrentSize++;
+    m_acAlfLineBufferCurrentSize = m_acAlfLineBufferCurrentSize > APS_MAX_NUM ? APS_MAX_NUM : m_acAlfLineBufferCurrentSize;  // Increment used ALF circular buffer size 
 }
 
 void load_alf_paramline_from_aps_buffer(AlfTileGroupParam* pAlfParam, u8 idx)
