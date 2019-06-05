@@ -533,6 +533,9 @@ void EncAdaptiveLoopFilter::Enc_ALFProcess(CodingStructure& cs, const double *la
   const int w = cs.pPic->w_l;
   const int m = MAX_ALF_FILTER_LENGTH >> 1;
   const int s = w + m + m;
+#if !ALF_CTU_MAP_DYNAMIC
+  EVCE_CTX* ctx = (EVCE_CTX*)(cs.pCtx);
+#endif
 
   EVC_PIC* picOrig = PIC_ORIG(ctx);
   EVC_PIC* picReco = PIC_MODE(ctx);
@@ -626,7 +629,7 @@ void EncAdaptiveLoopFilter::Enc_ALFProcess(CodingStructure& cs, const double *la
 #if ALF_CTU_MAP_DYNAMIC
       if (*(alfTileGroupParam->alfCtuEnableFlag + i) == 0)
 #else
-      if( alfTileGroupParam->alfCtuEnableFlag[0][i] == 0 ) {
+      if( alfTileGroupParam->alfCtuEnableFlag[0][i] == 0 ) 
 #endif
      {
           alfTileGroupParam->isCtbAlfOn = true;
@@ -980,7 +983,7 @@ void EncAdaptiveLoopFilter::alfTemporalEncoderAPS(CodingStructure& cs, AlfTileGr
 #if ALF_CTU_MAP_DYNAMIC
                         if (*(m_alfTileGroupParamTemp.alfCtuEnableFlag + i) == 0)
 #else
-                        if (m_alfTileGroupParamTemp.alfCtuEnableFlag[0][i] == 0) {
+                        if (m_alfTileGroupParamTemp.alfCtuEnableFlag[0][i] == 0) 
 #endif
                         {
                             m_alfTileGroupParamTemp.isCtbAlfOn = true;
@@ -1110,7 +1113,7 @@ void EncAdaptiveLoopFilter::alfTemporalEncoder(CodingStructure& cs, AlfTileGroup
 #if ALF_CTU_MAP_DYNAMIC
               if (*(m_alfTileGroupParamTemp.alfCtuEnableFlag + i) == 0)
 #else
-              if( m_alfTileGroupParamTemp.alfCtuEnableFlag[0][i] == 0 ) {
+              if( m_alfTileGroupParamTemp.alfCtuEnableFlag[0][i] == 0 ) 
 #endif
               {
                   m_alfTileGroupParamTemp.isCtbAlfOn = true;
