@@ -352,20 +352,8 @@ static u32 me_raster(EVCE_PINTER * pi, int x, int y, int log2_cuw, int log2_cuh,
 
                 ref = ref_pic->y + mv_x + mv_y * ref_pic->s_l;
 
-#if IPR_USE_MR_SAD
-                if(pi->ipr_curr)
-                {
-                    /* get mean removed sad */
-                    cost += evce_sad_mr_16b(log2_cuw, log2_cuh, org, ref, pi->s_o[Y_C], ref_pic->s_l);
-                }
-                else
-                {
-#endif
-                    /* get sad */
-                    cost += evce_sad_16b(log2_cuw, log2_cuh, org, ref, pi->s_o[Y_C], ref_pic->s_l);
-#if IPR_USE_MR_SAD
-                }
-#endif
+                /* get sad */
+                cost += evce_sad_16b(log2_cuw, log2_cuh, org, ref, pi->s_o[Y_C], ref_pic->s_l);
                 /* check if motion cost_best is less than minimum cost_best */
                 if(cost < cost_best)
                 {
