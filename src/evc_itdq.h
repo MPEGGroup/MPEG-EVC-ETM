@@ -35,18 +35,7 @@
 #define _EVC_ITDQ_H_
 #include "evc_def.h"
 
-void evc_itdq(s16 * coef, int log2_w, int log2_h, u16 scale
-#if AQS
-              , u16 qs_scale
-#endif
-              , int iqt_flag
-);
-
-void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int flag[N_C], int nnz_sub[N_C][MAX_SUB_TB_NUM]
-#if AQS
-                        , u16 qs_scale
-#endif
-                        , int iqt_flag
-);
+void evc_itdq(s16 * coef, int log2_w, int log2_h, u16 scale, int iqt_flag);
+void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int flag[N_C], int nnz_sub[N_C][MAX_SUB_TB_NUM], int iqt_flag);
 
 #endif /* _EVC_ITDQ_H_ */

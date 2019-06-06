@@ -257,10 +257,6 @@ u16 *evc_scan_tbl[COEF_SCAN_TYPE_NUM][MAX_CU_LOG2 - 1][MAX_CU_LOG2 - 1];
 int evc_scan_sr[MAX_TR_SIZE*MAX_TR_SIZE];
 const int evc_tbl_dq_scale[6] = {40, 45, 51, 57, 64, 72};
 const int evc_tbl_dq_scale_b[6] = {40, 45, 51, 57, 64, 71};
-#if AQS
-const int evc_sqrt[49] = { 181, 187, 192, 197, 202, 207, 212, 217, 222, 226, 231, 235, 239, 244, 248, 252, 256, 260, 264, 268, 272, 275, 279, 283, 286,
-290, 293, 297, 300, 304, 307, 310, 314, 317, 320, 323, 326, 329, 333, 336, 339, 342, 345, 348, 351, 353, 356, 359, 362 };
-#endif
 const int evc_tbl_ipred_adi[32][4]=
 {
     /* AVS-2 design == bilinear interpolation + {1,2,1} ref smoothing */
@@ -388,7 +384,8 @@ const s16 init_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG][1] = {
         { 512 }
     }
 };
-#endif
+#endif
+
 const s16 init_skip_flag[2][NUM_SBAC_CTX_SKIP_FLAG][1] = {
     {
         { 0 },
@@ -521,7 +518,8 @@ const s16 init_mvp_idx[2][NUM_MVP_IDX_CTX][1] = {
         { 69 }
     }
 };
-#if AFFINE
+#if AFFINE
+
 const s16 init_affine_mvp_idx[2][NUM_AFFINE_MVP_IDX_CTX][1] = {
     {
         { 0 },
@@ -548,7 +546,8 @@ const s16 init_affine_mvp_idx[2][NUM_AFFINE_MVP_IDX_CTX][1] = {
 #endif
     }
 };
-#endif
+#endif
+
 const s16 init_mvr_idx[2][NUM_MVR_IDX_CTX][1] = {
     {
         { 0 },
@@ -779,7 +778,8 @@ const s16 init_btt_split_type[2][NUM_SBAC_CTX_BTT_SPLIT_TYPE][1] = {
         { 225 }
     }
 };
-#if AFFINE
+#if AFFINE
+
 const s16 init_affine_flag[2][NUM_SBAC_CTX_AFFINE_FLAG][1] = {
     {
         { 0 },
@@ -824,7 +824,8 @@ const s16 init_affine_mvd_flag[2][2][1] = {
         { 645 }
     }
 };
-#endif
+#endif
+
 const s16 init_suco_flag[2][NUM_SBAC_CTX_SUCO_FLAG][1] = {
     {
         { 0 },

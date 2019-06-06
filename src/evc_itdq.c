@@ -881,32 +881,19 @@ void evc_itrans(s16 *coef, int log2_cuw, int log2_cuh, int iqt_flag)
     }
 }
 
-static void evc_dquant(s16 *coef, int log2_w, int log2_h, u16 scale, s32 offset, u8 shift
-#if AQS
-                       , u16 qs_scale
-#endif
-)
+static void evc_dquant(s16 *coef, int log2_w, int log2_h, u16 scale, s32 offset, u8 shift)
 {
     int i;
     s32 lev;
     const int ns_scale = ((log2_w + log2_h) & 1) ? 181 : 1;
     for(i = 0; i < (1 << (log2_w + log2_h)); i++)
     {
-#if AQS // in de-quantization
-        lev = DQUANT(coef[i], (s64)scale * ns_scale * qs_scale, offset << ESM_SHIFT, shift + ESM_SHIFT);
-#else
         lev = DQUANT(coef[i], scale * ns_scale, offset, shift);
-#endif
         coef[i] = (s16)EVC_CLIP(lev, -32768, 32767);
     }
 }
 
-void evc_itdq(s16 *coef, int log2_w, int log2_h, u16 scale
-#if AQS
-              , u16 qs_scale
-#endif
-              , int iqt_flag
-)
+void evc_itdq(s16 *coef, int log2_w, int log2_h, u16 scale, int iqt_flag)
 {
     s32 offset;
     u8 shift;
@@ -919,23 +906,12 @@ void evc_itdq(s16 *coef, int log2_w, int log2_h, u16 scale
     shift += ns_shift;
     offset = (shift == 0) ? 0 : (1 << (shift - 1));
 
-    evc_dquant(coef, log2_w, log2_h, scale, offset, shift
-#if AQS
-               , qs_scale
-#endif
-    );
+    evc_dquant(coef, log2_w, log2_h, scale, offset, shift);
 
     evc_itrans(coef, log2_w, log2_h,iqt_flag);
 }
 
-void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int flag[N_C], int nnz_sub[N_C][MAX_SUB_TB_NUM]
-#if AQS
-
-                        , u16 qs_scale
-
-#endif      
-                        , int iqt_flag
-)
+void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int flag[N_C], int nnz_sub[N_C][MAX_SUB_TB_NUM], int iqt_flag)
 {
     s16 *coef_temp[N_C];
     s16 coef_temp_buf[N_C][MAX_TR_DIM];
@@ -979,13 +955,7 @@ void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u
                         scale = evc_tbl_dq_scale_b[qp[c] % 6] << (qp[c] / 6);
                     }
 
-                    evc_itdq(coef_temp[c], log2_w_sub - !!c, log2_h_sub - !!c, scale
-#if AQS
-                             , qs_scale
-#endif
-                             , iqt_flag
-
-                    );
+                    evc_itdq(coef_temp[c], log2_w_sub - !!c, log2_h_sub - !!c, scale, iqt_flag);
 
                     if(loop_h + loop_w > 2)
                     {

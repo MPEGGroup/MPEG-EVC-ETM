@@ -1614,17 +1614,11 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
     pel    *rec[N_C];
     double  cost_best, cost;
     int     i, s_rec[N_C];
-#if AQS
-    u16 avail_cu_rec;
-#endif
 
     mode_cu_init(ctx, core, x, y, log2_cuw, log2_cuh, cud);
 
     core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, (1 << log2_cuw), (1 << log2_cuh), ctx->w_scu, ctx->h_scu, ctx->map_scu);
-#if AQS //derive qs_scale at encoder
-    avail_cu_rec = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu);
-    ctx->aqs.qs_scale = evc_get_qs_scale_blk(PIC_MODE(ctx)->y + (y * PIC_MODE(ctx)->s_l) + x, PIC_MODE(ctx)->s_l, log2_cuw, log2_cuh, avail_cu_rec, ctx->aqs.contrast_factor, ctx->aqs.luminance_factor, ctx->aqs.es_map_norm);
-#endif
+
     evc_get_ctx_some_flags(core->x_scu, core->y_scu, 1 << log2_cuw, 1 << log2_cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->tgh.tile_group_type, ctx->sps.tool_cm_init);
 
     /* inter *************************************************************/

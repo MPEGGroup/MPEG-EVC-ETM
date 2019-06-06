@@ -2973,20 +2973,6 @@ int evcd_eco_tgh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh)
     tgh->keyframe = evc_bsr_read1(bs);
     tgh->udata_exist = evc_bsr_read1(bs);
 
-#if AQS_SYNTAX
-    tgh->es_map_norm_idx = evc_bsr_read_se(bs);
-    {
-        s16 table_factor_pos[12] = { 256, 267, 279, 291, 305, 318, 333, 347, 362, 379, 395, 412 }; //also 8-bit 
-        s16 table_factor_neg[12] = { 256, 245, 235, 225, 215, 206, 197, 189, 181, 173, 166, 159 };
-
-        //get multiplication factor
-        if (tgh->es_map_norm_idx >= 0)
-            tgh->es_map_norm = table_factor_pos[tgh->es_map_norm_idx];
-        else
-            sps->es_map_norm = table_factor_neg[-sps->es_map_norm_idx];
-    }
-#endif
-
     if(tgh->tile_group_type!= TILE_GROUP_I)
     {
         /* dptr: delta of presentation temporal reference */
