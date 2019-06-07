@@ -1074,9 +1074,6 @@ ERR:
     evc_mfree_fast(ctx->map_ipm);
     evc_mfree_fast(ctx->map_block_size);
     evc_mfree_fast(ctx->map_depth);
-#if AQS 
-    evc_mfree(ctx->aqs.es_map_buf);
-#endif
 #if AFFINE
     evc_mfree_fast(ctx->map_affine);
 #endif
@@ -1108,9 +1105,6 @@ void evce_flush(EVCE_CTX * ctx)
     evc_mfree_fast(ctx->map_ipm);
     evc_mfree_fast(ctx->map_block_size);
     evc_mfree_fast(ctx->map_depth);
-#if AQS 
-    evc_mfree(ctx->aqs.es_map_buf);
-#endif
 #if AFFINE
     evc_mfree_fast(ctx->map_affine);
 #endif
@@ -1920,315 +1914,6 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     return EVC_OK;
 }
 
-#if AQS 
-//initial the look-up table for error sensitivity functions (shall be the same as evcd_init_es_factor)
-void evce_init_es_factor(EVCE_CTX * ctx)
-{
-    int i = 0;
-    double factor;
-
-    //luminance masking with Wei's function
-    //a larger value means lower error sensitivity
-    for(i = 0; i < 60; i++)
-    {
-        factor = (1.0 + (60.0 - i) / 150.0);
-        ctx->aqs.luminance_factor[i] = (u16)(factor * ESM_DEFAULT + 0.5);
-    }
-    for(i = 60; i < 170; i++)
-    {
-        factor = 1.0;
-        ctx->aqs.luminance_factor[i] = (u16)(factor * ESM_DEFAULT + 0.5);
-    }
-    for(i = 170; i <= 256; i++)
-    {
-        factor = (1.0 + (i - 170.0) / 425.0);
-        ctx->aqs.luminance_factor[i] = (u16)(factor * ESM_DEFAULT + 0.5);
-    }
-
-    //contrast masking
-    //a larger value means lower error sensitivity
-    for(i = 0; i < 256; i++)
-    {
-        int k = 5; //threshold of the zero-slope line
-
-        //with pedestal effect
-        if(i < k)
-            factor = 1.0;
-        else
-            factor = (double)(i - k + 10.0) / 10.0;
-
-        ctx->aqs.contrast_factor[i] = (u16)(factor * ESM_DEFAULT + 0.5);
-    }
-}
-
-//fetch a block of pixels (in one plane) from a picture, given the up-left corner of the block (x,y) in the picture and the block size
-//pel* pic,   picture buffer of one plane
-//pel* block, block buffer
-//int pic_w,  image width without padding
-//int pic_h,  image height --
-//int x,      the x coordinate of the upper-left corner of the block
-//int y,      the y --
-//int block_w, width of the block
-//int block_h, height of --
-//int pic_s   stride of the picture
-void evce_fetch_block(pel* pic, pel* block, int pic_w, int pic_h, int x, int y, int block_w, int block_h, int pic_s)
-{
-    int i, j, ind_p, ind_b, k, kk, posx, posy;
-
-    for(j = 0; j < block_h; j++)
-    {
-        posy = y + j;
-        posy = posy >= pic_h ? (pic_h - 1) : posy;
-        k = posy * pic_s;
-        kk = j * block_w;
-        for(i = 0; i < block_w; i++)
-        {
-            posx = x + i;
-            posx = posx >= pic_w ? (pic_w - 1) : posx;
-            ind_p = k + posx;
-            ind_b = kk + i;
-            block[ind_b] = pic[ind_p];
-            assert(block[ind_b] >= 0 && block[ind_b] <= 1023);
-        }
-    }
-}
-
-void evce_assign_block(u16* pic, u16 val, int pic_w, int pic_h, int x, int y, int block_w, int block_h)
-{
-    int i, j, ind_p, k, posx, posy;
-
-    for(j = 0; j < block_h; j++)
-    {
-        posy = y + j;
-        if(posy >= pic_h)
-            break;
-        k = posy * pic_w;
-        for(i = 0; i < block_w; i++)
-        {
-            posx = x + i;
-            if(posx >= pic_w)
-                break;
-            ind_p = k + posx;
-            pic[ind_p] = val;
-        }
-    }
-}
-
-void evce_assign_block_u8(u8* pic, u16 val, int pic_w, int pic_h, int x, int y, int block_w, int block_h)
-{
-    int i, j, ind_p, k, posx, posy;
-
-    for(j = 0; j < block_h; j++)
-    {
-        posy = y + j;
-        if(posy >= pic_h)
-            break;
-        k = posy * pic_w;
-        for(i = 0; i < block_w; i++)
-        {
-            posx = x + i;
-            if(posx >= pic_w)
-                break;
-            ind_p = k + posx;
-            pic[ind_p] = (u8)val;
-        }
-    }
-}
-
-//get the average luminance of a block
-int evce_get_block_avg(pel *buff, int block_w, int block_h)
-{
-    int sum = 0;
-    int i;
-    int block_size = block_w * block_h;
-
-    for(i = 0; i < block_size; i++)
-        sum += (int)buff[i];
-
-    return (sum + (block_size >> 1)) / block_size;
-}
-
-//get simplified "standard deviation" of a block
-int evce_get_block_std_simp(pel *buff, int block_w, int block_h, int average)
-{
-    int sum = 0;
-    int i;
-    int block_size = block_w*block_h;
-
-    for(i = 0; i < block_size; i++)
-        sum += abs(buff[i] - average);
-
-    return (sum + (block_size >> 1)) / block_size;
-}
-
-void evce_es_map_est(EVCE_CTX * ctx)
-{
-    int i, j, k;
-    pel* pic_luma = ctx->pico->pic.y;
-    int pic_w = ctx->pico->pic.w_l;
-    int pic_h = ctx->pico->pic.h_l;
-    int pic_s = ctx->pico->pic.s_l;
-    int fac_lumi = 1;
-    int fac_cont = 1;
-
-    int blk_w = 8;
-    int blk_h = 8;
-    int bg_w = 8;
-    int bg_h = 8;
-
-    pel* bg_pxl = NULL;
-    int bg_size;
-    int i_offset = (bg_w - blk_w) / 2;
-    int j_offset = (bg_h - blk_h) / 2;
-    int a, b;
-    int avg_bg, std_bg;
-    u16 es_val_blk;
-    int scu_w = 1 << MIN_CU_LOG2;
-    int scu_h = 1 << MIN_CU_LOG2;
-
-    //for deriving the geometric mean of es map
-    u16 esm_avg = 0;
-    s16 esm_offset = 0;
-    int Num = ((pic_h + (blk_h - 1)) / blk_h) * ((pic_w + (blk_w - 1)) / blk_w);
-    u16 val = 0;
-    double esm_geo_mean = 0;
-
-    //for aqs normalizer derivation
-    u16 tabel_th_pos[11] = {261, 273, 285, 298, 311, 325, 340, 354, 370, 387, 403};
-    u16 tabel_th_neg[11] = {251, 240, 230, 220, 211, 202, 193, 185, 177, 170, 163};
-    s16 table_factor_pos[12] = {256, 267, 279, 291, 305, 318, 333, 347, 362, 379, 395, 412}; //also 8-bit 
-    s16 table_factor_neg[12] = {256, 245, 235, 225, 215, 206, 197, 189, 181, 173, 166, 159};
-    int clipVal = 11;
-
-    //normalizing the ES value into [0.5, 2.0]
-    int up = ESM_DEFAULT << 1; //MAX_ESM
-    int low = ESM_DEFAULT >> 1; //MIN_ESM
-    int norm_inv;
-
-    //allocate memory
-    bg_size = bg_w * bg_h;
-    bg_pxl = (pel*)malloc(bg_size * sizeof(pel));
-
-    for(j = 0; j < pic_h; j = j + blk_h)
-    {
-        k = j*pic_w;
-        for(i = 0; i < pic_w; i = i + blk_w)
-        {
-
-            //prepare background for a block
-            if(blk_w == bg_w)
-                evce_fetch_block(pic_luma, bg_pxl, pic_w, pic_h, i, j, bg_w, bg_h, pic_s);
-            else if(bg_w > blk_w)
-            {
-                a = i - i_offset;
-                b = j - j_offset;
-                if(a >= 0 && b >= 0)
-                    evce_fetch_block(pic_luma, bg_pxl, pic_w, pic_h, a, b, bg_w, bg_h, pic_s);
-                else //approximation for blk at image margin
-                    evce_fetch_block(pic_luma, bg_pxl, pic_w, pic_h, (i / bg_w)*bg_w, (j / bg_h)*bg_h, bg_w, bg_h, pic_s);
-            }
-
-            //get average luminance and simplified "standard deviation" of the background
-            avg_bg = evce_get_block_avg(bg_pxl, bg_w, bg_h);
-            std_bg = evce_get_block_std_simp(bg_pxl, bg_w, bg_h, avg_bg);
-            avg_bg = (avg_bg + 2) >> 2; //[0, 1023] normalize to [0, 256] space, since internal bit-depth is 10
-            std_bg = (std_bg + 2) >> 2;
-
-            //luminance
-            fac_lumi = ctx->aqs.luminance_factor[avg_bg];
-            //contrast
-            fac_cont = ctx->aqs.contrast_factor[std_bg];
-            //perceptual ESM weight of the blk
-            fac_lumi = fac_lumi * fac_cont;
-            es_val_blk = EVC_CLIP3(low, up, ((1 << (ESM_SHIFT * 3 + 1)) + (fac_lumi >> 1)) / fac_lumi);
-
-            evce_assign_block(ctx->aqs.es_map_buf, es_val_blk, ctx->aqs.es_map_width, ctx->aqs.es_map_height, i >> MIN_CU_LOG2, j >> MIN_CU_LOG2, blk_w >> MIN_CU_LOG2, blk_h >> MIN_CU_LOG2);
-        }
-    }
-
-    // modify ESMap by considering overall image feature for bitrate alignment
-    for(j = 0; j < pic_h; j = j + blk_h)
-    {
-        k = (j >> MIN_CU_LOG2)*ctx->aqs.es_map_stride;
-        for(i = 0; i < pic_w; i = i + blk_w)
-        {
-            esm_geo_mean += log((double)ctx->aqs.es_map_buf[k + (i >> MIN_CU_LOG2)]);
-        }
-    }
-    esm_geo_mean = exp(esm_geo_mean / (double)Num);
-    esm_avg = (u16)esm_geo_mean;
-
-    if(ctx->tgh.tile_group_type == TILE_GROUP_I)
-        esm_avg = (esm_avg * 5 + ESM_DEFAULT * 3) >> 3;
-    else
-        esm_avg = (esm_avg * 3 + ESM_DEFAULT * 5) >> 3;
-    //qp related change
-    if(ctx->tgh.qp >= 30)
-        esm_avg = esm_avg - (ctx->tgh.qp - 30) * 3;
-    else
-        esm_avg = esm_avg - (ctx->tgh.qp - 30) * 4;
-    esm_avg = (u16)EVC_CLIP3((u16)(ESM_DEFAULT / 1.4), (u16)(ESM_DEFAULT*1.4), esm_avg);
-
-    esm_offset = esm_avg - ESM_DEFAULT;
-
-    //***************** quantize, since this value will be transmitted but it does not need high precision ***********
-    // get factor index
-    if(esm_offset >= 0)
-    {
-        ctx->aqs.es_map_norm_idx = clipVal;
-        for(i = 0; i <= clipVal; i++)
-        {
-            if(esm_avg < tabel_th_pos[i])
-            {
-                ctx->aqs.es_map_norm_idx = i;
-                break;
-            }
-        }
-    }
-    else
-    {
-        ctx->aqs.es_map_norm_idx = -clipVal;
-        for(i = 0; i <= clipVal; i++)
-        {
-            if(esm_avg > tabel_th_neg[i])
-            {
-                ctx->aqs.es_map_norm_idx = -i;
-                break;
-            }
-        }
-    }
-
-    //update normalization factor
-    if(ctx->aqs.es_map_norm_idx >= 0)
-    {
-        ctx->aqs.es_map_norm = table_factor_pos[ctx->aqs.es_map_norm_idx];
-        norm_inv = table_factor_neg[ctx->aqs.es_map_norm_idx];
-    }
-    else
-    {
-        ctx->aqs.es_map_norm = table_factor_neg[-ctx->aqs.es_map_norm_idx];
-        norm_inv = table_factor_pos[-ctx->aqs.es_map_norm_idx];
-    }
-    //print es_map_norm
-    if(ctx->ptr == 0)
-        printf("\nEs_geomean %3d\tES_map_norm %3d\n", (u16)esm_geo_mean, ctx->aqs.es_map_norm);
-
-    // modify ESM values
-    for(j = 0; j < pic_h; j = j + scu_h)
-    {
-        k = (j >> MIN_CU_LOG2)*ctx->aqs.es_map_stride;
-        for(i = 0; i < pic_w; i = i + scu_w)
-        {
-            val = ctx->aqs.es_map_buf[k + (i >> MIN_CU_LOG2)];
-            ctx->aqs.es_map_buf[k + (i >> MIN_CU_LOG2)] = EVC_CLIP3(low, up, (val * norm_inv + 128) >> 8);
-        }
-    }
-
-    if(bg_pxl)
-        free(bg_pxl);
-}
-#endif
-
 int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 {
     EVCE_CORE * core;
@@ -2354,13 +2039,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     evce_sbac_reset(&core->s_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], ctx->tgh.tile_group_type, ctx->tgh.qp, ctx->sps.tool_cm_init);
 
     core->bs_temp.pdata[1] = &core->s_temp_run;
-#if AQS
-    ctx->aqs.es_map_norm_idx = 0;
-    ctx->aqs.es_map_norm = ESM_DEFAULT;
-#endif
-#if AQS_ENC 
-    evce_es_map_est(ctx);
-#endif
+
     /* LCU encoding */
 #if TRACE_RDO_EXCLUDE_I
     if(ctx->tile_group_type != TILE_GROUP_I)
@@ -2441,16 +2120,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         evc_assert_rv(ret == EVC_OK, ret);
     }
 #endif
-
-#if AQS_SYNTAX
-    tgh->es_map_norm_idx = 0;
-    tgh->es_map_norm = ESM_DEFAULT;
-#endif
-#if AQS_ENC
-    tgh->es_map_norm_idx = ctx->aqs.es_map_norm_idx;
-    tgh->es_map_norm = ctx->aqs.es_map_norm;
-#endif
-
 
     /* Bit-stream re-writing (START) */
     evc_bsw_init(&ctx->bs, (u8*)bitb->addr, bitb->bsize, NULL);
@@ -2697,15 +2366,6 @@ EVCE evce_create(EVCE_CDSC * cdsc, int * err)
 
     evce_init_err_scale();
     evce_split_tbl_init(ctx);
-
-#if AQS 
-    //initial look-up tables for factors and the es map
-    evce_init_es_factor(ctx);
-    ctx->aqs.es_map_width = ctx->param.w >> MIN_CU_LOG2;
-    ctx->aqs.es_map_height = ctx->param.h >> MIN_CU_LOG2;
-    ctx->aqs.es_map_stride = ctx->aqs.es_map_width;
-    ctx->aqs.es_map_buf = (u16*)malloc(ctx->aqs.es_map_stride * ctx->aqs.es_map_height * sizeof(u16));
-#endif
 
     if(ctx->fn_ready != NULL)
     {

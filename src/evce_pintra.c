@@ -93,12 +93,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
         evce_diff_16b(log2_cuw, log2_cuh, org_luma, pred, s_org, cuw, cuw, pi->coef_tmp[Y_C]);
 
         evce_sub_block_tq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, pi->tile_group_type, core->nnz
-                          , core->nnz_sub, 1, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2]
-#if AQS
-                          , ctx->aqs.qs_scale
-#endif
-                          , RUN_L, ctx->sps.tool_cm_init, ctx->sps.tool_iqt
-        );
+                          , core->nnz_sub, 1, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L, ctx->sps.tool_cm_init, ctx->sps.tool_iqt);
 
         evc_mcpy(coef[Y_C], pi->coef_tmp[Y_C], sizeof(u16) * (cuw * cuh));
 
@@ -107,12 +102,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
         evce_rdo_bit_cnt_cu_intra_luma(ctx, core, ctx->tgh.tile_group_type, core->scup, pi->coef_tmp);
         bit_cnt = evce_get_bit_number(&core->s_temp_run);
 
-        evc_sub_block_itdq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->nnz, core->nnz_sub
-#if AQS
-                           , ctx->aqs.qs_scale
-#endif
-                           , ctx->sps.tool_iqt
-        );
+        evc_sub_block_itdq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->nnz, core->nnz_sub, ctx->sps.tool_iqt);
 
         evc_recon(pi->coef_tmp[Y_C], pred, core->nnz[Y_C], cuw, cuh, cuw, pi->rec[Y_C]);
 #if HTDF
@@ -158,22 +148,12 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
         }
 
         evce_sub_block_tq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, pi->tile_group_type, core->nnz, core->nnz_sub
-                          , 1, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2]
-#if AQS
-                          , ctx->aqs.qs_scale
-#endif
-                          , RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt
-        );
+                          , 1, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt);
 
         evc_mcpy(coef[U_C], pi->coef_tmp[U_C], sizeof(u16) * (cuw * cuh));
         evc_mcpy(coef[V_C], pi->coef_tmp[V_C], sizeof(u16) * (cuw * cuh));
 
-        evc_sub_block_itdq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->nnz, core->nnz_sub
-#if AQS
-                           , ctx->aqs.qs_scale
-#endif
-                           , ctx->sps.tool_iqt
-        );
+        evc_sub_block_itdq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->nnz, core->nnz_sub, ctx->sps.tool_iqt);
 
         if (!ctx->sps.tool_eipd)
         {

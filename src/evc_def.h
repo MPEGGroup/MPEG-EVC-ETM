@@ -49,9 +49,6 @@
 #define DMVR                               1  // Decoder-side Motion Vector Refinement
 #define ADMVP                              1
 
-//pvc
-#define AQS                                0  // perceptual adaptive quantization step for coeff coding
-
 //loop filter
 #define DBF_LONGF                          0
 #define DBF_IMPROVE                        1
@@ -81,12 +78,6 @@
 #define RDO_DBK                            1 // include DBK changes into distortion
 #define HTDF                               1 // enable Hadamard transform domain filter
 #define HTDF_CBF0_INTRA                    1
-#if AQS 
-#define ESM_SHIFT                          8 //bit depth for integerized es_val (in range of [0.5, 2.0]); this value must be 8 in this version
-#define ESM_DEFAULT                       (1<<ESM_SHIFT)
-#define AQS_SYNTAX                         1 //send normalizer index in tile_group header
-#define AQS_ENC                            1 //encoder optimization for deriving normalizer index
-#endif
 
 //fast algorithm
 #define ENC_ECU_DEPTH                      8 // for early CU termination
@@ -1308,11 +1299,6 @@ typedef struct _EVC_TGH
     /* flag to indicate existing user data */
     u8               udata_exist;
 
-#if AQS_SYNTAX
-    u16              es_map_norm;
-    s8               es_map_norm_idx;
-#endif
-
 #if ALF
     u8               alf_on;
     u8               ctb_alf_on;
@@ -1334,31 +1320,6 @@ typedef struct _EVC_TGH
     EVC_RMPNI       rmpni[REFP_NUM];
 
 } EVC_TGH;
-
-#if AQS 
-typedef struct _EVC_AQS EVC_AQS;
-struct _EVC_AQS
-{
-    /* contrast masking factor to model error sensitivity */
-    u16    contrast_factor[256];
-    /* luminance masking factor to model error sensitivity */
-    u16    luminance_factor[257];
-    /* error sensitivity (es) map [enc only], the map is in unit of scu, i.e., (1<<MIN_CU_LOG2)x(1<<MIN_CU_LOG2)*/
-    u16*   es_map_buf;
-    /* width of es map, in unit of scu  [enc only] */
-    u16    es_map_width;
-    /* height of es map, in unit of scu  [enc only] */
-    u16    es_map_height;
-    /* stride of es map, in unit of scu  [enc only] */
-    u16    es_map_stride;
-    /* a frame-level normalizer derived from the geometric mean of es_map, default 256 */
-    u16    es_map_norm;
-    /* a frame-level normalizer index signaled in tile_group header, default 0*/
-    s8     es_map_norm_idx;
-    /* quantization step scale of a cu, estimated from neighboring rec pixels */
-    u16    qs_scale;
-};
-#endif
 
 /*****************************************************************************
  * user data types

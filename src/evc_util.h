@@ -92,9 +92,6 @@ BOOL is_ptr_aligned(void* ptr, int num_bytes);
 
 u16 evc_get_avail_inter(int x_scu, int y_scu, int w_scu, int h_scu, int scup, int cuw, int cuh, u32 *map_scu);
 u16 evc_get_avail_intra(int x_scu, int y_scu, int w_scu, int h_scu, int scup, int log2_cuw, int log2_cuh, u32 *map_scu);
-#if AQS
-u16 evc_get_qs_scale_blk(pel* rec, int stride, int log2_cuw, int log2_cuh, u16 avail_cu_rec, u16* contrast_fac, u16* luminance_fac, u16 es_factor_norm);
-#endif
 EVC_PIC* evc_picbuf_alloc(int w, int h, int pad_l, int pad_c, int *err);
 void evc_picbuf_free(EVC_PIC *pic);
 void evc_picbuf_expand(EVC_PIC *pic, int exp_l, int exp_c);
