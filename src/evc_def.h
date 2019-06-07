@@ -344,7 +344,7 @@ enum SAD_POINT_INDEX
 #endif
 
 #if X86_SSE
-#define EIF_SIMD                           1
+#define EIF_SIMD                           0
 #define EIF_NUM_BYTES_IN_SSE_REG           16
 #define EIF_NUM_PELS_IN_SSE_REG          ( 16 / sizeof(pel) )
 #else
