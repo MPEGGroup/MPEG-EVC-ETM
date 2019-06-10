@@ -284,8 +284,6 @@ enum SAD_POINT_INDEX
 
 /* AFFINE (START) */
 #if AFFINE
-#define AFFINE_MVD_PREDICTION              1 // affine MVD prediction
-
  // AFFINE Constant
 #define VER_NUM                            4
 #define AFFINE_MAX_NUM_LT                  3 ///< max number of motion candidates in top-left corner

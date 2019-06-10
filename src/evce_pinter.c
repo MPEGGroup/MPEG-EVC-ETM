@@ -4135,13 +4135,11 @@ static void check_best_affine_mvp(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_gro
     {
         mvd_tmp[lidx][vertex][MV_X] = mv[vertex][MV_X] - mvp[*mvp_idx][vertex][MV_X];
         mvd_tmp[lidx][vertex][MV_Y] = mv[vertex][MV_Y] - mvp[*mvp_idx][vertex][MV_Y];
-#if AFFINE_MVD_PREDICTION
         if(vertex)
         {
             mvd_tmp[lidx][vertex][MV_X] -= mvd_tmp[lidx][0][MV_X];
             mvd_tmp[lidx][vertex][MV_Y] -= mvd_tmp[lidx][0][MV_Y];
         }
-#endif
     }
     evce_rdo_bit_cnt_affine_mvp(ctx, core, tile_group_type, refi, mvd_tmp, pidx, *mvp_idx, vertex_num);
     bit_cnt = evce_get_bit_number(&core->s_temp_run);
@@ -4164,13 +4162,11 @@ static void check_best_affine_mvp(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_gro
         {
             mvd_tmp[lidx][vertex][MV_X] = mv[vertex][MV_X] - mvp[idx][vertex][MV_X];
             mvd_tmp[lidx][vertex][MV_Y] = mv[vertex][MV_Y] - mvp[idx][vertex][MV_Y];
-#if AFFINE_MVD_PREDICTION
             if (vertex)
             {
                 mvd_tmp[lidx][vertex][MV_X] -= mvd_tmp[lidx][0][MV_X];
                 mvd_tmp[lidx][vertex][MV_Y] -= mvd_tmp[lidx][0][MV_Y];
             }
-#endif
         }
         evce_rdo_bit_cnt_affine_mvp(ctx, core, tile_group_type, refi, mvd_tmp, pidx, idx, vertex_num);
         bit_cnt = evce_get_bit_number(&core->s_temp_run);
@@ -4347,7 +4343,6 @@ static double analyze_affine_bi(EVCE_CTX * ctx, EVCE_CORE * core, EVCE_PINTER * 
             pi->affine_mvd[pidx][REFP_0][vertex][MV_Y] = pi->affine_mv[pidx][REFP_0][vertex][MV_Y] - pi->affine_mvp_scale[REFP_0][pi->refi[pidx][REFP_0]][pi->mvp_idx[pidx][REFP_0]][vertex][MV_Y];
             pi->affine_mvd[pidx][REFP_1][vertex][MV_X] = pi->affine_mv[pidx][REFP_1][vertex][MV_X] - pi->affine_mvp_scale[REFP_1][pi->refi[pidx][REFP_1]][pi->mvp_idx[pidx][REFP_1]][vertex][MV_X];
             pi->affine_mvd[pidx][REFP_1][vertex][MV_Y] = pi->affine_mv[pidx][REFP_1][vertex][MV_Y] - pi->affine_mvp_scale[REFP_1][pi->refi[pidx][REFP_1]][pi->mvp_idx[pidx][REFP_1]][vertex][MV_Y];
-#if AFFINE_MVD_PREDICTION
             if(vertex)
             {
                 pi->affine_mvd[pidx][REFP_0][vertex][MV_X] -= pi->affine_mvd[pidx][REFP_0][0][MV_X];
@@ -4355,7 +4350,6 @@ static double analyze_affine_bi(EVCE_CTX * ctx, EVCE_CORE * core, EVCE_PINTER * 
                 pi->affine_mvd[pidx][REFP_1][vertex][MV_X] -= pi->affine_mvd[pidx][REFP_1][0][MV_X];
                 pi->affine_mvd[pidx][REFP_1][vertex][MV_Y] -= pi->affine_mvd[pidx][REFP_1][0][MV_Y];
             }
-#endif
         }
     }
 
@@ -5407,13 +5401,11 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                         {
                             affine_mvd[vertex][MV_X] = affine_mv[vertex][MV_X] - affine_mvp[mvp_idx[lidx]][vertex][MV_X];
                             affine_mvd[vertex][MV_Y] = affine_mv[vertex][MV_Y] - affine_mvp[mvp_idx[lidx]][vertex][MV_Y];
-#if AFFINE_MVD_PREDICTION
                             if (vertex)
                             {
                                 affine_mvd[vertex][MV_X] -= affine_mvd[0][MV_X];
                                 affine_mvd[vertex][MV_Y] -= affine_mvd[0][MV_Y];
                             }
-#endif
                         }
                         pi->mot_bits[lidx] = best_bits;
                         pi->mvp_idx[pidx][lidx] = mvp_idx[lidx];
@@ -5639,13 +5631,11 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                             {
                                 affine_mvd[vertex][MV_X] = affine_mv[vertex][MV_X] - affine_mvp[mvp_idx[lidx]][vertex][MV_X];
                                 affine_mvd[vertex][MV_Y] = affine_mv[vertex][MV_Y] - affine_mvp[mvp_idx[lidx]][vertex][MV_Y];
-#if AFFINE_MVD_PREDICTION
                                 if (vertex)
                                 {
                                     affine_mvd[vertex][MV_X] -= affine_mvd[0][MV_X];
                                     affine_mvd[vertex][MV_Y] -= affine_mvd[0][MV_Y];
                                 }
-#endif
                             }
                             pi->mot_bits[lidx] = best_bits;
                             pi->mvp_idx[pidx][lidx] = mvp_idx[lidx];
