@@ -497,6 +497,307 @@ static void update_history_buffer_parse_affine(EVCD_CORE *core, int tile_group_t
 #endif
 #endif
 
+void evcd_get_direct_motion(EVCD_CTX * ctx, EVCD_CORE * core)
+{
+    s8            srefi[REFP_NUM][MAX_NUM_MVP];
+    s16           smvp[REFP_NUM][MAX_NUM_MVP][MV_D];
+    u32           cuw, cuh;
+
+    cuw = (1 << core->log2_cuw);
+    cuh = (1 << core->log2_cuh);
+#if ADMVP
+    if (ctx->sps.tool_admvp == 0)
+    {
+        evc_get_motion_skip(ctx->ptr, ctx->tgh.tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, srefi, smvp, ctx->map_scu, core->avail_cu
+            , ctx->map_unrefined_mv
+            , core->history_buffer, ctx->sps.tool_admvp
+        );
+    }
+    else
+    {
+#endif
+        evc_get_motion_skip(ctx->ptr, ctx->tgh.tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, srefi, smvp, ctx->map_scu, core->avail_lr
+#if DMVR_LAG
+            , ctx->map_unrefined_mv
+#endif
+#if ADMVP
+            , core->history_buffer, ctx->sps.tool_admvp
+#endif
+        );
+    }
+
+
+    core->refi[REFP_0] = srefi[REFP_0][core->mvp_idx[REFP_0]];
+    core->refi[REFP_1] = srefi[REFP_1][core->mvp_idx[REFP_1]];
+
+    core->mv[REFP_0][MV_X] = smvp[REFP_0][core->mvp_idx[REFP_0]][MV_X];
+    core->mv[REFP_0][MV_Y] = smvp[REFP_0][core->mvp_idx[REFP_0]][MV_Y];
+
+    if (ctx->tgh.tile_group_type == TILE_GROUP_P)
+    {
+        core->refi[REFP_1] = REFI_INVALID;
+        core->mv[REFP_1][MV_X] = 0;
+        core->mv[REFP_1][MV_Y] = 0;
+    }
+    else
+    {
+        core->mv[REFP_1][MV_X] = smvp[REFP_1][core->mvp_idx[REFP_1]][MV_X];
+        core->mv[REFP_1][MV_Y] = smvp[REFP_1][core->mvp_idx[REFP_1]][MV_Y];
+    }
+}
+
+void evcd_get_skip_motion(EVCD_CTX * ctx, EVCD_CORE * core)
+{
+    int REF_SET[3][MAX_NUM_ACTIVE_REF_FRAME] = { {0,0,}, };
+    int cuw, cuh, inter_dir = 0;
+    s8            srefi[REFP_NUM][MAX_NUM_MVP];
+    s16           smvp[REFP_NUM][MAX_NUM_MVP][MV_D];
+
+    cuw = (1 << core->log2_cuw);
+    cuh = (1 << core->log2_cuh);
+
+    if (ctx->sps.tool_mmvd && core->mmvd_flag)
+    {
+        evcd_get_mmvd_motion(ctx, core);
+    }
+    else
+    {
+        if (ctx->sps.tool_amis == 0)
+        {
+            evc_get_motion(core->scup, REFP_0, ctx->map_refi, ctx->map_mv, ctx->refp, cuw, cuh, ctx->w_scu, core->avail_cu, srefi[REFP_0], smvp[REFP_0]);
+
+            core->refi[REFP_0] = srefi[REFP_0][core->mvp_idx[REFP_0]];
+   
+            core->mv[REFP_0][MV_X] = smvp[REFP_0][core->mvp_idx[REFP_0]][MV_X];
+            core->mv[REFP_0][MV_Y] = smvp[REFP_0][core->mvp_idx[REFP_0]][MV_Y];
+
+            if (ctx->tgh.tile_group_type == TILE_GROUP_P)
+            {
+                core->refi[REFP_1] = REFI_INVALID;
+                core->mv[REFP_1][MV_X] = 0;
+                core->mv[REFP_1][MV_Y] = 0;
+            }
+            else
+            {
+                evc_get_motion(core->scup, REFP_1, ctx->map_refi, ctx->map_mv, ctx->refp, cuw, cuh, ctx->w_scu, core->avail_cu, srefi[REFP_1], smvp[REFP_1]);
+
+                core->refi[REFP_1] = srefi[REFP_1][core->mvp_idx[REFP_1]];
+                core->mv[REFP_1][MV_X] = smvp[REFP_1][core->mvp_idx[REFP_1]][MV_X];
+                core->mv[REFP_1][MV_Y] = smvp[REFP_1][core->mvp_idx[REFP_1]][MV_Y];
+            }
+        }
+        else
+        {
+            evcd_get_direct_motion(ctx, core);
+        }
+    }
+}
+
+void evcd_get_inter_motion(EVCD_CTX * ctx, EVCD_CORE * core)
+{
+    int cuw, cuh;
+    s16           mvp[MAX_NUM_MVP][MV_D];
+    s8            refi[MAX_NUM_MVP];
+
+    cuw = (1 << core->log2_cuw);
+    cuh = (1 << core->log2_cuh);
+
+    int inter_dir_idx;
+    for (inter_dir_idx = 0; inter_dir_idx < 2; inter_dir_idx++)
+    {
+        /* 0: forward, 1: backward */
+        if (((core->inter_dir + 1) >> inter_dir_idx) & 1)
+        {
+            if (ctx->sps.tool_amis == 0)
+            {
+                evc_get_motion(core->scup, inter_dir_idx, ctx->map_refi, ctx->map_mv, ctx->refp, cuw, cuh, ctx->w_scu, core->avail_cu, refi, mvp);
+                core->mv[inter_dir_idx][MV_X] = mvp[core->mvp_idx[inter_dir_idx]][MV_X] + core->mvd[inter_dir_idx][MV_X];
+                core->mv[inter_dir_idx][MV_Y] = mvp[core->mvp_idx[inter_dir_idx]][MV_Y] + core->mvd[inter_dir_idx][MV_Y];
+            }
+            else
+            {
+                if (core->bi_idx == BI_FL0 || core->bi_idx == BI_FL1)
+                {
+                    core->refi[inter_dir_idx] = evc_get_first_refi(core->scup, inter_dir_idx, ctx->map_refi, ctx->map_mv, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu, core->mvr_idx, core->avail_lr
+#if DMVR_LAG
+                        , ctx->map_unrefined_mv
+#endif
+#if ADMVP
+                        , core->history_buffer
+                        , ctx->sps.tool_admvp
+#endif
+                    );
+                }   
+
+                evc_get_motion_from_mvr(core->mvr_idx, ctx->ptr, core->scup, inter_dir_idx, core->refi[inter_dir_idx], ctx->dpm.num_refp[inter_dir_idx], ctx->map_mv, ctx->map_refi, ctx->refp, \
+                    cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, mvp, refi, ctx->map_scu, core->avail_lr
+#if DMVR_LAG
+                    , ctx->map_unrefined_mv
+#endif
+#if ADMVP
+                    , core->history_buffer
+                    , ctx->sps.tool_admvp
+#endif
+                );
+                core->mvp_idx[inter_dir_idx] = 0;
+
+                if (core->bi_idx == BI_FL0 + inter_dir_idx)
+                {
+                    core->mvd[inter_dir_idx][MV_X] = core->mvd[inter_dir_idx][MV_Y] = 0;
+                }
+
+
+                core->mv[inter_dir_idx][MV_X] = mvp[core->mvp_idx[inter_dir_idx]][MV_X] + (core->mvd[inter_dir_idx][MV_X] << core->mvr_idx);
+                core->mv[inter_dir_idx][MV_Y] = mvp[core->mvp_idx[inter_dir_idx]][MV_Y] + (core->mvd[inter_dir_idx][MV_Y] << core->mvr_idx);
+            }
+        }
+        else
+        {
+            core->refi[inter_dir_idx] = REFI_INVALID;
+            core->mv[inter_dir_idx][MV_X] = 0;
+            core->mv[inter_dir_idx][MV_Y] = 0;
+        }
+    }
+}
+
+#if AFFINE
+void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
+{
+    int          cuw, cuh, k;
+    s16          affine_mvp[MAX_NUM_MVP][VER_NUM][MV_D];
+    s8           refi[MAX_NUM_MVP];
+    
+    cuw = (1 << core->log2_cuw);
+    cuh = (1 << core->log2_cuh);
+
+    if (core->pred_mode == MODE_SKIP || core->pred_mode == MODE_DIR) // affine merge motion vector
+    {
+        s16 aff_mrg_mvp[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D];
+        s8  aff_refi[AFF_MAX_CAND][REFP_NUM];
+        int vertex_num[AFF_MAX_CAND];
+        int vertex, lidx;
+        int mrg_idx = core->mvp_idx[0];
+
+        evc_get_affine_merge_candidate(ctx->ptr, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp, cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, aff_refi, aff_mrg_mvp, vertex_num, ctx->map_scu, ctx->map_affine
+#if DMVR_LAG
+            , ctx->map_unrefined_mv
+#endif
+        );
+
+        core->affine_flag = vertex_num[core->mvp_idx[0]] - 1;
+
+        for (lidx = 0; lidx < REFP_NUM; lidx++)
+        {
+            if (REFI_IS_VALID(aff_refi[mrg_idx][lidx]))
+            {
+                core->refi[lidx] = aff_refi[mrg_idx][lidx];
+                for (vertex = 0; vertex < vertex_num[mrg_idx]; vertex++)
+                {
+                    core->affine_mv[lidx][vertex][MV_X] = aff_mrg_mvp[mrg_idx][lidx][vertex][MV_X];
+                    core->affine_mv[lidx][vertex][MV_Y] = aff_mrg_mvp[mrg_idx][lidx][vertex][MV_Y];
+                }
+            }
+            else
+            {
+                core->refi[lidx] = REFI_INVALID;
+                core->mv[lidx][MV_X] = 0;
+                core->mv[lidx][MV_Y] = 0;
+            }
+        }
+    }
+    else if (core->pred_mode == MODE_INTER) // affine inter motion vector
+    {
+        int vertex;
+        int vertex_num = core->affine_flag + 1;
+        int inter_dir_idx;
+        for (inter_dir_idx = 0; inter_dir_idx < 2; inter_dir_idx++)
+        {
+            /* 0: forward, 1: backward */
+            if (((core->inter_dir + 1) >> inter_dir_idx) & 1)
+            {
+                evc_get_affine_motion_scaling(ctx->ptr, core->scup, inter_dir_idx, core->refi[inter_dir_idx],
+                    ctx->dpm.num_refp[inter_dir_idx], ctx->map_mv, ctx->map_refi, ctx->refp, \
+                    cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, affine_mvp, refi
+                    , ctx->map_scu, ctx->map_affine, vertex_num, core->avail_lr
+#if DMVR_LAG
+                    , ctx->map_unrefined_mv
+#endif
+                );
+                for (vertex = 0; vertex < vertex_num; vertex++)
+                {
+                    core->affine_mv[inter_dir_idx][vertex][MV_X] = affine_mvp[core->mvp_idx[inter_dir_idx]][vertex][MV_X] + core->affine_mvd[inter_dir_idx][vertex][MV_X];
+                    core->affine_mv[inter_dir_idx][vertex][MV_Y] = affine_mvp[core->mvp_idx[inter_dir_idx]][vertex][MV_Y] + core->affine_mvd[inter_dir_idx][vertex][MV_Y];
+#if AFFINE_MVD_PREDICTION
+                    if (vertex == 0)
+                    {
+                        affine_mvp[core->mvp_idx[inter_dir_idx]][1][MV_X] += core->affine_mvd[inter_dir_idx][vertex][MV_X];
+                        affine_mvp[core->mvp_idx[inter_dir_idx]][1][MV_Y] += core->affine_mvd[inter_dir_idx][vertex][MV_Y];
+                        affine_mvp[core->mvp_idx[inter_dir_idx]][2][MV_X] += core->affine_mvd[inter_dir_idx][vertex][MV_X];
+                        affine_mvp[core->mvp_idx[inter_dir_idx]][2][MV_Y] += core->affine_mvd[inter_dir_idx][vertex][MV_Y];
+                    }
+#endif
+                }
+            }
+            else
+            {
+                core->refi[inter_dir_idx] = REFI_INVALID;
+                for (vertex = 0; vertex < vertex_num; vertex++)
+                {
+                    core->affine_mv[inter_dir_idx][vertex][MV_X] = 0;
+                    core->affine_mv[inter_dir_idx][vertex][MV_Y] = 0;
+                }
+
+                core->refi[inter_dir_idx] = REFI_INVALID;
+                core->mv[inter_dir_idx][MV_X] = 0;
+                core->mv[inter_dir_idx][MV_Y] = 0;
+            }
+        }
+    }
+
+#if AFFINE_UPDATE
+    core->refi_sp[REFP_0] = REFI_INVALID;
+    core->refi_sp[REFP_1] = REFI_INVALID;
+
+    core->mv_sp[REFP_0][MV_X] = 0;
+    core->mv_sp[REFP_0][MV_Y] = 0;
+    core->mv_sp[REFP_1][MV_X] = 0;
+    core->mv_sp[REFP_1][MV_Y] = 0;
+
+
+    int neb_addr[MAX_NUM_POSSIBLE_SCAND], valid_flag[MAX_NUM_POSSIBLE_SCAND];
+
+    for (k = 0; k < MAX_NUM_POSSIBLE_SCAND; k++)
+    {
+        valid_flag[k] = 0;
+    }
+#if ADMVP
+    evc_check_motion_availability2(core->scup, cuw, cuh, ctx->w_scu, ctx->h_scu, neb_addr, valid_flag, ctx->map_scu, core->avail_lr, 1);
+#else
+    evc_check_motion_availability(core->scup, cuw, cuh, ctx->w_scu, ctx->h_scu, neb_addr, valid_flag, ctx->map_scu, core->avail_lr, 1);
+#endif
+
+    for (k = 0; k < 5; k++)
+    {
+        if (valid_flag[k])
+        {
+            core->refi_sp[REFP_0] = REFI_IS_VALID(ctx->map_refi[neb_addr[k]][REFP_0]) ? ctx->map_refi[neb_addr[k]][REFP_0] : REFI_INVALID;
+            core->mv_sp[REFP_0][MV_X] = ctx->map_mv[neb_addr[k]][REFP_0][MV_X];
+            core->mv_sp[REFP_0][MV_Y] = ctx->map_mv[neb_addr[k]][REFP_0][MV_Y];
+
+            if (ctx->tgh.tile_group_type == TILE_GROUP_B)
+            {
+                core->refi_sp[REFP_1] = REFI_IS_VALID(ctx->map_refi[neb_addr[k]][REFP_1]) ? ctx->map_refi[neb_addr[k]][REFP_1] : REFI_INVALID;
+                core->mv_sp[REFP_1][MV_X] = ctx->map_mv[neb_addr[k]][REFP_1][MV_X];
+                core->mv_sp[REFP_1][MV_Y] = ctx->map_mv[neb_addr[k]][REFP_1][MV_Y];
+            }
+
+            break;
+        }
+    }
+#endif
+}
+#endif
+
 static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log2_cuw, int log2_cuh)
 {
     int ret, cuw, cuh;
@@ -521,6 +822,9 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
     EVC_TRACE_STR("height ");
     EVC_TRACE_INT(cuh);
     EVC_TRACE_STR("\n");
+
+    core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu);
+    evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->tgh.tile_group_type, ctx->sps.tool_cm_init);
 
     /* parse CU info */
     ret = evcd_eco_cu(ctx, core);
@@ -560,6 +864,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
         EVC_TRACE_STR("\n");
     }
 #endif
+
     /* inverse transform and dequantization */
     if(core->pred_mode != MODE_SKIP)
     {
@@ -575,9 +880,29 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
     /* prediction */
     if(core->pred_mode != MODE_INTRA)
     {
+        core->avail_cu = evc_get_avail_inter(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, cuw, cuh, ctx->map_scu);
+#if DMVR
+        if (ctx->sps.tool_dmvr)
+        {
+            core->DMVRenable = 0;
+
+            if (core->pred_mode == MODE_SKIP && !core->mmvd_flag)
+                core->DMVRenable = 1;
+
+            if (core->inter_dir == PRED_DIR)
+                core->DMVRenable = 1;
+#if AFFINE
+            if (core->affine_flag)
+                core->DMVRenable = 0;
+#endif
+        }
+#endif
+
 #if AFFINE
         if(core->affine_flag)
         {
+            evcd_get_affine_motion(ctx, core);
+
             evc_affine_mc(x, y, ctx->w, ctx->h, cuw, cuh, core->refi, core->affine_mv, ctx->refp, core->pred, core->affine_flag + 1
 #if EIF
                           , core->eif_tmp_buffer
@@ -587,6 +912,52 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
         else
         {
 #endif
+            if (core->pred_mode == MODE_SKIP)
+            {
+                evcd_get_skip_motion(ctx, core);
+            }
+            else
+            {
+#if ADMVP
+                if ((ctx->tgh.tile_group_type == TILE_GROUP_P) || (ctx->sps.tool_amis == 1 && !check_bi_applicability_dec(ctx->tgh.tile_group_type, cuw, cuh)))
+#else
+                if (ctx->tgh.tile_group_type == TILE_GROUP_P)
+#endif
+                {
+                }
+                else
+                {
+                    if (core->inter_dir == PRED_DIR)
+                    {
+                        if (ctx->sps.tool_amis == 0)
+                        {
+#if ADMVP
+                            s8 refidx;
+#endif
+                            evc_get_mv_dir(ctx->refp[0], ctx->ptr, core->scup + ((1 << (core->log2_cuw - MIN_CU_LOG2)) - 1) + ((1 << (core->log2_cuh - MIN_CU_LOG2)) - 1) * ctx->w_scu, core->scup, ctx->w_scu, ctx->h_scu, core->mv
+#if ADMVP
+                                , &refidx
+#endif
+                                , ctx->sps.tool_admvp
+                            );
+                            core->refi[REFP_0] = 0;
+                            core->refi[REFP_1] = 0;
+                        }
+                        else if (core->mvr_idx == 0)
+                        {
+                            evcd_get_direct_motion(ctx, core);
+                        }
+                    }
+                    else if (core->inter_dir == PRED_DIR_MMVD)
+                    {
+                        evcd_get_mmvd_motion(ctx, core);
+                    }
+                    else
+                    {
+                        evcd_get_inter_motion(ctx, core);
+                    }
+                }
+            }
 #if DMVR
             evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, core->refi, core->mv, ctx->refp, core->pred, ctx->ptr, core->dmvr_template, core->dmvr_ref_pred_interpolated
                    , core->dmvr_half_pred_interpolated
@@ -620,12 +991,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
         );
 #endif
 #if AFFINE && ADMVP && AFFINE_UPDATE 
-        if(core->pred_mode != MODE_INTRA)
-        {
-            update_history_buffer_parse_affine(core, ctx->tgh.tile_group_type
-            );
-        }
-
+        update_history_buffer_parse_affine(core, ctx->tgh.tile_group_type);
 #endif        // #if AFFINE && ADMVP && AFFINE_UPDATE 
 #if DMVR && !HISTORY_LCU_COPY_BUG_FIX
         evcd_set_dec_info(ctx, core
@@ -638,6 +1004,8 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
     }
     else
     {
+        core->avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, core->log2_cuw, core->log2_cuh, ctx->map_scu);
+
         get_nbr_yuv(x, y, cuw, cuh, core->avail_cu, ctx->pic, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu);
 
         if (ctx->sps.tool_eipd)

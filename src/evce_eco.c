@@ -989,6 +989,11 @@ void evce_eco_mmvd_flag(EVC_BSW * bs, int flag)
     sbac = GET_SBAC_ENC(bs);
 
     evce_sbac_encode_bin(flag, sbac, sbac->ctx.mmvd_flag, bs); /* mmvd_flag */
+
+    EVC_TRACE_COUNTER;
+    EVC_TRACE_STR("mmvd_flag ");
+    EVC_TRACE_INT(flag);
+    EVC_TRACE_STR("\n");
 }
 
 #if AFFINE
@@ -1005,6 +1010,10 @@ void evce_eco_affine_flag(EVC_BSW * bs, int flag
 #else
     evce_sbac_encode_bin(flag, sbac, sbac->ctx.affine_flag, bs);
 #endif
+    EVC_TRACE_COUNTER;
+    EVC_TRACE_STR("inter affine flag ");
+    EVC_TRACE_INT(flag);
+    EVC_TRACE_STR("\n");
 }
 
 void evce_eco_affine_mode(EVC_BSW * bs, int flag)
@@ -1012,6 +1021,11 @@ void evce_eco_affine_mode(EVC_BSW * bs, int flag)
     EVCE_SBAC *sbac;
     sbac = GET_SBAC_ENC(bs);
     evce_sbac_encode_bin(flag, sbac, sbac->ctx.affine_mode, bs);
+
+    EVC_TRACE_COUNTER;
+    EVC_TRACE_STR("merge affine flag ");
+    EVC_TRACE_INT(flag);
+    EVC_TRACE_STR("\n");
 }
 
 int evce_eco_affine_mrg_idx(EVC_BSW * bs, s16 affine_mrg)
@@ -1037,6 +1051,13 @@ static void evce_eco_skip_flag(EVC_BSW * bs, int flag, int ctx)
     EVCE_SBAC *sbac;
     sbac = GET_SBAC_ENC(bs);
     evce_sbac_encode_bin(flag, sbac, sbac->ctx.skip_flag + ctx, bs);
+
+    EVC_TRACE_COUNTER;
+    EVC_TRACE_STR("skip flag ");
+    EVC_TRACE_INT(flag);
+    EVC_TRACE_STR("ctx ");
+    EVC_TRACE_INT(ctx);
+    EVC_TRACE_STR("\n");
 }
 
 void evce_eco_inter_t_direct(EVC_BSW *bs, int t_direct_flag)
@@ -1044,6 +1065,11 @@ void evce_eco_inter_t_direct(EVC_BSW *bs, int t_direct_flag)
     EVCE_SBAC *sbac;
     sbac = GET_SBAC_ENC(bs);
     evce_sbac_encode_bin(t_direct_flag, sbac, sbac->ctx.inter_dir, bs);
+
+    EVC_TRACE_COUNTER;
+    EVC_TRACE_STR("inter dir ");
+    EVC_TRACE_INT(t_direct_flag ? PRED_DIR : 0);
+    EVC_TRACE_STR("\n");
 }
 
 void evce_eco_tile_group_end_flag(EVC_BSW * bs, int flag)
@@ -1443,6 +1469,11 @@ int evce_eco_mmvd_info(EVC_BSW *bs, int mvp_idx, int type)
     int dev0 = 0;
     int var;
 
+    EVC_TRACE_COUNTER;
+    EVC_TRACE_STR("mmvd_idx ");
+    EVC_TRACE_INT(mvp_idx);
+    EVC_TRACE_STR("\n");
+
     if(type == 1)
     {
         if(mvp_idx >= (MMVD_MAX_REFINE_NUM*MMVD_BASE_MV_NUM))
@@ -1498,7 +1529,7 @@ int evce_eco_mmvd_info(EVC_BSW *bs, int mvp_idx, int type)
         evce_sbac_encode_bin(1, sbac, sbac->ctx.mmvd_direction_idx, bs);
         evce_sbac_encode_bin(1, sbac, sbac->ctx.mmvd_direction_idx + 1, bs);
     }
-
+       
     return EVC_OK;
 }
 
@@ -2125,23 +2156,17 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
     if(tile_group_type != TILE_GROUP_I && (ctx->sps.tool_amis == 0 || !(core->log2_cuw <= MIN_CU_LOG2 && core->log2_cuh <= MIN_CU_LOG2)))
     {
         evce_eco_skip_flag(bs, core->skip_flag, ctx->ctx_flags[CNID_SKIP_FLAG]);
-
-        EVC_TRACE_COUNTER;
-        EVC_TRACE_STR("skip flag ");
-        EVC_TRACE_INT(core->skip_flag);
-        EVC_TRACE_STR("ctx ");
-        EVC_TRACE_INT(ctx->ctx_flags[CNID_SKIP_FLAG]);
-        EVC_TRACE_STR("\n");
-
+               
         if(core->skip_flag)
         {
+            EVC_TRACE_COUNTER;
+            EVC_TRACE_STR("pred mode ");
+            EVC_TRACE_INT(MODE_SKIP);
+            EVC_TRACE_STR("\n")
+
             if(ctx->sps.tool_mmvd)
             {
                 evce_eco_mmvd_flag(bs, core->mmvd_flag);
-                EVC_TRACE_COUNTER;
-                EVC_TRACE_STR("mmvd_flag ");
-                EVC_TRACE_INT(core->mmvd_flag);
-                EVC_TRACE_STR("\n");
             }
 
             if(core->mmvd_flag)
@@ -2166,11 +2191,6 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                     EVC_TRACE_COUNTER;
                     EVC_TRACE_STR("merge affine idx ");
                     EVC_TRACE_INT(cu_data->mvp_idx[cup][REFP_0]);
-                    EVC_TRACE_STR("\n");
-
-                    EVC_TRACE_COUNTER;
-                    EVC_TRACE_STR("merge affine flag ");
-                    EVC_TRACE_INT(core->affine_flag);
                     EVC_TRACE_STR("\n");
                 }
                 else
@@ -2221,23 +2241,6 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                         {
                             evce_eco_inter_t_direct(bs, cu_data->pred_mode[cup] == MODE_DIR || cu_data->pred_mode[cup] == MODE_DIR_MMVD);
                         }
-
-#if ENC_DEC_TRACE
-                        if(cu_data->pred_mode[cup] == MODE_DIR)
-                        {
-                            EVC_TRACE_COUNTER;
-                            EVC_TRACE_STR("inter dir ");
-                            EVC_TRACE_INT(PRED_DIR);
-                            EVC_TRACE_STR("\n");
-                        }
-                        else if(cu_data->pred_mode[cup] == MODE_DIR_MMVD)
-                        {
-                            EVC_TRACE_COUNTER;
-                            EVC_TRACE_STR("inter dir ");
-                            EVC_TRACE_INT(PRED_DIR_MMVD);
-                            EVC_TRACE_STR("\n");
-                        }
-#endif
                     }
                     else
                     {
@@ -2245,15 +2248,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                         {
                             evce_eco_inter_t_direct(bs, cu_data->pred_mode[cup] == MODE_DIR);
                         }
-#if ENC_DEC_TRACE 
-                        if(cu_data->pred_mode[cup] == MODE_DIR)
-                        {
-                            EVC_TRACE_COUNTER;
-                            EVC_TRACE_STR("inter dir ");
-                            EVC_TRACE_INT(PRED_DIR);
-                            EVC_TRACE_STR("\n");
-                        }
-#endif
+
                     }
 
                     if(ctx->sps.tool_mmvd)
@@ -2283,10 +2278,6 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                             EVC_TRACE_COUNTER;
                             EVC_TRACE_STR("merge affine idx ");
                             EVC_TRACE_INT(cu_data->mvp_idx[cup][REFP_0]);
-                            EVC_TRACE_STR("\n");
-                            EVC_TRACE_COUNTER;
-                            EVC_TRACE_STR("merge affine flag ");
-                            EVC_TRACE_INT(core->affine_flag);
                             EVC_TRACE_STR("\n");
                         }
                     }
@@ -2325,18 +2316,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                     if(core->affine_flag)
                     {
                         evce_eco_affine_mode(bs, core->affine_flag - 1); /* inter affine_mode */
-                    }
 
-                    if(ctx->sps.tool_affine)
-                    {
-                        EVC_TRACE_COUNTER;
-                        EVC_TRACE_STR("inter affine flag ");
-                        EVC_TRACE_INT(core->affine_flag);
-                        EVC_TRACE_STR("\n");
-                    }
-
-                    if(core->affine_flag)
-                    {
                         int vertex;
                         int vertex_num = core->affine_flag + 1;
                         int aff_scup[VER_NUM] = { 0 };
