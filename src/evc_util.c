@@ -3402,44 +3402,6 @@ int evc_affine_check_valid_and_scale(int ptr, EVC_REFP (*refp)[REFP_NUM], int cu
     }
 
     {
-#if !AFFINE_MERGE_PRUNE
-        if(*mrg_idx > 0)
-        {
-            int cnt = *mrg_idx;
-            int valid = 1;
-            for(i = 0; i < cnt; i++)
-            {
-                if(num[i] == num[cnt] && num[i] == 2)
-                {
-                    if(refi[i][REFP_0] == refi[cnt][REFP_0] && refi[i][REFP_1] == refi[cnt][REFP_1]
-                       && SAME_MV(mvp[i][REFP_0][0], mvp[cnt][REFP_0][0]) && SAME_MV(mvp[i][REFP_0][1], mvp[cnt][REFP_0][1])
-                       && SAME_MV(mvp[i][REFP_1][0], mvp[cnt][REFP_1][0]) && SAME_MV(mvp[i][REFP_1][1], mvp[cnt][REFP_1][1])
-                       )
-                    {
-                        valid = 0;
-                        break;
-                    }
-                }
-
-                if(num[i] == num[cnt] && num[i] == 3)
-                {
-                    if(refi[i][REFP_0] == refi[cnt][REFP_0] && refi[i][REFP_1] == refi[cnt][REFP_1]
-                       && SAME_MV(mvp[i][REFP_0][0], mvp[cnt][REFP_0][0]) && SAME_MV(mvp[i][REFP_0][1], mvp[cnt][REFP_0][1]) && SAME_MV(mvp[i][REFP_0][2], mvp[cnt][REFP_0][2])
-                       && SAME_MV(mvp[i][REFP_1][0], mvp[cnt][REFP_1][0]) && SAME_MV(mvp[i][REFP_1][1], mvp[cnt][REFP_1][1]) && SAME_MV(mvp[i][REFP_1][2], mvp[cnt][REFP_1][2])
-                       )
-                    {
-                        valid = 0;
-                        break;
-                    }
-                }
-            }
-            if(valid)
-            {
-                (*mrg_idx)++;
-            }
-        }
-        else
-#endif
         {
             (*mrg_idx)++;
         }
