@@ -3074,7 +3074,7 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
             {
                 if(sps_cm_init_flag == 1)
                 {
-                    ctx[i] = min(ctx[i], CTX_NEV_SKIP_FLAG - 1);
+                    ctx[i] = min(ctx[i], NUM_SBAC_CTX_SKIP_FLAG - 1);
                 }
                 else
                 {
@@ -3085,7 +3085,7 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
             {
                 if(sps_cm_init_flag == 1)
                 {
-                    ctx[i] = min(ctx[i], CTX_NEV_PRED_MODE - 1);
+                    ctx[i] = min(ctx[i], NUM_PRED_MODE_CTX - 1);
                 }
                 else
                 {
@@ -3097,7 +3097,7 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
             {
                 if(sps_cm_init_flag == 1)
                 {
-                    ctx[i] = min(ctx[i], CTX_NEV_AFFINE_FLAG - 1);
+                    ctx[i] = min(ctx[i], NUM_SBAC_CTX_AFFINE_FLAG - 1);
                 }
                 else
                 {

@@ -79,11 +79,7 @@ int evce_eco_intra_dir_c(EVC_BSW *bs, u8 ipm, u8 ipm_l);
 int evce_eco_mvr_idx(EVC_BSW *bs, u8 mvr_idx);
 int evce_eco_bi_idx(EVC_BSW * bs, u8 bi_idx);
 #if AFFINE
-void evce_eco_affine_flag(EVC_BSW * bs, int flag
-#if CTX_NEV_AFFINE_FLAG
-                          , int ctx
-#endif
-);
+void evce_eco_affine_flag(EVC_BSW * bs, int flag, int ctx);
 void evce_eco_affine_mode(EVC_BSW * bs, int flag);
 int evce_eco_affine_mrg_idx(EVC_BSW *bs, s16 affine_mrg_idx);
 void evce_eco_affine_mvd_flag(EVC_BSW *bs, int flag, int refi);

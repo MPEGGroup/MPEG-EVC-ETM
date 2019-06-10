@@ -313,11 +313,7 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_
 #if AFFINE // affine direct in rdo
             if(core->cuw >= 8 && core->cuh >= 8 && ctx->sps.tool_affine && ((pidx == PRED_DIR) || (pidx == AFF_DIR)))
             {
-#if CTX_NEV_AFFINE_FLAG
                 evce_sbac_encode_bin(core->affine_flag != 0, &core->s_temp_run, core->s_temp_run.ctx.affine_flag + ctx->ctx_flags[CNID_AFFN_FLAG], &core->bs_temp); /* direct affine_flag */
-#else
-                evce_sbac_encode_bin(core->affine_flag != 0, &core->s_temp_run, core->s_temp_run.ctx.affine_flag, &core->bs_temp); /* direct affine_flag */
-#endif
                 if(core->affine_flag)
                     evce_eco_affine_mrg_idx(&core->bs_temp, mvp_idx[REFP_0]);
             }
@@ -345,12 +341,11 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_
             evce_eco_inter_dir(&core->bs_temp, refi);
 
 #if AFFINE // affine inter in rdo
-            if(core->cuw >= 16 && core->cuh >= 16 && ctx->sps.tool_affine && mvr_idx == 0)
-#if CTX_NEV_AFFINE_FLAG
-               evce_sbac_encode_bin(core->affine_flag != 0, &core->s_temp_run, core->s_temp_run.ctx.affine_flag + ctx->ctx_flags[CNID_AFFN_FLAG], &core->bs_temp); /* inter affine_flag */
-#else
-               evce_sbac_encode_bin(core->affine_flag != 0, &core->s_temp_run, core->s_temp_run.ctx.affine_flag, &core->bs_temp); /* inter affine_flag */
-#endif
+            if (core->cuw >= 16 && core->cuh >= 16 && ctx->sps.tool_affine && mvr_idx == 0)
+            {
+                evce_sbac_encode_bin(core->affine_flag != 0, &core->s_temp_run, core->s_temp_run.ctx.affine_flag + ctx->ctx_flags[CNID_AFFN_FLAG], &core->bs_temp); /* inter affine_flag */
+            }
+
             if(core->affine_flag)
             {
                 evce_sbac_encode_bin(core->affine_flag - 1, &core->s_temp_run, core->s_temp_run.ctx.affine_mode, &core->bs_temp); /* inter affine_mode */
@@ -501,11 +496,7 @@ void evce_rdo_bit_cnt_cu_skip(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_t
 #if AFFINE // affine skip mode in rdo
             if(core->cuw >= 8 && core->cuh >= 8 && ctx->sps.tool_affine)
             {
-#if CTX_NEV_AFFINE_FLAG
                 evce_sbac_encode_bin(core->affine_flag != 0, &core->s_temp_run, core->s_temp_run.ctx.affine_flag + ctx->ctx_flags[CNID_AFFN_FLAG], &core->bs_temp); /* skip affine_flag */
-#else
-                evce_sbac_encode_bin(core->affine_flag != 0, &core->s_temp_run, core->s_temp_run.ctx.affine_flag, &core->bs_temp); /* skip affine_flag */
-#endif
             }
             if(core->affine_flag)
             {
