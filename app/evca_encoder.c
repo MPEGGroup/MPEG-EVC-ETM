@@ -101,7 +101,7 @@ static int  op_disable_hgop       = 0;
 static int  op_in_bit_depth       = 8;
 static int  op_skip_frames        = 0;
 static int  op_out_bit_depth      = 0; /* same as input bit depth */
-static int  op_profile            = 2;
+static int  op_profile            = 1;
 static int  op_level              = 0;
 static int  op_btt                = 1;
 static int  op_suco               = 1;
@@ -861,6 +861,35 @@ static int print_enc_conf(EVCE_CDSC * cdsc)
 }
 #endif
 
+int check_conf(EVCE_CDSC* cdsc)
+{
+    int success = 1;
+    if(cdsc->profile == 0)
+    {
+        if (cdsc->tool_amvr    == 1) { v0print("AMVR cannot be on in base profile\n"); success = 0; }
+        if (cdsc->tool_mmvd    == 1) { v0print("MMVD cannot be on in base profile\n"); success = 0; }
+        if (cdsc->tool_affine  == 1) { v0print("Affine cannot be on in base profile\n"); success = 0; }
+        if (cdsc->tool_dmvr    == 1) { v0print("DMVR cannot be on in base profile\n"); success = 0; }
+        if (cdsc->tool_admvp   == 1) { v0print("ADMVP cannot be on in base profile\n"); success = 0; }
+        if (cdsc->tool_alf     == 1) { v0print("ALF cannot be on in base profile\n"); success = 0; }
+        if (cdsc->tool_htdf    == 1) { v0print("HTDF cannot be on in base profile\n"); success = 0; }
+        if (cdsc->btt          == 1) { v0print("BTT cannot be on in base profile\n"); success = 0; }
+        if (cdsc->suco         == 1) { v0print("SUCO cannot be on in base profile\n"); success = 0; }
+        if (cdsc->tool_amis    == 1) { v0print("AMIS cannot be on in base profile\n"); success = 0; }
+        if (cdsc->tool_eipd    == 1) { v0print("EIPD cannot be on in base profile\n"); success = 0; }
+        if (cdsc->tool_iqt     == 1) { v0print("IQT cannot be on in base profile\n"); success = 0; }
+        if (cdsc->tool_cm_init == 1) { v0print("CM_INIT cannot be on in base profile\n"); success = 0; }
+    }
+    else
+    {
+        if (cdsc->tool_amis    == 0) { v0print("AMIS cannot be off in main profile\n"); success = 0; }
+        if (cdsc->tool_eipd    == 0) { v0print("EIPD cannot be off in main profile\n"); success = 0; }
+        if (cdsc->tool_iqt     == 0) { v0print("IQT cannot be off in main profile\n"); success = 0; }
+        if (cdsc->tool_cm_init == 0) { v0print("CM_INIT cannot be off in main profile\n"); success = 0; }
+    }
+    return success;
+}
+
 static int set_extra_config(EVCE id)
 {
     int  ret, size, value;
@@ -1547,6 +1576,12 @@ int main(int argc, const char **argv)
 #if MULT_CONFIG
     print_enc_conf(&cdsc);
 #endif
+
+    if (!check_conf(&cdsc))
+    {
+        v0print("invalid configuration\n");
+        return -1;
+    }
 
     /* create encoder */
     id = evce_create(&cdsc, NULL);
