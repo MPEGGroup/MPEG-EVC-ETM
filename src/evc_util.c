@@ -3147,11 +3147,6 @@ int evc_affine_check_valid_and_scale(int ptr, EVC_REFP (*refp)[REFP_NUM], int cu
 {
     int lidx, i;
     int valid_model[2] = {0, 0};
-#if !AFFINE_MERGE_SAME_REF_IDX
-    int ratio_scale = 0;
-    int cur_refi, neb_refi;
-    int cur_ref_ptr;
-#endif
     s16(*out_mv)[VER_NUM][MV_D];
     s8 *out_refi;
 
@@ -3176,25 +3171,10 @@ int evc_affine_check_valid_and_scale(int ptr, EVC_REFP (*refp)[REFP_NUM], int cu
 
         for(lidx = 0; lidx < REFP_NUM; lidx++)
         {
-            if(REFI_IS_VALID(ver_refi[lidx][idx0]) && REFI_IS_VALID(ver_refi[lidx][idx1])
-#if AFFINE_MERGE_SAME_REF_IDX
-              && ver_refi[lidx][idx0] == ver_refi[lidx][idx1]
-#endif
-              )
+            if(REFI_IS_VALID(ver_refi[lidx][idx0]) && REFI_IS_VALID(ver_refi[lidx][idx1]) && ver_refi[lidx][idx0] == ver_refi[lidx][idx1])
             {
-#if AFFINE_MERGE_SAME_REF_IDX
                 valid_model[lidx] = 1;
                 out_refi[lidx] = ver_refi[lidx][idx0];
-#else
-                // check same mv
-                if(!SAME_MVF(ver_refi[lidx][idx0], ver_mv[lidx][idx0][MV_X], ver_mv[lidx][idx0][MV_Y], ver_refi[lidx][idx1], ver_mv[lidx][idx1][MV_X], ver_mv[lidx][idx1][MV_Y]))
-                {
-                    valid_model[lidx] = 1;
-
-                    // set the target reference index
-                    out_refi[lidx] = EVC_MIN(ver_refi[lidx][idx0], ver_refi[lidx][idx1]);
-                }
-#endif
             }
         }
     }
@@ -3209,41 +3189,10 @@ int evc_affine_check_valid_and_scale(int ptr, EVC_REFP (*refp)[REFP_NUM], int cu
 
         for(lidx = 0; lidx < REFP_NUM; lidx++)
         {
-            if(REFI_IS_VALID(ver_refi[lidx][idx0]) && REFI_IS_VALID(ver_refi[lidx][idx1]) && REFI_IS_VALID(ver_refi[lidx][idx2])
-#if AFFINE_MERGE_SAME_REF_IDX
-               && ver_refi[lidx][idx0] == ver_refi[lidx][idx1] && ver_refi[lidx][idx0] == ver_refi[lidx][idx2]
-#endif
-               )
+            if(REFI_IS_VALID(ver_refi[lidx][idx0]) && REFI_IS_VALID(ver_refi[lidx][idx1]) && REFI_IS_VALID(ver_refi[lidx][idx2]) && ver_refi[lidx][idx0] == ver_refi[lidx][idx1] && ver_refi[lidx][idx0] == ver_refi[lidx][idx2])
             {
-#if AFFINE_MERGE_SAME_REF_IDX
                 valid_model[lidx] = 1;
                 out_refi[lidx] = ver_refi[lidx][idx0];
-#else
-                // check same mv
-                if(!SAME_MVF(ver_refi[lidx][idx0], ver_mv[lidx][idx0][MV_X], ver_mv[lidx][idx0][MV_Y], ver_refi[lidx][idx1], ver_mv[lidx][idx1][MV_X], ver_mv[lidx][idx1][MV_Y]) /* v0 vs. v1 */
-                   || !SAME_MVF(ver_refi[lidx][idx0], ver_mv[lidx][idx0][MV_X], ver_mv[lidx][idx0][MV_Y], ver_refi[lidx][idx2], ver_mv[lidx][idx2][MV_X], ver_mv[lidx][idx2][MV_Y]) /* v0 vs. v2 */
-                   )
-                {
-                    int tmp[MAX_NUM_ACTIVE_REF_FRAME] = {0};
-                    int max_refi = 0;
-
-                    valid_model[lidx] = 1;
-
-                    // set the target reference index
-                    for(i = 0; i < ver_num; i++)
-                    {
-                        tmp[ver_refi[lidx][ver_idx[i]]]++;
-                    }
-                    for(i = 1; i < MAX_NUM_ACTIVE_REF_FRAME; i++)
-                    {
-                        if(tmp[i] > tmp[max_refi])
-                        {
-                            max_refi = i;
-                        }
-                    }
-                    out_refi[lidx] = max_refi;
-                }
-#endif
             }
         }
     }
@@ -3259,43 +3208,12 @@ int evc_affine_check_valid_and_scale(int ptr, EVC_REFP (*refp)[REFP_NUM], int cu
         for(lidx = 0; lidx < REFP_NUM; lidx++)
         {
             if(REFI_IS_VALID(ver_refi[lidx][idx0]) && REFI_IS_VALID(ver_refi[lidx][idx1]) && REFI_IS_VALID(ver_refi[lidx][idx2]) && REFI_IS_VALID(ver_refi[lidx][idx3])
-#if AFFINE_MERGE_SAME_REF_IDX
               && ver_refi[lidx][idx0] == ver_refi[lidx][idx1]
               && ver_refi[lidx][idx0] == ver_refi[lidx][idx2]
-              && ver_refi[lidx][idx0] == ver_refi[lidx][idx3]
-#endif
-              )
+              && ver_refi[lidx][idx0] == ver_refi[lidx][idx3] )
             {
-#if AFFINE_MERGE_SAME_REF_IDX
                 valid_model[lidx] = 1;
                 out_refi[lidx] = ver_refi[lidx][idx0];
-#else
-                // check same mv
-                if(!SAME_MVF(ver_refi[lidx][idx0], ver_mv[lidx][idx0][MV_X], ver_mv[lidx][idx0][MV_Y], ver_refi[lidx][idx1], ver_mv[lidx][idx1][MV_X], ver_mv[lidx][idx1][MV_Y]) /* v0 vs. v1 */
-                   || !SAME_MVF(ver_refi[lidx][idx0], ver_mv[lidx][idx0][MV_X], ver_mv[lidx][idx0][MV_Y], ver_refi[lidx][idx2], ver_mv[lidx][idx2][MV_X], ver_mv[lidx][idx2][MV_Y]) /* v0 vs. v2 */
-                   || !SAME_MVF(ver_refi[lidx][idx0], ver_mv[lidx][idx0][MV_X], ver_mv[lidx][idx0][MV_Y], ver_refi[lidx][idx3], ver_mv[lidx][idx3][MV_X], ver_mv[lidx][idx3][MV_Y]) /* v0 vs. v3 */
-                   )
-                {
-                    int tmp[MAX_NUM_ACTIVE_REF_FRAME] = {0};
-                    int max_refi = 0;
-
-                    valid_model[lidx] = 1;
-
-                    // set the target reference index
-                    for(i = 0; i < ver_num; i++)
-                    {
-                        tmp[ver_refi[lidx][ver_idx[i]]]++;
-                    }
-                    for(i = 1; i < MAX_NUM_ACTIVE_REF_FRAME; i++)
-                    {
-                        if(tmp[i] > tmp[max_refi])
-                        {
-                            max_refi = i;
-                        }
-                    }
-                    out_refi[lidx] = max_refi;
-                }
-#endif
             }
         }
     }
@@ -3315,30 +3233,11 @@ int evc_affine_check_valid_and_scale(int ptr, EVC_REFP (*refp)[REFP_NUM], int cu
     {
         if(valid_model[lidx])
         {
-#if AFFINE_MERGE_SAME_REF_IDX
             for (i = 0; i < ver_num; i++)
             {
                 out_mv[lidx][ver_idx[i]][MV_X] = ver_mv[lidx][ver_idx[i]][MV_X];
                 out_mv[lidx][ver_idx[i]][MV_Y] = ver_mv[lidx][ver_idx[i]][MV_Y];
             }
-#else
-            cur_refi = out_refi[lidx];
-            for(i = 0; i < ver_num; i++)
-            {
-                neb_refi = ver_refi[lidx][ver_idx[i]];
-                if(neb_refi != cur_refi)
-                {
-                    cur_ref_ptr = refp[cur_refi][lidx].ptr;
-                    ratio_scale = (int)((ptr - cur_ref_ptr) << MVP_SCALING_PRECISION) / (int)(ptr - (int)refp[neb_refi][lidx].ptr);
-                    scaling_mv(ratio_scale, ver_mv[lidx][ver_idx[i]], out_mv[lidx][ver_idx[i]]);
-                }
-                else
-                {
-                    out_mv[lidx][ver_idx[i]][MV_X] = ver_mv[lidx][ver_idx[i]][MV_X];
-                    out_mv[lidx][ver_idx[i]][MV_Y] = ver_mv[lidx][ver_idx[i]][MV_Y];
-                }
-            }
-#endif
         }
         else
         {
