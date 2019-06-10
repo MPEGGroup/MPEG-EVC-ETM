@@ -284,7 +284,6 @@ enum SAD_POINT_INDEX
 
 /* AFFINE (START) */
 #if AFFINE
-#define AFFINE_AMVP_LIST                   1 // simplification of affine AMVP list construction
 #define AFFINE_MERGE_PRUNE                 1 // simplification of affine merge candidate pruning
 #define AFFINE_MERGE_SAME_REF_IDX          1 // alwasy check same refIdx for constructed affine candidate, no scaling
 #define AFFINE_MVD_PREDICTION              1 // affine MVD prediction
