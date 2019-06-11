@@ -225,7 +225,11 @@ extern void init_AlfFilterShape(void* _th, int size);
 struct AlfTileGroupParam
 {
   BOOL                         isCtbAlfOn;
+#if ALF_CTU_MAP_DYNAMIC
+  u8                           *alfCtuEnableFlag;
+#else
   u8                           alfCtuEnableFlag[3][512];                                // put into tile_group header
+#endif
   BOOL                         enabledFlag[MAX_NUM_COMPONENT];                          // alf_tile_group_enable_flag, alf_chroma_idc
   AlfFilterType                lumaFilterType;                                          // filter_type_flag
   BOOL                         chromaCtbPresentFlag;                                    // alf_chroma_ctb_present_flag
@@ -247,6 +251,12 @@ struct AlfTileGroupParam
 
   BOOL resetALFBufferFlag;
   BOOL store2ALFBufferFlag;
+#if APS_ALF_SEQ_FIX
+  // encoder side variables
+  u32 m_filterPoc;  // store POC value for which filter was produced
+  u32 m_minIdrPoc;  // Minimal of 2 IDR POC available for current coded chunk  (to identify availability of this filter for temp prediction)
+  u32 m_maxIdrPoc;  // Max of 2 IDR POC available for current coded chunk  (to identify availability of this filter for temp prediction)
+#endif
 };
 #endif
 
@@ -273,6 +283,17 @@ extern ChromaFormat    m_chromaFormat;
 
 extern BOOL m_store2ALFBufferFlag;
 extern BOOL m_resetALFBufferFlag;
+#if APS_ALF_SEQ_FIX
+extern u32 m_firstIdrPoc;
+extern u32 m_lastIdrPoc;
+extern u32 m_currentPoc;
+extern u32  m_currentTempLayer;
+// variables to handle buffer reset for IDR
+extern int m_alf_present_idr;
+extern int m_alf_idx_idr;
+extern u32 m_i_period;
+#endif
+
 
 extern int m_lastRasPoc;
 extern BOOL m_pendingRasInit;
@@ -287,9 +308,10 @@ extern const int m_classToFilterMapping[MAX_NUM_ALF_CLASSES][ALF_FIXED_FILTER_NU
 extern short m_coeffFinal[MAX_NUM_ALF_CLASSES * MAX_NUM_ALF_LUMA_COEFF];
 extern int   m_inputBitDepth[MAX_NUM_CHANNEL_TYPE];
 
-extern unsigned m_acAlfLineBufferCurrentSize;
+extern u8 m_acAlfLineBufferCurrentSize;
 
 #if ALF_PARAMETER_APS
+extern u8 m_alfIndxInScanOrder[APS_MAX_NUM];
 extern AlfTileGroupParam m_acAlfLineBuffer[APS_MAX_NUM];
 #else
 extern AlfTileGroupParam m_acAlfLineBuffer[ALF_TEMPORAL_WITH_LINE_BUFFER];
@@ -306,6 +328,15 @@ extern void storeALFParamLine(AlfTileGroupParam* pAlfParam, unsigned tLayer);
 #if ALF_PARAMETER_APS
 void store_alf_paramline_from_aps(AlfTileGroupParam* pAlfParam, u8 idx);
 void load_alf_paramline_from_aps_buffer(AlfTileGroupParam* pAlfParam, u8 idx);
+#if APS_ALF_SEQ_FIX
+extern u8 m_nextFreeAlfIdxInBuffer;
+extern void resetAlfParam(AlfTileGroupParam* dst);
+extern void resetIdrIndexListBufferAPS();
+extern int  getProtectIdxFromList(int idx);
+extern void storeEncALFParamLineAPS(AlfTileGroupParam* pAlfParam, unsigned tLayer);
+extern void storeDecALFParamLine(AlfTileGroupParam* pAlfParam, unsigned tLayer);
+extern void loadALFParamLineAPS(AlfTileGroupParam* pAlfParam, unsigned idx, unsigned tLayer);
+#endif
 #endif
 
 extern void resetTemporalAlfBufferLine();

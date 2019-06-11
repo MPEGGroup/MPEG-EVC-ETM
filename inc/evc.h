@@ -73,7 +73,7 @@ extern "C"
 #endif
 
 #define ROOT_CBF_RDO_BIT_FIX            1
-#define ALF_PARAMETER_APS               0
+#define ALF_PARAMETER_APS               1
 /*****************************************************************************
  * return values and error code
  *****************************************************************************/
