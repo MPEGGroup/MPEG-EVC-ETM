@@ -727,7 +727,6 @@ void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
                 {
                     core->affine_mv[inter_dir_idx][vertex][MV_X] = affine_mvp[core->mvp_idx[inter_dir_idx]][vertex][MV_X] + core->affine_mvd[inter_dir_idx][vertex][MV_X];
                     core->affine_mv[inter_dir_idx][vertex][MV_Y] = affine_mvp[core->mvp_idx[inter_dir_idx]][vertex][MV_Y] + core->affine_mvd[inter_dir_idx][vertex][MV_Y];
-#if AFFINE_MVD_PREDICTION
                     if (vertex == 0)
                     {
                         affine_mvp[core->mvp_idx[inter_dir_idx]][1][MV_X] += core->affine_mvd[inter_dir_idx][vertex][MV_X];
@@ -735,7 +734,6 @@ void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
                         affine_mvp[core->mvp_idx[inter_dir_idx]][2][MV_X] += core->affine_mvd[inter_dir_idx][vertex][MV_X];
                         affine_mvp[core->mvp_idx[inter_dir_idx]][2][MV_Y] += core->affine_mvd[inter_dir_idx][vertex][MV_Y];
                     }
-#endif
                 }
             }
             else

@@ -881,11 +881,7 @@ void evce_sbac_reset(EVCE_SBAC *sbac, u8 tile_group_type, u8 tile_group_qp, int 
         evc_eco_sbac_ctx_initialize(sbac_ctx->ctb_alf_flag, (s16*)init_ctb_alf_flag, NUM_SBAC_CTX_ALF_FLAG, tile_group_type, tile_group_qp);
 #endif
 #if AFFINE
-#if CTX_NEV_AFFINE_FLAG
         evc_eco_sbac_ctx_initialize(sbac_ctx->affine_flag, (s16*)init_affine_flag, NUM_SBAC_CTX_AFFINE_FLAG, tile_group_type, tile_group_qp);
-#else
-        sbac_ctx->affine_flag[0] = PROB_INIT;
-#endif
         evc_eco_sbac_ctx_initialize(sbac_ctx->affine_mode, (s16*)init_affine_mode, NUM_SBAC_CTX_AFFINE_MODE, tile_group_type, tile_group_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->affine_mrg, (s16*)init_affine_mrg, AFF_MAX_CAND, tile_group_type, tile_group_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->affine_mvd_flag, (s16*)init_affine_mvd_flag, NUM_SBAC_CTX_AFFINE_MVD_FLAG, tile_group_type, tile_group_qp);
@@ -919,17 +915,25 @@ void evce_sbac_reset(EVCE_SBAC *sbac, u8 tile_group_type, u8 tile_group_qp, int 
         for(i = 0; i < NUM_SBAC_CTX_BTT_SPLIT_TYPE; i++) sbac_ctx->btt_split_type[i] = PROB_INIT;
         for(i = 0; i < NUM_SBAC_CTX_SUCO_FLAG; i++) sbac_ctx->suco_flag[i] = PROB_INIT;
 #if AFFINE
-#if CTX_NEV_AFFINE_FLAG
-        for(i = 0; i < NUM_SBAC_CTX_AFFINE_FLAG; i++) sbac_ctx->affine_flag[i] = PROB_INIT;
-#else
-        sbac_ctx->affine_flag[0] = PROB_INIT;
-#endif
+        for (i = 0; i < NUM_SBAC_CTX_AFFINE_FLAG; i++)
+        {
+            sbac_ctx->affine_flag[i] = PROB_INIT;
+        }
+
         sbac_ctx->affine_mode[0] = PROB_INIT;
-        for(i = 0; i < AFF_MAX_CAND; i++) sbac_ctx->affine_mrg[i] = PROB_INIT;
+
+        for (i = 0; i < AFF_MAX_CAND; i++) 
+        {
+            sbac_ctx->affine_mrg[i] = PROB_INIT;
+        }
+
         sbac_ctx->affine_mvd_flag[0] = PROB_INIT;
         sbac_ctx->affine_mvd_flag[1] = PROB_INIT;
 #endif
-        for(i = 0; i < NUM_SBAC_CTX_SKIP_FLAG; i++) sbac_ctx->skip_flag[i] = PROB_INIT;
+        for (i = 0; i < NUM_SBAC_CTX_SKIP_FLAG; i++)
+        {
+            sbac_ctx->skip_flag[i] = PROB_INIT;
+        }
     }
 }
 
@@ -997,19 +1001,11 @@ void evce_eco_mmvd_flag(EVC_BSW * bs, int flag)
 }
 
 #if AFFINE
-void evce_eco_affine_flag(EVC_BSW * bs, int flag
-#if CTX_NEV_AFFINE_FLAG
-                          , int ctx
-#endif
-)
+void evce_eco_affine_flag(EVC_BSW * bs, int flag, int ctx)
 {
     EVCE_SBAC *sbac;
     sbac = GET_SBAC_ENC(bs);
-#if CTX_NEV_AFFINE_FLAG
     evce_sbac_encode_bin(flag, sbac, sbac->ctx.affine_flag + ctx, bs);
-#else
-    evce_sbac_encode_bin(flag, sbac, sbac->ctx.affine_flag, bs);
-#endif
     EVC_TRACE_COUNTER;
     EVC_TRACE_STR("inter affine flag ");
     EVC_TRACE_INT(flag);
@@ -2178,11 +2174,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 #if AFFINE
                 if(cuw >= 8 && cuh >= 8 && ctx->sps.tool_affine)
                 {
-                    evce_eco_affine_flag(bs, core->affine_flag != 0
-#if CTX_NEV_AFFINE_FLAG
-                                          , ctx->ctx_flags[CNID_AFFN_FLAG]
-#endif
-                                          ); /* skip affine_flag */
+                    evce_eco_affine_flag(bs, core->affine_flag != 0, ctx->ctx_flags[CNID_AFFN_FLAG]); /* skip affine_flag */
                 }
 
                 if(core->affine_flag)
@@ -2267,11 +2259,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 #if AFFINE
                     if(cu_data->pred_mode[cup] == MODE_DIR && cuw >= 8 && cuh >= 8 && ctx->sps.tool_affine)
                     {
-                        evce_eco_affine_flag(bs, core->affine_flag != 0
-#if CTX_NEV_AFFINE_FLAG
-                                             , ctx->ctx_flags[CNID_AFFN_FLAG]
-#endif
-                        ); /* direct affine_flag */
+                        evce_eco_affine_flag(bs, core->affine_flag != 0, ctx->ctx_flags[CNID_AFFN_FLAG]); /* direct affine_flag */
                         if(core->affine_flag)
                         {
                             evce_eco_affine_mrg_idx(bs, cu_data->mvp_idx[cup][REFP_0]);
@@ -2306,11 +2294,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 #if AFFINE // affine inter mode
                     if(cuw >= 16 && cuh >= 16 && cu_data->mvr_idx[cup] == 0 && ctx->sps.tool_affine)
                     {
-                        evce_eco_affine_flag(bs, core->affine_flag != 0
-#if CTX_NEV_AFFINE_FLAG
-                                             , ctx->ctx_flags[CNID_AFFN_FLAG]
-#endif
-                        ); /* inter affine_flag */
+                        evce_eco_affine_flag(bs, core->affine_flag != 0, ctx->ctx_flags[CNID_AFFN_FLAG]); /* inter affine_flag */
                     }
 
                     if(core->affine_flag)
