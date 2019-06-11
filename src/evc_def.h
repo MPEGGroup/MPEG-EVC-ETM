@@ -346,8 +346,14 @@ enum SAD_POINT_INDEX
 
 #if ALF_PARAMETER_APS
 #define  APS_MAX_NUM                       32
+#define  APS_MAX_NUM_IN_BITS               5 
+
+#define  APS_ALF_CTU_FLAG                  1
+#define  APS_ALF_SEQ_FIX                   1
 #endif
+
 #define FIX_SEQUENTIAL_CODING              1
+#define ALF_CTU_MAP_DYNAMIC                0
 
 // The structure below must be aligned to identical structure in evc_alf.c!
 typedef struct _evc_AlfFilterShape
@@ -1209,7 +1215,11 @@ typedef struct _EVC_RMPNI
 typedef struct _evc_AlfTileGroupParam
 {
     BOOL isCtbAlfOn;
+#if ALF_CTU_MAP_DYNAMIC
+    u8 *alfCtuEnableFlag;
+#else
     u8 alfCtuEnableFlag[3][512];
+#endif
 
     BOOL                         enabledFlag[3];                                          // alf_tile_group_enable_flag, alf_chroma_idc
     int                          lumaFilterType;                                          // filter_type_flag

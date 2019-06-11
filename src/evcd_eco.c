@@ -1901,7 +1901,7 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps)
 #if ALF_PARAMETER_APS
 int evcd_eco_aps(EVC_BSR * bs, EVC_APS * aps)
 {
-    aps->aps_id = evc_bsr_read(bs, 5); // parse APS ID
+    aps->aps_id = evc_bsr_read(bs, APS_MAX_NUM_IN_BITS); // parse APS ID
     evcd_eco_alf_aps_param(bs, aps); // parse ALF filter parameter (except ALF map)
 
     u8 aps_extension_flag = evc_bsr_read1(bs);
@@ -2090,7 +2090,9 @@ int evcd_eco_alf_aps_param(EVC_BSR * bs, EVC_APS * aps)
     alfTileGroupParam->prevIdx = 0;
     alfTileGroupParam->tLayer = 0;
     alfTileGroupParam->isCtbAlfOn = 0;
+#if !ALF_CTU_MAP_DYNAMIC
     memset(alfTileGroupParam->alfCtuEnableFlag, 1, 512 * 3 * sizeof(u8));
+#endif
     memset(alfTileGroupParam->enabledFlag, 0, 3 * sizeof(BOOL));
     alfTileGroupParam->lumaFilterType = ALF_FILTER_5;
     memset(alfTileGroupParam->lumaCoeff, 0, sizeof(short) * 325);
@@ -2191,7 +2193,9 @@ int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_TGH * tgh)
     alfTileGroupParam->prevIdx = 0;
     alfTileGroupParam->tLayer = 0;
     alfTileGroupParam->isCtbAlfOn = 0;
+#if !ALF_CTU_MAP_DYNAMIC
     memset(alfTileGroupParam->alfCtuEnableFlag, 1, 512 * 3 * sizeof(u8));
+#endif
     memset(alfTileGroupParam->enabledFlag, 0, 3 * sizeof(BOOL));
     alfTileGroupParam->lumaFilterType = ALF_FILTER_5;
     memset(alfTileGroupParam->lumaCoeff, 0, sizeof(short) * 325);
@@ -2207,12 +2211,17 @@ int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_TGH * tgh)
 
     //decode map
     alfTileGroupParam->isCtbAlfOn = evc_bsr_read1(bs);
+#if !APS_ALF_CTU_FLAG
     if (alfTileGroupParam->isCtbAlfOn)
     {
         for (int i = 0; i < tgh->num_ctb; i++)
+#if ALF_CTU_MAP_DYNAMIC
+            *(alfTileGroupParam->alfCtuEnableFlag + i) = evc_bsr_read1(bs);
+#else
             alfTileGroupParam->alfCtuEnableFlag[0][i] = evc_bsr_read1(bs);
+#endif
     }
-
+#endif
     return EVC_OK;
 }
 #else
@@ -2228,7 +2237,9 @@ int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_TGH * tgh)
     alfTileGroupParam->prevIdx = 0;
     alfTileGroupParam->tLayer = 0;
     alfTileGroupParam->isCtbAlfOn = 0;
+#if !ALF_CTU_MAP_DYNAMIC
     memset(alfTileGroupParam->alfCtuEnableFlag, 1 , 512*3*sizeof(u8));
+#endif
     memset(alfTileGroupParam->enabledFlag, 0, 3*sizeof(BOOL));
     alfTileGroupParam->lumaFilterType = ALF_FILTER_5;
     memset(alfTileGroupParam->lumaCoeff, 0, sizeof(short)*325);
@@ -2330,7 +2341,11 @@ int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_TGH * tgh)
     if(alfTileGroupParam->isCtbAlfOn)
     {
         for(int i = 0; i < tgh->num_ctb; i++)
+#if ALF_CTU_MAP_DYNAMIC
+            *(alfTileGroupParam->alfCtuEnableFlag + i) = evc_bsr_read1(bs);
+#else
             alfTileGroupParam->alfCtuEnableFlag[0][i] = evc_bsr_read1(bs);
+#endif
     }
     return EVC_OK;
 }

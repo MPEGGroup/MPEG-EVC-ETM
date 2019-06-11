@@ -40,6 +40,10 @@
 #if ALF
 #include "enc_alf_wrapper.h"
 #endif
+#if APS_ALF_SEQ_FIX
+int last_intra_poc = INT_MAX;
+BOOL aps_counter_reset = FALSE;
+#endif
 /* Convert EVCE into EVCE_CTX */
 #define EVCE_ID_TO_CTX_R(id, ctx) \
     evc_assert_r((id)); \
@@ -1235,21 +1239,17 @@ int evce_deblock_h263(EVCE_CTX * ctx, EVC_PIC * pic)
 }
 #if ALF
 #if ALF_PARAMETER_APS
-int evce_alf(EVCE_CTX * ctx, EVC_PIC * pic, EVC_TGH* tgh, EVC_APS* aps)
-#else
-int evce_alf(EVCE_CTX * ctx, EVC_PIC * pic, EVC_TGH* tgh)
-#endif
+int evce_alf_aps(EVCE_CTX * ctx, EVC_PIC * pic, EVC_TGH* tgh, EVC_APS* aps)
 {
     EncAdaptiveLoopFilter* p = (EncAdaptiveLoopFilter*)(ctx->enc_alf);
 
     double lambdas[3];
-    for(int i = 0; i < 3; i++)
+    for (int i = 0; i < 3; i++)
         lambdas[i] = (ctx->lambda[i]) * ALF_LAMBDA_SCALE; //this is for appr match of different lambda sets
 
 
     set_resetALFBufferFlag(p, tgh->tile_group_type == TILE_GROUP_I ? 1 : 0);
-#if ALF_PARAMETER_APS
-    call_enc_ALFProcess(p, lambdas, ctx, pic, &(tgh->alf_tgh_param));
+    alf_aps_enc_opt_process(p, lambdas, ctx, pic, &(tgh->alf_tgh_param));
 
     aps->alf_aps_param = tgh->alf_tgh_param;
     if (tgh->alf_tgh_param.resetALFBufferFlag) // reset aps index counter (buffer) if ALF flag reset is present
@@ -1257,28 +1257,41 @@ int evce_alf(EVCE_CTX * ctx, EVC_PIC * pic, EVC_TGH* tgh)
         ctx->aps_counter = -1;
     }
     tgh->alf_on = tgh->alf_tgh_param.enabledFlag[0];
+#if APS_ALF_CTU_FLAG
+    if (tgh->alf_on == 0)
+    {
+        tgh->alf_tgh_param.isCtbAlfOn = 0;
+    }
+#endif
     if (tgh->alf_on)
     {
         if (aps->alf_aps_param.temporalAlfFlag)
         {
             aps->aps_id = tgh->alf_tgh_param.prevIdx;
             tgh->aps_signaled = aps->aps_id;
-            //printf("TempId: %d, [%d %d %d] ", aps->aps_id, tgh->alf_tgh_param.enabledFlag[0], tgh->alf_tgh_param.enabledFlag[1], tgh->alf_tgh_param.enabledFlag[2]);
         }
         else
         {
-            ctx->aps_counter++;
-            ctx->aps_counter = ctx->aps_counter % 6; // encoder side limmitation, current encoder support ALF buffer size of 6.
-            aps->aps_id = ctx->aps_counter;
+            aps->aps_id = alf_aps_get_current_alf_idx();
             tgh->aps_signaled = aps->aps_id;
-            //printf("NewID: %d, [%d %d %d]  ", aps->aps_id, tgh->alf_tgh_param.enabledFlag[0], tgh->alf_tgh_param.enabledFlag[1], tgh->alf_tgh_param.enabledFlag[2]);
         }
     }
-#else
-    call_enc_ALFProcess(p, lambdas, ctx, pic, &(tgh->alf_tgh_param) );
-#endif
     return EVC_OK;
 }
+#else
+int evce_alf(EVCE_CTX * ctx, EVC_PIC * pic, EVC_TGH* tgh)
+{
+    EncAdaptiveLoopFilter* p = (EncAdaptiveLoopFilter*)(ctx->enc_alf);
+
+    double lambdas[3];
+    for(int i = 0; i < 3; i++)
+        lambdas[i] = (ctx->lambda[i]) * ALF_LAMBDA_SCALE; //this is for appr match of different lambda sets
+
+    set_resetALFBufferFlag(p, tgh->tile_group_type == TILE_GROUP_I ? 1 : 0);
+    call_enc_ALFProcess(p, lambdas, ctx, pic, &(tgh->alf_tgh_param) );
+    return EVC_OK;
+}
+#endif
 #endif
 
 int evce_picbuf_get_inbuf(EVCE_CTX * ctx, EVC_IMGB ** imgb)
@@ -1933,6 +1946,19 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     tgh = &ctx->tgh;
 #if ALF_PARAMETER_APS
     aps = &ctx->aps;
+#if APS_ALF_SEQ_FIX
+    aps_counter_reset = FALSE;
+    if ((int)ctx->ptr > last_intra_poc)
+    {
+        last_intra_poc = INT_MAX;
+        aps_counter_reset = TRUE;
+    }
+    if (ctx->tile_group_type == TILE_GROUP_I)
+        last_intra_poc = ctx->ptr;
+
+    if (aps_counter_reset)
+        ctx->aps_counter = 0;
+#endif
     if (ctx->tile_group_type == TILE_GROUP_I )
     {
         ctx->aps_counter = -1;
@@ -2182,6 +2208,19 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     /* Encode tile_group data */
     while(1)
     {
+#if APS_ALF_CTU_FLAG
+        evc_AlfTileGroupParam* alfTileGroupParam = &(ctx->tgh.alf_tgh_param);
+        if ((alfTileGroupParam->isCtbAlfOn) && (tgh->alf_on))
+        {
+            EVCE_SBAC *sbac;
+            sbac = GET_SBAC_ENC(bs);
+#if ALF_CTU_MAP_DYNAMIC
+            evce_sbac_encode_bin((int)(*(alfTileGroupParam->alfCtuEnableFlag + core->lcu_num)), sbac, sbac->ctx.ctb_alf_flag, bs);
+#else
+            evce_sbac_encode_bin((int)(alfTileGroupParam->alfCtuEnableFlag[0][core->lcu_num]), sbac, sbac->ctx.ctb_alf_flag, bs);
+#endif
+        }
+#endif
         ret = evce_eco_tree(ctx, core, core->x_pel, core->y_pel, 0, ctx->max_cuwh, ctx->max_cuwh, 0, 1, NO_SPLIT, split_mode_child, 0, split_allow, 0, 0);
         evc_assert_rv(ret == EVC_OK, ret);
 
@@ -2299,7 +2338,11 @@ int evce_platform_init(EVCE_CTX * ctx)
 #endif
 
 #if ALF
+#if ALF_PARAMETER_APS
+    ctx->fn_alf = evce_alf_aps;
+#else
     ctx->fn_alf = evce_alf;
+#endif
 #endif
     ctx->fn_ready = evce_ready;
     ctx->fn_flush = evce_flush;

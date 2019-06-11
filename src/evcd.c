@@ -1333,7 +1333,7 @@ int evcd_alf(EVCD_CTX * ctx, EVC_PIC * pic)
     AdaptiveLoopFilter* p = (AdaptiveLoopFilter*)(ctx->alf);
 
 #if ALF_PARAMETER_APS
-    call_alf_process_aps(p, ctx, pic);
+    call_dec_alf_process_aps(p, ctx, pic);
 #else
     call_ALFProcess(p, ctx, pic);
 #endif
@@ -1374,7 +1374,17 @@ int evcd_dec_tile_group(EVCD_CTX * ctx, EVCD_CORE * core)
 
         /* invoke coding_tree() recursion */
         evc_mset(core->split_mode, 0, sizeof(s8) * MAX_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
-
+#if APS_ALF_CTU_FLAG
+        evc_AlfTileGroupParam* alfTileGroupParam = &(ctx->tgh.alf_tgh_param);
+        if ((alfTileGroupParam->isCtbAlfOn) && (ctx->tgh.alf_on))
+        {
+#if ALF_CTU_MAP_DYNAMIC
+            *(alfTileGroupParam->alfCtuEnableFlag + core->lcu_num) = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ctb_alf_flag);
+#else
+            alfTileGroupParam->alfCtuEnableFlag[0][core->lcu_num] = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ctb_alf_flag);
+#endif
+        }
+#endif
         ret = evcd_eco_tree(ctx, core, core->x_pel, core->y_pel, ctx->log2_max_cuwh, ctx->log2_max_cuwh, 0, 0, bs, sbac, 1
                             , 0, NO_SPLIT, same_layer_split, 0, split_allow, 0, 0);
         evc_assert_g(EVC_SUCCEEDED(ret), ERR);
@@ -1510,10 +1520,14 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 #if ALF_PARAMETER_APS
     else if (cnkh->ctype == EVC_CT_APS)
     {
+#if ALF_CTU_MAP_DYNAMIC
+        aps->alf_aps_param.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
+        memset(aps->alf_aps_param.alfCtuEnableFlag, 0, N_C * ctx->f_lcu * sizeof(u8));
+#endif
         ret = evcd_eco_aps(bs, aps);
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
         aps->alf_aps_param.prevIdx = aps->aps_id;
-        store_aps_to_buffer(ctx);
+        store_dec_aps_to_buffer(ctx);
         ctx->aps_temp = 0;
 
         /* parse chunk header */
@@ -1530,6 +1544,10 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         /* decode tile_group header */
 #if ALF
         tgh->num_ctb = ctx->f_lcu;
+#endif
+#if ALF_CTU_MAP_DYNAMIC
+        tgh->alf_tgh_param.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
+        memset(tgh->alf_tgh_param.alfCtuEnableFlag, 1, N_C * ctx->f_lcu * sizeof(u8));
 #endif
         ret = evcd_eco_tgh(bs, &ctx->sps, &ctx->pps, tgh);
 

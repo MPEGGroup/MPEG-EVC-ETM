@@ -199,7 +199,7 @@ public:
   EncAdaptiveLoopFilter();
   virtual ~EncAdaptiveLoopFilter() {}
 
-  void ALFProcess(CodingStructure& cs, const double *lambdas, AlfTileGroupParam* alfTileGroupParam);
+  void Enc_ALFProcess(CodingStructure& cs, const double *lambdas, AlfTileGroupParam* alfTileGroupParam);
   void initCABACEstimator(EVCE_CORE * core);
   void create(const int picWidth, const int picHeight, const int maxCUWidth, const int maxCUHeight, const int maxCUDepth );
   void destroy();
@@ -221,6 +221,10 @@ private:
   void   mergeClasses(AlfCovariance* cov, AlfCovariance* covMerged, const int numClasses, short filterIndices[MAX_NUM_ALF_CLASSES][MAX_NUM_ALF_CLASSES]);
   void   alfReconstructor(CodingStructure& cs, AlfTileGroupParam* alfTileGroupParam, const pel * orgUnitBuf, const int oStride, pel * recExtBuf, const int recStride, const ComponentID compID);
   void   alfTemporalEncoder(CodingStructure& cs, AlfTileGroupParam* alfTileGroupParam);
+#if APS_ALF_SEQ_FIX
+  void   alfTemporalEncoderAPS(CodingStructure& cs, AlfTileGroupParam* alfTileGroupParam);
+#endif
+  
   void   findBestFixedFilter(AlfTileGroupParam* alfTileGroupParam, AlfCovariance* cov);
   void   xDeriveCovFromLgrTapFilter(AlfCovariance& covLgr, AlfCovariance& covSml, int* patternSml);
 
