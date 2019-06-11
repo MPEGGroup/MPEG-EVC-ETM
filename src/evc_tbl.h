@@ -112,9 +112,7 @@ extern const s16 init_cc_scanr_y_3[2][NUM_CTX_SCANR];
 #endif
 
 #if AFFINE
-#if CTX_NEV_AFFINE_FLAG
 extern const s16 init_affine_flag[2][NUM_SBAC_CTX_AFFINE_FLAG][1];
-#endif
 extern const s16 init_affine_mode[2][NUM_SBAC_CTX_AFFINE_MODE][1];
 extern const s16 init_affine_mrg[2][AFF_MAX_CAND][1];
 extern const s16 init_affine_mvd_flag[2][NUM_SBAC_CTX_AFFINE_MVD_FLAG][1];
@@ -162,9 +160,7 @@ extern const s16 init_suco_flag[2][NUM_SBAC_CTX_SUCO_FLAG][2];
 extern const s16 init_ctb_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG][2];
 #endif
 #if AFFINE
-#if CTX_NEV_AFFINE_FLAG
 extern const s16 init_affine_flag[2][NUM_SBAC_CTX_AFFINE_FLAG][2];
-#endif
 extern const s16 init_affine_mode[2][NUM_SBAC_CTX_AFFINE_MODE][2];
 extern const s16 init_affine_mrg[2][AFF_MAX_CAND][2];
 extern const s16 init_affine_mvd_flag[2][NUM_SBAC_CTX_AFFINE_MVD_FLAG][2];

@@ -274,24 +274,11 @@ enum SAD_POINT_INDEX
 #endif
 /* ALF (END) */
 
-/* CTX_NEV (START) */
-#define CTX_NEV_SKIP_FLAG                  2 // number of ctx for skip_flag (-0.10%)
-#define CTX_NEV_PRED_MODE                  3 // number of ctx for pred_mode
 #if USE_IBC
 #define CTX_NEV_IBC_FLAG                   2 // number of ctx for ibc_flag
 #endif
-#if AFFINE
-#define CTX_NEV_AFFINE_FLAG                2 // number of ctx for affine_flag
-#endif
-/* CTX_NEV (END) */
-
 /* AFFINE (START) */
 #if AFFINE
-#define AFFINE_AMVP_LIST                   1 // simplification of affine AMVP list construction
-#define AFFINE_MERGE_PRUNE                 1 // simplification of affine merge candidate pruning
-#define AFFINE_MERGE_SAME_REF_IDX          1 // alwasy check same refIdx for constructed affine candidate, no scaling
-#define AFFINE_MVD_PREDICTION              1 // affine MVD prediction
-
  // AFFINE Constant
 #define VER_NUM                            4
 #define AFFINE_MAX_NUM_LT                  3 ///< max number of motion candidates in top-left corner
@@ -898,7 +885,7 @@ typedef u32 SBAC_CTX_MODEL;
 #define NUM_SBAC_CTX_MMVD_DIST_IDX        (MMVD_DIST_NUM - 1)
 #define NUM_SBAC_CTX_DIRECTION_IDX         2
 #define NUM_SBAC_CTX_AFFINE_MVD_FLAG       2
-#define NUM_SBAC_CTX_SKIP_FLAG             CTX_NEV_SKIP_FLAG
+#define NUM_SBAC_CTX_SKIP_FLAG             2
 #if USE_IBC
 #define NUM_SBAC_CTX_IBC_FLAG             CTX_NEV_IBC_FLAG
 #endif
@@ -908,7 +895,7 @@ typedef u32 SBAC_CTX_MODEL;
 #define NUM_SBAC_CTX_SUCO_FLAG             14
 #define NUM_QT_CBF_CTX                     3       /* number of context models for QT CBF */
 #define NUM_QT_ROOT_CBF_CTX                1       /* number of context models for QT ROOT CBF */
-#define NUM_PRED_MODE_CTX                  CTX_NEV_PRED_MODE
+#define NUM_PRED_MODE_CTX                  3
 #define NUM_INTER_DIR_CTX                  3       /* number of context models for inter prediction direction */
 #define NUM_REFI_CTX                       2
 #define NUM_MVP_IDX_CTX                    5
@@ -917,11 +904,7 @@ typedef u32 SBAC_CTX_MODEL;
 #define NUM_MV_RES_CTX                     1       /* number of context models for motion vector difference */
 #define NUM_INTRA_DIR_CTX                  3
 #if AFFINE
-#if CTX_NEV_AFFINE_FLAG
-#define NUM_SBAC_CTX_AFFINE_FLAG           CTX_NEV_AFFINE_FLAG
-#else
-#define NUM_SBAC_CTX_AFFINE_FLAG           1
-#endif
+#define NUM_SBAC_CTX_AFFINE_FLAG           2
 #define NUM_SBAC_CTX_AFFINE_MODE           1
 #define NUM_SBAC_CTX_AFFINE_MRG            AFF_MAX_CAND
 #endif

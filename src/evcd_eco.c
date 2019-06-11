@@ -1284,11 +1284,7 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 tile_group_type, u8 tile_group_qp, int
         evc_eco_sbac_ctx_initialize(sbac_ctx->ctb_alf_flag, (s16*)init_ctb_alf_flag, NUM_SBAC_CTX_ALF_FLAG, tile_group_type, tile_group_qp);
 #endif
 #if AFFINE
-#if CTX_NEV_AFFINE_FLAG
         evc_eco_sbac_ctx_initialize(sbac_ctx->affine_flag, (s16*)init_affine_flag, NUM_SBAC_CTX_AFFINE_FLAG, tile_group_type, tile_group_qp);
-#else
-        sbac_ctx->affine_flag[0] = PROB_INIT;
-#endif
         evc_eco_sbac_ctx_initialize(sbac_ctx->affine_mode, (s16*)init_affine_mode, NUM_SBAC_CTX_AFFINE_MODE, tile_group_type, tile_group_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->affine_mrg, (s16*)init_affine_mrg, AFF_MAX_CAND, tile_group_type, tile_group_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->affine_mvd_flag, (s16*)init_affine_mvd_flag, NUM_SBAC_CTX_AFFINE_MVD_FLAG, tile_group_type, tile_group_qp);
@@ -1338,17 +1334,21 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 tile_group_type, u8 tile_group_qp, int
         for(i = 0; i < NUM_SBAC_CTX_BTT_SPLIT_TYPE; i++) sbac_ctx->btt_split_type[i] = PROB_INIT;
         for(i = 0; i < NUM_SBAC_CTX_SUCO_FLAG; i++) sbac_ctx->suco_flag[i] = PROB_INIT;
 #if AFFINE
-#if CTX_NEV_AFFINE_FLAG
-        for(i = 0; i < NUM_SBAC_CTX_AFFINE_FLAG; i++) sbac_ctx->affine_flag[i] = PROB_INIT;
-#else
-        sbac_ctx->affine_flag[0] = PROB_INIT;
-#endif
+        for (i = 0; i < NUM_SBAC_CTX_AFFINE_FLAG; i++)
+        {
+            sbac_ctx->affine_flag[i] = PROB_INIT;
+        }
+        
         sbac_ctx->affine_mode[0] = PROB_INIT;
-        for(i = 0; i < AFF_MAX_CAND; i++) sbac_ctx->affine_mrg[i] = PROB_INIT;
+        for (i = 0; i < AFF_MAX_CAND; i++)
+        {
+            sbac_ctx->affine_mrg[i] = PROB_INIT;
+        }
+
         sbac_ctx->affine_mvd_flag[0] = PROB_INIT;
         sbac_ctx->affine_mvd_flag[1] = PROB_INIT;
 #endif
-        for(i = 0; i < NUM_SBAC_CTX_SKIP_FLAG; i++) sbac_ctx->skip_flag[i] = PROB_INIT;
+        for (i = 0; i < NUM_SBAC_CTX_SKIP_FLAG; i++)  sbac_ctx->skip_flag[i] = PROB_INIT;
 #if USE_IBC
         for (i = 0; i < NUM_SBAC_CTX_IBC_FLAG; i++) sbac_ctx->ibc_flag[i] = PROB_INIT;
 #endif
