@@ -88,7 +88,7 @@
 #define AQS_ENC                            1 //encoder optimization for deriving normalizer index
 #endif
 
-#define CQP_MAPPING_TABLE_UPDATE           1 // update chroma QP mapping table
+#define HW_CQP_MAPPING_TABLE_UPDATE        1 // update chroma QP mapping table
 
 //fast algorithm
 #define ENC_ECU_DEPTH                      8 // for early CU termination
