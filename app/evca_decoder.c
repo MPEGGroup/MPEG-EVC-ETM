@@ -48,7 +48,7 @@
 #define VERBOSE_FRAME              VERBOSE_1
 #define VERBOSE_ALL                VERBOSE_2
 
-#define MAX_BS_BUF                 6*1024*1024 /* byte */
+#define MAX_BS_BUF                 16*1024*1024 /* byte */
 
 static char op_fname_inp[256] = "\0";
 static char op_fname_out[256] = "\0";
