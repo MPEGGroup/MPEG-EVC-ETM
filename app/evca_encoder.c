@@ -50,7 +50,7 @@
 #define VERBOSE_ALL                VERBOSE_2
 #define MAX_BUMP_FRM_CNT           (8 <<1)
 
-#define MAX_BS_BUF                 (6*1024*1024)
+#define MAX_BS_BUF                 (16*1024*1024)
 #define PRECISE_BS_SIZE            1
 
 typedef enum _STATES
