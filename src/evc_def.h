@@ -44,6 +44,9 @@
 #define PROFILE_BASELINE                   0
 #define PROFILE_MAIN                       1
 
+//intra
+#define HW_INTRA_PRED_NO_DIV               1
+
 //inter
 #define AFFINE                             1  // Affine Prediction
 #define DMVR                               1  // Decoder-side Motion Vector Refinement
@@ -87,6 +90,11 @@
 #define AQS_SYNTAX                         1 //send normalizer index in tile_group header
 #define AQS_ENC                            1 //encoder optimization for deriving normalizer index
 #endif
+
+#if HW_INTRA_PRED_NO_DIV
+#define HW_INTRA_PRED_NO_DIV_IN_HOR_MODE   1
+#define HW_INTRA_PRED_NO_DIV_IN_DC_MODE    1
+#endif //HW_INTRA_PRED_NO_DIV
 
 //fast algorithm
 #define ENC_ECU_DEPTH                      8 // for early CU termination
