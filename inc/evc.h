@@ -42,7 +42,7 @@ extern "C"
 #endif
 
 #define USE_TILE_GROUP_DQP              1
-#define HLS_M47668                      0
+#define HLS_M47668                      1
 #define ALF_PARAMETER_APS               1
 
 #define ROOT_CBF_RDO_BIT_FIX            1
