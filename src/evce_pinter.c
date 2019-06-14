@@ -1124,7 +1124,7 @@ void calc_min_cost_ats_inter(EVCE_CTX *ctx, EVCE_CORE *core, pel pred[N_C][MAX_C
 
     //ATS_INTER fast algorithm 1.1: not try ATS_INTER if the residual is too small to compensate bits for encoding residual info
     if (dist_no_resi[Y_C] + dist_no_resi[U_C] * ctx->dist_chroma_weight[0] + dist_no_resi[V_C] * ctx->dist_chroma_weight[1]
-        < RATE_TO_COST_LAMBDA(ctx->lambda[0], 12)) //12 extra bits for ATS_INTER residual encoding
+        < RATE_TO_COST_LAMBDA(ctx->lambda[0], 20)) //20 extra bits for ATS_INTER residual encoding
     {
         *num_rdo = 1;
         return;
