@@ -119,7 +119,7 @@ extern const s16 init_affine_mvd_flag[2][NUM_SBAC_CTX_AFFINE_MVD_FLAG][1];
 extern const s16 init_skip_flag[2][NUM_SBAC_CTX_SKIP_FLAG][1];
 #if USE_IBC
 #if CTX_NEV_IBC_FLAG
-extern const s16 init_ibc_flag[2][NUM_SBAC_CTX_IBC_FLAG][2];
+extern const s16 init_ibc_flag[2][NUM_SBAC_CTX_IBC_FLAG][1];
 #endif
 #endif
 #if ATS_INTRA_PROCESS

@@ -3538,7 +3538,14 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
 #if USE_IBC
             else if (i == CNID_IBC_FLAG)
             {
-              ctx[i] = min(ctx[i], CTX_NEV_IBC_FLAG - 1);
+              if (sps_cm_init_flag == 1)
+              {
+                ctx[i] = min(ctx[i], CTX_NEV_IBC_FLAG - 1);
+              }
+              else
+              {
+                ctx[i] = 0;
+              }
             }
 #endif
             else if(i == CNID_PRED_MODE)

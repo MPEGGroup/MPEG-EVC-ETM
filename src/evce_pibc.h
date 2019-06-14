@@ -155,33 +155,35 @@ IBC_INLINE int is_bv_valid(EVCE_CTX *ctx, int x, int y, int width, int height, i
             }
 
 #if SUCO
-            // top right position of ref block's collocated block in current CTU
-            int offset64_TR_x = offset64x + (1 << (ctu_size_log2 - 1)) - 1;
-            if (offset64_TR_x >= pic_width)
+            if (ctx->sps.sps_suco_flag)
             {
+              // top right position of ref block's collocated block in current CTU
+              int offset64_TR_x = offset64x + (1 << (ctu_size_log2 - 1)) - 1;
+              if (offset64_TR_x >= pic_width)
+              {
                 offset64_TR_x = pic_width - 1;
-            }
-            int offset64_TR_y = offset64y;
-            int offset_TR_x_scu = PEL2SCU(offset64_TR_x);
-            int offset_TR_y_scu = PEL2SCU(offset64_TR_y);
-            int offset_TR_scup = (offset_TR_y_scu * ctx->w_scu) + offset_TR_x_scu;
+              }
+              int offset64_TR_y = offset64y;
+              int offset_TR_x_scu = PEL2SCU(offset64_TR_x);
+              int offset_TR_y_scu = PEL2SCU(offset64_TR_y);
+              int offset_TR_scup = (offset_TR_y_scu * ctx->w_scu) + offset_TR_x_scu;
 
-            int avail_TR_cu = MCU_GET_COD(ctx->map_scu[offset_TR_scup]);
-            if (avail_TR_cu)
-            {
+              int avail_TR_cu = MCU_GET_COD(ctx->map_scu[offset_TR_scup]);
+              if (avail_TR_cu)
+              {
                 return 0;
-            }
+              }
 
-            if (offset64_TR_x == (x + (1 << log2_cuw) - 1) && offset64_TR_y == y)
-            {
+              if (offset64_TR_x == (x + (1 << log2_cuw) - 1) && offset64_TR_y == y)
+              {
                 return 0;
-            }
+              }
 
 
-            //Check the collocated 64x64 region of the reference block¡¯s top-right corner is valid for reference or not
-            int RT_ref_pos_LT_col_x = x + x_bv + ctu_size + width - 1;
-            if (RT_ref_pos_LT_col_x < pic_width)
-            {
+              //Check the collocated 64x64 region of the reference block¡¯s top-right corner is valid for reference or not
+              int RT_ref_pos_LT_col_x = x + x_bv + ctu_size + width - 1;
+              if (RT_ref_pos_LT_col_x < pic_width)
+              {
                 int RT_ref_pos_LT_offset64x = (RT_ref_pos_LT_col_x >> (ctu_size_log2 - 1)) << (ctu_size_log2 - 1);
                 int RT_ref_pos_LT_col_y = y + y_bv;
                 int RT_ref_pos_LT_offset64y = (RT_ref_pos_LT_col_y >> (ctu_size_log2 - 1)) << (ctu_size_log2 - 1);
@@ -192,12 +194,12 @@ IBC_INLINE int is_bv_valid(EVCE_CTX *ctx, int x, int y, int width, int height, i
                 int RT_ref_pos_LT_cu = MCU_GET_COD(ctx->map_scu[RT_ref_pos_LT_scup]);
                 if (RT_ref_pos_LT_cu)
                 {
-                    return 0;
+                  return 0;
                 }
 
                 if (RT_ref_pos_LT_offset64x == (x + width - 1) && RT_ref_pos_LT_col_y == y)
                 {
-                    return 0;
+                  return 0;
                 }
 
                 int RT_ref_pos_RT_offset64x = RT_ref_pos_LT_offset64x + (1 << (ctu_size_log2 - 1)) - 1;
@@ -210,30 +212,14 @@ IBC_INLINE int is_bv_valid(EVCE_CTX *ctx, int x, int y, int width, int height, i
                 int RT_ref_pos_RT_cu = MCU_GET_COD(ctx->map_scu[RT_ref_pos_RT_scup]);
                 if (RT_ref_pos_RT_cu)
                 {
-                    return 0;
+                  return 0;
                 }
 
                 if (RT_ref_pos_RT_offset64x == (x + width - 1) && RT_ref_pos_RT_offset64y == y)
                 {
-                    return 0;
+                  return 0;
                 }
-            }
-
-            //To-Do list: Do not allow 64x64 CU refer its right reconstructed 64x64 CU if SUCO order is right to left
-            //Need to remove or modify this code laterly, otherwise it may cause the decoder issue if someone do not do like above suggestion
-            int right_blk_offset64_LT_x = offset64x + (1 << (ctu_size_log2 - 1));
-            if (right_blk_offset64_LT_x < pic_width)
-            {
-                int right_blk_offset64_LT_y = offset64y;
-                int right_blk_offset_LT_x_scu = PEL2SCU(right_blk_offset64_LT_x);
-                int right_blk_offset_LT_y_scu = PEL2SCU(right_blk_offset64_LT_y);
-                int right_blk_offset_LT_scup = (right_blk_offset_LT_y_scu * ctx->w_scu) + right_blk_offset_LT_x_scu;
-
-                int right_blk_avail_LT_cu = MCU_GET_COD(ctx->map_scu[right_blk_offset_LT_scup]);
-                if (right_blk_avail_LT_cu)
-                {
-                    return 0;
-                }
+                  }
             }
 #endif
         }
@@ -302,49 +288,33 @@ IBC_INLINE int is_bv_valid(EVCE_CTX *ctx, int x, int y, int width, int height, i
     }
 
 #if SUCO
-    //// check the availablity of each 4x4 corners
-    //for (int tmpy = 0; tmpy < height; tmpy += 4)
-    //{
-    //    for (int tmpx = 0; tmpx < width; tmpx += 4)
-    //    {
-    //        int left = PEL2SCU(x + tmpx + x_bv);
-    //        int top = PEL2SCU(y + tmpy + y_bv);
-    //        int right = PEL2SCU(left + 3);
-    //        int bottom = PEL2SCU(top + 3);
-    //        int topLeft = (top * ctx->w_scu) + left;
-    //        int bottomLeft = (bottom * ctx->w_scu) + left;
-    //        int bottomRight = (bottom * ctx->w_scu) + right;
-    //        if (MCU_GET_COD(ctx->map_scu[topLeft]) == 0 || MCU_GET_COD(ctx->map_scu[bottomLeft]) == 0 || MCU_GET_COD(ctx->map_scu[bottomRight]) == 0)
-    //        {
-    //            return 0;
-    //        }
-    //    }
-    //}
-
-    // check the availablity of bottom-left corner
-    int ref_pos_BL_scup = (ref_pos_BR_y_scu * ctx->w_scu) + ref_pos_LT_x_scu;
-    avail_cu = MCU_GET_COD(ctx->map_scu[ref_pos_BL_scup]);
-    if (avail_cu == 0)
+    if (ctx->sps.sps_suco_flag)
     {
+      // check the availablity of bottom-left corner
+      int ref_pos_BL_scup = (ref_pos_BR_y_scu * ctx->w_scu) + ref_pos_LT_x_scu;
+      avail_cu = MCU_GET_COD(ctx->map_scu[ref_pos_BL_scup]);
+      if (avail_cu == 0)
+      {
         return 0;
+      }
+
+      // check if the reference block cross the uncoded block
+      if (ref_pos_BR_x >= x && ref_pos_BR_y < y)
+      {
+        int check_point_x = ref_pos_LT_x + width / 2;
+        int check_point_y = ref_pos_BR_y;
+
+        int check_point_x_scu = PEL2SCU(check_point_x);
+        int check_point_y_scu = PEL2SCU(check_point_y);
+        int check_point_scup = (check_point_y_scu * ctx->w_scu) + check_point_x_scu;
+
+        avail_cu = MCU_GET_COD(ctx->map_scu[check_point_scup]);
+        if (avail_cu == 0)
+        {
+          return 0;
+        }
+      }
     }
-
-  // check if the reference block cross the uncoded block
-  if (ref_pos_BR_x >= x && ref_pos_BR_y < y)
-  {
-    int check_point_x = ref_pos_LT_x + width / 2;
-    int check_point_y = ref_pos_BR_y;
-
-    int check_point_x_scu = PEL2SCU(check_point_x);
-    int check_point_y_scu = PEL2SCU(check_point_y);
-    int check_point_scup = (check_point_y_scu * ctx->w_scu) + check_point_x_scu;
-
-    avail_cu = MCU_GET_COD(ctx->map_scu[check_point_scup]);
-    if (avail_cu == 0)
-    {
-      return 0;
-    }
-  }
 #endif
 
     return 1;

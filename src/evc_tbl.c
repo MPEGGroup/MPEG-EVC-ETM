@@ -406,15 +406,15 @@ const s16 init_skip_flag[2][NUM_SBAC_CTX_SKIP_FLAG][1] = {
     }
 };
 #if USE_IBC
-const s16 init_ibc_flag[2][NUM_SBAC_CTX_IBC_FLAG][2] = {
-    {
-        { 0, 4096 },
-        { 0, 4096 }
-    },
-    {
-        { -100, 9884 },
-        { -144, 7652 }
-    }
+const s16 init_ibc_flag[2][NUM_SBAC_CTX_IBC_FLAG][1] = {
+  {
+    { 0 },
+    { 0 }
+  },
+  {
+    { 711 },
+    { 233 }
+  }
 };
 #endif
 const s16 init_mmvd_flag[2][NUM_SBAC_CTX_MMVD_FLAG][1] = {
