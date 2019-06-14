@@ -5425,7 +5425,7 @@ static double pinter_analyze_cu_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, 
 #endif
         );
         core->nnz[i] = pi->nnz_best[best_idx][i];
-        evc_mcpy(core->nnz_sub[i], pi->nnz_sub_best[best_idx][i], sizeof(int) * N_C * MAX_SUB_TB_NUM);
+        evc_mcpy(core->nnz_sub[i], pi->nnz_sub_best[best_idx][i], sizeof(int) * MAX_SUB_TB_NUM);
     }
 
     mi->pred_y_best = pi->pred[best_idx][0][0];
@@ -6478,7 +6478,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
         }
 #endif
         core->nnz[i] = pi->nnz_best[best_idx][i];
-        evc_mcpy(core->nnz_sub[i], pi->nnz_sub_best[best_idx][i], sizeof(int) * N_C * MAX_SUB_TB_NUM);
+        evc_mcpy(core->nnz_sub[i], pi->nnz_sub_best[best_idx][i], sizeof(int) * MAX_SUB_TB_NUM);
     }
 
     mi->pred_y_best = pi->pred[best_idx][0][0];
