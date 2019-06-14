@@ -84,7 +84,10 @@
 #define USE_RDOQ                           1 // Use RDOQ
 #define RDO_DBK                            1 // include DBK changes into distortion
 #define HTDF                               1 // enable Hadamard transform domain filter
+#define HW_HTDF_CLEANUP                    1
+#if !HW_HTDF_CLEANUP
 #define HTDF_CBF0_INTRA                    1
+#endif
 #if AQS 
 #define ESM_SHIFT                          8 //bit depth for integerized es_val (in range of [0.5, 2.0]); this value must be 8 in this version
 #define ESM_DEFAULT                       (1<<ESM_SHIFT)
