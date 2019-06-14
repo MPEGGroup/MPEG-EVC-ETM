@@ -44,6 +44,10 @@
 #define PROFILE_BASELINE                   0
 #define PROFILE_MAIN                       1
 
+//intra
+#define HW_INTRA_PRED_NO_DIV               1
+#define HW_REMOVE_UNSPEC_CODE_PART         1
+
 //inter
 #define AFFINE                             1  // Affine Prediction
 #define DMVR                               1  // Decoder-side Motion Vector Refinement
@@ -80,7 +84,10 @@
 #define USE_RDOQ                           1 // Use RDOQ
 #define RDO_DBK                            1 // include DBK changes into distortion
 #define HTDF                               1 // enable Hadamard transform domain filter
+#define HW_HTDF_CLEANUP                    1
+#if !HW_HTDF_CLEANUP
 #define HTDF_CBF0_INTRA                    1
+#endif
 #if AQS 
 #define ESM_SHIFT                          8 //bit depth for integerized es_val (in range of [0.5, 2.0]); this value must be 8 in this version
 #define ESM_DEFAULT                       (1<<ESM_SHIFT)
@@ -89,6 +96,11 @@
 #endif
 
 #define HW_CQP_MAPPING_TABLE_UPDATE        1 // update chroma QP mapping table
+
+#if HW_INTRA_PRED_NO_DIV
+#define HW_INTRA_PRED_NO_DIV_IN_HOR_MODE   1
+#define HW_INTRA_PRED_NO_DIV_IN_DC_MODE    1
+#endif //HW_INTRA_PRED_NO_DIV
 
 //fast algorithm
 #define ENC_ECU_DEPTH                      8 // for early CU termination
@@ -346,7 +358,7 @@ enum SAD_POINT_INDEX
 #endif
 
 #if X86_SSE
-#define EIF_SIMD                           1
+#define EIF_SIMD                           0
 #define EIF_NUM_BYTES_IN_SSE_REG           16
 #define EIF_NUM_PELS_IN_SSE_REG          ( 16 / sizeof(pel) )
 #else
