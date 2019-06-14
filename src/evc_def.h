@@ -46,6 +46,7 @@
 
 //intra
 #define HW_INTRA_PRED_NO_DIV               1
+#define HW_REMOVE_UNSPEC_CODE_PART         1
 
 //inter
 #define AFFINE                             1  // Affine Prediction
