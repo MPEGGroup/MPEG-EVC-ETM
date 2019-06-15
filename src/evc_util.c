@@ -3114,6 +3114,8 @@ int evc_scan_tbl_init()
 
     for(scan_type = 0; scan_type < COEF_SCAN_TYPE_NUM; scan_type++)
     {
+        if (scan_type != COEF_SCAN_ZIGZAG)
+            continue;
         for(y = 0; y < MAX_CU_LOG2 - 1; y++)
         {
             size_y = 1 << (y + 1);
@@ -3122,6 +3124,10 @@ int evc_scan_tbl_init()
                 size_x = 1 << (x + 1);
                 evc_scan_tbl[scan_type][x][y] = (u16*)evc_malloc_fast(size_y * size_x * sizeof(u16));
                 init_scan(evc_scan_tbl[scan_type][x][y], size_x, size_y, scan_type);
+#if COEFF_CODE_ADCC
+                evc_inv_scan_tbl[scan_type][x][y] = (u16*)evc_malloc_fast(size_y * size_x * sizeof(u16));
+                evc_init_inverse_scan_sr(evc_inv_scan_tbl[scan_type][x][y], evc_scan_tbl[scan_type][x][y], size_x, size_y, scan_type);
+#endif
             }
         }
     }
@@ -3142,6 +3148,12 @@ int evc_scan_tbl_delete()
                 {
                     free(evc_scan_tbl[scan_type][x][y]);
                 }
+#if COEFF_CODE_ADCC
+                if (evc_inv_scan_tbl[scan_type][x][y] != NULL)
+                {
+                    free(evc_inv_scan_tbl[scan_type][x][y]);
+                }
+#endif
             }
         }
     }
@@ -5266,7 +5278,7 @@ void evc_init_scan_sr(int *scan, int size_x, int size_y, int width, int height, 
     }
 }
 
-void evc_init_inverse_scan_sr(int *scan_inv, int *scan_orig, int width, int height, int scan_type)
+void evc_init_inverse_scan_sr(u16 *scan_inv, u16 *scan_orig, int width, int height, int scan_type)
 {
     int x, num_line;
 

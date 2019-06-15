@@ -257,8 +257,8 @@ u16 *evc_scan_tbl[COEF_SCAN_TYPE_NUM][MAX_CU_LOG2 - 1][MAX_CU_LOG2 - 1];
 int evc_scan_sr[MAX_TR_SIZE*MAX_TR_SIZE];
 
 #if COEFF_CODE_ADCC
+u16 *evc_inv_scan_tbl[COEF_SCAN_TYPE_NUM][MAX_CU_LOG2 - 1][MAX_CU_LOG2 - 1];
 int evc_inv_scan_sr[MAX_TR_SIZE*MAX_TR_SIZE];
-int evc_scan_cg[(MAX_TR_SIZE*MAX_TR_SIZE) >> LOG2_CG_SIZE];
 #endif
 const int evc_tbl_dq_scale[6] = {40, 45, 51, 57, 64, 72};
 const int evc_tbl_dq_scale_b[6] = {40, 45, 51, 57, 64, 71};
@@ -637,6 +637,20 @@ const s16 init_cc_scanr_x[2][NUM_CTX_SCANR] = {
 const s16 init_cc_scanr_y[2][NUM_CTX_SCANR] = { 
         { initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA },
         { initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB }};
+#if COEFF_CODE_ADCC2
+const s16 init_cc_gt0_3[2][NUM_CTX_GT0] = {
+        { 387, 340, 304, 227, 457, 133, 208, 792, 419, 553, 391, 112, 534, 645, 83, 402, 357, 67, 112, 338, 532, 711, 259, 131, 112, 698, 416, 338, 304, 96, 0, 372, 468, 532, 352, 128, 64, 210, 338, 519, 35, 147, 227, 131, 48, 274, 630 },
+        { 66, 274, 240, 146, 144, 35, 370, 790, 483, 325, 163, 112, 662, 224, 3, 240, 0, 274, 242, 338, 434, 613, 32, 32, 144, 922, 387, 67, 434, 195, 210, 274, 338, 434, 451, 96, 114, 242, 208, 453, 99, 466, 32, 80, 178, 306, 726 } };
+const s16 init_cc_gtA_3[2][NUM_CTX_GTA] = {
+        { 480, 50, 208, 304, 400, 288, 178, 306, 500, 416, 148, 308, 566, 480, 352, 308, 566, 858 },
+        { 322, 246, 274, 304, 400, 130, 146, 144, 434, 290, 2, 178, 500, 448, 162, 372, 532, 888 } };
+const s16 init_cc_scanr_x_3[2][NUM_CTX_SCANR] = {
+        { 890, 862, 162, 728, 700, 100, 338, 374, 474, 162, 176, 178, 342, 602, 128, 466, 306, 632, 502, 730, 163, 304, 468, 404, 48, 192, 323, 451 },
+        { 274, 66, 547, 340, 256, 416, 242, 180, 162, 162, 144, 244, 212, 276, 160, 99, 242, 340, 436, 760, 195, 131, 436, 306, 80, 224, 419, 547 } };
+const s16 init_cc_scanr_y_3[2][NUM_CTX_SCANR] = {
+        { 1020, 926, 4, 436, 830, 86, 500, 666, 636, 320, 272, 470, 504, 830, 615, 596, 306, 600, 404, 828, 487, 336, 696, 502, 163, 128, 52, 288 },
+        { 306, 180, 288, 0, 84, 194, 48, 212, 52, 451, 99, 146, 212, 342, 743, 325, 210, 308, 242, 890, 421, 357, 566, 566, 195, 288, 98, 483 } };
+#endif
 #endif
 
 const s16 init_run[2][NUM_SBAC_CTX_RUN][1] = {

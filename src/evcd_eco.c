@@ -611,9 +611,8 @@ static int evcd_eco_ccA(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int log2_w, int
     int scan_type = COEF_SCAN_ZIGZAG;
 
     int log2_block_size = min(log2_w, log2_h);
-    int *scan = evc_scan_sr;
-    int *scan_inv = evc_inv_scan_sr;
-    int *scan_cg = evc_scan_cg;
+    u16 *scan;
+    u16 *scan_inv;
     int scan_pos_last = -1;
     int sr_x = 0, sr_y = 0;
     int num_coeff;
@@ -638,9 +637,8 @@ static int evcd_eco_ccA(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int log2_w, int
     parse_positionLastXY(bs, sbac, &sr_x, &sr_y, width, height, ch_type);
     int max_num_coef = width * height;
 
-
-    evc_init_scan_sr(scan, width, height, width, height, scan_type);
-    evc_init_inverse_scan_sr(scan_inv, scan, width, height, scan_type);
+    scan = evc_scan_tbl[scan_type][log2_w - 1][log2_h - 1];
+    scan_inv = evc_inv_scan_tbl[scan_type][log2_w - 1][log2_h - 1];
 
     int last_pos_in_raster = sr_x + sr_y * width;
     int last_pos_in_scan = scan_inv[last_pos_in_raster];
@@ -1243,10 +1241,17 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 tile_group_type, u8 tile_group_qp, int
         evc_eco_sbac_ctx_initialize(sbac_ctx->cbf, (s16*)init_cbf, NUM_QT_CBF_CTX, tile_group_type, tile_group_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->all_cbf, (s16*)init_all_cbf, NUM_QT_ROOT_CBF_CTX, tile_group_type, tile_group_qp);
 #if COEFF_CODE_ADCC 
+#if COEFF_CODE_ADCC2
+        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gt0, (s16*)init_cc_gt0_3, NUM_CTX_GT0, tile_group_type, tile_group_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gtA, (s16*)init_cc_gtA_3, NUM_CTX_GTA, tile_group_type, tile_group_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_x, (s16*)init_cc_scanr_x_3, NUM_CTX_SCANR, tile_group_type, tile_group_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_y, (s16*)init_cc_scanr_y_3, NUM_CTX_SCANR, tile_group_type, tile_group_qp);
+#else
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gt0, (s16*)init_cc_gt0, NUM_CTX_GT0, tile_group_type, tile_group_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gtA, (s16*)init_cc_gtA, NUM_CTX_GTA, tile_group_type, tile_group_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_x, (s16*)init_cc_scanr_x, NUM_CTX_SCANR, tile_group_type, tile_group_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_y, (s16*)init_cc_scanr_y, NUM_CTX_SCANR, tile_group_type, tile_group_qp);
+#endif
 #endif
         evc_eco_sbac_ctx_initialize(sbac_ctx->pred_mode, (s16*)init_pred_mode, NUM_PRED_MODE_CTX, tile_group_type, tile_group_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->inter_dir, (s16*)init_inter_dir, NUM_INTER_DIR_CTX, tile_group_type, tile_group_qp);

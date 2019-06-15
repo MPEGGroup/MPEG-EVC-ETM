@@ -52,7 +52,7 @@ extern const s8 *evc_tbl_tm[MAX_CU_DEPTH];
 extern int evc_scan_sr[MAX_TR_SIZE*MAX_TR_SIZE];
 #if COEFF_CODE_ADCC
 extern int evc_inv_scan_sr[MAX_TR_SIZE*MAX_TR_SIZE];
-extern int evc_scan_cg[(MAX_TR_SIZE*MAX_TR_SIZE) >> LOG2_CG_SIZE];
+extern u16 * evc_inv_scan_tbl[COEF_SCAN_TYPE_NUM][MAX_CU_LOG2 - 1][MAX_CU_LOG2 - 1];
 #endif
 extern u16 * evc_scan_tbl[COEF_SCAN_TYPE_NUM][MAX_CU_LOG2 - 1][MAX_CU_LOG2 - 1];
 extern const u8 evey_tbl_mpm[6][6][5];
@@ -106,6 +106,12 @@ extern const s16 init_cc_gt0[2][NUM_CTX_GT0];
 extern const s16 init_cc_gtA[2][NUM_CTX_GTA];
 extern const s16 init_cc_scanr_x[2][NUM_CTX_SCANR];
 extern const s16 init_cc_scanr_y[2][NUM_CTX_SCANR];
+#if COEFF_CODE_ADCC2
+extern const s16 init_cc_gt0_3[2][NUM_CTX_GT0];
+extern const s16 init_cc_gtA_3[2][NUM_CTX_GTA];
+extern const s16 init_cc_scanr_x_3[2][NUM_CTX_SCANR];
+extern const s16 init_cc_scanr_y_3[2][NUM_CTX_SCANR];
+#endif
 #endif
 
 #if AFFINE

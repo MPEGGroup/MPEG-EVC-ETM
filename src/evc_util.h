@@ -304,7 +304,7 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
 
 #if COEFF_CODE_ADCC
 void evc_init_scan_sr(int *scan, int size_x, int size_y, int width, int height, int scan_type);
-void evc_init_inverse_scan_sr(int *scan_inv, int *scan_orig, int width, int height, int scan_type);
+void evc_init_inverse_scan_sr(u16 *scan_inv, u16 *scan_orig, int width, int height, int scan_type);
 void evc_get_ctx_last_pos_xy_para(int ch_type, int width, int height, int *result_offset_x, int *result_offset_y, int *result_shift_x, int *result_shift_y);
 int evc_get_ctx_gt0_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y);
 int evc_get_ctx_gtA_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y);

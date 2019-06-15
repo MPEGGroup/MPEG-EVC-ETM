@@ -55,6 +55,9 @@ extern "C"
 #define IBC_FAST_METHOD_ADAPTIVE_SEARCHRANGE 0X02
 #endif
 #define COEFF_CODE_ADCC                 1   /* CE1.1: Advanced coefficient coding */
+#if COEFF_CODE_ADCC
+#define COEFF_CODE_ADCC2                1 
+#endif
 #define ATS                             1   /* CE1.2: Adaptive transform selection */
 
 #define ATS_INTRA_PROCESS               ATS
