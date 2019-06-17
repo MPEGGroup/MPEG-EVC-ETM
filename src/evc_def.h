@@ -356,7 +356,7 @@ enum SAD_POINT_INDEX
 #endif
 
 #define FIX_SEQUENTIAL_CODING              1
-#define ALF_CTU_MAP_DYNAMIC                0
+#define ALF_CTU_MAP_DYNAMIC                1
 
 // The structure below must be aligned to identical structure in evc_alf.c!
 typedef struct _evc_AlfFilterShape
