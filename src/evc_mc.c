@@ -7180,7 +7180,7 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
     int sub_w, sub_h;
     int w, h;
     int half_w, half_h;
-    int bit = 8;
+    int bit = MAX_CU_LOG2;
 
 #if MC_PRECISION_ADD
     int mc_prec = 2 + MC_PRECISION_ADD;
@@ -7295,7 +7295,7 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
     int sub_w, sub_h;
     int w, h;
     int half_w, half_h;
-    int bit = 8;
+    int bit = MAX_CU_LOG2;
 
 #if MC_PRECISION_ADD
     int mc_prec = 2 + MC_PRECISION_ADD;
