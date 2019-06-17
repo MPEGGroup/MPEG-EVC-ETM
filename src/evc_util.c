@@ -3325,7 +3325,7 @@ void evc_derive_affine_model_mv(int scup, int scun, int lidx, s16(*map_mv)[REFP_
     int neb_h = 1 << neb_log_h;
     int neb_x, neb_y;
     int cur_x, cur_y;
-    int max_bit = EVC_MAX(neb_log_w, neb_log_h);
+    int max_bit = 7;
     int diff_w = max_bit - neb_log_w;
     int diff_h = max_bit - neb_log_h;
     int dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y, hor_base, ver_base;
@@ -3354,9 +3354,9 @@ void evc_derive_affine_model_mv(int scup, int scun, int lidx, s16(*map_mv)[REFP_
         else
 #endif
         {
-        neb_mv[i][MV_X] = map_mv[neb_addr[i]][lidx][MV_X];
-        neb_mv[i][MV_Y] = map_mv[neb_addr[i]][lidx][MV_Y];
-    }
+            neb_mv[i][MV_X] = map_mv[neb_addr[i]][lidx][MV_X];
+            neb_mv[i][MV_Y] = map_mv[neb_addr[i]][lidx][MV_Y];
+        }
     }
 
     dmv_hor_x = (neb_mv[1][MV_X] - neb_mv[0][MV_X]) << diff_w;    // deltaMvHor
