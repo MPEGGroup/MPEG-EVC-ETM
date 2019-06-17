@@ -581,7 +581,7 @@ static void select_assign_rpl_for_tgh(EVCE_CTX *ctx, EVC_TGH *tgh)
     }
 
     //For special case when the pic is in the first (few) GOP in the beginning of the bitstream.
-    if (ctx->param.i_period == 0)                          //For low delay configuration
+    if(ctx->param.gop_size == 1)                          //For low delay configuration
     {
         if (tgh->poc <= (ctx->cdsc.rpls_l0_cfg_num - gopSize))
         {
@@ -594,7 +594,7 @@ static void select_assign_rpl_for_tgh(EVCE_CTX *ctx, EVC_TGH *tgh)
         //for (int i = ctx->param.gop_size; i < ctx->cdsc.rpls_l0_cfg_num; i++)
         for (int i = gopSize; i < ctx->cdsc.rpls_l0_cfg_num; i++)
         {
-            int pocIdx = (tgh->poc % ctx->param.i_period == 0) ? ctx->param.i_period : tgh->poc % ctx->param.i_period;
+            int pocIdx = ctx->param.i_period == 0 ? tgh->poc : (tgh->poc % ctx->param.i_period == 0) ? ctx->param.i_period : tgh->poc % ctx->param.i_period;
             if (pocIdx == ctx->cdsc.rpls_l0[i].poc)
             {
                 tgh->rpl_l0_idx = i;
