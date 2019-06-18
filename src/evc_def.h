@@ -282,7 +282,6 @@ enum SAD_POINT_INDEX
 #define AFFINE_MAX_NUM_RT                  2 ///< max number of motion candidates in top-right corner
 #define AFFINE_MAX_NUM_LB                  2 ///< max number of motion candidates in left-bottom corner
 #define AFFINE_MAX_NUM_RB                  1 ///< max number of motion candidates in right-bottom corner
-#define AFFINE_MAX_NUM_COMB                12 ///< max number of combined motion candidates
 #define AFFINE_MIN_BLOCK_SIZE              4 ///< Minimum affine MC block size
 
 #define AFF_MAX_NUM_MVP                    2 // maximum affine inter candidates
