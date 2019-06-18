@@ -678,7 +678,7 @@ void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
         int vertex, lidx;
         int mrg_idx = core->mvp_idx[0];
 
-        evc_get_affine_merge_candidate(ctx->ptr, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp, cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, mrg_list_refi, mrg_list_cp_mv, mrg_list_cp_num, ctx->map_scu, ctx->map_affine
+        evc_get_affine_merge_candidate(ctx->ptr, ctx->tgh.tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp, cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, mrg_list_refi, mrg_list_cp_mv, mrg_list_cp_num, ctx->map_scu, ctx->map_affine
 #if DMVR_LAG
             , ctx->map_unrefined_mv
 #endif

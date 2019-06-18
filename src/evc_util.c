@@ -3678,7 +3678,7 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
 }
 
 /* merge affine mode */
-int evc_get_affine_merge_candidate(int ptr, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], EVC_REFP(*refp)[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, u16 avail,
+int evc_get_affine_merge_candidate(int ptr, int tile_group_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], EVC_REFP(*refp)[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, u16 avail,
                                    s8 mrg_list_refi[AFF_MAX_CAND][REFP_NUM], s16 mrg_list_cpmv[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D], int mrg_list_cp_num[AFF_MAX_CAND], u32* map_scu, u32* map_affine
 #if DMVR_LAG
                                    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
@@ -3946,7 +3946,27 @@ int evc_get_affine_merge_candidate(int ptr, int scup, s8(*map_refi)[REFP_NUM], s
         }
     }
 
-    return cnt;
+    // Zero padding
+    int cnt_wo_padding = cnt;
+    {
+        int cp_idx;
+        for ( ; cnt < AFF_MAX_CAND; cnt++ )
+        {
+            mrg_list_cp_num[cnt] = 2;
+            for ( lidx = 0; lidx < REFP_NUM; lidx++ )
+            {
+                for ( cp_idx = 0; cp_idx < 2; cp_idx++ )
+                {
+                    mrg_list_cpmv[cnt][lidx][cp_idx][MV_X] = 0;
+                    mrg_list_cpmv[cnt][lidx][cp_idx][MV_Y] = 0;
+                }
+            }
+            mrg_list_refi[cnt][REFP_0] = 0;
+            mrg_list_refi[cnt][REFP_1] = (tile_group_type == TILE_GROUP_B) ? 0 : REFI_INVALID;
+        }
+    }
+
+    return cnt_wo_padding; // return value only used for encoder
 }
 #endif
 
