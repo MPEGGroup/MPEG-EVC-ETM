@@ -339,7 +339,10 @@ enum SAD_POINT_INDEX
 
 /* EIF (START) */
 #if EIF
+#define HW_EIF                             1
 #define AFFINE_ADAPT_EIF_SIZE              8
+
+#if !HW_EIF
 
 #define EIF_MV_ADDITIONAL_PRECISION        9
 #define EIF_IF_FILTER_PREC_HP              6 ///EIF filter precision for interpolation
@@ -362,6 +365,7 @@ enum SAD_POINT_INDEX
 #else
 #define EIF_SIMD                           0
 #endif
+#endif //HW_EIF
 #endif
 /* EIF (END) */
 #endif
@@ -1459,6 +1463,14 @@ typedef enum _MSL_IDX
 #define PAD_BUFFER_STRIDE                               ((MAX_CU_SIZE + EXTRA_PIXELS_FOR_FILTER + (DMVR_ITER_COUNT * 2)))
 static const int NTAPS_LUMA = 8; ///< Number of taps for luma
 static const int NTAPS_CHROMA = 4; ///< Number of taps for chroma
+#endif
+
+#if EIF
+#define EIF_MV_PRECISION                                       (2 + MAX_CU_LOG2 + 0) //2 + MAX_CU_LOG2 is MV precision in regular affine
+
+#if EIF_MV_PRECISION > 14 || EIF_MV_PRECISION < 9
+#error "Invalid EIF_MV_PRECISION"
+#endif
 #endif
 
 #define MAX_SUB_TB_NUM 4
