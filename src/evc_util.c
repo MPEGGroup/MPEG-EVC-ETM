@@ -1358,6 +1358,13 @@ void evc_get_motion(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[RE
     mvp[3][MV_Y] = refp[0][lidx].map_mv[scup][0][MV_Y];
 }
 
+void evc_mv_rounding_s32( s32 hor, int ver, s32 * rounded_hor, s32 * rounded_ver, s32 right_shift, int left_shift )
+{
+    int offset = (right_shift > 0) ? (1 << (right_shift - 1)) : 0;
+    *rounded_hor = ((hor + offset - (hor >= 0)) >> right_shift) << left_shift;
+    *rounded_ver = ((ver + offset - (ver >= 0)) >> right_shift) << left_shift;
+}
+
 #if AFFINE
 void evc_get_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int num_refp, s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM],
                             int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][MV_D], s8 refi[MAX_NUM_MVP], u32* map_scu, u16 avail_lr
@@ -3147,7 +3154,9 @@ int evc_derive_affine_constructed_candidate(int ptr, EVC_REFP (*refp)[REFP_NUM],
 {
     int lidx, i;
     int valid_model[2] = {0, 0};
-    s16 cpmv_tmp[REFP_NUM][VER_NUM][MV_D];
+    s32 cpmv_tmp[REFP_NUM][VER_NUM][MV_D];
+    int tmp_hor, tmp_ver;
+    int shiftHtoW = 7 + evc_tbl_log2[cuw] - evc_tbl_log2[cuh]; // x * cuWidth / cuHeight
 
     // early terminate
     if(*mrg_idx >= AFF_MAX_CAND)
@@ -3212,8 +3221,8 @@ int evc_derive_affine_constructed_candidate(int ptr, EVC_REFP (*refp)[REFP_NUM],
             mrg_list_refi[*mrg_idx][lidx] = cp_refi[lidx][cp_idx[0]];
             for ( i = 0; i < ver_num; i++ )
             {
-                cpmv_tmp[lidx][cp_idx[i]][MV_X] = cp_mv[lidx][cp_idx[i]][MV_X];
-                cpmv_tmp[lidx][cp_idx[i]][MV_Y] = cp_mv[lidx][cp_idx[i]][MV_Y];
+                cpmv_tmp[lidx][cp_idx[i]][MV_X] = (s32)cp_mv[lidx][cp_idx[i]][MV_X];
+                cpmv_tmp[lidx][cp_idx[i]][MV_Y] = (s32)cp_mv[lidx][cp_idx[i]][MV_Y];
             }
 
             // convert to LT, RT[, [LB], [RB]]
@@ -3234,12 +3243,11 @@ int evc_derive_affine_constructed_candidate(int ptr, EVC_REFP (*refp)[REFP_NUM],
                 cpmv_tmp[lidx][0][MV_Y] = cpmv_tmp[lidx][1][MV_Y] + cpmv_tmp[lidx][2][MV_Y] - cpmv_tmp[lidx][3][MV_Y];
                 break;
             case 4: // 5 : LT, RT
-                cpmv_tmp[lidx][2][MV_X] = -(cpmv_tmp[lidx][1][MV_Y] - cpmv_tmp[lidx][0][MV_Y]) * cuh / cuw + cpmv_tmp[lidx][0][MV_X];
-                cpmv_tmp[lidx][2][MV_Y] = +(cpmv_tmp[lidx][1][MV_X] - cpmv_tmp[lidx][0][MV_X]) * cuh / cuw + cpmv_tmp[lidx][0][MV_Y];
                 break;
             case 5: // 6 : LT, LB
-                cpmv_tmp[lidx][1][MV_X] = +(cpmv_tmp[lidx][2][MV_Y] - cpmv_tmp[lidx][0][MV_Y]) * cuw / cuh + cpmv_tmp[lidx][0][MV_X];
-                cpmv_tmp[lidx][1][MV_Y] = -(cpmv_tmp[lidx][2][MV_X] - cpmv_tmp[lidx][0][MV_X]) * cuw / cuh + cpmv_tmp[lidx][0][MV_Y];
+                tmp_hor = +((cpmv_tmp[lidx][2][MV_Y] - cpmv_tmp[lidx][0][MV_Y]) << shiftHtoW) + (cpmv_tmp[lidx][0][MV_X] << 7);
+                tmp_ver = -((cpmv_tmp[lidx][2][MV_X] - cpmv_tmp[lidx][0][MV_X]) << shiftHtoW) + (cpmv_tmp[lidx][0][MV_Y] << 7);
+                evc_mv_rounding_s32( tmp_hor, tmp_ver, &cpmv_tmp[lidx][1][MV_X], &cpmv_tmp[lidx][1][MV_Y], 7, 0 );
                 break;
             default:
                 evc_assert( 0 );
@@ -3247,8 +3255,8 @@ int evc_derive_affine_constructed_candidate(int ptr, EVC_REFP (*refp)[REFP_NUM],
 
             for ( i = 0; i < ver_num; i++ )
             {
-                mrg_list_cp_mv[*mrg_idx][lidx][i][MV_X] = cpmv_tmp[lidx][i][MV_X];
-                mrg_list_cp_mv[*mrg_idx][lidx][i][MV_Y] = cpmv_tmp[lidx][i][MV_Y];
+                mrg_list_cp_mv[*mrg_idx][lidx][i][MV_X] = (s16)EVC_CLIP3( EVC_INT16_MIN, EVC_INT16_MAX, cpmv_tmp[lidx][i][MV_X] );
+                mrg_list_cp_mv[*mrg_idx][lidx][i][MV_Y] = (s16)EVC_CLIP3( EVC_INT16_MIN, EVC_INT16_MAX, cpmv_tmp[lidx][i][MV_Y] );
             }
         }
         else
@@ -3287,6 +3295,7 @@ void evc_derive_affine_model_mv(int scup, int scun, int lidx, s16(*map_mv)[REFP_
     int diff_w = max_bit - neb_log_w;
     int diff_h = max_bit - neb_log_h;
     int dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y, hor_base, ver_base;
+    s32 tmp_hor, tmp_ver;
 
     neb_addr[0] = scun - MCU_GET_AFF_XOFF(map_affine[scun]) - w_scu * MCU_GET_AFF_YOFF(map_affine[scun]);
     neb_addr[1] = neb_addr[0] + ((neb_w >> MIN_CU_LOG2) - 1);
@@ -3332,12 +3341,26 @@ void evc_derive_affine_model_mv(int scup, int scun, int lidx, s16(*map_mv)[REFP_
     hor_base = neb_mv[0][MV_X] << max_bit;
     ver_base = neb_mv[0][MV_Y] << max_bit;
 
-    mvp[0][MV_X] = (dmv_hor_x * (cur_x - neb_x) + dmv_ver_x * (cur_y - neb_y) + hor_base) >> max_bit;
-    mvp[0][MV_Y] = (dmv_hor_y * (cur_x - neb_x) + dmv_ver_y * (cur_y - neb_y) + ver_base) >> max_bit;
-    mvp[1][MV_X] = (dmv_hor_x * (cur_x - neb_x + cuw) + dmv_ver_x * (cur_y - neb_y) + hor_base) >> max_bit;
-    mvp[1][MV_Y] = (dmv_hor_y * (cur_x - neb_x + cuw) + dmv_ver_y * (cur_y - neb_y) + ver_base) >> max_bit;
-    mvp[2][MV_X] = (dmv_hor_x * (cur_x - neb_x) + dmv_ver_x * (cur_y - neb_y + cuh) + hor_base) >> max_bit;
-    mvp[2][MV_Y] = (dmv_hor_y * (cur_x - neb_x) + dmv_ver_y * (cur_y - neb_y + cuh) + ver_base) >> max_bit;
+    // derive CPMV 0
+    tmp_hor = dmv_hor_x * (cur_x - neb_x) + dmv_ver_x * (cur_y - neb_y) + hor_base;
+    tmp_ver = dmv_hor_y * (cur_x - neb_x) + dmv_ver_y * (cur_y - neb_y) + ver_base;
+    evc_mv_rounding_s32( tmp_hor, tmp_ver, &tmp_hor, &tmp_ver, max_bit, 0 );
+    mvp[0][MV_X] = (s16)EVC_CLIP3( EVC_INT16_MIN, EVC_INT16_MAX, tmp_hor );
+    mvp[0][MV_Y] = (s16)EVC_CLIP3( EVC_INT16_MIN, EVC_INT16_MAX, tmp_ver );
+
+    // derive CPMV 1
+    tmp_hor = dmv_hor_x * (cur_x - neb_x + cuw) + dmv_ver_x * (cur_y - neb_y) + hor_base;
+    tmp_ver = dmv_hor_y * (cur_x - neb_x + cuw) + dmv_ver_y * (cur_y - neb_y) + ver_base;
+    evc_mv_rounding_s32( tmp_hor, tmp_ver, &tmp_hor, &tmp_ver, max_bit, 0 );
+    mvp[1][MV_X] = (s16)EVC_CLIP3( EVC_INT16_MIN, EVC_INT16_MAX, tmp_hor );
+    mvp[1][MV_Y] = (s16)EVC_CLIP3( EVC_INT16_MIN, EVC_INT16_MAX, tmp_ver );
+
+    // derive CPMV 2
+    tmp_hor = dmv_hor_x * (cur_x - neb_x) + dmv_ver_x * (cur_y - neb_y + cuh) + hor_base;
+    tmp_ver = dmv_hor_y * (cur_x - neb_x) + dmv_ver_y * (cur_y - neb_y + cuh) + ver_base;
+    evc_mv_rounding_s32( tmp_hor, tmp_ver, &tmp_hor, &tmp_ver, max_bit, 0 );
+    mvp[2][MV_X] = (s16)EVC_CLIP3( EVC_INT16_MIN, EVC_INT16_MAX, tmp_hor );
+    mvp[2][MV_Y] = (s16)EVC_CLIP3( EVC_INT16_MIN, EVC_INT16_MAX, tmp_ver );
 }
 
 /* inter affine mode */
