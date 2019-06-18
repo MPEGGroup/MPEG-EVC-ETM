@@ -4391,9 +4391,9 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
 {
     EVCE_PINTER *pi = &ctx->pinter;
     pel          *y_org, *u_org, *v_org;
-    s16          mvp[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D];
-    s8           refi[AFF_MAX_CAND][REFP_NUM];
-    int          vertex_num[AFF_MAX_CAND];
+    s16          mrg_list_cp_mv[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D];
+    s8           mrg_list_refi[AFF_MAX_CAND][REFP_NUM];
+    int          mrg_list_cp_num[AFF_MAX_CAND];
 
     double       cost, cost_best = MAX_COST;
     int          cuw, cuh, idx, bit_cnt, mrg_cnt, best_idx = 0;
@@ -4406,7 +4406,7 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
     u_org = pi->o[U_C] + (x >> 1) + ((y >> 1) * pi->s_o[U_C]);
     v_org = pi->o[V_C] + (x >> 1) + ((y >> 1) * pi->s_o[V_C]);
 
-    mrg_cnt = evc_get_affine_merge_candidate(ctx->ptr, core->scup, ctx->map_refi, ctx->map_mv, pi->refp, cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, refi, mvp, vertex_num, ctx->map_scu, ctx->map_affine
+    mrg_cnt = evc_get_affine_merge_candidate(ctx->ptr, core->scup, ctx->map_refi, ctx->map_mv, pi->refp, cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, mrg_list_refi, mrg_list_cp_mv, mrg_list_cp_num, ctx->map_scu, ctx->map_affine
 #if DMVR_LAG
                                              , ctx->map_unrefined_mv
 #endif
@@ -4419,16 +4419,28 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
     {
         int memory_access[REFP_NUM];
         int allowed = 1;
-        if ( REFI_IS_VALID( refi[idx][REFP_0] ) )
+        int i;
+        for ( i = 0; i < REFP_NUM; i++ )
         {
-            memory_access[REFP_0] = evc_get_affine_memory_access( mvp[idx][REFP_0], cuw, cuh );
-        }
-        if ( REFI_IS_VALID( refi[idx][REFP_1] ) )
-        {
-            memory_access[REFP_1] = evc_get_affine_memory_access( mvp[idx][REFP_1], cuw, cuh );
+            if ( REFI_IS_VALID( mrg_list_refi[idx][i] ) )
+            {
+                if ( mrg_list_cp_num[idx] == 3 ) // derive RB
+                {
+                    mrg_list_cp_mv[idx][i][3][MV_X] = mrg_list_cp_mv[idx][i][1][MV_X] + mrg_list_cp_mv[idx][i][2][MV_X] - mrg_list_cp_mv[idx][i][0][MV_X];
+                    mrg_list_cp_mv[idx][i][3][MV_Y] = mrg_list_cp_mv[idx][i][1][MV_Y] + mrg_list_cp_mv[idx][i][2][MV_Y] - mrg_list_cp_mv[idx][i][0][MV_Y];
+                }
+                else // derive LB, RB
+                {
+                    mrg_list_cp_mv[idx][i][2][MV_X] = mrg_list_cp_mv[idx][i][0][MV_X] - (mrg_list_cp_mv[idx][i][1][MV_Y] - mrg_list_cp_mv[idx][i][0][MV_Y]) * (s16)cuh / (s16)cuw;
+                    mrg_list_cp_mv[idx][i][2][MV_Y] = mrg_list_cp_mv[idx][i][0][MV_Y] + (mrg_list_cp_mv[idx][i][1][MV_X] - mrg_list_cp_mv[idx][i][0][MV_X]) * (s16)cuh / (s16)cuw;
+                    mrg_list_cp_mv[idx][i][3][MV_X] = mrg_list_cp_mv[idx][i][1][MV_X] - (mrg_list_cp_mv[idx][i][1][MV_Y] - mrg_list_cp_mv[idx][i][0][MV_Y]) * (s16)cuh / (s16)cuw;
+                    mrg_list_cp_mv[idx][i][3][MV_Y] = mrg_list_cp_mv[idx][i][1][MV_Y] + (mrg_list_cp_mv[idx][i][1][MV_X] - mrg_list_cp_mv[idx][i][0][MV_X]) * (s16)cuh / (s16)cuw;
+                }
+                memory_access[i] = evc_get_affine_memory_access( mrg_list_cp_mv[idx][i], cuw, cuh );
+            }
         }
 
-        if ( REFI_IS_VALID( refi[idx][0] ) && REFI_IS_VALID( refi[idx][1] ) )
+        if ( REFI_IS_VALID( mrg_list_refi[idx][0] ) && REFI_IS_VALID( mrg_list_refi[idx][1] ) )
         {
             int mem = MAX_MEMORY_ACCESS_BI * cuw * cuh;
             if ( memory_access[0] > mem || memory_access[1] > mem )
@@ -4438,7 +4450,7 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
         }
         else
         {
-            int valid_idx = REFI_IS_VALID( refi[idx][0] ) ? 0 : 1;
+            int valid_idx = REFI_IS_VALID( mrg_list_refi[idx][0] ) ? 0 : 1;
             int mem = MAX_MEMORY_ACCESS_UNI * cuw * cuh;
             if ( memory_access[valid_idx] > mem )
             {
@@ -4451,18 +4463,18 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
         }
 
         // set motion information for MC
-        core->affine_flag = vertex_num[idx] - 1;
+        core->affine_flag = mrg_list_cp_num[idx] - 1;
         pi->mvp_idx[pidx][REFP_0] = idx;
         pi->mvp_idx[pidx][REFP_1] = 0;
-        for(j = 0; j < vertex_num[idx]; j++)
+        for(j = 0; j < mrg_list_cp_num[idx]; j++)
         {
-            pi->affine_mv[pidx][REFP_0][j][MV_X] = mvp[idx][REFP_0][j][MV_X];
-            pi->affine_mv[pidx][REFP_0][j][MV_Y] = mvp[idx][REFP_0][j][MV_Y];
-            pi->affine_mv[pidx][REFP_1][j][MV_X] = mvp[idx][REFP_1][j][MV_X];
-            pi->affine_mv[pidx][REFP_1][j][MV_Y] = mvp[idx][REFP_1][j][MV_Y];
+            pi->affine_mv[pidx][REFP_0][j][MV_X] = mrg_list_cp_mv[idx][REFP_0][j][MV_X];
+            pi->affine_mv[pidx][REFP_0][j][MV_Y] = mrg_list_cp_mv[idx][REFP_0][j][MV_Y];
+            pi->affine_mv[pidx][REFP_1][j][MV_X] = mrg_list_cp_mv[idx][REFP_1][j][MV_X];
+            pi->affine_mv[pidx][REFP_1][j][MV_Y] = mrg_list_cp_mv[idx][REFP_1][j][MV_Y];
         }
-        pi->refi[pidx][REFP_0] = refi[idx][REFP_0];
-        pi->refi[pidx][REFP_1] = refi[idx][REFP_1];
+        pi->refi[pidx][REFP_0] = mrg_list_refi[idx][REFP_0];
+        pi->refi[pidx][REFP_1] = mrg_list_refi[idx][REFP_1];
 
         if(pidx == AFF_DIR)
         {
@@ -4474,7 +4486,7 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
         }
         else
         {
-            evc_affine_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi[idx], mvp[idx], pi->refp, pi->pred[PRED_NUM], vertex_num[idx]
+            evc_affine_mc(x, y, ctx->w, ctx->h, cuw, cuh, mrg_list_refi[idx], mrg_list_cp_mv[idx], pi->refp, pi->pred[PRED_NUM], mrg_list_cp_num[idx]
 #if EIF
                           , core->eif_tmp_buffer
 #endif
@@ -4485,8 +4497,8 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
             cv = evce_ssd_16b(log2_cuw - 1, log2_cuh - 1, pi->pred[PRED_NUM][0][V_C], v_org, cuw >> 1, pi->s_o[V_C]);
 
 #if RDO_DBK
-            evc_set_affine_mvf(ctx, core, cuw, cuh, refi[idx], mvp[idx], vertex_num[idx]);
-            calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->pred[PRED_NUM][0], cuw, x, y, core->avail_lr, 0, 0, refi[idx], pi->mv[pidx], 1);
+            evc_set_affine_mvf(ctx, core, cuw, cuh, mrg_list_refi[idx], mrg_list_cp_mv[idx], mrg_list_cp_num[idx]);
+            calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->pred[PRED_NUM][0], cuw, x, y, core->avail_lr, 0, 0, mrg_list_refi[idx], pi->mv[pidx], 1);
             cy += ctx->delta_dist[Y_C];
             cu += ctx->delta_dist[U_C];
             cv += ctx->delta_dist[V_C];
@@ -4526,19 +4538,19 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
     // set best motion information
     if(mrg_cnt >= 1)
     {
-        core->affine_flag = vertex_num[best_idx] - 1;
+        core->affine_flag = mrg_list_cp_num[best_idx] - 1;
 
         pi->mvp_idx[pidx][REFP_0] = best_idx;
         pi->mvp_idx[pidx][REFP_1] = 0;
-        for(j = 0; j < vertex_num[best_idx]; j++)
+        for(j = 0; j < mrg_list_cp_num[best_idx]; j++)
         {
-            pi->affine_mv[pidx][REFP_0][j][MV_X] = mvp[best_idx][REFP_0][j][MV_X];
-            pi->affine_mv[pidx][REFP_0][j][MV_Y] = mvp[best_idx][REFP_0][j][MV_Y];
-            pi->affine_mv[pidx][REFP_1][j][MV_X] = mvp[best_idx][REFP_1][j][MV_X];
-            pi->affine_mv[pidx][REFP_1][j][MV_Y] = mvp[best_idx][REFP_1][j][MV_Y];
+            pi->affine_mv[pidx][REFP_0][j][MV_X] = mrg_list_cp_mv[best_idx][REFP_0][j][MV_X];
+            pi->affine_mv[pidx][REFP_0][j][MV_Y] = mrg_list_cp_mv[best_idx][REFP_0][j][MV_Y];
+            pi->affine_mv[pidx][REFP_1][j][MV_X] = mrg_list_cp_mv[best_idx][REFP_1][j][MV_X];
+            pi->affine_mv[pidx][REFP_1][j][MV_Y] = mrg_list_cp_mv[best_idx][REFP_1][j][MV_Y];
         }
-        pi->refi[pidx][REFP_0] = refi[best_idx][REFP_0];
-        pi->refi[pidx][REFP_1] = refi[best_idx][REFP_1];
+        pi->refi[pidx][REFP_0] = mrg_list_refi[best_idx][REFP_0];
+        pi->refi[pidx][REFP_1] = mrg_list_refi[best_idx][REFP_1];
 
         pi->mv[pidx][REFP_0][MV_X] = 0;
         pi->mv[pidx][REFP_0][MV_Y] = 0;

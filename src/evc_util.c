@@ -3143,12 +3143,11 @@ int evc_get_affine_memory_access(s16 mv[VER_NUM][MV_D], int cuw, int cuh)
 #endif
 }
 
-int evc_affine_check_valid_and_scale(int ptr, EVC_REFP (*refp)[REFP_NUM], int cuw, int cuh, int ver_valid[VER_NUM], s16 ver_mv[REFP_NUM][VER_NUM][MV_D], int ver_refi[REFP_NUM][VER_NUM], int ver_idx[VER_NUM], int model_idx, int ver_num, s16 mvp[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D], s8 refi[AFF_MAX_CAND][REFP_NUM], int *mrg_idx, int num[AFF_MAX_CAND])
+int evc_derive_affine_constructed_candidate(int ptr, EVC_REFP (*refp)[REFP_NUM], int cuw, int cuh, int cp_valid[VER_NUM], s16 cp_mv[REFP_NUM][VER_NUM][MV_D], int cp_refi[REFP_NUM][VER_NUM], int cp_idx[VER_NUM], int model_idx, int ver_num, s16 mrg_list_cp_mv[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D], s8 mrg_list_refi[AFF_MAX_CAND][REFP_NUM], int *mrg_idx, int mrg_list_cp_num[AFF_MAX_CAND])
 {
     int lidx, i;
     int valid_model[2] = {0, 0};
-    s16(*out_mv)[VER_NUM][MV_D];
-    s8 *out_refi;
+    s16 cpmv_tmp[REFP_NUM][VER_NUM][MV_D];
 
     // early terminate
     if(*mrg_idx >= AFF_MAX_CAND)
@@ -3156,155 +3155,114 @@ int evc_affine_check_valid_and_scale(int ptr, EVC_REFP (*refp)[REFP_NUM], int cu
         return 0;
     }
 
-    out_mv = mvp[*mrg_idx];
-    out_refi = refi[*mrg_idx];
-
     // check valid model and decide ref idx
     if(ver_num == 2)
     {
-        int idx0 = ver_idx[0], idx1 = ver_idx[1];
+        int idx0 = cp_idx[0], idx1 = cp_idx[1];
 
-        if(!ver_valid[idx0] || !ver_valid[idx1])
+        if(!cp_valid[idx0] || !cp_valid[idx1])
         {
             return 0;
         }
 
         for(lidx = 0; lidx < REFP_NUM; lidx++)
         {
-            if(REFI_IS_VALID(ver_refi[lidx][idx0]) && REFI_IS_VALID(ver_refi[lidx][idx1]) && ver_refi[lidx][idx0] == ver_refi[lidx][idx1])
+            if(REFI_IS_VALID(cp_refi[lidx][idx0]) && REFI_IS_VALID(cp_refi[lidx][idx1]) && cp_refi[lidx][idx0] == cp_refi[lidx][idx1])
             {
                 valid_model[lidx] = 1;
-                out_refi[lidx] = ver_refi[lidx][idx0];
             }
         }
     }
     else if(ver_num == 3)
     {
-        int idx0 = ver_idx[0], idx1 = ver_idx[1], idx2 = ver_idx[2];
+        int idx0 = cp_idx[0], idx1 = cp_idx[1], idx2 = cp_idx[2];
 
-        if(!ver_valid[idx0] || !ver_valid[idx1] || !ver_valid[idx2])
+        if(!cp_valid[idx0] || !cp_valid[idx1] || !cp_valid[idx2])
         {
             return 0;
         }
 
         for(lidx = 0; lidx < REFP_NUM; lidx++)
         {
-            if(REFI_IS_VALID(ver_refi[lidx][idx0]) && REFI_IS_VALID(ver_refi[lidx][idx1]) && REFI_IS_VALID(ver_refi[lidx][idx2]) && ver_refi[lidx][idx0] == ver_refi[lidx][idx1] && ver_refi[lidx][idx0] == ver_refi[lidx][idx2])
+            if(REFI_IS_VALID(cp_refi[lidx][idx0]) && REFI_IS_VALID(cp_refi[lidx][idx1]) && REFI_IS_VALID(cp_refi[lidx][idx2]) && cp_refi[lidx][idx0] == cp_refi[lidx][idx1] && cp_refi[lidx][idx0] == cp_refi[lidx][idx2])
             {
                 valid_model[lidx] = 1;
-                out_refi[lidx] = ver_refi[lidx][idx0];
             }
         }
     }
-    else if(ver_num == 4)
+    else
     {
-        int idx0 = ver_idx[0], idx1 = ver_idx[1], idx2 = ver_idx[2], idx3 = ver_idx[3];
-
-        if(!ver_valid[idx0] || !ver_valid[idx1] || !ver_valid[idx2] || !ver_valid[idx3])
-        {
-            return 0;
-        }
-
-        for(lidx = 0; lidx < REFP_NUM; lidx++)
-        {
-            if(REFI_IS_VALID(ver_refi[lidx][idx0]) && REFI_IS_VALID(ver_refi[lidx][idx1]) && REFI_IS_VALID(ver_refi[lidx][idx2]) && REFI_IS_VALID(ver_refi[lidx][idx3])
-              && ver_refi[lidx][idx0] == ver_refi[lidx][idx1]
-              && ver_refi[lidx][idx0] == ver_refi[lidx][idx2]
-              && ver_refi[lidx][idx0] == ver_refi[lidx][idx3] )
-            {
-                valid_model[lidx] = 1;
-                out_refi[lidx] = ver_refi[lidx][idx0];
-            }
-        }
+        evc_assert( 0 );
     }
 
     // set merge index and vertex num for valid model
     if(valid_model[0] || valid_model[1])
     {
-        num[*mrg_idx] = ver_num;
+        mrg_list_cp_num[*mrg_idx] = ver_num;
     }
     else
     {
         return 0;
     }
-
-    // scale to pre-decided ref idx
+    
     for(lidx = 0; lidx < REFP_NUM; lidx++)
     {
         if(valid_model[lidx])
         {
-            for (i = 0; i < ver_num; i++)
+            mrg_list_refi[*mrg_idx][lidx] = cp_refi[lidx][cp_idx[0]];
+            for ( i = 0; i < ver_num; i++ )
             {
-                out_mv[lidx][ver_idx[i]][MV_X] = ver_mv[lidx][ver_idx[i]][MV_X];
-                out_mv[lidx][ver_idx[i]][MV_Y] = ver_mv[lidx][ver_idx[i]][MV_Y];
+                cpmv_tmp[lidx][cp_idx[i]][MV_X] = cp_mv[lidx][cp_idx[i]][MV_X];
+                cpmv_tmp[lidx][cp_idx[i]][MV_Y] = cp_mv[lidx][cp_idx[i]][MV_Y];
             }
-        }
-        else
-        {
-            out_refi[lidx] = -1;
-        }
-    }
 
-    // convert to LT, RT[, [LB], [RB]]
-    for(lidx = 0; lidx < REFP_NUM; lidx++)
-    {
-        if(valid_model[lidx])
-        {
+            // convert to LT, RT[, [LB], [RB]]
             switch(model_idx)
             {
-                case 0: // 0 : LT, RT, LB. RB
-                    break;
-                case 1: // 1 : LT, RT, LB
-                    out_mv[lidx][3][MV_X] = out_mv[lidx][1][MV_X] + out_mv[lidx][2][MV_X] - out_mv[lidx][0][MV_X];
-                    out_mv[lidx][3][MV_Y] = out_mv[lidx][1][MV_Y] + out_mv[lidx][2][MV_Y] - out_mv[lidx][0][MV_Y];
-                    break;
-                case 5: // 5 : LT, RT
-                    out_mv[lidx][2][MV_X] = -(out_mv[lidx][1][MV_Y] - out_mv[lidx][0][MV_Y]) * cuh / cuw + out_mv[lidx][0][MV_X];
-                    out_mv[lidx][2][MV_Y] = +(out_mv[lidx][1][MV_X] - out_mv[lidx][0][MV_X]) * cuh / cuw + out_mv[lidx][0][MV_Y];
-                    out_mv[lidx][3][MV_X] = -(out_mv[lidx][1][MV_Y] - out_mv[lidx][0][MV_Y]) * cuh / cuw + out_mv[lidx][1][MV_X];
-                    out_mv[lidx][3][MV_Y] = +(out_mv[lidx][1][MV_X] - out_mv[lidx][0][MV_X]) * cuh / cuw + out_mv[lidx][1][MV_Y];
-                    break;
+            case 0: // 0 : LT, RT, LB
+                break;
+            case 1: // 1 : LT, RT, RB
+                cpmv_tmp[lidx][2][MV_X] = cpmv_tmp[lidx][3][MV_X] + cpmv_tmp[lidx][0][MV_X] - cpmv_tmp[lidx][1][MV_X];
+                cpmv_tmp[lidx][2][MV_Y] = cpmv_tmp[lidx][3][MV_Y] + cpmv_tmp[lidx][0][MV_Y] - cpmv_tmp[lidx][1][MV_Y];
+                break;
+            case 2: // 1 : LT, LB, RB
+                cpmv_tmp[lidx][1][MV_X] = cpmv_tmp[lidx][3][MV_X] + cpmv_tmp[lidx][0][MV_X] - cpmv_tmp[lidx][2][MV_X];
+                cpmv_tmp[lidx][1][MV_Y] = cpmv_tmp[lidx][3][MV_Y] + cpmv_tmp[lidx][0][MV_Y] - cpmv_tmp[lidx][2][MV_Y];
+                break;
+            case 3: // 4 : RT, LB, RB
+                cpmv_tmp[lidx][0][MV_X] = cpmv_tmp[lidx][1][MV_X] + cpmv_tmp[lidx][2][MV_X] - cpmv_tmp[lidx][3][MV_X];
+                cpmv_tmp[lidx][0][MV_Y] = cpmv_tmp[lidx][1][MV_Y] + cpmv_tmp[lidx][2][MV_Y] - cpmv_tmp[lidx][3][MV_Y];
+                break;
+            case 4: // 5 : LT, RT
+                cpmv_tmp[lidx][2][MV_X] = -(cpmv_tmp[lidx][1][MV_Y] - cpmv_tmp[lidx][0][MV_Y]) * cuh / cuw + cpmv_tmp[lidx][0][MV_X];
+                cpmv_tmp[lidx][2][MV_Y] = +(cpmv_tmp[lidx][1][MV_X] - cpmv_tmp[lidx][0][MV_X]) * cuh / cuw + cpmv_tmp[lidx][0][MV_Y];
+                break;
+            case 5: // 6 : LT, LB
+                cpmv_tmp[lidx][1][MV_X] = +(cpmv_tmp[lidx][2][MV_Y] - cpmv_tmp[lidx][0][MV_Y]) * cuw / cuh + cpmv_tmp[lidx][0][MV_X];
+                cpmv_tmp[lidx][1][MV_Y] = -(cpmv_tmp[lidx][2][MV_X] - cpmv_tmp[lidx][0][MV_X]) * cuw / cuh + cpmv_tmp[lidx][0][MV_Y];
+                break;
+            default:
+                evc_assert( 0 );
+            }
 
-                case 2: // 2 : LT, RT, RB
-                    out_mv[lidx][2][MV_X] = out_mv[lidx][3][MV_X] + out_mv[lidx][0][MV_X] - out_mv[lidx][1][MV_X];
-                    out_mv[lidx][2][MV_Y] = out_mv[lidx][3][MV_Y] + out_mv[lidx][0][MV_Y] - out_mv[lidx][1][MV_Y];
-                    break;
-
-                case 3: // 3 : LT, LB, RB
-                    out_mv[lidx][1][MV_X] = out_mv[lidx][3][MV_X] + out_mv[lidx][0][MV_X] - out_mv[lidx][2][MV_X];
-                    out_mv[lidx][1][MV_Y] = out_mv[lidx][3][MV_Y] + out_mv[lidx][0][MV_Y] - out_mv[lidx][2][MV_Y];
-                    break;
-
-                case 4: // 4 : RT, LB, RB
-                    out_mv[lidx][0][MV_X] = out_mv[lidx][1][MV_X] + out_mv[lidx][2][MV_X] - out_mv[lidx][3][MV_X];
-                    out_mv[lidx][0][MV_Y] = out_mv[lidx][1][MV_Y] + out_mv[lidx][2][MV_Y] - out_mv[lidx][3][MV_Y];
-                    break;
-
-                case 6: // 6 : LT, LB
-                    out_mv[lidx][1][MV_X] = +(out_mv[lidx][2][MV_Y] - out_mv[lidx][0][MV_Y]) * cuw / cuh + out_mv[lidx][0][MV_X];
-                    out_mv[lidx][1][MV_Y] = -(out_mv[lidx][2][MV_X] - out_mv[lidx][0][MV_X]) * cuw / cuh + out_mv[lidx][0][MV_Y];
-                    out_mv[lidx][3][MV_X] = out_mv[lidx][1][MV_X] + out_mv[lidx][2][MV_X] - out_mv[lidx][0][MV_X];
-                    out_mv[lidx][3][MV_Y] = out_mv[lidx][1][MV_Y] + out_mv[lidx][2][MV_Y] - out_mv[lidx][0][MV_Y];
-                    break;
-                default:
-                    break;
+            for ( i = 0; i < ver_num; i++ )
+            {
+                mrg_list_cp_mv[*mrg_idx][lidx][i][MV_X] = cpmv_tmp[lidx][i][MV_X];
+                mrg_list_cp_mv[*mrg_idx][lidx][i][MV_Y] = cpmv_tmp[lidx][i][MV_Y];
             }
         }
         else
         {
-            for (i = 0; i < VER_NUM; i++)
+            mrg_list_refi[*mrg_idx][lidx] = -1;
+            for (i = 0; i < ver_num; i++)
             {
-                out_mv[lidx][i][MV_X] = 0;
-                out_mv[lidx][i][MV_Y] = 0;
+                mrg_list_cp_mv[*mrg_idx][lidx][i][MV_X] = 0;
+                mrg_list_cp_mv[*mrg_idx][lidx][i][MV_Y] = 0;
             }
         }
     }
 
-    {
-        {
-            (*mrg_idx)++;
-        }
-    }
+    (*mrg_idx)++;
 
     return 1;
 }
@@ -3380,8 +3338,6 @@ void evc_derive_affine_model_mv(int scup, int scun, int lidx, s16(*map_mv)[REFP_
     mvp[1][MV_Y] = (dmv_hor_y * (cur_x - neb_x + cuw) + dmv_ver_y * (cur_y - neb_y) + ver_base) >> max_bit;
     mvp[2][MV_X] = (dmv_hor_x * (cur_x - neb_x) + dmv_ver_x * (cur_y - neb_y + cuh) + hor_base) >> max_bit;
     mvp[2][MV_Y] = (dmv_hor_y * (cur_x - neb_x) + dmv_ver_y * (cur_y - neb_y + cuh) + ver_base) >> max_bit;
-    mvp[3][MV_X] = (dmv_hor_x * (cur_x - neb_x + cuw) + dmv_ver_x * (cur_y - neb_y + cuh) + hor_base) >> max_bit;
-    mvp[3][MV_Y] = (dmv_hor_y * (cur_x - neb_x + cuw) + dmv_ver_y * (cur_y - neb_y + cuh) + ver_base) >> max_bit;
 }
 
 /* inter affine mode */
@@ -3696,7 +3652,7 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
 
 /* merge affine mode */
 int evc_get_affine_merge_candidate(int ptr, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], EVC_REFP(*refp)[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, u16 avail,
-                                   s8 refi[AFF_MAX_CAND][REFP_NUM], s16 mvp[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D], int vertex_num[AFF_MAX_CAND], u32* map_scu, u32* map_affine
+                                   s8 mrg_list_refi[AFF_MAX_CAND][REFP_NUM], s16 mrg_list_cpmv[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D], int mrg_list_cp_num[AFF_MAX_CAND], u32* map_scu, u32* map_affine
 #if DMVR_LAG
                                    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
@@ -3755,14 +3711,14 @@ int evc_get_affine_merge_candidate(int ptr, int scup, s8(*map_refi)[REFP_NUM], s
             if(valid_flag[k])
             {
                 // set vertex number: affine flag == 1, set to 2 vertex, otherwise, set to 3 vertex
-                vertex_num[cnt] = (MCU_GET_AFF(map_scu[neb_addr[k]]) == 1) ? 2 : 3;
+                mrg_list_cp_num[cnt] = (MCU_GET_AFF(map_scu[neb_addr[k]]) == 1) ? 2 : 3;
 
                 for(lidx = 0; lidx < REFP_NUM; lidx++)
                 {
                     if(REFI_IS_VALID(map_refi[neb_addr[k]][lidx]))
                     {
-                        refi[cnt][lidx] = map_refi[neb_addr[k]][lidx];
-                        evc_derive_affine_model_mv(scup, neb_addr[k], lidx, map_mv, cuw, cuh, w_scu, h_scu, mvp[cnt][lidx], map_affine, vertex_num[cnt]
+                        mrg_list_refi[cnt][lidx] = map_refi[neb_addr[k]][lidx];
+                        evc_derive_affine_model_mv(scup, neb_addr[k], lidx, map_mv, cuw, cuh, w_scu, h_scu, mrg_list_cpmv[cnt][lidx], map_affine, mrg_list_cp_num[cnt]
 #if DMVR_LAG
                                                    , map_scu
                                                    , map_unrefined_mv
@@ -3771,15 +3727,14 @@ int evc_get_affine_merge_candidate(int ptr, int scup, s8(*map_refi)[REFP_NUM], s
                     }
                     else // set to default value
                     {
-                        refi[cnt][lidx] = -1;
+                        mrg_list_refi[cnt][lidx] = -1;
                         for(i = 0; i < VER_NUM; i++)
                         {
-                            mvp[cnt][lidx][i][MV_X] = 0;
-                            mvp[cnt][lidx][i][MV_Y] = 0;
+                            mrg_list_cpmv[cnt][lidx][i][MV_X] = 0;
+                            mrg_list_cpmv[cnt][lidx][i][MV_Y] = 0;
                         }
                     }
                 }
-
                 cnt++;
             }
 
@@ -3796,11 +3751,9 @@ int evc_get_affine_merge_candidate(int ptr, int scup, s8(*map_refi)[REFP_NUM], s
         int dptr_co = 0;
         int ratio_tmvp = 1;
 
-        s16 ver_mv[REFP_NUM][VER_NUM][MV_D];
-        int ver_refi[REFP_NUM][VER_NUM];
-        int ver_valid[VER_NUM];
-        int ver_idx[VER_NUM];
-        int model_idx;
+        s16 cp_mv[REFP_NUM][VER_NUM][MV_D];
+        int cp_refi[REFP_NUM][VER_NUM];
+        int cp_valid[VER_NUM];
 
         int neb_addr_lt[AFFINE_MAX_NUM_LT];
         int neb_addr_rt[AFFINE_MAX_NUM_RT];
@@ -3817,11 +3770,11 @@ int evc_get_affine_merge_candidate(int ptr, int scup, s8(*map_refi)[REFP_NUM], s
         {
             for(lidx = 0; lidx < REFP_NUM; lidx++)
             {
-                ver_mv[lidx][i][MV_X] = 0;
-                ver_mv[lidx][i][MV_Y] = 0;
-                ver_refi[lidx][i] = -1;
+                cp_mv[lidx][i][MV_X] = 0;
+                cp_mv[lidx][i][MV_Y] = 0;
+                cp_refi[lidx][i] = -1;
             }
-            ver_valid[i] = 0;
+            cp_valid[i] = 0;
         }
 
         //-------------------  LT  -------------------//
@@ -3839,28 +3792,26 @@ int evc_get_affine_merge_candidate(int ptr, int scup, s8(*map_refi)[REFP_NUM], s
             {
                 for (lidx = 0; lidx < REFP_NUM; lidx++)
                 {
-                    ver_refi[lidx][0] = map_refi[neb_addr_lt[k]][lidx];
-
+                    cp_refi[lidx][0] = map_refi[neb_addr_lt[k]][lidx];
                     if (MCU_GET_DMVRF(map_scu[neb_addr_lt[k]])
 #if (DMVR_LAG == 2)
                       && (!evc_use_refine_mv(scup, neb_addr_lt[k], w_scu))
 #endif
                       )
                     {
-                      ver_mv[lidx][0][MV_X] = map_unrefined_mv[neb_addr_lt[k]][lidx][MV_X];
-                      ver_mv[lidx][0][MV_Y] = map_unrefined_mv[neb_addr_lt[k]][lidx][MV_Y];
+                        cp_mv[lidx][0][MV_X] = map_unrefined_mv[neb_addr_lt[k]][lidx][MV_X];
+                        cp_mv[lidx][0][MV_Y] = map_unrefined_mv[neb_addr_lt[k]][lidx][MV_Y];
                     }
                     else
                     {
-                    ver_mv[lidx][0][MV_X] = map_mv[neb_addr_lt[k]][lidx][MV_X];
-                    ver_mv[lidx][0][MV_Y] = map_mv[neb_addr_lt[k]][lidx][MV_Y];
+                        cp_mv[lidx][0][MV_X] = map_mv[neb_addr_lt[k]][lidx][MV_X];
+                        cp_mv[lidx][0][MV_Y] = map_mv[neb_addr_lt[k]][lidx][MV_Y];
                     }
                 }
+                cp_valid[0] = 1;
                 break;
             }
         }
-        if(REFI_IS_VALID(ver_refi[REFP_0][0]) || REFI_IS_VALID(ver_refi[REFP_1][0]))
-            ver_valid[0] = 1;
 
         //-------------------  RT  -------------------//
         neb_addr_rt[0] = scup - w_scu + scuw - 1;     // B1
@@ -3875,34 +3826,30 @@ int evc_get_affine_merge_candidate(int ptr, int scup, s8(*map_refi)[REFP_NUM], s
             {
                 for (lidx = 0; lidx < REFP_NUM; lidx++)
                 {
-                    ver_refi[lidx][1] = map_refi[neb_addr_rt[k]][lidx];
+                    cp_refi[lidx][1] = map_refi[neb_addr_rt[k]][lidx];
                     if (MCU_GET_DMVRF(map_scu[neb_addr_rt[k]])
 #if (DMVR_LAG == 2)
                       && (!evc_use_refine_mv(scup, neb_addr_rt[k], w_scu))
-                      )
+                        )
                     {
-                      ver_mv[lidx][0][MV_X] = map_unrefined_mv[neb_addr_rt[k]][lidx][MV_X];
-                      ver_mv[lidx][0][MV_Y] = map_unrefined_mv[neb_addr_rt[k]][lidx][MV_Y];
+                        cp_mv[lidx][0][MV_X] = map_unrefined_mv[neb_addr_rt[k]][lidx][MV_X];
+                        cp_mv[lidx][0][MV_Y] = map_unrefined_mv[neb_addr_rt[k]][lidx][MV_Y];
                     }
                     else
                     {
 #endif
-                    ver_mv[lidx][1][MV_X] = map_mv[neb_addr_rt[k]][lidx][MV_X];
-                    ver_mv[lidx][1][MV_Y] = map_mv[neb_addr_rt[k]][lidx][MV_Y];
+                        cp_mv[lidx][1][MV_X] = map_mv[neb_addr_rt[k]][lidx][MV_X];
+                        cp_mv[lidx][1][MV_Y] = map_mv[neb_addr_rt[k]][lidx][MV_Y];
                     }
                 }
+                cp_valid[1] = 1;
                 break;
             }
-        }
-        if(REFI_IS_VALID(ver_refi[REFP_0][1]) || REFI_IS_VALID(ver_refi[REFP_1][1]))
-        {
-            ver_valid[1] = 1;
         }
 
         //-------------------  LB  -------------------//
         neb_addr_lb[0] = scup + w_scu * scuh - 1;        // A0
         neb_addr_lb[1] = scup + w_scu * (scuh - 1) - 1;  // A1
-
         valid_flag_lb[0] = x_scu > 0 && y_scu + scuh < h_scu && MCU_GET_COD(map_scu[neb_addr_lb[0]]) && !MCU_GET_IF(map_scu[neb_addr_lb[0]]);
         valid_flag_lb[1] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lb[1]]) && !MCU_GET_IF(map_scu[neb_addr_lb[1]]);
 
@@ -3912,33 +3859,16 @@ int evc_get_affine_merge_candidate(int ptr, int scup, s8(*map_refi)[REFP_NUM], s
             {
                 for (lidx = 0; lidx < REFP_NUM; lidx++)
                 {
-                    ver_refi[lidx][2] = map_refi[neb_addr_lb[k]][lidx];
-#if DMVR_LAG_FIX
-                    if (MCU_GET_DMVRF(map_scu[neb_addr_lb[k]]))
-                    {
-                      ver_mv[lidx][2][MV_X] = map_unrefined_mv[neb_addr_lb[k]][lidx][MV_X];
-                      ver_mv[lidx][2][MV_Y] = map_unrefined_mv[neb_addr_lb[k]][lidx][MV_Y];
-                    }
-                    else
-                    {
-#endif
-                      ver_mv[lidx][2][MV_X] = map_mv[neb_addr_lb[k]][lidx][MV_X];
-                      ver_mv[lidx][2][MV_Y] = map_mv[neb_addr_lb[k]][lidx][MV_Y];
-#if DMVR_LAG_FIX
-                    }
-#endif
+                    cp_refi[lidx][2] = map_refi[neb_addr_lb[k]][lidx];
+                    cp_mv[lidx][2][MV_X] = map_mv[neb_addr_lb[k]][lidx][MV_X];
+                    cp_mv[lidx][2][MV_Y] = map_mv[neb_addr_lb[k]][lidx][MV_Y];
                 }
+                cp_valid[2] = 1;
                 break;
             }
         }
 
-        if (REFI_IS_VALID(ver_refi[REFP_0][2]) || REFI_IS_VALID(ver_refi[REFP_1][2]))
-        {
-            ver_valid[2] = 1;
-        }
-
         //-------------------  RB  -------------------//
-
         neb_addr_rb[0] = scup + w_scu * scuh + scuw;     // Col
         valid_flag_rb[0] = x_scu + scuw < w_scu && y_scu + scuh < h_scu;
 
@@ -3956,56 +3886,37 @@ int evc_get_affine_merge_candidate(int ptr, int scup, s8(*map_refi)[REFP_NUM], s
                     }
 
                     ratio_tmvp = (int)((ptr - refp[0][REFP_1].ptr) << MVP_SCALING_PRECISION) / dptr_co;
-                    ver_refi[lidx][3] = 0; // ref idx
-                    scaling_mv(ratio_tmvp, refp[0][REFP_1].map_mv[neb_addr_rb[0]][lidx], ver_mv[lidx][3]);
+                    cp_refi[lidx][3] = 0; // ref idx
+                    scaling_mv(ratio_tmvp, refp[0][REFP_1].map_mv[neb_addr_rb[0]][lidx], cp_mv[lidx][3]);
                 }
             }
         }
-        if (REFI_IS_VALID(ver_refi[REFP_0][3]) || REFI_IS_VALID(ver_refi[REFP_1][3]))
+        if (REFI_IS_VALID(cp_refi[REFP_0][3]) || REFI_IS_VALID(cp_refi[REFP_1][3]))
         {
-            ver_valid[3] = 1;
+            cp_valid[3] = 1;
         }
 
-        //-------------------  organize  -------------------//
-        // 1: LT, RT, LB
-        model_idx = 1;
-        ver_idx[0] = 0;
-        ver_idx[1] = 1;
-        ver_idx[2] = 2;
-        evc_affine_check_valid_and_scale( ptr, refp, cuw, cuh, ver_valid, ver_mv, ver_refi, ver_idx, model_idx, 3, mvp, refi, &cnt, vertex_num );
+        //-------------------  insert model  -------------------//
+        int const_order[6] = { 0, 1, 2, 3, 4, 5 };
+        int const_num = 6;
 
-        // 2: LT, RT, RB
-        model_idx = 2;
-        ver_idx[0] = 0;
-        ver_idx[1] = 1;
-        ver_idx[2] = 3;
-        evc_affine_check_valid_and_scale( ptr, refp, cuw, cuh, ver_valid, ver_mv, ver_refi, ver_idx, model_idx, 3, mvp, refi, &cnt, vertex_num );
+        int idx = 0;
+        int const_model[6][VER_NUM] =
+        {
+            { 0, 1, 2 },          // 0: LT, RT, LB
+            { 0, 1, 3 },          // 1: LT, RT, RB
+            { 0, 2, 3 },          // 2: LT, LB, RB
+            { 1, 2, 3 },          // 3: RT, LB, RB
+            { 0, 1 },             // 4: LT, RT
+            { 0, 2 },             // 5: LT, LB
+        };
 
-        // 3: LT, LB, RB
-        model_idx = 3;
-        ver_idx[0] = 0;
-        ver_idx[1] = 2;
-        ver_idx[2] = 3;
-        evc_affine_check_valid_and_scale( ptr, refp, cuw, cuh, ver_valid, ver_mv, ver_refi, ver_idx, model_idx, 3, mvp, refi, &cnt, vertex_num );
-
-        // 4: RT, LB, RB
-        model_idx = 4;
-        ver_idx[0] = 1;
-        ver_idx[1] = 2;
-        ver_idx[2] = 3;
-        evc_affine_check_valid_and_scale( ptr, refp, cuw, cuh, ver_valid, ver_mv, ver_refi, ver_idx, model_idx, 3, mvp, refi, &cnt, vertex_num );
-
-        // 5: LT, RT
-        model_idx = 5;
-        ver_idx[0] = 0;
-        ver_idx[1] = 1;
-        evc_affine_check_valid_and_scale( ptr, refp, cuw, cuh, ver_valid, ver_mv, ver_refi, ver_idx, model_idx, 2, mvp, refi, &cnt, vertex_num );
-
-        // 6: LT, LB
-        model_idx = 6;
-        ver_idx[0] = 0;
-        ver_idx[1] = 2;
-        evc_affine_check_valid_and_scale( ptr, refp, cuw, cuh, ver_valid, ver_mv, ver_refi, ver_idx, model_idx, 2, mvp, refi, &cnt, vertex_num );
+        int cp_num[6] = { 3, 3, 3, 3, 2, 2 };
+        for ( idx = 0; idx < const_num; idx++ )
+        {
+            int const_idx = const_order[idx];
+            evc_derive_affine_constructed_candidate( ptr, refp, cuw, cuh, cp_valid, cp_mv, cp_refi, const_model[const_idx], const_idx, cp_num[const_idx], mrg_list_cpmv, mrg_list_refi, &cnt, mrg_list_cp_num );
+        }
     }
 
     return cnt;
