@@ -672,29 +672,29 @@ void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 
     if (core->pred_mode == MODE_SKIP || core->pred_mode == MODE_DIR) // affine merge motion vector
     {
-        s16 aff_mrg_mvp[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D];
-        s8  aff_refi[AFF_MAX_CAND][REFP_NUM];
-        int vertex_num[AFF_MAX_CAND];
+        s16 mrg_list_cp_mv[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D];
+        s8  mrg_list_refi[AFF_MAX_CAND][REFP_NUM];
+        int mrg_list_cp_num[AFF_MAX_CAND];
         int vertex, lidx;
         int mrg_idx = core->mvp_idx[0];
 
-        evc_get_affine_merge_candidate(ctx->ptr, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp, cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, aff_refi, aff_mrg_mvp, vertex_num, ctx->map_scu, ctx->map_affine
+        evc_get_affine_merge_candidate(ctx->ptr, ctx->tgh.tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp, cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, mrg_list_refi, mrg_list_cp_mv, mrg_list_cp_num, ctx->map_scu, ctx->map_affine
 #if DMVR_LAG
             , ctx->map_unrefined_mv
 #endif
         );
 
-        core->affine_flag = vertex_num[core->mvp_idx[0]] - 1;
+        core->affine_flag = mrg_list_cp_num[core->mvp_idx[0]] - 1;
 
         for (lidx = 0; lidx < REFP_NUM; lidx++)
         {
-            if (REFI_IS_VALID(aff_refi[mrg_idx][lidx]))
+            if (REFI_IS_VALID(mrg_list_refi[mrg_idx][lidx]))
             {
-                core->refi[lidx] = aff_refi[mrg_idx][lidx];
-                for (vertex = 0; vertex < vertex_num[mrg_idx]; vertex++)
+                core->refi[lidx] = mrg_list_refi[mrg_idx][lidx];
+                for (vertex = 0; vertex < mrg_list_cp_num[mrg_idx]; vertex++)
                 {
-                    core->affine_mv[lidx][vertex][MV_X] = aff_mrg_mvp[mrg_idx][lidx][vertex][MV_X];
-                    core->affine_mv[lidx][vertex][MV_Y] = aff_mrg_mvp[mrg_idx][lidx][vertex][MV_Y];
+                    core->affine_mv[lidx][vertex][MV_X] = mrg_list_cp_mv[mrg_idx][lidx][vertex][MV_X];
+                    core->affine_mv[lidx][vertex][MV_Y] = mrg_list_cp_mv[mrg_idx][lidx][vertex][MV_Y];
                 }
             }
             else

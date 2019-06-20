@@ -245,8 +245,8 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
 #endif
 );
 
-int evc_get_affine_merge_candidate(int ptr, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],
-                                   EVC_REFP(*refp)[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, u16 avail, s8 refi[AFF_MAX_CAND][REFP_NUM], s16 mvp[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D], int vertex_num[AFF_MAX_CAND], u32* map_scu, u32* map_affine
+int evc_get_affine_merge_candidate(int ptr, int tile_group_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],
+                                   EVC_REFP(*refp)[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, u16 avail, s8 mrg_list_refi[AFF_MAX_CAND][REFP_NUM], s16 mrg_list_cp_mv[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D], int mrg_list_cp_num[AFF_MAX_CAND], u32* map_scu, u32* map_affine
 #if DMVR_LAG
                                    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
