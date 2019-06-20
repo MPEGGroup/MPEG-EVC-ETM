@@ -266,7 +266,11 @@ static int evc_get_dc(const int numerator, const int w, const int h)
 }
 #endif //HW_INTRA_PRED_NO_DIV_IN_DC_MODE
 
+#if HW_INTRA_PRED_DC_MODE_CLEANUP
+void ipred_dc(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h, u16 avail_cu)
+#else //!HW_INTRA_PRED_DC_MODE_CLEANUP
 void ipred_dc_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h, u16 avail_cu)
+#endif //HW_INTRA_PRED_DC_MODE_CLEANUP
 {
     int dc = 0;
     int wh, i, j;
@@ -353,6 +357,7 @@ void ipred_dc_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, i
     }
 }
 
+#if !HW_INTRA_PRED_DC_MODE_CLEANUP
 void ipred_dc(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h, u16 avail_cu)
 {
     int dc = 0;
@@ -439,6 +444,7 @@ void ipred_dc(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int
         dst[i] = (pel)dc;
     }
 }
+#endif //!HW_INTRA_PRED_DC_MODE_CLEANUP
 
 void ipred_plane(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h)
 {
@@ -922,7 +928,11 @@ void evc_ipred_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, 
             ipred_hor(src_le, src_up, src_ri, avail_lr, dst, w, h);
             break;
         case IPD_DC_B:
+#if HW_INTRA_PRED_DC_MODE_CLEANUP
+            ipred_dc(src_le, src_up, src_ri, avail_lr, dst, w, h, avail_cu);
+#else //!HW_INTRA_PRED_DC_MODE_CLEANUP
             ipred_dc_b(src_le, src_up, src_ri, avail_lr, dst, w, h, avail_cu);
+#endif //HW_INTRA_PRED_DC_MODE_CLEANUP
             break;
         case IPD_UL_B:
             ipred_ul(src_le, src_up, src_ri, avail_lr, dst, w, h);
@@ -969,7 +979,11 @@ void evc_ipred_uv_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *ds
     {
 
         case IPD_DC_C_B:
+#if HW_INTRA_PRED_DC_MODE_CLEANUP
+            ipred_dc(src_le, src_up, src_ri, avail_lr, dst, w, h, avail_cu);
+#else //!HW_INTRA_PRED_DC_MODE_CLEANUP
             ipred_dc_b(src_le, src_up, src_ri, avail_lr, dst, w, h, avail_cu);
+#endif //HW_INTRA_PRED_DC_MODE_CLEANUP
             break;
         case IPD_HOR_C_B:
             ipred_hor(src_le, src_up, src_ri, avail_lr, dst, w, h);

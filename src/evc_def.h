@@ -98,6 +98,7 @@
 #if HW_INTRA_PRED_NO_DIV
 #define HW_INTRA_PRED_NO_DIV_IN_HOR_MODE   1
 #define HW_INTRA_PRED_NO_DIV_IN_DC_MODE    1
+#define HW_INTRA_PRED_DC_MODE_CLEANUP      1
 #endif //HW_INTRA_PRED_NO_DIV
 
 //fast algorithm
