@@ -4112,7 +4112,11 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
     //-------------------  organize  -------------------//
     {
 #if AFFINE_AMVP_LIST
+#if HW_AFFINE
+        if ( cnt_lt && cnt_rt && (vertex_num == 1 || cnt_lb) )
+#else
         if(cnt_lt && cnt_rt)
+#endif
         {
             mvp[cnt_tmp][0][MV_X] = mvp_cand_lt[0][MV_X];
             mvp[cnt_tmp][0][MV_Y] = mvp_cand_lt[0][MV_Y];
@@ -4120,11 +4124,14 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
             mvp[cnt_tmp][1][MV_Y] = mvp_cand_rt[0][MV_Y];
             mvp[cnt_tmp][2][MV_X] = mvp_cand_lb[0][MV_X];
             mvp[cnt_tmp][2][MV_Y] = mvp_cand_lb[0][MV_Y];
+
+#if !HW_AFFINE
             if(vertex_num == 2 || cnt_lb == 0)
             {
                 mvp[cnt_tmp][2][MV_X] = mvp[cnt_tmp][0][MV_X] + (mvp[cnt_tmp][1][MV_Y] - mvp[cnt_tmp][1][MV_Y]) * cuh / cuw;
                 mvp[cnt_tmp][2][MV_Y] = mvp[cnt_tmp][0][MV_Y] + (mvp[cnt_tmp][1][MV_X] - mvp[cnt_tmp][1][MV_X]) * cuh / cuw;
             }
+#endif
             cnt_tmp++;
         }
         if(cnt_tmp == AFF_MAX_NUM_MVP)
