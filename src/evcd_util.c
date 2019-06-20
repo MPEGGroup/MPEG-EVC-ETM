@@ -68,13 +68,17 @@ int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16])
 #if AFFINE
 void evcd_set_affine_mvf(EVCD_CTX * ctx, EVCD_CORE * core)
 {
+#if !HW_AFFINE
     s16(*map_mv)[REFP_NUM][MV_D];
+#endif
 
     int   w_cu;
     int   h_cu;
     int   scup;
     int   w_scu;
+#if !HW_AFFINE
     int   i, j;
+#endif
     int   lidx;
     int   vertex_num = core->affine_flag + 1;
     int   aff_scup[VER_NUM];
@@ -93,6 +97,87 @@ void evcd_set_affine_mvf(EVCD_CTX * ctx, EVCD_CORE * core)
     {
         if(core->refi[lidx] >= 0)
         {
+#if HW_AFFINE
+            s16( *ac_mv )[MV_D] = core->affine_mv[lidx];
+            int dmv_hor_x, dmv_ver_x, dmv_hor_y, dmv_ver_y;
+            int mv_scale_hor = ac_mv[0][MV_X] << 7;
+            int mv_scale_ver = ac_mv[0][MV_Y] << 7;
+            int mv_y_hor = mv_scale_hor;
+            int mv_y_ver = mv_scale_ver;
+            int mv_scale_tmp_hor, mv_scale_tmp_ver;
+
+            // convert to 2^(storeBit + iBit) precision
+            dmv_hor_x = (ac_mv[1][MV_X] - ac_mv[0][MV_X]) << (7 - core->log2_cuw);     // deltaMvHor
+            dmv_hor_y = (ac_mv[1][MV_Y] - ac_mv[0][MV_Y]) << (7 - core->log2_cuw);
+            if ( vertex_num == 3 )
+            {
+                dmv_ver_x = (ac_mv[2][MV_X] - ac_mv[0][MV_X]) << (7 - core->log2_cuh); // deltaMvVer
+                dmv_ver_y = (ac_mv[2][MV_Y] - ac_mv[0][MV_Y]) << (7 - core->log2_cuh);
+            }
+            else
+            {
+                dmv_ver_x = -dmv_hor_y;                                                // deltaMvVer
+                dmv_ver_y = dmv_hor_x;
+            }
+
+            // derive sub-block size
+            int sub_w = 4, sub_h = 4;
+            derive_affine_subblock_size( core->affine_mv[lidx], (1 << core->log2_cuw), (1 << core->log2_cuh), &sub_w, &sub_h, vertex_num );
+            int   sub_w_in_scu = PEL2SCU( sub_w );
+            int   sub_h_in_scu = PEL2SCU( sub_h );
+            int   half_w = sub_w >> 1;
+            int   half_h = sub_h >> 1;
+
+            for ( int h = 0; h < h_cu; h += sub_h_in_scu )
+            {
+                for ( int w = 0; w < w_cu; w += sub_w_in_scu )
+                {
+                    if ( w == 0 && h == 0 )
+                    {
+                        mv_scale_tmp_hor = ac_mv[0][MV_X];
+                        mv_scale_tmp_ver = ac_mv[0][MV_Y];
+                    }
+                    else if ( w + sub_w_in_scu == w_cu && h == 0 )
+                    {
+                        mv_scale_tmp_hor = ac_mv[1][MV_X];
+                        mv_scale_tmp_ver = ac_mv[1][MV_Y];
+                    }
+                    else if ( w == 0 && h + sub_h_in_scu == h_cu && vertex_num == 3 )
+                    {
+                        mv_scale_tmp_hor = ac_mv[2][MV_X];
+                        mv_scale_tmp_ver = ac_mv[2][MV_Y];
+                    }
+                    else
+                    {
+                        int pos_x = (w << MIN_CU_LOG2) + half_w;
+                        int pos_y = (h << MIN_CU_LOG2) + half_h;
+
+                        mv_scale_tmp_hor = mv_scale_hor + dmv_hor_x * pos_x + dmv_ver_x * pos_y;
+                        mv_scale_tmp_ver = mv_scale_ver + dmv_hor_y * pos_x + dmv_ver_y * pos_y;
+
+                        // 1/16 precision, 18 bits, same as MC
+                        evc_mv_rounding_s32( mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, 5, 0 );
+                        mv_scale_tmp_hor = EVC_CLIP3( -(2 << 17), (2 << 17) - 1, mv_scale_tmp_hor );
+                        mv_scale_tmp_ver = EVC_CLIP3( -(2 << 17), (2 << 17) - 1, mv_scale_tmp_ver );
+
+                        // 1/4 precision, 16 bits for storage
+                        mv_scale_tmp_hor >>= 2;
+                        mv_scale_tmp_ver >>= 2;
+                    }
+
+                    // save MV for each 4x4 block
+                    for ( int y = h; y < h + sub_h_in_scu; y++ )
+                    {
+                        for ( int x = w; x < w + sub_w_in_scu; x++ )
+                        {
+                            int addr_in_scu = scup + x + y * w_scu;
+                            ctx->map_mv[addr_in_scu][lidx][MV_X] = (s16)mv_scale_tmp_hor;
+                            ctx->map_mv[addr_in_scu][lidx][MV_Y] = (s16)mv_scale_tmp_ver;
+                        }
+                    }
+                }
+            }
+#else
             int shift = 6;
             s16(*ac_mv)[MV_D] = core->affine_mv[lidx];
             int dmv_hor_x, mdv_ver_x, dmv_hor_y, dmv_ver_y;
@@ -155,6 +240,7 @@ void evcd_set_affine_mvf(EVCD_CTX * ctx, EVCD_CORE * core)
                 map_mv[aff_scup[2]][lidx][MV_X] = vx2;
                 map_mv[aff_scup[2]][lidx][MV_Y] = vy2;
             }
+#endif
         }
     }
 }

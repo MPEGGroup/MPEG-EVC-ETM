@@ -3204,6 +3204,50 @@ void evc_mv_rounding_s32( s32 hor, int ver, s32 * rounded_hor, s32 * rounded_ver
     *rounded_hor = ((hor + offset - (hor >= 0)) >> right_shift) << left_shift;
     *rounded_ver = ((ver + offset - (ver >= 0)) >> right_shift) << left_shift;
 }
+
+void derive_affine_subblock_size( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num )
+{
+    int w = cuw;
+    int h = cuh;
+#if MC_PRECISION_ADD
+    int mc_prec_add = MC_PRECISION_ADD;
+#else
+    int mc_prec_add = 0;
+#endif
+    int mv_wx, mv_wy;
+
+    mv_wx = max( abs( ac_mv[1][MV_X] - ac_mv[0][MV_X] ), abs( ac_mv[1][MV_Y] - ac_mv[0][MV_Y] ) );
+    if ( mv_wx )
+    {
+        w = max( (int)((cuw >> mc_prec_add) / mv_wx), 1 );
+        while ( cuw % w )
+        {
+            w--;
+        }
+        w = max( AFFINE_MIN_BLOCK_SIZE, w );
+    }
+
+    if ( vertex_num == 2 )
+    {
+        h = min( w, cuh );
+    }
+    else
+    {
+        mv_wy = max( abs( ac_mv[2][MV_X] - ac_mv[0][MV_X] ), abs( ac_mv[2][MV_Y] - ac_mv[0][MV_Y] ) );
+        if ( mv_wy )
+        {
+            h = max( (int)((cuh >> mc_prec_add) / mv_wy), 1 );
+            while ( cuh % h )
+            {
+                h--;
+            }
+            h = max( AFFINE_MIN_BLOCK_SIZE, h );
+        }
+    }
+
+    *sub_w = w;
+    *sub_h = h;
+}
 #endif
 
 #if AFFINE
