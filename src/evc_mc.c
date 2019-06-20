@@ -7240,7 +7240,7 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
     int sub_w, sub_h;
     int w, h;
     int half_w, half_h;
-    int bit = 8;
+    int bit = 7;
 
 #if MC_PRECISION_ADD
     int mc_prec = 2 + MC_PRECISION_ADD;
@@ -7252,8 +7252,6 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
     int dmv_hor_x, dmv_ver_x, dmv_hor_y, dmv_ver_y;
     int mv_scale_hor = ac_mv[0][MV_X] << bit;
     int mv_scale_ver = ac_mv[0][MV_Y] << bit;
-    int mv_y_hor = mv_scale_hor;
-    int mv_y_ver = mv_scale_ver;
     int mv_scale_tmp_hor, mv_scale_tmp_ver;
     int hor_max, hor_min, ver_max, ver_min;
 #if EIF
@@ -7296,18 +7294,15 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
     half_h = sub_h >> 1;
 
     // convert to 2^(storeBit + bit) precision
-    if(vertex_num == 3)
+    dmv_hor_x = ((ac_mv[1][MV_X] - ac_mv[0][MV_X]) << bit) >> evc_tbl_log2[cuw];     // deltaMvHor
+    dmv_hor_y = ((ac_mv[1][MV_Y] - ac_mv[0][MV_Y]) << bit) >> evc_tbl_log2[cuw];
+    if (vertex_num == 3)
     {
-        dmv_hor_x = ((ac_mv[1][MV_X] - ac_mv[0][MV_X]) << bit) >> evc_tbl_log2[cuw]; // deltaMvHor
-        dmv_hor_y = ((ac_mv[1][MV_Y] - ac_mv[0][MV_Y]) << bit) >> evc_tbl_log2[cuw];
-
         dmv_ver_x = ((ac_mv[2][MV_X] - ac_mv[0][MV_X]) << bit) >> evc_tbl_log2[cuh]; // deltaMvVer
         dmv_ver_y = ((ac_mv[2][MV_Y] - ac_mv[0][MV_Y]) << bit) >> evc_tbl_log2[cuh];
     }
     else
     {
-        dmv_hor_x = ((ac_mv[1][MV_X] - ac_mv[0][MV_X]) << bit) >> evc_tbl_log2[cuw]; // deltaMvHor
-        dmv_hor_y = ((ac_mv[1][MV_Y] - ac_mv[0][MV_Y]) << bit) >> evc_tbl_log2[cuw];
         dmv_ver_x = -dmv_hor_y;                                                       // deltaMvVer
         dmv_ver_y = dmv_hor_x;
     }
@@ -7317,8 +7312,11 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
     {
         for(w = 0; w < cuw; w += sub_w)
         {
-            mv_scale_tmp_hor = (mv_scale_hor + dmv_hor_x * half_w + dmv_ver_x * half_h) >> shift;
-            mv_scale_tmp_ver = (mv_scale_ver + dmv_hor_y * half_w + dmv_ver_y * half_h) >> shift;
+            int pos_x = w + half_w;
+            int pos_y = h + half_h;
+
+            mv_scale_tmp_hor = (mv_scale_hor + dmv_hor_x * pos_x + dmv_ver_x * pos_y) >> shift;
+            mv_scale_tmp_ver = (mv_scale_ver + dmv_hor_y * pos_x + dmv_ver_y * pos_y) >> shift;
 
             // clip
             mv_scale_tmp_hor = min(hor_max, max(hor_min, mv_scale_tmp_hor));
@@ -7328,19 +7326,8 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
             qpel_gmv_y = ((y + h) << mc_prec) + mv_scale_tmp_ver;
 
             evc_mc_l(ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, cuw, (pred_y + w), sub_w, sub_h);
-
-            // switch from x to x+AffineBlockSize, add deltaMvHor
-            mv_scale_hor += dmv_hor_x * sub_w;
-            mv_scale_ver += dmv_hor_y * sub_w;
         }
         pred_y += (cuw * sub_h);
-
-        // switch from y to y+AffineBlockSize add deltaMvVer
-        mv_y_hor += dmv_ver_x * sub_h;
-        mv_y_ver += dmv_ver_y * sub_h;
-
-        mv_scale_hor = mv_y_hor;
-        mv_scale_ver = mv_y_ver;
     }
 }
 
@@ -7355,7 +7342,7 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
     int sub_w, sub_h;
     int w, h;
     int half_w, half_h;
-    int bit = 8;
+    int bit = 7;
 
 #if MC_PRECISION_ADD
     int mc_prec = 2 + MC_PRECISION_ADD;
@@ -7367,8 +7354,6 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
     int dmv_hor_x, dmv_ver_x, dmv_hor_y, dmv_ver_y;
     int mv_scale_hor = ac_mv[0][MV_X] << bit;
     int mv_scale_ver = ac_mv[0][MV_Y] << bit;
-    int mv_y_hor = mv_scale_hor;
-    int mv_y_ver = mv_scale_ver;
     int mv_scale_tmp_hor, mv_scale_tmp_ver;
     int hor_max, hor_min, ver_max, ver_min;
 #if EIF
@@ -7413,18 +7398,15 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
     half_h = sub_h >> 1;
 
     // convert to 2^(storeBit + bit) precision
+    dmv_hor_x = ((ac_mv[1][MV_X] - ac_mv[0][MV_X]) << bit) >> evc_tbl_log2[cuw];     // deltaMvHor
+    dmv_hor_y = ((ac_mv[1][MV_Y] - ac_mv[0][MV_Y]) << bit) >> evc_tbl_log2[cuw];
     if(vertex_num == 3)
     {
-        dmv_hor_x = ((ac_mv[1][MV_X] - ac_mv[0][MV_X]) << bit) >> evc_tbl_log2[cuw]; // deltaMvHor
-        dmv_hor_y = ((ac_mv[1][MV_Y] - ac_mv[0][MV_Y]) << bit) >> evc_tbl_log2[cuw];
-
         dmv_ver_x = ((ac_mv[2][MV_X] - ac_mv[0][MV_X]) << bit) >> evc_tbl_log2[cuh]; // deltaMvVer
         dmv_ver_y = ((ac_mv[2][MV_Y] - ac_mv[0][MV_Y]) << bit) >> evc_tbl_log2[cuh];
     }
     else
     {
-        dmv_hor_x = ((ac_mv[1][MV_X] - ac_mv[0][MV_X]) << bit) >> evc_tbl_log2[cuw]; // deltaMvHor
-        dmv_hor_y = ((ac_mv[1][MV_Y] - ac_mv[0][MV_Y]) << bit) >> evc_tbl_log2[cuw];
         dmv_ver_x = -dmv_hor_y;                                                       // deltaMvVer
         dmv_ver_y = dmv_hor_x;
     }
@@ -7434,8 +7416,11 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
     {
         for(w = 0; w < cuw; w += sub_w)
         {
-            mv_scale_tmp_hor = (mv_scale_hor + dmv_hor_x * half_w + dmv_ver_x * half_h) >> shift;
-            mv_scale_tmp_ver = (mv_scale_ver + dmv_hor_y * half_w + dmv_ver_y * half_h) >> shift;
+            int pos_x = w + half_w;
+            int pos_y = h + half_h;
+
+            mv_scale_tmp_hor = (mv_scale_hor + dmv_hor_x * pos_x + dmv_ver_x * pos_y) >> shift;
+            mv_scale_tmp_ver = (mv_scale_ver + dmv_hor_y * pos_x + dmv_ver_y * pos_y) >> shift;
 
             // clip
             mv_scale_tmp_hor = min(hor_max, max(hor_min, mv_scale_tmp_hor));
@@ -7444,39 +7429,23 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
             qpel_gmv_x = ((x + w) << mc_prec) + mv_scale_tmp_hor;
             qpel_gmv_y = ((y + h) << mc_prec) + mv_scale_tmp_ver;
 
-
             evc_mc_l(ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, cuw, (pred_y + w), sub_w, sub_h);
 
 #if (AFFINE_MIN_BLOCK_SIZE == 1)
             if((w & 1) == 0 && (h & 1) == 0)
             {
-
                 evc_mc_c(ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> 1, pred_u + (w >> 1), max((sub_w >> 1), 1), max((sub_h >> 1), 1));
-
                 evc_mc_c(ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> 1, pred_v + (w >> 1), max((sub_w >> 1), 1), max((sub_h >> 1), 1));
             }
 #else
-
             evc_mc_c(ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> 1, pred_u + (w >> 1), sub_w >> 1, sub_h >> 1);
-
             evc_mc_c(ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> 1, pred_v + (w >> 1), sub_w >> 1, sub_h >> 1);
 #endif
-
-            // switch from x to x+AffineBlockSize, add deltaMvHor
-            mv_scale_hor += dmv_hor_x * sub_w;
-            mv_scale_ver += dmv_hor_y * sub_w;
         }
 
         pred_y += (cuw * sub_h);
         pred_u += (cuw * sub_h) >> 2;
         pred_v += (cuw * sub_h) >> 2;
-
-        // switch from y to y+AffineBlockSize add deltaMvVer
-        mv_y_hor += dmv_ver_x * sub_h;
-        mv_y_ver += dmv_ver_y * sub_h;
-
-        mv_scale_hor = mv_y_hor;
-        mv_scale_ver = mv_y_ver;
     }
 }
 
