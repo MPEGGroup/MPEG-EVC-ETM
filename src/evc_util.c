@@ -3546,6 +3546,9 @@ int evc_affine_check_valid_and_scale(int ptr, EVC_REFP (*refp)[REFP_NUM], int cu
 }
 
 void evc_derive_affine_model_mv(int scup, int scun, int lidx, s16(*map_mv)[REFP_NUM][MV_D], int cuw, int cuh, int w_scu, int h_scu, s16 mvp[VER_NUM][MV_D], u32 *map_affine, int vertex_num
+#if HW_AFFINE
+                                , int log2_max_cuwh
+#endif
 #if DMVR_LAG
                                 , u32 *map_scu
                                 , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
@@ -3575,7 +3578,11 @@ void evc_derive_affine_model_mv(int scup, int scun, int lidx, s16(*map_mv)[REFP_
     cur_x = (scup % w_scu) << MIN_CU_LOG2;
     cur_y = (scup / w_scu) << MIN_CU_LOG2;
 
+#if HW_AFFINE
+    for ( i = 0; i < VER_NUM; i++ )
+#else
     for(i = 0; i < vertex_num; i++)
+#endif
     {
 #if DMVR_LAG
         if (MCU_GET_DMVRF(map_scu[neb_addr[i]]) 
@@ -3595,9 +3602,27 @@ void evc_derive_affine_model_mv(int scup, int scun, int lidx, s16(*map_mv)[REFP_
     }
     }
 
+#if HW_AFFINE
+    int is_top_ctu_boundary = FALSE;
+    if ( (neb_y + neb_h) % (1 << log2_max_cuwh) == 0 && (neb_y + neb_h) == cur_y )
+    {
+        is_top_ctu_boundary = TRUE;
+        neb_y += neb_h;
+
+        neb_mv[0][MV_X] = neb_mv[2][MV_X];
+        neb_mv[0][MV_Y] = neb_mv[2][MV_Y];
+        neb_mv[1][MV_X] = neb_mv[3][MV_X];
+        neb_mv[1][MV_Y] = neb_mv[3][MV_Y];
+    }
+#endif
+
     dmv_hor_x = (neb_mv[1][MV_X] - neb_mv[0][MV_X]) << diff_w;    // deltaMvHor
     dmv_hor_y = (neb_mv[1][MV_Y] - neb_mv[0][MV_Y]) << diff_w;
+#if HW_AFFINE
+    if ( vertex_num == 3 && !is_top_ctu_boundary )
+#else
     if(vertex_num == 3)
+#endif
     {
         dmv_ver_x = (neb_mv[2][MV_X] - neb_mv[0][MV_X]) << diff_h;  // deltaMvVer
         dmv_ver_y = (neb_mv[2][MV_Y] - neb_mv[0][MV_Y]) << diff_h;
@@ -3625,6 +3650,9 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
                                    s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
                                    int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][VER_NUM][MV_D], s8 refi[MAX_NUM_MVP]
                                    , u32* map_scu, u32* map_affine, int vertex_num, u16 avail_lr
+#if HW_AFFINE
+                                   , int log2_max_cuwh
+#endif
 #if DMVR_LAG
                                    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
@@ -3706,6 +3734,9 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
         {
             refi[cnt_tmp] = map_refi[neb_addr[k]][lidx];
             evc_derive_affine_model_mv(scup, neb_addr[k], lidx, map_mv, cuw, cuh, w_scu, h_scu, mvp_tmp, map_affine, vertex_num
+#if HW_AFFINE
+                                       , log2_max_cuwh
+#endif
 #if DMVR_LAG
                                        , map_scu
                                        , map_unrefined_mv
@@ -3740,6 +3771,9 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
         {
             refi[cnt_tmp] = map_refi[neb_addr[k]][lidx];
             evc_derive_affine_model_mv(scup, neb_addr[k], lidx, map_mv, cuw, cuh, w_scu, h_scu, mvp_tmp, map_affine, vertex_num
+#if HW_AFFINE
+                                       , log2_max_cuwh
+#endif
 #if DMVR_LAG
                                        , map_scu
                                        , map_unrefined_mv
@@ -4295,6 +4329,9 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
 /* merge affine mode */
 int evc_get_affine_merge_candidate(int ptr, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], EVC_REFP(*refp)[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, u16 avail,
                                    s8 refi[AFF_MAX_CAND][REFP_NUM], s16 mvp[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D], int vertex_num[AFF_MAX_CAND], u32* map_scu, u32* map_affine
+#if HW_AFFINE
+                                   , int log2_max_cuwh
+#endif
 #if DMVR_LAG
                                    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
@@ -4361,6 +4398,9 @@ int evc_get_affine_merge_candidate(int ptr, int scup, s8(*map_refi)[REFP_NUM], s
                     {
                         refi[cnt][lidx] = map_refi[neb_addr[k]][lidx];
                         evc_derive_affine_model_mv(scup, neb_addr[k], lidx, map_mv, cuw, cuh, w_scu, h_scu, mvp[cnt][lidx], map_affine, vertex_num[cnt]
+#if HW_AFFINE
+                                                   , log2_max_cuwh
+#endif
 #if DMVR_LAG
                                                    , map_scu
                                                    , map_unrefined_mv

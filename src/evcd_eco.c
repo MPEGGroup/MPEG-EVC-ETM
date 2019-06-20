@@ -1892,6 +1892,9 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
         EVC_TRACE_STR("\n");
 
         evc_get_affine_merge_candidate(ctx->ptr, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp, cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, aff_refi, aff_mrg_mvp, vertex_num, ctx->map_scu, ctx->map_affine
+#if HW_AFFINE
+                                       , ctx->log2_max_cuwh
+#endif
 #if DMVR_LAG
                                        , ctx->map_unrefined_mv
 #endif
@@ -1936,6 +1939,9 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                                            ctx->dpm.num_refp[REFP_0], ctx->map_mv, ctx->map_refi, ctx->refp, \
                                            cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, affine_mvp, refi
                                            , ctx->map_scu, ctx->map_affine, vertex_num, core->avail_lr
+#if HW_AFFINE
+                , ctx->log2_max_cuwh
+#endif
 #if DMVR_LAG
                 ,ctx->map_unrefined_mv
 #endif
@@ -1990,6 +1996,9 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                                            ctx->dpm.num_refp[REFP_1], ctx->map_mv, ctx->map_refi, ctx->refp, \
                                            cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, affine_mvp, refi
                                            , ctx->map_scu, ctx->map_affine, vertex_num, core->avail_lr
+#if HW_AFFINE
+                , ctx->log2_max_cuwh
+#endif
 #if DMVR_LAG
                 , ctx->map_unrefined_mv
 #endif
