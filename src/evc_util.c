@@ -3197,6 +3197,15 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
     }
 }
 
+#if HW_AFFINE
+void evc_mv_rounding_s32( s32 hor, int ver, s32 * rounded_hor, s32 * rounded_ver, s32 right_shift, int left_shift )
+{
+    int offset = (right_shift > 0) ? (1 << (right_shift - 1)) : 0;
+    *rounded_hor = ((hor + offset - (hor >= 0)) >> right_shift) << left_shift;
+    *rounded_ver = ((ver + offset - (ver >= 0)) >> right_shift) << left_shift;
+}
+#endif
+
 #if AFFINE
 /*******************************************/
 /* Neighbor location: Graphical indication */
