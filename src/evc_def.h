@@ -310,6 +310,8 @@ enum SAD_POINT_INDEX
 #define AFFINE_MERGE_SAME_REF_IDX          1 // alwasy check same refIdx for constructed affine candidate, no scaling
 #define AFFINE_MVD_PREDICTION              1 // affine MVD prediction
 
+#define HW_AFFINE                          1
+
  // AFFINE Constant
 #define VER_NUM                            4
 #define AFFINE_MAX_NUM_LT                  3 ///< max number of motion candidates in top-left corner
