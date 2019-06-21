@@ -4200,7 +4200,7 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
     {
 #if AFFINE_AMVP_LIST
 #if HW_AFFINE
-        if ( cnt_lt && cnt_rt && (vertex_num == 1 || cnt_lb) )
+        if ( cnt_lt && cnt_rt && (vertex_num == 2 || cnt_lb) )
 #else
         if(cnt_lt && cnt_rt)
 #endif
