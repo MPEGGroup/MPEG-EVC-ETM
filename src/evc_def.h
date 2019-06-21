@@ -95,6 +95,8 @@
 #define AQS_ENC                            1 //encoder optimization for deriving normalizer index
 #endif
 
+#define HW_CQP_MAPPING_TABLE_UPDATE        1 // update chroma QP mapping table
+
 #if HW_INTRA_PRED_NO_DIV
 #define HW_INTRA_PRED_NO_DIV_IN_HOR_MODE   1
 #define HW_INTRA_PRED_NO_DIV_IN_DC_MODE    1
