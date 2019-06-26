@@ -254,8 +254,8 @@ struct AlfTileGroupParam
 #if APS_ALF_SEQ_FIX
   // encoder side variables
   u32 m_filterPoc;  // store POC value for which filter was produced
-  u32 m_minIdrPoc;  // Minimal of 2 IDR POC available for current coded chunk  (to identify availability of this filter for temp prediction)
-  u32 m_maxIdrPoc;  // Max of 2 IDR POC available for current coded chunk  (to identify availability of this filter for temp prediction)
+  u32 m_minIdrPoc;  // Minimal of 2 IDR POC available for current coded nalu  (to identify availability of this filter for temp prediction)
+  u32 m_maxIdrPoc;  // Max of 2 IDR POC available for current coded nalu  (to identify availability of this filter for temp prediction)
 #endif
 };
 #endif

@@ -182,7 +182,7 @@ int print_stat(EVCD_STAT * stat, int ret)
 
     if (EVC_SUCCEEDED(ret))
     {
-        if (stat->ctype == EVC_CT_TILE_GROUP)
+        if (stat->ctype < EVC_SPS_NUT)
         {
             switch (stat->stype)
             {
@@ -205,7 +205,7 @@ int print_stat(EVCD_STAT * stat, int ret)
             }
             v1print("%c-tile_group", stype);
         }
-        else if (stat->ctype == EVC_CT_SPS)
+        else if (stat->ctype == EVC_SPS_NUT)
         {
             v1print("Sequence Parameter Set");
         }
@@ -333,7 +333,7 @@ int main(int argc, const char **argv)
     EVC_BSR         * bs;
     EVC_SPS         * sps;
     EVC_TGH          * tgh;
-    EVC_CNKH        * cnkh;
+    EVC_NALU        * nalu;
     EVCD_CTX        * ctx;
 #if ALF_PARAMETER_APS
     EVC_APS         * aps;
@@ -405,7 +405,7 @@ int main(int argc, const char **argv)
             bs = &ctx->bs;
             sps = &ctx->sps;
             tgh = &ctx->tgh;
-            cnkh = &ctx->cnkh;
+            nalu = &ctx->nalu;
 #if ALF_PARAMETER_APS
             aps = &ctx->aps;
 #endif
@@ -416,13 +416,11 @@ int main(int argc, const char **argv)
             evc_bsr_init(bs, bitb.addr, bitb.ssize, NULL);
             SET_SBAC_DEC(bs, &ctx->sbac_dec);
 
-            /* parse chunk header */
-            ret = evcd_eco_cnkh(bs, cnkh);
+            /* parse nalu header */
+            ret = evcd_eco_nalu(bs, nalu);
             evc_assert_rv(EVC_SUCCEEDED(ret), ret);
-            /* check evc version */
-            evc_assert_rv(cnkh->ver == EVC_VER_1, EVC_ERR_UNSUPPORTED);
 
-            if (cnkh->ctype == EVC_CT_SPS)
+            if (nalu->nal_unit_type_plus1 - 1 == EVC_SPS_NUT)
             {
                 ret = evcd_eco_sps(bs, sps);
                 evc_assert_rv(EVC_SUCCEEDED(ret), ret);
@@ -435,7 +433,7 @@ int main(int argc, const char **argv)
                     fwrite(bs_buf, 1, bs_size, fp_bs_write);
                 }
             }
-            else if (cnkh->ctype == EVC_CT_TILE_GROUP)
+            else if (nalu->nal_unit_type_plus1 - 1 <  EVC_SPS_NUT)
             {
                 /* decode tile_group header */
 #if ALF

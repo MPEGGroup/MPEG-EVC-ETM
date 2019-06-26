@@ -1682,11 +1682,13 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
     return EVC_OK;
 }
 
-int evcd_eco_cnkh(EVC_BSR * bs, EVC_CNKH * cnkh)
+int evcd_eco_nalu(EVC_BSR * bs, EVC_NALU * nalu)
 {
-    cnkh->ver = evc_bsr_read(bs, 3);
-    cnkh->ctype = evc_bsr_read(bs, 4);
-    cnkh->broken = evc_bsr_read1(bs);
+    nalu->forbidden_zero_bit = evc_bsr_read(bs, 1);
+    nalu->nal_unit_type_plus1 = evc_bsr_read(bs, 6);
+    nalu->nuh_temporal_id = evc_bsr_read(bs,3);
+    nalu->nuh_reserved_zero_5bits = evc_bsr_read(bs, 5);
+    nalu->nuh_extension_flag = evc_bsr_read(bs, 1);
     return EVC_OK;
 }
 
