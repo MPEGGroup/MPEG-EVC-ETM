@@ -3616,6 +3616,7 @@ void evc_derive_affine_model_mv(int scup, int scun, int lidx, s16(*map_mv)[REFP_
     neb_addr[0] = scun - MCU_GET_AFF_XOFF(map_affine[scun]) - w_scu * MCU_GET_AFF_YOFF(map_affine[scun]);
     neb_addr[1] = neb_addr[0] + ((neb_w >> MIN_CU_LOG2) - 1);
     neb_addr[2] = neb_addr[0] + ((neb_h >> MIN_CU_LOG2) - 1) * w_scu;
+    neb_addr[3] = neb_addr[2] + ((neb_w >> MIN_CU_LOG2) - 1);
 
     neb_x = (neb_addr[0] % w_scu) << MIN_CU_LOG2;
     neb_y = (neb_addr[0] / w_scu) << MIN_CU_LOG2;
