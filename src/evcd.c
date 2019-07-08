@@ -362,7 +362,7 @@ static void make_stat(EVCD_CTX * ctx, int btype, EVCD_STAT * stat)
     if(ctx)
     {
         stat->read = EVC_BSR_GET_READ_BYTE(&ctx->bs);
-        if(btype == EVC_CT_TILE_GROUP)
+        if(btype < EVC_SPS_NUT)
         {
             stat->fnum = ctx->pic_cnt;
             stat->stype = ctx->tgh.tile_group_type;
@@ -1193,7 +1193,7 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     EVC_APS  *aps = &ctx->aps;
 #endif
     EVC_TGH   *tgh = &ctx->tgh;
-    EVC_CNKH *cnkh = &ctx->cnkh;
+    EVC_NALU *nalu = &ctx->nalu;
     int        ret;
 
     ret = EVC_OK;
@@ -1221,15 +1221,13 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     evc_bsr_init(bs, bitb->addr, bitb->ssize, NULL);
     SET_SBAC_DEC(bs, &ctx->sbac_dec);
 
-    /* parse chunk header */
-    ret = evcd_eco_cnkh(bs, cnkh);
+    /* parse nalu header */
+    ret = evcd_eco_nalu(bs, nalu);
     evc_assert_rv(EVC_SUCCEEDED(ret), ret);
-    /* check evc version */
-    evc_assert_rv(cnkh->ver == EVC_VER_1, EVC_ERR_UNSUPPORTED);
 #if ALF_PARAMETER_APS
     ctx->aps_temp = -1;
 #endif
-    if(cnkh->ctype == EVC_CT_SPS)
+    if(nalu->nal_unit_type_plus1 - 1 == EVC_SPS_NUT)
     {
         ret = evcd_eco_sps(bs, sps);
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
@@ -1246,7 +1244,7 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 #endif
     }
 #if ALF_PARAMETER_APS
-    else if (cnkh->ctype == EVC_CT_APS)
+    else if (nalu->nal_unit_type_plus1 - 1 == EVC_APS_NUT)
     {
 #if ALF_CTU_MAP_DYNAMIC
         aps->alf_aps_param.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
@@ -1257,16 +1255,15 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         aps->alf_aps_param.prevIdx = aps->aps_id;
         store_dec_aps_to_buffer(ctx);
         ctx->aps_temp = 0;
-
-        /* parse chunk header */
-        ret = evcd_eco_cnkh(bs, cnkh);
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
-        /* check evc version */
-        evc_assert_rv(cnkh->ver == EVC_VER_1, EVC_ERR_UNSUPPORTED);
+
+        /* parse nalu header */
+        ret = evcd_eco_nalu(bs, nalu);
+        evc_assert_rv(EVC_SUCCEEDED(ret), ret);
     }
-    if (cnkh->ctype == EVC_CT_TILE_GROUP)
+    if (nalu->nal_unit_type_plus1 - 1 < EVC_SPS_NUT)
 #else
-    else if (cnkh->ctype == EVC_CT_TILE_GROUP)
+    else if (nalu->ctype == EVC_CT_TILE_GROUP)
 #endif
     {
         /* decode tile_group header */
@@ -1403,16 +1400,9 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 
         tile_group_deinit(ctx);
     }
-#if ALF_PARAMETER_APS
-    if ( ! ( (cnkh->ctype == EVC_CT_TILE_GROUP) || (cnkh->ctype == EVC_CT_SPS) || (cnkh->ctype == EVC_CT_APS) ) )
-#else
-    else
-#endif
-    {
-        return EVC_ERR_MALFORMED_BITSTREAM;
-    }
-
-    make_stat(ctx, cnkh->ctype, stat);
+    //else TBD handle bad bitstream
+    
+    make_stat(ctx, nalu->nal_unit_type_plus1 - 1, stat);
 
     return ret;
 }

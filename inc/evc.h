@@ -207,17 +207,14 @@ extern "C"
 
 
 /*****************************************************************************
- * chunk type
+ * NALU types
  *****************************************************************************/
-#define EVC_CT_UNKNOWN                  (0)
-#define EVC_CT_TILE_GROUP                    (1) /* tile_group */
-#define EVC_CT_SPS                      (2) /* sequence parameter set */
-#if 1 //ALF_PARAMETER_APS
-#define EVC_CT_APS                     (5) /* adaptation parameter set  */
-#endif
-
-#define EVC_CT_SIGN                     (6) /* picture signature */
-
+#define EVC_NONIDR_NUT                  (0)
+#define EVC_IDR_NUT                     (1)
+#define EVC_SPS_NUT                     (24)
+#define EVC_PPS_NUT                     (25)
+#define EVC_APS_NUT                     (26)
+#define EVC_SEI_NUT                     (27)
 
 /*****************************************************************************
  * tile_group type
@@ -366,7 +363,7 @@ typedef struct _EVCD_STAT
 {
     /* byte size of decoded bitstream (read size of bitstream) */
     int            read;
-    /* chunk type */
+    /* nalu type */
     int            ctype;
     /* tile_group type */
     int            stype;
@@ -514,7 +511,7 @@ typedef struct _EVCE_STAT
     int            write;
     /* picture number increased whenever encoding a frame */
     unsigned long  fnum;
-    /* chunk type */
+    /* nalu type */
     int            ctype;
     /* tile_group type */
     int            stype;

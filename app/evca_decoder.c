@@ -197,7 +197,7 @@ static int print_stat(EVCD_STAT * stat, int ret)
 
     if(EVC_SUCCEEDED(ret))
     {
-        if(stat->ctype == EVC_CT_TILE_GROUP)
+        if(stat->ctype < EVC_SPS_NUT)
         {
             switch(stat->stype)
             {
@@ -220,12 +220,12 @@ static int print_stat(EVCD_STAT * stat, int ret)
             }
             v1print("%c-tile_group", stype);
         }
-        else if(stat->ctype == EVC_CT_SPS)
+        else if(stat->ctype == EVC_SPS_NUT)
         {
             v1print("Sequence Parameter Set");
         }
 #if ALF_PARAMETER_APS
-        else if (stat->ctype == EVC_CT_APS)
+        else if (stat->ctype == EVC_APS_NUT)
         {
             v1print("Adaptation Parameter Set");
         }

@@ -42,7 +42,7 @@ extern "C"
 
 #define GET_SBAC_ENC(bs)   ((EVCE_SBAC *)(bs)->pdata[1])
 
-int evce_eco_cnkh(EVC_BSW * bs, EVC_CNKH * cnkh);
+int evce_eco_nalu(EVC_BSW * bs, EVC_NALU * nalu);
 int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps);
 int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps);
 #if ALF_PARAMETER_APS

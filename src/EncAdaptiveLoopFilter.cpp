@@ -311,8 +311,8 @@ void AlfTileGroupParam_reset(AlfTileGroupParam* p)
   
 #if APS_ALF_SEQ_FIX
   p->m_filterPoc = INT_MAX;  // store POC value for which filter was produced
-  p->m_minIdrPoc = INT_MAX;  // Minimal of 2 IDR POC available for current coded chunk  (to identify availability of this filter for temp prediction)
-  p->m_maxIdrPoc = INT_MAX;  // Max of 2 IDR POC available for current coded chunk  (to identify availability of this filter for temp prediction)
+  p->m_minIdrPoc = INT_MAX;  // Minimal of 2 IDR POC available for current coded nalu  (to identify availability of this filter for temp prediction)
+  p->m_maxIdrPoc = INT_MAX;  // Max of 2 IDR POC available for current coded nalu  (to identify availability of this filter for temp prediction)
 #endif
 }
 

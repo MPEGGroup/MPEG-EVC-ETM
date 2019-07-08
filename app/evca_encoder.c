@@ -1761,7 +1761,7 @@ int main(int argc, const char **argv)
 
     udata_size = (op_use_pic_signature)? 18: 0;
 #if !PRECISE_BS_SIZE
-    udata_size += 4; /* 4-byte prefix (length field of chunk) */
+    udata_size += 4; /* 4-byte prefix (length field of nalu) */
 #endif
 
     /* encode Sequence Header if needed **************************************/
@@ -1787,9 +1787,9 @@ int main(int argc, const char **argv)
     seq_header_bit = stat.write;
 #endif
 #else
-    bitrate += (stat.write - 4)/* 4-byte prefix (length field of chunk) */;
+    bitrate += (stat.write - 4)/* 4-byte prefix (length field of nalu) */;
 #if !CALC_SSIM
-    seq_header_bit = (stat.write - 4)/* 4-byte prefix (length field of chunk) */;
+    seq_header_bit = (stat.write - 4)/* 4-byte prefix (length field of nalu) */;
 #endif
 #endif
 

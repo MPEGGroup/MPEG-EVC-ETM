@@ -426,11 +426,9 @@ static int set_enc_param(EVCE_CTX * ctx, EVCE_PARAM * param)
     return ret;
 }
 
-static void set_cnkh(EVCE_CTX * ctx, EVC_CNKH * cnkh, int ver, int ctype)
+static void set_nalu(EVCE_CTX * ctx, EVC_NALU * nalu, int ver, int ctype)
 {
-    cnkh->ver = ver;
-    cnkh->ctype = ctype;
-    cnkh->broken = 0;
+    nalu->nal_unit_type_plus1 = ctype + 1;
 }
 
 static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
@@ -1505,11 +1503,11 @@ int evce_aps_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, EVC_APS *
     /* skip first four byte to write the bitstream size */
     evce_bsw_skip_tile_group_size(bs);
 
-    /* chunk header */
+    /* nalu header */
 
-    /* Encode APS chunk header */
-    EVC_CNKH aps_cnkh;
-    set_cnkh(ctx, &aps_cnkh, EVC_VER_1, EVC_CT_APS);
+    /* Encode APS nalu header */
+    EVC_NALU aps_nalu;
+    set_nalu(ctx, &aps_nalu, EVC_VER_1, EVC_APS_NUT);
 
     /* Write ALF-APS */
     set_aps(ctx, aps); // TBD: empty function call
@@ -1524,7 +1522,7 @@ int evce_aps_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, EVC_APS *
     /* set stat ***************************************************************/
     evc_mset(stat, 0, sizeof(EVCE_STAT));
     stat->write = EVC_BSW_GET_WRITE_BYTE(bs);
-    stat->ctype = EVC_CT_APS;
+    stat->ctype = EVC_APS_NUT;
 
     return EVC_OK;
 }
@@ -1534,7 +1532,7 @@ int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     EVC_BSW * bs = &ctx->bs;
     EVC_SPS * sps = &ctx->sps;
     EVC_PPS * pps = &ctx->pps;
-    EVC_CNKH  cnkh;
+    EVC_NALU  nalu;
 
     evc_assert_rv(bitb->addr && bitb->bsize > 0, EVC_ERR_INVALID_ARGUMENT);
 
@@ -1546,9 +1544,9 @@ int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     /* skip first four byte to write the bitstream size */
     evce_bsw_skip_tile_group_size(bs);
 
-    /* chunk header */
-    set_cnkh(ctx, &cnkh, EVC_VER_1, EVC_CT_SPS);
-    evce_eco_cnkh(bs, &cnkh);
+    /* nalu header */
+    set_nalu(ctx, &nalu, EVC_VER_1, EVC_SPS_NUT);
+    evce_eco_nalu(bs, &nalu);
 
     /* sequence parameter set*/
     set_sps(ctx, sps);
@@ -1567,7 +1565,7 @@ int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     /* set stat ***************************************************************/
     evc_mset(stat, 0, sizeof(EVCE_STAT));
     stat->write = EVC_BSW_GET_WRITE_BYTE(bs);
-    stat->ctype = EVC_CT_SPS;
+    stat->ctype = EVC_SPS_NUT;
 
     return EVC_OK;
 }
@@ -2048,7 +2046,7 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     /* set stat */
     evc_mset(stat, 0, sizeof(EVCE_STAT));
     stat->write = EVC_BSW_GET_WRITE_BYTE(bs);
-    stat->ctype = EVC_CT_TILE_GROUP;
+    stat->ctype = EVC_NONIDR_NUT; //TBD(@Chernyak): handle IDR
     stat->stype = ctx->tile_group_type;
     stat->fnum = ctx->pic_cnt;
     stat->qp = ctx->tgh.qp;
@@ -2091,7 +2089,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #if ALF_PARAMETER_APS
     EVC_APS   * aps;
 #endif
-    EVC_CNKH    cnkh;
+    EVC_NALU    nalu;
     int          ret;
     u32          i;
     int split_mode_child[4];
@@ -2189,8 +2187,8 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     core->lcu_num = 0;
     ctx->lcu_cnt = ctx->f_lcu;
 
-    /* Set chunk header */
-    set_cnkh(ctx, &cnkh, EVC_VER_1, EVC_CT_TILE_GROUP);
+    /* Set nalu header */
+    set_nalu(ctx, &nalu, EVC_VER_1, EVC_NONIDR_NUT); 
 
     if (ctx->sps.picture_num_present_flag)
     {
@@ -2328,11 +2326,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     {
         if ((aps->alf_aps_param.enabledFlag[0]) && (aps->alf_aps_param.temporalAlfFlag == 0))    // Encoder defined parameters (RDO): ALF is selected, and new ALF was derived for TG
         {
-            /* Encode APS chunk header */
-            EVC_CNKH aps_cnkh = cnkh;
-            aps_cnkh.ctype = EVC_CT_APS;
+            /* Encode APS nalu header */
+            EVC_NALU aps_nalu = nalu;
+            aps_nalu.nal_unit_type_plus1 = EVC_APS_NUT + 1;
 
-            ret = evce_eco_cnkh(bs, &aps_cnkh);
+            ret = evce_eco_nalu(bs, &aps_nalu);
             evc_assert_rv(ret == EVC_OK, ret);
 
             /* Write ALF-APS */
@@ -2343,9 +2341,8 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     }
 #endif
 
-
-    /* Encode chunk header */
-    ret = evce_eco_cnkh(bs, &cnkh);
+    /* Encode nalu header */
+    ret = evce_eco_nalu(bs, &nalu);
     evc_assert_rv(ret == EVC_OK, ret);
 
     /* Encode tile_group header */
