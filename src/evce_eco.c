@@ -42,11 +42,14 @@
 
 #pragma warning(disable:4018)
 
-int evce_eco_cnkh(EVC_BSW * bs, EVC_CNKH * cnkh)
+int evce_eco_nalu(EVC_BSW * bs, EVC_NALU * nalu)
 {
-    evc_bsw_write(bs, cnkh->ver, 3);
-    evc_bsw_write(bs, cnkh->ctype, 4);
-    evc_bsw_write1(bs, cnkh->broken);
+    evc_bsw_write(bs, /*nalu->forbidden_zero_bit*/0, 1);
+    evc_bsw_write(bs, nalu->nal_unit_type_plus1, 6);
+    evc_bsw_write(bs, /*nalu->nuh_temporal_id*/0, 3);
+    evc_bsw_write(bs, /*nalu->nuh_reserved_zero_5bits*/0, 5);
+    evc_bsw_write(bs, /*nalu->nuh_extension_flag*/0, 1);
+
     return EVC_OK;
 }
 

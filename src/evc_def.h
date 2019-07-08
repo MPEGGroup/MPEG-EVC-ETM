@@ -1046,17 +1046,16 @@ typedef struct _EVC_REFP
 } EVC_REFP;
 
 /*****************************************************************************
- * chunk header
+ * NALU header
  *****************************************************************************/
-typedef struct _EVC_CNKH
+typedef struct _EVC_NALU
 {
-    /* version: 3bit */
-    int              ver;
-    /* chunk type: 4bit */
-    int              ctype;
-    /* broken link flag: 1bit(should be zero) */
-    int              broken;
-} EVC_CNKH;
+    int forbidden_zero_bit;
+    int nal_unit_type_plus1;
+    int nuh_temporal_id;
+    int nuh_reserved_zero_5bits;
+    int nuh_extension_flag;
+} EVC_NALU;
 
 /*****************************************************************************
  * sequence parameter set

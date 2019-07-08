@@ -258,7 +258,7 @@ int evc_get_affine_memory_access(s16 mv[VER_NUM][MV_D], int cuw, int cuh);
 typedef struct _EVC_MD5
 {
     u32     h[4]; /* hash state ABCD */
-    u8      msg[64]; /*input buffer (chunk message) */
+    u8      msg[64]; /*input buffer (nalu message) */
     u32     bits[2]; /* number of bits, modulo 2^64 (lsb first)*/
 } EVC_MD5;
 

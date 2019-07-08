@@ -189,8 +189,8 @@ struct _EVCD_CTX
     EVCD_CORE             *core;
     /* current decoding bitstream */
     EVC_BSR                bs;
-    /* current chunk header */
-    EVC_CNKH               cnkh;
+    /* current nalu header */
+    EVC_NALU               nalu;
 #if ALF
     /* adaptive loop filter */
     void                   *alf;

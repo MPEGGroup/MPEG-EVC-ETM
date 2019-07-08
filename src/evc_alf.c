@@ -1210,8 +1210,8 @@ void resetAlfParam(AlfTileGroupParam* dst)
 
     // variables are not used at the decoder side. TODO: Modify the strcuture
     dst->m_filterPoc = INT_MAX;  // store POC value for which filter was produced
-    dst->m_minIdrPoc = INT_MAX;  // Minimal of 2 IDR POC available for current coded chunk  (to identify availability of this filter for temp prediction)
-    dst->m_maxIdrPoc = INT_MAX;  // Max of 2 IDR POC available for current coded chunk  (to identify availability of this filter for temp prediction)
+    dst->m_minIdrPoc = INT_MAX;  // Minimal of 2 IDR POC available for current coded nalu  (to identify availability of this filter for temp prediction)
+    dst->m_maxIdrPoc = INT_MAX;  // Max of 2 IDR POC available for current coded nalu  (to identify availability of this filter for temp prediction)
 }
 
 void resetIdrIndexListBufferAPS()
