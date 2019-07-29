@@ -1825,12 +1825,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
             if (cuw >= 8 && cuh >= 8
                 && mmvd_flag == 0
                 && ctx->sps.tool_affine
-#if CTX_NEV_AFFINE_FLAG
-                && evcd_sbac_decode_bin(bs, sbac, sbac->ctx.affine_flag + ctx->ctx_flags[CNID_AFFN_FLAG])
-#else
-                && evcd_eco_affine_flag(bs, sbac)
-#endif
-                )
+                && evcd_sbac_decode_bin(bs, sbac, sbac->ctx.affine_flag + ctx->ctx_flags[CNID_AFFN_FLAG]))
                 core->affine_flag = 1;
 #endif
         }
@@ -2179,12 +2174,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                     {
 #if AFFINE
                         if(cuw >= 8 && cuh >= 8 && ctx->sps.tool_affine
-#if CTX_NEV_AFFINE_FLAG
-                           && evcd_sbac_decode_bin(bs, sbac, sbac->ctx.affine_flag + ctx->ctx_flags[CNID_AFFN_FLAG])
-#else
-                           && evcd_eco_affine_flag(bs, sbac)
-#endif
-                           )
+                           && evcd_sbac_decode_bin(bs, sbac, sbac->ctx.affine_flag + ctx->ctx_flags[CNID_AFFN_FLAG]))
                         {
                             core->affine_flag = 1;
                             inter_dir = AFF_DIR;
@@ -2233,15 +2223,11 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
 #if AFFINE
             if(inter_dir == PRED_DIR && cuw >= 8 && cuh >= 8
                && ctx->sps.tool_affine
-#if CTX_NEV_AFFINE_FLAG
-               && evcd_sbac_decode_bin(bs, sbac, sbac->ctx.affine_flag + ctx->ctx_flags[CNID_AFFN_FLAG])
-#else
-               && evcd_eco_affine_flag(bs, sbac)) /* direct affine_flag */
-#endif
+               && evcd_sbac_decode_bin(bs, sbac, sbac->ctx.affine_flag + ctx->ctx_flags[CNID_AFFN_FLAG]))
             {
-            inter_dir = AFF_DIR;
-            core->pred_mode = MODE_DIR;
-            core->affine_flag = 1;
+               inter_dir = AFF_DIR;
+               core->pred_mode = MODE_DIR;
+               core->affine_flag = 1;
             }
 #endif
         }
@@ -2354,11 +2340,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                    && ctx->sps.tool_affine
 #endif
                    && core->mvr_idx == 0
-#if CTX_NEV_AFFINE_FLAG
-                   && evcd_sbac_decode_bin(bs, sbac, sbac->ctx.affine_flag + ctx->ctx_flags[CNID_AFFN_FLAG])
-#else
-                   && evcd_eco_affine_flag(bs, sbac)) /* inter affine_flag */
-#endif
+                   && evcd_sbac_decode_bin(bs, sbac, sbac->ctx.affine_flag + ctx->ctx_flags[CNID_AFFN_FLAG]))
                 {
                     core->affine_flag = 1;
                     core->affine_flag += evcd_eco_affine_mode(bs, sbac);
@@ -2623,7 +2605,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
 
                 core->affine_mv[REFP_0][vertex][MV_X] = affine_mvp[mvp_idx[REFP_0]][vertex][MV_X] + mvd[MV_X];
                 core->affine_mv[REFP_0][vertex][MV_Y] = affine_mvp[mvp_idx[REFP_0]][vertex][MV_Y] + mvd[MV_Y];
-#if AFFINE_MVD_PREDICTION
+
                 if (vertex == 0)
                 {
                     affine_mvp[mvp_idx[REFP_0]][1][MV_X] += mvd[MV_X];
@@ -2631,7 +2613,6 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                     affine_mvp[mvp_idx[REFP_0]][2][MV_X] += mvd[MV_X];
                     affine_mvp[mvp_idx[REFP_0]][2][MV_Y] += mvd[MV_Y];
                 }
-#endif
             }
         }
         else
@@ -2677,7 +2658,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
 
                 core->affine_mv[REFP_1][vertex][MV_X] = affine_mvp[mvp_idx[REFP_1]][vertex][MV_X] + mvd[MV_X];
                 core->affine_mv[REFP_1][vertex][MV_Y] = affine_mvp[mvp_idx[REFP_1]][vertex][MV_Y] + mvd[MV_Y];
-#if AFFINE_MVD_PREDICTION
+
                 if (vertex == 0)
                 {
                     affine_mvp[mvp_idx[REFP_1]][1][MV_X] += mvd[MV_X];
@@ -2685,7 +2666,6 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                     affine_mvp[mvp_idx[REFP_1]][2][MV_X] += mvd[MV_X];
                     affine_mvp[mvp_idx[REFP_1]][2][MV_Y] += mvd[MV_Y];
                 }
-#endif
             }
         }
         else
