@@ -65,8 +65,8 @@ int  m_numCTUsInPic;
 AlfClassifier** m_classifier;
 ChromaFormat    m_chromaFormat;
 
-int m_lastRasPoc;
-BOOL m_pendingRasInit;
+int m_lastRasPoc = INT_MAX;
+BOOL m_pendingRasInit = FALSE;
 u8* m_ctuEnableFlag[MAX_NUM_COMPONENT];
 ClpRngs m_clpRngs;
 
@@ -197,15 +197,7 @@ void call_ALFProcess(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic)
     {
       resetTemporalAlfBufferLine();
     }
-
-    if (alfTileGroupParam.enabledFlag[COMPONENT_Y] && alfTileGroupParam.temporalAlfFlag)
-    {
-      loadALFParamLine(&(alfTileGroupParam), alfTileGroupParam.prevIdx, tidx);
-    }
-
-    alfTileGroupParam.store2ALFBufferFlag = ( iAlfTileGroupParam.store2ALFBufferFlag );
-
- // consistency of merge
+#if FIX_SEQUENTIAL_CODING
     m_pendingRasInit = FALSE;
     if( ctx->ptr > m_lastRasPoc )
     {
@@ -217,8 +209,27 @@ void call_ALFProcess(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic)
 
     if( m_pendingRasInit )
         resetTemporalAlfBufferLine2First();
+#endif
 
-//<-- end of consistency of merge
+    if (alfTileGroupParam.enabledFlag[COMPONENT_Y] && alfTileGroupParam.temporalAlfFlag)
+    {
+      loadALFParamLine(&(alfTileGroupParam), alfTileGroupParam.prevIdx, tidx);
+    }
+
+    alfTileGroupParam.store2ALFBufferFlag = ( iAlfTileGroupParam.store2ALFBufferFlag );
+#if !FIX_SEQUENTIAL_CODING
+    m_pendingRasInit = FALSE;
+    if( ctx->ptr > m_lastRasPoc )
+    {
+        m_lastRasPoc = INT_MAX;
+        m_pendingRasInit = TRUE;
+    }
+    if( ctx->tgh.tile_group_type == TILE_GROUP_I )
+        m_lastRasPoc = ctx->ptr;
+
+    if( m_pendingRasInit )
+        resetTemporalAlfBufferLine2First();
+#endif
 
     alfTileGroupParam.isCtbAlfOn = (iAlfTileGroupParam.isCtbAlfOn == 1 ? TRUE : FALSE);
     memcpy(alfTileGroupParam.alfCtuEnableFlag, iAlfTileGroupParam.alfCtuEnableFlag, 3*512 * sizeof(u8));

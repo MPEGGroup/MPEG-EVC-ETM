@@ -4513,8 +4513,8 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
             mvp[cnt_tmp][2][MV_Y] = mvp_cand_lb[0][MV_Y];
             if(vertex_num == 2 || cnt_lb == 0)
             {
-                mvp[cnt_tmp][2][MV_X] = mvp[cnt_tmp][0][MV_X] + (mvp[cnt_tmp][1][MV_Y] - mvp[cnt_tmp][1][MV_Y]) * cuh / cuw;
-                mvp[cnt_tmp][2][MV_Y] = mvp[cnt_tmp][0][MV_Y] + (mvp[cnt_tmp][1][MV_X] - mvp[cnt_tmp][1][MV_X]) * cuh / cuw;
+                mvp[cnt_tmp][2][MV_X] = mvp[cnt_tmp][0][MV_X] + (mvp[cnt_tmp][0][MV_Y] - mvp[cnt_tmp][1][MV_Y]) * cuh / cuw;
+                mvp[cnt_tmp][2][MV_Y] = mvp[cnt_tmp][0][MV_Y] + (mvp[cnt_tmp][1][MV_X] - mvp[cnt_tmp][0][MV_X]) * cuh / cuw;
             }
             cnt_tmp++;
         }

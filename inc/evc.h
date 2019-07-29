@@ -72,7 +72,8 @@ extern "C"
 #define is_ats_inter_quad_size(idx)     (idx == 3 || idx == 4)
 #endif
 
-#define ROOT_CBF_RDO_BIT_FIX            0
+#define ROOT_CBF_RDO_BIT_FIX            1
+#define ALF_PARAMETER_APS               0
 /*****************************************************************************
  * return values and error code
  *****************************************************************************/
