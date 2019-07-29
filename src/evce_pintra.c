@@ -97,9 +97,6 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 
         evce_sub_block_tq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, pi->tile_group_type, core->nnz
                           , core->nnz_sub, 1, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L, ctx->sps.tool_cm_init, ctx->sps.tool_iqt
-#if AQS
-                          , ctx->aqs.qs_scale
-#endif
 #if ATS_INTRA_PROCESS
                           , core->ats_intra_cu, core->ats_tu
 #endif
@@ -125,9 +122,6 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
         bit_cnt = evce_get_bit_number(&core->s_temp_run);
 
         evc_sub_block_itdq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->nnz, core->nnz_sub, ctx->sps.tool_iqt
-#if AQS
-                           , ctx->aqs.qs_scale
-#endif
 #if ATS_INTRA_PROCESS
                            , core->ats_intra_cu, core->ats_tu
 #endif
@@ -189,9 +183,6 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 
         evce_sub_block_tq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, pi->tile_group_type, core->nnz, core->nnz_sub
                           , 1, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt
-#if AQS
-                          , ctx->aqs.qs_scale
-#endif
 #if ATS_INTRA_PROCESS
                           , core->ats_intra_cu, core->ats_tu
 #endif
@@ -207,9 +198,6 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
         evc_mcpy(coef[V_C], pi->coef_tmp[V_C], sizeof(u16) * (cuw * cuh));
 
         evc_sub_block_itdq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->nnz, core->nnz_sub, ctx->sps.tool_iqt
-#if AQS
-                           , ctx->aqs.qs_scale
-#endif
 #if ATS_INTRA_PROCESS
                            , core->ats_intra_cu, core->ats_tu
 #endif

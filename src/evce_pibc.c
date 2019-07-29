@@ -113,11 +113,7 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 
 //    /* transform and quantization */
     tnnz = evce_sub_block_tq(coef, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, pi->tile_group_type, nnz
-      , core->nnz_sub, 0, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2]
-#if AQS
-      , ctx->aqs.qs_scale
-#endif
-      , RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt
+      , core->nnz_sub, 0, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt
 #if ATS_INTRA_PROCESS
       , 0, 0
 #endif
@@ -141,11 +137,7 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
             nnz_store[i] = nnz[i];
         }
 
-        evc_sub_block_itdq(pi->inv_coef, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, nnz, core->nnz_sub
-#if AQS
-          , ctx->aqs.qs_scale
-#endif
-          , ctx->sps.tool_iqt
+        evc_sub_block_itdq(pi->inv_coef, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, nnz, core->nnz_sub, ctx->sps.tool_iqt
 #if ATS_INTRA_PROCESS
           , 0, 0
 #endif

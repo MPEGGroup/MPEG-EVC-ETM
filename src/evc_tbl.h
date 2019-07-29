@@ -59,9 +59,6 @@ extern const u8 evey_tbl_mpm[6][6][5];
 
 extern const int evc_tbl_dq_scale[6];
 extern const int evc_tbl_dq_scale_b[6];
-#if AQS
-extern const int evc_sqrt[49]; //ev_val is 8 bit
-#endif
 extern const u8 evc_tbl_df_st[4][52];
 
 extern const int evc_tbl_ipred_adi[32][4];

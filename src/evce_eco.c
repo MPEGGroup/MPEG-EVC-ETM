@@ -450,10 +450,6 @@ int evce_eco_tgh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh)
     evc_bsw_write1(bs, tgh->keyframe);
     evc_bsw_write1(bs, tgh->udata_exist);
 
-#if AQS_SYNTAX
-    evc_bsw_write_se(bs, tgh->es_map_norm_idx);
-#endif
-
     if(tgh->tile_group_type != TILE_GROUP_I)
     {
         evc_bsw_write_se(bs, tgh->dptr);

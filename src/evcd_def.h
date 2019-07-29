@@ -311,10 +311,6 @@ struct _EVCD_CTX
     u8                      pic_sign[16];
     /* flag to indicate picture signature existing or not */
     u8                      pic_sign_exist;
-
-#if AQS
-    EVC_AQS                aqs;
-#endif
     /* address of ready function */
     int  (* fn_ready)(EVCD_CTX * ctx);
     /* address of flush function */

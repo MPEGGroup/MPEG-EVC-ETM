@@ -1480,9 +1480,6 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
     /* transform and quantization */
     tnnz = evce_sub_block_tq(coef, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, pi->tile_group_type, nnz
                              , core->nnz_sub, 0, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt
-#if AQS
-                             , ctx->aqs.qs_scale
-#endif
 #if ATS_INTRA_PROCESS
                              , 0, 0
 #endif
@@ -1511,9 +1508,6 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         }
 
         evc_sub_block_itdq(coef_t, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, nnz, core->nnz_sub, ctx->sps.tool_iqt
-#if AQS
-                           , ctx->aqs.qs_scale
-#endif
 #if ATS_INTRA_PROCESS
                            , 0, 0
 #endif
@@ -5419,9 +5413,6 @@ static double pinter_analyze_cu_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, 
 #endif
 
     evc_sub_block_itdq(pi->residue, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, pi->nnz_best[best_idx], pi->nnz_sub_best[best_idx], ctx->sps.tool_iqt
-#if AQS
-                       , ctx->aqs.qs_scale
-#endif
 #if ATS_INTRA_PROCESS
                        , 0, 0
 #endif
@@ -6471,9 +6462,6 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 #endif
 
     evc_sub_block_itdq(pi->residue, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, pi->nnz_best[best_idx], pi->nnz_sub_best[best_idx], ctx->sps.tool_iqt
-#if AQS
-                       , ctx->aqs.qs_scale
-#endif
 #if ATS_INTRA_PROCESS
                        , 0, 0
 #endif

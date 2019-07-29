@@ -1657,17 +1657,9 @@ static __inline u32 get_coded_level_rl(double* rd64_uncoded_cost, double* rd64_c
 }
 
 #if USE_RDOQ
-int evce_rdoq_run_length_cc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s16 *dst_tmp, int log2_cuw, int log2_cuh, int ch_type, int sps_cm_init_flag
-#if AQS
-                            , u16 qs_scale
-#endif
-)
+int evce_rdoq_run_length_cc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s16 *dst_tmp, int log2_cuw, int log2_cuh, int ch_type, int sps_cm_init_flag)
 #else
-int evce_rdoq_run_length_cc(u8 qp, double lambda, u8 is_intra, s16 *src_coef, s16 *dst_tmp, int log2_cuw, int log2_cuh, int ch_type, int sps_cm_init_flag
-#if AQS
-                            , u16 qs_scale
-#endif
-)
+int evce_rdoq_run_length_cc(u8 qp, double lambda, u8 is_intra, s16 *src_coef, s16 *dst_tmp, int log2_cuw, int log2_cuh, int ch_type, int sps_cm_init_flag)
 #endif
 {
     const int qp_rem = qp % 6;
@@ -1710,9 +1702,7 @@ int evce_rdoq_run_length_cc(u8 qp, double lambda, u8 is_intra, s16 *src_coef, s1
     double d64_block_uncoded_cost = 0;
     double err;
 #endif
-#if AQS
-    int qs_scale_inv_shift14 = (ch_type == Y_C) ? (((1 << (14 + ESM_SHIFT)) + (qs_scale >> 1)) / qs_scale) : (1 << 14);
-#endif
+
     /* ===== quantization ===== */
     for (scan_pos = 0; scan_pos < max_num_coef; scan_pos++)
     {
@@ -1723,9 +1713,7 @@ int evce_rdoq_run_length_cc(u8 qp, double lambda, u8 is_intra, s16 *src_coef, s1
         s64 temp_level;
 
         temp_level = ((s64)EVC_ABS(src_coef[blk_pos]) * (s64)q_value);
-#if AQS //in rdoq
-        temp_level = (temp_level * qs_scale_inv_shift14 + (1 << 13)) >> 14;
-#endif
+
         level_double = (int)EVC_MIN(((s64)temp_level), (s64)EVC_INT32_MAX - (s64)(1 << (q_bits - 1)));
         tmp_level_double[blk_pos] = level_double;
         max_abs_level = (u32)(level_double >> q_bits);
@@ -2468,9 +2456,6 @@ int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
 #endif
 
 int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw, int log2_cuh, u16 scale, int ch_type, int tile_group_type, int sps_cm_init_flag
-#if AQS
-                   , u16 qs_scale
-#endif
 #if COEFF_CODE_ADCC
                     , int tool_adcc
 #endif
@@ -2523,12 +2508,7 @@ int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw,
             nnz = ifvce_rdoq_method_ccA(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type);
         else
 #endif
-            nnz = evce_rdoq_run_length_cc(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type
-#if AQS
-                                      , qs_scale
-#endif
-                                      , sps_cm_init_flag
-        );
+            nnz = evce_rdoq_run_length_cc(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type, sps_cm_init_flag);
     }
     else
     {
@@ -2541,9 +2521,7 @@ int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw,
         int log2_size = (log2_cuw + log2_cuh) >> 1;
         const int ns_shift = ((log2_cuw + log2_cuh) & 1) ? 7 : 0;
         const int ns_scale = ((log2_cuw + log2_cuh) & 1) ? 181 : 1;
-#if AQS
-        int qs_scale_inv_shift14 = (ch_type == Y_C) ? (((1 << (14 + ESM_SHIFT)) + (qs_scale >> 1)) / qs_scale) : (1 << 14);
-#endif
+
         tr_shift = MAX_TX_DYNAMIC_RANGE - BIT_DEPTH - log2_size + ns_shift;
         shift = QUANT_SHIFT + tr_shift + (qp / 6);
         offset = (s64)((tile_group_type == TILE_GROUP_I) ? 171 : 85) << (s64)(shift - 9);
@@ -2552,12 +2530,7 @@ int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw,
         {
             sign = EVC_SIGN_GET(coef[i]);
             lev = (s64)EVC_ABS(coef[i]) * (s64)scale;
-#if AQS //in normal quantization
-            //Note: "offset<<14" may beyond 32 bit, so it shall must convert to s64
-            lev = (s16)(((s64)lev * ns_scale * qs_scale_inv_shift14 + ((s64)offset << 14)) >> (shift + 14));
-#else
             lev = (s16)(((s64)lev * ns_scale + offset) >> shift);
-#endif
             coef[i] = (s16)EVC_SIGN_SET(lev, sign);
             nnz += !!(coef[i]);
         }
@@ -2568,9 +2541,6 @@ int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw,
 
 
 int evce_tq_nnz(u8 qp, double lambda, s16 * coef, int log2_cuw, int log2_cuh, u16 scale, int tile_group_type, int ch_type, int is_intra, int sps_cm_init_flag, int iqt_flag
-#if AQS
-                , u16 qs_scale
-#endif
 #if ATS_INTRA_PROCESS
                 , u8 ats_intra_cu, u8 ats_tu
 #endif
@@ -2593,20 +2563,14 @@ int evce_tq_nnz(u8 qp, double lambda, s16 * coef, int log2_cuw, int log2_cuh, u1
 #endif
 
     return evce_quant_nnz(qp, lambda, is_intra, coef, log2_cuw, log2_cuh, scale, ch_type, tile_group_type, sps_cm_init_flag
-#if AQS
-                          , qs_scale
-#endif
 #if COEFF_CODE_ADCC
-                         , tool_adcc
+        , tool_adcc
 #endif
     );
 }
 
 int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int tile_group_type, int nnz[N_C]
                       , int nnz_sub[N_C][MAX_SUB_TB_NUM], int is_intra, double lambda_y, double lambda_u, double lambda_v, int run_stats, int sps_cm_init_flag, int iqt_flag
-#if AQS
-                      , u16 qs_scale
-#endif
 #if ATS_INTRA_PROCESS
                       , u8 ats_intra_cu, u8 ats_tu
 #endif
@@ -2677,11 +2641,8 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
 
                     int scale = quant_scale[qp[c] % 6];
                     nnz_sub[c][(j << 1) | i] = evce_tq_nnz(qp[c], lambda[c], coef_temp[c], log2_w_sub - !!c, log2_h_sub - !!c, scale, tile_group_type, c, is_intra, sps_cm_init_flag, iqt_flag
-#if AQS
-                                                           , qs_scale
-#endif
 #if ATS_INTRA_PROCESS
-                                                           , ats_intra_cu_on, ats_tu_mode
+                            , ats_intra_cu_on, ats_tu_mode
 #endif
 #if COEFF_CODE_ADCC
                             , tool_adcc

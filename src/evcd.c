@@ -386,17 +386,9 @@ static void make_stat(EVCD_CTX * ctx, int btype, EVCD_STAT * stat)
     }
 }
 
-static void evcd_itdq(EVCD_CTX * ctx, EVCD_CORE * core
-#if AQS
-                      , u16 qs_scale
-#endif
-)
+static void evcd_itdq(EVCD_CTX * ctx, EVCD_CORE * core)
 {
-
     evc_sub_block_itdq(core->coef, core->log2_cuw, core->log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->is_coef, core->is_coef_sub, ctx->sps.tool_iqt
-#if AQS
-                       , ctx->aqs.qs_scale
-#endif
 #if ATS_INTRA_PROCESS
 #if USE_IBC
                        , core->pred_mode == MODE_IBC ? 0 : core->ats_intra_cu
@@ -539,9 +531,6 @@ static void update_history_buffer_parse_affine(EVCD_CORE *core, int tile_group_t
 static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log2_cuw, int log2_cuh)
 {
     int ret, cuw, cuh;
-#if AQS
-    u16 avail_cu_rec;
-#endif
     core->log2_cuw = log2_cuw;
     core->log2_cuh = log2_cuh;
     core->x_scu = PEL2SCU(x);
@@ -571,10 +560,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
     /* parse CU info */
     ret = evcd_eco_cu(ctx, core);
     evc_assert_g(ret == EVC_OK, ERR);
-#if AQS //derive qs_scale at decoder
-    avail_cu_rec = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu); //derive the neighboring rec pixel availability, similar to that for intra mode
-    ctx->aqs.qs_scale = evc_get_qs_scale_blk(ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->pic->s_l, log2_cuw, log2_cuh, avail_cu_rec, ctx->aqs.contrast_factor, ctx->aqs.luminance_factor, ctx->aqs.es_map_norm);
-#endif
+
 #if TRACE_ENC_CU_DATA
     static int core_counter = 1;
     EVC_TRACE_COUNTER;
@@ -582,6 +568,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
     EVC_TRACE_INT(core_counter++);
     EVC_TRACE_STR("\n");
 #endif
+
 #if TRACE_ENC_HISTORIC
     //if (core->pred_mode != MODE_INTRA)
     {
@@ -611,11 +598,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
     /* inverse transform and dequantization */
     if(core->pred_mode != MODE_SKIP)
     {
-        evcd_itdq(ctx, core
-#if AQS
-                  , ctx->aqs.qs_scale
-#endif
-        );
+        evcd_itdq(ctx, core);
     }
 
     evcd_set_dec_info(ctx, core
@@ -1191,51 +1174,6 @@ void evcd_flush(EVCD_CTX * ctx)
     }
 }
 
-#if AQS
-void evcd_init_es_factor(EVCD_CTX* ctx)
-{
-    int i = 0;
-    double factor;
-    //assign encoder-only parameter
-    ctx->aqs.es_map_buf = NULL;
-    ctx->aqs.es_map_width = 0;
-    ctx->aqs.es_map_height = 0;
-    ctx->aqs.es_map_stride = 0;
-    ctx->aqs.es_map_stride = 0;
-
-    //luminance masking with Wei's function
-    for (i = 0; i < 60; i++)
-    {
-        factor = (1.0 + (60.0 - i) / 150.0);
-        ctx->aqs.luminance_factor[i] = (u16)(factor * ESM_DEFAULT + 0.5);
-    }
-    for (i = 60; i < 170; i++)
-    {
-        factor = 1.0;
-        ctx->aqs.luminance_factor[i] = (u16)(factor * ESM_DEFAULT + 0.5);
-    }
-    for (i = 170; i <= 256; i++)
-    {
-        factor = (1.0 + (i - 170.0) / 425.0);
-        ctx->aqs.luminance_factor[i] = (u16)(factor * ESM_DEFAULT + 0.5);
-    }
-
-    //contrast masking
-    for (i = 0; i < 256; i++)
-    {
-        int k = 5; //threshold of the zero-slope line
-
-        //with pedestal effect
-        if (i < k)
-            factor = 1.0;
-        else
-            factor = (double)(i - k + 10.0) / 10.0;
-
-        ctx->aqs.contrast_factor[i] = (u16)(factor * ESM_DEFAULT + 0.5);
-    }
-}
-#endif
-
 int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 {
     EVC_BSR  *bs = &ctx->bs;
@@ -1341,15 +1279,6 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 */
 
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
-#if AQS //init factors at decoder
-        evcd_init_es_factor(ctx);
-        ctx->aqs.es_map_norm_idx = 0;
-        ctx->aqs.es_map_norm = ESM_DEFAULT;
-#endif
-#if AQS_SYNTAX
-        ctx->aqs.es_map_norm_idx = tgh->es_map_norm_idx;
-        ctx->aqs.es_map_norm = tgh->es_map_norm;
-#endif
         ret = tile_group_init(ctx, ctx->core, tgh);
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
 #if HLS_M47668

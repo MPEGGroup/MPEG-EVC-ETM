@@ -262,10 +262,6 @@ int evc_inv_scan_sr[MAX_TR_SIZE*MAX_TR_SIZE];
 #endif
 const int evc_tbl_dq_scale[6] = {40, 45, 51, 57, 64, 72};
 const int evc_tbl_dq_scale_b[6] = {40, 45, 51, 57, 64, 71};
-#if AQS
-const int evc_sqrt[49] = { 181, 187, 192, 197, 202, 207, 212, 217, 222, 226, 231, 235, 239, 244, 248, 252, 256, 260, 264, 268, 272, 275, 279, 283, 286,
-290, 293, 297, 300, 304, 307, 310, 314, 317, 320, 323, 326, 329, 333, 336, 339, 342, 345, 348, 351, 353, 356, 359, 362 };
-#endif
 const int evc_tbl_ipred_adi[32][4]=
 {
     /* AVS-2 design == bilinear interpolation + {1,2,1} ref smoothing */

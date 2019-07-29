@@ -914,11 +914,6 @@ struct _EVCE_CTX
     s8                   (*map_refi)[REFP_NUM];
     /* map for intra pred mode */
     s8                    *map_ipm;
-#if AQS 
-    /* adaptive quantization step size derivation*/
-    EVC_AQS               aqs;
-#endif
-
     s16                  (*map_block_size)[2];
     s8                    *map_depth;
 
