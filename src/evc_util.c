@@ -3261,7 +3261,7 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                 }
             }
         }
-
+#if !HW_REMOVE_UNSPEC_CODE_PART
         //conditional split restriction
         /* remove conditionally disallowed split modes*/
         if(!boundary)
@@ -3291,6 +3291,7 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                 }
             }
         }
+#endif
     }
 }
 
@@ -5039,6 +5040,7 @@ void clip_simd(const pel* src, int src_stride, pel *dst, int dst_stride, int wid
 }
 #endif
 
+#if !(HW_INTRA_PRED_NO_DIV_IN_HOR_MODE || HW_INTRA_PRED_NO_DIV_IN_DC_MODE)
 s32 divide_tbl(s32 dividend, s32 divisor)
 {
     u8 sign_dividend = dividend < 0;
@@ -5076,6 +5078,7 @@ s32 divide_tbl(s32 dividend, s32 divisor)
 
     return (sign_dividend + sign_divisor == 1) ? -quotient : quotient;
 }
+#endif //!(HW_INTRA_PRED_NO_DIV_IN_HOR_MODE || HW_INTRA_PRED_NO_DIV_IN_DC_MODE)
 
 void evc_block_copy(s16 * src, int src_stride, s16 * dst, int dst_stride, int log2_copy_w, int log2_copy_h)
 {

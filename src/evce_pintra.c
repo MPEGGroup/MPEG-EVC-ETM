@@ -138,10 +138,14 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 #if HTDF
         if(ctx->sps.tool_htdf == 1)
         {
+#if HW_HTDF_CLEANUP
+            evc_htdf(pi->rec[Y_C], ctx->tgh.qp, cuw, cuh, cuw, TRUE, pi->m[Y_C] + (y * pi->s_m[Y_C]) + x, pi->s_m[Y_C], core->avail_cu);
+#else
 #if !HTDF_CBF0_INTRA
             if(core->nnz[Y_C])
 #endif
                 evc_htdf(pi->rec[Y_C], ctx->tgh.qp, cuw, cuh, cuw, TRUE, core->nb[Y_C][0] + 2, core->nb[Y_C][1] + cuh - 1, core->nb[Y_C][2] + 2, core->avail_cu);
+#endif
         }
 #endif
         cost += evce_ssd_16b(log2_cuw, log2_cuh, pi->rec[Y_C], org_luma, cuw, s_org);

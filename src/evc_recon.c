@@ -173,21 +173,23 @@ void evc_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pe
 #define HTDF_BIT_RND4                                     2
 #define HTDF_CNT_SCALE                                    2
 #define HTDF_CNT_SCALE_RND                                (1 << (HTDF_CNT_SCALE - 1))
+#if !HW_HTDF_CLEANUP
 #define HTDF_PADDED_SMPL_NUM                              1
 #define HTDF_TBL_BITS                                     7
 #define HTDF_TBL_THR                                      (1<<HTDF_TBL_BITS)
 #define HTDF_TBL_SHIFT                                    (HTDF_TBL_BITS - HTDF_LUT_SIZE_LOG2)
 #define HTDF_TBL_RND                                      ((1 << HTDF_TBL_SHIFT) >> 1)
+#endif
 
 u8 HTDF_table_thr_log2[HTDF_LUT_QP_NUM] = { 6, 7, 7, 8, 8 };
 
 static const 
 u8 HTDF_table[HTDF_LUT_QP_NUM][1 << HTDF_LUT_SIZE_LOG2] = {
-{ 0, 0, 2, 6, 10, 14, 19, 23, 28, 32, 36, 41, 45, 49, 53, 57, },
-{ 0, 0, 5, 12, 20, 29, 38, 47, 56, 65, 73, 82, 90, 98, 107, 115, },
-{ 0, 0, 1, 4, 9, 16, 24, 32, 41, 50, 59, 68, 77, 86, 94, 103, },
-{ 0, 0, 3, 9, 19, 32, 47, 64, 81, 99, 117, 135, 154, 179, 205, 230, },
-{ 0, 0, 0, 2, 6, 11, 18, 27, 38, 51, 64, 96, 128, 160, 192, 224, },
+{ 0, 0, 2,  6, 10, 14, 19, 23, 28, 32,  36,  41,  45,  49,  53,  57, },
+{ 0, 0, 5, 12, 20, 29, 38, 47, 56, 65,  73,  82,  90,  98, 107, 115, },
+{ 0, 0, 1,  4,  9, 16, 24, 32, 41, 50,  59,  68,  77,  86,  94, 103, },
+{ 0, 0, 3,  9, 19, 32, 47, 64, 81, 99, 117, 135, 154, 179, 205, 230, },
+{ 0, 0, 0,  2,  6, 11, 18, 27, 38, 51,  64,  96, 128, 160, 192, 224, },
 };
 
 INLINE int read_table(const int z, const u8 *tbl, const int thr, const int table_shift, const int table_round)
@@ -277,7 +279,11 @@ void evc_htdf_filter_block(pel *block, pel *acc_block, const u8 *tbl, int stride
 
 void filter_block_luma(pel *block, const u8 HTDF_table[HTDF_LUT_QP_NUM][1 << HTDF_LUT_SIZE_LOG2], int width, int height, int stride, int qp)
 {
+#if HW_HTDF_CLEANUP
+    pel acc_block[(MAX_CU_SIZE + 2)*(MAX_CU_SIZE + 2)];
+#else
     pel acc_block[(MAX_CU_SIZE + (HTDF_PADDED_SMPL_NUM << 1))*(MAX_CU_SIZE + (HTDF_PADDED_SMPL_NUM << 1))];
+#endif
 
     memset(acc_block, 0, stride*height * sizeof(*acc_block));
 
@@ -315,7 +321,60 @@ BOOL evc_htdf_skip_condition(int width, int height, int IntraBlockFlag, int *qp)
 
     return FALSE;
 }
+#if HW_HTDF_CLEANUP
+void evc_htdf(s16* rec, int qp, int w, int h, int s, BOOL intra_block_flag, pel* rec_pic, int s_pic, int avail_cu)
+{
+    if (evc_htdf_skip_condition(w, h, intra_block_flag, &qp))
+        return;
 
+    pel tempblock[(MAX_CU_SIZE + 2) * (MAX_CU_SIZE + 2)];
+    int width_ext  = w + 2;
+    int height_ext = h + 2;
+
+    for (int i = 0; i < h; ++i)
+        memcpy(tempblock + (i + 1) * width_ext + 1, rec + i * s, w * sizeof(rec[0]));
+
+    if (IS_AVAIL(avail_cu, AVAIL_LE))
+    {
+        for (int i = 1; i < height_ext - 1; ++i)
+            tempblock[i * width_ext] = rec_pic[(i - 1) * s_pic - 1];
+    }
+    else
+    {
+        for (int i = 1; i < height_ext - 1; ++i)
+            tempblock[i * width_ext] = rec[(i - 1) * s];
+    }
+    if (IS_AVAIL(avail_cu, AVAIL_RI))
+    {
+        for (int i = 1; i < height_ext - 1; ++i)
+            tempblock[i * width_ext + width_ext - 1] = rec_pic[(i - 1) * s_pic + w];
+    }
+    else
+    {
+        for (int i = 1; i < height_ext - 1; ++i)
+            tempblock[i * width_ext + width_ext - 1] = rec[(i - 1) * s + w - 1];
+    }
+    if (IS_AVAIL(avail_cu, AVAIL_UP))
+    {
+        memcpy(tempblock + 1, rec_pic - s_pic, w * sizeof(rec_pic[0]));
+    }
+    else
+    {
+        memcpy(tempblock + 1, rec, w * sizeof(rec[0]));
+    }
+    memcpy(tempblock + 1 + (height_ext - 1) * width_ext, rec + (h - 1) * s, w * sizeof(rec[0]));
+
+    tempblock[0] = IS_AVAIL(avail_cu, AVAIL_UP_LE) ? rec_pic[-1 - 1 * s_pic] : rec[0];
+    tempblock[width_ext - 1] = IS_AVAIL(avail_cu, AVAIL_UP_RI) ? rec_pic[w - 1 * s_pic] : rec[w - 1];
+    tempblock[width_ext * (height_ext - 1)] = IS_AVAIL(avail_cu, AVAIL_LO_LE) ? rec_pic[-1 + h * s_pic] : rec[(h - 1) * s];
+    tempblock[width_ext - 1 + width_ext * (height_ext - 1)] = IS_AVAIL(avail_cu, AVAIL_LO_RI) ? rec_pic[w + h * s_pic] : rec[w - 1 + (h - 1) * s];
+
+    filter_block_luma(tempblock, HTDF_table, width_ext, height_ext, width_ext, qp);
+
+    for (int i = 0; i < h; ++i)
+        memcpy(rec + i * s, tempblock + (i + 1) * width_ext + 1, w * sizeof(rec[0]));
+}
+#else
 void evc_htdf(s16* rec, int qp, int w, int h, int s, BOOL intra_block_flag, pel* left, pel* up, pel* right, int avail_cu)
 {
     if (evc_htdf_skip_condition(w, h, intra_block_flag, &qp))
@@ -375,4 +434,5 @@ void evc_htdf(s16* rec, int qp, int w, int h, int s, BOOL intra_block_flag, pel*
         memcpy(rec + i * s, tempblock + (i + HTDF_PADDED_SMPL_NUM) * width_ext + HTDF_PADDED_SMPL_NUM, w * sizeof(rec[0]));
 }
 
+#endif
 #endif

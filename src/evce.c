@@ -302,13 +302,7 @@ static EVCE_CORE * core_alloc(void)
             evce_create_cu_data(&core->cu_data_temp[i][j], i, j);
         }
     }
-#if EIF_BUFIX && EIF
-#if EIF_3TAP
-    core->eif_tmp_buffer = (pel *)evc_malloc_fast((EIF_NUM_LINES_IN_PREP_DATA * (EIF_PREP_DATA_STRIDE + 8) + EIF_NUM_LINES_IN_UPSCALED_DATA * EIF_UPSCALED_DATA_STRIDE) * sizeof(pel));
-#else
-    core->eif_tmp_buffer = (pel *)evc_malloc_fast((EIF_NUM_LINES_IN_PREP_DATA * EIF_PREP_DATA_STRIDE + EIF_NUM_LINES_IN_UPSCALED_DATA * EIF_UPSCALED_DATA_STRIDE) * sizeof(pel));
-#endif
-#endif
+
     return core;
 }
 
@@ -324,12 +318,7 @@ static void core_free(EVCE_CORE * core)
             evce_delete_cu_data(&core->cu_data_temp[i][j], i, j);
         }
     }
-#if EIF_BUFIX && EIF
-    if (core->eif_tmp_buffer != NULL)
-    {
-        evc_mfree_fast(core->eif_tmp_buffer);
-    }
-#endif
+
     evc_mfree_fast(core);
 }
 
