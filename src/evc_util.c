@@ -1598,13 +1598,6 @@ void evc_get_motion(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[RE
     mvp[3][MV_Y] = refp[0][lidx].map_mv[scup][0][MV_Y];
 }
 
-void evc_mv_rounding_s32( s32 hor, int ver, s32 * rounded_hor, s32 * rounded_ver, s32 right_shift, int left_shift )
-{
-    int offset = (right_shift > 0) ? (1 << (right_shift - 1)) : 0;
-    *rounded_hor = ((hor + offset - (hor >= 0)) >> right_shift) << left_shift;
-    *rounded_ver = ((ver + offset - (ver >= 0)) >> right_shift) << left_shift;
-}
-
 #if AFFINE
 void evc_get_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int num_refp, s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM],
                             int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][MV_D], s8 refi[MAX_NUM_MVP], u32* map_scu, u16 avail_lr
@@ -3509,6 +3502,59 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
     }
 }
 
+#if HW_AFFINE
+void evc_mv_rounding_s32( s32 hor, int ver, s32 * rounded_hor, s32 * rounded_ver, s32 right_shift, int left_shift )
+{
+    int offset = (right_shift > 0) ? (1 << (right_shift - 1)) : 0;
+    *rounded_hor = ((hor + offset - (hor >= 0)) >> right_shift) << left_shift;
+    *rounded_ver = ((ver + offset - (ver >= 0)) >> right_shift) << left_shift;
+}
+
+void derive_affine_subblock_size( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num )
+{
+    int w = cuw;
+    int h = cuh;
+#if MC_PRECISION_ADD
+    int mc_prec_add = MC_PRECISION_ADD;
+#else
+    int mc_prec_add = 0;
+#endif
+    int mv_wx, mv_wy;
+
+    mv_wx = max( abs( ac_mv[1][MV_X] - ac_mv[0][MV_X] ), abs( ac_mv[1][MV_Y] - ac_mv[0][MV_Y] ) );
+    if ( mv_wx )
+    {
+        w = max( (int)((cuw >> mc_prec_add) / mv_wx), 1 );
+        while ( cuw % w )
+        {
+            w--;
+        }
+        w = max( AFFINE_MIN_BLOCK_SIZE, w );
+    }
+
+    if ( vertex_num == 2 )
+    {
+        h = min( w, cuh );
+    }
+    else
+    {
+        mv_wy = max( abs( ac_mv[2][MV_X] - ac_mv[0][MV_X] ), abs( ac_mv[2][MV_Y] - ac_mv[0][MV_Y] ) );
+        if ( mv_wy )
+        {
+            h = max( (int)((cuh >> mc_prec_add) / mv_wy), 1 );
+            while ( cuh % h )
+            {
+                h--;
+            }
+            h = max( AFFINE_MIN_BLOCK_SIZE, h );
+        }
+    }
+
+    *sub_w = w;
+    *sub_h = h;
+}
+#endif
+
 #if AFFINE
 /*******************************************/
 /* Neighbor location: Graphical indication */
@@ -3669,6 +3715,9 @@ int evc_derive_affine_constructed_candidate(int ptr, EVC_REFP (*refp)[REFP_NUM],
 }
 
 void evc_derive_affine_model_mv(int scup, int scun, int lidx, s16(*map_mv)[REFP_NUM][MV_D], int cuw, int cuh, int w_scu, int h_scu, s16 mvp[VER_NUM][MV_D], u32 *map_affine, int cur_cp_num
+#if HW_AFFINE
+                                , int log2_max_cuwh
+#endif
 #if DMVR_LAG
                                 , u32 *map_scu
                                 , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
@@ -3700,7 +3749,11 @@ void evc_derive_affine_model_mv(int scup, int scun, int lidx, s16(*map_mv)[REFP_
     cur_x = (scup % w_scu) << MIN_CU_LOG2;
     cur_y = (scup / w_scu) << MIN_CU_LOG2;
 
-    for(i = 0; i < neb_cp_num; i++)
+#if HW_AFFINE
+    for ( i = 0; i < VER_NUM; i++ )
+#else
+    for(i = 0; i < cur_cp_num; i++)
+#endif
     {
 #if DMVR_LAG
         if (MCU_GET_DMVRF(map_scu[neb_addr[i]]) 
@@ -3720,9 +3773,27 @@ void evc_derive_affine_model_mv(int scup, int scun, int lidx, s16(*map_mv)[REFP_
         }
     }
 
+#if HW_AFFINE
+    int is_top_ctu_boundary = FALSE;
+    if ( (neb_y + neb_h) % (1 << log2_max_cuwh) == 0 && (neb_y + neb_h) == cur_y )
+    {
+        is_top_ctu_boundary = TRUE;
+        neb_y += neb_h;
+
+        neb_mv[0][MV_X] = neb_mv[2][MV_X];
+        neb_mv[0][MV_Y] = neb_mv[2][MV_Y];
+        neb_mv[1][MV_X] = neb_mv[3][MV_X];
+        neb_mv[1][MV_Y] = neb_mv[3][MV_Y];
+    }
+#endif
+
     dmv_hor_x = (neb_mv[1][MV_X] - neb_mv[0][MV_X]) << diff_w;    // deltaMvHor
     dmv_hor_y = (neb_mv[1][MV_Y] - neb_mv[0][MV_Y]) << diff_w;
-    if ( neb_cp_num == 3 )
+#if HW_AFFINE
+    if (cur_cp_num == 3 && !is_top_ctu_boundary )
+#else
+    if(cur_cp_num == 3)
+#endif
     {
         dmv_ver_x = (neb_mv[2][MV_X] - neb_mv[0][MV_X]) << diff_h;  // deltaMvVer
         dmv_ver_y = (neb_mv[2][MV_Y] - neb_mv[0][MV_Y]) << diff_h;
@@ -3765,6 +3836,9 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
                                    s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
                                    int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][VER_NUM][MV_D], s8 refi[MAX_NUM_MVP]
                                    , u32* map_scu, u32* map_affine, int vertex_num, u16 avail_lr
+#if HW_AFFINE
+                                   , int log2_max_cuwh
+#endif
 #if DMVR_LAG
                                    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
@@ -3819,6 +3893,9 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
         {
             refi[cnt_tmp] = map_refi[neb_addr[k]][lidx];
             evc_derive_affine_model_mv(scup, neb_addr[k], lidx, map_mv, cuw, cuh, w_scu, h_scu, mvp_tmp, map_affine, vertex_num
+#if HW_AFFINE
+                                       , log2_max_cuwh
+#endif
 #if DMVR_LAG
                                        , map_scu
                                        , map_unrefined_mv
@@ -3853,6 +3930,9 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
         {
             refi[cnt_tmp] = map_refi[neb_addr[k]][lidx];
             evc_derive_affine_model_mv(scup, neb_addr[k], lidx, map_mv, cuw, cuh, w_scu, h_scu, mvp_tmp, map_affine, vertex_num
+#if HW_AFFINE
+                                       , log2_max_cuwh
+#endif
 #if DMVR_LAG
                                        , map_scu
                                        , map_unrefined_mv
@@ -3988,7 +4068,11 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
     }
     //-------------------  organize  -------------------//
     {
+#if HW_AFFINE
+        if ( cnt_lt && cnt_rt && (vertex_num == 2 || cnt_lb) )
+#else
         if(cnt_lt && cnt_rt)
+#endif
         {
             mvp[cnt_tmp][0][MV_X] = mvp_cand_lt[0][MV_X];
             mvp[cnt_tmp][0][MV_Y] = mvp_cand_lt[0][MV_Y];
@@ -3996,11 +4080,14 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
             mvp[cnt_tmp][1][MV_Y] = mvp_cand_rt[0][MV_Y];
             mvp[cnt_tmp][2][MV_X] = mvp_cand_lb[0][MV_X];
             mvp[cnt_tmp][2][MV_Y] = mvp_cand_lb[0][MV_Y];
+
+#if !HW_AFFINE
             if(vertex_num == 2 || cnt_lb == 0)
             {
                 mvp[cnt_tmp][2][MV_X] = mvp[cnt_tmp][0][MV_X] + (mvp[cnt_tmp][0][MV_Y] - mvp[cnt_tmp][1][MV_Y]) * cuh / cuw;
                 mvp[cnt_tmp][2][MV_Y] = mvp[cnt_tmp][0][MV_Y] + (mvp[cnt_tmp][1][MV_X] - mvp[cnt_tmp][0][MV_X]) * cuh / cuw;
             }
+#endif
             cnt_tmp++;
         }
         if(cnt_tmp == AFF_MAX_NUM_MVP)
@@ -4073,6 +4160,9 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
 /* merge affine mode */
 int evc_get_affine_merge_candidate(int ptr, int tile_group_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], EVC_REFP(*refp)[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, u16 avail,
                                    s8 mrg_list_refi[AFF_MAX_CAND][REFP_NUM], s16 mrg_list_cpmv[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D], int mrg_list_cp_num[AFF_MAX_CAND], u32* map_scu, u32* map_affine
+#if HW_AFFINE
+                                   , int log2_max_cuwh
+#endif
 #if DMVR_LAG
                                    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
@@ -4139,6 +4229,9 @@ int evc_get_affine_merge_candidate(int ptr, int tile_group_type, int scup, s8(*m
                     {
                         mrg_list_refi[cnt][lidx] = map_refi[neb_addr[k]][lidx];
                         evc_derive_affine_model_mv(scup, neb_addr[k], lidx, map_mv, cuw, cuh, w_scu, h_scu, mrg_list_cpmv[cnt][lidx], map_affine, mrg_list_cp_num[cnt]
+#if HW_AFFINE
+                                                   , log2_max_cuwh
+#endif
 #if DMVR_LAG
                                                    , map_scu
                                                    , map_unrefined_mv

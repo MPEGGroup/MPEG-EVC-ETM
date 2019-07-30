@@ -291,6 +291,8 @@ enum SAD_POINT_INDEX
 #endif
 /* AFFINE (START) */
 #if AFFINE
+#define HW_AFFINE                          1
+
  // AFFINE Constant
 #define VER_NUM                            4
 #define AFFINE_MAX_NUM_LT                  3 ///< max number of motion candidates in top-left corner
