@@ -3743,6 +3743,7 @@ void evc_derive_affine_model_mv(int scup, int scun, int lidx, s16(*map_mv)[REFP_
     neb_addr[0] = scun - MCU_GET_AFF_XOFF(map_affine[scun]) - w_scu * MCU_GET_AFF_YOFF(map_affine[scun]);
     neb_addr[1] = neb_addr[0] + ((neb_w >> MIN_CU_LOG2) - 1);
     neb_addr[2] = neb_addr[0] + ((neb_h >> MIN_CU_LOG2) - 1) * w_scu;
+    neb_addr[3] = neb_addr[2] + ((neb_w >> MIN_CU_LOG2) - 1);
 
     neb_x = (neb_addr[0] % w_scu) << MIN_CU_LOG2;
     neb_y = (neb_addr[0] / w_scu) << MIN_CU_LOG2;
@@ -5133,7 +5134,7 @@ void clip_simd(const pel* src, int src_stride, pel *dst, int dst_stride, int wid
 }
 #endif
 
-#if !(HW_INTRA_PRED_NO_DIV_IN_HOR_MODE || HW_INTRA_PRED_NO_DIV_IN_DC_MODE)
+#if !HW_INTRA_PRED_NO_DIV_IN_HOR_MODE || !(HW_INTRA_PRED_NO_DIV_IN_DC_MODE || HW_INTRA_PRED_DC_MODE_CLEANUP)
 s32 divide_tbl(s32 dividend, s32 divisor)
 {
     u8 sign_dividend = dividend < 0;
@@ -5171,7 +5172,7 @@ s32 divide_tbl(s32 dividend, s32 divisor)
 
     return (sign_dividend + sign_divisor == 1) ? -quotient : quotient;
 }
-#endif //!(HW_INTRA_PRED_NO_DIV_IN_HOR_MODE || HW_INTRA_PRED_NO_DIV_IN_DC_MODE)
+#endif //!HW_INTRA_PRED_NO_DIV_IN_HOR_MODE || !(HW_INTRA_PRED_NO_DIV_IN_DC_MODE || HW_INTRA_PRED_DC_MODE_CLEANUP)
 
 void evc_block_copy(s16 * src, int src_stride, s16 * dst, int dst_stride, int log2_copy_w, int log2_copy_h)
 {
