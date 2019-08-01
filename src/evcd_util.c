@@ -68,13 +68,17 @@ int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16])
 #if AFFINE
 void evcd_set_affine_mvf(EVCD_CTX * ctx, EVCD_CORE * core)
 {
+#if !HW_AFFINE
     s16(*map_mv)[REFP_NUM][MV_D];
+#endif
 
     int   w_cu;
     int   h_cu;
     int   scup;
     int   w_scu;
+#if !HW_AFFINE
     int   i, j;
+#endif
     int   lidx;
     int   vertex_num = core->affine_flag + 1;
     int   aff_scup[VER_NUM];
@@ -93,6 +97,87 @@ void evcd_set_affine_mvf(EVCD_CTX * ctx, EVCD_CORE * core)
     {
         if(core->refi[lidx] >= 0)
         {
+#if HW_AFFINE
+            s16( *ac_mv )[MV_D] = core->affine_mv[lidx];
+            int dmv_hor_x, dmv_ver_x, dmv_hor_y, dmv_ver_y;
+            int mv_scale_hor = ac_mv[0][MV_X] << 7;
+            int mv_scale_ver = ac_mv[0][MV_Y] << 7;
+            int mv_y_hor = mv_scale_hor;
+            int mv_y_ver = mv_scale_ver;
+            int mv_scale_tmp_hor, mv_scale_tmp_ver;
+
+            // convert to 2^(storeBit + iBit) precision
+            dmv_hor_x = (ac_mv[1][MV_X] - ac_mv[0][MV_X]) << (7 - core->log2_cuw);     // deltaMvHor
+            dmv_hor_y = (ac_mv[1][MV_Y] - ac_mv[0][MV_Y]) << (7 - core->log2_cuw);
+            if ( vertex_num == 3 )
+            {
+                dmv_ver_x = (ac_mv[2][MV_X] - ac_mv[0][MV_X]) << (7 - core->log2_cuh); // deltaMvVer
+                dmv_ver_y = (ac_mv[2][MV_Y] - ac_mv[0][MV_Y]) << (7 - core->log2_cuh);
+            }
+            else
+            {
+                dmv_ver_x = -dmv_hor_y;                                                // deltaMvVer
+                dmv_ver_y = dmv_hor_x;
+            }
+
+            // derive sub-block size
+            int sub_w = 4, sub_h = 4;
+            derive_affine_subblock_size( core->affine_mv[lidx], (1 << core->log2_cuw), (1 << core->log2_cuh), &sub_w, &sub_h, vertex_num );
+            int   sub_w_in_scu = PEL2SCU( sub_w );
+            int   sub_h_in_scu = PEL2SCU( sub_h );
+            int   half_w = sub_w >> 1;
+            int   half_h = sub_h >> 1;
+
+            for ( int h = 0; h < h_cu; h += sub_h_in_scu )
+            {
+                for ( int w = 0; w < w_cu; w += sub_w_in_scu )
+                {
+                    if ( w == 0 && h == 0 )
+                    {
+                        mv_scale_tmp_hor = ac_mv[0][MV_X];
+                        mv_scale_tmp_ver = ac_mv[0][MV_Y];
+                    }
+                    else if ( w + sub_w_in_scu == w_cu && h == 0 )
+                    {
+                        mv_scale_tmp_hor = ac_mv[1][MV_X];
+                        mv_scale_tmp_ver = ac_mv[1][MV_Y];
+                    }
+                    else if ( w == 0 && h + sub_h_in_scu == h_cu && vertex_num == 3 )
+                    {
+                        mv_scale_tmp_hor = ac_mv[2][MV_X];
+                        mv_scale_tmp_ver = ac_mv[2][MV_Y];
+                    }
+                    else
+                    {
+                        int pos_x = (w << MIN_CU_LOG2) + half_w;
+                        int pos_y = (h << MIN_CU_LOG2) + half_h;
+
+                        mv_scale_tmp_hor = mv_scale_hor + dmv_hor_x * pos_x + dmv_ver_x * pos_y;
+                        mv_scale_tmp_ver = mv_scale_ver + dmv_hor_y * pos_x + dmv_ver_y * pos_y;
+
+                        // 1/16 precision, 18 bits, same as MC
+                        evc_mv_rounding_s32( mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, 5, 0 );
+                        mv_scale_tmp_hor = EVC_CLIP3( -(2 << 17), (2 << 17) - 1, mv_scale_tmp_hor );
+                        mv_scale_tmp_ver = EVC_CLIP3( -(2 << 17), (2 << 17) - 1, mv_scale_tmp_ver );
+
+                        // 1/4 precision, 16 bits for storage
+                        mv_scale_tmp_hor >>= 2;
+                        mv_scale_tmp_ver >>= 2;
+                    }
+
+                    // save MV for each 4x4 block
+                    for ( int y = h; y < h + sub_h_in_scu; y++ )
+                    {
+                        for ( int x = w; x < w + sub_w_in_scu; x++ )
+                        {
+                            int addr_in_scu = scup + x + y * w_scu;
+                            ctx->map_mv[addr_in_scu][lidx][MV_X] = (s16)mv_scale_tmp_hor;
+                            ctx->map_mv[addr_in_scu][lidx][MV_Y] = (s16)mv_scale_tmp_ver;
+                        }
+                    }
+                }
+            }
+#else
             s16(*ac_mv)[MV_D] = core->affine_mv[lidx];
             int dmv_hor_x, dmv_ver_x, dmv_hor_y, dmv_ver_y;
             int mv_scale_hor = ac_mv[0][MV_X] << 7;
@@ -146,6 +231,7 @@ void evcd_set_affine_mvf(EVCD_CTX * ctx, EVCD_CORE * core)
                 map_mv[aff_scup[2]][lidx][MV_X] = vx2;
                 map_mv[aff_scup[2]][lidx][MV_Y] = vy2;
             }
+#endif
         }
     }
 }
@@ -165,6 +251,9 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
 #endif
     u32  *map_scu;
     s8   *map_ipm;
+#if ATS_INTER_PROCESS
+    u8   *map_ats_inter;
+#endif
     int   w_cu;
     int   h_cu;
     int   scup;
@@ -193,6 +282,9 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
     map_affine = ctx->map_affine + scup;
 #endif
     map_cu_mode = ctx->map_cu_mode + scup;
+#if ATS_INTER_PROCESS
+    map_ats_inter = ctx->map_ats_inter + scup;
+#endif
 
 #if DMVR_LAG
     idx = 0;
@@ -247,7 +339,16 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
                 MCU_CLR_AFF(map_scu[j]);
             }
 #endif
-
+#if USE_IBC
+            if (core->ibc_flag)
+            {
+              MCU_SET_IBC(map_scu[j]);
+            }
+            else
+            {
+              MCU_CLR_IBC(map_scu[j]);
+            }
+#endif
             MCU_SET_LOGW(map_cu_mode[j], core->log2_cuw);
             MCU_SET_LOGH(map_cu_mode[j], core->log2_cuh);
 
@@ -264,6 +365,13 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
 
             map_refi[j][REFP_0] = core->refi[REFP_0];
             map_refi[j][REFP_1] = core->refi[REFP_1];
+#if ATS_INTER_PROCESS
+            map_ats_inter[j] = core->ats_inter_info;
+#if USE_IBC
+            if(core->pred_mode == MODE_IBC)
+              map_ats_inter[j] = 0;
+#endif
+#endif
 
 #if DMVR_LAG
             if(core->dmvr_flag)
@@ -310,7 +418,19 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
         map_affine += w_scu;
 #endif
         map_cu_mode += w_scu;
+#if ATS_INTER_PROCESS
+        map_ats_inter += w_scu;
+#endif
     }
+#if ATS_INTER_PROCESS //set cbf
+    if (core->ats_inter_info)
+    {
+        assert(core->is_coef_sub[Y_C][0] == core->is_coef[Y_C]);
+        assert(core->is_coef_sub[U_C][0] == core->is_coef[U_C]);
+        assert(core->is_coef_sub[V_C][0] == core->is_coef[V_C]);
+        set_cu_cbf_flags(core->is_coef[Y_C], core->ats_inter_info, core->log2_cuw, core->log2_cuh, ctx->map_scu + core->scup, ctx->w_scu);
+    }
+#endif
 
 #if AFFINE
     if(core->affine_flag)
@@ -705,59 +825,3 @@ void evcd_draw_partition(EVCD_CTX * ctx, EVC_PIC * pic)
     evc_picbuf_free(tmp);
 }
 #endif
-
-#if ADMVP
-BOOL check_bi_applicability_dec(int tile_group_type, int cuw, int cuh)
-{
-    BOOL is_applicable = FALSE;
-    if ((tile_group_type == TILE_GROUP_B) &&
-        !((max(cuw, cuh) < 8 && min(cuw, cuh) < 8))
-        )
-    {
-        is_applicable = TRUE;
-    }
-    return is_applicable;
-}
-#endif
-
-void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
-{
-    int real_mv[MMVD_GRP_NUM * MMVD_BASE_MV_NUM * MMVD_MAX_REFINE_NUM][2][3];
-    int REF_SET[3][MAX_NUM_ACTIVE_REF_FRAME] = { {0,0,}, };
-    int cuw, cuh;
-
-    for (int k = 0; k < MAX_NUM_ACTIVE_REF_FRAME; k++)
-    {
-        REF_SET[0][k] = ctx->refp[k][0].ptr;
-        REF_SET[1][k] = ctx->refp[k][1].ptr;
-    }
-    REF_SET[2][0] = ctx->ptr;
-
-    cuw = (1 << core->log2_cuw);
-    cuh = (1 << core->log2_cuh);
-
-    evc_get_mmvd_mvp_list(ctx->map_refi, ctx->refp[0], ctx->map_mv, ctx->w_scu, ctx->h_scu, core->scup, core->avail_cu, core->log2_cuw, core->log2_cuh, ctx->tgh.tile_group_type, real_mv, ctx->map_scu, REF_SET, core->avail_lr
-#if ADMVP
-        , core->history_buffer, ctx->sps.tool_admvp
-#endif
-    );
-
-    core->mv[REFP_0][MV_X] = real_mv[core->mmvd_idx][0][MV_X];
-    core->mv[REFP_0][MV_Y] = real_mv[core->mmvd_idx][0][MV_Y];
-    core->refi[REFP_0] = real_mv[core->mmvd_idx][0][2];;
-
-    if (ctx->tgh.tile_group_type == TILE_GROUP_B)
-    {
-        core->refi[REFP_1] = real_mv[core->mmvd_idx][1][2];
-        core->mv[REFP_1][MV_X] = real_mv[core->mmvd_idx][1][MV_X];
-        core->mv[REFP_1][MV_Y] = real_mv[core->mmvd_idx][1][MV_Y];
-    }
-#if ADMVP
-    if ((ctx->tgh.tile_group_type == TILE_GROUP_P) || (!check_bi_applicability_dec(ctx->tgh.tile_group_type, cuw, cuh)))
-#else
-    if (ctx->tgh.tile_group_type == TILE_GROUP_P)
-#endif
-    {
-        core->refi[REFP_1] = -1;
-    }
-}

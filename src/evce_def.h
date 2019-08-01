@@ -138,6 +138,13 @@ typedef struct _EVCE_MODE
     s8    refi_sp[REFP_NUM];
     s16   mv_sp[REFP_NUM][MV_D];
 #endif
+
+#if ATS_INTRA_PROCESS   
+    u8    ats_intra_cu;
+    u8    ats_intra_tu_h;
+    u8    ats_intra_tu_v;
+#endif
+
 #if TRACE_ENC_CU_DATA
     u64   trace_cu_idx;
 #endif
@@ -267,6 +274,11 @@ struct _EVCE_PINTER
     pel  p_error[MAX_CU_DIM];
     int  i_gradient[2][MAX_CU_DIM];
 #endif
+#if ATS_INTER_PROCESS
+    s16  resi[N_C][MAX_CU_DIM];
+    s16  coff_save[N_C][MAX_CU_DIM];
+    u8   ats_inter_info_mode[PRED_NUM];
+#endif
 
     /* MV predictor */
     s16  mvp[REFP_NUM][MAX_NUM_MVP][MV_D]; 
@@ -363,6 +375,84 @@ struct _EVCE_PINTER
                                    );
 #endif
 };
+#if USE_IBC
+typedef struct _EVCE_PIBC EVCE_PIBC;
+struct _EVCE_PIBC
+{
+  /* filtered reconstruction buffer */
+  pel  unfiltered_rec_buf[N_C][MAX_CU_DIM];
+
+  /* temporary buffer for analyze_cu */
+  s8   refi[REFP_NUM];
+  /* Ref idx predictor */
+  s8   refi_pred[REFP_NUM];
+
+  u8 pred_mode;
+  u8 ibc_flag;
+
+
+  int search_range_x;
+  int search_range_y;
+
+  u8   mvp_idx;
+  /* MV predictor */
+  s16  mvp[MAX_NUM_MVP][MV_D];
+
+  s16  mv[REFP_NUM][MV_D];
+  s16  mvd[MV_D];
+
+  s32  mot_bits;
+
+  /* last one buffer used for RDO */
+  s16  coef[N_C][MAX_CU_DIM];
+
+  s16  inv_coef[N_C][MAX_CU_DIM];
+
+  s16  residue[N_C][MAX_CU_DIM];
+  int  nnz_best[N_C];
+  // xxu to be checked
+  int  nnz_sub_best[PRED_NUM][N_C][MAX_SUB_TB_NUM];
+  /* minimum clip value */
+  s16  min_clip[MV_D];
+  /* maximum clip value */
+  s16  max_clip[MV_D];
+
+  /* original (input) picture buffer */
+  EVC_PIC        *pic_o;
+  /* address of original (input) picture buffer */
+  pel            *o[N_C];
+  /* stride of original (input) picture buffer */
+  int            s_o[N_C];
+
+  /* mode picture buffer */
+  EVC_PIC        *pic_m;
+  /* address of mode picture buffer */
+  pel            *m[N_C];
+  /* stride of mode picture buffer */
+  int            s_m[N_C];
+
+  /* ctu size log2 table */
+  s8 ctu_log2_tbl[MAX_CU_SIZE + 1];
+
+  /* temporary prediction buffer (only used for ME)*/
+  pel  pred[REFP_NUM][N_C][MAX_CU_DIM];
+
+  /* picture width in SCU unit */
+  u16             w_scu;
+  /* QP for luma of current encoding CU */
+  u8              qp_y;
+  /* QP for chroma of current encoding CU */
+  u8              qp_u;
+  u8              qp_v;
+  u32             lambda_mv;
+
+  int             tile_group_type;
+
+  int             complexity;
+  void            *pdata[4];
+  int             *ndata[4];
+};
+#endif
 
 /* EVC encoder parameter */
 typedef struct _EVCE_PARAM
@@ -404,6 +494,15 @@ typedef struct _EVCE_PARAM
     int                 gop_size;
     int                 use_dqp;
     int                 use_closed_gop;
+#if USE_IBC
+    int                 use_ibc_flag;
+    int                 ibc_search_range_x;
+    int                 ibc_search_range_y;
+    int                 ibc_hash_search_flag;
+    int                 ibc_hash_search_max_cand;
+    int                 ibc_hash_search_range_4smallblk;
+    int                 ibc_fast_method;
+#endif
     int                 use_hgop;
 #if USE_TILE_GROUP_DQP
     int                 qp_incread_frame;           /* 10 bits*/
@@ -437,6 +536,9 @@ typedef struct _EVCE_CU_DATA
     u8  **mpm_ext;
     s8  **ipm;
     u8  *skip_flag;
+#if USE_IBC
+    u8  *ibc_flag;
+#endif
 #if DMVR_FLAG
     u8  *dmvr_flag;
 #endif
@@ -457,6 +559,14 @@ typedef struct _EVCE_CU_DATA
 #if AFFINE
     u8  *affine_flag;
     u32 *map_affine;
+#endif
+#if ATS_INTRA_PROCESS
+    u8* ats_intra_cu;
+    u8* ats_tu_h;
+    u8* ats_tu_v;
+#endif
+#if ATS_INTER_PROCESS
+    u8  *ats_inter_info;
 #endif
     u32 *map_cu_mode;
     s16 **block_size;
@@ -488,6 +598,10 @@ typedef struct _EVCE_BEF_DATA
     s16    mmvd_idx;
 #if AFFINE
     int    affine_flag;
+#endif
+#if ATS_INTRA_PROCESS
+    int    ats_intra_cu_idx_intra;
+    int    ats_intra_cu_idx_inter;
 #endif
 
 } EVCE_BEF_DATA;
@@ -549,6 +663,10 @@ typedef struct _EVCE_CORE
     s8             ipm[2];
     /* skip flag for MODE_INTER */
     u8             skip_flag;
+#if USE_IBC
+    /* ibc flag for MODE_IBC */
+    u8             ibc_flag;
+#endif
 #if ADMVP
     /* history-based prediction buffer */
     EVC_HISTORY_BUFFER  m_pTempMotLUTs[MAX_CU_DEPTH][MAX_CU_DEPTH];
@@ -560,6 +678,14 @@ typedef struct _EVCE_CORE
 #if AFFINE
     /* affine flag for MODE_INTER */
     u8             affine_flag;
+#endif
+#if ATS_INTRA_PROCESS
+    u8             ats_intra_cu;
+    u8             ats_tu;
+#endif
+#if ATS_INTER_PROCESS
+    /* ats_inter info (index + position)*/
+    u8             ats_inter_info;
 #endif
     /* width of current CU */
     u16            cuw;
@@ -596,6 +722,7 @@ typedef struct _EVCE_CORE
 
 #if EIF
     /* temporal pixel buffer for inter prediction */
+#if !HW_EIF
 #if EIF_SIMD
     ALIGNED_(EIF_NUM_BYTES_IN_SSE_REG)
 #endif
@@ -603,6 +730,9 @@ typedef struct _EVCE_CORE
     pel            eif_tmp_buffer[EIF_NUM_LINES_IN_PREP_DATA * (EIF_PREP_DATA_STRIDE + 8) + EIF_NUM_LINES_IN_UPSCALED_DATA * EIF_UPSCALED_DATA_STRIDE];
 #else
     pel            eif_tmp_buffer[EIF_NUM_LINES_IN_PREP_DATA * EIF_PREP_DATA_STRIDE + EIF_NUM_LINES_IN_UPSCALED_DATA * EIF_UPSCALED_DATA_STRIDE];
+#endif
+#else
+    pel            eif_tmp_buffer[(MAX_CU_SIZE + 2) * (MAX_CU_SIZE + 2)];
 #endif
 #endif
 #if MERGE
@@ -751,6 +881,10 @@ struct _EVCE_CTX
     EVCE_PINTRA           pintra;
     /* inter prediction analysis */
     EVCE_PINTER           pinter;
+#if USE_IBC
+    /* ibc prediction analysis */
+    EVCE_PIBC             pibc;
+#endif
     /* picture buffer allocator */
     PICBUF_ALLOCATOR       pa;
     /* current picture's decoding temporal reference */
@@ -794,6 +928,19 @@ struct _EVCE_CTX
     double                 lambda[3];
     double                 sqrt_lambda[3];
     double                 dist_chroma_weight[2];
+
+#if ATS_INTRA_PROCESS
+    /* map for ats intra */
+    u8                    *map_ats_intra_cu;
+    u8                    *map_ats_tu_h;
+    u8                    *map_ats_tu_v;
+#endif
+#if ATS_INTER_PROCESS
+    u8                    *map_ats_inter;
+    u32                   *ats_inter_pred_dist;
+    u8                    *ats_inter_info_pred;   //best-mode ats_inter info
+    u8                    *ats_inter_num_pred;
+#endif
 
     int (*fn_ready)(EVCE_CTX * ctx);
     void (*fn_flush)(EVCE_CTX * ctx);
@@ -850,7 +997,16 @@ struct _EVCE_CTX
                                    );
 
     int (*fn_pinter_set_complexity)(EVCE_CTX * ctx, int complexity);
+#if USE_IBC
+    void *ibc_hash_handle;
+    int(*fn_pibc_init_frame)(EVCE_CTX * ctx);
+    int(*fn_pibc_init_lcu)(EVCE_CTX * ctx, EVCE_CORE * core);
 
+    double(*fn_pibc_analyze_cu)(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
+      int log2_cuw, int log2_cuh, EVCE_MODE *mi, s16 coef[N_C][MAX_CU_DIM], pel *rec[N_C], int s_rec[N_C]);
+
+    int(*fn_pibc_set_complexity)(EVCE_CTX * ctx, int complexity);
+#endif
     /* platform specific data, if needed */
     void                  * pf;
 };
@@ -874,5 +1030,7 @@ int evce_picbuf_get_inbuf(EVCE_CTX * ctx, EVC_IMGB ** img);
 #include "evce_pintra.h"
 #include "evce_pinter.h"
 #include "evce_tbl.h"
-
+#if USE_IBC
+#include "evce_pibc.h"
+#endif
 #endif /* _EVCE_DEF_H_ */

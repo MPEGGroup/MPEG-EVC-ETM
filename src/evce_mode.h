@@ -49,8 +49,15 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_
                                , s16 affine_mvd[REFP_NUM][VER_NUM][MV_D]
 #endif
 );
-
-void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM], int ch_type, int pidx);
+#if USE_IBC
+void evce_rdo_bit_cnt_cu_ibc(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_type, s32 cup, s16 mvd[MV_D],
+  s16 coef[N_C][MAX_CU_DIM], u8 mvp_idx, u8 pred_mode);
+#endif
+void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM], int ch_type, int pidx
+#if ATS_INTRA_PROCESS || COEFF_CODE_ADCC
+                                    , EVCE_CTX * ctx
+#endif
+);
 void evce_rdo_bit_cnt_cu_skip(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_type, s32 cup, int mvp_idx0, int mvp_idx1, int c_num, int tool_mmvd);
 void evce_rdo_bit_cnt_mvp(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_type, s8 refi[REFP_NUM], s16 mvd[REFP_NUM][MV_D], int pidx, int mvp_idx);
 
@@ -66,7 +73,11 @@ void evce_init_bef_data(EVCE_CORE * core, EVCE_CTX * ctx);
 
 #if RDO_DBK
 void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *pic_org, int cuw, int cuh, pel(*src)[MAX_CU_DIM], int s_src, int x, int y, u16 avail_lr
-                                     , u8 intra_flag, u8 cbf_l, s8 *refi, s16(*mv)[MV_D], u8 is_mv_from_mvf);
+                                     , u8 intra_flag, u8 cbf_l, s8 *refi, s16(*mv)[MV_D], u8 is_mv_from_mvf
+#if ATS_INTER_PROCESS
+                                     , u8 ats_inter_info
+#endif
+);
 #endif
 
 

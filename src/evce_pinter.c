@@ -1023,6 +1023,294 @@ static double pinter_residue_rdo_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int
     return cost;
 }
 
+#if ATS_INTER_PROCESS
+void copy_tu_from_cu(s16 tu_resi[N_C][MAX_CU_DIM], s16 cu_resi[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 ats_inter_info)
+{
+    int j;
+    int cuw = 1 << log2_cuw;
+    int log2_tuw, log2_tuh;
+    int tuw, tuh;
+    int tu_offset_x, tu_offset_y;
+
+    get_tu_size(ats_inter_info, log2_cuw, log2_cuh, &log2_tuw, &log2_tuh);
+    get_tu_pos_offset(ats_inter_info, log2_cuw, log2_cuh, &tu_offset_x, &tu_offset_y);
+    tuw = 1 << log2_tuw;
+    tuh = 1 << log2_tuh;
+
+    //Y
+    for (j = tu_offset_y; j < tu_offset_y + tuh; j++)
+    {
+        memcpy(tu_resi[Y_C] + (j - tu_offset_y) * tuw, cu_resi[Y_C] + tu_offset_x + j * cuw, sizeof(s16)*tuw);
+    }
+
+    //UV
+    tu_offset_x >>= 1;
+    tu_offset_y >>= 1;
+    tuw >>= 1;
+    tuh >>= 1;
+    cuw >>= 1;
+    for (j = tu_offset_y; j < tu_offset_y + tuh; j++)
+    {
+        memcpy(tu_resi[U_C] + (j - tu_offset_y) * tuw, cu_resi[U_C] + tu_offset_x + j * cuw, sizeof(s16)*tuw);
+        memcpy(tu_resi[V_C] + (j - tu_offset_y) * tuw, cu_resi[V_C] + tu_offset_x + j * cuw, sizeof(s16)*tuw);
+    }
+}
+
+void get_ats_inter_info_rdo_order(EVCE_CORE *core, u8 ats_inter_avail, int* num_rdo, u8* ats_inter_info_list)
+{
+    int i;
+    u8 idx = 0;
+    if (ats_inter_avail == 0)
+    {
+        ats_inter_info_list[idx++] = 0;
+    }
+    else
+    {
+        //add non-ats_inter mode
+        ats_inter_info_list[idx++] = 0;
+
+        //add ats_inter mode
+        for (i = 0; i < 4; i++)
+        {
+            if ((ats_inter_avail >> i) & 0x1)
+            {
+                ats_inter_info_list[idx++] = get_ats_inter_info(i + 1, 0);
+                ats_inter_info_list[idx++] = get_ats_inter_info(i + 1, 1);
+            }
+        }
+
+        //toDO: add reordering fast algorithm based on estimated RDCost
+    }
+
+    *num_rdo = idx;
+}
+
+//fast algorithms for ATS_inter
+void calc_min_cost_ats_inter(EVCE_CTX *ctx, EVCE_CORE *core, pel pred[N_C][MAX_CU_DIM], pel** org, int* s_pred, int* s_org,
+    u8 ats_inter_avail, s64* dist_no_resi, int* num_rdo, u8* ats_inter_info_list, s64* ats_inter_est_dist)
+{
+    int cuw = 1 << core->log2_cuw;
+    int cuh = 1 << core->log2_cuh;
+    int num_part_x = min(16, cuw) / 4;
+    int num_part_y = min(16, cuh) / 4;
+    int log2_length_x[3];
+    int log2_length_y[3];
+    s64 dist[4][4], dist_blk, dist_temp[9];
+    s64 sum_dist = 0;
+    u8  ats_inter_info_list_temp[9];
+    int comp, i, j, idx;
+    int blk_luma_w = cuw / num_part_x;
+    int blk_luma_h = cuh / num_part_y;
+    int ats_inter_rdo_idx_list[4];
+    int ats_inter_rdo_idx_num = 0;
+    int num_half_ats_inter = ((ats_inter_avail & 0x1) ? 2 : 0) + ((ats_inter_avail & 0x2) ? 2 : 0);
+    int num_quad_ats_inter = ((ats_inter_avail & 0x4) ? 2 : 0) + ((ats_inter_avail & 0x8) ? 2 : 0);
+    assert(num_half_ats_inter + num_quad_ats_inter == *num_rdo - 1);
+
+    if (!ats_inter_avail)
+        return;
+
+    //ATS_INTER fast algorithm 1.1: not try ATS_INTER if the residual is too small to compensate bits for encoding residual info
+    if (dist_no_resi[Y_C] + dist_no_resi[U_C] * ctx->dist_chroma_weight[0] + dist_no_resi[V_C] * ctx->dist_chroma_weight[1]
+        < RATE_TO_COST_LAMBDA(ctx->lambda[0], 20)) //20 extra bits for ATS_INTER residual encoding
+    {
+        *num_rdo = 1;
+        return;
+    }
+
+    //ATS_INTER fast algorithm 1.2: derive estimated minDist of ATS_INTER = zero-residual part distortion + non-zero residual part distortion / 16
+    memset(dist, 0, sizeof(s64) * 16);
+    for (comp = Y_C; comp < N_C; comp++)
+    {
+        int blk_w, blk_h;
+        log2_length_x[comp] = evc_tbl_log2[blk_luma_w] - (comp > 0 ? 1 : 0);
+        log2_length_y[comp] = evc_tbl_log2[blk_luma_h] - (comp > 0 ? 1 : 0);
+        blk_w = 1 << log2_length_x[comp];
+        blk_h = 1 << log2_length_y[comp];
+
+        for (j = 0; j < num_part_y; j++)
+        {
+            for (i = 0; i < num_part_x; i++)
+            {
+                int offset_pred = j * blk_h * s_pred[comp] + i * blk_w;
+                int offset_org = j * blk_h * s_org[comp] + i * blk_w;
+                dist_blk = evce_ssd_16b(log2_length_x[comp], log2_length_y[comp], pred[comp] + offset_pred, org[comp] + offset_org, s_pred[comp], s_org[comp]);
+                dist_blk = comp > 0 ? (s64)(dist_blk * ctx->dist_chroma_weight[comp - 1]) : dist_blk;
+                dist[j][i] += dist_blk;
+                sum_dist += dist_blk;
+            }
+        }
+    }
+    assert(abs((int)(sum_dist - (dist_no_resi[Y_C] + dist_no_resi[U_C] * ctx->dist_chroma_weight[0] + dist_no_resi[V_C] * ctx->dist_chroma_weight[1]))) < 32);
+
+    //estimate rd cost for each ATS_INTER mode
+    ats_inter_est_dist[0] = sum_dist;
+    for (idx = 1; idx < 9; idx++)
+    {
+        ats_inter_est_dist[idx] = UINT_MAX;
+    }
+    for (idx = 1; idx < *num_rdo; idx++)
+    {
+        u8 ats_inter_info = ats_inter_info_list[idx];
+        int log2_tuw, log2_tuh, tux, tuy, tuw, tuh;
+        s64 dist_tu = 0;
+        get_tu_size(ats_inter_info, core->log2_cuw, core->log2_cuh, &log2_tuw, &log2_tuh);
+        get_tu_pos_offset(ats_inter_info, core->log2_cuw, core->log2_cuh, &tux, &tuy);
+        tuw = 1 << log2_tuw;
+        tuh = 1 << log2_tuh;
+        for (j = tuy / blk_luma_h; j < (tuy + tuh) / blk_luma_h; j++)
+        {
+            for (i = tux / blk_luma_w; i < (tux + tuw) / blk_luma_w; i++)
+            {
+                dist_tu += dist[j][i];
+            }
+        }
+        ats_inter_est_dist[idx] = (dist_tu / 16) + (sum_dist - dist_tu);
+    }
+    //try 2 half ATS_INTER modes with the lowest distortion
+    memcpy(dist_temp, ats_inter_est_dist, sizeof(s64) * 9);
+    if (num_half_ats_inter > 0)
+    {
+        for (i = ats_inter_rdo_idx_num; i < ats_inter_rdo_idx_num + 2; i++)
+        {
+            s64 min_dist = UINT_MAX;
+            for (idx = 1; idx < 1 + num_half_ats_inter; idx++)
+            {
+                if (dist_temp[idx] < min_dist)
+                {
+                    min_dist = dist_temp[idx];
+                    ats_inter_rdo_idx_list[i] = idx;
+                }
+            }
+            dist_temp[ats_inter_rdo_idx_list[i]] = UINT_MAX;
+        }
+        ats_inter_rdo_idx_num += 2;
+    }
+    if (num_quad_ats_inter > 0)
+    {
+        for (i = ats_inter_rdo_idx_num; i < ats_inter_rdo_idx_num + 2; i++)
+        {
+            s64 min_dist = UINT_MAX;
+            for (idx = 1 + num_half_ats_inter; idx < 1 + num_half_ats_inter + num_quad_ats_inter; idx++)
+            {
+                if (dist_temp[idx] < min_dist)
+                {
+                    min_dist = dist_temp[idx];
+                    ats_inter_rdo_idx_list[i] = idx;
+                }
+            }
+            dist_temp[ats_inter_rdo_idx_list[i]] = UINT_MAX;
+        }
+        ats_inter_rdo_idx_num += 2;
+    }
+    
+    memcpy(dist_temp, ats_inter_est_dist, sizeof(s64) * 9);
+    memcpy(ats_inter_info_list_temp, ats_inter_info_list, sizeof(u8) * 9);
+    for (idx = 1; idx < 1 + ats_inter_rdo_idx_num; idx++)
+    {
+        ats_inter_info_list[idx] = ats_inter_info_list_temp[ats_inter_rdo_idx_list[idx - 1]];
+        ats_inter_est_dist[idx] = dist_temp[ats_inter_rdo_idx_list[idx - 1]];
+    }
+    for (idx = 1 + ats_inter_rdo_idx_num; idx < *num_rdo; idx++)
+    {
+        ats_inter_info_list[idx] = 255;
+        ats_inter_est_dist[idx] = UINT_MAX;
+    }
+    *num_rdo = ats_inter_rdo_idx_num + 1;
+}
+
+u8 skip_ats_inter_by_rd_cost(EVCE_CTX *ctx, s64* ats_inter_est_dist, u8* ats_inter_info_list, int curr_idx, double cost_best, s64 dist_ats_inter0, double cost_ats_inter0, u8 root_cbf_ats_inter0)
+{
+    //ATS_INTER fast algorithm 2.2 : estimate a minimum RD cost of a ATS_INTER mode based on the luma distortion of uncoded part and coded part (assuming distorted can be reduced to 1/16);
+    //                         if this cost is larger than the best cost, no need to try a specific ATS_INTER mode
+    double cost_curr_ats_inter = ats_inter_est_dist[curr_idx] + RATE_TO_COST_LAMBDA(ctx->lambda[0], 11);
+    if (cost_curr_ats_inter > cost_best)
+    {
+        return 1;
+    }
+
+    if (cost_ats_inter0 != MAX_COST)
+    {
+        u8 ats_inter_idx = get_ats_inter_idx(ats_inter_info_list[curr_idx]);
+        if (!root_cbf_ats_inter0)
+        {
+            //ATS_INTER fast algorithm 3: skip ATS_INTER when the residual is too small (estCost is more accurate than fast algorithm 1, counting PU mode bits)
+            int weight = is_ats_inter_quad_size(ats_inter_idx) ? 6 : 9;
+            s64 dist_resi_part = ((ats_inter_est_dist[0] - ats_inter_est_dist[curr_idx]) * weight) >> 4;
+            //prediction info bits cost + minimum residual bits cost + estimate distortion
+            double est_cost = (cost_ats_inter0 - dist_ats_inter0) + RATE_TO_COST_LAMBDA(ctx->lambda[0], 10) + (ats_inter_est_dist[curr_idx] + dist_resi_part);
+            if (est_cost > cost_ats_inter0 || est_cost > cost_best)
+            {
+                return 2;
+            }
+        }
+        else
+        {
+            //ATS_INTER fast algorithm 4: skip ATS_INTER when an estimated RD cost is larger than the bestCost
+            double weight = is_ats_inter_quad_size(ats_inter_idx) ? 0.4 : 0.6;
+            double est_cost = (cost_ats_inter0 - dist_ats_inter0) * weight + ats_inter_est_dist[curr_idx];
+            if (est_cost > cost_best)
+            {
+                return 3;
+            }
+        }
+    }
+    return 0;
+}
+
+//save & load functions for ATS_inter
+void search_ats_inter_info_saved(EVCE_CTX *ctx, EVCE_CORE *core, u32 dist_pu, int log2_cuw, int log2_cuh, int x, int y, u8* ats_inter_info_match)
+{
+    int posx = (x - core->x_pel) >> MIN_CU_LOG2;
+    int posy = (y - core->y_pel) >> MIN_CU_LOG2;
+    int widx = log2_cuw - 2;
+    int hidx = log2_cuh - 2;
+    int num_route = ATS_INTER_SL_NUM;
+    int stride1 = MAX_TR_LOG2 - MIN_CU_LOG2 + 1;
+    int stride2 = ctx->max_cuwh >> MIN_CU_LOG2;
+    int stridew = stride2 * stride2 * stride1;
+    int strideh = stride2 * stride2;
+    int stridex = stride2;
+    int offset1 = widx * stridew + hidx * strideh + posx * stridex + posy;
+    int offset2 = offset1 * num_route;
+    int i;
+    *ats_inter_info_match = 255;
+
+    for (i = 0; i < ctx->ats_inter_num_pred[offset1]; i++)
+    {
+        if (ctx->ats_inter_pred_dist[offset2 + i] == dist_pu)
+        {
+            *ats_inter_info_match = ctx->ats_inter_info_pred[offset2 + i];
+            break;
+        }
+    }
+}
+
+void save_ats_inter_info_pred(EVCE_CTX *ctx, EVCE_CORE *core, u32 dist_pu, u8 ats_inter_info_pu, int log2_cuw, int log2_cuh, int x, int y)
+{
+    int posx = (x - core->x_pel) >> MIN_CU_LOG2;
+    int posy = (y - core->y_pel) >> MIN_CU_LOG2;
+    int widx = log2_cuw - 2;
+    int hidx = log2_cuh - 2;
+    int num_route = ATS_INTER_SL_NUM;
+    int stride1 = MAX_TR_LOG2 - MIN_CU_LOG2 + 1;
+    int stride2 = ctx->max_cuwh >> MIN_CU_LOG2;
+    int stridew = stride2 * stride2 * stride1;
+    int strideh = stride2 * stride2;
+    int stridex = stride2;
+    int offset1 = widx * stridew + hidx * strideh + posx * stridex + posy;
+    int offset2 = offset1 * num_route;
+    int num_data = ctx->ats_inter_num_pred[offset1];
+
+    if (num_data < num_route)
+    {
+        ctx->ats_inter_info_pred[offset2 + num_data] = ats_inter_info_pu;
+        ctx->ats_inter_pred_dist[offset2 + num_data] = dist_pu;
+        ctx->ats_inter_num_pred[offset1]++;
+    }
+}
+#endif
+
 static s16    coef_t[N_C][MAX_CU_DIM];
 
 static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_cuw, int log2_cuh,
@@ -1049,6 +1337,25 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
     int    j;
 #if RDO_DBK
     u8     is_from_mv_field = 0;
+#endif
+#if ATS_INTER_PROCESS // rdo
+    s64    dist_no_resi[N_C];
+    int    log2_tuw, log2_tuh;
+    u8     ats_inter_info_best = 255;
+    u8     ats_inter_info_list[9];
+    int    num_rdo;
+    int    nnz_best[N_C] = { -1, -1, -1 };
+    int    ats_inter_mode_idx;
+    u8     ats_inter_avail = check_ats_inter_info_coded(1 << log2_cuw, 1 << log2_cuh, MODE_INTER, ctx->sps.tool_ats_inter);
+    s64    ats_inter_est_dist[9];
+    s64    dist_ats_inter0 = UINT_MAX;
+    double cost_ats_inter0 = MAX_COST;
+    u8     root_cbf_ats_inter0 = 255;
+    u8     ats_inter_info_match = 255;
+    u8     num_rdo_tried = 0;
+    s64    dist_idx = -1;
+    get_ats_inter_info_rdo_order(core, ats_inter_avail, &num_rdo, ats_inter_info_list);
+    core->ats_inter_info = 0;
 #endif
 
 #if AFFINE
@@ -1118,18 +1425,81 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 #endif
 
     /* get residual */
+#if ATS_INTER_PROCESS
+    evce_diff_pred(x, y, log2_cuw, log2_cuh, pi->pic_o, pred[0], pi->resi);
+    for (i = 0; i < N_C; i++)
+    {
+        dist[0][i] = evce_ssd_16b(log2_w[i], log2_h[i], pred[0][i], org[i], w[i], pi->s_o[i]);
+        dist_no_resi[i] = dist[0][i];
+    }
+#else
     evce_diff_pred(x, y, log2_cuw, log2_cuh, pi->pic_o, pred[0], coef);
+#endif
+
+#if ATS_INTER_PROCESS
+    //load best in history
+    if (ats_inter_avail)
+    {
+        int shift_val = min(log2_cuw + log2_cuh, 9);
+        dist_idx = dist_no_resi[Y_C] + dist_no_resi[U_C] + dist_no_resi[V_C];
+        dist_idx = (dist_idx + (s64)(1 << (shift_val - 1))) >> shift_val;
+        search_ats_inter_info_saved(ctx, core, (u32)dist_idx, log2_cuw, log2_cuh, x, y, &ats_inter_info_match);
+    }
+    if (ats_inter_avail && ats_inter_info_match == 255)
+    {
+        calc_min_cost_ats_inter(ctx, core, pred[0], org, w, pi->s_o, ats_inter_avail, dist_no_resi, &num_rdo, ats_inter_info_list, ats_inter_est_dist);
+    }
+
+    for (ats_inter_mode_idx = 0; ats_inter_mode_idx < num_rdo; ats_inter_mode_idx++)
+    {
+        core->ats_inter_info = ats_inter_info_list[ats_inter_mode_idx];
+        assert(get_ats_inter_idx(core->ats_inter_info) >= 0 && get_ats_inter_idx(core->ats_inter_info) <= 4);
+        assert(get_ats_inter_pos(core->ats_inter_info) >= 0 && get_ats_inter_pos(core->ats_inter_info) <= 1);
+
+        //early skp fast algorithm here
+        if (ats_inter_info_match != 255 && core->ats_inter_info != ats_inter_info_match)
+        {
+            continue;
+        }
+        if (ats_inter_mode_idx > 0 && ats_inter_info_match == 255)
+        {
+            assert(pidx == AFF_DIR || pidx == PRED_DIR || pidx == PRED_DIR_MMVD || root_cbf_ats_inter0 != 255);
+            if (skip_ats_inter_by_rd_cost(ctx, ats_inter_est_dist, ats_inter_info_list, ats_inter_mode_idx, core->cost_best, dist_ats_inter0, cost_ats_inter0, root_cbf_ats_inter0))
+            {
+                continue;
+            }
+        }
+
+        //try this ATS_INTER mode
+        num_rdo_tried++;
+
+        //prepare tu residual
+        copy_tu_from_cu(coef, pi->resi, log2_cuw, log2_cuh, core->ats_inter_info);
+#endif
 
     /* transform and quantization */
     tnnz = evce_sub_block_tq(coef, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, pi->tile_group_type, nnz
-                             , core->nnz_sub, 0, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt);
+                             , core->nnz_sub, 0, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt
+#if ATS_INTRA_PROCESS
+                             , 0, 0
+#endif
+#if ATS_INTER_PROCESS
+                             , core->ats_inter_info
+#endif
+#if COEFF_CODE_ADCC
+        , ctx->sps.tool_adcc
+#endif
+    );
 
     if(tnnz)
     {
         for(i = 0; i < N_C; i++)
         {
             int size = (cuw * cuh) >> (i == 0 ? 0 : 2);
-
+#if ATS_INTER_PROCESS
+            int ats_inter_idx = get_ats_inter_idx(core->ats_inter_info);
+            size = (core->ats_inter_info == 0) ? size : (size >> (is_ats_inter_quad_size(ats_inter_idx) ? 2 : 1));
+#endif
             evc_mcpy(coef_t[i], coef[i], sizeof(s16) * size);
 
             cbf_idx[i] = 0;
@@ -1137,34 +1507,75 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
             evc_mcpy(nnz_sub_store[i], core->nnz_sub[i], sizeof(int) * MAX_SUB_TB_NUM);
         }
 
-        evc_sub_block_itdq(coef_t, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, nnz, core->nnz_sub, ctx->sps.tool_iqt);
+        evc_sub_block_itdq(coef_t, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, nnz, core->nnz_sub, ctx->sps.tool_iqt
+#if ATS_INTRA_PROCESS
+                           , 0, 0
+#endif
+#if ATS_INTER_PROCESS
+                           , core->ats_inter_info
+#endif
+        );
 
 #if RDO_DBK
-        calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pred[0], cuw, x, y, core->avail_lr, 0, 0, pi->refi[pidx], pi->mv[pidx], is_from_mv_field);
+#if ATS_INTER_PROCESS
+        if (core->ats_inter_info == 0)
+        {
 #endif
+        calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pred[0], cuw, x, y, core->avail_lr, 0, 0, pi->refi[pidx], pi->mv[pidx], is_from_mv_field
+#if ATS_INTER_PROCESS
+                                        , core->ats_inter_info
+#endif
+        );
+#if ATS_INTER_PROCESS
+        }
+#endif
+#endif
+
         for(i = 0; i < N_C; i++)
         {
+#if !ATS_INTER_PROCESS
             dist[0][i] = evce_ssd_16b(log2_w[i], log2_h[i], pred[0][i], org[i], w[i], pi->s_o[i]);
+#endif
 
             if(nnz[i])
             {
-                evc_recon(coef_t[i], pred[0][i], nnz[i], w[i], h[i], w[i], rec[i]);
+                evc_recon(coef_t[i], pred[0][i], nnz[i], w[i], h[i], w[i], rec[i]
+#if ATS_INTER_PROCESS
+                          , core->ats_inter_info
+#endif
+                );
 #if HTDF
                 if(ctx->sps.tool_htdf == 1 && i == Y_C)
                 {
                     const int s_mod = pi->s_m[Y_C];
+#if HW_HTDF_CLEANUP
+                    u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu);
+                    evc_htdf(rec[i], ctx->tgh.qp, cuw, cuh, cuw, FALSE, pi->m[Y_C] + (y * s_mod) + x, s_mod, avail_cu);
+#else
                     evc_get_nbr(x, y, cuw, cuh, pi->m[Y_C] + (y * s_mod) + x, s_mod, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C);
                     evc_htdf(rec[i], ctx->tgh.qp, cuw, cuh, cuw, FALSE, core->nb[Y_C][0] + 2, core->nb[Y_C][1] + cuh - 1, core->nb[Y_C][2] + 2, core->avail_cu);
+#endif
                 }
 #endif
                 dist[1][i] = evce_ssd_16b(log2_w[i], log2_h[i], rec[i], org[i], w[i], pi->s_o[i]);
             }
             else
             {
+#if ATS_INTER_PROCESS
+                dist[1][i] = dist_no_resi[i];
+#else
                 dist[1][i] = dist[0][i];
+#endif
             }
 #if RDO_DBK
+#if ATS_INTER_PROCESS
+            if (core->ats_inter_info == 0)
+            {
+#endif
             dist[0][i] += ctx->delta_dist[i];
+#if ATS_INTER_PROCESS
+            }
+#endif
 #endif
         }
 #if RDO_DBK
@@ -1173,11 +1584,19 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         {
             if(nnz[i] == 0)
             {
-                evc_recon(coef_t[i], pred[0][i], nnz[i], w[i], h[i], w[i], rec[i]);
+                evc_recon(coef_t[i], pred[0][i], nnz[i], w[i], h[i], w[i], rec[i]
+#if ATS_INTER_PROCESS
+                         , core->ats_inter_info
+#endif
+                );
             }
         }
         //filter rec and calculate ssd
-        calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, rec, cuw, x, y, core->avail_lr, 0, nnz[Y_C] != 0, pi->refi[pidx], pi->mv[pidx], is_from_mv_field);
+        calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, rec, cuw, x, y, core->avail_lr, 0, nnz[Y_C] != 0, pi->refi[pidx], pi->mv[pidx], is_from_mv_field
+#if ATS_INTER_PROCESS
+                                        , core->ats_inter_info
+#endif
+        );
         for(i = 0; i < N_C; i++)
         {
             dist[1][i] += ctx->delta_dist[i];
@@ -1191,6 +1610,9 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
            && pidx != PRED_DIR_MMVD
 #if MERGE
            && pidx != PRED_DIR
+#endif
+#if ATS_INTER_PROCESS
+           && core->ats_inter_info == 0
 #endif
            )
         {
@@ -1246,6 +1668,16 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
                 cbf_idx[U_C] = idx_u;
                 cbf_idx[V_C] = idx_v;
                 SBAC_STORE(core->s_temp_best, core->s_temp_run);
+#if ATS_INTER_PROCESS
+                ats_inter_info_best = core->ats_inter_info;
+                core->cost_best = cost < core->cost_best ? cost : core->cost_best;
+                if (ats_inter_mode_idx == 0)
+                {
+                    dist_ats_inter0 = (s64)(cost_best - RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt));
+                    cost_ats_inter0 = cost_best;
+                    root_cbf_ats_inter0 = 0;
+                }
+#endif
             }
         } // forced zero
 
@@ -1301,6 +1733,16 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
             cbf_idx[U_C] = idx_u;
             cbf_idx[V_C] = idx_v;
             SBAC_STORE(core->s_temp_best, core->s_temp_run);
+#if ATS_INTER_PROCESS
+            ats_inter_info_best = core->ats_inter_info;
+            core->cost_best = cost < core->cost_best ? cost : core->cost_best;
+            if (ats_inter_mode_idx == 0)
+            {
+                dist_ats_inter0 = (s64)(cost_best - RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt));
+                cost_ats_inter0 = cost_best;
+                root_cbf_ats_inter0 = (idx_y + idx_u + idx_v) != 0;
+            }
+#endif
         }
 
         SBAC_LOAD(core->s_temp_prev_comp_best, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
@@ -1326,7 +1768,11 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 
                     SBAC_LOAD(core->s_temp_run, core->s_temp_prev_comp_run);
                     evce_sbac_bit_reset(&core->s_temp_run);
-                    evce_rdo_bit_cnt_cu_inter_comp(core, coef, i, pidx);
+                    evce_rdo_bit_cnt_cu_inter_comp(core, coef, i, pidx
+#if ATS_INTRA_PROCESS || COEFF_CODE_ADCC
+                                                  , ctx
+#endif
+                    );
 
                     bit_cnt = evce_get_bit_number(&core->s_temp_run);
                     cost += RATE_TO_COST_LAMBDA(ctx->lambda[i], bit_cnt);
@@ -1410,6 +1856,16 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
                 cbf_idx[U_C] = idx_u;
                 cbf_idx[V_C] = idx_v;
                 SBAC_STORE(core->s_temp_best, core->s_temp_run);
+#if ATS_INTER_PROCESS
+                ats_inter_info_best = core->ats_inter_info;
+                core->cost_best = cost < core->cost_best ? cost : core->cost_best;
+                if (ats_inter_mode_idx == 0)
+                {
+                    dist_ats_inter0 = (s64)(cost_best - RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt));
+                    cost_ats_inter0 = cost_best;
+                    root_cbf_ats_inter0 = (idx_y + idx_u + idx_v) != 0;
+                }
+#endif
             }
         }
 
@@ -1430,6 +1886,20 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
                 evc_mset(coef[i], 0, sizeof(s16) * ((cuw * cuh) >> (i == 0 ? 0 : 2)));
             }
         }
+#if ATS_INTER_PROCESS
+        //save the best coeff
+        if (ats_inter_info_best == core->ats_inter_info && ats_inter_avail)
+        {
+            for (i = 0; i < N_C; i++)
+            {
+                nnz_best[i] = nnz[i];
+                if (nnz[i] > 0)
+                {
+                    memcpy(pi->coff_save[i], coef[i], sizeof(s16) * ((cuw * cuh) >> (i == 0 ? 0 : 2)));
+                }
+            }
+        }
+#endif
     }
     else
     {
@@ -1443,8 +1913,23 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 #endif
            ))
         {
+#if ATS_INTER_PROCESS
+            if (ats_inter_info_match != 0 && ats_inter_info_match != 255 && core->ats_inter_info)
+            {
+                return MAX_COST;
+            }
+            continue;
+#else
             return MAX_COST;
+#endif
         }
+#if ATS_INTER_PROCESS
+        core->ats_inter_info = 0;
+        if (cost_best != MAX_COST)
+        {
+            continue;
+        }
+#endif
 
         for(i = 0; i < N_C; i++)
         {
@@ -1453,11 +1938,19 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         }
 
 #if RDO_DBK
-        calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pred[0], cuw, x, y, core->avail_lr, 0, 0, pi->refi[pidx], pi->mv[pidx], is_from_mv_field);
+        calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pred[0], cuw, x, y, core->avail_lr, 0, 0, pi->refi[pidx], pi->mv[pidx], is_from_mv_field
+#if ATS_INTER_PROCESS
+                                        , core->ats_inter_info
+#endif
+        );
 #endif
         for(i = 0; i < N_C; i++)
         {
+#if ATS_INTER_PROCESS
+            dist[0][i] = dist_no_resi[i];
+#else
             dist[0][i] = evce_ssd_16b(log2_w[i], log2_h[i], pred[0][i], org[i], w[i], pi->s_o[i]);
+#endif
 #if RDO_DBK
             dist[0][i] += ctx->delta_dist[i];
 #endif
@@ -1499,7 +1992,81 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         bit_cnt = evce_get_bit_number(&core->s_temp_run);
         cost_best += RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);
         SBAC_STORE(core->s_temp_best, core->s_temp_run);
+#if ATS_INTER_PROCESS
+        assert(core->ats_inter_info == 0);
+        ats_inter_info_best = core->ats_inter_info;
+        nnz_best[Y_C] = nnz_best[U_C] = nnz_best[V_C] = 0;
+        core->cost_best = cost_best < core->cost_best ? cost_best : core->cost_best;
+        if (ats_inter_mode_idx == 0)
+        {
+            dist_ats_inter0 = (s64)(cost_best - (s64)RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt));
+            cost_ats_inter0 = cost_best;
+            root_cbf_ats_inter0 = 0;
+        }
+#endif
     }
+#if ATS_INTER_PROCESS
+    }
+#endif
+
+#if ATS_INTER_PROCESS
+    if (ats_inter_avail)
+    {
+        assert(log2_cuw <= MAX_TR_LOG2 && log2_cuh <= MAX_TR_LOG2);
+        if (ctx->sps.tool_amis == 1 && (0
+#if AFFINE
+            || pidx == AFF_DIR
+#endif
+            || pidx == PRED_DIR_MMVD
+#if MERGE
+            || pidx == PRED_DIR
+#endif
+            ))
+        {
+            if (nnz_best[Y_C] + nnz_best[U_C] + nnz_best[V_C] <= 0)
+            {
+                core->ats_inter_info = 0;
+                return MAX_COST;
+            }
+        }
+
+        //if no residual, the best mode shall not be ATS_INTER mode
+        ats_inter_info_best = (nnz_best[Y_C] + nnz_best[U_C] + nnz_best[V_C] == 0) ? 0 : ats_inter_info_best;
+        assert(cost_best != MAX_COST);
+        assert(ats_inter_info_best != 255);
+        core->ats_inter_info = ats_inter_info_best;
+        get_tu_size(core->ats_inter_info, log2_cuw, log2_cuh, &log2_tuw, &log2_tuh);
+        for (i = 0; i < N_C; i++)
+        {
+            int tuw = 1 << log2_tuw;
+            int tuh = 1 << log2_tuh;
+            assert(nnz_best[i] != -1);
+            core->nnz_sub[i][0] = nnz[i] = nnz_best[i];
+            if (nnz[i] > 0)
+            {
+                memcpy(coef[i], pi->coff_save[i], sizeof(s16) * ((tuw * tuh) >> (i == 0 ? 0 : 2)));
+#if ATS_INTER_DEBUG
+                int num_coef = 0;
+                for (int a = 0; a < ((tuw * tuh) >> (i == 0 ? 0 : 2)); a++)
+                {
+                    num_coef += coef[i][a] != 0;
+                }
+                assert(num_coef == nnz[i]);
+#endif
+            }
+            else
+            {
+                evc_mset(coef[i], 0, sizeof(s16) * ((cuw * cuh) >> (i == 0 ? 0 : 2))); //not necessary
+            }
+        }
+        //save the best to history memory
+        if (ats_inter_info_match == 255 && num_rdo_tried > 1)
+        {
+            assert(dist_idx != -1);
+            save_ats_inter_info_pred(ctx, core, (u32)dist_idx, ats_inter_info_best, log2_cuw, log2_cuh, x, y);
+        }
+    }
+#endif
 
     return cost_best;
 }
@@ -1515,7 +2082,9 @@ static double analyze_skip_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y
     s64          cy, cu, cv;
 
     s16          dmvr_mv[MAX_CU_CNT_IN_LCU][REFP_NUM][MV_D];
-
+#if ATS_INTER_PROCESS
+    core->ats_inter_info = 0;
+#endif
     cuw = (1 << log2_cuw);
     cuh = (1 << log2_cuh);
     y_org = pi->o[Y_C] + x + y * pi->s_o[Y_C];
@@ -1561,7 +2130,11 @@ static double analyze_skip_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y
             cv = evce_ssd_16b(log2_cuw - 1, log2_cuh - 1, pi->pred[PRED_NUM][0][V_C], v_org, cuw >> 1, pi->s_o[V_C]);
 
 #if RDO_DBK
-            calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->pred[PRED_NUM][0], cuw, x, y, core->avail_lr, 0, 0, refi, mvp, 0);
+            calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->pred[PRED_NUM][0], cuw, x, y, core->avail_lr, 0, 0, refi, mvp, 0
+#if ATS_INTER_PROCESS
+                                            , core->ats_inter_info
+#endif
+            );
             cy += ctx->delta_dist[Y_C];
             cu += ctx->delta_dist[U_C];
             cv += ctx->delta_dist[V_C];
@@ -1593,6 +2166,9 @@ static double analyze_skip_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y
                 pi->mvd[PRED_SKIP][REFP_1][MV_Y] = 0;
                 pi->refi[PRED_SKIP][REFP_0] = refi[REFP_0];
                 pi->refi[PRED_SKIP][REFP_1] = refi[REFP_1];
+#if ATS_INTER_PROCESS
+                core->cost_best = cost < core->cost_best ? cost : core->cost_best;
+#endif
 
                 for(j = 0; j < N_C; j++)
                 {
@@ -1601,6 +2177,9 @@ static double analyze_skip_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y
                 }
 
                 SBAC_STORE(core->s_temp_best, core->s_temp_run);
+#if ATS_INTER_PROCESS
+                pi->ats_inter_info_mode[PRED_SKIP] = 0;
+#endif
             }
         }
     }
@@ -1627,6 +2206,9 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
 #endif
     int          cuw, cuh, idx0, idx1, cnt, bit_cnt;
     s64          cy, cu, cv;
+#if ATS_INTER_PROCESS
+    core->ats_inter_info = 0;
+#endif
 
     cuw = (1 << log2_cuw);
     cuh = (1 << log2_cuh);
@@ -1648,6 +2230,9 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
         evc_get_motion_skip(ctx->ptr, ctx->tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, pi->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, pi->refi_pred, pi->mvp, ctx->map_scu, core->avail_cu
                             , ctx->map_unrefined_mv
                             , core->history_buffer, ctx->sps.tool_admvp
+#if USE_IBC
+          , core->ibc_flag
+#endif
         );
     else
 #endif
@@ -1658,6 +2243,10 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
 #if ADMVP
                             , core->history_buffer, ctx->sps.tool_admvp
 #endif
+#if USE_IBC
+          , core->ibc_flag
+#endif
+
         );
 
     pi->mvp_idx[PRED_SKIP][REFP_0] = 0;
@@ -1714,7 +2303,11 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
             cv = evce_ssd_16b(log2_cuw - 1, log2_cuh - 1, pi->pred[PRED_NUM][0][V_C], v_org, cuw >> 1, pi->s_o[V_C]);
 
 #if RDO_DBK
-            calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->pred[PRED_NUM][0], cuw, x, y, core->avail_lr, 0, 0, refi, mvp, 0);
+            calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->pred[PRED_NUM][0], cuw, x, y, core->avail_lr, 0, 0, refi, mvp, 0
+#if ATS_INTER_PROCESS
+                                            , core->ats_inter_info
+#endif
+            );
             cy += ctx->delta_dist[Y_C];
             cu += ctx->delta_dist[U_C];
             cv += ctx->delta_dist[V_C];
@@ -1740,6 +2333,9 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
                 pi->mv[PRED_SKIP][REFP_0][MV_Y] = mvp[REFP_0][MV_Y];
                 pi->mv[PRED_SKIP][REFP_1][MV_X] = mvp[REFP_1][MV_X];
                 pi->mv[PRED_SKIP][REFP_1][MV_Y] = mvp[REFP_1][MV_Y];
+#if ATS_INTER_PROCESS
+                core->cost_best = cost < core->cost_best ? cost : core->cost_best;
+#endif
 #if DMVR_FLAG
                 best_dmvr = core->dmvr_flag;
                 core->dmvr_flag = 0;
@@ -1775,6 +2371,9 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
                 }
 
                 SBAC_STORE(core->s_temp_best, core->s_temp_run);
+#if ATS_INTER_PROCESS
+                pi->ats_inter_info_mode[PRED_SKIP] = 0;
+#endif
             }
 #if MERGE
             ad_best_costs[idx0] = cost;
@@ -1876,6 +2475,9 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
 #if DMVR_FLAG
     int best_dmvr = 0;
 #endif
+#if ATS_INTER_PROCESS
+    core->ats_inter_info = 0;
+#endif
 
     cuw = (1 << log2_cuw);
     cuh = (1 << log2_cuh);
@@ -1886,6 +2488,9 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
         evc_get_motion_skip(ctx->ptr, ctx->tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, pi->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, pi->refi_pred, pi->mvp, ctx->map_scu, core->avail_cu
                             , ctx->map_unrefined_mv
                             , core->history_buffer, ctx->sps.tool_admvp
+#if USE_IBC
+          , core->ibc_flag
+#endif
         );
     else
 #endif
@@ -1895,6 +2500,9 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
 #endif
 #if ADMVP
                             , core->history_buffer, ctx->sps.tool_admvp
+#endif
+#if USE_IBC
+          , core->ibc_flag
 #endif
         );
 #if ADMVP
@@ -1983,6 +2591,9 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
                 evc_mcpy(pi->coef[pidx1][j], pi->coef[pidx][j], size_tmp * sizeof(s16));
             }
             SBAC_STORE(core->s_temp_best_merge, core->s_temp_best);
+#if ATS_INTER_PROCESS
+            pi->ats_inter_info_mode[pidx] = core->ats_inter_info;
+#endif
         }
     }
 
@@ -2029,6 +2640,9 @@ static double analyze_t_direct(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
     double      cost;
     int         pidx;
     s8          refidx = 0;
+#if ATS_INTER_PROCESS
+    core->ats_inter_info = 0;
+#endif
 
     pidx = PRED_DIR;
     evc_get_mv_dir(pi->refp[0], ctx->ptr, core->scup + ((1 << (log2_cuw - MIN_CU_LOG2)) - 1) + ((1 << (log2_cuh - MIN_CU_LOG2)) - 1) * ctx->w_scu, core->scup, ctx->w_scu, ctx->h_scu, pi->mv[pidx], &refidx, ctx->sps.tool_admvp);
@@ -2043,7 +2657,9 @@ static double analyze_t_direct(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
     cost = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[pidx], pi->coef[pidx], pidx, pi->mvp_idx[pidx], FALSE);
 
     evc_mcpy(pi->nnz_best[pidx], core->nnz, sizeof(int) * N_C);
-
+#if ATS_INTER_PROCESS
+    pi->ats_inter_info_mode[pidx] = core->ats_inter_info;
+#endif
     return cost;
 }
 
@@ -2060,6 +2676,9 @@ static double analyze_skip_mmvd(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, 
     int           t_base_num = 0;
     int           best_idx_num = -1;
     int           iii;
+#if ATS_INTER_PROCESS
+    core->ats_inter_info = 0;
+#endif
 
     core->mmvd_flag = 1;
 
@@ -2134,7 +2753,11 @@ static double analyze_skip_mmvd(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, 
         cv = evce_ssd_16b(log2_cuw - 1, log2_cuh - 1, pi->pred[PRED_NUM][0][V_C], v_org, cuw >> 1, pi->s_o[V_C]);
 
 #if RDO_DBK
-        calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->pred[PRED_NUM][0], cuw, x, y, core->avail_lr, 0, 0, refi, mvp, 0);
+        calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->pred[PRED_NUM][0], cuw, x, y, core->avail_lr, 0, 0, refi, mvp, 0
+#if ATS_INTER_PROCESS
+                                        , core->ats_inter_info
+#endif
+        );
         cy += ctx->delta_dist[Y_C];
         cu += ctx->delta_dist[U_C];
         cv += ctx->delta_dist[V_C];
@@ -2162,6 +2785,9 @@ static double analyze_skip_mmvd(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, 
             pi->mv[PRED_SKIP_MMVD][REFP_1][MV_Y] = mvp[REFP_1][MV_Y];
             pi->refi[PRED_SKIP_MMVD][REFP_0] = refi[REFP_0];
             pi->refi[PRED_SKIP_MMVD][REFP_1] = refi[REFP_1];
+#if ATS_INTER_PROCESS
+            core->cost_best = cost < core->cost_best ? cost : core->cost_best;
+#endif
 
             for(j = 0; j < N_C; j++)
             {
@@ -2169,6 +2795,9 @@ static double analyze_skip_mmvd(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, 
                 evc_mcpy(pi->pred[PRED_SKIP_MMVD][0][j], pi->pred[PRED_NUM][0][j], size_tmp * sizeof(pel));
             }
             SBAC_STORE(core->s_temp_best, core->s_temp_run);
+#if ATS_INTER_PROCESS
+            pi->ats_inter_info_mode[PRED_SKIP_MMVD] = 0;
+#endif
         }
     }
     mvp[REFP_0][MV_X] = real_mv[best_idx_num][0][MV_X];
@@ -2205,6 +2834,10 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
     int consider_num = 0;
     int best_candi = -1;
     double min_cost_temp = MAX_COST;
+#if ATS_INTER_PROCESS
+    double cost_best_save = core->cost_best;
+    core->ats_inter_info = 0;
+#endif
 
     pidx = PRED_DIR_MMVD;
     SET_REFI(pi->refi[pidx], 0, ctx->tgh.tile_group_type == TILE_GROUP_B ? 0 : REFI_INVALID);
@@ -2589,6 +3222,11 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
             best_candi = ttt;
         }
     }
+#if ATS_INTER_PROCESS
+    //Note: temp_cost could be smaller than min_cost
+    //I doubt whether the next for loop is needed
+    core->cost_best = cost_best_save;
+#endif
     for(ttt = best_candi; ttt < best_candi + 1; ttt++)
     {
         c_num = pi->best_index[pidx][ttt];
@@ -2620,6 +3258,10 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         pi->mmvd_idx[pidx] = c_num;
         evc_mcpy(pi->nnz_best[pidx], core->nnz, sizeof(int) * N_C);
         evc_mcpy(pi->nnz_sub_best[pidx], core->nnz_sub, sizeof(int) * N_C * MAX_SUB_TB_NUM);
+#if ATS_INTER_PROCESS
+        pi->ats_inter_info_mode[pidx] = core->ats_inter_info;
+        core->cost_best = min_cost < core->cost_best ? min_cost : core->cost_best;
+#endif
     }
 
     return min_cost;
@@ -2644,6 +3286,9 @@ static double analyze_bi(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_
     u8          bi_idx = BI_NORMAL + (pi->curr_bi % 3);
     int         bi_start = 0;
     int         bi_end = pi->num_refp;
+#if ATS_INTER_PROCESS
+    core->ats_inter_info = 0;
+#endif
 
     cuw = (1 << log2_cuw);
     cuh = (1 << log2_cuh);
@@ -2895,7 +3540,9 @@ static double analyze_bi(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_
 
     evc_mcpy(pi->nnz_best[pidx], core->nnz, sizeof(int) * N_C);
     evc_mcpy(pi->nnz_sub_best[pidx], core->nnz_sub, sizeof(int) * N_C * MAX_SUB_TB_NUM);
-
+#if ATS_INTER_PROCESS
+    pi->ats_inter_info_mode[pidx] = core->ats_inter_info;
+#endif
     return cost;
 }
 
@@ -3000,6 +3647,17 @@ static int pinter_init_frame(EVCE_CTX *ctx)
 
     size = sizeof(int) * 2 * MAX_CU_DIM;
     evc_mset(pi->i_gradient, 0, size);
+#endif
+
+#if ATS_INTER_PROCESS
+    size = sizeof(s16) * N_C * MAX_CU_DIM;
+    evc_mset(pi->resi, 0, size);
+
+    size = sizeof(s16) * N_C * MAX_CU_DIM;
+    evc_mset(pi->coff_save, 0, size);
+
+    size = sizeof(u8) * PRED_NUM;
+    evc_mset(pi->ats_inter_info_mode, 0, size);
 #endif
 
     /* MV predictor */
@@ -4207,6 +4865,9 @@ static double analyze_affine_bi(EVCE_CTX * ctx, EVCE_CORE * core, EVCE_PINTER * 
     int         mebits;
     int         memory_access[REFP_NUM];
     int         mem = MAX_MEMORY_ACCESS_BI * (1 << log2_cuw) * (1 << log2_cuh);
+#if ATS_INTER_PROCESS
+    core->ats_inter_info = 0;
+#endif
 
     {
         cuw = (1 << log2_cuw);
@@ -4382,7 +5043,9 @@ static double analyze_affine_bi(EVCE_CTX * ctx, EVCE_CORE * core, EVCE_PINTER * 
         );
         evc_mcpy(pi->nnz_best[pidx], core->nnz, sizeof(int) * N_C);
         evc_mcpy(pi->nnz_sub_best[pidx], core->nnz_sub, sizeof(int) * N_C * MAX_SUB_TB_NUM);
-
+#if ATS_INTER_PROCESS
+        pi->ats_inter_info_mode[pidx] = core->ats_inter_info;
+#endif
         return cost;
     }
 }
@@ -4399,6 +5062,9 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
     int          cuw, cuh, idx, bit_cnt, mrg_cnt, best_idx = 0;
     s64          cy, cu, cv;
     int          j;
+#if ATS_INTER_PROCESS
+    core->ats_inter_info = 0;
+#endif
 
     cuw = (1 << log2_cuw);
     cuh = (1 << log2_cuh);
@@ -4407,6 +5073,9 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
     v_org = pi->o[V_C] + (x >> 1) + ((y >> 1) * pi->s_o[V_C]);
 
     mrg_cnt = evc_get_affine_merge_candidate(ctx->ptr, ctx->tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, pi->refp, cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, mrg_list_refi, mrg_list_cp_mv, mrg_list_cp_num, ctx->map_scu, ctx->map_affine
+#if HW_AFFINE
+                                             , ctx->log2_max_cuwh
+#endif
 #if DMVR_LAG
                                              , ctx->map_unrefined_mv
 #endif
@@ -4486,6 +5155,9 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
         }
         else
         {
+#if ATS_INTER_PROCESS
+            assert(core->ats_inter_info == 0);
+#endif
             evc_affine_mc(x, y, ctx->w, ctx->h, cuw, cuh, mrg_list_refi[idx], mrg_list_cp_mv[idx], pi->refp, pi->pred[PRED_NUM], mrg_list_cp_num[idx]
 #if EIF
                           , core->eif_tmp_buffer
@@ -4498,7 +5170,11 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
 
 #if RDO_DBK
             evc_set_affine_mvf(ctx, core, cuw, cuh, mrg_list_refi[idx], mrg_list_cp_mv[idx], mrg_list_cp_num[idx]);
-            calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->pred[PRED_NUM][0], cuw, x, y, core->avail_lr, 0, 0, mrg_list_refi[idx], pi->mv[pidx], 1);
+            calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->pred[PRED_NUM][0], cuw, x, y, core->avail_lr, 0, 0, mrg_list_refi[idx], pi->mv[pidx], 1
+#if ATS_INTER_PROCESS
+                                            , core->ats_inter_info
+#endif
+            );
             cy += ctx->delta_dist[Y_C];
             cu += ctx->delta_dist[U_C];
             cv += ctx->delta_dist[V_C];
@@ -4513,6 +5189,9 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
 
             bit_cnt = evce_get_bit_number(&core->s_temp_run);
             cost += RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);
+#if ATS_INTER_PROCESS
+            core->cost_best = cost < core->cost_best ? cost : core->cost_best;
+#endif
         }
 
         // store best pred and coeff
@@ -4523,6 +5202,9 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
 
             evc_mcpy(pi->nnz_best[pidx], core->nnz, sizeof(int) * N_C);
             evc_mcpy(pi->nnz_sub_best[pidx], core->nnz_sub, sizeof(int) * N_C * MAX_SUB_TB_NUM);
+#if ATS_INTER_PROCESS
+            pi->ats_inter_info_mode[pidx] = core->ats_inter_info;
+#endif
 
             for(j = 0; j < N_C; j++)
             {
@@ -4582,6 +5264,9 @@ static double pinter_analyze_cu_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, 
     double cost, cost_best = MAX_COST;
     double cost_inter[PRED_NUM];
     int lidx, pidx;
+#if ATS_INTER_PROCESS
+    int log2_tuw, log2_tuh;
+#endif
 
     pi = &ctx->pinter;
     cuw = (1 << log2_cuw);
@@ -4696,6 +5381,9 @@ static double pinter_analyze_cu_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, 
                 evc_mcpy(pred[0][j], pi->pred[PRED_NUM][0][j], size_tmp * sizeof(pel));
                 evc_mcpy(coef_t[j], pi->coef[PRED_NUM][j], size_tmp * sizeof(s16));
             }
+#if ATS_INTER_PROCESS
+            pi->ats_inter_info_mode[best_idx] = core->ats_inter_info;
+#endif
         }
     }
 
@@ -4721,14 +5409,41 @@ static double pinter_analyze_cu_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, 
         evc_mcpy(coef[j], pi->coef[best_idx][j], sizeof(s16) * size_tmp);
         evc_mcpy(pi->residue[j], pi->coef[best_idx][j], sizeof(s16) * size_tmp);
     }
+#if ATS_INTER_PROCESS
+    core->ats_inter_info = pi->ats_inter_info_mode[best_idx];
+    get_tu_size(get_ats_inter_idx(core->ats_inter_info), log2_cuw, log2_cuh, &log2_tuw, &log2_tuh);
+#if ATS_INTER_DEBUG
+    assert(core->cost_best == cost_inter[best_idx]);
+    if( pi->nnz_best[best_idx][Y_C] && log2_cuw <= MAX_TR_LOG2 && log2_cuh <= MAX_TR_LOG2 )
+    {
+        int sum_y_coef = 0;
+        for (int a = 0; a < (1 << (log2_tuw + log2_tuh)); a++)
+        {
+            sum_y_coef += coef[Y_C][a] != 0;
+        }
+        assert(sum_y_coef == pi->nnz_best[best_idx][Y_C]);
+    }
+#endif
+#endif
 
-    evc_sub_block_itdq(pi->residue, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, pi->nnz_best[best_idx], pi->nnz_sub_best[best_idx], ctx->sps.tool_iqt);
+    evc_sub_block_itdq(pi->residue, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, pi->nnz_best[best_idx], pi->nnz_sub_best[best_idx], ctx->sps.tool_iqt
+#if ATS_INTRA_PROCESS
+                       , 0, 0
+#endif
+#if ATS_INTER_PROCESS
+                       , core->ats_inter_info
+#endif
+    );
 
     for(i = 0; i < N_C; i++)
     {
         rec[i] = pi->rec[best_idx][i];
         s_rec[i] = (i == 0 ? cuw : cuw >> 1);
-        evc_recon(pi->residue[i], pi->pred[best_idx][0][i], pi->nnz_best[best_idx][i], s_rec[i], (i == 0 ? cuh : cuh >> 1), s_rec[i], rec[i]);
+        evc_recon(pi->residue[i], pi->pred[best_idx][0][i], pi->nnz_best[best_idx][i], s_rec[i], (i == 0 ? cuh : cuh >> 1), s_rec[i], rec[i]
+#if ATS_INTER_PROCESS
+                  , core->ats_inter_info
+#endif
+        );
         core->nnz[i] = pi->nnz_best[best_idx][i];
         evc_mcpy(core->nnz_sub[i], pi->nnz_sub_best[best_idx][i], sizeof(int) * MAX_SUB_TB_NUM);
     }
@@ -4767,6 +5482,9 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
     double cost, cost_best = MAX_COST;
     double cost_inter[PRED_NUM];
     int lidx, pidx;
+#if ATS_INTER_PROCESS
+    int log2_tuw, log2_tuh;
+#endif
 #if DMVR_FLAG
     int best_dmvr = 0;
 #endif
@@ -5112,6 +5830,9 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                         evc_mcpy(pred[0][j], pi->pred[PRED_NUM][0][j], size_tmp * sizeof(pel));
                         evc_mcpy(coef_t[j], pi->coef[PRED_NUM][j], size_tmp * sizeof(s16));
                     }
+#if ATS_INTER_PROCESS
+                    pi->ats_inter_info_mode[pidx] = core->ats_inter_info;
+#endif
                 }
             }
 #if ADMVP
@@ -5287,6 +6008,9 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                             evc_get_affine_motion_scaling(ctx->ptr, core->scup, lidx, refi_cur, pi->num_refp, ctx->map_mv, ctx->map_refi, pi->refp,
                                                           core->cuw, core->cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, affine_mvp, pi->refi_pred[lidx],
                                                           ctx->map_scu, ctx->map_affine, vertex_num, core->avail_lr
+#if HW_AFFINE
+                                                          , ctx->log2_max_cuwh
+#endif
 #if DMVR_LAG
                                                           , ctx->map_unrefined_mv
 #endif
@@ -5464,6 +6188,9 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                                     evc_mcpy(pred[0][j], pi->pred[PRED_NUM][0][j], size_tmp * sizeof(pel));
                                     evc_mcpy(coef_t[j], pi->coef[PRED_NUM][j], size_tmp * sizeof(s16));
                                 }
+#if ATS_INTER_PROCESS
+                                pi->ats_inter_info_mode[pidx] = core->ats_inter_info;
+#endif
                             }
                         }
                     }
@@ -5513,6 +6240,9 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                                 evc_get_affine_motion_scaling(ctx->ptr, core->scup, lidx, refi_cur, pi->num_refp, ctx->map_mv, ctx->map_refi, pi->refp,
                                                               core->cuw, core->cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, affine_mvp, pi->refi_pred[lidx],
                                                               ctx->map_scu, ctx->map_affine, vertex_num, core->avail_lr
+#if HW_AFFINE
+                                                              , ctx->log2_max_cuwh
+#endif
 #if DMVR_LAG
                                                               , ctx->map_unrefined_mv
 #endif
@@ -5691,6 +6421,9 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                                         evc_mcpy(pred[0][j], pi->pred[PRED_NUM][0][j], size_tmp * sizeof(pel));
                                         evc_mcpy(coef_t[j], pi->coef[PRED_NUM][j], size_tmp * sizeof(s16));
                                     }
+#if ATS_INTER_PROCESS
+                                    pi->ats_inter_info_mode[pidx] = core->ats_inter_info;
+#endif
                                 }
                             }
                         }
@@ -5727,20 +6460,52 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
         evc_mcpy(coef[j], pi->coef[best_idx][j], sizeof(s16) * size_tmp);
         evc_mcpy(pi->residue[j], pi->coef[best_idx][j], sizeof(s16) * size_tmp);
     }
+#if ATS_INTER_PROCESS
+    core->ats_inter_info = pi->ats_inter_info_mode[best_idx];
+    get_tu_size(get_ats_inter_idx(core->ats_inter_info), log2_cuw, log2_cuh, &log2_tuw, &log2_tuh);
+#if ATS_INTER_DEBUG
+    assert(core->cost_best == cost_inter[best_idx]);
+    if (pi->nnz_best[best_idx][Y_C] && log2_cuw <= MAX_TR_LOG2 && log2_cuh <= MAX_TR_LOG2 )
+    {
+        int sum_y_coef = 0;
+        for (int a = 0; a < (1 << (log2_tuw + log2_tuh)); a++)
+        {
+            sum_y_coef += coef[Y_C][a] != 0;
+        }
+        assert(sum_y_coef == pi->nnz_best[best_idx][Y_C]);
+    }
+#endif
+#endif
 
-    evc_sub_block_itdq(pi->residue, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, pi->nnz_best[best_idx], pi->nnz_sub_best[best_idx], ctx->sps.tool_iqt);
+    evc_sub_block_itdq(pi->residue, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, pi->nnz_best[best_idx], pi->nnz_sub_best[best_idx], ctx->sps.tool_iqt
+#if ATS_INTRA_PROCESS
+                       , 0, 0
+#endif
+#if ATS_INTER_PROCESS
+                       , core->ats_inter_info
+#endif
+    );
 
     for(i = 0; i < N_C; i++)
     {
         rec[i] = pi->rec[best_idx][i];
         s_rec[i] = (i == 0 ? cuw : cuw >> 1);
-        evc_recon(pi->residue[i], pi->pred[best_idx][0][i], pi->nnz_best[best_idx][i], s_rec[i], (i == 0 ? cuh : cuh >> 1), s_rec[i], rec[i]);
+        evc_recon(pi->residue[i], pi->pred[best_idx][0][i], pi->nnz_best[best_idx][i], s_rec[i], (i == 0 ? cuh : cuh >> 1), s_rec[i], rec[i]
+#if ATS_INTER_PROCESS
+                  , core->ats_inter_info
+#endif
+        );
 #if HTDF
         if (ctx->sps.tool_htdf == 1 && i == Y_C && pi->nnz_best[best_idx][i])
         {
             const int s_mod = pi->s_m[Y_C];
+#if HW_HTDF_CLEANUP
+            u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu);
+            evc_htdf(rec[i], ctx->tgh.qp, cuw, cuh, cuw, FALSE, pi->m[Y_C] + (y * s_mod) + x, s_mod, avail_cu);
+#else
             evc_get_nbr(x, y, cuw, cuh, pi->m[Y_C] + (y * s_mod) + x, s_mod, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C);
             evc_htdf(rec[i], ctx->tgh.qp, cuw, cuh, cuw, FALSE, core->nb[Y_C][0] + 2, core->nb[Y_C][1] + cuh - 1, core->nb[Y_C][2] + 2, core->avail_cu);
+#endif
         }
 #endif
         core->nnz[i] = pi->nnz_best[best_idx][i];

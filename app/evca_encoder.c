@@ -97,6 +97,15 @@ static int  op_max_b_frames       = 0;
 static int  op_ref_pic_gap_length = 0;
 #endif
 static int  op_closed_gop         = 0;
+#if USE_IBC
+static int  op_enable_ibc = 0;
+static int  op_ibc_search_range_x = IBC_SEARCH_RANGE;
+static int  op_ibc_search_range_y = IBC_SEARCH_RANGE;
+static int  op_ibc_hash_search_flag = 0;
+static int  op_ibc_hash_search_max_cand = IBC_NUM_CANDIDATES;
+static int  op_ibc_hash_search_range_4smallblk = IBC_SEARCH_RANGE;
+static int  op_ibc_fast_method = IBC_FAST_METHOD_ADAPTIVE_SEARCHRANGE;
+#endif
 static int  op_disable_hgop       = 0;
 static int  op_in_bit_depth       = 8;
 static int  op_skip_frames        = 0;
@@ -132,8 +141,18 @@ static int  op_tool_htdf          = 1; /* default on */
 static int  op_tool_eipd          = 1;
 static int  op_tool_iqt           = 1;
 static int  op_tool_cm_init       = 1;
+#if COEFF_CODE_ADCC
+static int  op_tool_adcc          = 1; /* default on */
+#endif
 static int  op_cb_qp_offset       = 1;
 static int  op_cr_qp_offset       = 1;
+#if ATS_INTRA_PROCESS
+static int op_tool_ats_intra      = 1; /* default on */
+#endif
+#if ATS_INTER_PROCESS
+static int  op_tool_ats_inter     = 1; /* default on */
+#endif
+
 
 static char  op_rpl0[MAX_NUM_RPLS][256];
 static char  op_rpl1[MAX_NUM_RPLS][256];
@@ -154,6 +173,15 @@ typedef enum _OP_FLAGS
     OP_FLAG_VERBOSE,
     OP_FLAG_MAX_B_FRAMES,
     OP_FLAG_CLOSED_GOP,
+#if USE_IBC
+    OP_FLAG_IBC,
+    OP_IBC_SEARCH_RNG_X,
+    OP_IBC_SEARCH_RND_Y,
+    OP_IBC_HASH_FLAG,
+    OP_IBC_HASH_SEARCH_MAX_CAND,
+    OP_IBC_HASH_SEARCH_RANGE_4SMALLBLK,
+    OP_IBC_FAST_METHOD,
+#endif
     OP_FLAG_DISABLE_HGOP,
     OP_FLAG_OUT_BIT_DEPTH,
     OP_FLAG_IN_BIT_DEPTH,
@@ -189,8 +217,19 @@ typedef enum _OP_FLAGS
     OP_TOOL_EIPD,
     OP_TOOL_IQT,
     OP_TOOL_CM_INIT,
+#if COEFF_CODE_ADCC
+    OP_TOOL_ADCC,
+#endif
+
+
     OP_CB_QP_OFFSET,
     OP_CR_QP_OFFSET,
+#if ATS_INTRA_PROCESS
+    OP_TOOL_ATS_INTRA,
+#endif
+#if ATS_INTER_PROCESS
+    OP_TOOL_ATS_INTER,
+#endif
     OP_FLAG_RPL0_0,
     OP_FLAG_RPL0_1,
     OP_FLAG_RPL0_2,
@@ -336,6 +375,51 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_FLAG_CLOSED_GOP], &op_closed_gop,
         "use closed GOP structure. if not set, open GOP is used"
     },
+#if USE_IBC
+        {
+          EVC_ARGS_NO_KEY,  "ibc_flag", EVC_ARGS_VAL_TYPE_INTEGER,
+          &op_flag[OP_FLAG_IBC], &op_enable_ibc,
+          "use IBC feature. if not set, IBC feature is disabled"
+        },
+
+    {
+      EVC_ARGS_NO_KEY,  "ibc_search_range_x", EVC_ARGS_VAL_TYPE_INTEGER,
+      &op_flag[OP_IBC_SEARCH_RNG_X], &op_ibc_search_range_x,
+      "set ibc search range in horizontal direction (default 64)"
+    },
+
+    {
+      EVC_ARGS_NO_KEY,  "ibc_search_range_y", EVC_ARGS_VAL_TYPE_INTEGER,
+      &op_flag[OP_IBC_SEARCH_RND_Y], &op_ibc_search_range_y,
+      "set ibc search range in vertical direction (default 64)"
+    },
+
+    {
+      EVC_ARGS_NO_KEY,  "ibc_hash_search_flag", EVC_ARGS_VAL_TYPE_NONE,
+      &op_flag[OP_IBC_HASH_FLAG], &op_ibc_hash_search_flag,
+      "use IBC hash based block matching search feature. if not set, it is disable"
+    },
+
+    {
+      EVC_ARGS_NO_KEY,  "ibc_hash_search_max_cand", EVC_ARGS_VAL_TYPE_INTEGER,
+      &op_flag[OP_IBC_HASH_SEARCH_MAX_CAND], &op_ibc_hash_search_max_cand,
+      "Max candidates for hash based IBC search (default 64)"
+    },
+
+    {
+      EVC_ARGS_NO_KEY,  "ibc_hash_search_range_4smallblk", EVC_ARGS_VAL_TYPE_INTEGER,
+      &op_flag[OP_IBC_HASH_SEARCH_RANGE_4SMALLBLK], &op_ibc_hash_search_range_4smallblk,
+      "Small block search range in IBC based search. (default 64)"
+    },
+
+    {
+      EVC_ARGS_NO_KEY,  "ibc_fast_method", EVC_ARGS_VAL_TYPE_INTEGER,
+      &op_flag[OP_IBC_FAST_METHOD], &op_ibc_fast_method,
+      "Fast methods for IBC\n"
+      "\t 1: Buffer IBC block vector (current not support)\n"
+          "\t 2: Adaptive search range (default)\n"
+    },
+#endif
     {
         EVC_ARGS_NO_KEY,  "disable_hgop", EVC_ARGS_VAL_TYPE_NONE,
         &op_flag[OP_FLAG_DISABLE_HGOP], &op_disable_hgop,
@@ -493,6 +577,13 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_TOOL_CM_INIT], &op_tool_cm_init,
         "cm_init on/off flag"
     },
+#if COEFF_CODE_ADCC
+    {
+        EVC_ARGS_NO_KEY,  "adcc", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_TOOL_ADCC], &op_tool_adcc,
+        "adcc on/off flag"
+    },
+#endif
     {
         EVC_ARGS_NO_KEY,  "cb_qp_offset", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_CB_QP_OFFSET], &op_cb_qp_offset,
@@ -503,6 +594,20 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_CR_QP_OFFSET], &op_cr_qp_offset,
         "cr qp offset"
     },
+#if ATS_INTRA_PROCESS
+    {
+         EVC_ARGS_NO_KEY,  "ats_intra", EVC_ARGS_VAL_TYPE_INTEGER,
+         &op_flag[OP_TOOL_ATS_INTRA], &op_tool_ats_intra,
+         "ats intra on/off flag"
+    },
+#endif
+#if ATS_INTER_PROCESS
+    {
+        EVC_ARGS_NO_KEY, "ats_inter", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_TOOL_ATS_INTER], &op_tool_ats_inter,
+        "ats inter on/off flag"
+    },
+#endif
     {
         EVC_ARGS_NO_KEY,  "RPL0_0", EVC_ARGS_VAL_TYPE_STRING,
         &op_flag[OP_FLAG_RPL0_0], &op_rpl0[0],
@@ -764,7 +869,22 @@ static int get_conf(EVCE_CDSC * cdsc)
     {
         cdsc->closed_gop = 1;
     }
+#if USE_IBC
+    if (op_enable_ibc)
+    {
+      cdsc->ibc_flag = 1;
+    }
 
+    if (cdsc->ibc_flag)
+    {
+      cdsc->ibc_search_range_x = op_ibc_search_range_x;
+      cdsc->ibc_search_range_y = op_ibc_search_range_y;
+      cdsc->ibc_hash_search_flag = op_ibc_hash_search_flag;
+      cdsc->ibc_hash_search_max_cand = op_ibc_hash_search_max_cand;
+      cdsc->ibc_hash_search_range_4smallblk = op_ibc_hash_search_range_4smallblk;
+      cdsc->ibc_fast_method = op_ibc_fast_method;
+    }
+#endif
     cdsc->in_bit_depth = op_in_bit_depth;
 
     if(op_out_bit_depth == 0)
@@ -794,8 +914,17 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->tool_eipd          = op_tool_eipd;
     cdsc->tool_iqt           = op_tool_iqt;
     cdsc->tool_cm_init       = op_tool_cm_init;
+#if COEFF_CODE_ADCC
+    cdsc->tool_adcc          = op_tool_adcc;
+#endif
     cdsc->cb_qp_offset       = op_cb_qp_offset;
     cdsc->cr_qp_offset       = op_cr_qp_offset;
+#if ATS_INTRA_PROCESS
+    cdsc->tool_ats_intra     = op_tool_ats_intra;
+#endif
+#if ATS_INTER_PROCESS
+    cdsc->tool_ats_inter     = op_tool_ats_inter;
+#endif
 
     for (int i = 0; i < MAX_NUM_RPLS && op_rpl0[i][0] != 0; ++i)
     {
@@ -854,8 +983,21 @@ static int print_enc_conf(EVCE_CDSC * cdsc)
     printf("EIPD: %d, ",   cdsc->tool_eipd);
     printf("IQT: %d, ",    cdsc->tool_iqt);
     printf("CM_INIT: %d ", cdsc->tool_cm_init);
+#if COEFF_CODE_ADCC
+    printf("COEFF_CODE_ADCC: %d ",    cdsc->tool_adcc);
+#endif
+    // TODO: These are not tools, i suggest not report it here, instead as encoder parameters.
     printf("CB_QP_OFFSET: %d ", cdsc->cb_qp_offset);
     printf("CR_QP_OFFSET: %d ", cdsc->cr_qp_offset);
+#if USE_IBC
+    printf("IBC: %d ", cdsc->ibc_flag);
+#endif
+#if ATS_INTRA_PROCESS
+    printf("ATS_INTRA: %d ",    cdsc->tool_ats_intra);
+#endif
+#if ATS_INTER_PROCESS
+    printf("ATS_INTER: %d ", cdsc->tool_ats_inter);
+#endif
     printf("\n");
     return 0;
 }

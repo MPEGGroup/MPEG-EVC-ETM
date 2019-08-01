@@ -33,8 +33,9 @@ CXXFLAGS += -I$(DIR_INC)
 LDFLAGS = -L$(DIR_LIB) -levc -lm -lstdc++
 ARFLAGS = r
 
-CXXSRCS = $(DIR_SRC)/EncAdaptiveLoopFilter.cpp
-
+CXXSRCS = $(DIR_SRC)/EncAdaptiveLoopFilter.cpp \
+          $(DIR_SRC)/evce_ibc_hashmap.cpp \
+	  
 CSRCS = $(DIR_SRC)/evc_alf.c \
 		$(DIR_SRC)/evc.c \
 		$(DIR_SRC)/evc_img.c \
@@ -60,7 +61,8 @@ CSRCS = $(DIR_SRC)/evc_alf.c \
 		$(DIR_SRC)/evce_tbl.c \
 		$(DIR_SRC)/evce_bsw.c \
 		$(DIR_SRC)/evce_sad.c \
-
+		$(DIR_SRC)/evce_pibc.c \
+		
 
 CSRCS_APP =	$(DIR_APP)/evca_encoder.c \
 			$(DIR_APP)/evca_decoder.c \

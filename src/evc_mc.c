@@ -420,6 +420,7 @@ static const s8 tbl_bl_mc_l_coeff[4][2] =
  * motion compensation for luma
  ****************************************************************************/
 
+#if !HW_EIF
 #if EIF
 static const s8 tbl_mc_l_coeff_ds[2][5] =
 {
@@ -429,6 +430,7 @@ static const s8 tbl_mc_l_coeff_ds[2][5] =
   { -12, 18, 52, 18, -12 },
 #endif
 };
+#endif
 #endif
 
 #if OPT_SIMD_MC_BL
@@ -7123,8 +7125,69 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
 #endif
     }
 }
+#if USE_IBC
+void evc_IBC_mc(int x, int y, int log2_cuw, int log2_cuh, s16 mv[MV_D], EVC_PIC *ref_pic, pel pred[N_C][MAX_CU_DIM])
+{
+  int i = 0, j = 0;
+  int size = 0;
 
+  int cuw = 0, cuh = 0;
+  int stride = 0;
+  int mv_x = 0, mv_y = 0;
+
+  pel *dst = NULL;
+  pel *ref = NULL;
+
+  cuw = 1 << log2_cuw;
+  cuh = 1 << log2_cuh;
+  mv_x = mv[0];
+  mv_y = mv[1];
+  stride = ref_pic->s_l;
+
+  dst = pred[0];
+  ref = ref_pic->y + (mv_y + y) * stride + (mv_x + x);
+  size = sizeof(pel) * cuw;
+
+  for (i = 0; i < cuh; i++)
+  {
+    evc_mcpy(dst, ref, size);
+    ref += stride;
+    dst += cuw;
+  }
+
+  cuw >>= 1;
+  cuh >>= 1;
+  x >>= 1;
+  y >>= 1;
+  mv_x >>= 1;
+  mv_y >>= 1;
+  log2_cuw--;
+  log2_cuh--;
+  stride = ref_pic->s_c;
+
+  dst = pred[1];
+  ref = ref_pic->u + (mv_y + y) * stride + (mv_x + x);
+  size = sizeof(pel) * cuw;
+  for (i = 0; i < cuh; i++)
+  {
+    evc_mcpy(dst, ref, size);
+    ref += stride;
+    dst += cuw;
+  }
+
+  dst = pred[2];
+  ref = ref_pic->v + (mv_y + y) * stride + (mv_x + x);
+  size = sizeof(pel) * cuw;
+  for (i = 0; i < cuh; i++)
+  {
+    evc_mcpy(dst, ref, size);
+    ref += stride;
+    dst += cuw;
+  }
+}
+#endif
 #if AFFINE
+#if !HW_AFFINE
 static void derive_affine_subblock_size(s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num)
 {
     int w = cuw;
@@ -7168,6 +7231,7 @@ static void derive_affine_subblock_size(s16 ac_mv[VER_NUM][MV_D], int cuw, int c
     *sub_w = w;
     *sub_h = h;
 }
+#endif
 
 void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 ac_mv[VER_NUM][MV_D], EVC_PIC* ref_pic, pel pred[MAX_CU_DIM], int vertex_num
 #if EIF
@@ -7180,7 +7244,7 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
     int sub_w, sub_h;
     int w, h;
     int half_w, half_h;
-    int bit = 7;
+    int bit = MAX_CU_LOG2;
 
 #if MC_PRECISION_ADD
     int mc_prec = 2 + MC_PRECISION_ADD;
@@ -7194,6 +7258,8 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
     int mv_scale_ver = ac_mv[0][MV_Y] << bit;
     int mv_scale_tmp_hor, mv_scale_tmp_ver;
     int hor_max, hor_min, ver_max, ver_min;
+
+#if !HW_EIF
 #if EIF
     int b_eif = 0;
     int mv_w = max(abs(ac_mv[1][MV_X] - ac_mv[0][MV_X]), abs(ac_mv[1][MV_Y] - ac_mv[0][MV_Y]));
@@ -7221,6 +7287,7 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
         return;
     }
 #endif
+#endif
 
     // get clip MV Range
     hor_max = (pic_w + MAX_CU_SIZE - x - cuw + 1) << mc_prec;
@@ -7247,16 +7314,52 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
         dmv_ver_y = dmv_hor_x;
     }
 
+#if HW_EIF
+#if EIF
+    int b_eif = 0;
+    int mv_w = max(abs(ac_mv[1][MV_X] - ac_mv[0][MV_X]), abs(ac_mv[1][MV_Y] - ac_mv[0][MV_Y]));
+
+    if (mv_w)
+    {
+      w = max((int)((cuw >> 2) / mv_w), 1);
+      if (w < AFFINE_ADAPT_EIF_SIZE)
+        b_eif = 1;
+    }
+    if (vertex_num == 3 && !b_eif)
+    {
+      int mv_h = max(abs(ac_mv[2][MV_X] - ac_mv[0][MV_X]), abs(ac_mv[2][MV_Y] - ac_mv[0][MV_Y]));
+      if (mv_h)
+      {
+        h = max((int)((cuh >> 2) / mv_h), 1);
+        if (h < AFFINE_ADAPT_EIF_SIZE)
+          b_eif = 1;
+      }
+    }
+
+    if (b_eif)
+    {
+      evc_eif_mc(cuw, cuh, x, y, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y,
+                 hor_max, ver_max, hor_min, ver_min, ref_pic->y , ref_pic->s_l, pred, cuw, tmp_buffer, bit + 2, Y_C);
+      return;
+    }
+#endif
+#endif
+
     // get prediction block by block
     for(h = 0; h < cuh; h += sub_h)
     {
         for(w = 0; w < cuw; w += sub_w)
         {
-            int pos_x = w + half_w;
-            int pos_y = h + half_h;
-
-            mv_scale_tmp_hor = (mv_scale_hor + dmv_hor_x * pos_x + dmv_ver_x * pos_y) >> shift;
-            mv_scale_tmp_ver = (mv_scale_ver + dmv_hor_y * pos_x + dmv_ver_y * pos_y) >> shift;
+#if HW_AFFINE
+            mv_scale_tmp_hor = (mv_scale_hor + dmv_hor_x * half_w + dmv_ver_x * half_h);
+            mv_scale_tmp_ver = (mv_scale_ver + dmv_hor_y * half_w + dmv_ver_y * half_h);
+            evc_mv_rounding_s32( mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, shift, 0 );
+            mv_scale_tmp_hor = EVC_CLIP3( -(2 << 17), (2 << 17) - 1, mv_scale_tmp_hor );
+            mv_scale_tmp_ver = EVC_CLIP3( -(2 << 17), (2 << 17) - 1, mv_scale_tmp_ver );
+#else
+            mv_scale_tmp_hor = (mv_scale_hor + dmv_hor_x * half_w + dmv_ver_x * half_h) >> shift;
+            mv_scale_tmp_ver = (mv_scale_ver + dmv_hor_y * half_w + dmv_ver_y * half_h) >> shift;
+#endif
 
             // clip
             mv_scale_tmp_hor = min(hor_max, max(hor_min, mv_scale_tmp_hor));
@@ -7282,7 +7385,7 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
     int sub_w, sub_h;
     int w, h;
     int half_w, half_h;
-    int bit = 7;
+    int bit = MAX_CU_LOG2;
 
 #if MC_PRECISION_ADD
     int mc_prec = 2 + MC_PRECISION_ADD;
@@ -7296,6 +7399,8 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
     int mv_scale_ver = ac_mv[0][MV_Y] << bit;
     int mv_scale_tmp_hor, mv_scale_tmp_ver;
     int hor_max, hor_min, ver_max, ver_min;
+
+#if !HW_EIF
 #if EIF
     int b_eif = 0;
     int mv_w = max(abs(ac_mv[1][MV_X] - ac_mv[0][MV_X]), abs(ac_mv[1][MV_Y] - ac_mv[0][MV_Y]));
@@ -7325,6 +7430,7 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
         return;
     }
 #endif
+#endif
 
     // get clip MV Range
     hor_max = (pic_w + MAX_CU_SIZE - x - cuw + 1) << mc_prec;
@@ -7351,17 +7457,58 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
         dmv_ver_y = dmv_hor_x;
     }
 
+#if HW_EIF
+#if EIF
+    int b_eif = 0;
+    int mv_w = max(abs(ac_mv[1][MV_X] - ac_mv[0][MV_X]), abs(ac_mv[1][MV_Y] - ac_mv[0][MV_Y]));
+
+    if (mv_w)
+    {
+      w = max((int)((cuw >> 2) / mv_w), 1);
+      if (w < AFFINE_ADAPT_EIF_SIZE)
+        b_eif = 1;
+    }
+    if (vertex_num == 3 && !b_eif)
+    {
+      int mv_h = max(abs(ac_mv[2][MV_X] - ac_mv[0][MV_X]), abs(ac_mv[2][MV_Y] - ac_mv[0][MV_Y]));
+      if (mv_h)
+      {
+        h = max((int)((cuh >> 2) / mv_h), 1);
+        if (h < AFFINE_ADAPT_EIF_SIZE)
+          b_eif = 1;
+      }
+    }
+
+    if (b_eif)
+    {
+      evc_eif_mc(cuw, cuh, x, y, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y,
+                 hor_max, ver_max, hor_min, ver_min, ref_pic->y, ref_pic->s_l, pred[Y_C], cuw, tmp_buffer_for_eif, bit + 2, Y_C);
+
+      evc_eif_mc(cuw, cuh, x, y, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y,
+                 hor_max, ver_max, hor_min, ver_min, ref_pic->u, ref_pic->s_c, pred[U_C], cuw >> 1, tmp_buffer_for_eif, bit + 2, U_C);
+
+      evc_eif_mc(cuw, cuh, x, y, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y,
+                 hor_max, ver_max, hor_min, ver_min, ref_pic->v, ref_pic->s_c, pred[V_C], cuw >> 1, tmp_buffer_for_eif, bit + 2, V_C);
+      return;
+    }
+#endif
+#endif
+
     // get prediction block by block
     for(h = 0; h < cuh; h += sub_h)
     {
         for(w = 0; w < cuw; w += sub_w)
         {
-            int pos_x = w + half_w;
-            int pos_y = h + half_h;
-
-            mv_scale_tmp_hor = (mv_scale_hor + dmv_hor_x * pos_x + dmv_ver_x * pos_y) >> shift;
-            mv_scale_tmp_ver = (mv_scale_ver + dmv_hor_y * pos_x + dmv_ver_y * pos_y) >> shift;
-
+#if HW_AFFINE
+            mv_scale_tmp_hor = (mv_scale_hor + dmv_hor_x * half_w + dmv_ver_x * half_h);
+            mv_scale_tmp_ver = (mv_scale_ver + dmv_hor_y * half_w + dmv_ver_y * half_h);
+            evc_mv_rounding_s32( mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, shift, 0 );
+            mv_scale_tmp_hor = EVC_CLIP3( -(2 << 17), (2 << 17) - 1, mv_scale_tmp_hor );
+            mv_scale_tmp_ver = EVC_CLIP3( -(2 << 17), (2 << 17) - 1, mv_scale_tmp_ver );
+#else
+            mv_scale_tmp_hor = (mv_scale_hor + dmv_hor_x * half_w + dmv_ver_x * half_h) >> shift;
+            mv_scale_tmp_ver = (mv_scale_ver + dmv_hor_y * half_w + dmv_ver_y * half_h) >> shift;
+#endif
             // clip
             mv_scale_tmp_hor = min(hor_max, max(hor_min, mv_scale_tmp_hor));
             mv_scale_tmp_ver = min(ver_max, max(ver_min, mv_scale_tmp_ver));
@@ -7390,6 +7537,214 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
 }
 
 #if EIF
+
+#if HW_EIF
+
+BOOL can_mv_clipping_occurs(int block_width, int block_height, int mv0[MV_D], int d_x[MV_D], int d_y[MV_D], int mv_max[MV_D], int mv_min[MV_D])
+{
+  int mv_corners[2][2][MV_D];
+  BOOL mv_clip_occurs[MV_D] = { FALSE, FALSE };
+
+  int mv[MV_D] = { mv0[MV_X] - d_x[MV_X] - d_y[MV_X], mv0[MV_Y] - d_x[MV_Y] - d_y[MV_Y] }; //set to pos (-1, -1)
+
+  block_width = block_width + 1;
+  block_height = block_height + 1;
+
+  assert(MV_Y - MV_X == 1);
+
+  for (int coord = MV_X; coord <= MV_Y; ++coord)
+  {
+    mv_corners[0][0][coord] = mv[coord];
+    mv_corners[0][1][coord] = mv[coord] + block_width  * d_x[coord];
+    mv_corners[1][0][coord] = mv[coord] + block_height * d_y[coord];
+    mv_corners[1][1][coord] = mv[coord] + block_width  * d_x[coord] + block_height * d_y[coord];
+
+    for (int i = 0; i < 2; ++i)
+      for (int j = 0; j < 2; ++j)
+      {
+        if (mv_corners[i][j][coord] > mv_max[coord] || mv_corners[i][j][coord] < mv_min[coord])
+          mv_clip_occurs[coord] = TRUE;
+      }
+  }
+
+  return mv_clip_occurs[MV_X] || mv_clip_occurs[MV_Y];
+}
+
+void evc_eif_filter( int block_width, int block_height, pel* p_tmp_buf, int tmp_buf_stride, pel *p_dst, int dst_stride, int shifts[4], int offsets[4], int bit_depth )
+{
+  pel* p_buf = p_tmp_buf + 1;
+
+  for (int y = 0; y <= block_height + 1; ++y, p_buf += tmp_buf_stride)
+  {
+    pel* t = p_buf;
+
+    for (int x = 1; x <= block_width; ++x, ++t)
+      t[-1] = (-t[-1] + (t[0] * 10) - t[1] + offsets[2]) >> shifts[2];
+  }
+
+  p_buf = p_tmp_buf + tmp_buf_stride;
+
+  for (int y = 0; y < block_height; ++y, p_buf += tmp_buf_stride, p_dst += dst_stride)
+  {
+    pel* p_dst_buf = p_dst;
+    pel* t = p_buf;
+
+    for (int x = 0; x < block_width; ++x, ++t, ++p_dst_buf)
+    {
+      pel res = (-t[-tmp_buf_stride] + (t[0] * 10) - t[tmp_buf_stride] + offsets[3]) >> shifts[3];
+
+      *p_dst_buf = min((1 << bit_depth) - 1, max(0, res));
+    }
+  }
+}
+
+void evc_eif_bilinear_clip(int block_width, int block_height, int mv0[MV_D], int d_x[MV_D], int d_y[MV_D], int mv_max[MV_D], int mv_min[MV_D], pel* p_ref, int ref_stride, pel* p_dst, int dst_stride, int shifts[4], int offsets[4])
+{
+  int mv[MV_D] = { mv0[MV_X], mv0[MV_Y] };
+  int a[2][2] = { { 0, 0 },{ 0, 0 }, };
+
+  const char mv_precision = EIF_MV_PRECISION;
+  const pel one = 1 << EIF_MV_PRECISION;
+  const pel fracMask = one - 1;
+
+  pel* p_buf = p_dst;
+
+  int tmp_mv_for_line[MV_D] = { mv0[MV_X] - d_x[MV_X] - d_y[MV_X], mv0[MV_Y] - d_x[MV_Y] - d_y[MV_Y] }; //set to pos (-1, -1)
+
+  for (int y = -1; y <= block_height; ++y, p_buf += dst_stride, tmp_mv_for_line[MV_X] += d_y[MV_X], tmp_mv_for_line[MV_Y] += d_y[MV_Y])
+  {
+    int tmp_mv[MV_D] = { tmp_mv_for_line[MV_X], tmp_mv_for_line[MV_Y] };
+
+    for (int x = -1; x <= block_width; ++x, tmp_mv[MV_X] += d_x[MV_X], tmp_mv[MV_Y] += d_x[MV_Y])
+    {
+      mv[MV_X] = min(mv_max[MV_X], max(mv_min[MV_X], tmp_mv[MV_X]));
+      mv[MV_Y] = min(mv_max[MV_Y], max(mv_min[MV_Y], tmp_mv[MV_Y]));
+
+      int xInt = x + (mv[MV_X] >> EIF_MV_PRECISION);
+      int yInt = y + (mv[MV_Y] >> EIF_MV_PRECISION);
+
+      pel xFrac = mv[MV_X] & fracMask;
+      pel yFrac = mv[MV_Y] & fracMask;
+
+      pel* r = p_ref + yInt * ref_stride + xInt;
+
+      pel tmp = (r[0] * (one - xFrac) + offsets[0]) >> shifts[0];
+      a[0][0] = tmp * (one - yFrac);
+
+      tmp = (r[1] * xFrac + offsets[0]) >> shifts[0];
+      a[0][1] = tmp * (one - yFrac);
+
+      tmp = (r[0 + ref_stride] * (one - xFrac) + offsets[0]) >> shifts[0];
+      a[1][0] = tmp * yFrac;
+
+      tmp = (r[1 + ref_stride] * xFrac + offsets[0]) >> shifts[0];
+      a[1][1] = tmp * yFrac;
+
+      pel b = (a[0][0] + a[0][1] + a[1][0] + a[1][1] + offsets[1]) >> shifts[1];
+
+      p_buf[x + 1] = b;
+    }
+  }
+}
+
+void evc_eif_bilinear_no_clip(int block_width, int block_height, int mv0[MV_D], int d_x[MV_D], int d_y[MV_D], pel* p_ref, int ref_stride, pel* p_dst, int dst_stride, int shifts[4], int offsets[4])
+{
+  int mv[MV_D] = { mv0[MV_X], mv0[MV_Y] };
+  int a[2][2] = { { 0, 0 },{ 0, 0 }, };
+
+  const char mv_precision = EIF_MV_PRECISION;
+  const pel one = 1 << EIF_MV_PRECISION;
+  const pel fracMask = one - 1;
+
+  pel* p_buf = p_dst;
+
+  int tmp_mv_for_line[MV_D] = { mv0[MV_X] - d_x[MV_X] - d_y[MV_X], mv0[MV_Y] - d_x[MV_Y] - d_y[MV_Y] }; //set to pos (-1, -1)
+
+  for (int y = -1; y <= block_height; ++y, p_buf += dst_stride, tmp_mv_for_line[MV_X] += d_y[MV_X], tmp_mv_for_line[MV_Y] += d_y[MV_Y])
+  {
+    int tmp_mv[MV_D] = { tmp_mv_for_line[MV_X], tmp_mv_for_line[MV_Y] };
+
+    for (int x = -1; x <= block_width; ++x, tmp_mv[MV_X] += d_x[MV_X], tmp_mv[MV_Y] += d_x[MV_Y])
+    {
+      int xInt = x + (tmp_mv[MV_X] >> EIF_MV_PRECISION);
+      int yInt = y + (tmp_mv[MV_Y] >> EIF_MV_PRECISION);
+
+      pel xFrac = tmp_mv[MV_X] & fracMask;
+      pel yFrac = tmp_mv[MV_Y] & fracMask;
+
+      pel* r = p_ref + yInt * ref_stride + xInt;
+
+      pel tmp = (r[0] * (one - xFrac) + offsets[0]) >> shifts[0];
+      a[0][0] = tmp * (one - yFrac);
+
+      tmp = (r[1] * xFrac + offsets[0]) >> shifts[0];
+      a[0][1] = tmp * (one - yFrac);
+
+      tmp = (r[0 + ref_stride] * (one - xFrac) + offsets[0]) >> shifts[0];
+      a[1][0] = tmp * yFrac;
+
+      tmp = (r[1 + ref_stride] * xFrac + offsets[0]) >> shifts[0];
+      a[1][1] = tmp * yFrac;
+
+      pel b = (a[0][0] + a[0][1] + a[1][0] + a[1][1] + offsets[1]) >> shifts[1];
+
+      p_buf[x + 1] = b;
+    }
+  }
+}
+
+void evc_eif_mc(int block_width, int block_height, int x, int y, int mv_scale_hor, int mv_scale_ver, int dmv_hor_x, int dmv_hor_y, int dmv_ver_x, int dmv_ver_y,
+                int hor_max, int ver_max, int hor_min, int ver_min, pel* p_ref, int ref_stride, pel *p_dst, int dst_stride, pel* p_tmp_buf, char affine_mv_prec, s8 comp)
+{
+  assert(EIF_MV_PRECISION >= affine_mv_prec);  //For current affine internal MV precision is (2 + bit) bits; 2 means qpel
+  assert(EIF_MV_PRECISION >= 2 + MC_PRECISION_ADD);  //For current affine internal MV precision is (2 + bit) bits; 2 means qpel
+
+  int mv0[MV_D] = { mv_scale_hor << ( EIF_MV_PRECISION - affine_mv_prec ),
+                    mv_scale_ver << ( EIF_MV_PRECISION - affine_mv_prec ) };
+  int d_x[MV_D] = { dmv_hor_x    << ( EIF_MV_PRECISION - affine_mv_prec ),
+                    dmv_hor_y    << ( EIF_MV_PRECISION - affine_mv_prec ) };
+  int d_y[MV_D] = { dmv_ver_x    << ( EIF_MV_PRECISION - affine_mv_prec ),
+                    dmv_ver_y    << ( EIF_MV_PRECISION - affine_mv_prec ) };
+  int mv_max[MV_D] = { hor_max   << ( EIF_MV_PRECISION - (2 + MC_PRECISION_ADD)),
+                       ver_max   << ( EIF_MV_PRECISION - (2 + MC_PRECISION_ADD)) };
+  int mv_min[MV_D] = { hor_min   << ( EIF_MV_PRECISION - (2 + MC_PRECISION_ADD)),
+                         ver_min << ( EIF_MV_PRECISION - (2 + MC_PRECISION_ADD)) };
+  
+  if (comp > Y_C)
+  {
+    mv0[MV_X] >>= 1;    mv0[MV_Y] >>= 1;
+    mv_max[MV_X] >>= 1; mv_max[MV_Y] >>= 1;
+    mv_min[MV_X] >>= 1; mv_min[MV_Y] >>= 1;
+    block_width >>= 1;
+    block_height >>= 1;
+    x >>= 1;
+    y >>= 1;
+  }
+
+  p_ref += ref_stride * y + x;
+
+  const int tmp_buf_stride = MAX_CU_SIZE + 2;
+  int bit_depth = 10;
+
+  assert(bit_depth < 16);
+
+  int shifts[4] = { bit_depth + EIF_MV_PRECISION - 15, EIF_MV_PRECISION + 2, 4, 15 - bit_depth }; //4 -- number of bits in 10 ; all pels are positive after bilinear interpolation
+  int offsets[4] = { 0, 0, 0, 0 };
+
+  for (int i = 0; i < 4; ++i)
+    offsets[i] = 1 << (shifts[i] - 1);
+
+  BOOL is_mv_clip_needed = can_mv_clipping_occurs(block_width, block_height, mv0, d_x, d_y, mv_max, mv_min);
+
+  if (is_mv_clip_needed)
+    evc_eif_bilinear_clip(block_width, block_height, mv0, d_x, d_y, mv_max, mv_min, p_ref, ref_stride, p_tmp_buf, tmp_buf_stride, shifts, offsets);
+  else
+    evc_eif_bilinear_no_clip(block_width, block_height, mv0, d_x, d_y, p_ref, ref_stride, p_tmp_buf, tmp_buf_stride, shifts, offsets);
+
+  evc_eif_filter(block_width, block_height, p_tmp_buf, tmp_buf_stride, p_dst, dst_stride, shifts, offsets, bit_depth);
+}
+
+#else
 
 #define EIF_MV_PEL_SHIFT                      ( EIF_MV_ADDITIONAL_PRECISION + 2 )
 
@@ -8414,6 +8769,7 @@ void eif_1pass(int block_width, int block_height, int mv_x0, int mv_y0, int d_mv
             dst += block_width;
     }
 }
+#endif //EIF_HW
 #endif //EIF
 
 void evc_affine_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16 mv[REFP_NUM][VER_NUM][MV_D], EVC_REFP(*refp)[REFP_NUM], pel pred[2][N_C][MAX_CU_DIM], int vertex_num

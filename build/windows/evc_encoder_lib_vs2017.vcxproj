@@ -13,7 +13,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{5E102638-BA4A-4523-A39C-75842E250291}</ProjectGuid>
     <RootNamespace>evc_encoder_lib</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
     <ProjectName>evc_encoder_lib</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -92,7 +92,9 @@
     <ClCompile Include="..\..\src\evce.c" />
     <ClCompile Include="..\..\src\evce_bsw.c" />
     <ClCompile Include="..\..\src\evce_eco.c" />
+    <ClCompile Include="..\..\src\evce_ibc_hashmap.cpp" />
     <ClCompile Include="..\..\src\evce_mode.c" />
+    <ClCompile Include="..\..\src\evce_pibc.c" />
     <ClCompile Include="..\..\src\evce_pinter.c" />
     <ClCompile Include="..\..\src\evce_pintra.c" />
     <ClCompile Include="..\..\src\evce_sad.c" />
@@ -106,7 +108,10 @@
     <ClInclude Include="..\..\src\evce_bsw.h" />
     <ClInclude Include="..\..\src\evce_def.h" />
     <ClInclude Include="..\..\src\evce_eco.h" />
+    <ClInclude Include="..\..\src\evce_ibc_hashmap.h" />
+    <ClInclude Include="..\..\src\evce_ibc_hash_wrapper.h" />
     <ClInclude Include="..\..\src\evce_mode.h" />
+    <ClInclude Include="..\..\src\evce_pibc.h" />
     <ClInclude Include="..\..\src\evce_pinter.h" />
     <ClInclude Include="..\..\src\evce_pintra.h" />
     <ClInclude Include="..\..\src\evce_sad.h" />

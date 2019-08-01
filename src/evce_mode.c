@@ -38,7 +38,9 @@
 #include "evc_df.h"
 #include <math.h>
 #include "evc_util.h"
-
+#if USE_IBC
+#include "evce_ibc_hash_wrapper.h"
+#endif
 
 #define ENTROPY_BITS_TABLE_BiTS          10
 #define ENTROPY_BITS_TABLE_BiTS_SHIFP   (MPS_SHIFT-ENTROPY_BITS_TABLE_BiTS)
@@ -51,6 +53,12 @@ typedef int(*LOSSY_ES_FUNC)(EVCE_CU_DATA *, int, double, int, int, int, int, int
 int rdoq_est_all_cbf[2];
 int rdoq_est_cbf[NUM_QT_CBF_CTX][2];
 
+#if COEFF_CODE_ADCC
+int rdoq_est_gt0[NUM_CTX_GT0][2];
+int rdoq_est_gtA[NUM_CTX_GTA][2];
+int rdoq_est_scanr_x[NUM_CTX_SCANR][2];
+int rdoq_est_scanr_y[NUM_CTX_SCANR][2];
+#endif
 s32 rdoq_est_run[NUM_SBAC_CTX_RUN][2];
 s32 rdoq_est_level[NUM_SBAC_CTX_LEVEL][2];
 s32 rdoq_est_last[NUM_SBAC_CTX_LAST][2];
@@ -165,7 +173,17 @@ void evce_rdo_bit_cnt_cu_intra_luma(EVCE_CTX *ctx, EVCE_CORE *core, s32 tile_gro
         evce_eco_intra_dir_b(&core->bs_temp, core->ipm[0], core->mpm_b_list, core->mpm_ext, core->pims);
     }
 
-    evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTRA, core->nnz_sub, 0, RUN_L);
+    evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTRA, core->nnz_sub, 0, RUN_L
+#if ATS_INTRA_PROCESS
+                  , ctx->sps.tool_ats_intra, core->ats_intra_cu, core->ats_tu
+#endif
+#if ATS_INTER_PROCESS
+                  , 0, 0
+#endif
+#if COEFF_CODE_ADCC  
+            , ctx
+#endif   
+    );
 }
 
 void evce_rdo_bit_cnt_cu_intra_chroma(EVCE_CTX *ctx, EVCE_CORE *core, s32 tile_group_type, s32 cup, s16 coef[N_C][MAX_CU_DIM])
@@ -180,7 +198,17 @@ void evce_rdo_bit_cnt_cu_intra_chroma(EVCE_CTX *ctx, EVCE_CORE *core, s32 tile_g
         evce_eco_intra_dir_c(&core->bs_temp, core->ipm[1], core->ipm[0]);
     }
 
-    evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTRA, core->nnz_sub, 0, RUN_CB | RUN_CR);
+    evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTRA, core->nnz_sub, 0, RUN_CB | RUN_CR
+#if ATS_INTRA_PROCESS
+                  , ctx->sps.tool_ats_intra, 0, 0
+#endif
+#if ATS_INTER_PROCESS
+                  , 0, 0
+#endif
+#if COEFF_CODE_ADCC  
+            , ctx
+#endif   
+    );
 }
 
 void evce_rdo_bit_cnt_cu_intra(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_type, s32 cup, s16 coef[N_C][MAX_CU_DIM])
@@ -189,6 +217,9 @@ void evce_rdo_bit_cnt_cu_intra(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_
     int log2_cuw = core->log2_cuw;
     int log2_cuh = core->log2_cuh;
     int* nnz = core->nnz;
+#if ATS_INTER_DEBUG
+    assert(core->ats_inter_info == 0);
+#endif
 
     if(tile_group_type != TILE_GROUP_I && (ctx->sps.tool_amis == 0 || !(core->log2_cuw <= MIN_CU_LOG2 && core->log2_cuh <= MIN_CU_LOG2)))
     {
@@ -206,10 +237,24 @@ void evce_rdo_bit_cnt_cu_intra(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_
         evce_eco_intra_dir_b(&core->bs_temp, core->ipm[0], core->mpm_b_list, core->mpm_ext, core->pims);
     }
 
-    evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTRA, core->nnz_sub, 0, RUN_L | RUN_CB | RUN_CR);
+    evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTRA, core->nnz_sub, 0, RUN_L | RUN_CB | RUN_CR
+#if ATS_INTRA_PROCESS
+                  , ctx->sps.tool_ats_intra, core->ats_intra_cu, core->ats_tu
+#endif
+#if ATS_INTER_PROCESS
+                  , 0, 0
+#endif
+#if COEFF_CODE_ADCC  
+            , ctx
+#endif   
+    );
 }
 
-void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM], int ch_type, int pidx)
+void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM], int ch_type, int pidx
+#if ATS_INTRA_PROCESS || COEFF_CODE_ADCC
+                                    , EVCE_CTX * ctx
+#endif
+)
 {
     int* nnz = core->nnz;
     EVCE_SBAC* sbac = &core->s_temp_run;
@@ -219,19 +264,84 @@ void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM],
 
     if(ch_type == Y_C)
     {
-        evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTER, core->nnz_sub, b_no_cbf, RUN_L);
+        evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTER, core->nnz_sub, b_no_cbf, RUN_L
+#if ATS_INTRA_PROCESS
+            , 0, 0, 0
+#endif
+#if ATS_INTER_PROCESS
+            , ctx->sps.tool_ats_inter, core->ats_inter_info
+#endif
+#if COEFF_CODE_ADCC  
+            , ctx
+#endif   
+        );
     }
        
     if(ch_type == U_C)
     {
-        evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTER, core->nnz_sub, b_no_cbf, RUN_CB);
+        evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTER, core->nnz_sub, b_no_cbf, RUN_CB
+#if ATS_INTRA_PROCESS
+            , 0, 0, 0
+#endif
+#if ATS_INTER_PROCESS
+            , ctx->sps.tool_ats_inter, core->ats_inter_info
+#endif
+#if COEFF_CODE_ADCC  
+            , ctx
+#endif   
+        );
     }
 
     if(ch_type == V_C)
     {
-        evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTER, core->nnz_sub, b_no_cbf, RUN_CR);
+        evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTER, core->nnz_sub, b_no_cbf, RUN_CR
+#if ATS_INTRA_PROCESS
+            , 0, 0, 0
+#endif
+#if ATS_INTER_PROCESS
+            , ctx->sps.tool_ats_inter, core->ats_inter_info
+#endif
+#if COEFF_CODE_ADCC  
+            , ctx
+#endif   
+        );
     }
 }
+#if USE_IBC
+void evce_rdo_bit_cnt_cu_ibc(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_type, s32 cup, s16 mvd[MV_D],
+  s16 coef[N_C][MAX_CU_DIM], u8 mvp_idx, u8 ibc_flag)
+{
+  int b_no_cbf = 0;
+
+  if (!(core->skip_flag == 1 && tile_group_type == TILE_GROUP_I))
+  {
+    evce_eco_ibc(&core->bs_temp, ibc_flag
+#if CTX_NEV_IBC_FLAG
+      , ctx->ctx_flags[CNID_IBC_FLAG]
+#endif
+    );
+  }
+
+#if 0//!AMVR
+  evce_eco_mvp_idx(&core->bs_temp, mvp_idx);
+#endif
+
+  evce_eco_mvd(&core->bs_temp, mvd);
+
+  evce_eco_coef(&core->bs_temp, coef, core->log2_cuw, core->log2_cuh, MODE_IBC, core->nnz_sub, b_no_cbf
+    , RUN_L | RUN_CB | RUN_CR 
+#if ATS_INTRA_PROCESS
+    , 0, 0, 0
+#endif
+#if ATS_INTER_PROCESS
+    , 0, 0
+#endif
+#if COEFF_CODE_ADCC  
+    , ctx
+#endif   
+  );
+}
+#endif
 
 void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_type, s32 cup, s8 refi[REFP_NUM], s16 mvd[REFP_NUM][MV_D], s16 coef[N_C][MAX_CU_DIM], int pidx, u8 * mvp_idx, u8 mvr_idx, u8 bi_idx
 #if AFFINE
@@ -473,7 +583,17 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_
         }
     }
 
-    evce_eco_coef(&core->bs_temp, coef, core->log2_cuw, core->log2_cuh, MODE_INTER, core->nnz_sub, b_no_cbf, RUN_L | RUN_CB | RUN_CR);
+    evce_eco_coef(&core->bs_temp, coef, core->log2_cuw, core->log2_cuh, MODE_INTER, core->nnz_sub, b_no_cbf, RUN_L | RUN_CB | RUN_CR
+#if ATS_INTRA_PROCESS
+        , 0, 0, 0
+#endif
+#if ATS_INTER_PROCESS
+        , ctx->sps.tool_ats_inter, core->ats_inter_info
+#endif
+#if COEFF_CODE_ADCC  
+        , ctx
+#endif    
+    );
 }
 
 void evce_rdo_bit_cnt_cu_skip(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_type, s32 cup, int mvp_idx0, int mvp_idx1, int c_num , int tool_mmvd)
@@ -559,6 +679,33 @@ static void evce_rdoq_bit_est(EVCE_SBAC * sbac)
         rdoq_est_all_cbf[bin] = biari_no_bits(bin, sbac->ctx.all_cbf);
     }
 
+#if COEFF_CODE_ADCC
+
+    for (ctx = 0; ctx < NUM_CTX_GT0; ctx++)
+    {
+        for (bin = 0; bin < 2; bin++)
+        {
+            rdoq_est_gt0[ctx][bin] = biari_no_bits(bin, sbac->ctx.cc_gt0 + ctx);
+        }
+    }
+
+    for (ctx = 0; ctx < NUM_CTX_GTA; ctx++)
+    {
+        for (bin = 0; bin < 2; bin++)
+        {
+            rdoq_est_gtA[ctx][bin] = biari_no_bits(bin, sbac->ctx.cc_gtA + ctx);
+        }
+    }
+
+    for (ctx = 0; ctx < NUM_CTX_SCANR; ctx++)
+    {
+        for (bin = 0; bin < 2; bin++)
+        {
+            rdoq_est_scanr_x[ctx][bin] = biari_no_bits(bin, sbac->ctx.cc_scanr_x + ctx);
+            rdoq_est_scanr_y[ctx][bin] = biari_no_bits(bin, sbac->ctx.cc_scanr_y + ctx);
+        }
+    }
+#endif
     for(ctx = 0; ctx < NUM_SBAC_CTX_RUN; ctx++)
     {
         for(bin = 0; bin < 2; bin++)
@@ -615,6 +762,15 @@ static int init_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh, int q
 #if DMVR_FLAG
         evc_mset(cu_data->dmvr_flag, 0, cuw_scu * cuh_scu * sizeof(s8));
 #endif
+#if ATS_INTRA_PROCESS
+    evc_mset(cu_data->ats_intra_cu, 0, cuw_scu * cuh_scu * sizeof(u8));
+    evc_mset(cu_data->ats_tu_h, 0, cuw_scu * cuh_scu * sizeof(u8));
+    evc_mset(cu_data->ats_tu_v, 0, cuw_scu * cuh_scu * sizeof(u8));
+#endif
+#if ATS_INTER_PROCESS
+    evc_mset(cu_data->ats_inter_info, 0, cuw_scu * cuh_scu * sizeof(s8));
+#endif
+
 #if TRACE_ENC_CU_DATA
     evc_mset(cu_data->trace_idx, 0, cuw_scu * cuh_scu * sizeof(cu_data->trace_idx[0]));
 #endif
@@ -669,6 +825,14 @@ static int copy_cu_data(EVCE_CU_DATA *dst, EVCE_CU_DATA *src, int x, int y, int 
             }
         }
 
+#if ATS_INTRA_PROCESS
+        evc_mcpy(dst->ats_intra_cu + idx_dst, src->ats_intra_cu + idx_src, size);
+        evc_mcpy(dst->ats_tu_h + idx_dst, src->ats_tu_h + idx_src, size);
+        evc_mcpy(dst->ats_tu_v + idx_dst, src->ats_tu_v + idx_src, size);
+#endif
+#if ATS_INTER_PROCESS
+        evc_mcpy(dst->ats_inter_info + idx_dst, src->ats_inter_info + idx_src, size);
+#endif
         evc_mcpy(dst->qp_y + idx_dst, src->qp_y + idx_src, size);
         evc_mcpy(dst->qp_u + idx_dst, src->qp_u + idx_src, size);
         evc_mcpy(dst->qp_v + idx_dst, src->qp_v + idx_src, size);
@@ -682,6 +846,9 @@ static int copy_cu_data(EVCE_CU_DATA *dst, EVCE_CU_DATA *src, int x, int y, int 
             evc_mcpy(dst->mpm_ext[i] + idx_dst, src->mpm_ext[i] + idx_src, size);
         }
         evc_mcpy(dst->skip_flag + idx_dst, src->skip_flag + idx_src, size);
+#if USE_IBC
+        evc_mcpy(dst->ibc_flag + idx_dst, src->ibc_flag + idx_src, size);
+#endif
 #if DMVR_FLAG
         evc_mcpy(dst->dmvr_flag + idx_dst, src->dmvr_flag + idx_src, size);
 #endif
@@ -876,9 +1043,17 @@ static int get_cu_pred_data(EVCE_CU_DATA *src, int x, int y, int log2_cuw, int l
             valid_flag[k] = 0;
         }
 #if ADMVP
-        evc_check_motion_availability2(core->scup, cuw, cuh, ctx->w_scu, ctx->h_scu, neb_addr, valid_flag, ctx->map_scu, core->avail_lr, 1);
+        evc_check_motion_availability2(core->scup, cuw, cuh, ctx->w_scu, ctx->h_scu, neb_addr, valid_flag, ctx->map_scu, core->avail_lr, 1
+#if USE_IBC
+          , 0
+#endif    
+        );
 #else
-        evc_check_motion_availability(core->scup, cuw, cuh, ctx->w_scu, ctx->h_scu, neb_addr, valid_flag, ctx->map_scu, core->avail_lr, 1);
+        evc_check_motion_availability(core->scup, cuw, cuh, ctx->w_scu, ctx->h_scu, neb_addr, valid_flag, ctx->map_scu, core->avail_lr, 1
+#if USE_IBC
+          , 0
+#endif
+        );
 #endif
 
         for (k = 0; k < 5; k++)
@@ -931,6 +1106,12 @@ static int mode_cu_init(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int log2
 #endif
 #if DMVR_FLAG
     core->dmvr_flag = 0;
+#endif
+#if USE_IBC
+    core->ibc_flag = 0;
+#endif
+#if ATS_INTER_PROCESS
+    core->ats_inter_info = 0;
 #endif
 
     evce_rdoq_bit_est(&core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
@@ -1008,7 +1189,11 @@ void evce_set_affine_mvf(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi)
     int   log2_cuw, log2_cuh;
     int   w_cu;
     int   h_cu;
+#if HW_AFFINE
+    int i;
+#else
     int   i, j;
+#endif
     int   lidx;
     int   idx;
     int   vertex_num = core->affine_flag + 1;
@@ -1030,6 +1215,86 @@ void evce_set_affine_mvf(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi)
     {
         if(mi->refi[lidx] >= 0)
         {
+#if HW_AFFINE
+            s16( *ac_mv )[MV_D] = mi->affine_mv[lidx];
+            int dmv_hor_x, dmv_ver_x, dmv_hor_y, dmv_ver_y;
+            int mv_scale_hor = ac_mv[0][MV_X] << 7;
+            int mv_scale_ver = ac_mv[0][MV_Y] << 7;
+            int mv_scale_tmp_hor, mv_scale_tmp_ver;
+
+            // convert to 2^(storeBit + iBit) precision
+            dmv_hor_x = (ac_mv[1][MV_X] - ac_mv[0][MV_X]) << (7 - core->log2_cuw);      // deltaMvHor
+            dmv_hor_y = (ac_mv[1][MV_Y] - ac_mv[0][MV_Y]) << (7 - core->log2_cuw);
+            if ( vertex_num == 3 )
+            {
+                dmv_ver_x = (ac_mv[2][MV_X] - ac_mv[0][MV_X]) << (7 - core->log2_cuh);  // deltaMvVer
+                dmv_ver_y = (ac_mv[2][MV_Y] - ac_mv[0][MV_Y]) << (7 - core->log2_cuh);
+            }
+            else
+            {
+                dmv_ver_x = -dmv_hor_y;                                                 // deltaMvVer
+                dmv_ver_y = dmv_hor_x;
+            }
+
+            // derive sub-block size
+            int sub_w = 4, sub_h = 4;
+            derive_affine_subblock_size( mi->affine_mv[lidx], core->cuw, core->cuh, &sub_w, &sub_h, vertex_num );
+            int   sub_w_in_scu = PEL2SCU( sub_w );
+            int   sub_h_in_scu = PEL2SCU( sub_h );
+            int   half_w = sub_w >> 1;
+            int   half_h = sub_h >> 1;
+
+            idx = 0;
+            for ( int h = 0; h < h_cu; h += sub_h_in_scu )
+            {
+                for ( int w = 0; w < w_cu; w += sub_w_in_scu )
+                {
+                    if ( w == 0 && h == 0 )
+                    {
+                        mv_scale_tmp_hor = ac_mv[0][MV_X];
+                        mv_scale_tmp_ver = ac_mv[0][MV_Y];
+                    }
+                    else if ( w + sub_w_in_scu == w_cu && h == 0 )
+                    {
+                        mv_scale_tmp_hor = ac_mv[1][MV_X];
+                        mv_scale_tmp_ver = ac_mv[1][MV_Y];
+                    }
+                    else if ( w == 0 && h + sub_h_in_scu == h_cu && vertex_num == 3 )
+                    {
+                        mv_scale_tmp_hor = ac_mv[2][MV_X];
+                        mv_scale_tmp_ver = ac_mv[2][MV_Y];
+                    }
+                    else
+                    {
+                        int pos_x = (w << MIN_CU_LOG2) + half_w;
+                        int pos_y = (h << MIN_CU_LOG2) + half_h;
+
+                        mv_scale_tmp_hor = mv_scale_hor + dmv_hor_x * pos_x + dmv_ver_x * pos_y;
+                        mv_scale_tmp_ver = mv_scale_ver + dmv_hor_y * pos_x + dmv_ver_y * pos_y;
+
+                        // 1/16 precision, 18 bits, same as MC
+                        evc_mv_rounding_s32( mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, 5, 0 );
+                        mv_scale_tmp_hor = EVC_CLIP3( -(2 << 17), (2 << 17) - 1, mv_scale_tmp_hor );
+                        mv_scale_tmp_ver = EVC_CLIP3( -(2 << 17), (2 << 17) - 1, mv_scale_tmp_ver );
+
+                        // 1/4 precision, 16 bits for storage
+                        mv_scale_tmp_hor >>= 2;
+                        mv_scale_tmp_ver >>= 2;
+                    }
+                    
+                    // save MV for each 4x4 block
+                    for ( int y = h; y < h + sub_h_in_scu; y++ )
+                    {
+                        for ( int x = w; x < w + sub_w_in_scu; x++ )
+                        {
+                            idx = x + y * w_cu;
+                            cu_data->mv[idx][lidx][MV_X] = (s16)mv_scale_tmp_hor;
+                            cu_data->mv[idx][lidx][MV_Y] = (s16)mv_scale_tmp_ver;
+                        }
+                    }
+                }
+            }
+#else
             s16(*ac_mv)[MV_D] = mi->affine_mv[lidx];
             int dmv_hor_x, dmv_ver_x, dmv_hor_y, dmv_ver_y;
             int mv_scale_hor = ac_mv[0][MV_X] << 7;
@@ -1066,17 +1331,19 @@ void evce_set_affine_mvf(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi)
                 }
                 idx += w_cu;
             }
+#endif
 
             // save mvd for encoding, and reset vertex mv
             for(i = 0; i < vertex_num; i++)
             {
                 cu_data->mvd[aff_scup[i]][lidx][MV_X] = mi->affine_mvd[lidx][i][MV_X];
                 cu_data->mvd[aff_scup[i]][lidx][MV_Y] = mi->affine_mvd[lidx][i][MV_Y];
-
+#if !HW_AFFINE
                 cu_data->mv[aff_scup[i]][lidx][MV_X] = mi->affine_mv[lidx][i][MV_X];
                 cu_data->mv[aff_scup[i]][lidx][MV_Y] = mi->affine_mv[lidx][i][MV_Y];
+#endif
             }
-
+#if !HW_AFFINE
             if(vertex_num == 2) // reset lt vertex mv
             {
                 s16 vx2 = mi->affine_mv[lidx][0][MV_X] - (mi->affine_mv[lidx][1][MV_Y] - mi->affine_mv[lidx][0][MV_Y]) * h_cu / w_cu;
@@ -1084,6 +1351,7 @@ void evce_set_affine_mvf(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi)
                 cu_data->mv[aff_scup[2]][lidx][MV_X] = vx2;
                 cu_data->mv[aff_scup[2]][lidx][MV_Y] = vy2;
             }
+#endif
         }
     }
 }
@@ -1166,6 +1434,14 @@ static void copy_to_cu_data(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi, s16 c
             cu_data->block_size[idx + i][1] = core->cuh;
             cu_data->depth[idx + i] = core->cud;
 
+#if ATS_INTRA_PROCESS
+            cu_data->ats_intra_cu[idx + i] = core->ats_intra_cu;
+            cu_data->ats_tu_h[idx + i] = core->ats_tu >> 1;
+            cu_data->ats_tu_v[idx + i] = core->ats_tu & 1;
+#endif
+#if ATS_INTER_PROCESS
+            cu_data->ats_inter_info[idx + i] = core->ats_inter_info;
+#endif
 
 #if AFFINE
             cu_data->affine_flag[idx + i] = core->affine_flag;
@@ -1181,6 +1457,20 @@ static void copy_to_cu_data(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi, s16 c
             else
             {
                 MCU_CLR_AFF(cu_data->map_scu[idx + i]);
+            }
+#endif
+#if USE_IBC
+            if (ctx->param.use_ibc_flag)
+            {
+              cu_data->ibc_flag[idx + i] = core->ibc_flag;
+              if (core->ibc_flag)
+              {
+                MCU_SET_IBC(cu_data->map_scu[idx + i]);
+              }
+              else
+              {
+                MCU_CLR_IBC(cu_data->map_scu[idx + i]);
+              }
             }
 #endif
             MCU_SET_LOGW(cu_data->map_cu_mode[idx + i], log2_cuw);
@@ -1209,6 +1499,22 @@ static void copy_to_cu_data(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi, s16 c
                 cu_data->refi[idx + i][REFP_1] = -1;
 #endif
             }
+#if USE_IBC
+            else if (core->cu_mode == MODE_IBC)
+            {
+              cu_data->refi[idx + i][REFP_0] = -1;
+              cu_data->refi[idx + i][REFP_1] = -1;
+              cu_data->mvp_idx[idx + i][REFP_0] = mi->mvp_idx[REFP_0];
+              cu_data->mvp_idx[idx + i][REFP_1] = 0;
+              cu_data->mv[idx + i][REFP_0][MV_X] = mi->mv[REFP_0][MV_X];
+              cu_data->mv[idx + i][REFP_0][MV_Y] = mi->mv[REFP_0][MV_Y];
+              cu_data->mv[idx + i][REFP_1][MV_X] = 0;
+              cu_data->mv[idx + i][REFP_1][MV_Y] = 0;
+
+              cu_data->mvd[idx + i][REFP_0][MV_X] = mi->mvd[REFP_0][MV_X];
+              cu_data->mvd[idx + i][REFP_0][MV_Y] = mi->mvd[REFP_0][MV_Y];
+            }
+#endif
             else
             {
                 cu_data->refi[idx + i][REFP_0] = mi->refi[REFP_0];
@@ -1390,6 +1696,9 @@ static void update_map_scu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int src
     u32  *map_affine = 0, *src_map_affine = 0;
 #endif
     u32  *map_cu_mode = 0, *src_map_cu_mode = 0;
+#if ATS_INTER_PROCESS
+    u8   *map_ats_inter = 0, *src_map_ats_inter = 0;
+#endif
 
     scu_x = x >> MIN_CU_LOG2;
     scu_y = y >> MIN_CU_LOG2;
@@ -1420,6 +1729,10 @@ static void update_map_scu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int src
 #if AFFINE
     map_affine = ctx->map_affine + scu_y * ctx->w_scu + scu_x;
     src_map_affine = core->cu_data_best[log2_src_cuw - 2][log2_src_cuh - 2].map_affine;
+#endif
+#if ATS_INTER_PROCESS
+    map_ats_inter = ctx->map_ats_inter + scu_y * ctx->w_scu + scu_x;
+    src_map_ats_inter = core->cu_data_best[log2_src_cuw - 2][log2_src_cuh - 2].ats_inter_info;
 #endif
     map_cu_mode = ctx->map_cu_mode + scu_y * ctx->w_scu + scu_x;
     src_map_cu_mode = core->cu_data_best[log2_src_cuw - 2][log2_src_cuh - 2].map_cu_mode;
@@ -1491,6 +1804,11 @@ static void update_map_scu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int src
         map_affine += ctx->w_scu;
         src_map_affine += (src_cuw >> MIN_CU_LOG2);
 #endif
+#if ATS_INTER_PROCESS
+        evc_mcpy(map_ats_inter, src_map_ats_inter, size_ipm);
+        map_ats_inter += ctx->w_scu;
+        src_map_ats_inter += (src_cuw >> MIN_CU_LOG2);
+#endif
         evc_mcpy(map_cu_mode, src_map_cu_mode, size);
         map_cu_mode += ctx->w_scu;
         src_map_cu_mode += (src_cuw >> MIN_CU_LOG2);
@@ -1505,6 +1823,10 @@ static void clear_map_scu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int cuw,
 #if AFFINE
     u32 *map_affine;
     map_affine = ctx->map_affine + (y >> MIN_CU_LOG2) * ctx->w_scu + (x >> MIN_CU_LOG2);
+#endif
+#if ATS_INTER_PROCESS
+    u8 *map_ats_inter;
+    map_ats_inter = ctx->map_ats_inter + (y >> MIN_CU_LOG2) * ctx->w_scu + (x >> MIN_CU_LOG2);
 #endif
 
     map_scu = ctx->map_scu + (y >> MIN_CU_LOG2) * ctx->w_scu + (x >> MIN_CU_LOG2);
@@ -1531,6 +1853,10 @@ static void clear_map_scu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int cuw,
 #if AFFINE
         evc_mset(map_affine, 0, size);
         map_affine += ctx->w_scu;
+#endif
+#if ATS_INTER_PROCESS
+        evc_mset(map_ats_inter, 0, sizeof(u8) * w);
+        map_ats_inter += ctx->w_scu;
 #endif
         evc_mset(map_cu_mode, 0, size);
         map_cu_mode += ctx->w_scu;
@@ -1599,7 +1925,11 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 
     core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, (1 << log2_cuw), (1 << log2_cuh), ctx->w_scu, ctx->h_scu, ctx->map_scu);
 
-    evc_get_ctx_some_flags(core->x_scu, core->y_scu, 1 << log2_cuw, 1 << log2_cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->tgh.tile_group_type, ctx->sps.tool_cm_init);
+    evc_get_ctx_some_flags(core->x_scu, core->y_scu, 1 << log2_cuw, 1 << log2_cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->tgh.tile_group_type, ctx->sps.tool_cm_init
+#if USE_IBC
+      , ctx->param.use_ibc_flag, ctx->sps.ibc_log_max_size
+#endif
+    );
 
     /* inter *************************************************************/
     cost_best = MAX_COST;
@@ -1631,14 +1961,68 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
             copy_to_cu_data(ctx, core, mi, coef);
         }
     }
+#if USE_IBC
+    {
+      if (ctx->param.use_ibc_flag == 1 && (core->nnz[Y_C] != 0 || core->nnz[U_C] != 0 || core->nnz[V_C] != 0 || cost_best == MAX_COST))
+      {
+		if (log2_cuw <= ctx->sps.ibc_log_max_size && log2_cuh <= ctx->sps.ibc_log_max_size)
+        {
+          core->avail_cu = evc_get_avail_ibc(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, core->cuw, core->cuh, ctx->map_scu);
+          cost = ctx->fn_pibc_analyze_cu(ctx, core, x, y, log2_cuw, log2_cuh, mi, coef, rec, s_rec);
 
+          if (cost < cost_best)
+          {
+            cost_best = cost;
+            core->cu_mode = MODE_IBC;
+            core->ibc_flag = 1;
+
+            SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best);
+
+            mi->pred_y_best = ctx->pibc.pred[0][Y_C];
+
+            /* save all cu inforamtion ********************/
+            mi->mvp_idx[0] = ctx->pibc.mvp_idx;
+            {
+              mi->mv[0][MV_X] = ctx->pibc.mv[0][MV_X];
+              mi->mv[0][MV_Y] = ctx->pibc.mv[0][MV_Y];
+            }
+
+            mi->mvd[0][MV_X] = ctx->pibc.mvd[MV_X];
+            mi->mvd[0][MV_Y] = ctx->pibc.mvd[MV_Y];
+
+            for (i = 0; i < N_C; i++)
+            {
+              mi->rec[i] = rec[i];
+              mi->s_rec[i] = s_rec[i];
+            }
+
+            core->skip_flag = 0;
+#if AFFINE
+            core->affine_flag = 0;
+#endif
+#if MMVD
+            core->new_skip_flag = 0;
+#endif
+#if DMVR_FLAG
+            core->dmvr_flag = 0;
+#endif
+            copy_to_cu_data(ctx, core, mi, coef);
+          }
+        }
+      }
+    }
+#endif
     /* intra *************************************************************/
     if(ctx->tile_group_type == TILE_GROUP_I || core->nnz[Y_C] != 0 || core->nnz[U_C] != 0 || core->nnz[V_C] != 0 || cost_best == MAX_COST)
     {
         core->cost_best = cost_best;
         core->dist_cu_best = EVC_INT32_MAX;
 
-        if(core->cost_best != MAX_COST)
+        if(
+#if USE_IBC
+          core->cu_mode != MODE_IBC &&
+#endif
+          core->cost_best != MAX_COST)
         {
             EVCE_PINTRA *pi = &ctx->pintra;
             core->inter_satd = evce_satd_16b(log2_cuw, log2_cuh, pi->o[Y_C] + (y * pi->s_o[Y_C]) + x, mi->pred_y_best, pi->s_o[Y_C], 1 << log2_cuw);
@@ -1664,6 +2048,9 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
             evc_assert(core->trace_idx != 0);
 #endif
             core->cu_mode = MODE_INTRA;
+#if USE_IBC
+            core->ibc_flag = 0;
+#endif
             SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best);
             core->dist_cu_best = core->dist_cu;
 
@@ -2020,7 +2407,11 @@ static void check_run_split(EVCE_CORE *core, int log2_cuw, int log2_cuh, int cup
 #if RDO_DBK
 void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *pic_org, int cuw, int cuh,
                                      pel(*src)[MAX_CU_DIM], int s_src, int x, int y, u16 avail_lr, u8 intra_flag,
-                                     u8 cbf_l, s8 *refi, s16(*mv)[MV_D], u8 is_mv_from_mvf)
+                                     u8 cbf_l, s8 *refi, s16(*mv)[MV_D], u8 is_mv_from_mvf
+#if ATS_INTER_PROCESS
+                                     , u8 ats_inter_info
+#endif
+)
 {
     int i, j;
     int log2_cuw = CONV_LOG2(cuw);
@@ -2048,6 +2439,10 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
     //cu info to save
     u8 intra_flag_save, cbf_l_save;
     u8 do_filter = 0;
+#if ATS_INTER_PROCESS
+    u8 ats_inter_idx = get_ats_inter_idx(ats_inter_info);
+    u8 ats_inter_pos = get_ats_inter_pos(ats_inter_info);
+#endif
 
     if(ctx->tgh.deblocking_filter_on)
     {
@@ -2221,9 +2616,26 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
                 MCU_CLR_COD(ctx->map_scu[k]);
             }
         }
+#if ATS_INTER_PROCESS //set cbf
+        if (ats_inter_info && cbf_l)
+        {
+            set_cu_cbf_flags(1, ats_inter_info, log2_cuw, log2_cuh, ctx->map_scu + t, ctx->w_scu);
+        }
+#endif
 
         //first, horizontal filtering
         evc_deblock_cu_hor(pic_dbk, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp);
+#if ATS_INTER_PROCESS // deblock
+        if (ats_inter_idx && is_ats_inter_horizontal(ats_inter_idx))
+        {
+            int y_offset = is_ats_inter_quad_size(ats_inter_idx) ? cuh / 4 : cuh / 2;
+            y_offset = ats_inter_pos == 0 ? y_offset : cuh - y_offset;
+            if ((y + y_offset) % 8 == 0)
+            {
+                evc_deblock_cu_hor(pic_dbk, x, y + y_offset, cuw, cuh - y_offset, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp);
+            }
+        }
+#endif
 
         //clean coded flag in between two directional filtering (not necessary here)
         for(j = 0; j < h_scu; j++)
@@ -2243,6 +2655,22 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
 #endif
                            , ctx->refp
         );
+#if ATS_INTER_PROCESS // deblock
+        if (ats_inter_idx && !is_ats_inter_horizontal(ats_inter_idx))
+        {
+            int x_offset = is_ats_inter_quad_size(ats_inter_idx) ? cuw / 4 : cuw / 2;
+            x_offset = ats_inter_pos == 0 ? x_offset : cuw - x_offset;
+            if ((x + x_offset) % 8 == 0)
+            {
+                evc_deblock_cu_ver(pic_dbk, x + x_offset, y, cuw - x_offset, cuh, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh
+#if FIX_PARALLEL_DBF
+                                   , ctx->map_cu_mode
+#endif
+                                   , ctx->refp
+                );
+            }
+        }
+#endif
 
         //recover best cu info
         for(j = 0; j < h_scu; j++)
@@ -2646,6 +3074,9 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
 
 #if AFFINE_UPDATE && AFFINE
             if (mi->cu_mode != MODE_INTRA
+#if USE_IBC
+              && mi->cu_mode != MODE_IBC
+#endif
                 )
             {
                 update_history_buffer_affine(&core->history_buffer, mi, ctx->tile_group_type
@@ -2675,7 +3106,11 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
         next_split = 0;
     }
 
-    if(cost_best != MAX_COST && ctx->tgh.tile_group_type == TILE_GROUP_I)
+    if(cost_best != MAX_COST && ctx->tgh.tile_group_type == TILE_GROUP_I
+#if USE_IBC
+      && core->ibc_flag != 1
+#endif
+      )
     {
         int dist_cu = core->dist_cu_best;
         int dist_cu_th = 1 << (log2_cuw + log2_cuh + 7);
@@ -3027,7 +3462,11 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
             );
 
 #if AFFINE_UPDATE && AFFINE
-            if(mi->cu_mode != MODE_INTRA)
+            if(mi->cu_mode != MODE_INTRA
+#if USE_IBC
+              && mi->cu_mode != MODE_IBC
+#endif
+              )
             {
                 update_history_buffer_affine(&core->history_buffer, mi, ctx->tile_group_type);
             }
@@ -3120,12 +3559,29 @@ static int mode_init_frame(EVCE_CTX *ctx)
         ret = ctx->fn_pinter_init_frame(ctx);
         evc_assert_rv(ret == EVC_OK, ret);
     }
+#if USE_IBC
+    if (ctx->param.use_ibc_flag)
+    {
+      /* initialize pibc */
+      if (ctx->fn_pibc_init_frame)
+      {
+        ret = ctx->fn_pibc_init_frame(ctx);
+        evc_assert_rv(ret == EVC_OK, ret);
+      }
+      if (ctx->param.ibc_hash_search_flag)
+        rebuild_hashmap(ctx->ibc_hash_handle, PIC_ORIG(ctx));
+    }
+#endif
     return EVC_OK;
 }
 
 static int mode_init_lcu(EVCE_CTX *ctx, EVCE_CORE *core)
 {
     int ret;
+#if ATS_INTER_PROCESS //reset the number of saved pu as zero
+    int num_size_idx = MAX_TR_LOG2 - MIN_CU_LOG2 + 1;
+    evc_mset(ctx->ats_inter_num_pred, 0, sizeof(u8) * num_size_idx * num_size_idx * (ctx->max_cuwh >> MIN_CU_LOG2) * (ctx->max_cuwh >> MIN_CU_LOG2));
+#endif
 
     /* initialize pintra */
     if(ctx->fn_pintra_init_lcu)
@@ -3140,6 +3596,17 @@ static int mode_init_lcu(EVCE_CTX *ctx, EVCE_CORE *core)
         ret = ctx->fn_pinter_init_lcu(ctx, core);
         evc_assert_rv(ret == EVC_OK, ret);
     }
+#if USE_IBC
+    if (ctx->param.use_ibc_flag)
+    {
+      /* initialize pibc */
+      if (ctx->fn_pibc_init_lcu)
+      {
+        ret = ctx->fn_pibc_init_lcu(ctx, core);
+        evc_assert_rv(ret == EVC_OK, ret);
+      }
+    }
+#endif
 
     return EVC_OK;
 }
@@ -3159,6 +3626,14 @@ static void update_to_ctx_map(EVCE_CTX *ctx, EVCE_CORE *core)
     s16(*map_mv)[REFP_NUM][MV_D];
 #if DMVR_LAG
     s16(*map_unrefined_mv)[REFP_NUM][MV_D];
+#endif
+#if ATS_INTRA_PROCESS
+    u8* map_ats_intra_cu;
+    u8* map_ats_tu_h;
+    u8* map_ats_tu_v;
+#endif
+#if ATS_INTER_PROCESS
+    u8   *map_ats_inter;
 #endif
     s8   *map_ipm;
 
@@ -3191,11 +3666,31 @@ static void update_to_ctx_map(EVCE_CTX *ctx, EVCE_CORE *core)
 #if DMVR_LAG
     map_unrefined_mv = ctx->map_unrefined_mv;
 #endif
+#if ATS_INTRA_PROCESS
+    map_ats_intra_cu = ctx->map_ats_intra_cu;
+    map_ats_tu_h = ctx->map_ats_tu_h;
+    map_ats_tu_v = ctx->map_ats_tu_v;
+#endif
+#if ATS_INTER_PROCESS
+    map_ats_inter = ctx->map_ats_inter;
+#endif
 
     for(i = 0; i < h; i++)
     {
         for(j = 0; j < w; j++)
         {
+#if ATS_INTRA_PROCESS
+            map_ats_intra_cu[ctx_idx + j] = cu_data->ats_intra_cu[core_idx + j];
+            map_ats_tu_h[ctx_idx + j] = cu_data->ats_tu_h[core_idx + j];
+            map_ats_tu_v[ctx_idx + j] = cu_data->ats_tu_v[core_idx + j];
+#endif
+#if ATS_INTER_PROCESS
+            map_ats_inter[ctx_idx + j] = cu_data->ats_inter_info[core_idx + j];
+#if USE_IBC
+            if(core->cu_mode == MODE_IBC)
+              map_ats_inter[ctx_idx + j] = 0;
+#endif
+#endif
             if(cu_data->pred_mode[core_idx + j] == MODE_INTRA)
             {
                 map_ipm[ctx_idx + j] = cu_data->ipm[0][core_idx + j];

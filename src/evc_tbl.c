@@ -255,6 +255,11 @@ const s8 * evc_tbl_tm[MAX_CU_DEPTH] =
 
 u16 *evc_scan_tbl[COEF_SCAN_TYPE_NUM][MAX_CU_LOG2 - 1][MAX_CU_LOG2 - 1];
 int evc_scan_sr[MAX_TR_SIZE*MAX_TR_SIZE];
+
+#if COEFF_CODE_ADCC
+u16 *evc_inv_scan_tbl[COEF_SCAN_TYPE_NUM][MAX_CU_LOG2 - 1][MAX_CU_LOG2 - 1];
+int evc_inv_scan_sr[MAX_TR_SIZE*MAX_TR_SIZE];
+#endif
 const int evc_tbl_dq_scale[6] = {40, 45, 51, 57, 64, 72};
 const int evc_tbl_dq_scale_b[6] = {40, 45, 51, 57, 64, 71};
 const int evc_tbl_ipred_adi[32][4]=
@@ -338,12 +343,21 @@ const u8 evc_split_order[2][SPLIT_CHECK_NUM] =
 
 int evc_tbl_qp_chroma_ajudst_main[58] =
 {
+#if HW_CQP_MAPPING_TABLE_UPDATE
+    0,  1,  2,  3,  4,  5,  6,  7,  8,  9,
+    10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+    20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+    29, 30, 31, 32, 33, 34, 35, 36, 37, 37,
+    38, 39, 40, 40, 41, 42, 43, 44, 45, 46,
+    47, 48, 49, 50, 51, 52, 53, 54
+#else
      0,  1,  2,  3,  4,  5,  6,  7,  8,  9,
     10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
     20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
     29, 30, 31, 32, 33, 33, 34, 34, 35, 35,
     36, 36, 37, 37, 38, 39, 40, 41, 42, 43,
     44, 45, 46, 47, 48, 49, 50, 51
+#endif
 };
 
 int evc_tbl_qp_chroma_ajudst_base[58] =
@@ -396,6 +410,18 @@ const s16 init_skip_flag[2][NUM_SBAC_CTX_SKIP_FLAG][1] = {
         { 233 }
     }
 };
+#if USE_IBC
+const s16 init_ibc_flag[2][NUM_SBAC_CTX_IBC_FLAG][1] = {
+  {
+    { 0 },
+    { 0 }
+  },
+  {
+    { 711 },
+    { 233 }
+  }
+};
+#endif
 const s16 init_mmvd_flag[2][NUM_SBAC_CTX_MMVD_FLAG][1] = {
     {
         { 0 }
@@ -600,6 +626,38 @@ const s16 init_cbf[2][NUM_QT_CBF_CTX][1] = {
         { 288 }
     }
 };
+
+#if COEFF_CODE_ADCC   // tables below to be optimized for the final design
+#define initA 0
+#define initB 128
+const s16 init_cc_gt0[2][NUM_CTX_GT0] = { 
+        { initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA },
+        { initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB } };
+const s16 init_cc_gtA[2][NUM_CTX_GTA] = { 
+        { initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA },
+        { initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB } };
+const s16 init_cc_scanr_x[2][NUM_CTX_SCANR] = { 
+        { initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA },
+        { initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB }};
+const s16 init_cc_scanr_y[2][NUM_CTX_SCANR] = { 
+        { initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA },
+        { initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB }};
+#if COEFF_CODE_ADCC2
+const s16 init_cc_gt0_3[2][NUM_CTX_GT0] = {
+        { 387, 340, 304, 227, 457, 133, 208, 792, 419, 553, 391, 112, 534, 645, 83, 402, 357, 67, 112, 338, 532, 711, 259, 131, 112, 698, 416, 338, 304, 96, 0, 372, 468, 532, 352, 128, 64, 210, 338, 519, 35, 147, 227, 131, 48, 274, 630 },
+        { 66, 274, 240, 146, 144, 35, 370, 790, 483, 325, 163, 112, 662, 224, 3, 240, 0, 274, 242, 338, 434, 613, 32, 32, 144, 922, 387, 67, 434, 195, 210, 274, 338, 434, 451, 96, 114, 242, 208, 453, 99, 466, 32, 80, 178, 306, 726 } };
+const s16 init_cc_gtA_3[2][NUM_CTX_GTA] = {
+        { 480, 50, 208, 304, 400, 288, 178, 306, 500, 416, 148, 308, 566, 480, 352, 308, 566, 858 },
+        { 322, 246, 274, 304, 400, 130, 146, 144, 434, 290, 2, 178, 500, 448, 162, 372, 532, 888 } };
+const s16 init_cc_scanr_x_3[2][NUM_CTX_SCANR] = {
+        { 890, 862, 162, 728, 700, 100, 338, 374, 474, 162, 176, 178, 342, 602, 128, 466, 306, 632, 502, 730, 163, 304, 468, 404, 48, 192, 323, 451 },
+        { 274, 66, 547, 340, 256, 416, 242, 180, 162, 162, 144, 244, 212, 276, 160, 99, 242, 340, 436, 760, 195, 131, 436, 306, 80, 224, 419, 547 } };
+const s16 init_cc_scanr_y_3[2][NUM_CTX_SCANR] = {
+        { 1020, 926, 4, 436, 830, 86, 500, 666, 636, 320, 272, 470, 504, 830, 615, 596, 306, 600, 404, 828, 487, 336, 696, 502, 163, 128, 52, 288 },
+        { 306, 180, 288, 0, 84, 194, 48, 212, 52, 451, 99, 146, 212, 342, 743, 325, 210, 308, 242, 890, 421, 357, 566, 566, 195, 288, 98, 483 } };
+#endif
+#endif
+
 const s16 init_run[2][NUM_SBAC_CTX_RUN][1] = {
     {
         { 48 },
@@ -886,6 +944,94 @@ const s16 init_ctb_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG][1] = {
     }
 };
 #endif
+
+#if ATS_INTRA_PROCESS   
+const s16 init_ats_intra_cu[2][NUM_ATS_INTRA_CU_FLAG_CTX][1] = {
+    {
+        { 999  },
+        { 514  },
+        { 452  },
+        { 546  },
+        { 1001 },
+        { 992  },
+        { 960  },
+        { 960  }
+        },
+    {
+        { 1003 },
+        { 292  },
+        { 354  },
+        { 544  },
+        { 999  },
+        { 960  },
+        { 928  },
+        { 960  }
+    }
+};
+const s16 init_ats_tu_h[2][NUM_ATS_INTRA_TU_FLAG_CTX][1] = {
+    {
+        { 512  },
+        { 993  }
+    },
+    {
+        { 673 },
+        { 993 }
+    }
+};
+const s16 init_ats_tu_v[2][NUM_ATS_INTRA_TU_FLAG_CTX][1] = {
+    {
+        { 512 },
+        { 993 }
+    },
+    {
+        { 641 },
+        { 929 }
+    }
+};
+#endif
+#if ATS_INTER_PROCESS
+const s16 init_ats_inter_info[2][NUM_SBAC_CTX_ATS_INTER_INFO][1] = {
+    {
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0 },
+    },
+    {
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0 },
+        { 0 },
+    }
+};
+#endif
+#endif
+
+#if ATS_INTRA_PROCESS
+s16 evc_tbl_tr2[NUM_TRANS_TYPE][2][2];
+s16 evc_tbl_tr4[NUM_TRANS_TYPE][4][4];
+s16 evc_tbl_tr8[NUM_TRANS_TYPE][8][8];
+s16 evc_tbl_tr16[NUM_TRANS_TYPE][16][16];
+s16 evc_tbl_tr32[NUM_TRANS_TYPE][32][32];
+s16 evc_tbl_tr64[NUM_TRANS_TYPE][64][64];
+s16 evc_tbl_tr128[NUM_TRANS_TYPE][128][128];
+
+int evc_tbl_tr_subset_intra[4] = { DST7, DCT8 };
+
+s16 evc_tbl_inv_tr2[NUM_TRANS_TYPE][2][2];
+s16 evc_tbl_inv_tr4[NUM_TRANS_TYPE][4][4];
+s16 evc_tbl_inv_tr8[NUM_TRANS_TYPE][8][8];
+s16 evc_tbl_inv_tr16[NUM_TRANS_TYPE][16][16];
+s16 evc_tbl_inv_tr32[NUM_TRANS_TYPE][32][32];
+s16 evc_tbl_inv_tr64[NUM_TRANS_TYPE][64][64];
+s16 evc_tbl_inv_tr128[NUM_TRANS_TYPE][128][128];
+
 #endif
 
 
@@ -902,4 +1048,19 @@ const u8 CLIP_TAB[52][5] =
     { 0, 4, 5, 7, 7 },{ 0, 4, 5, 8, 8 },{ 0, 4, 6, 9, 9 },{ 0, 5, 7,10,10 },{ 0, 6, 8,11,11 },{ 0, 6, 8,13,13 },{ 0, 7,10,14,14 },{ 0, 8,11,16,16 },
     { 0, 9,12,18,18 },{ 0,10,13,20,20 },{ 0,11,15,23,23 },{ 0,13,17,25,25 }
 };
+#endif
+#if COEFF_CODE_ADCC 
+const int g_min_in_group[LAST_SIGNIFICANT_GROUPS] = { 0,1,2,3,4,6,8,12,16,24,32,48,64,96 };
+const int g_group_idx[MAX_TR_SIZE] = { 0,1,2,3,4,4,5,5,6,6,6,6,7,7,7,7,8,8,8,8,8,8,8,8,9,9,9,9,9,9,9,9, 10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11 };
+
+const int g_go_rice_range[MAX_GR_ORDER_RESIDUAL] =
+{
+    6, 5, 6, COEF_REMAIN_BIN_REDUCTION, COEF_REMAIN_BIN_REDUCTION, COEF_REMAIN_BIN_REDUCTION, COEF_REMAIN_BIN_REDUCTION, COEF_REMAIN_BIN_REDUCTION, COEF_REMAIN_BIN_REDUCTION, COEF_REMAIN_BIN_REDUCTION
+};
+
+const int g_go_rice_para_coeff[32] =
+{
+    0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3
+};
+
 #endif

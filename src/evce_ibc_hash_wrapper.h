@@ -31,28 +31,34 @@
 *  THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef _EVC_ITDQ_H_
-#define _EVC_ITDQ_H_
-#include "evc_def.h"
+#ifndef __EVCE_IBC_HASH_WRAPPER_H
+#define __EVCE_IBC_HASH_WRAPPER_H
 
-void evc_itdq(s16 *coef, int log2_w, int log2_h, u16 scale, int iqt_flag
-#if ATS_INTRA_PROCESS
-    , u8 ats_intra_cu, u8 ats_tu
-#endif
-);
+#include <stdint.h>
+#include "evce_def.h"
 
-void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int flag[N_C], int nnz_sub[N_C][MAX_SUB_TB_NUM], int iqt_flag
-#if ATS_INTRA_PROCESS
-                        , u8 ats_intra_cu, u8 ats_tu
-#endif
-#if ATS_INTER_PROCESS
-                        , u8 ats_inter_info
-#endif
-);
+#if USE_IBC
 
-#if ATS_INTRA_PROCESS
-void evc_init_multi_tbl();
-void evc_init_multi_inv_tbl();
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-#endif /* _EVC_ITDQ_H_ */
+typedef void *ibc_hash_handle;
+
+ibc_hash_handle* create_enc_IBC(int picWidth, int picHeight);
+void destroy_enc_IBC(ibc_hash_handle* p);
+
+void rebuild_hashmap(ibc_hash_handle* p, const EVC_PIC* pic);
+
+u32 search_ibc_hash_match(EVCE_CTX *ctx, ibc_hash_handle* p, int cu_x, int cu_y,
+    int log2_cuw, int log2_cuh, s16 mvp[MV_D], s16 mv[MV_D]);
+
+int get_hash_hit_ratio(EVCE_CTX* ctx, ibc_hash_handle* p, int cu_x, int cu_y, int log2_cuw, int log2_cuh);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
+#endif /* end of __EVCE_IBC_HASH_WRAPPER_H */

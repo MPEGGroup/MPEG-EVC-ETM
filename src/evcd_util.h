@@ -39,11 +39,6 @@ EVC_PIC * evcd_picbuf_alloc(PICBUF_ALLOCATOR * pa, int * ret);
 void evcd_picbuf_free(PICBUF_ALLOCATOR * pa, EVC_PIC * pic);
 int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16]);
 
-void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core);
-#if ADMVP
-BOOL check_bi_applicability_dec(int tile_group_type, int cuw, int cuh);
-#endif
-
 /* set decoded information, such as MVs, inter_dir, etc. */
 void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
 #if ENC_DEC_TRACE

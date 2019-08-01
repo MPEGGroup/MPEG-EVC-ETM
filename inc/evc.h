@@ -43,9 +43,37 @@ extern "C"
 
 #define USE_TILE_GROUP_DQP              1
 #define HLS_M47668                      1
-#define ALF_PARAMETER_APS               1
+#define USE_IBC                         1 // use intra-block copy feature
+#if USE_IBC
+#define SUCO                            1
+#endif
+  
+#if USE_IBC
+#define IBC_SEARCH_RANGE                     64
+#define IBC_NUM_CANDIDATES                   64
+#define IBC_FAST_METHOD_BUFFERBV             0X01
+#define IBC_FAST_METHOD_ADAPTIVE_SEARCHRANGE 0X02
+#endif
+#define COEFF_CODE_ADCC                 1   /* CE1.1: Advanced coefficient coding */
+#if COEFF_CODE_ADCC
+#define COEFF_CODE_ADCC2                1 
+#endif
+#define ATS                             1   /* CE1.2: Adaptive transform selection */
+
+#define ATS_INTRA_PROCESS               ATS
+#define ATS_INTER_PROCESS               ATS
+#if ATS_INTER_PROCESS
+#define ATS_INTER_DEBUG                 0
+#define ATS_INTER_SL_NUM                16
+#define get_ats_inter_idx(s)            (s & 0xf)
+#define get_ats_inter_pos(s)            ((s>>4) & 0xf)
+#define get_ats_inter_info(idx, pos)    (idx + (pos << 4))
+#define is_ats_inter_horizontal(idx)    (idx == 2 || idx == 4)
+#define is_ats_inter_quad_size(idx)     (idx == 3 || idx == 4)
+#endif
 
 #define ROOT_CBF_RDO_BIT_FIX            1
+#define ALF_PARAMETER_APS               1
 /*****************************************************************************
  * return values and error code
  *****************************************************************************/
@@ -408,7 +436,20 @@ typedef struct _EVCE_CDSC
     /* use closed GOP sturcture
        - 0 : use open GOP (default)
        - 1 : use closed GOP */
-    int            closed_gop;
+    int            closed_gop; 
+#if USE_IBC
+    /* enable intra-block copy feature
+    - 0 : disable IBC (default)
+    - 1 : enable IBC featuer */
+    int  ibc_flag;
+
+    int  ibc_search_range_x;
+    int  ibc_search_range_y;
+    int  ibc_hash_search_flag;
+    int  ibc_hash_search_max_cand;
+    int  ibc_hash_search_range_4smallblk;
+    int  ibc_fast_method;
+#endif
     /* bit depth of input video */
     int            in_bit_depth;
     /* bit depth of output video */
@@ -442,8 +483,17 @@ typedef struct _EVCE_CDSC
     int            tool_eipd;
     int            tool_iqt;
     int            tool_cm_init;
+#if COEFF_CODE_ADCC
+    int            tool_adcc;
+#endif
     int            cb_qp_offset;
     int            cr_qp_offset;
+#if ATS_INTRA_PROCESS
+    int            tool_ats_intra;
+#endif
+#if ATS_INTER_PROCESS
+    int            tool_ats_inter;
+#endif
 
     EVC_RPL rpls_l0[MAX_NUM_RPLS];
     EVC_RPL rpls_l1[MAX_NUM_RPLS];

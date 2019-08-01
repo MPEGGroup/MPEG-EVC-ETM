@@ -44,6 +44,10 @@
 #define PROFILE_BASELINE                   0
 #define PROFILE_MAIN                       1
 
+//intra
+#define HW_INTRA_PRED_NO_DIV               1
+#define HW_REMOVE_UNSPEC_CODE_PART         1
+
 //inter
 #define AFFINE                             1  // Affine Prediction
 #define DMVR                               1  // Decoder-side Motion Vector Refinement
@@ -77,7 +81,18 @@
 #define USE_RDOQ                           1 // Use RDOQ
 #define RDO_DBK                            1 // include DBK changes into distortion
 #define HTDF                               1 // enable Hadamard transform domain filter
+#define HW_HTDF_CLEANUP                    1
+#if !HW_HTDF_CLEANUP
 #define HTDF_CBF0_INTRA                    1
+#endif
+
+#define HW_CQP_MAPPING_TABLE_UPDATE        1 // update chroma QP mapping table
+
+#if HW_INTRA_PRED_NO_DIV
+#define HW_INTRA_PRED_NO_DIV_IN_HOR_MODE   1
+#define HW_INTRA_PRED_NO_DIV_IN_DC_MODE    1
+#define HW_INTRA_PRED_DC_MODE_CLEANUP      1
+#endif //HW_INTRA_PRED_NO_DIV
 
 //fast algorithm
 #define ENC_ECU_DEPTH                      8 // for early CU termination
@@ -274,8 +289,13 @@ enum SAD_POINT_INDEX
 #endif
 /* ALF (END) */
 
+#if USE_IBC
+#define CTX_NEV_IBC_FLAG                   2 // number of ctx for ibc_flag
+#endif
 /* AFFINE (START) */
 #if AFFINE
+#define HW_AFFINE                          1
+
  // AFFINE Constant
 #define VER_NUM                            4
 #define AFFINE_MAX_NUM_LT                  3 ///< max number of motion candidates in top-left corner
@@ -304,7 +324,10 @@ enum SAD_POINT_INDEX
 
 /* EIF (START) */
 #if EIF
+#define HW_EIF                             1
 #define AFFINE_ADAPT_EIF_SIZE              8
+
+#if !HW_EIF
 
 #define EIF_MV_ADDITIONAL_PRECISION        9
 #define EIF_IF_FILTER_PREC_HP              6 ///EIF filter precision for interpolation
@@ -327,6 +350,7 @@ enum SAD_POINT_INDEX
 #else
 #define EIF_SIMD                           0
 #endif
+#endif //HW_EIF
 #endif
 /* EIF (END) */
 #endif
@@ -368,6 +392,32 @@ typedef struct _evc_AlfFilterShape
 } evc_AlfFilterShape;
 #endif 
 /* ALF (END) */
+
+/* TRANSFORM PACKAGE (START) */
+#if ATS_INTRA_PROCESS
+#define ATS_INTRA_FAST                     0
+#if ATS_INTRA_FAST
+#define ATS_INTER_INTRA_SKIP_THR           1.05
+#define ATS_INTRA_Y_NZZ_THR                1.00
+#define ATS_INTRA_IPD_THR                  1.10
+#endif
+#endif
+/* TRANSFORM PACKAGE (END) */
+/* COEFF_CODE_ADCC (START) */
+#if COEFF_CODE_ADCC
+#define LOG2_RATIO_GTA                     1
+#define LOG2_RATIO_GTB                     4
+#define LOG2_CG_SIZE                       4
+#define MLS_GRP_NUM                        1024
+#define CAFLAG_NUMBER                      8 
+#define CBFLAG_NUMBER                      1 
+
+#define SBH_THRESHOLD                      4  
+#define MAX_GR_ORDER_RESIDUAL              10
+#define COEF_REMAIN_BIN_REDUCTION          3
+#define LAST_SIGNIFICANT_GROUPS            14
+#endif
+/* COEFF_CODE_ADCC (END) */
 
 /* Common routines (START) */
 #if defined(_MSC_VER)
@@ -580,7 +630,9 @@ extern int fp_trace_counter;
 #define MODE_DIR                           3
 #define MODE_SKIP_MMVD                     4
 #define MODE_DIR_MMVD                      5
-
+#if USE_IBC
+#define MODE_IBC                           6
+#endif
 /*****************************************************************************
  * prediction direction
  *****************************************************************************/
@@ -597,6 +649,10 @@ extern int fp_trace_counter;
 
 #define PRED_SKIP_MMVD                     5
 #define PRED_DIR_MMVD                      6
+#if USE_IBC
+/* IBC pred direction, look current picture as reference */
+#define PRED_IBC                           7
+#endif
 #define PRED_FL0_BI                        10
 #define PRED_FL1_BI                        11
 #define PRED_BI_REF                        12
@@ -685,10 +741,24 @@ extern int fp_trace_counter;
 #define IPD_DIA_L                          6  /* Luma, Left diagonal */
 #define IPD_DIA_U                          30 /* Luma, up diagonal */
 
+#if USE_IBC
+#define IBC_MAX_CU_LOG2                      4 /* max block size for ibc search in unit of log2 */
+//#define IBC_MAX_CAND_SIZE                    (1 << IBC_MAX_CU_LOG2)
+#endif
+
 /*****************************************************************************
 * Transform
 *****************************************************************************/
+#if ATS_INTRA_PROCESS
+typedef enum _TRANS_TYPE
+{
+    DCT8, DST7, NUM_TRANS_TYPE,
+} TRANS_TYPE;
+#endif
 
+#if ATS_INTRA_PROCESS
+#define PI                                (3.14159265358979323846)
+#endif
 
 /*****************************************************************************
  * reference index
@@ -697,6 +767,22 @@ extern int fp_trace_counter;
 #define REFI_IS_VALID(refi)               ((refi) >= 0)
 #define SET_REFI(refi, idx0, idx1)        (refi)[REFP_0] = (idx0); (refi)[REFP_1] = (idx1)
 
+#if USE_IBC
+ /*****************************************************************************
+ * macros for CU map
+
+ - [ 0: 6] : tile_group number (0 ~ 128)
+ - [ 7:14] : reserved
+ - [15:15] : 1 -> intra CU, 0 -> inter CU
+ - [16:22] : QP
+ - [23:23] : skip mode flag
+ - [24:24] : luma cbf
+ - [25:25] : dmvr_flag
+ - [26:26] : IBC mode flag
+ - [27:30] : reserved
+ - [31:31] : 0 -> no encoded/decoded CU, 1 -> encoded/decoded CU
+ *****************************************************************************/
+#else
 /*****************************************************************************
  * macros for CU map
 
@@ -710,6 +796,7 @@ extern int fp_trace_counter;
  - [26:30] : reserved
  - [31:31] : 0 -> no encoded/decoded CU, 1 -> encoded/decoded CU
  *****************************************************************************/
+#endif
 /* set tile_group number to map */
 #define MCU_SET_SN(m, sn)       (m)=(((m) & 0xFFFFFF80)|((sn) & 0x7F))
 /* get tile_group number from map */
@@ -748,6 +835,14 @@ extern int fp_trace_counter;
 #define MCU_GET_DMVRF(m)         (int)(((m)>>25) & 1)
 /* clear dmvr flag */
 #define MCU_CLR_DMVRF(m)         (m)=((m) & (~(1<<25)))
+#endif
+#if USE_IBC
+/* set ibc mode flag */
+#define MCU_SET_IBC(m)          (m)=((m)|(1<<26))
+/* get ibc mode flag */
+#define MCU_GET_IBC(m)          (int)(((m)>>26) & 1)
+/* clear ibc mode flag */
+#define MCU_CLR_IBC(m)          (m)=((m) & (~(1<<26)))
 #endif
 /* set encoded/decoded CU to map */
 #define MCU_SET_COD(m)          (m)=((m)|(1<<31))
@@ -816,6 +911,9 @@ typedef u32 SBAC_CTX_MODEL;
 #define NUM_SBAC_CTX_DIRECTION_IDX         2
 #define NUM_SBAC_CTX_AFFINE_MVD_FLAG       2
 #define NUM_SBAC_CTX_SKIP_FLAG             2
+#if USE_IBC
+#define NUM_SBAC_CTX_IBC_FLAG             CTX_NEV_IBC_FLAG
+#endif
 #define NUM_SBAC_CTX_BTT_SPLIT_FLAG        15
 #define NUM_SBAC_CTX_BTT_SPLIT_DIR         5
 #define NUM_SBAC_CTX_BTT_SPLIT_TYPE        1
@@ -838,10 +936,33 @@ typedef u32 SBAC_CTX_MODEL;
 #define NUM_SBAC_CTX_RUN                   24
 #define NUM_SBAC_CTX_LAST                  2
 #define NUM_SBAC_CTX_LEVEL                 24
+
+#if COEFF_CODE_ADCC
+#define NUM_CTX_SCANR_LUMA                 25
+#define NUM_CTX_SCANR_CHROMA               3
+#define NUM_CTX_SCANR                      (NUM_CTX_SCANR_LUMA + NUM_CTX_SCANR_CHROMA)
+
+#define NUM_CTX_GT0_LUMA                   39  /* number of context models for luma gt0 flag */
+#define NUM_CTX_GT0_CHROMA                 8   /* number of context models for chroma gt0 flag */
+#define NUM_CTX_GT0_LUMA_TU                13  /* number of context models for luma gt0 flag per TU */
+#define NUM_CTX_GT0                        (NUM_CTX_GT0_LUMA + NUM_CTX_GT0_CHROMA)  /* number of context models for gt0 flag */
+
+#define NUM_CTX_GTA_LUMA                   13
+#define NUM_CTX_GTA_CHROMA                 5     
+#define NUM_CTX_GTA                        (NUM_CTX_GTA_LUMA + NUM_CTX_GTA_CHROMA)  /* number of context models for gtA/B flag */
+#endif
+
 #if ALF
 #define NUM_SBAC_CTX_ALF_FLAG              9
 #endif
 
+#if ATS_INTRA_PROCESS 
+#define NUM_ATS_INTRA_CU_FLAG_CTX                8
+#define NUM_ATS_INTRA_TU_FLAG_CTX                2
+#endif
+#if ATS_INTER_PROCESS
+#define NUM_SBAC_CTX_ATS_INTER_INFO        7
+#endif
 /* context models for arithemetic coding */
 typedef struct _EVC_SBAC_CTX
 {
@@ -849,6 +970,9 @@ typedef struct _EVC_SBAC_CTX
     SBAC_CTX_MODEL   alf_flag        [NUM_SBAC_CTX_ALF_FLAG]; 
 #endif
     SBAC_CTX_MODEL   skip_flag       [NUM_SBAC_CTX_SKIP_FLAG];
+#if USE_IBC
+    SBAC_CTX_MODEL   ibc_flag[NUM_SBAC_CTX_IBC_FLAG];
+#endif
     SBAC_CTX_MODEL   mmvd_flag       [NUM_SBAC_CTX_MMVD_FLAG];
     SBAC_CTX_MODEL   mmvd_merge_idx  [NUM_SBAC_CTX_MMVD_MERGE_IDX];
     SBAC_CTX_MODEL   mmvd_distance_idx[NUM_SBAC_CTX_MMVD_DIST_IDX];
@@ -870,6 +994,14 @@ typedef struct _EVC_SBAC_CTX
     SBAC_CTX_MODEL   run             [NUM_SBAC_CTX_RUN];
     SBAC_CTX_MODEL   last            [NUM_SBAC_CTX_LAST];
     SBAC_CTX_MODEL   level           [NUM_SBAC_CTX_LEVEL];
+
+#if COEFF_CODE_ADCC
+    SBAC_CTX_MODEL   cc_gt0[NUM_CTX_GT0];
+    SBAC_CTX_MODEL   cc_gtA[NUM_CTX_GTA];
+    SBAC_CTX_MODEL   cc_scanr_x[NUM_CTX_SCANR];
+    SBAC_CTX_MODEL   cc_scanr_y[NUM_CTX_SCANR];
+#endif
+
     SBAC_CTX_MODEL   btt_split_flag  [NUM_SBAC_CTX_BTT_SPLIT_FLAG];
     SBAC_CTX_MODEL   btt_split_dir   [NUM_SBAC_CTX_BTT_SPLIT_DIR];
     SBAC_CTX_MODEL   btt_split_type  [NUM_SBAC_CTX_BTT_SPLIT_TYPE];
@@ -884,11 +1016,26 @@ typedef struct _EVC_SBAC_CTX
     SBAC_CTX_MODEL   ctb_alf_flag    [NUM_SBAC_CTX_ALF_FLAG]; //todo: add *3 for every component
 #endif
     int              sps_cm_init_flag;
-
+#if ATS_INTRA_PROCESS   
+    SBAC_CTX_MODEL   ats_intra_cu          [NUM_ATS_INTRA_CU_FLAG_CTX];
+    SBAC_CTX_MODEL   ats_tu_h        [NUM_ATS_INTRA_TU_FLAG_CTX];
+    SBAC_CTX_MODEL   ats_tu_v        [NUM_ATS_INTRA_TU_FLAG_CTX];
+#endif
+#if ATS_INTER_PROCESS
+    SBAC_CTX_MODEL   ats_inter_info  [NUM_SBAC_CTX_ATS_INTER_INFO];
+#endif
 } EVC_SBAC_CTX;
 
+
+#if COEFF_CODE_ADCC
+#define COEF_SCAN_ZIGZAG                   0
+#define COEF_SCAN_DIAG                     1
+#define COEF_SCAN_DIAG_CG                  2
+#define COEF_SCAN_TYPE_NUM                 3
+#else
 #define COEF_SCAN_ZIGZAG                   0
 #define COEF_SCAN_TYPE_NUM                 1
+#endif
 
 /* Maximum transform dynamic range (excluding sign bit) */
 #define MAX_TX_DYNAMIC_RANGE               15
@@ -1105,11 +1252,20 @@ typedef struct _EVC_SPS
     int              tool_eipd;
     int              tool_iqt;
     int              tool_cm_init;
+#if ATS_INTRA_PROCESS
+    int              tool_ats_intra;
+#endif
+#if ATS_INTER_PROCESS
+    int              tool_ats_inter;
+#endif
 #if HLS_M47668
     int              tool_rpl;
     int              tool_pocs;
     int              log2_sub_gop_length;
     int              log2_ref_pic_gap_length;
+#endif
+#if COEFF_CODE_ADCC  
+    int              tool_adcc;
 #endif
     int              log2_max_pic_order_cnt_lsb_minus4;
     int              sps_max_dec_pic_buffering_minus1;
@@ -1132,6 +1288,10 @@ typedef struct _EVC_SPS
 
     u8               closed_gop;                 /* 1 bit  : flag of closed_gop or not */
     u8               num_ref_pics_act;           /* 4 bits : number of reference pictures active */
+#if USE_IBC
+    u8               ibc_flag;                   /* 1 bit : flag of enabling IBC or not */
+	int              ibc_log_max_size;           /* log2 max ibc size */
+#endif
 } EVC_SPS;
 
 /*****************************************************************************
@@ -1375,6 +1535,9 @@ typedef enum _CTX_NEV_IDX
 #if AFFINE
     CNID_AFFN_FLAG,
 #endif
+#if USE_IBC
+    CNID_IBC_FLAG,
+#endif
     NUM_CNID,
 
 } CTX_NEV_IDX;
@@ -1396,6 +1559,14 @@ typedef enum _MSL_IDX
 #define PAD_BUFFER_STRIDE                               ((MAX_CU_SIZE + EXTRA_PIXELS_FOR_FILTER + (DMVR_ITER_COUNT * 2)))
 static const int NTAPS_LUMA = 8; ///< Number of taps for luma
 static const int NTAPS_CHROMA = 4; ///< Number of taps for chroma
+#endif
+
+#if EIF
+#define EIF_MV_PRECISION                                       (2 + MAX_CU_LOG2 + 0) //2 + MAX_CU_LOG2 is MV precision in regular affine
+
+#if EIF_MV_PRECISION > 14 || EIF_MV_PRECISION < 9
+#error "Invalid EIF_MV_PRECISION"
+#endif
 #endif
 
 #define MAX_SUB_TB_NUM 4

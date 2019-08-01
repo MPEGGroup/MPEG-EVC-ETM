@@ -120,6 +120,11 @@ typedef struct _EVCD_CORE
     s16            affine_mv[REFP_NUM][VER_NUM][MV_D];
     u8             affine_flag;
 #endif
+#if USE_IBC
+    u8             ibc_flag;
+    u8             ibc_skip_flag;
+    u8             ibc_merge_flag;
+#endif
     /************** current LCU *************/
     /* address of current LCU,  */
     u16            lcu_num;
@@ -139,12 +144,26 @@ typedef struct _EVCD_CORE
     void          *pf;
     s16            mmvd_idx;
     u8             mmvd_flag;
+#if ATS_INTRA_PROCESS   
+    /* ATS_INTRA flags */
+    u8             ats_intra_cu;
+    u8             ats_intra_tu_h;
+    u8             ats_intra_tu_v;
+#endif
+#if ATS_INTER_PROCESS
+    /* ATS_INTER info (index + position)*/
+    u8             ats_inter_info;
+#endif
 #if EIF
     /* temporal pixel buffer for inter prediction */
+#if !HW_EIF
 #if EIF_SIMD
     ALIGNED_(EIF_NUM_BYTES_IN_SSE_REG)
 #endif
     pel            eif_tmp_buffer[EIF_NUM_LINES_IN_PREP_DATA * EIF_PREP_DATA_STRIDE + EIF_NUM_LINES_IN_UPSCALED_DATA * EIF_UPSCALED_DATA_STRIDE];
+#else
+    pel            eif_tmp_buffer[ (MAX_CU_SIZE + 2) * (MAX_CU_SIZE + 2) ];
+#endif
 #endif
     u8             mvr_idx;
 #if DMVR_FLAG
@@ -163,14 +182,7 @@ typedef struct _EVCD_CORE
 #if TRACE_ENC_CU_DATA
     u64            trace_idx;
 #endif
-    int            mvp_idx[REFP_NUM];
-    s16            mvd[REFP_NUM][MV_D];
-    int            inter_dir;
-    int            bi_idx;
-#if AFFINE
-    int            affine_bzero[REFP_NUM];
-    s16            affine_mvd[REFP_NUM][3][MV_D];
-#endif
+
 } EVCD_CORE;
 
 /******************************************************************************
@@ -245,6 +257,10 @@ struct _EVCD_CTX
     /* new coding tool flag*/
     u32                    *map_cu_mode;
     u8                      ctx_flags[NUM_CNID];
+#if ATS_INTER_PROCESS
+    /* ats_inter info map */
+    u8                     *map_ats_inter;
+#endif
 
     /**************************************************************************/
     /* current tile_group number, which is increased whenever decoding a tile_group.

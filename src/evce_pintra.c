@@ -81,6 +81,9 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
     double cost = 0;
     int tmp_cbf_l =0;
     int tmp_cbf_sub_l[MAX_SUB_TB_NUM] = {0,};
+#if ATS_INTER_PROCESS
+    core->ats_inter_info = 0;
+#endif
 
     cuw = 1 << log2_cuw;
     cuh = 1 << log2_cuh;
@@ -93,8 +96,24 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
         evce_diff_16b(log2_cuw, log2_cuh, org_luma, pred, s_org, cuw, cuw, pi->coef_tmp[Y_C]);
 
         evce_sub_block_tq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, pi->tile_group_type, core->nnz
-                          , core->nnz_sub, 1, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L, ctx->sps.tool_cm_init, ctx->sps.tool_iqt);
+                          , core->nnz_sub, 1, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L, ctx->sps.tool_cm_init, ctx->sps.tool_iqt
+#if ATS_INTRA_PROCESS
+                          , core->ats_intra_cu, core->ats_tu
+#endif
+#if ATS_INTER_PROCESS
+                          , 0
+#endif
+#if COEFF_CODE_ADCC
+            , ctx->sps.tool_adcc
+#endif
+        );
 
+#if ATS_INTRA_PROCESS
+        if (core->ats_intra_cu != 0 && core->nnz[Y_C] == 0)
+        {
+            return MAX_COST;
+        }
+#endif
         evc_mcpy(coef[Y_C], pi->coef_tmp[Y_C], sizeof(u16) * (cuw * cuh));
 
         SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
@@ -102,23 +121,42 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
         evce_rdo_bit_cnt_cu_intra_luma(ctx, core, ctx->tgh.tile_group_type, core->scup, pi->coef_tmp);
         bit_cnt = evce_get_bit_number(&core->s_temp_run);
 
-        evc_sub_block_itdq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->nnz, core->nnz_sub, ctx->sps.tool_iqt);
+        evc_sub_block_itdq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->nnz, core->nnz_sub, ctx->sps.tool_iqt
+#if ATS_INTRA_PROCESS
+                           , core->ats_intra_cu, core->ats_tu
+#endif
+#if ATS_INTER_PROCESS
+                           , core->ats_inter_info
+#endif
+        );
 
-        evc_recon(pi->coef_tmp[Y_C], pred, core->nnz[Y_C], cuw, cuh, cuw, pi->rec[Y_C]);
+        evc_recon(pi->coef_tmp[Y_C], pred, core->nnz[Y_C], cuw, cuh, cuw, pi->rec[Y_C]
+#if ATS_INTER_PROCESS
+                  , core->ats_inter_info
+#endif
+        );
 #if HTDF
         if(ctx->sps.tool_htdf == 1)
         {
+#if HW_HTDF_CLEANUP
+            evc_htdf(pi->rec[Y_C], ctx->tgh.qp, cuw, cuh, cuw, TRUE, pi->m[Y_C] + (y * pi->s_m[Y_C]) + x, pi->s_m[Y_C], core->avail_cu);
+#else
 #if !HTDF_CBF0_INTRA
             if(core->nnz[Y_C])
 #endif
                 evc_htdf(pi->rec[Y_C], ctx->tgh.qp, cuw, cuh, cuw, TRUE, core->nb[Y_C][0] + 2, core->nb[Y_C][1] + cuh - 1, core->nb[Y_C][2] + 2, core->avail_cu);
+#endif
         }
 #endif
         cost += evce_ssd_16b(log2_cuw, log2_cuh, pi->rec[Y_C], org_luma, cuw, s_org);
 
 #if RDO_DBK
         {
-            calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->rec, cuw, x, y, core->avail_lr, 1, core->nnz[Y_C] != 0, NULL, NULL, 0);
+            calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->rec, cuw, x, y, core->avail_lr, 1, core->nnz[Y_C] != 0, NULL, NULL, 0
+#if ATS_INTER_PROCESS
+                                            , core->ats_inter_info
+#endif 
+            );
             cost += ctx->delta_dist[Y_C];
         }
 #endif
@@ -148,12 +186,29 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
         }
 
         evce_sub_block_tq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, pi->tile_group_type, core->nnz, core->nnz_sub
-                          , 1, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt);
+                          , 1, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt
+#if ATS_INTRA_PROCESS
+                          , core->ats_intra_cu, core->ats_tu
+#endif
+#if ATS_INTER_PROCESS
+                          , 0
+#endif
+#if COEFF_CODE_ADCC
+            , ctx->sps.tool_adcc
+#endif
+        );
 
         evc_mcpy(coef[U_C], pi->coef_tmp[U_C], sizeof(u16) * (cuw * cuh));
         evc_mcpy(coef[V_C], pi->coef_tmp[V_C], sizeof(u16) * (cuw * cuh));
 
-        evc_sub_block_itdq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->nnz, core->nnz_sub, ctx->sps.tool_iqt);
+        evc_sub_block_itdq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->nnz, core->nnz_sub, ctx->sps.tool_iqt
+#if ATS_INTRA_PROCESS
+                           , core->ats_intra_cu, core->ats_tu
+#endif
+#if ATS_INTER_PROCESS
+                           , 0
+#endif
+        );
 
         if (!ctx->sps.tool_eipd)
         {
@@ -161,8 +216,16 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
             evc_mcpy(core->nnz_sub[Y_C], tmp_cbf_sub_l, sizeof(int) * MAX_SUB_TB_NUM);
         }
 
-        evc_recon(pi->coef_tmp[U_C], pi->pred[U_C], core->nnz[U_C], cuw >> 1, cuh >> 1, cuw >> 1, pi->rec[U_C]);
-        evc_recon(pi->coef_tmp[V_C], pi->pred[V_C], core->nnz[V_C], cuw >> 1, cuh >> 1, cuw >> 1, pi->rec[V_C]);
+        evc_recon(pi->coef_tmp[U_C], pi->pred[U_C], core->nnz[U_C], cuw >> 1, cuh >> 1, cuw >> 1, pi->rec[U_C]
+#if ATS_INTER_PROCESS
+                  , 0
+#endif
+        );
+        evc_recon(pi->coef_tmp[V_C], pi->pred[V_C], core->nnz[V_C], cuw >> 1, cuh >> 1, cuw >> 1, pi->rec[V_C]
+#if ATS_INTER_PROCESS
+                  , 0
+#endif
+        );
 
         if (ctx->sps.tool_eipd)
         {
@@ -179,7 +242,11 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
         cost += ctx->dist_chroma_weight[1] * evce_ssd_16b(log2_cuw - 1, log2_cuh - 1, pi->rec[V_C], org_cr, cuw >> 1, s_org_c);
 #if RDO_DBK
         {
-            calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->rec, cuw, x, y, core->avail_lr, 1, core->nnz[Y_C] != 0, NULL, NULL, 0);
+            calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->rec, cuw, x, y, core->avail_lr, 1, core->nnz[Y_C] != 0, NULL, NULL, 0
+#if ATS_INTER_PROCESS
+                                            , core->ats_inter_info
+#endif
+            );
             cost += (ctx->delta_dist[U_C] * ctx->dist_chroma_weight[0]) + (ctx->delta_dist[V_C] * ctx->dist_chroma_weight[1]);
         }
 #endif
@@ -283,9 +350,9 @@ static int make_ipred_list(EVCE_CTX * ctx, EVCE_CORE * core, int log2_cuw, int l
 }
 
 //! \todo Change list of arguments
-static double pintra_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_cuw, int log2_cuh, EVCE_MODE *mi, s16 coef[N_C][MAX_CU_DIM], pel *rec[N_C], int s_rec[N_C])
+static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, int log2_cuw, int log2_cuh, EVCE_MODE* mi, s16 coef[N_C][MAX_CU_DIM], pel* rec[N_C], int s_rec[N_C])
 {
-    EVCE_PINTRA *pi = &ctx->pintra;
+    EVCE_PINTRA* pi = &ctx->pintra;
     int i, j, s_org, s_org_c, s_mod, s_mod_c, cuw, cuh;
     int best_ipd = IPD_INVALID;
     int best_ipd_c = IPD_INVALID;
@@ -295,11 +362,27 @@ static double pintra_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
     int bit_cnt = 0;
     int ipred_list[IPD_CNT];
     int pred_cnt = (ctx->sps.tool_eipd) ? IPD_CNT : IPD_CNT_B;;
-    pel *org, *mod;
-    pel *org_cb, *org_cr;
-    pel *mod_cb, *mod_cr;
+    pel* org, * mod;
+    pel* org_cb, * org_cr;
+    pel* mod_cb, * mod_cr;
     double cost_t, cost = MAX_COST;
     int sec_best_ipd = IPD_INVALID;
+
+#if ATS_INTRA_PROCESS
+    u8 best_ats_intra_cu = 0;
+    u8 best_ats_tu = 0;
+    u8 ats_intra_usage = ctx->sps.tool_ats_intra ? 2 : 1;
+    u8 ats_intra_cu_flag = 0;
+#if ATS_INTRA_FAST
+    u8 ats_intra_zero_cu_flag = 0;
+    int best_nnz = 1;
+    double cost_ipd[IPD_CNT];
+#endif
+#endif
+#if ATS_INTER_PROCESS
+    core->ats_inter_info = 0;
+#endif
+
 
     cuw = 1 << log2_cuw;
     cuh = 1 << log2_cuh;
@@ -327,98 +410,162 @@ static double pintra_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
     evc_get_nbr(x >> 1, y >> 1, cuw >> 1, cuh >> 1, mod_cb, s_mod_c, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, U_C);
     evc_get_nbr(x >> 1, y >> 1, cuw >> 1, cuh >> 1, mod_cr, s_mod_c, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, V_C);
 
-    if(ctx->sps.tool_eipd)
+    if (ctx->sps.tool_eipd)
     {
         evc_get_mpm(core->x_scu, core->y_scu, cuw, cuh, ctx->map_scu, ctx->map_ipm, core->scup, ctx->w_scu,
-                    core->mpm, core->avail_lr, core->mpm_ext, core->pims);
+            core->mpm, core->avail_lr, core->mpm_ext, core->pims);
     }
     else
     {
         evc_get_mpm_b(core->x_scu, core->y_scu, cuw, cuh, ctx->map_scu, ctx->map_ipm, core->scup, ctx->w_scu,
-                      &core->mpm_b_list, core->avail_lr, core->mpm_ext, core->pims);
+            &core->mpm_b_list, core->avail_lr, core->mpm_ext, core->pims);
     }
 
     pred_cnt = make_ipred_list(ctx, core, log2_cuw, log2_cuh, org, s_org, ipred_list);
-    if(pred_cnt == 0)
+    if (pred_cnt == 0)
     {
         return MAX_COST;
     }
 
-    for(j = 0; j < pred_cnt; j++) /* Y */
+#if ATS_INTRA_PROCESS
+    if (log2_cuw == 6 || log2_cuh == 6 || log2_cuw == 7 || log2_cuh == 7) ats_intra_usage = 1;
+#if ATS_INTRA_FAST
+    if (ctx->tile_group_type != TILE_GROUP_I && core->nnz[Y_C] <= ATS_INTRA_Y_NZZ_THR) ats_intra_usage = 1;
+    if (ats_intra_usage > 1)
     {
-        s32 dist_t = 0;
-        s32 dist_tc = 0;
-
-        i = ipred_list[j];
-        core->ipm[0] = i;
-
-        if(ctx->sps.tool_eipd)
+        if (core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][evc_get_lr(core->avail_lr)].visit && core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][evc_get_lr(core->avail_lr)].ats_intra_cu_idx_intra == 0)
         {
-            core->ipm[1] = IPD_INVALID;
-            cost_t = pintra_residue_rdo(ctx, core, org, NULL, NULL, s_org, s_org_c, log2_cuw, log2_cuh, coef, &dist_t, 0
-#if RDO_DBK
-                                        , x, y
+            ats_intra_usage = 1;
+        }
+    }
 #endif
-            );
+    for (ats_intra_cu_flag = 0; ats_intra_cu_flag < ats_intra_usage; ats_intra_cu_flag++) /* ats intra cu loop */
+    {
+        u8 ats_intra_tr_idx = 0;
+        u8 num_tr_idx_cands = (ats_intra_cu_flag) ? 4 : 1;
+
+        core->ats_intra_cu = ats_intra_cu_flag;
+#if ATS_INTRA_FAST
+        if (ats_intra_cu_flag)
+        {
+            if (ats_intra_zero_cu_flag) break;
+            if (cost > ATS_INTER_INTRA_SKIP_THR * core->cost_best) break;
+            for (j = 0; j < pred_cnt; j++)
+            {
+                if (cost_ipd[j] > cost * ATS_INTRA_IPD_THR)
+                {
+                    ipred_list[j] = IPD_INVALID;
+                }
+            }
         }
         else
         {
-            core->ipm[1] = i;
-            cost_t = pintra_residue_rdo(ctx, core, org, org_cb, org_cr, s_org, s_org_c, log2_cuw, log2_cuh, coef, &dist_t, 0
-#if RDO_DBK
-                                        , x, y
-#endif
-            );
-            cost_t += pintra_residue_rdo(ctx, core, org, org_cb, org_cr, s_org, s_org_c, log2_cuw, log2_cuh, coef, &dist_tc, 1
-#if RDO_DBK
-                                         , x, y
-#endif
-            );
+            for (j = 0; j < pred_cnt; j++) cost_ipd[j] = MAX_COST;
         }
-
-        if(cost_t < cost)
+#endif
+        for (ats_intra_tr_idx = 0; ats_intra_tr_idx < num_tr_idx_cands; ats_intra_tr_idx++) /* ats_intra tu loop */
         {
-            cost = cost_t;
-            best_dist_y = dist_t;
-
-            if(!ctx->sps.tool_eipd)
+            core->ats_tu = ats_intra_tr_idx;
+#endif
+            for (j = 0; j < pred_cnt; j++) /* Y */
             {
-                best_dist_c = dist_tc;
-            }
+                s32 dist_t = 0;
+                s32 dist_tc = 0;
 
-            if(sec_best_ipd != best_ipd)
-            {
-                sec_best_ipd = best_ipd;
-            }
+                i = ipred_list[j];
+                core->ipm[0] = i;
 
-            best_ipd = i;
-
-            evc_mcpy(pi->coef_best[Y_C], coef[Y_C], (cuw * cuh) * sizeof(s16));
-            evc_mcpy(pi->rec_best[Y_C], pi->rec[Y_C], (cuw * cuh) * sizeof(pel));
-
-            pi->nnz_best[Y_C] = core->nnz[Y_C];
-            evc_mcpy(pi->nnz_sub_best[Y_C], core->nnz_sub[Y_C], sizeof(int) * MAX_SUB_TB_NUM);
-
-            if(!ctx->sps.tool_eipd)
-            {
-                best_ipd_c = i;
-
-                for(j = U_C; j < N_C; j++)
+                if (ctx->sps.tool_eipd)
                 {
-                    int size_tmp = (cuw * cuh) >> (j == 0 ? 0 : 2);
-                    evc_mcpy(pi->coef_best[j], coef[j], size_tmp * sizeof(s16));
-                    evc_mcpy(pi->rec_best[j], pi->rec[j], size_tmp * sizeof(pel));
-
-                    pi->nnz_best[j] = core->nnz[j];
-                    evc_mcpy(pi->nnz_sub_best[j], core->nnz_sub[j], sizeof(int) * MAX_SUB_TB_NUM);
+                    core->ipm[1] = IPD_INVALID;
+#if ATS_INTRA_FAST
+                    if (i == IPD_INVALID) continue;
+#endif
+                    cost_t = pintra_residue_rdo(ctx, core, org, NULL, NULL, s_org, s_org_c, log2_cuw, log2_cuh, coef, &dist_t, 0
+#if RDO_DBK
+                        , x, y
+#endif
+                    );
                 }
+                else
+                {
+                    core->ipm[1] = i;
+                    cost_t = pintra_residue_rdo(ctx, core, org, org_cb, org_cr, s_org, s_org_c, log2_cuw, log2_cuh, coef, &dist_t, 0
+#if RDO_DBK
+                        , x, y
+#endif
+                    );
+                    cost_t += pintra_residue_rdo(ctx, core, org, org_cb, org_cr, s_org, s_org_c, log2_cuw, log2_cuh, coef, &dist_tc, 1
+#if RDO_DBK
+                        , x, y
+#endif
+                    );
+                }
+
+                if (cost_t < cost)
+                {
+                    cost = cost_t;
+                    best_dist_y = dist_t;
+
+                    if (!ctx->sps.tool_eipd)
+                    {
+                        best_dist_c = dist_tc;
+                    }
+
+                    if (sec_best_ipd != best_ipd)
+                    {
+                        sec_best_ipd = best_ipd;
+                    }
+
+                    best_ipd = i;
+
+#if ATS_INTRA_PROCESS
+                    best_ats_intra_cu = ats_intra_cu_flag;
+                    best_ats_tu = ats_intra_tr_idx;
+#if ATS_INTRA_FAST
+                    best_nnz = core->nnz[Y_C];
+#endif
+#endif
+                    evc_mcpy(pi->coef_best[Y_C], coef[Y_C], (cuw * cuh) * sizeof(s16));
+                    evc_mcpy(pi->rec_best[Y_C], pi->rec[Y_C], (cuw * cuh) * sizeof(pel));
+
+                    pi->nnz_best[Y_C] = core->nnz[Y_C];
+                    evc_mcpy(pi->nnz_sub_best[Y_C], core->nnz_sub[Y_C], sizeof(int) * MAX_SUB_TB_NUM);
+
+                    if (!ctx->sps.tool_eipd)
+                    {
+                        best_ipd_c = i;
+
+                        for (j = U_C; j < N_C; j++)
+                        {
+                            int size_tmp = (cuw * cuh) >> (j == 0 ? 0 : 2);
+                            evc_mcpy(pi->coef_best[j], coef[j], size_tmp * sizeof(s16));
+                            evc_mcpy(pi->rec_best[j], pi->rec[j], size_tmp * sizeof(pel));
+
+                            pi->nnz_best[j] = core->nnz[j];
+                            evc_mcpy(pi->nnz_sub_best[j], core->nnz_sub[j], sizeof(int) * MAX_SUB_TB_NUM);
+                        }
+                    }
+
+                    SBAC_STORE(core->s_temp_prev_comp_best, core->s_temp_run);
+                }
+#if ATS_INTRA_FAST
+                if (ats_intra_cu_flag == 0 && cost_t < cost_ipd[j]) cost_ipd[j] = cost_t;
+#endif
             }
-
-            SBAC_STORE(core->s_temp_prev_comp_best, core->s_temp_run);
+#if ATS_INTRA_PROCESS
         }
+#if ATS_INTRA_FAST
+        ats_intra_zero_cu_flag = (best_nnz == 0) ? 1 : 0;
+#endif
     }
+#endif
+#if ATS_INTRA_PROCESS
+    core->ats_intra_cu = best_ats_intra_cu;
+    core->ats_tu = best_ats_tu;
+#endif
 
-    if(ctx->sps.tool_eipd)
+    if (ctx->sps.tool_eipd)
     {
         cost = MAX_COST;
         ipm_l2c = best_ipd;
@@ -426,30 +573,30 @@ static double pintra_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 
         EVC_IPRED_CONV_L2C_CHK(ipm_l2c, chk_bypass);
 
-        for(i = 0; i < IPD_CHROMA_CNT; i++) /* UV */
+        for (i = 0; i < IPD_CHROMA_CNT; i++) /* UV */
         {
             s32 dist_t = 0;
 
             core->ipm[1] = i;
 
-            if(i != IPD_DM_C && chk_bypass && i == ipm_l2c)
+            if (i != IPD_DM_C && chk_bypass && i == ipm_l2c)
             {
                 continue;
             }
 
             cost_t = pintra_residue_rdo(ctx, core, org, org_cb, org_cr, s_org, s_org_c, log2_cuw, log2_cuh, coef, &dist_t, 1
 #if RDO_DBK
-                                        , x, y
+                , x, y
 #endif
             );
 
-            if(cost_t < cost)
+            if (cost_t < cost)
             {
                 cost = cost_t;
                 best_dist_c = dist_t;
                 best_ipd_c = i;
 
-                for(j = U_C; j < N_C; j++)
+                for (j = U_C; j < N_C; j++)
                 {
                     int size_tmp = (cuw * cuh) >> (j == 0 ? 0 : 2);
                     evc_mcpy(pi->coef_best[j], coef[j], size_tmp * sizeof(s16));
@@ -465,7 +612,7 @@ static double pintra_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
     core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][evc_get_lr(core->avail_lr)].ipm[0] = best_ipd;
     core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][evc_get_lr(core->avail_lr)].ipm[1] = sec_best_ipd;
 
-    for(j = 0; j < N_C; j++)
+    for (j = 0; j < N_C; j++)
     {
         int size_tmp = (cuw * cuh) >> (j == 0 ? 0 : 2);
         evc_mcpy(coef[j], pi->coef_best[j], size_tmp * sizeof(u16));
@@ -484,6 +631,16 @@ static double pintra_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 
     core->ipm[0] = best_ipd;
     core->ipm[1] = best_ipd_c;
+#if ATS_INTRA_PROCESS
+    core->ats_intra_cu = best_ats_intra_cu;
+    core->ats_tu = best_ats_tu;
+#if ATS_INTRA_FAST
+    if (!core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][evc_get_lr(core->avail_lr)].visit)
+    {
+        core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][evc_get_lr(core->avail_lr)].ats_intra_cu_idx_intra = best_ats_intra_cu == 0 && core->nnz[Y_C] < 2 ? 0 : 1;
+    }
+#endif
+#endif
     evc_assert(best_ipd_c != IPD_INVALID);
 
     /* cost calculation */
