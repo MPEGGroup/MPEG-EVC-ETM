@@ -52,9 +52,8 @@ extern "C"
 #define USE_TILE_GROUP_DQP              1
 #define HLS_M47668                      1
 #define USE_IBC                         1 // use intra-block copy feature
-#if USE_IBC
+
 #define SUCO                            1
-#endif
   
 #if USE_IBC
 #define IBC_SEARCH_RANGE                     64
