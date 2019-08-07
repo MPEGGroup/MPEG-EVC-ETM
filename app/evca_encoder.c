@@ -128,8 +128,13 @@ static int  op_framework_cu14_max = 6;
 static int  op_framework_cu14_min = 4;
 static int  op_framework_tris_max = 6;
 static int  op_framework_tris_min = 4;
+#if M48879_IMPROVEMENT_ENC_OPT
+static int  op_framework_suco_max = 6;
+static int  op_framework_suco_min = 4;
+#else
 static int  op_framework_suco_max = 7;
 static int  op_framework_suco_min = 4;
+#endif
 static int  op_tool_amvr          = 1; /* default on */
 static int  op_tool_mmvd          = 1; /* default on */
 static int  op_tool_affine        = 1; /* default on */
@@ -152,7 +157,9 @@ static int op_tool_ats_intra      = 1; /* default on */
 #if ATS_INTER_PROCESS
 static int  op_tool_ats_inter     = 1; /* default on */
 #endif
-
+#if M48879_IMPROVEMENT_INTRA
+static int  op_constrained_intra_pred = 0;
+#endif
 
 static char  op_rpl0[MAX_NUM_RPLS][256];
 static char  op_rpl1[MAX_NUM_RPLS][256];
@@ -229,6 +236,9 @@ typedef enum _OP_FLAGS
 #endif
 #if ATS_INTER_PROCESS
     OP_TOOL_ATS_INTER,
+#endif
+#if M48879_IMPROVEMENT_INTRA
+    OP_CONSTRAINED_INTRA_PRED,
 #endif
     OP_FLAG_RPL0_0,
     OP_FLAG_RPL0_1,
@@ -608,6 +618,13 @@ static EVC_ARGS_OPTION options[] = \
         "ats inter on/off flag"
     },
 #endif
+#if M48879_IMPROVEMENT_INTRA
+    {
+        EVC_ARGS_NO_KEY,  "constrained_intra_pred", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_CONSTRAINED_INTRA_PRED], &op_constrained_intra_pred,
+        "constrained intra pred"
+    },
+#endif
     {
         EVC_ARGS_NO_KEY,  "RPL0_0", EVC_ARGS_VAL_TYPE_STRING,
         &op_flag[OP_FLAG_RPL0_0], &op_rpl0[0],
@@ -925,6 +942,9 @@ static int get_conf(EVCE_CDSC * cdsc)
 #if ATS_INTER_PROCESS
     cdsc->tool_ats_inter     = op_tool_ats_inter;
 #endif
+#if M48879_IMPROVEMENT_INTRA
+    cdsc->constrained_intra_pred = op_constrained_intra_pred;
+#endif
 
     for (int i = 0; i < MAX_NUM_RPLS && op_rpl0[i][0] != 0; ++i)
     {
@@ -997,6 +1017,9 @@ static int print_enc_conf(EVCE_CDSC * cdsc)
 #endif
 #if ATS_INTER_PROCESS
     printf("ATS_INTER: %d ", cdsc->tool_ats_inter);
+#endif
+#if M48879_IMPROVEMENT_INTRA
+    printf("CONSTRAINED_INTRA_PRED: %d ", cdsc->constrained_intra_pred);
 #endif
     printf("\n");
     return 0;

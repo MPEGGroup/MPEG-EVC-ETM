@@ -279,6 +279,9 @@ int evc_get_affine_merge_candidate(int ptr, int tile_group_type, int scup, s8(*m
 #if DMVR_LAG
                                    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
+#if M48879_IMPROVEMENT_SUCO
+    , u16 avail_lr
+#endif
 );
 int evc_get_affine_memory_access(s16 mv[VER_NUM][MV_D], int cuw, int cuh);
 #endif

@@ -542,6 +542,9 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
 static void set_pps(EVCE_CTX * ctx, EVC_PPS * pps)
 {
     pps->single_tile_in_pic_flag = 1;
+#if M48879_IMPROVEMENT_INTRA
+    pps->constrained_intra_pred_flag = ctx->cdsc.constrained_intra_pred;
+#endif
 }
 
 #if ALF_PARAMETER_APS
@@ -2218,7 +2221,16 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #if TRACE_RDO_EXCLUDE_I
     }
 #endif
-
+#if M48879_IMPROVEMENT_INTER
+    if (ctx->sps.tool_mmvd && (ctx->tile_group_type == TILE_GROUP_B))
+    {
+        tgh->mmvd_group_enable_flag = !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr);
+    }
+    else
+    {
+        tgh->mmvd_group_enable_flag = 0;
+    }
+#endif
     while(1)
     {
         /* initialize structures *****************************************/

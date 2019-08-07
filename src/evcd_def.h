@@ -182,7 +182,14 @@ typedef struct _EVCD_CORE
 #if TRACE_ENC_CU_DATA
     u64            trace_idx;
 #endif
-
+    int            mvp_idx[REFP_NUM];
+    s16            mvd[REFP_NUM][MV_D];
+    int            inter_dir;
+    int            bi_idx;
+#if AFFINE
+    int            affine_bzero[REFP_NUM];
+    s16            affine_mvd[REFP_NUM][3][MV_D];
+#endif
 } EVCD_CORE;
 
 /******************************************************************************
