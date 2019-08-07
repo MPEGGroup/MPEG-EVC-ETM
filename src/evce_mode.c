@@ -389,7 +389,11 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_
 
                 if((pidx == PRED_DIR_MMVD))
                 {
+#if M48879_IMPROVEMENT_INTER
+                    evce_eco_mmvd_info(&core->bs_temp, pi->mmvd_idx[pidx], ctx->tgh.mmvd_group_enable_flag && !((1 << core->log2_cuw)*(1 << core->log2_cuh) <= NUM_SAMPLES_BLOCK));
+#else
                     evce_eco_mmvd_info(&core->bs_temp, pi->mmvd_idx[pidx], !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr));
+#endif
                 }
             }
         }
@@ -416,7 +420,11 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_
 
                 if((pidx == PRED_DIR_MMVD))
                 {
+#if M48879_IMPROVEMENT_INTER
+                    evce_eco_mmvd_info(&core->bs_temp, pi->mmvd_idx[pidx], ctx->tgh.mmvd_group_enable_flag && !((1 << core->log2_cuw)*(1 << core->log2_cuh) <= NUM_SAMPLES_BLOCK));
+#else
                     evce_eco_mmvd_info(&core->bs_temp, pi->mmvd_idx[pidx], !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr));
+#endif
                 }
             }
 
@@ -609,7 +617,11 @@ void evce_rdo_bit_cnt_cu_skip(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_t
 
         if(core->mmvd_flag)
         {
+#if M48879_IMPROVEMENT_INTER
+            evce_eco_mmvd_info(&core->bs_temp, c_num, ctx->tgh.mmvd_group_enable_flag && !((1 << core->log2_cuw)*(1 << core->log2_cuh) <= NUM_SAMPLES_BLOCK));
+#else
             evce_eco_mmvd_info(&core->bs_temp, c_num, !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr));
+#endif
         }
         else
         {

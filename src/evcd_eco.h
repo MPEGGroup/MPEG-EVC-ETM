@@ -53,20 +53,7 @@ int evcd_eco_alf_aps_param(EVC_BSR * bs, EVC_APS * aps);
 int evcd_eco_tgh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh);
 
 int evcd_eco_udata(EVCD_CTX * ctx, EVC_BSR * bs);
-
 void evcd_eco_sbac_reset(EVC_BSR * bs, u8 tile_group_type, u8 tile_group_qp, int sps_cm_init_flag);
-
-int evcd_eco_inter_dir(EVC_BSR * bs, EVCD_SBAC * sbac, int *direct_idx, int type, u8 mvr_idx
-#if USE_IBC
-  , u8 ibc_flag
-#endif
-  , u16 avail_lr);
-int evcd_eco_intra_dir(EVC_BSR * bs, EVCD_SBAC * sbac, u8 mpm[2], u8 mpm_ext[8], u8 pims[IPD_CNT]);
-int evcd_eco_intra_dir_b(EVC_BSR * bs, EVCD_SBAC * sbac, u8 * mpm, u8 mpm_ext[8], u8 pims[IPD_CNT]);
-int evcd_eco_intra_dir_c(EVC_BSR * bs, EVCD_SBAC * sbac, u8 ipm_l);
-
-int evcd_eco_coef(EVCD_CTX * ctx, EVCD_CORE * core);
-
 int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core);
 
 s8 evcd_eco_split_mode(EVCD_CTX * ctx, EVC_BSR *bs, EVCD_SBAC *sbac, int cuw, int cuh, const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int* curr_split_allow, int qt_depth, int btt_depth, int x, int y);
@@ -75,13 +62,7 @@ s8 evcd_eco_suco_flag(EVC_BSR *bs, EVCD_SBAC *sbac, EVCD_CTX *c, EVCD_CORE *core
     ((int)evcd_sbac_decode_bin_trm((bs), (sbac)))
 
 #if AFFINE
-#define evcd_eco_affine_flag(bs, sbac) \
-    (evcd_sbac_decode_bin((bs), (sbac), (sbac)->ctx.affine_flag))
-#define evcd_eco_affine_mode(bs, sbac) \
-    (evcd_sbac_decode_bin((bs), (sbac), (sbac)->ctx.affine_mode))
 int evcd_eco_affine_mrg_idx(EVC_BSR * bs, EVCD_SBAC * sbac);
-#define evcd_eco_affine_mvd_flag(bs, sbac, refi) \
-    (evcd_sbac_decode_bin((bs), (sbac), &(sbac)->ctx.affine_mvd_flag[refi]))
 #endif
 
 #endif /* _EVCD_ECO_H_ */

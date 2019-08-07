@@ -100,7 +100,11 @@
 #define ENC_ECU_DEPTH_B                    8 // for early CU termination
 #define MULTI_REF_ME_STEP                  1 // for ME speed-up
 #if MERGE
+#if M48879_IMPROVEMENT_ENC_OPT
+#define FAST_MERGE_THR                     1.3
+#else
 #define FAST_MERGE_THR                     1.1
+#endif
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -192,8 +196,14 @@
 #define MAX_NUM_MVR                        5
 #define FAST_MVR_IDX                       2
 #define SKIP_MVR_IDX                       1
+#if M48879_IMPROVEMENT_ENC_OPT
+#define MAX_NUM_BI                         3
+#else
 #define MAX_NUM_BI                         4
+#endif
+#if !M48879_IMPROVEMENT_ENC_OPT
 #define SKIP_BI_IDX                        1
+#endif
 /* AMVR (END)  */
 
 /* DBF (START) */
@@ -298,10 +308,17 @@ enum SAD_POINT_INDEX
 
  // AFFINE Constant
 #define VER_NUM                            4
+#if M48879_IMPROVEMENT_SUCO
+#define AFFINE_MAX_NUM_LT                  3 ///< max number of motion candidates in top-left corner
+#define AFFINE_MAX_NUM_RT                  3 ///< max number of motion candidates in top-right corner
+#define AFFINE_MAX_NUM_LB                  2 ///< max number of motion candidates in left-bottom corner
+#define AFFINE_MAX_NUM_RB                  2 ///< max number of motion candidates in right-bottom corner
+#else
 #define AFFINE_MAX_NUM_LT                  3 ///< max number of motion candidates in top-left corner
 #define AFFINE_MAX_NUM_RT                  2 ///< max number of motion candidates in top-right corner
 #define AFFINE_MAX_NUM_LB                  2 ///< max number of motion candidates in left-bottom corner
 #define AFFINE_MAX_NUM_RB                  1 ///< max number of motion candidates in right-bottom corner
+#endif
 #define AFFINE_MIN_BLOCK_SIZE              4 ///< Minimum affine MC block size
 
 #define AFF_MAX_NUM_MVP                    2 // maximum affine inter candidates
@@ -1316,6 +1333,9 @@ typedef struct _EVC_PPS
     int explicit_tile_id_flag;
     int tile_id_val[MAX_NUM_TILES_ROW][MAX_NUM_TILES_COL];
     int arbitrary_tile_group_present_flag;
+#if M48879_IMPROVEMENT_INTRA
+    int constrained_intra_pred_flag;
+#endif
 } EVC_PPS;
 
 /*****************************************************************************
@@ -1452,6 +1472,9 @@ typedef struct _EVC_TGH
 
 #if ALF
     u8               alf_on;
+#if M48879_IMPROVEMENT_INTER
+    u8               mmvd_group_enable_flag;
+#endif
     u8               ctb_alf_on;
     u16              num_ctb;
 #if ALF_PARAMETER_APS

@@ -41,6 +41,14 @@ extern "C"
 {
 #endif
 
+#define M48879_IMPROVEMENT              1
+#if M48879_IMPROVEMENT
+#define M48879_IMPROVEMENT_ENC_OPT      1
+#define M48879_IMPROVEMENT_INTRA        1
+#define M48879_IMPROVEMENT_INTER        1
+#define M48879_IMPROVEMENT_SUCO         1
+#endif
+
 #define USE_TILE_GROUP_DQP              1
 #define HLS_M47668                      1
 #define USE_IBC                         1 // use intra-block copy feature
@@ -74,6 +82,7 @@ extern "C"
 
 #define ROOT_CBF_RDO_BIT_FIX            1
 #define ALF_PARAMETER_APS               1
+
 /*****************************************************************************
  * return values and error code
  *****************************************************************************/
@@ -493,6 +502,9 @@ typedef struct _EVCE_CDSC
 #endif
 #if ATS_INTER_PROCESS
     int            tool_ats_inter;
+#endif
+#if M48879_IMPROVEMENT_INTRA
+    int            constrained_intra_pred;
 #endif
 
     EVC_RPL rpls_l0[MAX_NUM_RPLS];
