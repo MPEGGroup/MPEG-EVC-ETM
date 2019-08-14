@@ -2401,28 +2401,30 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
 #endif
 
 #if ADMVP
-    if(ctx->sps.tool_admvp == 0)
-        evc_get_motion_skip(ctx->ptr, ctx->tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, pi->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, pi->refi_pred, pi->mvp, ctx->map_scu, core->avail_cu
-                            , ctx->map_unrefined_mv
-                            , core->history_buffer, ctx->sps.tool_admvp
-#if USE_IBC
-          , core->ibc_flag
-#endif
+#if M49023_ADMVP_IMPROVE
+    if (ctx->sps.tool_admvp == 0)
+        evc_get_motion_skip_baseline(ctx->tgh.tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, pi->refi_pred, pi->mvp, core->avail_cu
         );
     else
 #endif
-        evc_get_motion_skip(ctx->ptr, ctx->tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, pi->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, pi->refi_pred, pi->mvp, ctx->map_scu, core->avail_lr
+#endif
+#if M49023_ADMVP_IMPROVE
+        evc_get_motion_merge_main(ctx->ptr, ctx->tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, pi->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, pi->refi_pred, pi->mvp, ctx->map_scu, core->avail_lr
 #if DMVR_LAG
-                            , ctx->map_unrefined_mv
+            , ctx->map_unrefined_mv
 #endif
 #if ADMVP
-                            , core->history_buffer, ctx->sps.tool_admvp
+            , core->history_buffer
 #endif
 #if USE_IBC
-          , core->ibc_flag
+            , core->ibc_flag
 #endif
-
+#if M49023_ADMVP_IMPROVE
+            , (EVC_REFP(*)[2])ctx->refp[0]
+            , &ctx->tgh
+#endif
         );
+#endif
 
     pi->mvp_idx[PRED_SKIP][REFP_0] = 0;
     pi->mvp_idx[PRED_SKIP][REFP_1] = 0;
@@ -2659,27 +2661,30 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
     core->mmvd_flag = 0;
 
 #if ADMVP
-    if(ctx->sps.tool_admvp == 0)
-        evc_get_motion_skip(ctx->ptr, ctx->tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, pi->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, pi->refi_pred, pi->mvp, ctx->map_scu, core->avail_cu
-                            , ctx->map_unrefined_mv
-                            , core->history_buffer, ctx->sps.tool_admvp
-#if USE_IBC
-          , core->ibc_flag
-#endif
+#if M49023_ADMVP_IMPROVE
+    if (ctx->sps.tool_admvp == 0)
+        evc_get_motion_skip_baseline(ctx->tgh.tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, pi->refi_pred, pi->mvp, core->avail_cu
         );
     else
 #endif
-        evc_get_motion_skip(ctx->ptr, ctx->tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, pi->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, pi->refi_pred, pi->mvp, ctx->map_scu, core->avail_lr
+#endif
+#if M49023_ADMVP_IMPROVE
+        evc_get_motion_merge_main(ctx->ptr, ctx->tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, pi->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, pi->refi_pred, pi->mvp, ctx->map_scu, core->avail_lr
 #if DMVR_LAG
-                            , ctx->map_unrefined_mv
+            , ctx->map_unrefined_mv
 #endif
 #if ADMVP
-                            , core->history_buffer, ctx->sps.tool_admvp
+            , core->history_buffer
 #endif
 #if USE_IBC
-          , core->ibc_flag
+            , core->ibc_flag
+#endif
+#if M49023_ADMVP_IMPROVE
+            , (EVC_REFP(*)[2])ctx->refp[0]
+            , &ctx->tgh
 #endif
         );
+#endif
 #if ADMVP
     for(idx0 = 0; idx0 < (cuw*cuh <= NUM_SAMPLES_BLOCK ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP); idx0++)
 #else
@@ -5842,6 +5847,9 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
         evc_get_mmvd_mvp_list(ctx->map_refi, ctx->refp[0], ctx->map_mv, ctx->w_scu, ctx->h_scu, core->scup, core->avail_cu, log2_cuw, log2_cuh, ctx->tile_group_type, real_mv, ctx->map_scu, REF_SET, core->avail_lr
 #if ADMVP
                               , core->history_buffer, ctx->sps.tool_admvp
+#endif
+#if M49023_ADMVP_IMPROVE 
+            , &ctx->tgh
 #endif
         );
     }

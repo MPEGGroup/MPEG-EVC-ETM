@@ -139,7 +139,7 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
     evc_bsw_write1(bs, sps->tool_cm_init);
 #if USE_IBC
     evc_bsw_write1(bs, sps->ibc_flag);
-	if (sps->ibc_flag)
+    if (sps->ibc_flag)
        evc_bsw_write_ue(bs, (u32)(sps->ibc_log_max_size - 2));
 #endif
 #if ATS_INTRA_PROCESS
@@ -318,6 +318,15 @@ int evce_eco_tgh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh)
     evc_bsw_write(bs, tgh->dtr, DTR_BIT_CNT);
     evc_bsw_write(bs, tgh->layer_id, 3);
 #endif
+#if M49023_ADMVP_IMPROVE
+    evc_bsw_write1(bs, tgh->temporal_mvp_asigned_flag);
+    if (tgh->temporal_mvp_asigned_flag)
+    {
+        evc_bsw_write1(bs, tgh->collocated_from_list_idx);
+        evc_bsw_write1(bs, tgh->collocated_from_ref_idx);
+        evc_bsw_write1(bs, tgh->collocated_mvp_source_list_idx);
+    }
+#endif
     evc_bsw_write_ue(bs, tgh->tile_group_pic_parameter_set_id);
     evc_bsw_write1(bs, tgh->single_tile_in_tile_group_flag);
     evc_bsw_write(bs, tgh->first_tile_id, pps->tile_id_len_minus1 + 1);
@@ -445,6 +454,10 @@ int evce_eco_tgh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh)
     }
 
     evc_bsw_write1(bs, tgh->deblocking_filter_on);
+#if M49023_DBF_IMPROVE
+    evc_bsw_write_se(bs, tgh->tgh_deblock_alpha_offset);
+    evc_bsw_write_se(bs, tgh->tgh_deblock_beta_offset);
+#endif
     evc_bsw_write(bs, tgh->qp, 6);
     evc_bsw_write_se(bs, (int)tgh->qp - (int)tgh->qp_u);
     evc_bsw_write_se(bs, (int)tgh->qp - (int)tgh->qp_v);
@@ -1766,7 +1779,7 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
 
     int cbf_all = 0;
 #if ATS_INTRA_PROCESS
-	u8 is_intra = (pred_mode == MODE_INTRA) ? 1 : 0;
+    u8 is_intra = (pred_mode == MODE_INTRA) ? 1 : 0;
 #endif
 #if ATS_INTER_PROCESS
     u8 ats_inter_avail = check_ats_inter_info_coded(1 << log2_cuw, 1 << log2_cuh, pred_mode, tool_ats_inter);
@@ -1797,15 +1810,15 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
             evce_eco_cbf(bs, !!nnz_sub[Y_C][(j << 1) | i], !!nnz_sub[U_C][(j << 1) | i], !!nnz_sub[V_C][(j << 1) | i], pred_mode, b_no_cbf, is_sub, j + i, cbf_all, run);
 
 #if ATS_INTRA_PROCESS
-			if (tool_ats_intra && (!!nnz_sub[Y_C][(j << 1) | i]) && (log2_cuw <= 5 && log2_cuh <= 5) && is_intra)
-			{
-				evce_eco_ats_intra_cu(bs, ats_intra_cu, ((log2_cuw > log2_cuh) ? log2_cuw : log2_cuh) - MIN_CU_LOG2);
-				if (ats_intra_cu)
-				{
-					evce_eco_ats_tu_h(bs, (ats_tu >> 1), is_intra);
-					evce_eco_ats_tu_v(bs, (ats_tu & 1), is_intra);
-				}
-		}
+            if (tool_ats_intra && (!!nnz_sub[Y_C][(j << 1) | i]) && (log2_cuw <= 5 && log2_cuh <= 5) && is_intra)
+            {
+                evce_eco_ats_intra_cu(bs, ats_intra_cu, ((log2_cuw > log2_cuh) ? log2_cuw : log2_cuh) - MIN_CU_LOG2);
+                if (ats_intra_cu)
+                {
+                    evce_eco_ats_tu_h(bs, (ats_tu >> 1), is_intra);
+                    evce_eco_ats_tu_v(bs, (ats_tu & 1), is_intra);
+                }
+        }
 #endif
 
 #if ATS_INTER_PROCESS
@@ -1846,7 +1859,7 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
 
                     evce_eco_xcoef(bs, coef_temp[c], log2_w_sub - (!!c), log2_h_sub - (!!c), nnz_sub[c][(j << 1) | i], c
 #if COEFF_CODE_ADCC  
-									, ctx->sps.tool_adcc
+                                    , ctx->sps.tool_adcc
 #endif   
                     );
 

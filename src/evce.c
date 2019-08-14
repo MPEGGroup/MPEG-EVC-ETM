@@ -373,6 +373,10 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
     param->i_period       = cdsc->iperiod;
     param->f_ifrm         = 0;
     param->use_deblock    = 1;
+#if M49023_DBF_IMPROVE
+    param->deblock_alpha_offset = cdsc->deblock_aplha_offset;
+    param->deblock_beta_offset = cdsc->deblock_beta_offset;
+#endif
     param->qp_max         = MAX_QUANT;
     param->qp_min         = MIN_QUANT;
     param->use_pic_sign   = 0;
@@ -429,7 +433,7 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->closed_gop = (ctx->param.use_closed_gop) ? 1 : 0;
 #if USE_IBC
     sps->ibc_flag = (ctx->param.use_ibc_flag) ? 1 : 0;
-	sps->ibc_log_max_size = IBC_MAX_CU_LOG2;
+    sps->ibc_log_max_size = IBC_MAX_CU_LOG2;
 #endif
     if(ctx->param.max_b_frames > 0)
     {
@@ -809,11 +813,19 @@ static void set_tgh(EVCE_CTX *ctx, EVC_TGH *tgh)
     tgh->tile_group_type = ctx->tile_group_type;
     tgh->keyframe = (tgh->tile_group_type == TILE_GROUP_I) ? 1 : 0;
     tgh->deblocking_filter_on = (ctx->param.use_deblock) ? 1 : 0;
+#if M49023_DBF_IMPROVE
+    tgh->tgh_deblock_alpha_offset = ctx->param.deblock_alpha_offset;
+    tgh->tgh_deblock_beta_offset = ctx->param.deblock_beta_offset;
+#endif
     tgh->udata_exist = (ctx->param.use_pic_sign) ? 1 : 0;
     tgh->dptr = ctx->ptr - ctx->dtr;
     tgh->layer_id = ctx->layer_id;
     tgh->single_tile_in_tile_group_flag = 1;
-    
+#if M49023_ADMVP_IMPROVE
+    tgh->collocated_from_list_idx = (tgh->tile_group_type == TILE_GROUP_P) ? REFP_0 : REFP_1;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
+    tgh->collocated_from_ref_idx = 0;        // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
+    tgh->collocated_mvp_source_list_idx = REFP_0;  // Specifies source (List ID) in collocated pic that provides MV information (Applicability is function of NoBackwardPredFlag)
+#endif 
     if (!ctx->sps.picture_num_present_flag)
     {
         tgh->poc = ctx->ptr;
@@ -854,6 +866,10 @@ static void set_tgh(EVCE_CTX *ctx, EVC_TGH *tgh)
     tgh->qp = (u8)EVC_CLIP3(-(6 * (BIT_DEPTH - 8)), MAX_QUANT, qp);
     tgh->qp_u = (u8)(tgh->qp + ctx->cdsc.cb_qp_offset); 
     tgh->qp_v = (u8)(tgh->qp + ctx->cdsc.cr_qp_offset);
+#if M49023_DBF_IMPROVE
+    tgh->tgh_deblock_alpha_offset = ctx->cdsc.deblock_aplha_offset;
+    tgh->tgh_deblock_beta_offset = ctx->cdsc.deblock_beta_offset;
+#endif
 
     qp_l_i = tgh->qp;
     ctx->lambda[0] = 0.57 * pow(2.0, (qp_l_i - 12.0) / 3.0);
@@ -1148,7 +1164,10 @@ int evce_ready(EVCE_CTX * ctx)
     ctx->pico_max_cnt = 1 + (ctx->param.max_b_frames << 1) ;
     ctx->frm_rnum = ctx->param.max_b_frames;
     ctx->qp = ctx->param.qp;
-
+#if M49023_DBF_IMPROVE
+    ctx->deblock_alpha_offset = ctx->param.deblock_alpha_offset;
+    ctx->deblock_beta_offset = ctx->param.deblock_beta_offset;
+#endif
     for(i = 0; i < ctx->pico_max_cnt; i++)
     {
         ctx->pico_buf[i] = (EVCE_PICO*)evc_malloc(sizeof(EVCE_PICO));
@@ -1243,7 +1262,10 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
     s8  split_mode;
     int lcu_num;
     s8  suco_flag = 0;
-
+#if M49023_DBF_IMPROVE
+    pic->pic_deblock_alpha_offset = ctx->tgh.tgh_deblock_alpha_offset;
+    pic->pic_deblock_beta_offset = ctx->tgh.tgh_deblock_beta_offset;
+#endif
     lcu_num = (x >> ctx->log2_max_cuwh) + (y >> ctx->log2_max_cuwh) * ctx->w_lcu;
     evc_get_split_mode(&split_mode, cud, cup, cuw, cuh, ctx->max_cuwh, ctx->map_cu_data[lcu_num].split_mode);
     evc_get_suco_flag(&suco_flag, cud, cup, cuw, cuh, ctx->max_cuwh, ctx->map_cu_data[lcu_num].suco_flag);
@@ -1280,12 +1302,24 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
         {
             if (cuh > MAX_TR_SIZE)
             {
-                evc_deblock_cu_hor(pic, x, y              , cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp);
-                evc_deblock_cu_hor(pic, x, y + MAX_TR_SIZE, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp);
+                evc_deblock_cu_hor(pic, x, y              , cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp
+#if M49023_DBF_IMPROVE
+                    , 0
+#endif
+                );
+                evc_deblock_cu_hor(pic, x, y + MAX_TR_SIZE, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp
+#if M49023_DBF_IMPROVE
+                    , 0
+#endif
+                );
             }
             else
             {
-                evc_deblock_cu_hor(pic, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp);
+                evc_deblock_cu_hor(pic, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp
+#if M49023_DBF_IMPROVE
+                    , 0
+#endif
+                );
 #if ATS_INTER_PROCESS // deblock
                 if (ats_inter_idx && is_ats_inter_horizontal(ats_inter_idx))
                 {
@@ -1293,7 +1327,12 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                     y_offset = ats_inter_pos == 0 ? y_offset : cuh - y_offset;
                     if ((y + y_offset) % 8 == 0)
                     {
-                        evc_deblock_cu_hor(pic, x, y + y_offset, cuw, cuh - y_offset, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp);
+                        evc_deblock_cu_hor(pic, x, y + y_offset, cuw, cuh - y_offset, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp
+#if M49023_DBF_IMPROVE
+                            , ats_inter_pos + 1
+#endif
+
+                        );
                     }
                 }
 #endif
@@ -1308,12 +1347,18 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                     , ctx->map_cu_mode
 #endif
                     , ctx->refp
+#if M49023_DBF_IMPROVE
+                    , 0
+#endif
                 );
                 evc_deblock_cu_ver(pic, x + MAX_TR_SIZE, y, cuw >> 1, cuh, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh
 #if FIX_PARALLEL_DBF
                     , ctx->map_cu_mode
 #endif                            
                     , ctx->refp
+#if M49023_DBF_IMPROVE
+                    , 0
+#endif
                 );
             }
             else
@@ -1323,6 +1368,9 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                                    , ctx->map_cu_mode
 #endif
                                    , ctx->refp
+#if M49023_DBF_IMPROVE
+                    , 0
+#endif
                 );
 #if ATS_INTER_PROCESS // deblock
                 if (ats_inter_idx && !is_ats_inter_horizontal(ats_inter_idx))
@@ -1336,6 +1384,9 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                                            , ctx->map_cu_mode
 #endif
                                            , ctx->refp
+#if M49023_DBF_IMPROVE
+                            , ats_inter_pos + 1
+#endif
                         );
                     }
                 }
@@ -2142,6 +2193,15 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
         /* reference picture lists construction */
         ret = evc_picman_refp_rpl_based_init(&ctx->rpm, tgh, ctx->refp);
+#if M49023_ADMVP_IMPROVE
+        if (tgh->tile_group_type != TILE_GROUP_I)
+        {
+            int dptr0 = (int)(ctx->ptr) - (int)(ctx->refp[0][REFP_0].ptr);
+            int dptr1 = (int)(ctx->ptr) - (int)(ctx->refp[0][REFP_1].ptr);
+            tgh->temporal_mvp_asigned_flag = !(((dptr0 > 0) && (dptr1 > 0)) || ((dptr0 < 0) && (dptr1 < 0)));
+            //            printf("tmvp: %d %d %d %d\n", ctx->ptr, ctx->refp[0][REFP_0].ptr, ctx->refp[0][REFP_1].ptr, tgh->temporal_mvp_asigned_flag);
+        }
+#endif
     }
     evc_assert_rv(ret == EVC_OK, ret);
 
@@ -2779,6 +2839,18 @@ int evce_config(EVCE id, int cfg, void * buf, int * size)
             t0 = *((int *)buf);
             ctx->param.use_deblock = t0;
             break;
+#if M49023_DBF_IMPROVE
+        case EVCE_CFG_SET_DEBLOCK_A_OFFSET:
+            evc_assert_rv(*size == sizeof(int), EVC_ERR_INVALID_ARGUMENT);
+            t0 = *((int *)buf);
+            ctx->param.deblock_alpha_offset = t0;
+            break;
+        case EVCE_CFG_SET_DEBLOCK_B_OFFSET:
+            evc_assert_rv(*size == sizeof(int), EVC_ERR_INVALID_ARGUMENT);
+            t0 = *((int *)buf);
+            ctx->param.deblock_beta_offset = t0;
+            break;
+#endif
         case EVCE_CFG_SET_USE_PIC_SIGNATURE:
             ctx->param.use_pic_sign = (*((int *)buf)) ? 1 : 0;
             break;
@@ -2822,6 +2894,16 @@ int evce_config(EVCE id, int cfg, void * buf, int * size)
             evc_assert_rv(*size == sizeof(int), EVC_ERR_INVALID_ARGUMENT);
             *((int *)buf) = ctx->param.use_hgop;
             break;
+#if M49023_DBF_IMPROVE
+        case EVCE_CFG_GET_DEBLOCK_A_OFFSET:
+            evc_assert_rv(*size == sizeof(int), EVC_ERR_INVALID_ARGUMENT);
+            *((int *)buf) = ctx->param.deblock_alpha_offset;
+            break;
+        case EVCE_CFG_GET_DEBLOCK_B_OFFSET:
+            evc_assert_rv(*size == sizeof(int), EVC_ERR_INVALID_ARGUMENT);
+            *((int *)buf) = ctx->param.deblock_beta_offset;
+            break;
+#endif
         default:
             evc_trace("unknown config value (%d)\n", cfg);
             evc_assert_rv(0, EVC_ERR_UNSUPPORTED);

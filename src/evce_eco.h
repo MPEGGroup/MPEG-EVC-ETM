@@ -90,7 +90,7 @@ void evce_eco_inter_t_direct(EVC_BSW *bs, int t_direct_flag);
 //! \todo Change list of arguments
 void evce_eco_xcoef(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num_sig, int ch_type
 #if COEFF_CODE_ADCC  
-					, int tool_adcc
+                    , int tool_adcc
 #endif
 );
 //! \todo Change list of arguments

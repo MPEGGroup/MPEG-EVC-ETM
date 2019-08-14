@@ -860,6 +860,9 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #if ADMVP
         , core->history_buffer, ctx->sps.tool_admvp
 #endif
+#if M49023_ADMVP_IMPROVE 
+        , &ctx->tgh
+#endif
     );
 
     core->mv[REFP_0][MV_X] = real_mv[core->mmvd_idx][0][MV_X];
