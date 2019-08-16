@@ -2764,7 +2764,14 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 #endif
       )
     {
+#if USE_IBC
+        if(!(ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
+        {
+#endif
         evce_eco_skip_flag(bs, core->skip_flag, ctx->ctx_flags[CNID_SKIP_FLAG]);
+#if USE_IBC
+        }
+#endif
         if(core->skip_flag)
         {
             if(ctx->sps.tool_mmvd)
