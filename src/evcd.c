@@ -529,7 +529,7 @@ static void update_history_buffer_parse_affine(EVCD_CORE *core, int tile_group_t
             core->history_buffer.history_cu_table[i - 1] = core->history_buffer.history_cu_table[i];
 #endif
         }
-
+#if !M49023_ADMVP_IMPROVE
         if(core->affine_flag)
         {
             // some spatial neighbor may be unavailable
@@ -544,6 +544,7 @@ static void update_history_buffer_parse_affine(EVCD_CORE *core, int tile_group_t
             }
         }
         else
+#endif
         {
             evc_mcpy(core->history_buffer.history_mv_table[core->history_buffer.currCnt - 1], core->mv, REFP_NUM * MV_D * sizeof(s16));
             evc_mcpy(core->history_buffer.history_refi_table[core->history_buffer.currCnt - 1], core->refi, REFP_NUM * sizeof(s8));
@@ -554,6 +555,7 @@ static void update_history_buffer_parse_affine(EVCD_CORE *core, int tile_group_t
     }
     else
     {
+#if !M49023_ADMVP_IMPROVE
         if(core->affine_flag)
         {
             if((tile_group_type == TILE_GROUP_P && REFI_IS_VALID(core->refi_sp[REFP_0])) ||
@@ -564,6 +566,7 @@ static void update_history_buffer_parse_affine(EVCD_CORE *core, int tile_group_t
             }
         }
         else
+#endif
         {
             evc_mcpy(core->history_buffer.history_mv_table[core->history_buffer.currCnt], core->mv, REFP_NUM * MV_D * sizeof(s16));
             evc_mcpy(core->history_buffer.history_refi_table[core->history_buffer.currCnt], core->refi, REFP_NUM * sizeof(s8));
@@ -587,32 +590,34 @@ void evcd_get_direct_motion(EVCD_CTX * ctx, EVCD_CORE * core)
     cuw = (1 << core->log2_cuw);
     cuh = (1 << core->log2_cuh);
 #if ADMVP
+#if M49023_ADMVP_IMPROVE
     if (ctx->sps.tool_admvp == 0)
     {
-        evc_get_motion_skip(ctx->ptr, ctx->tgh.tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, srefi, smvp, ctx->map_scu, core->avail_cu
-            , ctx->map_unrefined_mv
-            , core->history_buffer, ctx->sps.tool_admvp
-#if USE_IBC
-            , core->ibc_flag
-#endif
+        evc_get_motion_skip_baseline(ctx->tgh.tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, srefi, smvp, core->avail_cu
         );
     }
     else
     {
 #endif
-        evc_get_motion_skip(ctx->ptr, ctx->tgh.tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, srefi, smvp, ctx->map_scu, core->avail_lr
+#endif
+#if M49023_ADMVP_IMPROVE
+        evc_get_motion_merge_main(ctx->ptr, ctx->tgh.tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, srefi, smvp, ctx->map_scu, core->avail_lr
 #if DMVR_LAG
             , ctx->map_unrefined_mv
 #endif
 #if ADMVP
-            , core->history_buffer, ctx->sps.tool_admvp
+            , core->history_buffer
 #endif
 #if USE_IBC
             , core->ibc_flag
 #endif
+#if M49023_ADMVP_IMPROVE
+            , (EVC_REFP(*)[2])ctx->refp[0]
+            , &ctx->tgh
+#endif
         );
     }
-
+#endif
 
     core->refi[REFP_0] = srefi[REFP_0][core->mvp_idx[REFP_0]];
     core->refi[REFP_1] = srefi[REFP_1][core->mvp_idx[REFP_1]];
@@ -750,7 +755,11 @@ void evcd_get_inter_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #if AFFINE
 void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 {
+#if M49023_ADMVP_IMPROVE
+    int          cuw, cuh;
+#else
     int          cuw, cuh, k;
+#endif
     s16          affine_mvp[MAX_NUM_MVP][VER_NUM][MV_D];
     s8           refi[MAX_NUM_MVP];
     
@@ -848,7 +857,7 @@ void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
             }
         }
     }
-
+#if !M49023_ADMVP_IMPROVE
 #if AFFINE_UPDATE
     core->refi_sp[REFP_0] = REFI_INVALID;
     core->refi_sp[REFP_1] = REFI_INVALID;
@@ -893,6 +902,7 @@ void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
             break;
         }
     }
+#endif
 #endif
 }
 #endif
@@ -1003,8 +1013,8 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
     else
 #endif
     if(core->pred_mode != MODE_INTRA)
-    {	
-	    core->avail_cu = evc_get_avail_inter(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, cuw, cuh, ctx->map_scu);
+    {    
+        core->avail_cu = evc_get_avail_inter(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, cuw, cuh, ctx->map_scu);
 #if DMVR
         if (ctx->sps.tool_dmvr)
         {
@@ -1021,7 +1031,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 #endif
         }
 #endif
-	
+    
 #if AFFINE
         if(core->affine_flag)
         {
@@ -1115,11 +1125,19 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
         );
 #endif
 #if AFFINE && ADMVP && AFFINE_UPDATE 
-        if(core->pred_mode != MODE_INTRA
+#if M49023_ADMVP_IMPROVE
+        if (core->pred_mode != MODE_INTRA && !core->affine_flag
 #if USE_IBC
-          && core->pred_mode != MODE_IBC
+            && core->pred_mode != MODE_IBC
 #endif
-          )
+            )
+#else
+        if (core->pred_mode != MODE_INTRA
+#if USE_IBC
+            && core->pred_mode != MODE_IBC
+#endif
+            )
+#endif
         {
             update_history_buffer_parse_affine(core, ctx->tgh.tile_group_type
             );
@@ -1439,12 +1457,24 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
         {
             if (cuh > MAX_TR_SIZE)
             {
-                evc_deblock_cu_hor(pic, x, y              , cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp);
-                evc_deblock_cu_hor(pic, x, y + MAX_TR_SIZE, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp);
+                evc_deblock_cu_hor(pic, x, y              , cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp
+#if M49023_DBF_IMPROVE
+                    , 0
+#endif
+                );
+                evc_deblock_cu_hor(pic, x, y + MAX_TR_SIZE, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp
+#if M49023_DBF_IMPROVE
+                    , 0
+#endif                
+                );
             }
             else
             {
-                evc_deblock_cu_hor(pic, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp);
+                evc_deblock_cu_hor(pic, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp
+#if M49023_DBF_IMPROVE
+                    , 0
+#endif
+                );
 #if ATS_INTER_PROCESS // deblock
                 if (ats_inter_idx && is_ats_inter_horizontal(ats_inter_idx))
                 {
@@ -1452,7 +1482,11 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                     y_offset = ats_inter_pos == 0 ? y_offset : cuh - y_offset;
                     if ((y + y_offset) % 8 == 0)
                     {
-                        evc_deblock_cu_hor(pic, x, y + y_offset, cuw, cuh - y_offset, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp);
+                        evc_deblock_cu_hor(pic, x, y + y_offset, cuw, cuh - y_offset, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp
+#if M49023_DBF_IMPROVE
+                            , ats_inter_pos + 1
+#endif
+                        );
                     }
                 }
 #endif
@@ -1467,12 +1501,18 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                     , ctx->map_cu_mode
 #endif
                     , ctx->refp
+#if M49023_DBF_IMPROVE
+                    , 0
+#endif
                 );
                 evc_deblock_cu_ver(pic, x + MAX_TR_SIZE, y, cuw >> 1, cuh, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh
 #if FIX_PARALLEL_DBF
                     , ctx->map_cu_mode
 #endif
                     , ctx->refp
+#if M49023_DBF_IMPROVE
+                    , 0
+#endif
                 );
             }
             else
@@ -1482,6 +1522,9 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                                    , ctx->map_cu_mode
 #endif
                                    , ctx->refp
+#if M49023_DBF_IMPROVE
+                    , 0
+#endif
                 );
 #if ATS_INTER_PROCESS // deblock
                 if (ats_inter_idx && !is_ats_inter_horizontal(ats_inter_idx))
@@ -1495,6 +1538,9 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                                            , ctx->map_cu_mode
 #endif
                                            , ctx->refp
+#if M49023_DBF_IMPROVE
+                            , ats_inter_pos + 1
+#endif
                         );
                     }
                 }
@@ -1508,7 +1554,10 @@ int evcd_deblock_h263(EVCD_CTX * ctx)
 {
     int i, j;
     u32 k;
-
+#if M49023_DBF_IMPROVE
+    ctx->pic->pic_deblock_alpha_offset = ctx->tgh.tgh_deblock_alpha_offset;
+    ctx->pic->pic_deblock_beta_offset = ctx->tgh.tgh_deblock_beta_offset;
+#endif
     for(k = 0; k < ctx->f_scu; k++)
     {
         MCU_CLR_COD(ctx->map_scu[k]);

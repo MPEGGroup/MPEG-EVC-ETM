@@ -808,7 +808,7 @@ static int evcd_eco_ccA(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int log2_w, int
 
 static int evcd_eco_xcoef(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int log2_w, int log2_h, int ch_type
 #if ATS_INTER_PROCESS
-	, u8 ats_inter_info, int is_intra
+    , u8 ats_inter_info, int is_intra
 #endif
 #if COEFF_CODE_ADCC
     , int tool_adcc
@@ -1110,7 +1110,7 @@ int evcd_eco_coef(EVCD_CTX * ctx, EVCD_CORE * core)
 #if ATS_INTRA_PROCESS
     u8 ats_intra_cu_on = 0;
     u8 ats_tu_mode = 0;
-	u8 is_intra = (core->pred_mode == MODE_INTRA) ? 1 : 0;
+    u8 is_intra = (core->pred_mode == MODE_INTRA) ? 1 : 0;
 #endif
 
     evc_mset(core->is_coef_sub, 0, sizeof(int) * N_C * MAX_SUB_TB_NUM);
@@ -1124,25 +1124,25 @@ int evcd_eco_coef(EVCD_CTX * ctx, EVCD_CORE * core)
                 ret = eco_cbf(bs, sbac, core->pred_mode, cbf, b_no_cbf, is_sub, j + i, &cbf_all);
                 evc_assert_rv(ret == EVC_OK, ret);
 #if ATS_INTRA_PROCESS
-				if (ctx->sps.tool_ats_intra && cbf[Y_C] && (core->log2_cuw <= 5 && core->log2_cuh <= 5) && is_intra)
-				{
-					ats_intra_cu_on = evcd_eco_ats_intra_cu(bs, sbac, ((core->log2_cuw > core->log2_cuh) ? core->log2_cuw : core->log2_cuh) - MIN_CU_LOG2);
-					ats_tu_mode = 0;
-					if (ats_intra_cu_on)
-					{
-						u8 ats_intra_tu_h = evcd_eco_ats_tu_h(bs, sbac, is_intra);
-						u8 ats_intra_tu_v = evcd_eco_ats_tu_v(bs, sbac, is_intra);
-						ats_tu_mode = ((ats_intra_tu_h << 1) | ats_intra_tu_v);
-					}
-				}
-				else
-				{
-					ats_intra_cu_on = 0;
-					ats_tu_mode = 0;
-				}
-				core->ats_intra_cu = ats_intra_cu_on;
-				core->ats_intra_tu_h = (ats_tu_mode >> 1);
-				core->ats_intra_tu_v = (ats_tu_mode & 1);
+                if (ctx->sps.tool_ats_intra && cbf[Y_C] && (core->log2_cuw <= 5 && core->log2_cuh <= 5) && is_intra)
+                {
+                    ats_intra_cu_on = evcd_eco_ats_intra_cu(bs, sbac, ((core->log2_cuw > core->log2_cuh) ? core->log2_cuw : core->log2_cuh) - MIN_CU_LOG2);
+                    ats_tu_mode = 0;
+                    if (ats_intra_cu_on)
+                    {
+                        u8 ats_intra_tu_h = evcd_eco_ats_tu_h(bs, sbac, is_intra);
+                        u8 ats_intra_tu_v = evcd_eco_ats_tu_v(bs, sbac, is_intra);
+                        ats_tu_mode = ((ats_intra_tu_h << 1) | ats_intra_tu_v);
+                    }
+                }
+                else
+                {
+                    ats_intra_cu_on = 0;
+                    ats_tu_mode = 0;
+                }
+                core->ats_intra_cu = ats_intra_cu_on;
+                core->ats_intra_tu_h = (ats_tu_mode >> 1);
+                core->ats_intra_tu_v = (ats_tu_mode & 1);
 #endif
 
 #if ATS_INTER_PROCESS
@@ -1180,14 +1180,14 @@ int evcd_eco_coef(EVCD_CTX * ctx, EVCD_CORE * core)
 
                     evcd_eco_xcoef(bs, sbac, coef_temp[c], log2_w_sub - (!!c), log2_h_sub - (!!c), c
 #if ATS_INTER_PROCESS
-									, core->ats_inter_info, core->pred_mode == MODE_INTRA
+                                    , core->ats_inter_info, core->pred_mode == MODE_INTRA
 #endif
 #if COEFF_CODE_ADCC
-									, ctx->sps.tool_adcc
+                                    , ctx->sps.tool_adcc
 #endif
                     );
 
-					evc_assert_rv(ret == EVC_OK, ret);
+                    evc_assert_rv(ret == EVC_OK, ret);
 
                     core->is_coef_sub[c][(j << 1) | i] = 1;
                     tmp_coef[c] += 1;
@@ -2963,6 +2963,15 @@ int evcd_eco_tgh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh)
     tgh->dtr = evc_bsr_read(bs, DTR_BIT_CNT);
     tgh->layer_id = evc_bsr_read(bs, 3);
 #endif
+#if M49023_ADMVP_IMPROVE
+    tgh->temporal_mvp_asigned_flag = evc_bsr_read1(bs);
+    if (tgh->temporal_mvp_asigned_flag)
+    {
+        tgh->collocated_from_list_idx = evc_bsr_read1(bs);
+        tgh->collocated_from_ref_idx = evc_bsr_read1(bs);
+        tgh->collocated_mvp_source_list_idx = evc_bsr_read1(bs);
+    }
+#endif
     tgh->tile_group_pic_parameter_set_id = evc_bsr_read_ue(bs);
     tgh->single_tile_in_tile_group_flag = evc_bsr_read1(bs);
     tgh->first_tile_id = evc_bsr_read(bs, pps->tile_id_len_minus1 + 1);
@@ -3101,6 +3110,10 @@ int evcd_eco_tgh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh)
     }
 
     tgh->deblocking_filter_on = evc_bsr_read1(bs);
+#if M49023_DBF_IMPROVE
+    tgh->tgh_deblock_alpha_offset = evc_bsr_read_se(bs);
+    tgh->tgh_deblock_beta_offset = evc_bsr_read_se(bs);
+#endif
     tgh->qp = evc_bsr_read(bs, 6);
     tgh->qp_u = tgh->qp - evc_bsr_read_se(bs);
     tgh->qp_v = tgh->qp - evc_bsr_read_se(bs);

@@ -41,6 +41,13 @@ extern "C"
 {
 #endif
 
+#define M49023_IMPROVEMENT              1
+#if M49023_IMPROVEMENT
+#define PROFILE_SANITY_CHECK_FIX        1 
+#define M49023_DBF_IMPROVE              1
+#define M49023_ADMVP_IMPROVE            1
+#endif
+
 #define M48879_IMPROVEMENT              1
 #if M48879_IMPROVEMENT
 #define M48879_IMPROVEMENT_ENC_OPT      1
@@ -191,7 +198,10 @@ extern "C"
 #define EVCE_CFG_SET_QP_MAX             (209)
 #define EVCE_CFG_SET_BU_SIZE            (210)
 #define EVCE_CFG_SET_USE_DEBLOCK        (211)
-
+#if M49023_DBF_IMPROVE
+#define EVCE_CFG_SET_DEBLOCK_A_OFFSET     (212)
+#define EVCE_CFG_SET_DEBLOCK_B_OFFSET     (213)
+#endif
 #define EVCE_CFG_SET_USE_PIC_SIGNATURE  (301)
 
 #define EVCE_CFG_GET_COMPLEXITY         (500)
@@ -208,7 +218,10 @@ extern "C"
 #define EVCE_CFG_GET_USE_DEBLOCK        (610)
 #define EVCE_CFG_GET_CLOSED_GOP         (611)
 #define EVCE_CFG_GET_HIERARCHICAL_GOP   (612)
-
+#if M49023_DBF_IMPROVE
+#define EVCE_CFG_GET_DEBLOCK_A_OFFSET     (613)
+#define EVCE_CFG_GET_DEBLOCK_B_OFFSET     (614)
+#endif
 #define EVCE_CFG_GET_WIDTH              (701)
 #define EVCE_CFG_GET_HEIGHT             (702)
 #define EVCE_CFG_GET_RECON              (703)
@@ -505,7 +518,10 @@ typedef struct _EVCE_CDSC
 #if M48879_IMPROVEMENT_INTRA
     int            constrained_intra_pred;
 #endif
-
+#if M49023_DBF_IMPROVE
+    int               deblock_aplha_offset;
+    int               deblock_beta_offset;
+#endif
     EVC_RPL rpls_l0[MAX_NUM_RPLS];
     EVC_RPL rpls_l1[MAX_NUM_RPLS];
     int rpls_l0_cfg_num;

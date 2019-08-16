@@ -160,7 +160,10 @@ static int  op_tool_ats_inter     = 1; /* default on */
 #if M48879_IMPROVEMENT_INTRA
 static int  op_constrained_intra_pred = 0;
 #endif
-
+#if M49023_DBF_IMPROVE
+static int  op_deblock_alpha_offset = 0; /* default offset 0*/
+static int  op_deblock_beta_offset = 0; /* default offset 0*/
+#endif
 static char  op_rpl0[MAX_NUM_RPLS][256];
 static char  op_rpl1[MAX_NUM_RPLS][256];
 
@@ -227,8 +230,6 @@ typedef enum _OP_FLAGS
 #if COEFF_CODE_ADCC
     OP_TOOL_ADCC,
 #endif
-
-
     OP_CB_QP_OFFSET,
     OP_CR_QP_OFFSET,
 #if ATS_INTRA_PROCESS
@@ -239,6 +240,9 @@ typedef enum _OP_FLAGS
 #endif
 #if M48879_IMPROVEMENT_INTRA
     OP_CONSTRAINED_INTRA_PRED,
+#endif
+#if M49023_DBF_IMPROVE
+    OP_TOOL_DBFOFFSET,
 #endif
     OP_FLAG_RPL0_0,
     OP_FLAG_RPL0_1,
@@ -624,6 +628,18 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_CONSTRAINED_INTRA_PRED], &op_constrained_intra_pred,
         "constrained intra pred"
     },
+#if M49023_DBF_IMPROVE
+    {
+        EVC_ARGS_NO_KEY,  "dbfoffsetA", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_TOOL_DBFOFFSET], &op_deblock_alpha_offset,
+        "AVC Deblocking filter offset for alpha"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "dbfoffsetB", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_TOOL_DBFOFFSET], &op_deblock_beta_offset,
+        "AVC Deblocking filter offset for beta"
+    },
+#endif
 #endif
     {
         EVC_ARGS_NO_KEY,  "RPL0_0", EVC_ARGS_VAL_TYPE_STRING,
@@ -945,7 +961,10 @@ static int get_conf(EVCE_CDSC * cdsc)
 #if M48879_IMPROVEMENT_INTRA
     cdsc->constrained_intra_pred = op_constrained_intra_pred;
 #endif
-
+#if M49023_DBF_IMPROVE
+    cdsc->deblock_aplha_offset = op_deblock_alpha_offset;
+    cdsc->deblock_beta_offset = op_deblock_beta_offset;
+#endif
     for (int i = 0; i < MAX_NUM_RPLS && op_rpl0[i][0] != 0; ++i)
     {
         strtok(op_rpl0[i], " ");
@@ -1021,6 +1040,10 @@ static int print_enc_conf(EVCE_CDSC * cdsc)
 #if M48879_IMPROVEMENT_INTRA
     printf("CONSTRAINED_INTRA_PRED: %d ", cdsc->constrained_intra_pred);
 #endif
+#if M49023_DBF_IMPROVE
+    printf("DBFOffsetA: %d ", cdsc->deblock_aplha_offset);
+    printf("DBFOffsetB: %d ", cdsc->deblock_beta_offset);
+#endif
     printf("\n");
     return 0;
 }
@@ -1044,6 +1067,12 @@ int check_conf(EVCE_CDSC* cdsc)
         if (cdsc->tool_eipd    == 1) { v0print("EIPD cannot be on in base profile\n"); success = 0; }
         if (cdsc->tool_iqt     == 1) { v0print("IQT cannot be on in base profile\n"); success = 0; }
         if (cdsc->tool_cm_init == 1) { v0print("CM_INIT cannot be on in base profile\n"); success = 0; }
+#if PROFILE_SANITY_CHECK_FIX
+        if (cdsc->tool_adcc    == 1) { v0print("COEFF_CODE_ADCC cannot be on in base profile\n"); success = 0; }
+        if (cdsc->tool_ats_intra == 1) { v0print("ATS_INTRA cannot be on in base profile\n"); success = 0; }
+        if (cdsc->tool_ats_inter == 1) { v0print("ATS_INTER cannot be on in base profile\n"); success = 0; }
+        if (cdsc->ibc_flag     == 1)   { v0print("IBC cannot be on in base profile\n"); success = 0; }
+#endif
     }
     else
     {

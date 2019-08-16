@@ -1180,7 +1180,7 @@ void EncAdaptiveLoopFilter::copyAlfTileGroupParam(AlfTileGroupParam* alfTileGrou
     memcpy(alfTileGroupParamDst, alfTileGroupParamSrc, sizeof(AlfTileGroupParam));
 #if ALF_CTU_MAP_DYNAMIC
     alfTileGroupParamDst->alfCtuEnableFlag = temp;
-	memcpy(alfTileGroupParamDst->alfCtuEnableFlag, alfTileGroupParamSrc->alfCtuEnableFlag, m_numCTUsInPic * sizeof(u8));
+    memcpy(alfTileGroupParamDst->alfCtuEnableFlag, alfTileGroupParamSrc->alfCtuEnableFlag, m_numCTUsInPic * sizeof(u8));
 #endif
   }
   else

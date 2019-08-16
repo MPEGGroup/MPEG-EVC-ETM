@@ -132,13 +132,13 @@ typedef struct _EVCE_MODE
     int   cu_mode;
     u8    affine_flag;
 #endif
-
+#if !M49023_ADMVP_IMPROVE
 #if AFFINE_UPDATE && AFFINE
     // spatial neighboring MV of affine block
     s8    refi_sp[REFP_NUM];
     s16   mv_sp[REFP_NUM][MV_D];
 #endif
-
+#endif
 #if ATS_INTRA_PROCESS   
     u8    ats_intra_cu;
     u8    ats_intra_tu_h;
@@ -472,6 +472,10 @@ typedef struct _EVCE_PARAM
        - 1: Enable deblocking filter
     */
     int                 use_deblock;
+#if M49023_DBF_IMPROVE
+    int                    deblock_alpha_offset;
+    int                    deblock_beta_offset;
+#endif
 #if ALF
     int                 use_alf;
 #endif
@@ -799,6 +803,11 @@ struct _EVCE_CTX
     EVCE_CDSC             cdsc;
     /* quantization value of current encoding tile_group */
     u8                     qp;
+#if M49023_DBF_IMPROVE
+    /* offset value of alpha and beta for deblocking filter */
+    u8                       deblock_alpha_offset;
+    u8                       deblock_beta_offset;
+#endif
     /* encoding picture width */
     u16                    w;
     /* encoding picture height */

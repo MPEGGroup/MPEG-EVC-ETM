@@ -277,6 +277,9 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 #if ADMVP
                            , EVC_HISTORY_BUFFER history_buffer, int admvp_flag
 #endif
+#if M49023_ADMVP_IMPROVE 
+    , EVC_TGH* tgh
+#endif
 )
 {
     int idx0, idx1, cnt;
@@ -345,27 +348,29 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
         }
     }
 #if ADMVP
-    if(admvp_flag == 0)
-        evc_get_motion_skip(REF_SET[2][0], tile_group_t, scup, map_refi, map_mv, refp, cuw, cuh, w_scu, h_scu, srefi, smvp, map_scu, avail
-                            , NULL
-                            , history_buffer, admvp_flag
-#if USE_IBC
-          , 0
-#endif
-        );
+#if M49023_ADMVP_IMPROVE
+    if (admvp_flag == 0)
+        evc_get_motion_skip_baseline(tile_group_t, scup, map_refi, map_mv, refp, cuw, cuh, w_scu, srefi, smvp, avail);
     else
 #endif
-        evc_get_motion_skip(REF_SET[2][0], tile_group_t, scup, map_refi, map_mv, refp, cuw, cuh, w_scu, h_scu, srefi, smvp, map_scu, avail_lr
+#endif
+#if M49023_ADMVP_IMPROVE
+        evc_get_motion_merge_main(REF_SET[2][0], tile_group_t, scup, map_refi, map_mv, refp, cuw, cuh, w_scu, h_scu, srefi, smvp, map_scu, avail_lr
 #if DMVR_LAG
-                            , NULL
+            , NULL
 #endif
 #if ADMVP
-                            , history_buffer, admvp_flag
+            , history_buffer
 #endif
 #if USE_IBC
-          , 0
+            , 0
+#endif
+#if M49023_ADMVP_IMPROVE
+            , (EVC_REFP(*)[2])refp
+            , tgh
 #endif
         );
+#endif
 
     for (z = 0; z < MAX_NUM_MVP; z++)
     {
@@ -1942,89 +1947,73 @@ __inline static void check_redundancy(int tile_group_type, s16 mvp[REFP_NUM][MAX
     }
 }
 
-void evc_get_motion_skip(int ptr, int tile_group_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],
-                         EVC_REFP refp[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, s8 refi[REFP_NUM][MAX_NUM_MVP], s16 mvp[REFP_NUM][MAX_NUM_MVP][MV_D], u32 *map_scu, u16 avail_lr
+#if M49023_ADMVP_IMPROVE
+void evc_get_motion_merge_main(int ptr, int tile_group_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],
+    EVC_REFP refp[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, s8 refi[REFP_NUM][MAX_NUM_MVP], s16 mvp[REFP_NUM][MAX_NUM_MVP][MV_D], u32 *map_scu, u16 avail_lr
 #if DMVR_LAG
-                         , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
-#if ADMVP
-                         , EVC_HISTORY_BUFFER history_buffer, int admvp_flag
-#endif
+    , EVC_HISTORY_BUFFER history_buffer
 #if USE_IBC
-  , u8 ibc_flag
+    , u8 ibc_flag
+#endif
+    , EVC_REFP(*refplx)[REFP_NUM]
+#if M49023_ADMVP_IMPROVE 
+    , EVC_TGH* tgh
 #endif
 )
 {
     BOOL tmpvBottomRight = 0; // Bottom first
-#if ADMVP
     int small_cu = 0;
-    if(cuw*cuh <= NUM_SAMPLES_BLOCK)
+    if (cuw*cuh <= NUM_SAMPLES_BLOCK)
         small_cu = 1;
-#endif
     int k, cnt = 0;
     int neb_addr[MAX_NUM_POSSIBLE_SCAND], valid_flag[MAX_NUM_POSSIBLE_SCAND];
     s16 tmvp[REFP_NUM][MV_D];
-#if MERGE_MVP
     int scup_tmp;
+#if M49023_ADMVP_IMPROVE
+    int cur_num, i, idx0, idx1;
+#else
     int cur_num, i, idx0, idx1, s, z;
+#endif
     int c_win = 0;
+#if !M49023_ADMVP_IMPROVE
     int priority_list0[MAX_NUM_MVP*MAX_NUM_MVP];
     int priority_list1[MAX_NUM_MVP*MAX_NUM_MVP];
 #endif
-#if ADMVP
     evc_mset(mvp, 0, MAX_NUM_MVP * REFP_NUM * MV_D * sizeof(s16));
     evc_mset(refi, REFI_INVALID, MAX_NUM_MVP * REFP_NUM * sizeof(s8));
-#endif
-#if ADMVP
-    if (admvp_flag == 0)
-    {
-        evc_get_motion(scup, REFP_0, map_refi, map_mv, (EVC_REFP(*)[2])refp, cuw, cuh, w_scu, avail_lr, refi[REFP_0], mvp[REFP_0]);
-        if (tile_group_type == TILE_GROUP_B)
-        {
-            evc_get_motion(scup, REFP_1, map_refi, map_mv, (EVC_REFP(*)[2])refp, cuw, cuh, w_scu, avail_lr, refi[REFP_1], mvp[REFP_1]);
-        }
-        return;
-    }
-#endif
-#if ADMVP
+
     s8 refidx = REFI_INVALID;
-#endif
-    for(k = 0; k < MAX_NUM_POSSIBLE_SCAND; k++)
+
+    for (k = 0; k < MAX_NUM_POSSIBLE_SCAND; k++)
     {
         valid_flag[k] = 0;
     }
-#if ADMVP
     evc_check_motion_availability2(scup, cuw, cuh, w_scu, h_scu, neb_addr, valid_flag, map_scu, avail_lr, 1
 #if USE_IBC
-      , ibc_flag
+        , ibc_flag
 #endif
     );
-#else
-    evc_check_motion_availability(scup, cuw, cuh, w_scu, h_scu, neb_addr, valid_flag, map_scu, avail_lr, 1
-#if USE_IBC
-      , ibc_flag
-#endif
-    );
-#endif
 
-    for(k = 0; k < 5; k++)
+    for (k = 0; k < 5; k++)
     {
-        if(valid_flag[k])
+        if (valid_flag[k])
         {
 #if DMVR_LAG
 
-            if((NULL != map_unrefined_mv) && MCU_GET_DMVRF(map_scu[neb_addr[k]])
+            if ((NULL != map_unrefined_mv) && MCU_GET_DMVRF(map_scu[neb_addr[k]])
 #if (DMVR_LAG == 2)
-               && (!evc_use_refine_mv(scup, neb_addr[k], w_scu))
+                && (!evc_use_refine_mv(scup, neb_addr[k], w_scu))
 #endif
-               )
+                )
             {
                 assert(map_unrefined_mv[neb_addr[k]][REFP_0][MV_X] != SHRT_MAX);
                 assert(map_unrefined_mv[neb_addr[k]][REFP_0][MV_Y] != SHRT_MAX);
                 refi[REFP_0][cnt] = REFI_IS_VALID(map_refi[neb_addr[k]][REFP_0]) ? map_refi[neb_addr[k]][REFP_0] : REFI_INVALID;
                 mvp[REFP_0][cnt][MV_X] = map_unrefined_mv[neb_addr[k]][REFP_0][MV_X];
                 mvp[REFP_0][cnt][MV_Y] = map_unrefined_mv[neb_addr[k]][REFP_0][MV_Y];
-                if(tile_group_type == TILE_GROUP_B)
+                if (tile_group_type == TILE_GROUP_B)
                 {
                     assert(map_unrefined_mv[neb_addr[k]][REFP_1][MV_X] != SHRT_MAX);
                     assert(map_unrefined_mv[neb_addr[k]][REFP_1][MV_Y] != SHRT_MAX);
@@ -2039,17 +2028,14 @@ void evc_get_motion_skip(int ptr, int tile_group_type, int scup, s8(*map_refi)[R
                 refi[REFP_0][cnt] = REFI_IS_VALID(map_refi[neb_addr[k]][REFP_0]) ? map_refi[neb_addr[k]][REFP_0] : REFI_INVALID;
                 mvp[REFP_0][cnt][MV_X] = map_mv[neb_addr[k]][REFP_0][MV_X];
                 mvp[REFP_0][cnt][MV_Y] = map_mv[neb_addr[k]][REFP_0][MV_Y];
-#if ADMVP
-                if(!check_bi_applicability(tile_group_type, cuw, cuh))
+                if (!check_bi_applicability(tile_group_type, cuw, cuh))
                 {
                     refi[REFP_1][cnt] = REFI_INVALID;
                     mvp[REFP_1][cnt][MV_X] = 0;
                     mvp[REFP_1][cnt][MV_Y] = 0;
                 }
                 else
-#else
-                if(tile_group_type == TILE_GROUP_B)
-#endif
+
                 {
                     refi[REFP_1][cnt] = REFI_IS_VALID(map_refi[neb_addr[k]][REFP_1]) ? map_refi[neb_addr[k]][REFP_1] : REFI_INVALID;
                     mvp[REFP_1][cnt][MV_X] = map_mv[neb_addr[k]][REFP_1][MV_X];
@@ -2059,244 +2045,192 @@ void evc_get_motion_skip(int ptr, int tile_group_type, int scup, s8(*map_refi)[R
             check_redundancy(tile_group_type, mvp, refi, &cnt);
             cnt++;
         }
-#if ADMVP
-        if(cnt == (small_cu ? MAX_NUM_MVP_SMALL_CU - 1 : MAX_NUM_MVP - 1))
-#else
-        if(cnt == MAX_NUM_MVP - 1)
-#endif
+        if (cnt == (small_cu ? MAX_NUM_MVP_SMALL_CU - 1 : MAX_NUM_MVP - 1))
         {
             break;
         }
     }
-#if ADMVP
+
     int tmvp_cnt_pos0 = 0, tmvp_cnt_pos1 = 0;
     int tmvp_added = 0;
-#endif
-#if ADMVP                            
-    evc_get_mv_dir(refp, ptr, scup + ((cuw >> 1) >> MIN_CU_LOG2) + ((cuh >> 1) >> MIN_CU_LOG2) * w_scu, scup, w_scu, h_scu, tmvp
-#if ADMVP
-                   , &refidx
-#endif
-                   , admvp_flag
-    );
-#else
-    evc_get_mv_dir(refp, ptr, scup + ((cuw >> 1) >> MIN_CU_LOG2) + ((cuh >> 1) >> MIN_CU_LOG2) * w_scu, w_scu, tmvp
-#if ADMVP
-                   , &refidx
-#endif
-    );
-#endif
-#if ADMVP
-    if(refidx != REFI_INVALID)
-    {
-#endif
-        refi[REFP_0][cnt] = 0;
-        mvp[REFP_0][cnt][MV_X] = tmvp[REFP_0][MV_X];
-        mvp[REFP_0][cnt][MV_Y] = tmvp[REFP_0][MV_Y];
 
-#if ADMVP
-    if (!check_bi_applicability(tile_group_type, cuw, cuh))
-    {
-        refi[REFP_1][cnt] = REFI_INVALID;
-        mvp[REFP_1][cnt][MV_X] = 0;
-        mvp[REFP_1][cnt][MV_Y] = 0;
-    }
-    else
-#else
-        if(tile_group_type == TILE_GROUP_B)
+#if M49023_ADMVP_IMPROVE
+    if (!tmvp_added)
+    {// TMVP-central
+        s8 availablePredIdx = 0;
+        evc_get_mv_collocated(
+            refplx,
+            ptr, scup + ((cuw >> 1) >> MIN_CU_LOG2) + ((cuh >> 1) >> MIN_CU_LOG2) * w_scu, scup, w_scu, h_scu, tmvp, &availablePredIdx
+#if M49023_ADMVP_IMPROVE 
+            , tgh
 #endif
+        );
+        if ((availablePredIdx == 1) || (availablePredIdx == 3))
+        {
+            refi[REFP_0][cnt] = 0;
+            mvp[REFP_0][cnt][MV_X] = tmvp[REFP_0][MV_X];
+            mvp[REFP_0][cnt][MV_Y] = tmvp[REFP_0][MV_Y];
+        }
+        else
+        {
+            refi[REFP_0][cnt] = REFI_INVALID;
+            mvp[REFP_0][cnt][MV_X] = 0;
+            mvp[REFP_0][cnt][MV_Y] = 0;
+        }
+        if (((availablePredIdx == 2) || (availablePredIdx == 3)) && check_bi_applicability(tile_group_type, cuw, cuh))
         {
             refi[REFP_1][cnt] = 0;
             mvp[REFP_1][cnt][MV_X] = tmvp[REFP_1][MV_X];
             mvp[REFP_1][cnt][MV_Y] = tmvp[REFP_1][MV_Y];
         }
-#if ADMVP
+        else
+        {
+            refi[REFP_1][cnt] = REFI_INVALID;
+            mvp[REFP_1][cnt][MV_X] = 0;
+            mvp[REFP_1][cnt][MV_Y] = 0;
+        }
         tmvp_cnt_pos0 = cnt;
-#endif
-        check_redundancy(tile_group_type, mvp, refi, &cnt);
-        cnt++;
-#if ADMVP
-        tmvp_cnt_pos1 = cnt;
-        if(tmvp_cnt_pos1 == tmvp_cnt_pos0 + 1)
-            tmvp_added = 1;
-#endif
-#if ADMVP
-    }
-#endif
-
-#if MERGE_MVP
-#if ADMVP
-    if(cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
-#else
-    if(cnt >= MAX_NUM_MVP)
-#endif
-    {
-        return;
-    }
-#if ADMVP
-    if(!tmvp_added)
-    {
-#endif
-#if !ADMVP
-        scup_tmp = evc_get_right_below_scup(scup, cuw, cuh, w_scu, h_scu); // right bottom
-#else
-        tmpvBottomRight = 0; // Bottom first
-#if ADMVP
-        if(avail_lr == LR_01)
+        if (availablePredIdx != 0)
+        {
+            check_redundancy(tile_group_type, mvp, refi, &cnt);
+            cnt++;
+            tmvp_cnt_pos1 = cnt;
+            if (tmvp_cnt_pos1 == tmvp_cnt_pos0 + 1)
+                tmvp_added = 1;
+            if (cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
+            {
+                return;
+            }
+        }
+    } // TMVP-central
+    if (!tmvp_added)
+    {// Bottom first
+        s8 availablePredIdx = 0;
+        tmpvBottomRight = 0;
+        if (avail_lr == LR_01)
             scup_tmp = evc_get_right_below_scup_qc_merge_suco(scup, cuw, cuh, w_scu, h_scu, tmpvBottomRight);
         else
             scup_tmp = evc_get_right_below_scup_qc_merge(scup, cuw, cuh, w_scu, h_scu, tmpvBottomRight);
-#endif
-#endif
-#if ADMVP
-        if(scup_tmp != -1)  // if available, add it to candidate list
-#endif
+        if (scup_tmp != -1)  // if available, add it to candidate list
         {
-
-#if ADMVP                            
-            evc_get_mv_dir(refp, ptr, scup_tmp, scup, w_scu, h_scu, tmvp
-#if ADMVP
-                           , &refidx
-#endif
-                           , admvp_flag
-            );
-#else
-            evc_get_mv_dir(refp, ptr, scup_tmp, w_scu, tmvp
-#if ADMVP
-                           , &refidx
+            evc_get_mv_collocated(
+                refplx,
+                ptr, scup_tmp, scup, w_scu, h_scu, tmvp, &availablePredIdx
+#if M49023_ADMVP_IMPROVE 
+                , tgh
 #endif
             );
-#endif
-#if ADMVP
-            if(refidx != REFI_INVALID)
+            if ((availablePredIdx == 1) || (availablePredIdx == 3))
             {
-#endif
                 refi[REFP_0][cnt] = 0;
                 mvp[REFP_0][cnt][MV_X] = tmvp[REFP_0][MV_X];
                 mvp[REFP_0][cnt][MV_Y] = tmvp[REFP_0][MV_Y];
-#if ADMVP
-                if(!check_bi_applicability(tile_group_type, cuw, cuh))
-                {
-                    refi[REFP_1][cnt] = REFI_INVALID;
-                    mvp[REFP_1][cnt][MV_X] = 0;
-                    mvp[REFP_1][cnt][MV_Y] = 0;
-                }
-                else
-#else
-                if(tile_group_type == TILE_GROUP_B)
-#endif
-                {
-                    refi[REFP_1][cnt] = 0;
-                    mvp[REFP_1][cnt][MV_X] = tmvp[REFP_1][MV_X];
-                    mvp[REFP_1][cnt][MV_Y] = tmvp[REFP_1][MV_Y];
-                }
-#if ADMVP
-                tmvp_cnt_pos0 = cnt;
-#endif
+            }
+            else
+            {
+                refi[REFP_0][cnt] = REFI_INVALID;
+                mvp[REFP_0][cnt][MV_X] = 0;
+                mvp[REFP_0][cnt][MV_Y] = 0;
+            }
+            if (((availablePredIdx == 2) || (availablePredIdx == 3)) && check_bi_applicability(tile_group_type, cuw, cuh))
+            {
+                refi[REFP_1][cnt] = 0;
+                mvp[REFP_1][cnt][MV_X] = tmvp[REFP_1][MV_X];
+                mvp[REFP_1][cnt][MV_Y] = tmvp[REFP_1][MV_Y];
+            }
+            else
+            {
+                refi[REFP_1][cnt] = REFI_INVALID;
+                mvp[REFP_1][cnt][MV_X] = 0;
+                mvp[REFP_1][cnt][MV_Y] = 0;
+            }
+            tmvp_cnt_pos0 = cnt;
+            if (availablePredIdx != 0)
+            {
                 check_redundancy(tile_group_type, mvp, refi, &cnt);
                 cnt++;
-#if ADMVP
                 tmvp_cnt_pos1 = cnt;
-                if(tmvp_cnt_pos1 == tmvp_cnt_pos0 + 1)
+                if (tmvp_cnt_pos1 == tmvp_cnt_pos0 + 1)
                     tmvp_added = 1;
-#endif
-#if ADMVP
-            }
-#endif
-#if ADMVP
-            if(cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
-#else
-            if(cnt >= MAX_NUM_MVP)
-#endif
-            {
-                return;
+                if (cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
+                {
+                    return;
+                }
             }
         }
-#if ADMVP
     }
-#endif
-#if ADMVP
-    if(!tmvp_added)
+    if (!tmvp_added)
     {
-#endif
-#if ADMVP
-#if ADMVP
-        if(avail_lr == LR_01)
+        s8 availablePredIdx = 0;
+        if (avail_lr == LR_01)
             scup_tmp = evc_get_right_below_scup_qc_merge_suco(scup, cuw, cuh, w_scu, h_scu, !tmpvBottomRight);
         else
             scup_tmp = evc_get_right_below_scup_qc_merge(scup, cuw, cuh, w_scu, h_scu, !tmpvBottomRight);
-#endif
-        if(scup_tmp != -1)  // if available, add it to candidate list
+        if (scup_tmp != -1)  // if available, add it to candidate list
         {
-#if ADMVP                            
-            evc_get_mv_dir(refp, ptr, scup_tmp, scup, w_scu, h_scu, tmvp
-#if ADMVP
-                           , &refidx
-#endif
-                           , admvp_flag
-            );
-#else
-            evc_get_mv_dir(refp, ptr, scup_tmp, w_scu, tmvp
-#if ADMVP
-                           , &refidx
+            evc_get_mv_collocated(
+                refplx,
+                ptr, scup_tmp, scup, w_scu, h_scu, tmvp, &availablePredIdx
+#if M49023_ADMVP_IMPROVE 
+                , tgh
 #endif
             );
-#endif
-#if ADMVP
-            if(refidx != REFI_INVALID)
+            if ((availablePredIdx == 1) || (availablePredIdx == 3))
             {
-#endif
                 refi[REFP_0][cnt] = 0;
                 mvp[REFP_0][cnt][MV_X] = tmvp[REFP_0][MV_X];
                 mvp[REFP_0][cnt][MV_Y] = tmvp[REFP_0][MV_Y];
-#if ADMVP
-                if(!check_bi_applicability(tile_group_type, cuw, cuh))
-                {
-                    refi[REFP_1][cnt] = REFI_INVALID;
-                    mvp[REFP_1][cnt][MV_X] = 0;
-                    mvp[REFP_1][cnt][MV_Y] = 0;
-                }
-                else
-#else
-                if(tile_group_type == TILE_GROUP_B)
-#endif
-                {
-                    refi[REFP_1][cnt] = 0;
-                    mvp[REFP_1][cnt][MV_X] = tmvp[REFP_1][MV_X];
-                    mvp[REFP_1][cnt][MV_Y] = tmvp[REFP_1][MV_Y];
-                }
-
+            }
+            else
+            {
+                refi[REFP_0][cnt] = REFI_INVALID;
+                mvp[REFP_0][cnt][MV_X] = 0;
+                mvp[REFP_0][cnt][MV_Y] = 0;
+            }
+            if (((availablePredIdx == 2) || (availablePredIdx == 3)) && check_bi_applicability(tile_group_type, cuw, cuh))
+            {
+                refi[REFP_1][cnt] = 0;
+                mvp[REFP_1][cnt][MV_X] = tmvp[REFP_1][MV_X];
+                mvp[REFP_1][cnt][MV_Y] = tmvp[REFP_1][MV_Y];
+            }
+            else
+            {
+                refi[REFP_1][cnt] = REFI_INVALID;
+                mvp[REFP_1][cnt][MV_X] = 0;
+                mvp[REFP_1][cnt][MV_Y] = 0;
+            }
+            tmvp_cnt_pos0 = cnt;
+            if (availablePredIdx != 0)
+            {
                 check_redundancy(tile_group_type, mvp, refi, &cnt);
                 cnt++;
-#if ADMVP
-            }
-#endif
-#if ADMVP
-            if(cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
-#else
-            if(cnt >= MAX_NUM_MVP)
-#endif
-            {
-                return;
+                tmvp_cnt_pos1 = cnt;
+                if (tmvp_cnt_pos1 == tmvp_cnt_pos0 + 1)
+                    tmvp_added = 1;
+                if (cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
+                {
+                    return;
+                }
             }
         }
-#endif
-#if ADMVP
     }
 #endif
-#if ADMVP
-    //only temporal MV candidates need scaling
-    //thus MV stored in history buffer do not need scaling
-#if ADMVP
-    if(cnt < (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP - 1))
+#if M49023_ADMVP_IMPROVE
+    if (cnt < (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
+#else
+    if (cnt < (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP - 1))
 #endif
     {
         // take the MV from last to first
-#if ADMVP
-        for(k = 3; k <= min(history_buffer.currCnt, small_cu ? ALLOWED_CHECKED_NUM - (MAX_NUM_MVP - MAX_NUM_MVP_SMALL_CU) * 4 : ALLOWED_CHECKED_NUM); k += 4)
+#if M49023_ADMVP_IMPROVE
+        for (k = 3; k <= min(history_buffer.currCnt, ALLOWED_CHECKED_NUM); k += 4)
+#else
+        for (k = 3; k <= min(history_buffer.currCnt, small_cu ? ALLOWED_CHECKED_NUM - (MAX_NUM_MVP - MAX_NUM_MVP_SMALL_CU) * 4 : ALLOWED_CHECKED_NUM); k += 4)
 #endif
+            //        small size: for (k = 3; k <= min(history_buffer.currCnt, ALLOWED_CHECKED_NUM - 2 * 4 ); k += 4)
+            //        large size: for (k = 3; k <= min(history_buffer.currCnt, ALLOWED_CHECKED_NUM); k += 4)
         {
-            if(tile_group_type == TILE_GROUP_P)
+            if (tile_group_type == TILE_GROUP_P)
             {
                 refi[REFP_0][cnt] = history_buffer.history_refi_table[history_buffer.currCnt - k][REFP_0];
                 mvp[REFP_0][cnt][MV_X] = history_buffer.history_mv_table[history_buffer.currCnt - k][REFP_0][MV_X];
@@ -2304,31 +2238,25 @@ void evc_get_motion_skip(int ptr, int tile_group_type, int scup, s8(*map_refi)[R
 
                 check_redundancy(tile_group_type, mvp, refi, &cnt);
                 cnt++;
-#if ADMVP
-                if(cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
-#else
-                if(cnt >= MAX_NUM_MVP)
-#endif
+                if (cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
                 {
                     return;
                 }
             }
 
-            if(tile_group_type == TILE_GROUP_B)
+            if (tile_group_type == TILE_GROUP_B)
             {
                 refi[REFP_0][cnt] = history_buffer.history_refi_table[history_buffer.currCnt - k][REFP_0];
                 mvp[REFP_0][cnt][MV_X] = history_buffer.history_mv_table[history_buffer.currCnt - k][REFP_0][MV_X];
                 mvp[REFP_0][cnt][MV_Y] = history_buffer.history_mv_table[history_buffer.currCnt - k][REFP_0][MV_Y];
 
-#if ADMVP
-                if(!check_bi_applicability(tile_group_type, cuw, cuh))
+                if (!check_bi_applicability(tile_group_type, cuw, cuh))
                 {
                     refi[REFP_1][cnt] = REFI_INVALID;
                     mvp[REFP_1][cnt][MV_X] = 0;
                     mvp[REFP_1][cnt][MV_Y] = 0;
                 }
                 else
-#endif
                 {
                     refi[REFP_1][cnt] = history_buffer.history_refi_table[history_buffer.currCnt - k][REFP_1];
                     mvp[REFP_1][cnt][MV_X] = history_buffer.history_mv_table[history_buffer.currCnt - k][REFP_1][MV_X];
@@ -2337,38 +2265,24 @@ void evc_get_motion_skip(int ptr, int tile_group_type, int scup, s8(*map_refi)[R
 
                 check_redundancy(tile_group_type, mvp, refi, &cnt);
                 cnt++;
-#if ADMVP
-                if(cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
-#else
-                if(cnt >= MAX_NUM_MVP)
-#endif
+                if (cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
+
                 {
                     return;
                 }
             }
         }
     }
-#endif
     // B tile_group mv combination
-#if ADMVP
-    if(check_bi_applicability(tile_group_type, cuw, cuh))
-#else
-    if(tile_group_type == TILE_GROUP_B)
-#endif
+    if (check_bi_applicability(tile_group_type, cuw, cuh))
     {
-#if ADMVP
-        for(z = 1; z <= 2 * (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP) - 3; z++)
-#else
-        for(z = 1; z <= 2 * MAX_NUM_MVP - 3; z++)
-#endif
+#if !M49023_ADMVP_IMPROVE
+        for (z = 1; z <= 2 * (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP) - 3; z++)
         {
-            for(s = z / 2; s >= 0; s--)
+            for (s = z / 2; s >= 0; s--)
             {
-#if ADMVP
-                if((s == z - s) || (s >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP)) || ((z - s) >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP)))
-#else
-                if((s == z - s) || (s >= MAX_NUM_MVP) || ((z - s) >= MAX_NUM_MVP))
-#endif
+                if ((s == z - s) || (s >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP)) || ((z - s) >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP)))
+
                 {
                     continue;
                 }
@@ -2380,18 +2294,18 @@ void evc_get_motion_skip(int ptr, int tile_group_type, int scup, s8(*map_refi)[R
                 c_win++;
             }
         }
-
-        cur_num = cnt;
-#if ADMVP
-        for(i = 0; i < cur_num*(cur_num - 1) && cnt != (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP); i++)
-#else
-        for(i = 0; i < cur_num*(cur_num - 1) && cnt != MAX_NUM_MVP; i++)
 #endif
+#if M49023_ADMVP_IMPROVE
+        int priority_list0[MAX_NUM_MVP*MAX_NUM_MVP] = { 0, 1, 0, 2, 1, 2, 0, 3, 1, 3, 2, 3, 0, 4, 1, 4, 2, 4, 3, 4 };
+        int priority_list1[MAX_NUM_MVP*MAX_NUM_MVP] = { 1, 0, 2, 0, 2, 1, 3, 0, 3, 1, 3, 2, 4, 0, 4, 1, 4, 2, 4, 3 };
+#endif
+        cur_num = cnt;
+        for (i = 0; i < cur_num*(cur_num - 1) && cnt != (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP); i++)
         {
             idx0 = priority_list0[i];
             idx1 = priority_list1[i];
 
-            if(REFI_IS_VALID(refi[REFP_0][idx0]) && REFI_IS_VALID(refi[REFP_1][idx1]))
+            if (REFI_IS_VALID(refi[REFP_0][idx0]) && REFI_IS_VALID(refi[REFP_1][idx1]))
             {
                 refi[REFP_0][cnt] = refi[REFP_0][idx0];
                 mvp[REFP_0][cnt][MV_X] = mvp[REFP_0][idx0][MV_X];
@@ -2405,26 +2319,17 @@ void evc_get_motion_skip(int ptr, int tile_group_type, int scup, s8(*map_refi)[R
                 cnt++;
             }
         }
-#if ADMVP
         if (cnt == (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
-#else
-        if (cnt == MAX_NUM_MVP)
-#endif
         {
             return;
         }
     }
-#endif
-#if ADMVP
-    for(k = cnt; k < (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP); k++)
-#else
-    for(k = cnt; k < MAX_NUM_MVP; k++)
-#endif
+
+    for (k = cnt; k < (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP); k++)
     {
         refi[REFP_0][k] = 0;
         mvp[REFP_0][k][MV_X] = 0;
         mvp[REFP_0][k][MV_Y] = 0;
-#if ADMVP
         if (!check_bi_applicability(tile_group_type, cuw, cuh))
         {
             refi[REFP_1][k] = REFI_INVALID;
@@ -2432,9 +2337,6 @@ void evc_get_motion_skip(int ptr, int tile_group_type, int scup, s8(*map_refi)[R
             mvp[REFP_1][k][MV_Y] = 0;
         }
         else
-#else
-        if(tile_group_type == TILE_GROUP_B)
-#endif
         {
             refi[REFP_1][k] = 0;
             mvp[REFP_1][k][MV_X] = 0;
@@ -2442,6 +2344,19 @@ void evc_get_motion_skip(int ptr, int tile_group_type, int scup, s8(*map_refi)[R
         }
     }
 }
+void evc_get_motion_skip_baseline(int tile_group_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], EVC_REFP refp[REFP_NUM], int cuw, int cuh, int w_scu, s8 refi[REFP_NUM][MAX_NUM_MVP], s16 mvp[REFP_NUM][MAX_NUM_MVP][MV_D], u16 avail_lr)
+{
+#if ADMVP
+    evc_mset(mvp, 0, MAX_NUM_MVP * REFP_NUM * MV_D * sizeof(s16));
+    evc_mset(refi, REFI_INVALID, MAX_NUM_MVP * REFP_NUM * sizeof(s8));
+    evc_get_motion(scup, REFP_0, map_refi, map_mv, (EVC_REFP(*)[2])refp, cuw, cuh, w_scu, avail_lr, refi[REFP_0], mvp[REFP_0]);
+    if (tile_group_type == TILE_GROUP_B)
+    {
+        evc_get_motion(scup, REFP_1, map_refi, map_mv, (EVC_REFP(*)[2])refp, cuw, cuh, w_scu, avail_lr, refi[REFP_1], mvp[REFP_1]);
+    }
+#endif
+}
+#endif
 
 #if ADMVP        
 void evc_clip_mv_pic(int x, int y, int maxX, int maxY, s16 mvp[REFP_NUM][MV_D])
@@ -5592,5 +5507,110 @@ void set_cu_cbf_flags(u8 cbf_y, u8 ats_inter_info, int log2_cuw, int log2_cuh, u
     {
         assert(0);
     }
+}
+#endif
+
+#if M49023_ADMVP_IMPROVE
+void evc_get_mv_collocated(
+    EVC_REFP(*refp)[REFP_NUM]
+    , u32 ptr, int scup, int c_scu, u16 w_scu, u16 h_scu, s16 mvp[REFP_NUM][MV_D]
+    , s8 *availablePredIdx
+#if M49023_ADMVP_IMPROVE 
+    , EVC_TGH* tgh
+#endif
+)
+{
+    *availablePredIdx = 0;
+#if M49023_ADMVP_IMPROVE
+    int temporal_mvp_asigned_flag = tgh->temporal_mvp_asigned_flag;
+    int collocated_from_list_idx = (tgh->tile_group_type == TILE_GROUP_P) ? REFP_0 : REFP_1;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
+    int collocated_from_ref_idx = 0;        // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
+    int collocated_mvp_source_list_idx = REFP_0;  // Specifies source (List ID) in collocated pic that provides MV information (Applicability is function of NoBackwardPredFlag)
+    if (tgh->temporal_mvp_asigned_flag)
+    {
+        collocated_from_list_idx = tgh->collocated_from_list_idx;
+        collocated_from_ref_idx = tgh->collocated_from_ref_idx;
+        collocated_mvp_source_list_idx = tgh->collocated_mvp_source_list_idx;
+    }
+#else
+    int collocated_from_list_idx = REFP_1;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
+    int collocated_from_ref_idx = 0;        // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
+    int collocated_mvp_source_list_idx = REFP_0;  // Specifies source (List ID) in collocated pic that provides MV information (Applicability is function of NoBackwardPredFlag)
+#endif
+    EVC_REFP colPic = (refp[collocated_from_ref_idx][collocated_from_list_idx]);  // col picture is ref idx 0 and list 1
+
+    int neb_addr_coll = scup;     // Col 
+
+    int dptr_co[REFP_NUM] = { 0, 0 };
+    int dptr[REFP_NUM] = { 0, 0 };
+    int ver_refi[REFP_NUM] = { -1, -1 };
+    memset(mvp, 0, sizeof(s16) * REFP_NUM * MV_D);
+
+
+    s8(*map_refi_co)[REFP_NUM] = colPic.map_refi;
+    dptr[REFP_0] = ptr - refp[0][REFP_0].ptr;
+    dptr[REFP_1] = ptr - refp[0][REFP_1].ptr;
+#if M49023_ADMVP_IMPROVE
+    if (!temporal_mvp_asigned_flag)
+#endif
+    {
+        dptr_co[REFP_0] = colPic.ptr - colPic.list_ptr[map_refi_co[neb_addr_coll][REFP_0]]; //POC1
+        dptr_co[REFP_1] = colPic.ptr - colPic.list_ptr[map_refi_co[neb_addr_coll][REFP_1]]; //POC2
+
+        for (int lidx = 0; lidx < REFP_NUM; lidx++)
+        {
+            s8 refidx = map_refi_co[neb_addr_coll][lidx];
+            if (dptr_co[lidx] != 0 && REFI_IS_VALID(refidx))
+            {
+                int ratio_tmvp = ((dptr[lidx]) << MVP_SCALING_PRECISION) / dptr_co[lidx];
+                ver_refi[lidx] = 0; // ref idx
+                s16 *mvc = colPic.map_mv[neb_addr_coll][lidx];
+                scaling_mv(ratio_tmvp, mvc, mvp[lidx]);
+            }
+            else
+            {
+                mvp[lidx][MV_X] = 0;
+                mvp[lidx][MV_Y] = 0;
+            }
+        }
+    }
+    else
+    {
+        // collocated_mvp_source_list_idx = REFP_0; // specified above
+        s8 refidx = map_refi_co[neb_addr_coll][collocated_mvp_source_list_idx];
+        dptr_co[REFP_0] = colPic.ptr - colPic.list_ptr[refidx];
+        {
+            if (dptr_co[REFP_0] != 0 && REFI_IS_VALID(refidx))
+            {
+                ver_refi[REFP_0] = 0;
+                ver_refi[REFP_1] = 0;
+                s16 *mvc = colPic.map_mv[neb_addr_coll][collocated_mvp_source_list_idx]; //  collocated_mvp_source_list_idx == 0 for RA
+                int ratio_tmvp = ((dptr[REFP_0]) << MVP_SCALING_PRECISION) / dptr_co[REFP_0];
+                scaling_mv(ratio_tmvp, mvc, mvp[REFP_0]);
+
+                ratio_tmvp = ((dptr[REFP_1]) << MVP_SCALING_PRECISION) / dptr_co[REFP_0];
+                scaling_mv(ratio_tmvp, mvc, mvp[REFP_1]);
+            }
+            else
+            {
+                mvp[REFP_0][MV_X] = 0;
+                mvp[REFP_0][MV_Y] = 0;
+                mvp[REFP_1][MV_X] = 0;
+                mvp[REFP_1][MV_Y] = 0;
+            }
+        }
+    }
+
+
+    {
+        int maxX = PIC_PAD_SIZE_L + (w_scu << MIN_CU_LOG2) - 1;
+        int maxY = PIC_PAD_SIZE_L + (h_scu << MIN_CU_LOG2) - 1;
+        int x = (c_scu % w_scu) << MIN_CU_LOG2;
+        int y = (c_scu / w_scu) << MIN_CU_LOG2;
+        evc_clip_mv_pic(x, y, maxX, maxY, mvp);
+    }
+
+    int flag = REFI_IS_VALID(ver_refi[REFP_0]) + (REFI_IS_VALID(ver_refi[REFP_1]) << 1);
+    *availablePredIdx = flag; // combines flag and indication on what type of prediction is ( 0 - not available, 1 = uniL0, 2 = uniL1, 3 = Bi)
 }
 #endif

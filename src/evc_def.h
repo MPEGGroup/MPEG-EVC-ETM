@@ -56,7 +56,11 @@
 //loop filter
 #define DBF_LONGF                          0
 #define DBF_IMPROVE                        1
+#if M49023_DBF_IMPROVE
+#define DBF                                2  // Deblocking filter: 0 - without DBF, 1 - h.263, 2 - AVC, 3 - HEVC
+#else
 #define DBF                                1  // Deblocking filter: 0 - without DBF, 1 - h.263, 2 - AVC, 3 - HEVC
+#endif
 #define ALF                                1  // Adaptive Loop Filter 
 
 //fast algorithm
@@ -1137,6 +1141,10 @@ typedef struct _EVC_PIC
 #if ALF
     u8               m_alfCtuEnableFlag[3][510]; //510 = 30*17 -> class A1 resolution with CU ~ 128
 #endif
+#if M49023_DBF_IMPROVE
+    int pic_deblock_alpha_offset;
+    int pic_deblock_beta_offset;
+#endif
 } EVC_PIC;
 
 /*****************************************************************************
@@ -1307,7 +1315,7 @@ typedef struct _EVC_SPS
     u8               num_ref_pics_act;           /* 4 bits : number of reference pictures active */
 #if USE_IBC
     u8               ibc_flag;                   /* 1 bit : flag of enabling IBC or not */
-	int              ibc_log_max_size;           /* log2 max ibc size */
+    int              ibc_log_max_size;           /* log2 max ibc size */
 #endif
 } EVC_SPS;
 
@@ -1442,7 +1450,12 @@ typedef struct _EVC_TGH
     int              delta_tile_id_minus1[MAX_NUM_TILES_ROW * MAX_NUM_TILES_COL];
     int              tile_group_type;
     int              tile_group_alf_enabled_flag;
-
+#if M49023_ADMVP_IMPROVE
+    int              temporal_mvp_asigned_flag;
+    int                 collocated_from_list_idx;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
+    int                 collocated_from_ref_idx;   // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
+    int                 collocated_mvp_source_list_idx;  // Specifies source (List ID) in collocated pic that provides MV information 
+#endif
     int              ref_pic_flag;
     int              picture_num;
     s32              poc;
@@ -1458,6 +1471,10 @@ typedef struct _EVC_TGH
     u8               num_ref_idx_active_override_flag;
 
     int              deblocking_filter_on;
+#if M49023_DBF_IMPROVE
+    int                 tgh_deblock_alpha_offset;
+    int                 tgh_deblock_beta_offset;
+#endif
     u8               qp;
     u8               qp_u;
     u8               qp_v;

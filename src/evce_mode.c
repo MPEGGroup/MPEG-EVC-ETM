@@ -989,8 +989,10 @@ static int copy_history_buffer(EVC_HISTORY_BUFFER *dst, EVC_HISTORY_BUFFER *src)
 }
 
 static int get_cu_pred_data(EVCE_CU_DATA *src, int x, int y, int log2_cuw, int log2_cuh, int log2_cus, int cud, EVCE_MODE *mi
+#if !M49023_ADMVP_IMPROVE
 #if AFFINE_UPDATE && AFFINE
                             , EVCE_CTX *ctx, EVCE_CORE *core
+#endif
 #endif
 )
 {
@@ -1036,7 +1038,7 @@ static int get_cu_pred_data(EVCE_CU_DATA *src, int x, int y, int log2_cuw, int l
 #if TRACE_ENC_CU_DATA_CHECK
     evc_assert(mi->trace_cu_idx != 0);
 #endif
-
+#if !M49023_ADMVP_IMPROVE
 #if AFFINE_UPDATE && AFFINE
     mi->refi_sp[REFP_0] = REFI_INVALID;
     mi->refi_sp[REFP_1] = REFI_INVALID;
@@ -1088,7 +1090,7 @@ static int get_cu_pred_data(EVCE_CU_DATA *src, int x, int y, int log2_cuw, int l
         }
     }
 #endif
-
+#endif
     return EVC_OK;
 }
 #endif
@@ -1632,7 +1634,7 @@ static void update_history_buffer_affine(EVC_HISTORY_BUFFER *history_buffer, EVC
             history_buffer->history_cu_table[i - 1] = history_buffer->history_cu_table[i];
 #endif
         }
-
+#if !M49023_ADMVP_IMPROVE
         if(mi->affine_flag)
         {
             // some spatial neighbor may be unavailable
@@ -1647,6 +1649,7 @@ static void update_history_buffer_affine(EVC_HISTORY_BUFFER *history_buffer, EVC
             }
         }
         else
+#endif
         {
             evc_mcpy(history_buffer->history_mv_table[history_buffer->currCnt - 1], mi->mv, REFP_NUM * MV_D * sizeof(s16));
             evc_mcpy(history_buffer->history_refi_table[history_buffer->currCnt - 1], mi->refi, REFP_NUM * sizeof(s8));
@@ -1657,7 +1660,7 @@ static void update_history_buffer_affine(EVC_HISTORY_BUFFER *history_buffer, EVC
     }
     else
     {
-
+#if !M49023_ADMVP_IMPROVE
         if(mi->affine_flag)
         {
             // some spatial neighbor may be unavailable
@@ -1672,6 +1675,7 @@ static void update_history_buffer_affine(EVC_HISTORY_BUFFER *history_buffer, EVC
             }
         }
         else
+#endif
         {
             evc_mcpy(history_buffer->history_mv_table[history_buffer->currCnt], mi->mv, REFP_NUM * MV_D * sizeof(s16));
             evc_mcpy(history_buffer->history_refi_table[history_buffer->currCnt], mi->refi, REFP_NUM * sizeof(s8));
@@ -1977,7 +1981,7 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
     {
       if (ctx->param.use_ibc_flag == 1 && (core->nnz[Y_C] != 0 || core->nnz[U_C] != 0 || core->nnz[V_C] != 0 || cost_best == MAX_COST))
       {
-		if (log2_cuw <= ctx->sps.ibc_log_max_size && log2_cuh <= ctx->sps.ibc_log_max_size)
+        if (log2_cuw <= ctx->sps.ibc_log_max_size && log2_cuh <= ctx->sps.ibc_log_max_size)
         {
           core->avail_cu = evc_get_avail_ibc(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, core->cuw, core->cuh, ctx->map_scu);
           cost = ctx->fn_pibc_analyze_cu(ctx, core, x, y, log2_cuw, log2_cuh, mi, coef, rec, s_rec);
@@ -2592,6 +2596,10 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
     /********************************* filter the pred/rec **************************************/
     if(do_filter)
     {
+#if M49023_DBF_IMPROVE
+        pic_dbk->pic_deblock_alpha_offset = ctx->deblock_alpha_offset;
+        pic_dbk->pic_deblock_beta_offset = ctx->deblock_beta_offset;
+#endif
         int w_scu = cuw >> MIN_CU_LOG2;
         int h_scu = cuh >> MIN_CU_LOG2;
         int ind, k;
@@ -2636,7 +2644,11 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
 #endif
 
         //first, horizontal filtering
-        evc_deblock_cu_hor(pic_dbk, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp);
+        evc_deblock_cu_hor(pic_dbk, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp
+#if M49023_DBF_IMPROVE
+            , 0
+#endif
+        );
 #if ATS_INTER_PROCESS // deblock
         if (ats_inter_idx && is_ats_inter_horizontal(ats_inter_idx))
         {
@@ -2644,7 +2656,11 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
             y_offset = ats_inter_pos == 0 ? y_offset : cuh - y_offset;
             if ((y + y_offset) % 8 == 0)
             {
-                evc_deblock_cu_hor(pic_dbk, x, y + y_offset, cuw, cuh - y_offset, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp);
+                evc_deblock_cu_hor(pic_dbk, x, y + y_offset, cuw, cuh - y_offset, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp
+#if M49023_DBF_IMPROVE
+                    , ats_inter_pos + 1
+#endif
+                );
             }
         }
 #endif
@@ -2666,6 +2682,9 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
                            , ctx->map_cu_mode
 #endif
                            , ctx->refp
+#if M49023_DBF_IMPROVE
+            , 0
+#endif
         );
 #if ATS_INTER_PROCESS // deblock
         if (ats_inter_idx && !is_ats_inter_horizontal(ats_inter_idx))
@@ -2679,6 +2698,9 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
                                    , ctx->map_cu_mode
 #endif
                                    , ctx->refp
+#if M49023_DBF_IMPROVE
+                    , ats_inter_pos + 1
+#endif
                 );
             }
         }
@@ -3079,21 +3101,31 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
             // if the cost_temp has been update above, the best MV is in mi
 
             get_cu_pred_data(&core->cu_data_best[log2_cuw - 2][log2_cuh - 2], 0, 0, log2_cuw, log2_cuh, log2_cuw, cud, mi
+#if !M49023_ADMVP_IMPROVE
 #if AFFINE_UPDATE && AFFINE
                 , ctx, core
+#endif
 #endif
             );
 
 #if AFFINE_UPDATE && AFFINE
+#if M49023_ADMVP_IMPROVE
+            if (mi->cu_mode != MODE_INTRA && !mi->affine_flag
+#if USE_IBC
+                && mi->cu_mode != MODE_IBC
+#endif                
+                )
+#else
             if (mi->cu_mode != MODE_INTRA
 #if USE_IBC
-              && mi->cu_mode != MODE_IBC
+                && mi->cu_mode != MODE_IBC
 #endif
                 )
+#endif
             {
                 update_history_buffer_affine(&core->history_buffer, mi, ctx->tile_group_type
                 );
-        }
+            }
 
 #endif        // #if AFFINE_UPDATE && AFFINE
 
@@ -3468,17 +3500,27 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
             // if the cost_temp has been update above, the best MV is in mi
 
             get_cu_pred_data(&core->cu_data_best[log2_cuw - 2][log2_cuh - 2], 0, 0, log2_cuw, log2_cuh, log2_cuw, cud, mi
+#if !M49023_ADMVP_IMPROVE
 #if AFFINE_UPDATE && AFFINE
                              , ctx, core
+#endif
 #endif
             );
 
 #if AFFINE_UPDATE && AFFINE
-            if(mi->cu_mode != MODE_INTRA
+#if M49023_ADMVP_IMPROVE
+            if (mi->cu_mode != MODE_INTRA && !mi->affine_flag
 #if USE_IBC
-              && mi->cu_mode != MODE_IBC
+                && mi->cu_mode != MODE_IBC
+#endif                
+                )
+#else
+            if (mi->cu_mode != MODE_INTRA
+#if USE_IBC
+                && mi->cu_mode != MODE_IBC
 #endif
-              )
+                )
+#endif
             {
                 update_history_buffer_affine(&core->history_buffer, mi, ctx->tile_group_type);
             }

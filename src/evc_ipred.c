@@ -1087,7 +1087,7 @@ void ipred_ang(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, in
     int i, j;
     const int pos_max = w + h - 1;
 #if M48879_IMPROVEMENT_INTRA
-	const int pos_min = - 1;
+    const int pos_min = - 1;
 #else
     const int pos_min = -h;
 #endif
