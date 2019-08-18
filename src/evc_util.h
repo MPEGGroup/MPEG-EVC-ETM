@@ -355,9 +355,6 @@ void evc_eco_sbac_ctx_initialize(SBAC_CTX_MODEL *ctx, s16 *ctx_init_model, u16 n
 #if SIMD_CLIP
 void clip_simd(const pel* src, int src_stride, pel *dst, int dst_stride, int width, int height, const int clp_rng_min, const int clp_rng_max);
 #endif
-#if !M48933_INTRA_PRED_NO_DIV_IN_HOR_MODE || !(M48933_INTRA_PRED_NO_DIV_IN_DC_MODE || HW_INTRA_PRED_DC_MODE_CLEANUP)
-s32 divide_tbl(s32 dividend, s32 divisor);
-#endif //!M48933_INTRA_PRED_NO_DIV_IN_HOR_MODE || !(M48933_INTRA_PRED_NO_DIV_IN_DC_MODE || HW_INTRA_PRED_DC_MODE_CLEANUP)
 
 #if ATS_INTER_PROCESS
 u8 check_ats_inter_info_coded(int cuw, int cuh, int pred_mode, int tool_ats_inter);
