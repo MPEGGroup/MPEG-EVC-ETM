@@ -31,11 +31,9 @@
 *  THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "evc_def.h"
+#include "../src/evcd_def.h"
 #include "evca_util.h"
 #include "evca_args.h"
-#include "../src/evc_def.h"
-#include "../src/evcd_def.h"
 
 #define VERBOSE_NONE               VERBOSE_0
 #define VERBOSE_FRAME              VERBOSE_1
