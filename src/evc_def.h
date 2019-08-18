@@ -57,8 +57,6 @@
 #define M48933_INTRA_PRED_NO_DIV        1
 #define M48933_AFFINE                   1
 #define M48933_CQP_MAPPING_TABLE_UPDATE 1
-
-#define HW_EIF                          1
 #endif
 
 #define USE_TILE_GROUP_DQP              1
@@ -391,31 +389,6 @@ enum SAD_POINT_INDEX
 /* EIF (START) */
 #if EIF
 #define AFFINE_ADAPT_EIF_SIZE              8
-
-#if !HW_EIF
-
-#define EIF_MV_ADDITIONAL_PRECISION        9
-#define EIF_IF_FILTER_PREC_HP              6 ///EIF filter precision for interpolation
-#define EIF_NUM_LINES_IN_UPSCALED_DATA    ( 2 * MAX_CU_SIZE + 4)
-#define EIF_NUM_COLUMNS_IN_UPSCALED_DATA  ( 2 * MAX_CU_SIZE + 4)
-#define EIF_UPSCALED_DATA_STRIDE          ( ( 2 * MAX_CU_SIZE + 4) + 4 ) // % NUM_PELS_IN_SSE_REG == 0
-#define EIF_NUM_LINES_IN_PREP_DATA         2
-#define EIF_PREP_DATA_STRIDE               ( 2 * EIF_NUM_COLUMNS_IN_UPSCALED_DATA ) // % NUM_PELS_IN_SSE_REG == 0
-#define EIF_3TAP                           1 //3-Tap interpolation fiter without sub-pel support pixels
-#if EIF_3TAP && (CHROMA_FILTERS_TYPE == CHROMA_FILTERS_3TAP)
-#define EIF_3TAP_HALFFIX                   1
-#else
-#define EIF_3TAP_HALFFIX                   0
-#endif
-
-#if X86_SSE
-#define EIF_SIMD                           0
-#define EIF_NUM_BYTES_IN_SSE_REG           16
-#define EIF_NUM_PELS_IN_SSE_REG          ( 16 / sizeof(pel) )
-#else
-#define EIF_SIMD                           0
-#endif
-#endif //HW_EIF
 #endif
 /* EIF (END) */
 #endif

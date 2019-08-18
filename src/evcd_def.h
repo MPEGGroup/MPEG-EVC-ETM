@@ -156,14 +156,7 @@ typedef struct _EVCD_CORE
 #endif
 #if EIF
     /* temporal pixel buffer for inter prediction */
-#if !HW_EIF
-#if EIF_SIMD
-    ALIGNED_(EIF_NUM_BYTES_IN_SSE_REG)
-#endif
-    pel            eif_tmp_buffer[EIF_NUM_LINES_IN_PREP_DATA * EIF_PREP_DATA_STRIDE + EIF_NUM_LINES_IN_UPSCALED_DATA * EIF_UPSCALED_DATA_STRIDE];
-#else
     pel            eif_tmp_buffer[ (MAX_CU_SIZE + 2) * (MAX_CU_SIZE + 2) ];
-#endif
 #endif
     u8             mvr_idx;
 #if DMVR_FLAG

@@ -726,18 +726,7 @@ typedef struct _EVCE_CORE
 
 #if EIF
     /* temporal pixel buffer for inter prediction */
-#if !HW_EIF
-#if EIF_SIMD
-    ALIGNED_(EIF_NUM_BYTES_IN_SSE_REG)
-#endif
-#if EIF_3TAP
-    pel            eif_tmp_buffer[EIF_NUM_LINES_IN_PREP_DATA * (EIF_PREP_DATA_STRIDE + 8) + EIF_NUM_LINES_IN_UPSCALED_DATA * EIF_UPSCALED_DATA_STRIDE];
-#else
-    pel            eif_tmp_buffer[EIF_NUM_LINES_IN_PREP_DATA * EIF_PREP_DATA_STRIDE + EIF_NUM_LINES_IN_UPSCALED_DATA * EIF_UPSCALED_DATA_STRIDE];
-#endif
-#else
     pel            eif_tmp_buffer[(MAX_CU_SIZE + 2) * (MAX_CU_SIZE + 2)];
-#endif
 #endif
 #if MERGE
     u8             au8_eval_mvp_idx[MAX_NUM_MVP];
