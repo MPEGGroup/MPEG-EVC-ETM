@@ -59,45 +59,27 @@
 #define M48933_CQP_MAPPING_TABLE_UPDATE 1
 #endif
 
-#define USE_TILE_GROUP_DQP              1
 #define HLS_M47668                      1
-#define USE_IBC                         1 // use intra-block copy feature
 
-#define SUCO                            1
-
-#if USE_IBC
-#define IBC_SEARCH_RANGE                     64
-#define IBC_NUM_CANDIDATES                   64
-#define IBC_FAST_METHOD_BUFFERBV             0X01
-#define IBC_FAST_METHOD_ADAPTIVE_SEARCHRANGE 0X02
-#endif
 #define COEFF_CODE_ADCC                 1   /* CE1.1: Advanced coefficient coding */
-#if COEFF_CODE_ADCC
-#define COEFF_CODE_ADCC2                1 
-#endif
 #define ATS                             1   /* CE1.2: Adaptive transform selection */
+#define USE_IBC                         1   // use intra-block copy feature
 
-#define ATS_INTRA_PROCESS               ATS
-#define ATS_INTER_PROCESS               ATS
-#if ATS_INTER_PROCESS
-#define ATS_INTER_DEBUG                 0
-#define ATS_INTER_SL_NUM                16
-#define get_ats_inter_idx(s)            (s & 0xf)
-#define get_ats_inter_pos(s)            ((s>>4) & 0xf)
-#define get_ats_inter_info(idx, pos)    (idx + (pos << 4))
-#define is_ats_inter_horizontal(idx)    (idx == 2 || idx == 4)
-#define is_ats_inter_quad_size(idx)     (idx == 3 || idx == 4)
-#endif
+
 
 #define ROOT_CBF_RDO_BIT_FIX               1
 #define ALF_PARAMETER_APS                  1
 
 #define TU_ZONAL_CODING                    1
 #define CTX_MODEL_FOR_RESIDUAL_IN_BASE     1
+#define USE_TILE_GROUP_DQP                 1
 
 /* Profiles definitions */
 #define PROFILE_BASELINE                   0
 #define PROFILE_MAIN                       1
+
+//partitioning
+#define SUCO                               1
 
 //inter
 #define AFFINE                             1  // Affine Prediction
@@ -432,6 +414,9 @@ typedef struct _evc_AlfFilterShape
 /* ALF (END) */
 
 /* TRANSFORM PACKAGE (START) */
+#define ATS_INTRA_PROCESS                  ATS
+#define ATS_INTER_PROCESS                  ATS
+
 #if ATS_INTRA_PROCESS
 #define ATS_INTRA_FAST                     0
 #if ATS_INTRA_FAST
@@ -440,9 +425,22 @@ typedef struct _evc_AlfFilterShape
 #define ATS_INTRA_IPD_THR                  1.10
 #endif
 #endif
+
+#if ATS_INTER_PROCESS
+#define ATS_INTER_DEBUG                    0
+#define ATS_INTER_SL_NUM                   16
+#define get_ats_inter_idx(s)               (s & 0xf)
+#define get_ats_inter_pos(s)               ((s>>4) & 0xf)
+#define get_ats_inter_info(idx, pos)       (idx + (pos << 4))
+#define is_ats_inter_horizontal(idx)       (idx == 2 || idx == 4)
+#define is_ats_inter_quad_size(idx)        (idx == 3 || idx == 4)
+#endif
 /* TRANSFORM PACKAGE (END) */
+
 /* COEFF_CODE_ADCC (START) */
 #if COEFF_CODE_ADCC
+#define COEFF_CODE_ADCC2                   1 
+
 #define LOG2_RATIO_GTA                     1
 #define LOG2_RATIO_GTB                     4
 #define LOG2_CG_SIZE                       4
@@ -456,6 +454,15 @@ typedef struct _evc_AlfFilterShape
 #define LAST_SIGNIFICANT_GROUPS            14
 #endif
 /* COEFF_CODE_ADCC (END) */
+
+/* IBC (START) */
+#if USE_IBC
+#define IBC_SEARCH_RANGE                     64
+#define IBC_NUM_CANDIDATES                   64
+#define IBC_FAST_METHOD_BUFFERBV             0X01
+#define IBC_FAST_METHOD_ADAPTIVE_SEARCHRANGE 0X02
+#endif
+/* IBC (END) */
 
 /* Common routines (START) */
 #if defined(_MSC_VER)
