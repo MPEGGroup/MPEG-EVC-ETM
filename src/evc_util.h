@@ -273,7 +273,7 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
 #endif
 );
 
-#if HW_AFFINE
+#if M48933_AFFINE
 void evc_mv_rounding_s32( s32 hor, int ver, s32 * rounded_hor, s32 * rounded_ver, s32 right_shift, int left_shift );
 void derive_affine_subblock_size( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num );
 #endif
@@ -283,7 +283,7 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
                                    s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
                                    int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][VER_NUM][MV_D], s8 refi[MAX_NUM_MVP]
                                    , u32* map_scu, u32* map_affine, int vertex_num, u16 avail_lr
-#if HW_AFFINE
+#if M48933_AFFINE
                                    , int log2_max_cuwh
 #endif
 #if DMVR_LAG
@@ -293,7 +293,7 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
 
 int evc_get_affine_merge_candidate(int ptr, int tile_group_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],
                                    EVC_REFP(*refp)[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, u16 avail, s8 mrg_list_refi[AFF_MAX_CAND][REFP_NUM], s16 mrg_list_cp_mv[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D], int mrg_list_cp_num[AFF_MAX_CAND], u32* map_scu, u32* map_affine
-#if HW_AFFINE
+#if M48933_AFFINE
                                    , int log2_max_cuwh
 #endif
 #if DMVR_LAG
@@ -355,9 +355,9 @@ void evc_eco_sbac_ctx_initialize(SBAC_CTX_MODEL *ctx, s16 *ctx_init_model, u16 n
 #if SIMD_CLIP
 void clip_simd(const pel* src, int src_stride, pel *dst, int dst_stride, int width, int height, const int clp_rng_min, const int clp_rng_max);
 #endif
-#if !HW_INTRA_PRED_NO_DIV_IN_HOR_MODE || !(HW_INTRA_PRED_NO_DIV_IN_DC_MODE || HW_INTRA_PRED_DC_MODE_CLEANUP)
+#if !M48933_INTRA_PRED_NO_DIV_IN_HOR_MODE || !(M48933_INTRA_PRED_NO_DIV_IN_DC_MODE || HW_INTRA_PRED_DC_MODE_CLEANUP)
 s32 divide_tbl(s32 dividend, s32 divisor);
-#endif //!HW_INTRA_PRED_NO_DIV_IN_HOR_MODE || !(HW_INTRA_PRED_NO_DIV_IN_DC_MODE || HW_INTRA_PRED_DC_MODE_CLEANUP)
+#endif //!M48933_INTRA_PRED_NO_DIV_IN_HOR_MODE || !(M48933_INTRA_PRED_NO_DIV_IN_DC_MODE || HW_INTRA_PRED_DC_MODE_CLEANUP)
 
 #if ATS_INTER_PROCESS
 u8 check_ats_inter_info_coded(int cuw, int cuh, int pred_mode, int tool_ats_inter);

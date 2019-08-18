@@ -115,7 +115,7 @@ void evce_diff_pred(int x, int y, int log2_cuw, int log2_cuh, EVC_PIC *org, pel 
 #if AFFINE && RDO_DBK
 void evc_set_affine_mvf(EVCE_CTX * ctx, EVCE_CORE * core, int w, int h, s8 refi[REFP_NUM], s16 mv[REFP_NUM][VER_NUM][MV_D], int vertex_num)
 {
-#if !HW_AFFINE
+#if !M48933_AFFINE
     s16 (*map_mv)[REFP_NUM][MV_D];
 #endif
     s8 (*map_refi)[REFP_NUM];
@@ -154,12 +154,12 @@ void evc_set_affine_mvf(EVCE_CTX * ctx, EVCE_CORE * core, int w, int h, s8 refi[
     {
         if (refi[lidx] >= 0)
         {
-#if !HW_AFFINE
+#if !M48933_AFFINE
 #endif
             s16(*ac_mv)[MV_D] = mv[lidx];
 
             int dmv_hor_x, dmv_ver_x, dmv_hor_y, dmv_ver_y;
-#if HW_AFFINE
+#if M48933_AFFINE
             int mv_scale_hor = ac_mv[0][MV_X] << 7;
             int mv_scale_ver = ac_mv[0][MV_Y] << 7;
             int mv_scale_tmp_hor, mv_scale_tmp_ver;

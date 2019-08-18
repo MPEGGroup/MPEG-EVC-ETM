@@ -775,7 +775,7 @@ void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
         int mrg_idx = core->mvp_idx[0];
 
         evc_get_affine_merge_candidate(ctx->ptr, ctx->tgh.tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp, cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, aff_refi, aff_mrg_mvp, vertex_num, ctx->map_scu, ctx->map_affine
-#if HW_AFFINE
+#if M48933_AFFINE
             , ctx->log2_max_cuwh
 #endif
 #if DMVR_LAG
@@ -821,7 +821,7 @@ void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
                     ctx->dpm.num_refp[inter_dir_idx], ctx->map_mv, ctx->map_refi, ctx->refp, \
                     cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, affine_mvp, refi
                     , ctx->map_scu, ctx->map_affine, vertex_num, core->avail_lr
-#if HW_AFFINE
+#if M48933_AFFINE
                     , ctx->log2_max_cuwh
 #endif
 #if DMVR_LAG

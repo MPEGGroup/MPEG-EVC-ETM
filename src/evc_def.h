@@ -52,6 +52,18 @@
 #define M48879_IMPROVEMENT_SUCO         1
 #endif
 
+#define M48933_IMPROVEMENT              1
+#if M48933_IMPROVEMENT
+#define M48933_INTRA_PRED_NO_DIV        1
+#define M48933_AFFINE                   1
+#define M48933_CQP_MAPPING_TABLE_UPDATE 1
+
+
+#define HW_REMOVE_UNSPEC_CODE_PART      1
+#define HW_HTDF_CLEANUP                 1
+#define HW_EIF                          1
+#endif
+
 #define USE_TILE_GROUP_DQP              1
 #define HLS_M47668                      1
 #define USE_IBC                         1 // use intra-block copy feature
@@ -92,10 +104,6 @@
 #define PROFILE_BASELINE                   0
 #define PROFILE_MAIN                       1
 
-//intra
-#define HW_INTRA_PRED_NO_DIV               1
-#define HW_REMOVE_UNSPEC_CODE_PART         1
-
 //inter
 #define AFFINE                             1  // Affine Prediction
 #define DMVR                               1  // Decoder-side Motion Vector Refinement
@@ -133,18 +141,15 @@
 #define USE_RDOQ                           1 // Use RDOQ
 #define RDO_DBK                            1 // include DBK changes into distortion
 #define HTDF                               1 // enable Hadamard transform domain filter
-#define HW_HTDF_CLEANUP                    1
 #if !HW_HTDF_CLEANUP
 #define HTDF_CBF0_INTRA                    1
 #endif
 
-#define HW_CQP_MAPPING_TABLE_UPDATE        1 // update chroma QP mapping table
-
-#if HW_INTRA_PRED_NO_DIV
-#define HW_INTRA_PRED_NO_DIV_IN_HOR_MODE   1
-#define HW_INTRA_PRED_NO_DIV_IN_DC_MODE    1
+#if M48933_INTRA_PRED_NO_DIV
+#define M48933_INTRA_PRED_NO_DIV_IN_HOR_MODE   1
+#define M48933_INTRA_PRED_NO_DIV_IN_DC_MODE    1
 #define HW_INTRA_PRED_DC_MODE_CLEANUP      1
-#endif //HW_INTRA_PRED_NO_DIV
+#endif //M48933_INTRA_PRED_NO_DIV
 
 //fast algorithm
 #define ENC_ECU_DEPTH                      8 // for early CU termination
@@ -356,8 +361,6 @@ enum SAD_POINT_INDEX
 #endif
 /* AFFINE (START) */
 #if AFFINE
-#define HW_AFFINE                          1
-
  // AFFINE Constant
 #define VER_NUM                            4
 #if M48879_IMPROVEMENT_SUCO
@@ -393,7 +396,6 @@ enum SAD_POINT_INDEX
 
 /* EIF (START) */
 #if EIF
-#define HW_EIF                             1
 #define AFFINE_ADAPT_EIF_SIZE              8
 
 #if !HW_EIF

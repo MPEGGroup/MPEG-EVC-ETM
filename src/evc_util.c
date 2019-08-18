@@ -3505,7 +3505,7 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
     }
 }
 
-#if HW_AFFINE
+#if M48933_AFFINE
 void evc_mv_rounding_s32( s32 hor, int ver, s32 * rounded_hor, s32 * rounded_ver, s32 right_shift, int left_shift )
 {
     int offset = (right_shift > 0) ? (1 << (right_shift - 1)) : 0;
@@ -3718,7 +3718,7 @@ int evc_derive_affine_constructed_candidate(int ptr, EVC_REFP (*refp)[REFP_NUM],
 }
 
 void evc_derive_affine_model_mv(int scup, int scun, int lidx, s16(*map_mv)[REFP_NUM][MV_D], int cuw, int cuh, int w_scu, int h_scu, s16 mvp[VER_NUM][MV_D], u32 *map_affine, int cur_cp_num
-#if HW_AFFINE
+#if M48933_AFFINE
                                 , int log2_max_cuwh
 #endif
 #if DMVR_LAG
@@ -3753,7 +3753,7 @@ void evc_derive_affine_model_mv(int scup, int scun, int lidx, s16(*map_mv)[REFP_
     cur_x = (scup % w_scu) << MIN_CU_LOG2;
     cur_y = (scup / w_scu) << MIN_CU_LOG2;
 
-#if HW_AFFINE
+#if M48933_AFFINE
     for ( i = 0; i < VER_NUM; i++ )
 #else
     for(i = 0; i < cur_cp_num; i++)
@@ -3777,7 +3777,7 @@ void evc_derive_affine_model_mv(int scup, int scun, int lidx, s16(*map_mv)[REFP_
         }
     }
 
-#if HW_AFFINE
+#if M48933_AFFINE
     int is_top_ctu_boundary = FALSE;
     if ( (neb_y + neb_h) % (1 << log2_max_cuwh) == 0 && (neb_y + neb_h) == cur_y )
     {
@@ -3793,7 +3793,7 @@ void evc_derive_affine_model_mv(int scup, int scun, int lidx, s16(*map_mv)[REFP_
 
     dmv_hor_x = (neb_mv[1][MV_X] - neb_mv[0][MV_X]) << diff_w;    // deltaMvHor
     dmv_hor_y = (neb_mv[1][MV_Y] - neb_mv[0][MV_Y]) << diff_w;
-#if HW_AFFINE
+#if M48933_AFFINE
     if (cur_cp_num == 3 && !is_top_ctu_boundary )
 #else
     if(cur_cp_num == 3)
@@ -3840,7 +3840,7 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
                                    s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
                                    int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][VER_NUM][MV_D], s8 refi[MAX_NUM_MVP]
                                    , u32* map_scu, u32* map_affine, int vertex_num, u16 avail_lr
-#if HW_AFFINE
+#if M48933_AFFINE
                                    , int log2_max_cuwh
 #endif
 #if DMVR_LAG
@@ -3903,7 +3903,7 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
         {
             refi[cnt_tmp] = map_refi[neb_addr[k]][lidx];
             evc_derive_affine_model_mv(scup, neb_addr[k], lidx, map_mv, cuw, cuh, w_scu, h_scu, mvp_tmp, map_affine, vertex_num
-#if HW_AFFINE
+#if M48933_AFFINE
                                        , log2_max_cuwh
 #endif
 #if DMVR_LAG
@@ -3940,7 +3940,7 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
         {
             refi[cnt_tmp] = map_refi[neb_addr[k]][lidx];
             evc_derive_affine_model_mv(scup, neb_addr[k], lidx, map_mv, cuw, cuh, w_scu, h_scu, mvp_tmp, map_affine, vertex_num
-#if HW_AFFINE
+#if M48933_AFFINE
                                        , log2_max_cuwh
 #endif
 #if DMVR_LAG
@@ -3976,7 +3976,7 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
         {
             refi[cnt_tmp] = map_refi[neb_addr[k]][lidx];
             evc_derive_affine_model_mv(scup, neb_addr[k], lidx, map_mv, cuw, cuh, w_scu, h_scu, mvp_tmp, map_affine, vertex_num
-#if HW_AFFINE
+#if M48933_AFFINE
                 , log2_max_cuwh
 #endif
 #if DMVR_LAG
@@ -4149,7 +4149,7 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
 
     //-------------------  organize  -------------------//
     {
-#if HW_AFFINE
+#if M48933_AFFINE
 #if M48879_IMPROVEMENT_SUCO
         if (cnt_lt && cnt_rt && (vertex_num == 2 || (cnt_lb || cnt_rb)))
 #else
@@ -4173,7 +4173,7 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
             }
 #endif
 
-#if !HW_AFFINE
+#if !M48933_AFFINE
             if(vertex_num == 2 || cnt_lb == 0)
             {
                 mvp[cnt_tmp][2][MV_X] = mvp[cnt_tmp][0][MV_X] + (mvp[cnt_tmp][0][MV_Y] - mvp[cnt_tmp][1][MV_Y]) * cuh / cuw;
@@ -4265,7 +4265,7 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
 /* merge affine mode */
 int evc_get_affine_merge_candidate(int ptr, int tile_group_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], EVC_REFP(*refp)[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, u16 avail,
                                    s8 mrg_list_refi[AFF_MAX_CAND][REFP_NUM], s16 mrg_list_cpmv[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D], int mrg_list_cp_num[AFF_MAX_CAND], u32* map_scu, u32* map_affine
-#if HW_AFFINE
+#if M48933_AFFINE
                                    , int log2_max_cuwh
 #endif
 #if DMVR_LAG
@@ -4356,7 +4356,7 @@ int evc_get_affine_merge_candidate(int ptr, int tile_group_type, int scup, s8(*m
                     {
                         mrg_list_refi[cnt][lidx] = map_refi[neb_addr[k]][lidx];
                         evc_derive_affine_model_mv(scup, neb_addr[k], lidx, map_mv, cuw, cuh, w_scu, h_scu, mrg_list_cpmv[cnt][lidx], map_affine, mrg_list_cp_num[cnt]
-#if HW_AFFINE
+#if M48933_AFFINE
                                                    , log2_max_cuwh
 #endif
 #if DMVR_LAG
@@ -5295,7 +5295,7 @@ void clip_simd(const pel* src, int src_stride, pel *dst, int dst_stride, int wid
 }
 #endif
 
-#if !HW_INTRA_PRED_NO_DIV_IN_HOR_MODE || !(HW_INTRA_PRED_NO_DIV_IN_DC_MODE || HW_INTRA_PRED_DC_MODE_CLEANUP)
+#if !M48933_INTRA_PRED_NO_DIV_IN_HOR_MODE || !(M48933_INTRA_PRED_NO_DIV_IN_DC_MODE || HW_INTRA_PRED_DC_MODE_CLEANUP)
 s32 divide_tbl(s32 dividend, s32 divisor)
 {
     u8 sign_dividend = dividend < 0;
@@ -5333,7 +5333,7 @@ s32 divide_tbl(s32 dividend, s32 divisor)
 
     return (sign_dividend + sign_divisor == 1) ? -quotient : quotient;
 }
-#endif //!HW_INTRA_PRED_NO_DIV_IN_HOR_MODE || !(HW_INTRA_PRED_NO_DIV_IN_DC_MODE || HW_INTRA_PRED_DC_MODE_CLEANUP)
+#endif //!M48933_INTRA_PRED_NO_DIV_IN_HOR_MODE || !(M48933_INTRA_PRED_NO_DIV_IN_DC_MODE || HW_INTRA_PRED_DC_MODE_CLEANUP)
 
 void evc_block_copy(s16 * src, int src_stride, s16 * dst, int dst_stride, int log2_copy_w, int log2_copy_h)
 {

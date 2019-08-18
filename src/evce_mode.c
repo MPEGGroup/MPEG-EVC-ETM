@@ -1203,7 +1203,7 @@ void evce_set_affine_mvf(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi)
     int   log2_cuw, log2_cuh;
     int   w_cu;
     int   h_cu;
-#if HW_AFFINE
+#if M48933_AFFINE
     int i;
 #else
     int   i, j;
@@ -1229,7 +1229,7 @@ void evce_set_affine_mvf(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi)
     {
         if(mi->refi[lidx] >= 0)
         {
-#if HW_AFFINE
+#if M48933_AFFINE
             s16( *ac_mv )[MV_D] = mi->affine_mv[lidx];
             int dmv_hor_x, dmv_ver_x, dmv_hor_y, dmv_ver_y;
             int mv_scale_hor = ac_mv[0][MV_X] << 7;
@@ -1352,12 +1352,12 @@ void evce_set_affine_mvf(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi)
             {
                 cu_data->mvd[aff_scup[i]][lidx][MV_X] = mi->affine_mvd[lidx][i][MV_X];
                 cu_data->mvd[aff_scup[i]][lidx][MV_Y] = mi->affine_mvd[lidx][i][MV_Y];
-#if !HW_AFFINE
+#if !M48933_AFFINE
                 cu_data->mv[aff_scup[i]][lidx][MV_X] = mi->affine_mv[lidx][i][MV_X];
                 cu_data->mv[aff_scup[i]][lidx][MV_Y] = mi->affine_mv[lidx][i][MV_Y];
 #endif
             }
-#if !HW_AFFINE
+#if !M48933_AFFINE
             if(vertex_num == 2) // reset lt vertex mv
             {
                 s16 vx2 = mi->affine_mv[lidx][0][MV_X] - (mi->affine_mv[lidx][1][MV_Y] - mi->affine_mv[lidx][0][MV_Y]) * h_cu / w_cu;
