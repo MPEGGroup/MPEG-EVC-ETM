@@ -390,7 +390,7 @@ static void evcd_itdq(EVCD_CTX * ctx, EVCD_CORE * core)
 {
     evc_sub_block_itdq(core->coef, core->log2_cuw, core->log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->is_coef, core->is_coef_sub, ctx->sps.tool_iqt
 #if ATS_INTRA_PROCESS
-#if USE_IBC
+#if IBC
                        , core->pred_mode == MODE_IBC ? 0 : core->ats_intra_cu
                        , core->pred_mode == MODE_IBC ? 0 : ((core->ats_intra_tu_h << 1) | core->ats_intra_tu_v)
 #else
@@ -398,7 +398,7 @@ static void evcd_itdq(EVCD_CTX * ctx, EVCD_CORE * core)
 #endif
 #endif
 #if ATS_INTER_PROCESS
-#if USE_IBC
+#if IBC
                          , core->pred_mode == MODE_IBC ? 0 : core->ats_inter_info
 #else
                        , core->ats_inter_info
@@ -608,7 +608,7 @@ void evcd_get_direct_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #if ADMVP
             , core->history_buffer
 #endif
-#if USE_IBC
+#if IBC
             , core->ibc_flag
 #endif
 #if M49023_ADMVP_IMPROVE
@@ -775,7 +775,7 @@ void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
         int mrg_idx = core->mvp_idx[0];
 
         evc_get_affine_merge_candidate(ctx->ptr, ctx->tgh.tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp, cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, aff_refi, aff_mrg_mvp, vertex_num, ctx->map_scu, ctx->map_affine
-#if HW_AFFINE
+#if M48933_AFFINE
             , ctx->log2_max_cuwh
 #endif
 #if DMVR_LAG
@@ -821,7 +821,7 @@ void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
                     ctx->dpm.num_refp[inter_dir_idx], ctx->map_mv, ctx->map_refi, ctx->refp, \
                     cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, affine_mvp, refi
                     , ctx->map_scu, ctx->map_affine, vertex_num, core->avail_lr
-#if HW_AFFINE
+#if M48933_AFFINE
                     , ctx->log2_max_cuwh
 #endif
 #if DMVR_LAG
@@ -876,7 +876,7 @@ void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
     }
 #if ADMVP
     evc_check_motion_availability2(core->scup, cuw, cuh, ctx->w_scu, ctx->h_scu, neb_addr, valid_flag, ctx->map_scu, core->avail_lr, 1
-#if USE_IBC
+#if IBC
         , 0
 #endif  
     );
@@ -938,7 +938,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 
     core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu);
     evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->tgh.tile_group_type, ctx->sps.tool_cm_init
-#if USE_IBC
+#if IBC
         , ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size
 #endif
     );
@@ -990,7 +990,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 
     evcd_set_dec_info(ctx, core
 #if ENC_DEC_TRACE
-#if USE_IBC
+#if IBC
                       , (core->pred_mode == MODE_INTRA || core->pred_mode == MODE_IBC)
 #else
                       , core->pred_mode == MODE_INTRA
@@ -999,7 +999,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
     );
 
     /* prediction */
-#if USE_IBC
+#if IBC
     if (core->pred_mode == MODE_IBC)
     {
         core->avail_cu = evc_get_avail_ibc(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, cuw, cuh, ctx->map_scu);
@@ -1127,13 +1127,13 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 #if AFFINE && ADMVP && AFFINE_UPDATE 
 #if M49023_ADMVP_IMPROVE
         if (core->pred_mode != MODE_INTRA && !core->affine_flag
-#if USE_IBC
+#if IBC
             && core->pred_mode != MODE_IBC
 #endif
             )
 #else
         if (core->pred_mode != MODE_INTRA
-#if USE_IBC
+#if IBC
             && core->pred_mode != MODE_IBC
 #endif
             )
@@ -1150,13 +1150,6 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
                           , 1
 #endif
         );
-#endif
-#if !HW_HTDF_CLEANUP
-#if M48879_IMPROVEMENT_INTRA 
-        get_nbr_yuv(x, y, cuw, cuh, ctx, core);
-#else
-        get_nbr_yuv(x, y, cuw, cuh, core->avail_cu, ctx->pic, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu);
-#endif
 #endif
     }
     else
@@ -1198,38 +1191,26 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
     /* reconstruction */
     evc_recon_yuv(x, y, cuw, cuh, core->coef, core->pred[0], core->is_coef, ctx->pic
 #if ATS_INTER_PROCESS
-#if USE_IBC
+#if IBC
       , core->pred_mode == MODE_IBC ? 0 : core->ats_inter_info
 #else
                   , core->ats_inter_info
 #endif
 #endif
     );
-#if USE_IBC
+#if IBC
     if (core->pred_mode != MODE_IBC)
     {
 #endif
 #if HTDF
-#if HW_HTDF_CLEANUP
     if(ctx->sps.tool_htdf == 1 && (core->is_coef[Y_C] || core->pred_mode == MODE_INTRA))
     {
         u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu);
         evc_htdf(ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->tgh.qp, cuw, cuh, ctx->pic->s_l, core->pred_mode == MODE_INTRA
             , ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->pic->s_l, avail_cu);
     }
-#else
-    if(ctx->sps.tool_htdf == 1 && (core->is_coef[Y_C]
-#if HTDF_CBF0_INTRA
-                              || core->pred_mode == MODE_INTRA
 #endif
-                              )
-       )
-    {
-        evc_htdf(ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->tgh.qp, cuw, cuh, ctx->pic->s_l, core->pred_mode == MODE_INTRA, core->nb[0][0] + 2, core->nb[0][1] + cuh - 1, core->nb[0][2] + 2, core->avail_cu);
-    }
-#endif
-#endif
-#if USE_IBC
+#if IBC
     }
 #endif
     return EVC_OK;

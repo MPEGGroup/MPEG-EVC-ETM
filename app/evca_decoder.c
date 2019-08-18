@@ -33,7 +33,7 @@
 
 #define DECODING_TIME_TEST 1
 
-#include "evc.h"
+#include "evc_def.h"
 #include "evca_util.h"
 #include "evca_args.h"
 
@@ -321,7 +321,7 @@ int main(int argc, const char **argv)
     FILE             * fp_bs = NULL;
 
 #if DECODING_TIME_TEST
-            clk_beg = evc_clk_get();
+    clk_beg = evc_clk_get();
 #endif
     /* parse options */
     ret = evc_args_parse_all(argc, argv, options);
@@ -461,7 +461,7 @@ int main(int argc, const char **argv)
 
 END:
 #if DECODING_TIME_TEST
-            clk_tot += evc_clk_from(clk_beg);
+    clk_tot += evc_clk_from(clk_beg);
 #endif
     v1print("=======================================================================================\n");
     v1print("Resolution                        = %d x %d\n", w, h);

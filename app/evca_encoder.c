@@ -31,7 +31,7 @@
 *  THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "evc.h"
+#include "evc_def.h"
 #include "evca_util.h"
 #include "evca_args.h"
 #include <math.h>
@@ -97,7 +97,7 @@ static int  op_max_b_frames       = 0;
 static int  op_ref_pic_gap_length = 0;
 #endif
 static int  op_closed_gop         = 0;
-#if USE_IBC
+#if IBC
 static int  op_enable_ibc = 0;
 static int  op_ibc_search_range_x = IBC_SEARCH_RANGE;
 static int  op_ibc_search_range_y = IBC_SEARCH_RANGE;
@@ -146,7 +146,7 @@ static int  op_tool_htdf          = 1; /* default on */
 static int  op_tool_eipd          = 1;
 static int  op_tool_iqt           = 1;
 static int  op_tool_cm_init       = 1;
-#if COEFF_CODE_ADCC
+#if ADCC
 static int  op_tool_adcc          = 1; /* default on */
 #endif
 static int  op_cb_qp_offset       = 1;
@@ -183,7 +183,7 @@ typedef enum _OP_FLAGS
     OP_FLAG_VERBOSE,
     OP_FLAG_MAX_B_FRAMES,
     OP_FLAG_CLOSED_GOP,
-#if USE_IBC
+#if IBC
     OP_FLAG_IBC,
     OP_IBC_SEARCH_RNG_X,
     OP_IBC_SEARCH_RND_Y,
@@ -227,7 +227,7 @@ typedef enum _OP_FLAGS
     OP_TOOL_EIPD,
     OP_TOOL_IQT,
     OP_TOOL_CM_INIT,
-#if COEFF_CODE_ADCC
+#if ADCC
     OP_TOOL_ADCC,
 #endif
     OP_CB_QP_OFFSET,
@@ -389,7 +389,7 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_FLAG_CLOSED_GOP], &op_closed_gop,
         "use closed GOP structure. if not set, open GOP is used"
     },
-#if USE_IBC
+#if IBC
         {
           EVC_ARGS_NO_KEY,  "ibc_flag", EVC_ARGS_VAL_TYPE_INTEGER,
           &op_flag[OP_FLAG_IBC], &op_enable_ibc,
@@ -591,7 +591,7 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_TOOL_CM_INIT], &op_tool_cm_init,
         "cm_init on/off flag"
     },
-#if COEFF_CODE_ADCC
+#if ADCC
     {
         EVC_ARGS_NO_KEY,  "adcc", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_TOOL_ADCC], &op_tool_adcc,
@@ -902,7 +902,7 @@ static int get_conf(EVCE_CDSC * cdsc)
     {
         cdsc->closed_gop = 1;
     }
-#if USE_IBC
+#if IBC
     if (op_enable_ibc)
     {
       cdsc->ibc_flag = 1;
@@ -947,7 +947,7 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->tool_eipd          = op_tool_eipd;
     cdsc->tool_iqt           = op_tool_iqt;
     cdsc->tool_cm_init       = op_tool_cm_init;
-#if COEFF_CODE_ADCC
+#if ADCC
     cdsc->tool_adcc          = op_tool_adcc;
 #endif
     cdsc->cb_qp_offset       = op_cb_qp_offset;
@@ -1022,13 +1022,13 @@ static int print_enc_conf(EVCE_CDSC * cdsc)
     printf("EIPD: %d, ",   cdsc->tool_eipd);
     printf("IQT: %d, ",    cdsc->tool_iqt);
     printf("CM_INIT: %d ", cdsc->tool_cm_init);
-#if COEFF_CODE_ADCC
-    printf("COEFF_CODE_ADCC: %d ",    cdsc->tool_adcc);
+#if ADCC
+    printf("ADCC: %d ",    cdsc->tool_adcc);
 #endif
     // TODO: These are not tools, i suggest not report it here, instead as encoder parameters.
     printf("CB_QP_OFFSET: %d ", cdsc->cb_qp_offset);
     printf("CR_QP_OFFSET: %d ", cdsc->cr_qp_offset);
-#if USE_IBC
+#if IBC
     printf("IBC: %d ", cdsc->ibc_flag);
 #endif
 #if ATS_INTRA_PROCESS
@@ -1068,7 +1068,7 @@ int check_conf(EVCE_CDSC* cdsc)
         if (cdsc->tool_iqt     == 1) { v0print("IQT cannot be on in base profile\n"); success = 0; }
         if (cdsc->tool_cm_init == 1) { v0print("CM_INIT cannot be on in base profile\n"); success = 0; }
 #if PROFILE_SANITY_CHECK_FIX
-        if (cdsc->tool_adcc    == 1) { v0print("COEFF_CODE_ADCC cannot be on in base profile\n"); success = 0; }
+        if (cdsc->tool_adcc    == 1) { v0print("ADCC cannot be on in base profile\n"); success = 0; }
         if (cdsc->tool_ats_intra == 1) { v0print("ATS_INTRA cannot be on in base profile\n"); success = 0; }
         if (cdsc->tool_ats_inter == 1) { v0print("ATS_INTER cannot be on in base profile\n"); success = 0; }
         if (cdsc->ibc_flag     == 1)   { v0print("IBC cannot be on in base profile\n"); success = 0; }

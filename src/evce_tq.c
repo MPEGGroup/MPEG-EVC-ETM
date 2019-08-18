@@ -44,7 +44,7 @@ static double err_scale_tbl[6][MAX_CU_DEPTH];
 
 extern int rdoq_est_all_cbf[2];
 extern int rdoq_est_cbf[NUM_QT_CBF_CTX][2];
-#if COEFF_CODE_ADCC
+#if ADCC
 extern int rdoq_est_gt0[NUM_CTX_GT0][2];
 extern int rdoq_est_gtA[NUM_CTX_GTA][2];
 extern int rdoq_est_scanr_x[NUM_CTX_SCANR][2];
@@ -1217,7 +1217,7 @@ void evce_init_err_scale()
 #define GET_I_COST(rate, lamba)  (rate*lamba)
 #define GET_IEP_RATE             (32768)
 
-#if COEFF_CODE_ADCC
+#if ADCC
 #if USE_RDOQ
 __inline static s64 get_rate_positionLastXY(int pos_x, int pos_y, int width, int height, int ch_type, s64 lambda)
 #else
@@ -1825,7 +1825,7 @@ int evce_rdoq_run_length_cc(u8 qp, double lambda, u8 is_intra, s16 *src_coef, s1
     return nnz;
 }
 
-#if COEFF_CODE_ADCC
+#if ADCC
 int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s16 *dst_tmp, int log2_cuw, int log2_cuh, int ch_type)
 {
     const int ns_shift = ((log2_cuw + log2_cuh) & 1) ? 7 : 0;
@@ -2456,7 +2456,7 @@ int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
 #endif
 
 int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw, int log2_cuh, u16 scale, int ch_type, int tile_group_type, int sps_cm_init_flag
-#if COEFF_CODE_ADCC
+#if ADCC
                     , int tool_adcc
 #endif
 )
@@ -2503,7 +2503,7 @@ int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw,
 
     if(USE_RDOQ)
     {
-#if COEFF_CODE_ADCC
+#if ADCC
         if (tool_adcc)
             nnz = ifvce_rdoq_method_ccA(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type);
         else
@@ -2544,7 +2544,7 @@ int evce_tq_nnz(u8 qp, double lambda, s16 * coef, int log2_cuw, int log2_cuh, u1
 #if ATS_INTRA_PROCESS
                 , u8 ats_intra_cu, u8 ats_tu
 #endif
-#if COEFF_CODE_ADCC
+#if ADCC
                  , int tool_adcc
 #endif
 )
@@ -2563,7 +2563,7 @@ int evce_tq_nnz(u8 qp, double lambda, s16 * coef, int log2_cuw, int log2_cuh, u1
 #endif
 
     return evce_quant_nnz(qp, lambda, is_intra, coef, log2_cuw, log2_cuh, scale, ch_type, tile_group_type, sps_cm_init_flag
-#if COEFF_CODE_ADCC
+#if ADCC
         , tool_adcc
 #endif
     );
@@ -2577,7 +2577,7 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
 #if ATS_INTER_PROCESS
                       , u8 ats_inter_info
 #endif
-#if COEFF_CODE_ADCC
+#if ADCC
                      , int tool_adcc
 #endif
 )
@@ -2644,7 +2644,7 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
 #if ATS_INTRA_PROCESS
                             , ats_intra_cu_on, ats_tu_mode
 #endif
-#if COEFF_CODE_ADCC
+#if ADCC
                             , tool_adcc
 #endif
                     );

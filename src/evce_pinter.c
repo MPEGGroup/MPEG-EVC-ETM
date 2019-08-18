@@ -1646,7 +1646,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 #if ATS_INTER_PROCESS
                              , core->ats_inter_info
 #endif
-#if COEFF_CODE_ADCC
+#if ADCC
         , ctx->sps.tool_adcc
 #endif
     );
@@ -1708,28 +1708,8 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
                 if(ctx->sps.tool_htdf == 1 && i == Y_C)
                 {
                     const int s_mod = pi->s_m[Y_C];
-#if HW_HTDF_CLEANUP
                     u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu);
                     evc_htdf(rec[i], ctx->tgh.qp, cuw, cuh, cuw, FALSE, pi->m[Y_C] + (y * s_mod) + x, s_mod, avail_cu);
-#else
-#if M48879_IMPROVEMENT_INTRA
-                    if (ctx->sps.tool_eipd)
-                    {
-                        evc_get_nbr(x, y, cuw, cuh, pi->m[Y_C] + (y * s_mod) + x, s_mod, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C, 0);
-                    }
-                    else
-                    {
-                        evc_get_nbr_b(x, y, cuw, cuh, pi->m[Y_C] + (y * s_mod) + x, s_mod, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C, 0);
-                    }
-#else
-                    evc_get_nbr(x, y, cuw, cuh, pi->m[Y_C] + (y * s_mod) + x, s_mod, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C
-#if M48879_IMPROVEMENT_INTRA
-                        , 0
-#endif
-                    );
-#endif
-                    evc_htdf(rec[i], ctx->tgh.qp, cuw, cuh, cuw, FALSE, core->nb[Y_C][0] + 2, core->nb[Y_C][1] + cuh - 1, core->nb[Y_C][2] + 2, core->avail_cu);
-#endif
                 }
 #endif
                 dist[1][i] = evce_ssd_16b(log2_w[i], log2_h[i], rec[i], org[i], w[i], pi->s_o[i]);
@@ -1944,7 +1924,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
                     SBAC_LOAD(core->s_temp_run, core->s_temp_prev_comp_run);
                     evce_sbac_bit_reset(&core->s_temp_run);
                     evce_rdo_bit_cnt_cu_inter_comp(core, coef, i, pidx
-#if ATS_INTRA_PROCESS || COEFF_CODE_ADCC
+#if ATS_INTRA_PROCESS || ADCC
                                                   , ctx
 #endif
                     );
@@ -2416,7 +2396,7 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
 #if ADMVP
             , core->history_buffer
 #endif
-#if USE_IBC
+#if IBC
             , core->ibc_flag
 #endif
 #if M49023_ADMVP_IMPROVE
@@ -2676,7 +2656,7 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
 #if ADMVP
             , core->history_buffer
 #endif
-#if USE_IBC
+#if IBC
             , core->ibc_flag
 #endif
 #if M49023_ADMVP_IMPROVE
@@ -5346,7 +5326,7 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
     v_org = pi->o[V_C] + (x >> 1) + ((y >> 1) * pi->s_o[V_C]);
 
     mrg_cnt = evc_get_affine_merge_candidate(ctx->ptr, ctx->tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, pi->refp, cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, mrg_list_refi, mrg_list_cp_mv, mrg_list_cp_num, ctx->map_scu, ctx->map_affine
-#if HW_AFFINE
+#if M48933_AFFINE
                                              , ctx->log2_max_cuwh
 #endif
 #if DMVR_LAG
@@ -6289,7 +6269,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                             evc_get_affine_motion_scaling(ctx->ptr, core->scup, lidx, refi_cur, pi->num_refp, ctx->map_mv, ctx->map_refi, pi->refp,
                                                           core->cuw, core->cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, affine_mvp, pi->refi_pred[lidx],
                                                           ctx->map_scu, ctx->map_affine, vertex_num, core->avail_lr
-#if HW_AFFINE
+#if M48933_AFFINE
                                                           , ctx->log2_max_cuwh
 #endif
 #if DMVR_LAG
@@ -6521,7 +6501,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                                 evc_get_affine_motion_scaling(ctx->ptr, core->scup, lidx, refi_cur, pi->num_refp, ctx->map_mv, ctx->map_refi, pi->refp,
                                                               core->cuw, core->cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, affine_mvp, pi->refi_pred[lidx],
                                                               ctx->map_scu, ctx->map_affine, vertex_num, core->avail_lr
-#if HW_AFFINE
+#if M48933_AFFINE
                                                               , ctx->log2_max_cuwh
 #endif
 #if DMVR_LAG
@@ -6780,28 +6760,8 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
         if (ctx->sps.tool_htdf == 1 && i == Y_C && pi->nnz_best[best_idx][i])
         {
             const int s_mod = pi->s_m[Y_C];
-#if HW_HTDF_CLEANUP
             u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu);
             evc_htdf(rec[i], ctx->tgh.qp, cuw, cuh, cuw, FALSE, pi->m[Y_C] + (y * s_mod) + x, s_mod, avail_cu);
-#else
-#if M48879_IMPROVEMENT_INTRA
-            if (ctx->sps.tool_eipd)
-            {
-                evc_get_nbr(x, y, cuw, cuh, pi->m[Y_C] + (y * s_mod) + x, s_mod, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C, 0);
-            }
-            else
-            {
-                evc_get_nbr_b(x, y, cuw, cuh, pi->m[Y_C] + (y * s_mod) + x, s_mod, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C, 0);
-            }
-#else
-            evc_get_nbr(x, y, cuw, cuh, pi->m[Y_C] + (y * s_mod) + x, s_mod, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C
-#if M48879_IMPROVEMENT_INTRA
-                , 0
-#endif
-            );
-#endif
-            evc_htdf(rec[i], ctx->tgh.qp, cuw, cuh, cuw, FALSE, core->nb[Y_C][0] + 2, core->nb[Y_C][1] + cuh - 1, core->nb[Y_C][2] + 2, core->avail_cu);
-#endif
         }
 #endif
         core->nnz[i] = pi->nnz_best[best_idx][i];

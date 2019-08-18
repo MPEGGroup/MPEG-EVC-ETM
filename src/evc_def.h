@@ -37,16 +37,45 @@
 #include "evc.h"
 #include "evc_port.h"
 
+#define M49023_IMPROVEMENT                 1
+#if M49023_IMPROVEMENT
+#define PROFILE_SANITY_CHECK_FIX           1 
+#define M49023_DBF_IMPROVE                 1
+#define M49023_ADMVP_IMPROVE               1
+#endif
+
+#define M48879_IMPROVEMENT                 1
+#if M48879_IMPROVEMENT
+#define M48879_IMPROVEMENT_ENC_OPT         1
+#define M48879_IMPROVEMENT_INTRA           1
+#define M48879_IMPROVEMENT_INTER           1
+#define M48879_IMPROVEMENT_SUCO            1
+#endif
+
+#define M48933_IMPROVEMENT                 1
+#if M48933_IMPROVEMENT
+#define M48933_INTRA_PRED_NO_DIV           1
+#define M48933_AFFINE                      1
+#define M48933_CQP_MAPPING_TABLE_UPDATE    1
+#endif
+
+#define HLS_M47668                         1
+
+#define ADCC                               1   /* MPEG126 CE1.1: Advanced coefficient coding */
+#define ATS                                1   /* MPEG126 CE1.2: Adaptive transform selection */
+#define IBC                                1   /* MPEG126 CE1.3: Intra Block Copy */
+
+#define ALF_PARAMETER_APS                  1
 #define TU_ZONAL_CODING                    1
 #define CTX_MODEL_FOR_RESIDUAL_IN_BASE     1
+#define USE_TILE_GROUP_DQP                 1
 
 /* Profiles definitions */
 #define PROFILE_BASELINE                   0
 #define PROFILE_MAIN                       1
 
-//intra
-#define HW_INTRA_PRED_NO_DIV               1
-#define HW_REMOVE_UNSPEC_CODE_PART         1
+//partitioning
+#define SUCO                               1
 
 //inter
 #define AFFINE                             1  // Affine Prediction
@@ -85,18 +114,11 @@
 #define USE_RDOQ                           1 // Use RDOQ
 #define RDO_DBK                            1 // include DBK changes into distortion
 #define HTDF                               1 // enable Hadamard transform domain filter
-#define HW_HTDF_CLEANUP                    1
-#if !HW_HTDF_CLEANUP
-#define HTDF_CBF0_INTRA                    1
-#endif
 
-#define HW_CQP_MAPPING_TABLE_UPDATE        1 // update chroma QP mapping table
-
-#if HW_INTRA_PRED_NO_DIV
-#define HW_INTRA_PRED_NO_DIV_IN_HOR_MODE   1
-#define HW_INTRA_PRED_NO_DIV_IN_DC_MODE    1
-#define HW_INTRA_PRED_DC_MODE_CLEANUP      1
-#endif //HW_INTRA_PRED_NO_DIV
+#if M48933_INTRA_PRED_NO_DIV
+#define M48933_INTRA_PRED_NO_DIV_IN_HOR_MODE   1
+#define M48933_INTRA_PRED_NO_DIV_IN_DC_MODE    1
+#endif //M48933_INTRA_PRED_NO_DIV
 
 //fast algorithm
 #define ENC_ECU_DEPTH                      8 // for early CU termination
@@ -303,13 +325,12 @@ enum SAD_POINT_INDEX
 #endif
 /* ALF (END) */
 
-#if USE_IBC
+#if IBC
 #define CTX_NEV_IBC_FLAG                   2 // number of ctx for ibc_flag
 #endif
+
 /* AFFINE (START) */
 #if AFFINE
-#define HW_AFFINE                          1
-
  // AFFINE Constant
 #define VER_NUM                            4
 #if M48879_IMPROVEMENT_SUCO
@@ -345,33 +366,7 @@ enum SAD_POINT_INDEX
 
 /* EIF (START) */
 #if EIF
-#define HW_EIF                             1
 #define AFFINE_ADAPT_EIF_SIZE              8
-
-#if !HW_EIF
-
-#define EIF_MV_ADDITIONAL_PRECISION        9
-#define EIF_IF_FILTER_PREC_HP              6 ///EIF filter precision for interpolation
-#define EIF_NUM_LINES_IN_UPSCALED_DATA    ( 2 * MAX_CU_SIZE + 4)
-#define EIF_NUM_COLUMNS_IN_UPSCALED_DATA  ( 2 * MAX_CU_SIZE + 4)
-#define EIF_UPSCALED_DATA_STRIDE          ( ( 2 * MAX_CU_SIZE + 4) + 4 ) // % NUM_PELS_IN_SSE_REG == 0
-#define EIF_NUM_LINES_IN_PREP_DATA         2
-#define EIF_PREP_DATA_STRIDE               ( 2 * EIF_NUM_COLUMNS_IN_UPSCALED_DATA ) // % NUM_PELS_IN_SSE_REG == 0
-#define EIF_3TAP                           1 //3-Tap interpolation fiter without sub-pel support pixels
-#if EIF_3TAP && (CHROMA_FILTERS_TYPE == CHROMA_FILTERS_3TAP)
-#define EIF_3TAP_HALFFIX                   1
-#else
-#define EIF_3TAP_HALFFIX                   0
-#endif
-
-#if X86_SSE
-#define EIF_SIMD                           0
-#define EIF_NUM_BYTES_IN_SSE_REG           16
-#define EIF_NUM_PELS_IN_SSE_REG          ( 16 / sizeof(pel) )
-#else
-#define EIF_SIMD                           0
-#endif
-#endif //HW_EIF
 #endif
 /* EIF (END) */
 #endif
@@ -415,6 +410,9 @@ typedef struct _evc_AlfFilterShape
 /* ALF (END) */
 
 /* TRANSFORM PACKAGE (START) */
+#define ATS_INTRA_PROCESS                  ATS
+#define ATS_INTER_PROCESS                  ATS
+
 #if ATS_INTRA_PROCESS
 #define ATS_INTRA_FAST                     0
 #if ATS_INTRA_FAST
@@ -423,9 +421,22 @@ typedef struct _evc_AlfFilterShape
 #define ATS_INTRA_IPD_THR                  1.10
 #endif
 #endif
+
+#if ATS_INTER_PROCESS
+#define ATS_INTER_DEBUG                    0
+#define ATS_INTER_SL_NUM                   16
+#define get_ats_inter_idx(s)               (s & 0xf)
+#define get_ats_inter_pos(s)               ((s>>4) & 0xf)
+#define get_ats_inter_info(idx, pos)       (idx + (pos << 4))
+#define is_ats_inter_horizontal(idx)       (idx == 2 || idx == 4)
+#define is_ats_inter_quad_size(idx)        (idx == 3 || idx == 4)
+#endif
 /* TRANSFORM PACKAGE (END) */
-/* COEFF_CODE_ADCC (START) */
-#if COEFF_CODE_ADCC
+
+/* ADCC (START) */
+#if ADCC
+#define COEFF_CODE_ADCC2                   1 
+
 #define LOG2_RATIO_GTA                     1
 #define LOG2_RATIO_GTB                     4
 #define LOG2_CG_SIZE                       4
@@ -438,21 +449,18 @@ typedef struct _evc_AlfFilterShape
 #define COEF_REMAIN_BIN_REDUCTION          3
 #define LAST_SIGNIFICANT_GROUPS            14
 #endif
-/* COEFF_CODE_ADCC (END) */
+/* ADCC (END) */
+
+/* IBC (START) */
+#if IBC
+#define IBC_SEARCH_RANGE                     64
+#define IBC_NUM_CANDIDATES                   64
+#define IBC_FAST_METHOD_BUFFERBV             0X01
+#define IBC_FAST_METHOD_ADAPTIVE_SEARCHRANGE 0X02
+#endif
+/* IBC (END) */
 
 /* Common routines (START) */
-#if defined(_MSC_VER)
-#define ALIGNED_(x) __declspec(align(x))
-#define FORCE_INLINE __forceinline
-#define INLINE __inline
-#else
-#if defined(__GNUC__)
-#define ALIGNED_(x) __attribute__ ((aligned(x)))
-#define FORCE_INLINE __attribute__((always_inline))
-#define INLINE __inline__
-#endif
-#endif
-
 #define max(x, y) (((x) > (y)) ? (x) : (y))
 #define min(x, y) (((x) < (y)) ? (x) : (y))
 
@@ -651,7 +659,7 @@ extern int fp_trace_counter;
 #define MODE_DIR                           3
 #define MODE_SKIP_MMVD                     4
 #define MODE_DIR_MMVD                      5
-#if USE_IBC
+#if IBC
 #define MODE_IBC                           6
 #endif
 /*****************************************************************************
@@ -670,7 +678,7 @@ extern int fp_trace_counter;
 
 #define PRED_SKIP_MMVD                     5
 #define PRED_DIR_MMVD                      6
-#if USE_IBC
+#if IBC
 /* IBC pred direction, look current picture as reference */
 #define PRED_IBC                           7
 #endif
@@ -762,7 +770,7 @@ extern int fp_trace_counter;
 #define IPD_DIA_L                          6  /* Luma, Left diagonal */
 #define IPD_DIA_U                          30 /* Luma, up diagonal */
 
-#if USE_IBC
+#if IBC
 #define IBC_MAX_CU_LOG2                      4 /* max block size for ibc search in unit of log2 */
 //#define IBC_MAX_CAND_SIZE                    (1 << IBC_MAX_CU_LOG2)
 #endif
@@ -788,7 +796,7 @@ typedef enum _TRANS_TYPE
 #define REFI_IS_VALID(refi)               ((refi) >= 0)
 #define SET_REFI(refi, idx0, idx1)        (refi)[REFP_0] = (idx0); (refi)[REFP_1] = (idx1)
 
-#if USE_IBC
+#if IBC
  /*****************************************************************************
  * macros for CU map
 
@@ -857,7 +865,7 @@ typedef enum _TRANS_TYPE
 /* clear dmvr flag */
 #define MCU_CLR_DMVRF(m)         (m)=((m) & (~(1<<25)))
 #endif
-#if USE_IBC
+#if IBC
 /* set ibc mode flag */
 #define MCU_SET_IBC(m)          (m)=((m)|(1<<26))
 /* get ibc mode flag */
@@ -932,7 +940,7 @@ typedef u32 SBAC_CTX_MODEL;
 #define NUM_SBAC_CTX_DIRECTION_IDX         2
 #define NUM_SBAC_CTX_AFFINE_MVD_FLAG       2
 #define NUM_SBAC_CTX_SKIP_FLAG             2
-#if USE_IBC
+#if IBC
 #define NUM_SBAC_CTX_IBC_FLAG             CTX_NEV_IBC_FLAG
 #endif
 #define NUM_SBAC_CTX_BTT_SPLIT_FLAG        15
@@ -958,7 +966,7 @@ typedef u32 SBAC_CTX_MODEL;
 #define NUM_SBAC_CTX_LAST                  2
 #define NUM_SBAC_CTX_LEVEL                 24
 
-#if COEFF_CODE_ADCC
+#if ADCC
 #define NUM_CTX_SCANR_LUMA                 25
 #define NUM_CTX_SCANR_CHROMA               3
 #define NUM_CTX_SCANR                      (NUM_CTX_SCANR_LUMA + NUM_CTX_SCANR_CHROMA)
@@ -991,7 +999,7 @@ typedef struct _EVC_SBAC_CTX
     SBAC_CTX_MODEL   alf_flag        [NUM_SBAC_CTX_ALF_FLAG]; 
 #endif
     SBAC_CTX_MODEL   skip_flag       [NUM_SBAC_CTX_SKIP_FLAG];
-#if USE_IBC
+#if IBC
     SBAC_CTX_MODEL   ibc_flag[NUM_SBAC_CTX_IBC_FLAG];
 #endif
     SBAC_CTX_MODEL   mmvd_flag       [NUM_SBAC_CTX_MMVD_FLAG];
@@ -1016,7 +1024,7 @@ typedef struct _EVC_SBAC_CTX
     SBAC_CTX_MODEL   last            [NUM_SBAC_CTX_LAST];
     SBAC_CTX_MODEL   level           [NUM_SBAC_CTX_LEVEL];
 
-#if COEFF_CODE_ADCC
+#if ADCC
     SBAC_CTX_MODEL   cc_gt0[NUM_CTX_GT0];
     SBAC_CTX_MODEL   cc_gtA[NUM_CTX_GTA];
     SBAC_CTX_MODEL   cc_scanr_x[NUM_CTX_SCANR];
@@ -1048,7 +1056,7 @@ typedef struct _EVC_SBAC_CTX
 } EVC_SBAC_CTX;
 
 
-#if COEFF_CODE_ADCC
+#if ADCC
 #define COEF_SCAN_ZIGZAG                   0
 #define COEF_SCAN_DIAG                     1
 #define COEF_SCAN_DIAG_CG                  2
@@ -1289,7 +1297,7 @@ typedef struct _EVC_SPS
     int              log2_sub_gop_length;
     int              log2_ref_pic_gap_length;
 #endif
-#if COEFF_CODE_ADCC  
+#if ADCC  
     int              tool_adcc;
 #endif
     int              log2_max_pic_order_cnt_lsb_minus4;
@@ -1313,7 +1321,7 @@ typedef struct _EVC_SPS
 
     u8               closed_gop;                 /* 1 bit  : flag of closed_gop or not */
     u8               num_ref_pics_act;           /* 4 bits : number of reference pictures active */
-#if USE_IBC
+#if IBC
     u8               ibc_flag;                   /* 1 bit : flag of enabling IBC or not */
     int              ibc_log_max_size;           /* log2 max ibc size */
 #endif
@@ -1575,7 +1583,7 @@ typedef enum _CTX_NEV_IDX
 #if AFFINE
     CNID_AFFN_FLAG,
 #endif
-#if USE_IBC
+#if IBC
     CNID_IBC_FLAG,
 #endif
     NUM_CNID,

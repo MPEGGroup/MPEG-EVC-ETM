@@ -362,7 +362,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 #if ADMVP
             , history_buffer
 #endif
-#if USE_IBC
+#if IBC
             , 0
 #endif
 #if M49023_ADMVP_IMPROVE
@@ -896,7 +896,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 
 #if ADMVP
 void evc_check_motion_availability2(int scup, int cuw, int cuh, int w_scu, int h_scu, int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], u32* map_scu, u16 avail_lr, int num_mvp
-#if USE_IBC
+#if IBC
   , int is_ibc
 #endif
 )
@@ -915,7 +915,7 @@ void evc_check_motion_availability2(int scup, int cuw, int cuh, int w_scu, int h
         neb_addr[0] = scup - 1;
         neb_addr[1] = scup + scuw;
         neb_addr[2] = scup - w_scu;
-#if USE_IBC
+#if IBC
         if (is_ibc)
         {
           valid_flag[0] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[0]]) && MCU_GET_IBC(map_scu[neb_addr[0]]);
@@ -937,7 +937,7 @@ void evc_check_motion_availability2(int scup, int cuw, int cuh, int w_scu, int h
         {
             neb_addr[3] = scup - w_scu + scuw;
             neb_addr[4] = scup - w_scu - 1;
-#if USE_IBC
+#if IBC
             if (is_ibc)
             {
               valid_flag[3] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[3]]) && MCU_GET_IBC(map_scu[neb_addr[3]]);
@@ -959,7 +959,7 @@ void evc_check_motion_availability2(int scup, int cuw, int cuh, int w_scu, int h
         neb_addr[0] = scup + (scuh - 1) * w_scu + scuw; // inverse H
         neb_addr[1] = scup - w_scu; // inverse D
         neb_addr[2] = scup - w_scu - 1;  // inverse E
-#if USE_IBC
+#if IBC
         if (is_ibc)
         {
           valid_flag[0] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[0]]) && MCU_GET_IBC(map_scu[neb_addr[0]]);
@@ -981,7 +981,7 @@ void evc_check_motion_availability2(int scup, int cuw, int cuh, int w_scu, int h
         {
             neb_addr[3] = scup + scuh * w_scu + scuw; // inverse I
             neb_addr[4] = scup - w_scu + scuw; // inverse A
-#if USE_IBC
+#if IBC
             if (is_ibc)
             {
               valid_flag[3] = y_scu + scuh < h_scu && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[3]]) && MCU_GET_IBC(map_scu[neb_addr[3]]);
@@ -1003,7 +1003,7 @@ void evc_check_motion_availability2(int scup, int cuw, int cuh, int w_scu, int h
         neb_addr[0] = scup + (scuh - 1) * w_scu - 1; // H
         neb_addr[1] = scup - w_scu + scuw - 1; // D
         neb_addr[2] = scup - w_scu + scuw;  // E
-#if USE_IBC
+#if IBC
         if (is_ibc)
         {
           valid_flag[0] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[0]]) && MCU_GET_IBC(map_scu[neb_addr[0]]);
@@ -1025,7 +1025,7 @@ void evc_check_motion_availability2(int scup, int cuw, int cuh, int w_scu, int h
         {
             neb_addr[3] = scup + scuh * w_scu - 1; // I
             neb_addr[4] = scup - w_scu - 1; // A
-#if USE_IBC
+#if IBC
             if (is_ibc)
             {
               valid_flag[3] = y_scu + scuh < h_scu && x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[3]]) && MCU_GET_IBC(map_scu[neb_addr[3]]);
@@ -1075,7 +1075,7 @@ int evc_use_refine_mv(int scup,int neb_scup, int w_scu)
 #endif
 
 void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_scu, int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], u32* map_scu, u16 avail_lr, int num_mvp
-#if USE_IBC
+#if IBC
   , int is_ibc
 #endif
 )
@@ -1090,7 +1090,7 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
         neb_addr[0] = scup - 1;
         neb_addr[1] = scup + scuw;
         neb_addr[2] = scup - w_scu;
-#if USE_IBC
+#if IBC
         if (is_ibc)
         {
           valid_flag[0] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[0]]) && MCU_GET_IBC(map_scu[neb_addr[0]]);
@@ -1112,7 +1112,7 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
         {
             neb_addr[3] = scup - w_scu + scuw;
             neb_addr[4] = scup - w_scu - 1;
-#if USE_IBC
+#if IBC
             if (is_ibc)
             {
               valid_flag[3] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[3]]) && MCU_GET_IBC(map_scu[neb_addr[3]]);
@@ -1134,7 +1134,7 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
         neb_addr[0] = scup + scuw;
         neb_addr[1] = scup - w_scu + scuw - 1;
         neb_addr[2] = scup - w_scu - 1;
-#if USE_IBC
+#if IBC
         if (is_ibc)
         {
           valid_flag[0] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[0]]) && MCU_GET_IBC(map_scu[neb_addr[0]]);
@@ -1157,7 +1157,7 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
             if (cuw >= cuh)
             {
                 neb_addr[2] = scup - w_scu;
-#if USE_IBC
+#if IBC
                 if (is_ibc)
                 {
                   valid_flag[2] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[2]]) && MCU_GET_IBC(map_scu[neb_addr[2]]);
@@ -1173,7 +1173,7 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
             else
             {
                 neb_addr[2] = scup + (scuh - 1) * w_scu + scuw;
-#if USE_IBC
+#if IBC
                 if (is_ibc)
                 {
                   valid_flag[2] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[2]]) && MCU_GET_IBC(map_scu[neb_addr[2]]);
@@ -1192,7 +1192,7 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
         {
             neb_addr[3] = scup - w_scu + scuw;
             neb_addr[4] = scup + scuh * w_scu + scuw;
-#if USE_IBC
+#if IBC
             if (is_ibc)
             {
               valid_flag[3] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[3]]) && MCU_GET_IBC(map_scu[neb_addr[3]]);
@@ -1214,7 +1214,7 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
         neb_addr[0] = scup - 1;
         neb_addr[1] = scup - w_scu;
         neb_addr[2] = scup - w_scu + scuw;
-#if USE_IBC
+#if IBC
         if (is_ibc)
         {
           valid_flag[0] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[0]]) && MCU_GET_IBC(map_scu[neb_addr[0]]);
@@ -1237,7 +1237,7 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
             if (cuw >= cuh)
             {
                 neb_addr[2] = scup - w_scu + scuw - 1;
-#if USE_IBC
+#if IBC
                 if (is_ibc)
                 {
                   valid_flag[2] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[2]]) && MCU_GET_IBC(map_scu[neb_addr[2]]);
@@ -1253,7 +1253,7 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
             else
             {
                 neb_addr[2] = scup + (scuh - 1) * w_scu - 1;
-#if USE_IBC
+#if IBC
                 if (is_ibc)
                 {
                   valid_flag[2] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[2]]) && MCU_GET_IBC(map_scu[neb_addr[2]]);
@@ -1272,7 +1272,7 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
         {
             neb_addr[3] = scup - w_scu - 1;
             neb_addr[4] = scup + scuh * w_scu - 1;
-#if USE_IBC
+#if IBC
             if (is_ibc)
             {
               valid_flag[3] = x_scu > 0 && y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[3]]) && MCU_GET_IBC(map_scu[neb_addr[3]]);
@@ -1308,13 +1308,13 @@ s8 evc_get_first_refi(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[
 
 #if ADMVP
     evc_check_motion_availability2(scup, cuw, cuh, w_scu, h_scu, neb_addr, valid_flag, map_scu, avail_lr, 1
-#if USE_IBC
+#if IBC
       , 0
 #endif
     );
 #else
     evc_check_motion_availability(scup, cuw, cuh, w_scu, h_scu, neb_addr, valid_flag, map_scu, avail_lr, 1
-#if USE_IBC
+#if IBC
       , 0
 #endif
     );
@@ -1503,13 +1503,13 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int ptr, int scup, int lidx, s8 cur_ref
     s16 mvp_temp[MV_D];
 #if ADMVP
     evc_check_motion_availability2(scup, cuw, cuh, w_scu, h_scu, neb_addr, valid_flag, map_scu, avail_lr, 1
-#if USE_IBC
+#if IBC
       , 0
 #endif
     );
 #else
     evc_check_motion_availability(scup, cuw, cuh, w_scu, h_scu, neb_addr, valid_flag, map_scu, avail_lr, 1
-#if USE_IBC
+#if IBC
       , 0
 #endif
     );
@@ -1702,13 +1702,13 @@ void evc_get_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int num_re
 
 #if ADMVP
     evc_check_motion_availability2(scup, cuw, cuh, w_scu, h_scu, neb_addr, valid_flag, map_scu, avail_lr, 0
-#if USE_IBC
+#if IBC
       , 0
 #endif
     );
 #else
     evc_check_motion_availability(scup, cuw, cuh, w_scu, h_scu, neb_addr, valid_flag, map_scu, avail_lr, 0
-#if USE_IBC
+#if IBC
       , 0
 #endif
     );
@@ -1954,7 +1954,7 @@ void evc_get_motion_merge_main(int ptr, int tile_group_type, int scup, s8(*map_r
     , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
     , EVC_HISTORY_BUFFER history_buffer
-#if USE_IBC
+#if IBC
     , u8 ibc_flag
 #endif
     , EVC_REFP(*refplx)[REFP_NUM]
@@ -1991,7 +1991,7 @@ void evc_get_motion_merge_main(int ptr, int tile_group_type, int scup, s8(*map_r
         valid_flag[k] = 0;
     }
     evc_check_motion_availability2(scup, cuw, cuh, w_scu, h_scu, neb_addr, valid_flag, map_scu, avail_lr, 1
-#if USE_IBC
+#if IBC
         , ibc_flag
 #endif
     );
@@ -2533,7 +2533,7 @@ u16 evc_get_avail_inter(int x_scu, int y_scu, int w_scu, int h_scu, int scup, in
     int scuh = cuh >> MIN_CU_LOG2;
 
     if(x_scu > 0 && !MCU_GET_IF(map_scu[scup - 1]) && MCU_GET_COD(map_scu[scup - 1])
-#if USE_IBC
+#if IBC
       && !MCU_GET_IBC(map_scu[scup - 1])
 #endif
       )
@@ -2541,7 +2541,7 @@ u16 evc_get_avail_inter(int x_scu, int y_scu, int w_scu, int h_scu, int scup, in
         SET_AVAIL(avail, AVAIL_LE);
 
         if(y_scu + scuh < h_scu  && MCU_GET_COD(map_scu[scup + (scuh * w_scu) - 1]) && !MCU_GET_IF(map_scu[scup + (scuh * w_scu) - 1])
-#if USE_IBC
+#if IBC
           && !MCU_GET_IBC(map_scu[scup + (scuh * w_scu) - 1])
 #endif
           )
@@ -2553,7 +2553,7 @@ u16 evc_get_avail_inter(int x_scu, int y_scu, int w_scu, int h_scu, int scup, in
     if(y_scu > 0)
     {
         if(!MCU_GET_IF(map_scu[scup - w_scu])
-#if USE_IBC
+#if IBC
           && !MCU_GET_IBC(map_scu[scup - w_scu])
 #endif
           )
@@ -2562,7 +2562,7 @@ u16 evc_get_avail_inter(int x_scu, int y_scu, int w_scu, int h_scu, int scup, in
         }
 
         if(!MCU_GET_IF(map_scu[scup - w_scu + scuw - 1])
-#if USE_IBC
+#if IBC
           && !MCU_GET_IBC(map_scu[scup - w_scu + scuw - 1])
 #endif
           )
@@ -2571,7 +2571,7 @@ u16 evc_get_avail_inter(int x_scu, int y_scu, int w_scu, int h_scu, int scup, in
         }
 
         if(x_scu > 0 && !MCU_GET_IF(map_scu[scup - w_scu - 1]) && MCU_GET_COD(map_scu[scup - w_scu - 1])
-#if USE_IBC
+#if IBC
           && !MCU_GET_IBC(map_scu[scup - w_scu - 1])
 #endif
           )
@@ -2586,7 +2586,7 @@ u16 evc_get_avail_inter(int x_scu, int y_scu, int w_scu, int h_scu, int scup, in
     }
 
     if(x_scu + scuw < w_scu && !MCU_GET_IF(map_scu[scup + scuw]) && MCU_GET_COD(map_scu[scup + scuw])
-#if USE_IBC
+#if IBC
       && !MCU_GET_IBC(map_scu[scup + scuw])
 #endif
       )
@@ -2594,7 +2594,7 @@ u16 evc_get_avail_inter(int x_scu, int y_scu, int w_scu, int h_scu, int scup, in
         SET_AVAIL(avail, AVAIL_RI);
 
         if(y_scu + scuh < h_scu  && MCU_GET_COD(map_scu[scup + (scuh * w_scu) + scuw]) && !MCU_GET_IF(map_scu[scup + (scuh * w_scu) + scuw])
-#if USE_IBC
+#if IBC
           && !MCU_GET_IBC(map_scu[scup + (scuh * w_scu) + scuw])
 #endif
           )
@@ -2654,7 +2654,7 @@ u16 evc_get_avail_intra(int x_scu, int y_scu, int w_scu, int h_scu, int scup, in
 
     return avail;
 }
-#if USE_IBC
+#if IBC
 u16 evc_get_avail_ibc(int x_scu, int y_scu, int w_scu, int h_scu, int scup, int cuw, int cuh, u32 * map_scu)
 {
   u16 avail = 0;
@@ -3036,7 +3036,7 @@ int evc_scan_tbl_init()
                 size_x = 1 << (x + 1);
                 evc_scan_tbl[scan_type][x][y] = (u16*)evc_malloc_fast(size_y * size_x * sizeof(u16));
                 init_scan(evc_scan_tbl[scan_type][x][y], size_x, size_y, scan_type);
-#if COEFF_CODE_ADCC
+#if ADCC
                 evc_inv_scan_tbl[scan_type][x][y] = (u16*)evc_malloc_fast(size_y * size_x * sizeof(u16));
                 evc_init_inverse_scan_sr(evc_inv_scan_tbl[scan_type][x][y], evc_scan_tbl[scan_type][x][y], size_x, size_y, scan_type);
 #endif
@@ -3060,7 +3060,7 @@ int evc_scan_tbl_delete()
                 {
                     free(evc_scan_tbl[scan_type][x][y]);
                 }
-#if COEFF_CODE_ADCC
+#if ADCC
                 if (evc_inv_scan_tbl[scan_type][x][y] != NULL)
                 {
                     free(evc_inv_scan_tbl[scan_type][x][y]);
@@ -3253,37 +3253,6 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                 }
             }
         }
-#if !HW_REMOVE_UNSPEC_CODE_PART
-        //conditional split restriction
-        /* remove conditionally disallowed split modes*/
-        if(!boundary)
-        {
-            if(parent_split == SPLIT_BI_HOR && node_idx == 1)
-            {
-                if(same_layer_split[0] == SPLIT_BI_HOR && parent_split_allow[SPLIT_BI_VER] == 1)
-                {
-                    if(split_allow[SPLIT_BI_HOR])
-                    {
-                        split_allow[SPLIT_BI_HOR] = 0;
-                        if(remaining_split != NULL)
-                            *remaining_split |= (1 << SPLIT_BI_HOR);
-                    }
-                }
-            }
-            else if(parent_split == SPLIT_BI_VER && node_idx == 1)
-            {
-                if(same_layer_split[0] == SPLIT_BI_VER && parent_split_allow[SPLIT_BI_HOR] == 1)
-                {
-                    if(split_allow[SPLIT_BI_VER])
-                    {
-                        split_allow[SPLIT_BI_VER] = 0;
-                        if(remaining_split != NULL)
-                            *remaining_split |= (1 << SPLIT_BI_VER);
-                    }
-                }
-            }
-        }
-#endif
     }
 }
 
@@ -3372,7 +3341,7 @@ u16 evc_check_nev_avail(int x_scu, int y_scu, int cuw, int cuh, int w_scu, int h
 }
 
 void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u32* map_scu, u32* map_cu_mode, u8* ctx, u8 tile_group_type, int sps_cm_init_flag
-#if USE_IBC    
+#if IBC    
   , u8 ibc_flag, u8 ibc_log_max_size
 #endif
 )
@@ -3383,7 +3352,7 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
     int scuw = cuw >> MIN_CU_LOG2, scuh = cuh >> MIN_CU_LOG2;
     int num_pos_avail;
     int i, j;
-#if USE_IBC
+#if IBC
     if ((tile_group_type == TILE_GROUP_I && ibc_flag == 0)
       || (tile_group_type == TILE_GROUP_I && (cuw > (1 << ibc_log_max_size) || cuh > (1 << ibc_log_max_size))))
     {
@@ -3413,7 +3382,7 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
     {
         if(avail[j])
         {
-#if USE_IBC
+#if IBC
           nev_info[CNID_SKIP_FLAG][j] = MCU_GET_SF(map_scu[scun[j]]);
           nev_info[CNID_PRED_MODE][j] = MCU_GET_IF(map_scu[scun[j]]);
 
@@ -3464,7 +3433,7 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
                     ctx[i] = 0;
                 }
             }
-#if USE_IBC
+#if IBC
             else if (i == CNID_IBC_FLAG)
             {
               if (sps_cm_init_flag == 1)
@@ -3505,7 +3474,7 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
     }
 }
 
-#if HW_AFFINE
+#if M48933_AFFINE
 void evc_mv_rounding_s32( s32 hor, int ver, s32 * rounded_hor, s32 * rounded_ver, s32 right_shift, int left_shift )
 {
     int offset = (right_shift > 0) ? (1 << (right_shift - 1)) : 0;
@@ -3718,7 +3687,7 @@ int evc_derive_affine_constructed_candidate(int ptr, EVC_REFP (*refp)[REFP_NUM],
 }
 
 void evc_derive_affine_model_mv(int scup, int scun, int lidx, s16(*map_mv)[REFP_NUM][MV_D], int cuw, int cuh, int w_scu, int h_scu, s16 mvp[VER_NUM][MV_D], u32 *map_affine, int cur_cp_num
-#if HW_AFFINE
+#if M48933_AFFINE
                                 , int log2_max_cuwh
 #endif
 #if DMVR_LAG
@@ -3753,7 +3722,7 @@ void evc_derive_affine_model_mv(int scup, int scun, int lidx, s16(*map_mv)[REFP_
     cur_x = (scup % w_scu) << MIN_CU_LOG2;
     cur_y = (scup / w_scu) << MIN_CU_LOG2;
 
-#if HW_AFFINE
+#if M48933_AFFINE
     for ( i = 0; i < VER_NUM; i++ )
 #else
     for(i = 0; i < cur_cp_num; i++)
@@ -3777,7 +3746,7 @@ void evc_derive_affine_model_mv(int scup, int scun, int lidx, s16(*map_mv)[REFP_
         }
     }
 
-#if HW_AFFINE
+#if M48933_AFFINE
     int is_top_ctu_boundary = FALSE;
     if ( (neb_y + neb_h) % (1 << log2_max_cuwh) == 0 && (neb_y + neb_h) == cur_y )
     {
@@ -3793,7 +3762,7 @@ void evc_derive_affine_model_mv(int scup, int scun, int lidx, s16(*map_mv)[REFP_
 
     dmv_hor_x = (neb_mv[1][MV_X] - neb_mv[0][MV_X]) << diff_w;    // deltaMvHor
     dmv_hor_y = (neb_mv[1][MV_Y] - neb_mv[0][MV_Y]) << diff_w;
-#if HW_AFFINE
+#if M48933_AFFINE
     if (cur_cp_num == 3 && !is_top_ctu_boundary )
 #else
     if(cur_cp_num == 3)
@@ -3840,7 +3809,7 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
                                    s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
                                    int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][VER_NUM][MV_D], s8 refi[MAX_NUM_MVP]
                                    , u32* map_scu, u32* map_affine, int vertex_num, u16 avail_lr
-#if HW_AFFINE
+#if M48933_AFFINE
                                    , int log2_max_cuwh
 #endif
 #if DMVR_LAG
@@ -3903,7 +3872,7 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
         {
             refi[cnt_tmp] = map_refi[neb_addr[k]][lidx];
             evc_derive_affine_model_mv(scup, neb_addr[k], lidx, map_mv, cuw, cuh, w_scu, h_scu, mvp_tmp, map_affine, vertex_num
-#if HW_AFFINE
+#if M48933_AFFINE
                                        , log2_max_cuwh
 #endif
 #if DMVR_LAG
@@ -3940,7 +3909,7 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
         {
             refi[cnt_tmp] = map_refi[neb_addr[k]][lidx];
             evc_derive_affine_model_mv(scup, neb_addr[k], lidx, map_mv, cuw, cuh, w_scu, h_scu, mvp_tmp, map_affine, vertex_num
-#if HW_AFFINE
+#if M48933_AFFINE
                                        , log2_max_cuwh
 #endif
 #if DMVR_LAG
@@ -3976,7 +3945,7 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
         {
             refi[cnt_tmp] = map_refi[neb_addr[k]][lidx];
             evc_derive_affine_model_mv(scup, neb_addr[k], lidx, map_mv, cuw, cuh, w_scu, h_scu, mvp_tmp, map_affine, vertex_num
-#if HW_AFFINE
+#if M48933_AFFINE
                 , log2_max_cuwh
 #endif
 #if DMVR_LAG
@@ -4149,7 +4118,7 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
 
     //-------------------  organize  -------------------//
     {
-#if HW_AFFINE
+#if M48933_AFFINE
 #if M48879_IMPROVEMENT_SUCO
         if (cnt_lt && cnt_rt && (vertex_num == 2 || (cnt_lb || cnt_rb)))
 #else
@@ -4173,7 +4142,7 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
             }
 #endif
 
-#if !HW_AFFINE
+#if !M48933_AFFINE
             if(vertex_num == 2 || cnt_lb == 0)
             {
                 mvp[cnt_tmp][2][MV_X] = mvp[cnt_tmp][0][MV_X] + (mvp[cnt_tmp][0][MV_Y] - mvp[cnt_tmp][1][MV_Y]) * cuh / cuw;
@@ -4265,7 +4234,7 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
 /* merge affine mode */
 int evc_get_affine_merge_candidate(int ptr, int tile_group_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], EVC_REFP(*refp)[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, u16 avail,
                                    s8 mrg_list_refi[AFF_MAX_CAND][REFP_NUM], s16 mrg_list_cpmv[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D], int mrg_list_cp_num[AFF_MAX_CAND], u32* map_scu, u32* map_affine
-#if HW_AFFINE
+#if M48933_AFFINE
                                    , int log2_max_cuwh
 #endif
 #if DMVR_LAG
@@ -4356,7 +4325,7 @@ int evc_get_affine_merge_candidate(int ptr, int tile_group_type, int scup, s8(*m
                     {
                         mrg_list_refi[cnt][lidx] = map_refi[neb_addr[k]][lidx];
                         evc_derive_affine_model_mv(scup, neb_addr[k], lidx, map_mv, cuw, cuh, w_scu, h_scu, mrg_list_cpmv[cnt][lidx], map_affine, mrg_list_cp_num[cnt]
-#if HW_AFFINE
+#if M48933_AFFINE
                                                    , log2_max_cuwh
 #endif
 #if DMVR_LAG
@@ -4618,7 +4587,7 @@ int evc_get_affine_merge_candidate(int ptr, int tile_group_type, int scup, s8(*m
 }
 #endif
 
-#if COEFF_CODE_ADCC
+#if ADCC
 void evc_get_ctx_last_pos_xy_para(int ch_type, int width, int height, int *result_offset_x, int *result_offset_y, int *result_shift_x, int *result_shift_y)
 {
     int convertedWidth = CONV_LOG2(width) - 2;
@@ -5295,46 +5264,6 @@ void clip_simd(const pel* src, int src_stride, pel *dst, int dst_stride, int wid
 }
 #endif
 
-#if !HW_INTRA_PRED_NO_DIV_IN_HOR_MODE || !(HW_INTRA_PRED_NO_DIV_IN_DC_MODE || HW_INTRA_PRED_DC_MODE_CLEANUP)
-s32 divide_tbl(s32 dividend, s32 divisor)
-{
-    u8 sign_dividend = dividend < 0;
-    u8 sign_divisor = divisor < 0;
-    s32 quotient = 0;
-    s32 pos = -1;
-    u32 divisor_32b;
-    u32 dividend_32b;
-
-    dividend = (sign_dividend) ? -dividend : dividend;
-    divisor = (sign_divisor) ? -divisor : divisor;
-
-    divisor_32b = divisor;
-    dividend_32b = dividend;
-
-    while(divisor_32b < dividend_32b)
-    {
-        divisor_32b <<= 1;
-        pos++;
-    }
-
-    divisor_32b >>= 1;
-
-    while(pos > -1)
-    {
-        if(dividend_32b >= divisor_32b)
-        {
-            quotient += (1 << pos);
-            dividend_32b -= divisor_32b;
-        }
-
-        divisor_32b >>= 1;
-        pos -= 1;
-    }
-
-    return (sign_dividend + sign_divisor == 1) ? -quotient : quotient;
-}
-#endif //!HW_INTRA_PRED_NO_DIV_IN_HOR_MODE || !(HW_INTRA_PRED_NO_DIV_IN_DC_MODE || HW_INTRA_PRED_DC_MODE_CLEANUP)
-
 void evc_block_copy(s16 * src, int src_stride, s16 * dst, int dst_stride, int log2_copy_w, int log2_copy_h)
 {
     int h;
@@ -5355,7 +5284,7 @@ u8 check_ats_inter_info_coded(int cuw, int cuh, int pred_mode, int tool_ats_inte
     int min_size = 8;
     int max_size = 1 << MAX_TR_LOG2;
     u8  mode_hori, mode_vert, mode_hori_quad, mode_vert_quad;
-#if USE_IBC
+#if IBC
     if (!tool_ats_inter || pred_mode == MODE_INTRA || cuw > max_size || cuh > max_size || pred_mode == MODE_IBC)
 #else
     if (!tool_ats_inter || pred_mode == MODE_INTRA || cuw > max_size || cuh > max_size)

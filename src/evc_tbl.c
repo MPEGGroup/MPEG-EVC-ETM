@@ -256,7 +256,7 @@ const s8 * evc_tbl_tm[MAX_CU_DEPTH] =
 u16 *evc_scan_tbl[COEF_SCAN_TYPE_NUM][MAX_CU_LOG2 - 1][MAX_CU_LOG2 - 1];
 int evc_scan_sr[MAX_TR_SIZE*MAX_TR_SIZE];
 
-#if COEFF_CODE_ADCC
+#if ADCC
 u16 *evc_inv_scan_tbl[COEF_SCAN_TYPE_NUM][MAX_CU_LOG2 - 1][MAX_CU_LOG2 - 1];
 int evc_inv_scan_sr[MAX_TR_SIZE*MAX_TR_SIZE];
 #endif
@@ -343,7 +343,7 @@ const u8 evc_split_order[2][SPLIT_CHECK_NUM] =
 
 int evc_tbl_qp_chroma_ajudst_main[58] =
 {
-#if HW_CQP_MAPPING_TABLE_UPDATE
+#if M48933_CQP_MAPPING_TABLE_UPDATE
     0,  1,  2,  3,  4,  5,  6,  7,  8,  9,
     10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
     20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
@@ -410,7 +410,7 @@ const s16 init_skip_flag[2][NUM_SBAC_CTX_SKIP_FLAG][1] = {
         { 233 }
     }
 };
-#if USE_IBC
+#if IBC
 const s16 init_ibc_flag[2][NUM_SBAC_CTX_IBC_FLAG][1] = {
   {
     { 0 },
@@ -627,7 +627,7 @@ const s16 init_cbf[2][NUM_QT_CBF_CTX][1] = {
     }
 };
 
-#if COEFF_CODE_ADCC   // tables below to be optimized for the final design
+#if ADCC   // tables below to be optimized for the final design
 #define initA 0
 #define initB 128
 const s16 init_cc_gt0[2][NUM_CTX_GT0] = { 
@@ -1049,7 +1049,7 @@ const u8 CLIP_TAB[52][5] =
     { 0, 9,12,18,18 },{ 0,10,13,20,20 },{ 0,11,15,23,23 },{ 0,13,17,25,25 }
 };
 #endif
-#if COEFF_CODE_ADCC 
+#if ADCC 
 const int g_min_in_group[LAST_SIGNIFICANT_GROUPS] = { 0,1,2,3,4,6,8,12,16,24,32,48,64,96 };
 const int g_group_idx[MAX_TR_SIZE] = { 0,1,2,3,4,4,5,5,6,6,6,6,7,7,7,7,8,8,8,8,8,8,8,8,9,9,9,9,9,9,9,9, 10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11 };
 

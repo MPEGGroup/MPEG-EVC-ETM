@@ -36,7 +36,7 @@
 
 #include "evce_def.h"
 
-#if USE_IBC
+#if IBC
 
 #if ((defined WIN32) || (defined WIN64))
 #define  IBC_INLINE __forceinline

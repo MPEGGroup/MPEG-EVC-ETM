@@ -40,7 +40,7 @@ int evce_tq_nnz(u8 qp, double lambda, s16 * coef, int log2_cuw, int log2_cuh, u1
 #if ATS_INTRA_PROCESS
     , u8 ats_intra_cu, u8 ats_tu
 #endif
-#if COEFF_CODE_ADCC
+#if ADCC
     , int tool_adcc
 #endif
 );
@@ -54,7 +54,7 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
 #if ATS_INTER_PROCESS
                       , u8 ats_inter_info
 #endif
-#if COEFF_CODE_ADCC
+#if ADCC
                       , int tool_adcc
 #endif
 );

@@ -47,11 +47,7 @@ void evc_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pe
 );
 
 #if HTDF
-#if HW_HTDF_CLEANUP
 void evc_htdf(s16* rec, int qp, int w, int h, int s, BOOL intra_block_flag, pel* rec_pic, int s_pic, int avail_cu);
-#else
-void evc_htdf(s16* rec, int qp, int w, int h, int s, BOOL intra_block_flag, pel* left, pel* up, pel* right, int avail_cu);
-#endif
 #endif
 
 #endif /* _EVC_RECON_H_ */

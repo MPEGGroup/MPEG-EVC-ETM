@@ -68,7 +68,7 @@ int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16])
 #if AFFINE
 void evcd_set_affine_mvf(EVCD_CTX * ctx, EVCD_CORE * core)
 {
-#if !HW_AFFINE
+#if !M48933_AFFINE
     s16(*map_mv)[REFP_NUM][MV_D];
 #endif
 
@@ -76,7 +76,7 @@ void evcd_set_affine_mvf(EVCD_CTX * ctx, EVCD_CORE * core)
     int   h_cu;
     int   scup;
     int   w_scu;
-#if !HW_AFFINE
+#if !M48933_AFFINE
     int   i, j;
 #endif
     int   lidx;
@@ -97,7 +97,7 @@ void evcd_set_affine_mvf(EVCD_CTX * ctx, EVCD_CORE * core)
     {
         if(core->refi[lidx] >= 0)
         {
-#if HW_AFFINE
+#if M48933_AFFINE
             s16( *ac_mv )[MV_D] = core->affine_mv[lidx];
             int dmv_hor_x, dmv_ver_x, dmv_hor_y, dmv_ver_y;
             int mv_scale_hor = ac_mv[0][MV_X] << 7;
@@ -339,7 +339,7 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
                 MCU_CLR_AFF(map_scu[j]);
             }
 #endif
-#if USE_IBC
+#if IBC
             if (core->ibc_flag)
             {
               MCU_SET_IBC(map_scu[j]);
@@ -367,7 +367,7 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
             map_refi[j][REFP_1] = core->refi[REFP_1];
 #if ATS_INTER_PROCESS
             map_ats_inter[j] = core->ats_inter_info;
-#if USE_IBC
+#if IBC
             if(core->pred_mode == MODE_IBC)
               map_ats_inter[j] = 0;
 #endif
