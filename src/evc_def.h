@@ -59,7 +59,6 @@
 #define M48933_CQP_MAPPING_TABLE_UPDATE 1
 
 
-#define HW_REMOVE_UNSPEC_CODE_PART      1
 #define HW_HTDF_CLEANUP                 1
 #define HW_EIF                          1
 #endif

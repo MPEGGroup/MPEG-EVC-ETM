@@ -3253,37 +3253,6 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                 }
             }
         }
-#if !HW_REMOVE_UNSPEC_CODE_PART
-        //conditional split restriction
-        /* remove conditionally disallowed split modes*/
-        if(!boundary)
-        {
-            if(parent_split == SPLIT_BI_HOR && node_idx == 1)
-            {
-                if(same_layer_split[0] == SPLIT_BI_HOR && parent_split_allow[SPLIT_BI_VER] == 1)
-                {
-                    if(split_allow[SPLIT_BI_HOR])
-                    {
-                        split_allow[SPLIT_BI_HOR] = 0;
-                        if(remaining_split != NULL)
-                            *remaining_split |= (1 << SPLIT_BI_HOR);
-                    }
-                }
-            }
-            else if(parent_split == SPLIT_BI_VER && node_idx == 1)
-            {
-                if(same_layer_split[0] == SPLIT_BI_VER && parent_split_allow[SPLIT_BI_HOR] == 1)
-                {
-                    if(split_allow[SPLIT_BI_VER])
-                    {
-                        split_allow[SPLIT_BI_VER] = 0;
-                        if(remaining_split != NULL)
-                            *remaining_split |= (1 << SPLIT_BI_VER);
-                    }
-                }
-            }
-        }
-#endif
     }
 }
 
