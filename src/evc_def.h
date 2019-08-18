@@ -37,6 +37,54 @@
 #include "evc.h"
 #include "evc_port.h"
 
+#define M49023_IMPROVEMENT              1
+#if M49023_IMPROVEMENT
+#define PROFILE_SANITY_CHECK_FIX        1 
+#define M49023_DBF_IMPROVE              1
+#define M49023_ADMVP_IMPROVE            1
+#endif
+
+#define M48879_IMPROVEMENT              1
+#if M48879_IMPROVEMENT
+#define M48879_IMPROVEMENT_ENC_OPT      1
+#define M48879_IMPROVEMENT_INTRA        1
+#define M48879_IMPROVEMENT_INTER        1
+#define M48879_IMPROVEMENT_SUCO         1
+#endif
+
+#define USE_TILE_GROUP_DQP              1
+#define HLS_M47668                      1
+#define USE_IBC                         1 // use intra-block copy feature
+
+#define SUCO                            1
+
+#if USE_IBC
+#define IBC_SEARCH_RANGE                     64
+#define IBC_NUM_CANDIDATES                   64
+#define IBC_FAST_METHOD_BUFFERBV             0X01
+#define IBC_FAST_METHOD_ADAPTIVE_SEARCHRANGE 0X02
+#endif
+#define COEFF_CODE_ADCC                 1   /* CE1.1: Advanced coefficient coding */
+#if COEFF_CODE_ADCC
+#define COEFF_CODE_ADCC2                1 
+#endif
+#define ATS                             1   /* CE1.2: Adaptive transform selection */
+
+#define ATS_INTRA_PROCESS               ATS
+#define ATS_INTER_PROCESS               ATS
+#if ATS_INTER_PROCESS
+#define ATS_INTER_DEBUG                 0
+#define ATS_INTER_SL_NUM                16
+#define get_ats_inter_idx(s)            (s & 0xf)
+#define get_ats_inter_pos(s)            ((s>>4) & 0xf)
+#define get_ats_inter_info(idx, pos)    (idx + (pos << 4))
+#define is_ats_inter_horizontal(idx)    (idx == 2 || idx == 4)
+#define is_ats_inter_quad_size(idx)     (idx == 3 || idx == 4)
+#endif
+
+#define ROOT_CBF_RDO_BIT_FIX               1
+#define ALF_PARAMETER_APS                  1
+
 #define TU_ZONAL_CODING                    1
 #define CTX_MODEL_FOR_RESIDUAL_IN_BASE     1
 

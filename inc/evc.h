@@ -40,55 +40,6 @@
 extern "C"
 {
 #endif
-
-#define M49023_IMPROVEMENT              1
-#if M49023_IMPROVEMENT
-#define PROFILE_SANITY_CHECK_FIX        1 
-#define M49023_DBF_IMPROVE              1
-#define M49023_ADMVP_IMPROVE            1
-#endif
-
-#define M48879_IMPROVEMENT              1
-#if M48879_IMPROVEMENT
-#define M48879_IMPROVEMENT_ENC_OPT      1
-#define M48879_IMPROVEMENT_INTRA        1
-#define M48879_IMPROVEMENT_INTER        1
-#define M48879_IMPROVEMENT_SUCO         1
-#endif
-
-#define USE_TILE_GROUP_DQP              1
-#define HLS_M47668                      1
-#define USE_IBC                         1 // use intra-block copy feature
-
-#define SUCO                            1
-  
-#if USE_IBC
-#define IBC_SEARCH_RANGE                     64
-#define IBC_NUM_CANDIDATES                   64
-#define IBC_FAST_METHOD_BUFFERBV             0X01
-#define IBC_FAST_METHOD_ADAPTIVE_SEARCHRANGE 0X02
-#endif
-#define COEFF_CODE_ADCC                 1   /* CE1.1: Advanced coefficient coding */
-#if COEFF_CODE_ADCC
-#define COEFF_CODE_ADCC2                1 
-#endif
-#define ATS                             1   /* CE1.2: Adaptive transform selection */
-
-#define ATS_INTRA_PROCESS               ATS
-#define ATS_INTER_PROCESS               ATS
-#if ATS_INTER_PROCESS
-#define ATS_INTER_DEBUG                 0
-#define ATS_INTER_SL_NUM                16
-#define get_ats_inter_idx(s)            (s & 0xf)
-#define get_ats_inter_pos(s)            ((s>>4) & 0xf)
-#define get_ats_inter_info(idx, pos)    (idx + (pos << 4))
-#define is_ats_inter_horizontal(idx)    (idx == 2 || idx == 4)
-#define is_ats_inter_quad_size(idx)     (idx == 3 || idx == 4)
-#endif
-
-#define ROOT_CBF_RDO_BIT_FIX            1
-#define ALF_PARAMETER_APS               1
-
 /*****************************************************************************
  * return values and error code
  *****************************************************************************/
@@ -198,15 +149,11 @@ extern "C"
 #define EVCE_CFG_SET_QP_MAX             (209)
 #define EVCE_CFG_SET_BU_SIZE            (210)
 #define EVCE_CFG_SET_USE_DEBLOCK        (211)
-#if M49023_DBF_IMPROVE
-#define EVCE_CFG_SET_DEBLOCK_A_OFFSET     (212)
-#define EVCE_CFG_SET_DEBLOCK_B_OFFSET     (213)
-#endif
+#define EVCE_CFG_SET_DEBLOCK_A_OFFSET   (212)
+#define EVCE_CFG_SET_DEBLOCK_B_OFFSET   (213)
 #define EVCE_CFG_SET_USE_PIC_SIGNATURE  (301)
-
 #define EVCE_CFG_GET_COMPLEXITY         (500)
 #define EVCE_CFG_GET_SPEED              (501)
-
 #define EVCE_CFG_GET_QP_MIN             (600)
 #define EVCE_CFG_GET_QP_MAX             (601)
 #define EVCE_CFG_GET_QP                 (602)
@@ -218,10 +165,8 @@ extern "C"
 #define EVCE_CFG_GET_USE_DEBLOCK        (610)
 #define EVCE_CFG_GET_CLOSED_GOP         (611)
 #define EVCE_CFG_GET_HIERARCHICAL_GOP   (612)
-#if M49023_DBF_IMPROVE
-#define EVCE_CFG_GET_DEBLOCK_A_OFFSET     (613)
-#define EVCE_CFG_GET_DEBLOCK_B_OFFSET     (614)
-#endif
+#define EVCE_CFG_GET_DEBLOCK_A_OFFSET   (613)
+#define EVCE_CFG_GET_DEBLOCK_B_OFFSET   (614)
 #define EVCE_CFG_GET_WIDTH              (701)
 #define EVCE_CFG_GET_HEIGHT             (702)
 #define EVCE_CFG_GET_RECON              (703)
@@ -344,7 +289,6 @@ struct _EVC_IMGB
     int                 (*release)(EVC_IMGB * imgb);
 };
 
-
 /*****************************************************************************
  * Bitstream buffer
  *****************************************************************************/
@@ -402,13 +346,8 @@ typedef struct _EVCD_STAT
     int            refpic[2][16];
 } EVCD_STAT;
 
-#if HLS_M47668
 #define MAX_NUM_REF_PICS                   21
 #define MAX_NUM_ACTIVE_REF_FRAME           5
-#else
-#define MAX_NUM_REF_PICS                   17
-#define MAX_NUM_ACTIVE_REF_FRAME           4
-#endif
 #define MAX_NUM_RPLS                       32
 
 /* rpl structure */
@@ -451,26 +390,25 @@ typedef struct _EVCE_CDSC
        - disable (1) means frame type will be decided automatically
        - Default: enable(0)                                                       */
     int            disable_hgop;
-#if HLS_M47668
+
     int            ref_pic_gap_length;
-#endif
+
     /* use closed GOP sturcture
        - 0 : use open GOP (default)
        - 1 : use closed GOP */
     int            closed_gop; 
-#if USE_IBC
+
     /* enable intra-block copy feature
     - 0 : disable IBC (default)
     - 1 : enable IBC featuer */
     int  ibc_flag;
-
     int  ibc_search_range_x;
     int  ibc_search_range_y;
     int  ibc_hash_search_flag;
     int  ibc_hash_search_max_cand;
     int  ibc_hash_search_range_4smallblk;
     int  ibc_fast_method;
-#endif
+
     /* bit depth of input video */
     int            in_bit_depth;
     /* bit depth of output video */
@@ -479,9 +417,7 @@ typedef struct _EVCE_CDSC
     int            level;
     int            btt;
     int            suco;
-#if USE_TILE_GROUP_DQP
     int            add_qp_frame;
-#endif
     int            framework_ctu_size;
     int            framework_cu11_max;
     int            framework_cu11_min;
@@ -504,24 +440,15 @@ typedef struct _EVCE_CDSC
     int            tool_eipd;
     int            tool_iqt;
     int            tool_cm_init;
-#if COEFF_CODE_ADCC
     int            tool_adcc;
-#endif
     int            cb_qp_offset;
     int            cr_qp_offset;
-#if ATS_INTRA_PROCESS
     int            tool_ats_intra;
-#endif
-#if ATS_INTER_PROCESS
     int            tool_ats_inter;
-#endif
-#if M48879_IMPROVEMENT_INTRA
     int            constrained_intra_pred;
-#endif
-#if M49023_DBF_IMPROVE
-    int               deblock_aplha_offset;
-    int               deblock_beta_offset;
-#endif
+    int            deblock_aplha_offset;
+    int            deblock_beta_offset;
+
     EVC_RPL rpls_l0[MAX_NUM_RPLS];
     EVC_RPL rpls_l1[MAX_NUM_RPLS];
     int rpls_l0_cfg_num;
