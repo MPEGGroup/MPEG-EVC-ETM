@@ -31,7 +31,7 @@
 *  THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "evc_def.h"
+#include "../src/evc_def.h"
 #include "evca_util.h"
 #include "evca_args.h"
 #include <math.h>
@@ -40,7 +40,6 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <unistd.h>
-
 #endif
 
 #define SCRIPT_REPORT              1

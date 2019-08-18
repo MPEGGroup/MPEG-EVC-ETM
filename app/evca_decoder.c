@@ -33,7 +33,7 @@
 
 #define DECODING_TIME_TEST 1
 
-#include "evc_def.h"
+#include "../src/evc_def.h"
 #include "evca_util.h"
 #include "evca_args.h"
 
