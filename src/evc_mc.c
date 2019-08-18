@@ -6346,7 +6346,7 @@ void evc_DMVR_refine(int w, int h, pel *ref_l0, int s_ref_l0, pel *ref_l1, int s
   *centre_mean_l1 = best_meanL1;
 #endif
 }
-INLINE s32 div_for_maxq7(s64 N, s64 D)
+__inline s32 div_for_maxq7(s64 N, s64 D)
 {
   s32 sign, q;
 

@@ -53,7 +53,7 @@ extern "C" {
 #pragma warning(disable:4018)
 #pragma warning(disable:4800)
 
-static INLINE int Clip3 (const int minVal, const int maxVal, const int a) { return min(max(minVal, a), maxVal); }  ///< general min/max clip
+static __inline int Clip3 (const int minVal, const int maxVal, const int a) { return min(max(minVal, a), maxVal); }  ///< general min/max clip
 
 typedef u8 AlfClassifier;
 typedef pel Pel;
@@ -101,11 +101,11 @@ typedef enum _ComponentID
   MAX_NUM_TBLOCKS     = MAX_NUM_COMPONENT
 } ComponentID;
 
-INLINE ChannelType toChannelType             (const ComponentID id)                         { return (id==COMPONENT_Y)? CHANNEL_TYPE_LUMA : CHANNEL_TYPE_CHROMA; }
-INLINE BOOL        isLuma                    (const ChannelType id)                         { return (id==CHANNEL_TYPE_LUMA);                                    }
-INLINE BOOL        isChroma                  (const ChannelType id)                         { return (id!=CHANNEL_TYPE_LUMA);   }
-INLINE u32        getNumberValidComponents  (const ChromaFormat fmt)                       { return (fmt==CHROMA_400) ? 1 : MAX_NUM_COMPONENT;                  }
-INLINE u32        getNumberValidChannels    (const ChromaFormat fmt)                       { return (fmt==CHROMA_400) ? 1 : MAX_NUM_CHANNEL_TYPE;               }
+__inline ChannelType toChannelType             (const ComponentID id)                         { return (id==COMPONENT_Y)? CHANNEL_TYPE_LUMA : CHANNEL_TYPE_CHROMA; }
+__inline BOOL        isLuma                    (const ChannelType id)                         { return (id==CHANNEL_TYPE_LUMA);                                    }
+__inline BOOL        isChroma                  (const ChannelType id)                         { return (id!=CHANNEL_TYPE_LUMA);   }
+__inline u32        getNumberValidComponents  (const ChromaFormat fmt)                       { return (fmt==CHROMA_400) ? 1 : MAX_NUM_COMPONENT;                  }
+__inline u32        getNumberValidChannels    (const ChromaFormat fmt)                       { return (fmt==CHROMA_400) ? 1 : MAX_NUM_CHANNEL_TYPE;               }
 
 typedef struct ClpRng
 {
@@ -122,7 +122,7 @@ typedef struct ClpRngs
   BOOL chroma;
 } ClpRngs;
 
-static INLINE int ClipPel (const int a, const ClpRng clpRng)         { return min(max(clpRng.min, a) , clpRng.max); }  ///< clip reconstruction
+static __inline int ClipPel (const int a, const ClpRng clpRng)         { return min(max(clpRng.min, a) , clpRng.max); }  ///< clip reconstruction
 
 typedef struct CodingStructure
 {

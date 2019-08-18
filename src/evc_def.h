@@ -328,6 +328,7 @@ enum SAD_POINT_INDEX
 #if IBC
 #define CTX_NEV_IBC_FLAG                   2 // number of ctx for ibc_flag
 #endif
+
 /* AFFINE (START) */
 #if AFFINE
  // AFFINE Constant
@@ -460,18 +461,6 @@ typedef struct _evc_AlfFilterShape
 /* IBC (END) */
 
 /* Common routines (START) */
-#if defined(_MSC_VER)
-#define ALIGNED_(x) __declspec(align(x))
-#define FORCE_INLINE __forceinline
-#define INLINE __inline
-#else
-#if defined(__GNUC__)
-#define ALIGNED_(x) __attribute__ ((aligned(x)))
-#define FORCE_INLINE __attribute__((always_inline))
-#define INLINE __inline__
-#endif
-#endif
-
 #define max(x, y) (((x) > (y)) ? (x) : (y))
 #define min(x, y) (((x) < (y)) ? (x) : (y))
 
