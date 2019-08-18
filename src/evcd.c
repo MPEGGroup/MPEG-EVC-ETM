@@ -1151,13 +1151,6 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 #endif
         );
 #endif
-#if !HW_HTDF_CLEANUP
-#if M48879_IMPROVEMENT_INTRA 
-        get_nbr_yuv(x, y, cuw, cuh, ctx, core);
-#else
-        get_nbr_yuv(x, y, cuw, cuh, core->avail_cu, ctx->pic, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu);
-#endif
-#endif
     }
     else
     {
@@ -1210,24 +1203,12 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
     {
 #endif
 #if HTDF
-#if HW_HTDF_CLEANUP
     if(ctx->sps.tool_htdf == 1 && (core->is_coef[Y_C] || core->pred_mode == MODE_INTRA))
     {
         u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu);
         evc_htdf(ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->tgh.qp, cuw, cuh, ctx->pic->s_l, core->pred_mode == MODE_INTRA
             , ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->pic->s_l, avail_cu);
     }
-#else
-    if(ctx->sps.tool_htdf == 1 && (core->is_coef[Y_C]
-#if HTDF_CBF0_INTRA
-                              || core->pred_mode == MODE_INTRA
-#endif
-                              )
-       )
-    {
-        evc_htdf(ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->tgh.qp, cuw, cuh, ctx->pic->s_l, core->pred_mode == MODE_INTRA, core->nb[0][0] + 2, core->nb[0][1] + cuh - 1, core->nb[0][2] + 2, core->avail_cu);
-    }
-#endif
 #endif
 #if USE_IBC
     }
