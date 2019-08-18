@@ -31,7 +31,7 @@
 *  THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "evc.h"
+#include "evc_def.h"
 #include "evca_util.h"
 #include "evca_args.h"
 #include "../src/evc_def.h"
