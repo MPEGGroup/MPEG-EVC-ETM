@@ -50,7 +50,7 @@ extern const s8 evc_tbl_tm32[32][32];
 extern const s8 evc_tbl_tm64[64][64];
 extern const s8 *evc_tbl_tm[MAX_CU_DEPTH];
 extern int evc_scan_sr[MAX_TR_SIZE*MAX_TR_SIZE];
-#if COEFF_CODE_ADCC
+#if ADCC
 extern int evc_inv_scan_sr[MAX_TR_SIZE*MAX_TR_SIZE];
 extern u16 * evc_inv_scan_tbl[COEF_SCAN_TYPE_NUM][MAX_CU_LOG2 - 1][MAX_CU_LOG2 - 1];
 #endif
@@ -98,7 +98,7 @@ extern const s16 init_suco_flag[2][NUM_SBAC_CTX_SUCO_FLAG][1];
 #if ALF
 extern const s16 init_ctb_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG][1];
 #endif
-#if COEFF_CODE_ADCC 
+#if ADCC 
 extern const s16 init_cc_gt0[2][NUM_CTX_GT0];
 extern const s16 init_cc_gtA[2][NUM_CTX_GTA];
 extern const s16 init_cc_scanr_x[2][NUM_CTX_SCANR];
@@ -118,7 +118,7 @@ extern const s16 init_affine_mrg[2][AFF_MAX_CAND][1];
 extern const s16 init_affine_mvd_flag[2][NUM_SBAC_CTX_AFFINE_MVD_FLAG][1];
 #endif
 extern const s16 init_skip_flag[2][NUM_SBAC_CTX_SKIP_FLAG][1];
-#if USE_IBC
+#if IBC
 #if CTX_NEV_IBC_FLAG
 extern const s16 init_ibc_flag[2][NUM_SBAC_CTX_IBC_FLAG][1];
 #endif
@@ -202,7 +202,7 @@ extern const u8 BETA_TABLE[52];
 extern const u8 CLIP_TAB[52][5];
 #endif
 
-#if COEFF_CODE_ADCC 
+#if ADCC 
 extern const int g_min_in_group[LAST_SIGNIFICANT_GROUPS];
 extern const int g_group_idx[MAX_TR_SIZE];
 extern const int g_go_rice_range[MAX_GR_ORDER_RESIDUAL];

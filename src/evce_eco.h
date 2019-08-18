@@ -51,7 +51,7 @@ int evce_eco_aps(EVC_BSW * bs, EVC_APS * aps);
 int evce_eco_tgh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh);
 int evce_eco_udata(EVCE_CTX * ctx, EVC_BSW * bs);
 int evce_eco_pred_mode(EVC_BSW * bs, u8 pred_mode, int ctx);
-#if USE_IBC
+#if IBC
 int evce_eco_ibc(EVC_BSW * bs, u8 pred_mode_ibc_flag
 #if CTX_NEV_IBC_FLAG
   , int ctx
@@ -70,7 +70,7 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
 #if ATS_INTER_PROCESS
                   , int tool_ats_inter, u8 ats_inter_info
 #endif
-#if COEFF_CODE_ADCC  
+#if ADCC  
                   , EVCE_CTX * ctx
 #endif
 );
@@ -89,7 +89,7 @@ void evce_eco_inter_dir(EVC_BSW * bs, s8 refi[REFP_NUM]);
 void evce_eco_inter_t_direct(EVC_BSW *bs, int t_direct_flag);
 //! \todo Change list of arguments
 void evce_eco_xcoef(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num_sig, int ch_type
-#if COEFF_CODE_ADCC  
+#if ADCC  
                     , int tool_adcc
 #endif
 );

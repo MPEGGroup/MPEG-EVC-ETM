@@ -375,7 +375,7 @@ struct _EVCE_PINTER
                                    );
 #endif
 };
-#if USE_IBC
+#if IBC
 typedef struct _EVCE_PIBC EVCE_PIBC;
 struct _EVCE_PIBC
 {
@@ -498,7 +498,7 @@ typedef struct _EVCE_PARAM
     int                 gop_size;
     int                 use_dqp;
     int                 use_closed_gop;
-#if USE_IBC
+#if IBC
     int                 use_ibc_flag;
     int                 ibc_search_range_x;
     int                 ibc_search_range_y;
@@ -540,7 +540,7 @@ typedef struct _EVCE_CU_DATA
     u8  **mpm_ext;
     s8  **ipm;
     u8  *skip_flag;
-#if USE_IBC
+#if IBC
     u8  *ibc_flag;
 #endif
 #if DMVR_FLAG
@@ -667,7 +667,7 @@ typedef struct _EVCE_CORE
     s8             ipm[2];
     /* skip flag for MODE_INTER */
     u8             skip_flag;
-#if USE_IBC
+#if IBC
     /* ibc flag for MODE_IBC */
     u8             ibc_flag;
 #endif
@@ -879,7 +879,7 @@ struct _EVCE_CTX
     EVCE_PINTRA           pintra;
     /* inter prediction analysis */
     EVCE_PINTER           pinter;
-#if USE_IBC
+#if IBC
     /* ibc prediction analysis */
     EVCE_PIBC             pibc;
 #endif
@@ -995,7 +995,7 @@ struct _EVCE_CTX
                                    );
 
     int (*fn_pinter_set_complexity)(EVCE_CTX * ctx, int complexity);
-#if USE_IBC
+#if IBC
     void *ibc_hash_handle;
     int(*fn_pibc_init_frame)(EVCE_CTX * ctx);
     int(*fn_pibc_init_lcu)(EVCE_CTX * ctx, EVCE_CORE * core);
@@ -1028,7 +1028,7 @@ int evce_picbuf_get_inbuf(EVCE_CTX * ctx, EVC_IMGB ** img);
 #include "evce_pintra.h"
 #include "evce_pinter.h"
 #include "evce_tbl.h"
-#if USE_IBC
+#if IBC
 #include "evce_pibc.h"
 #endif
 #endif /* _EVCE_DEF_H_ */

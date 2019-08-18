@@ -40,7 +40,7 @@
 #include "evce_pibc.h"
 #include "evce_ibc_hash_wrapper.h"
 
-#if USE_IBC
+#if IBC
 
 #define MIN_PU_SIZE 4
 

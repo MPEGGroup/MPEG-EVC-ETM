@@ -37,7 +37,7 @@
 #include "evce_def.h"
 #include "evce_ibc_hash_wrapper.h"
 
-#if USE_IBC
+#if IBC
 
 #define ENABLE_IBC_CHROMA_REFINE 0
 
@@ -120,7 +120,7 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 #if ATS_INTER_PROCESS
       , 0
 #endif
-#if COEFF_CODE_ADCC
+#if ADCC
       , ctx->sps.tool_adcc
 #endif
     );

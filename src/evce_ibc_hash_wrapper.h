@@ -37,7 +37,7 @@
 #include <stdint.h>
 #include "evce_def.h"
 
-#if USE_IBC
+#if IBC
 
 #ifdef __cplusplus
 extern "C" {

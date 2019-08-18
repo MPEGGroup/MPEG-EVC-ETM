@@ -47,7 +47,7 @@
 #ifdef max
 #undef max
 
-#if USE_IBC
+#if IBC
 
 #include <unordered_map>
 #include <vector>

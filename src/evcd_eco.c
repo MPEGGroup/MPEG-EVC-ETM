@@ -505,7 +505,7 @@ static int evcd_eco_ats_tu_v(EVC_BSR * bs, EVCD_SBAC * sbac, u8 ctx)
     return t0;
 }
 #endif
-#if COEFF_CODE_ADCC
+#if ADCC
 static void parse_positionLastXY(EVC_BSR *bs, EVCD_SBAC *sbac, int* sr_x, int* sr_y, int width, int height, int ch_type)
 {
     EVC_SBAC_CTX *sbac_ctx = &sbac->ctx;
@@ -810,7 +810,7 @@ static int evcd_eco_xcoef(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int log2_w, i
 #if ATS_INTER_PROCESS
     , u8 ats_inter_info, int is_intra
 #endif
-#if COEFF_CODE_ADCC
+#if ADCC
     , int tool_adcc
 #endif
 )
@@ -822,7 +822,7 @@ static int evcd_eco_xcoef(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int log2_w, i
     }
     get_tu_size(ats_inter_info, log2_w, log2_h, &log2_w, &log2_h);
 #endif
-#if COEFF_CODE_ADCC
+#if ADCC
     if(tool_adcc)
         evcd_eco_ccA(bs, sbac, coef, log2_w, log2_h, (ch_type == Y_C ? 0 : 1));
     else
@@ -1182,7 +1182,7 @@ int evcd_eco_coef(EVCD_CTX * ctx, EVCD_CORE * core)
 #if ATS_INTER_PROCESS
                                     , core->ats_inter_info, core->pred_mode == MODE_INTRA
 #endif
-#if COEFF_CODE_ADCC
+#if ADCC
                                     , ctx->sps.tool_adcc
 #endif
                     );
@@ -1246,7 +1246,7 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 tile_group_type, u8 tile_group_qp, int
     {
         evc_eco_sbac_ctx_initialize(sbac_ctx->cbf, (s16*)init_cbf, NUM_QT_CBF_CTX, tile_group_type, tile_group_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->all_cbf, (s16*)init_all_cbf, NUM_QT_ROOT_CBF_CTX, tile_group_type, tile_group_qp);
-#if COEFF_CODE_ADCC 
+#if ADCC 
 #if COEFF_CODE_ADCC2
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gt0, (s16*)init_cc_gt0_3, NUM_CTX_GT0, tile_group_type, tile_group_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gtA, (s16*)init_cc_gtA_3, NUM_CTX_GTA, tile_group_type, tile_group_qp);
@@ -1296,7 +1296,7 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 tile_group_type, u8 tile_group_qp, int
         evc_eco_sbac_ctx_initialize(sbac_ctx->affine_mvd_flag, (s16*)init_affine_mvd_flag, NUM_SBAC_CTX_AFFINE_MVD_FLAG, tile_group_type, tile_group_qp);
 #endif
         evc_eco_sbac_ctx_initialize(sbac_ctx->skip_flag, (s16*)init_skip_flag, NUM_SBAC_CTX_SKIP_FLAG, tile_group_type, tile_group_qp);
-#if USE_IBC
+#if IBC
         evc_eco_sbac_ctx_initialize(sbac_ctx->ibc_flag, (s16*)init_ibc_flag, NUM_SBAC_CTX_IBC_FLAG, tile_group_type, tile_group_qp);
 #endif
 #if ATS_INTRA_PROCESS
@@ -1316,7 +1316,7 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 tile_group_type, u8 tile_group_qp, int
         for(i = 0; i < NUM_SBAC_CTX_LEVEL; i++) sbac_ctx->level[i] = PROB_INIT;
         for(i = 0; i < NUM_QT_CBF_CTX; i++) sbac_ctx->cbf[i] = PROB_INIT;
         sbac_ctx->all_cbf[0] = PROB_INIT;
-#if COEFF_CODE_ADCC 
+#if ADCC 
         for (i = 0; i < NUM_CTX_GT0; i++) sbac_ctx->cc_gt0[i] = PROB_INIT;
         for (i = 0; i < NUM_CTX_GTA; i++) sbac_ctx->cc_gtA[i] = PROB_INIT;
         for (i = 0; i < NUM_CTX_SCANR; i++) sbac_ctx->cc_scanr_x[i] = PROB_INIT;
@@ -1355,7 +1355,7 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 tile_group_type, u8 tile_group_qp, int
         sbac_ctx->affine_mvd_flag[1] = PROB_INIT;
 #endif
         for (i = 0; i < NUM_SBAC_CTX_SKIP_FLAG; i++)  sbac_ctx->skip_flag[i] = PROB_INIT;
-#if USE_IBC
+#if IBC
         for (i = 0; i < NUM_SBAC_CTX_IBC_FLAG; i++) sbac_ctx->ibc_flag[i] = PROB_INIT;
 #endif
 #if ATS_INTRA_PROCESS
@@ -1537,7 +1537,7 @@ void evcd_eco_inter_pred_idc(EVCD_CTX * ctx, EVCD_CORE * core)
     else
     {
         tmp = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.inter_dir + 2);
-#if USE_IBC
+#if IBC
         core->inter_dir = tmp ? PRED_L1 : core->ibc_flag ? PRED_IBC : PRED_L0;
 #else
         core->inter_dir = tmp ? PRED_L1 : PRED_L0;
@@ -1828,7 +1828,7 @@ void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
     sbac = GET_SBAC_DEC(bs);
 
     /* get pred_mode */
-#if USE_IBC
+#if IBC
     if (ctx->tgh.tile_group_type != TILE_GROUP_I && !(!ctx->sps.ibc_flag && ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
 #else
     if (ctx->tgh.tile_group_type != TILE_GROUP_I && !(ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
@@ -1836,7 +1836,7 @@ void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
     {
         core->pred_mode = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.pred_mode + ctx->ctx_flags[CNID_PRED_MODE]) ? MODE_INTRA : MODE_INTER;
 
-#if USE_IBC
+#if IBC
         if (core->pred_mode != MODE_INTRA && ctx->sps.ibc_flag && core->log2_cuw <= ctx->sps.ibc_log_max_size && core->log2_cuh <= ctx->sps.ibc_log_max_size)
         {
             if (evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ibc_flag + ctx->ctx_flags[CNID_IBC_FLAG])) /* is ibc mode? */
@@ -1856,7 +1856,7 @@ void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
         EVC_TRACE_INT(core->pred_mode);
         EVC_TRACE_STR("\n");
     }
-#if USE_IBC
+#if IBC
     else if (ctx->tgh.tile_group_type == TILE_GROUP_I && ctx->sps.ibc_flag)
     {
         core->pred_mode = MODE_INTRA;
@@ -1926,7 +1926,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
     evc_mset(core->affine_bzero, 0, sizeof(int) * REFP_NUM);
     evc_mset(core->affine_mvd, 0, sizeof(s16) * REFP_NUM * 3 * MV_D);
 #endif
-#if USE_IBC
+#if IBC
     core->ibc_flag = 0;
 #endif
     core->mmvd_idx = 0;
@@ -1950,7 +1950,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
     cuh = (1 << core->log2_cuh);
     core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu);
   
-#if USE_IBC
+#if IBC
     if (ctx->tgh.tile_group_type != TILE_GROUP_I && !(ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
 #else
     if (ctx->tgh.tile_group_type != TILE_GROUP_I && !(ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
@@ -2234,7 +2234,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
             core->mv[REFP_0][MV_X] = core->mv[REFP_0][MV_Y] = 0;
             core->mv[REFP_1][MV_X] = core->mv[REFP_1][MV_Y] = 0;
         }
-#if USE_IBC
+#if IBC
         else if (core->pred_mode == MODE_IBC)
         {
             core->affine_flag = 0;
@@ -2349,11 +2349,11 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
 #if HTDF
     sps->tool_htdf = evc_bsr_read1(bs);
 #endif
-#if COEFF_CODE_ADCC
+#if ADCC
     sps->tool_adcc = evc_bsr_read1(bs);
 #endif
     sps->tool_cm_init = evc_bsr_read1(bs);
-#if USE_IBC
+#if IBC
     sps->ibc_flag = evc_bsr_read1(bs);
     if(sps->ibc_flag)
        sps->ibc_log_max_size = (u32)evc_bsr_read_ue(bs) + 2;

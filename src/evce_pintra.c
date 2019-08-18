@@ -103,7 +103,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 #if ATS_INTER_PROCESS
                           , 0
 #endif
-#if COEFF_CODE_ADCC
+#if ADCC
             , ctx->sps.tool_adcc
 #endif
         );
@@ -194,7 +194,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 #if ATS_INTER_PROCESS
                           , 0
 #endif
-#if COEFF_CODE_ADCC
+#if ADCC
             , ctx->sps.tool_adcc
 #endif
         );

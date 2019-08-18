@@ -47,7 +47,7 @@ const u8 * get_tbl_qp_to_st(u32 mcu0, u32 mcu1, s8 *refi0, s8 *refi1, s16 (*mv0)
     {
         idx = 1;
     }
-#if USE_IBC
+#if IBC
     else if (MCU_GET_IBC(mcu0) || MCU_GET_IBC(mcu1))
     {
       idx = 2;

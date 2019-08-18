@@ -1646,7 +1646,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 #if ATS_INTER_PROCESS
                              , core->ats_inter_info
 #endif
-#if COEFF_CODE_ADCC
+#if ADCC
         , ctx->sps.tool_adcc
 #endif
     );
@@ -1924,7 +1924,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
                     SBAC_LOAD(core->s_temp_run, core->s_temp_prev_comp_run);
                     evce_sbac_bit_reset(&core->s_temp_run);
                     evce_rdo_bit_cnt_cu_inter_comp(core, coef, i, pidx
-#if ATS_INTRA_PROCESS || COEFF_CODE_ADCC
+#if ATS_INTRA_PROCESS || ADCC
                                                   , ctx
 #endif
                     );
@@ -2396,7 +2396,7 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
 #if ADMVP
             , core->history_buffer
 #endif
-#if USE_IBC
+#if IBC
             , core->ibc_flag
 #endif
 #if M49023_ADMVP_IMPROVE
@@ -2656,7 +2656,7 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
 #if ADMVP
             , core->history_buffer
 #endif
-#if USE_IBC
+#if IBC
             , core->ibc_flag
 #endif
 #if M49023_ADMVP_IMPROVE

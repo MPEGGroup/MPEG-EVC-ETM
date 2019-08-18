@@ -339,7 +339,7 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
                 MCU_CLR_AFF(map_scu[j]);
             }
 #endif
-#if USE_IBC
+#if IBC
             if (core->ibc_flag)
             {
               MCU_SET_IBC(map_scu[j]);
@@ -367,7 +367,7 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
             map_refi[j][REFP_1] = core->refi[REFP_1];
 #if ATS_INTER_PROCESS
             map_ats_inter[j] = core->ats_inter_info;
-#if USE_IBC
+#if IBC
             if(core->pred_mode == MODE_IBC)
               map_ats_inter[j] = 0;
 #endif

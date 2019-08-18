@@ -44,7 +44,7 @@
 int last_intra_poc = INT_MAX;
 BOOL aps_counter_reset = FALSE;
 #endif
-#if USE_IBC
+#if IBC
 #include "evce_ibc_hash_wrapper.h"
 #endif
 
@@ -386,7 +386,7 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
 #endif
     param->gop_size       = param->max_b_frames +1;
     param->use_closed_gop = (cdsc->closed_gop)? 1: 0;
-#if USE_IBC
+#if IBC
     param->use_ibc_flag = (cdsc->ibc_flag) ? 1 : 0;
     param->ibc_search_range_x = cdsc->ibc_search_range_x;
     param->ibc_search_range_y = cdsc->ibc_search_range_y;
@@ -431,7 +431,7 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->pic_width_in_luma_samples = ctx->param.w;
     sps->pic_height_in_luma_samples = ctx->param.h;
     sps->closed_gop = (ctx->param.use_closed_gop) ? 1 : 0;
-#if USE_IBC
+#if IBC
     sps->ibc_flag = (ctx->param.use_ibc_flag) ? 1 : 0;
     sps->ibc_log_max_size = IBC_MAX_CU_LOG2;
 #endif
@@ -489,7 +489,7 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->tool_amis = ctx->cdsc.tool_amis;
     sps->tool_eipd = ctx->cdsc.tool_eipd;
     sps->tool_iqt = ctx->cdsc.tool_iqt;
-#if COEFF_CODE_ADCC
+#if ADCC
     sps->tool_adcc = ctx->cdsc.tool_adcc;
 #endif
     sps->tool_cm_init = ctx->cdsc.tool_cm_init;
@@ -1032,7 +1032,7 @@ int evce_ready(EVCE_CTX * ctx)
     EncAdaptiveLoopFilter* p = (EncAdaptiveLoopFilter*)(ctx->enc_alf);
     call_create_enc_ALF(p, ctx->w, ctx->h, ctx->max_cuwh, ctx->max_cuwh, 5);
 #endif
-#if USE_IBC
+#if IBC
     if (ctx->param.use_ibc_flag)
     {
       ctx->ibc_hash_handle = create_enc_IBC(ctx->w, ctx->h);
@@ -2305,7 +2305,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
         ret = ctx->fn_mode_analyze_lcu(ctx, core);
         evc_assert_rv(ret == EVC_OK, ret);
-#if USE_IBC
+#if IBC
         if (ctx->param.use_ibc_flag && (ctx->param.ibc_fast_method & IBC_FAST_METHOD_ADAPTIVE_SEARCHRANGE) && ctx->param.ibc_hash_search_flag)
         {
           reset_ibc_search_range(ctx, core->x_pel, core->y_pel, ctx->max_cuwh, ctx->max_cuwh);
@@ -2552,7 +2552,7 @@ int evce_platform_init(EVCE_CTX * ctx)
     /* create inter prediction analyzer */
     ret = evce_pinter_create(ctx, 0);
     evc_assert_rv(EVC_OK == ret, ret);
-#if USE_IBC
+#if IBC
     if (ctx->param.use_ibc_flag)
     {
       /* create ibc prediction analyzer */
@@ -2605,7 +2605,7 @@ void evce_platform_deinit(EVCE_CTX * ctx)
     delete_enc_ALF(ctx->enc_alf);
     ctx->fn_alf = NULL;
 #endif
-#if USE_IBC
+#if IBC
     if (ctx->param.use_ibc_flag)
     {
       destroy_enc_IBC(ctx->ibc_hash_handle);
@@ -2975,7 +2975,7 @@ int evce_create_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
     evce_malloc_2d((s8***)&cu_data->ipm, 2, cu_cnt, sizeof(u8));
     evce_malloc_2d((s8***)&cu_data->mpm_ext, 8, cu_cnt, sizeof(u8));
     evce_malloc_1d((void**)&cu_data->skip_flag, size_8b);
-#if USE_IBC
+#if IBC
     evce_malloc_1d((void**)&cu_data->ibc_flag, size_8b);
 #endif
 #if DMVR_FLAG
@@ -3058,7 +3058,7 @@ int evce_delete_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
     evce_free_2d((void**)cu_data->ipm);
     evce_free_2d((void**)cu_data->mpm_ext);
     evce_free_1d((void*)cu_data->skip_flag);
-#if USE_IBC
+#if IBC
     evce_free_1d((void*)cu_data->ibc_flag);
 #endif
 #if DMVR_FLAG
