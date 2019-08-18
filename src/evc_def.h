@@ -65,7 +65,6 @@
 #define ATS                                1   /* MPEG126 CE1.2: Adaptive transform selection */
 #define IBC                                1   /* MPEG126 CE1.3: Intra Block Copy */
 
-#define ROOT_CBF_RDO_BIT_FIX               1
 #define ALF_PARAMETER_APS                  1
 #define TU_ZONAL_CODING                    1
 #define CTX_MODEL_FOR_RESIDUAL_IN_BASE     1
