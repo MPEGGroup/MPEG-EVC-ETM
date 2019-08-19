@@ -116,8 +116,6 @@ static int  op_suco               = 1;
 #if USE_TILE_GROUP_DQP
 static int  op_add_qp_frames      = 0;
 #endif
-static int  op_qp_offset_cb       = 0;
-static int  op_qp_offset_cr       = 0;
 static int  op_framework_ctu_size = 7;
 static int  op_framework_cu11_max = 7;
 static int  op_framework_cu11_min = 2;
@@ -142,14 +140,14 @@ static int  op_tool_alf           = 1; /* default on */
 static int  op_tool_admvp         = 1; /* default on */
 static int  op_tool_amis          = 1; /* default on */
 static int  op_tool_htdf          = 1; /* default on */
-static int  op_tool_eipd          = 1;
-static int  op_tool_iqt           = 1;
-static int  op_tool_cm_init       = 1;
+static int  op_tool_eipd          = 1; /* default on */
+static int  op_tool_iqt           = 1; /* default on */
+static int  op_tool_cm_init       = 1; /* default on */
 #if ADCC
 static int  op_tool_adcc          = 1; /* default on */
 #endif
-static int  op_cb_qp_offset       = 1;
-static int  op_cr_qp_offset       = 1;
+static int  op_cb_qp_offset       = 0;
+static int  op_cr_qp_offset       = 0;
 #if ATS_INTRA_PROCESS
 static int op_tool_ats_intra      = 1; /* default on */
 #endif
@@ -161,7 +159,7 @@ static int  op_constrained_intra_pred = 0;
 #endif
 #if M49023_DBF_IMPROVE
 static int  op_deblock_alpha_offset = 0; /* default offset 0*/
-static int  op_deblock_beta_offset = 0; /* default offset 0*/
+static int  op_deblock_beta_offset = 0;  /* default offset 0*/
 #endif
 static char  op_rpl0[MAX_NUM_RPLS][256];
 static char  op_rpl1[MAX_NUM_RPLS][256];
@@ -202,8 +200,6 @@ typedef enum _OP_FLAGS
 #if USE_TILE_GROUP_DQP
     OP_FLAG_ADD_QP_FRAME,
 #endif
-    OP_FLAG_QP_OFFSET_CB,
-    OP_FLAG_QP_OFFSET_CR,
     OP_FRAMEWORK_CTU_SIZE,
     OP_FRAMEWORK_CU11_MAX,
     OP_FRAMEWORK_CU11_MIN,
@@ -470,16 +466,6 @@ static EVC_ARGS_OPTION options[] = \
         "one more qp are added after this number of frames, disable:0 (default)"
     },
 #endif
-    {
-        EVC_ARGS_NO_KEY,  "qp_offset_cb", EVC_ARGS_VAL_TYPE_INTEGER,
-        &op_flag[OP_FLAG_QP_OFFSET_CB], &op_qp_offset_cb,
-        "qp offset for cb, disable:0 (default)"
-    },
-    {
-        EVC_ARGS_NO_KEY,  "qp_offset_cr", EVC_ARGS_VAL_TYPE_INTEGER,
-        &op_flag[OP_FLAG_QP_OFFSET_CR], &op_qp_offset_cr,
-        "qp offset for cr, disable:0 (default)"
-    },
     {
         EVC_ARGS_NO_KEY,  "ctu", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_FRAMEWORK_CTU_SIZE], &op_framework_ctu_size,
