@@ -1618,7 +1618,7 @@ int evcd_dec_tile_group(EVCD_CTX * ctx, EVCD_CORE * core)
         /* invoke coding_tree() recursion */
         evc_mset(core->split_mode, 0, sizeof(s8) * MAX_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
 #if APS_ALF_CTU_FLAG
-        evc_AlfTileGroupParam* alfTileGroupParam = &(ctx->sh.alf_tgh_param);
+        evc_AlfTileGroupParam* alfTileGroupParam = &(ctx->sh.alf_sh_param);
         if ((alfTileGroupParam->isCtbAlfOn) && (ctx->sh.alf_on))
         {
 #if ALF_CTU_MAP_DYNAMIC
@@ -1789,8 +1789,8 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         sh->num_ctb = ctx->f_lcu;
 #endif
 #if ALF_CTU_MAP_DYNAMIC
-        sh->alf_tgh_param.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
-        memset(sh->alf_tgh_param.alfCtuEnableFlag, 1, N_C * ctx->f_lcu * sizeof(u8));
+        sh->alf_sh_param.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
+        memset(sh->alf_sh_param.alfCtuEnableFlag, 1, N_C * ctx->f_lcu * sizeof(u8));
 #endif
         ret = evcd_eco_tgh(bs, &ctx->sps, &ctx->pps, sh);
 

@@ -2779,9 +2779,9 @@ int evcd_eco_alf_aps_param(EVC_BSR * bs, EVC_APS * aps)
     return EVC_OK;
 }
 
-int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_SH * sh)
+int evcd_eco_alf_sh_param(EVC_BSR * bs, EVC_SH * sh)
 {
-    evc_AlfTileGroupParam* alfTileGroupParam = &(sh->alf_tgh_param);
+    evc_AlfTileGroupParam* alfTileGroupParam = &(sh->alf_sh_param);
 
     //AlfTileGroupParam reset
     alfTileGroupParam->temporalAlfFlag = 0;
@@ -2825,9 +2825,9 @@ int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_SH * sh)
     return EVC_OK;
 }
 #else
-int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_SH * sh)
+int evcd_eco_alf_sh_param(EVC_BSR * bs, EVC_SH * sh)
 {
-    evc_AlfTileGroupParam* alfTileGroupParam = &(sh->alf_tgh_param);
+    evc_AlfTileGroupParam* alfTileGroupParam = &(sh->alf_sh_param);
     alfTileGroupParam->temporalAlfFlag = 0;
     alfTileGroupParam->prevIdx = 0;
     alfTileGroupParam->tLayer = 0;
@@ -2924,7 +2924,7 @@ int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_SH * sh)
         }
     }
 
-    evcd_eco_alf_filter(bs, &(sh->alf_tgh_param), FALSE);
+    evcd_eco_alf_filter(bs, &(sh->alf_sh_param), FALSE);
     }
 
     if (alfChromaIdc) 
@@ -2932,7 +2932,7 @@ int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_SH * sh)
         alfTileGroupParam->chromaCtbPresentFlag = (BOOL)evc_bsr_read1(bs); 
         if (!(alfTileGroupParam->temporalAlfFlag))
         {
-            evcd_eco_alf_filter(bs, &(sh->alf_tgh_param), TRUE);
+            evcd_eco_alf_filter(bs, &(sh->alf_sh_param), TRUE);
         }
     }
 
@@ -3011,12 +3011,12 @@ int evcd_eco_tgh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
         if (sh->alf_on)
         {
             sh->aps_signaled = evc_bsr_read(bs, 5); // parse APS ID in tile group header
-            evcd_eco_alf_tgh_param(bs, sh); // parse ALF map
+            evcd_eco_alf_sh_param(bs, sh); // parse ALF map
         }
 #else
         if (sh->alf_on)
         {
-            evcd_eco_alf_tgh_param(bs, sh);
+            evcd_eco_alf_sh_param(bs, sh);
         }
 #endif
     }

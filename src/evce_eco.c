@@ -366,12 +366,12 @@ int evce_eco_tgh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
         if (sh->alf_on)
         {
             evc_bsw_write(bs, sh->aps_signaled, APS_MAX_NUM_IN_BITS); //encode tile group aps id
-            evce_eco_alf_tgh_param(bs, sh); // signaling ALF map
+            evce_eco_alf_sh_param(bs, sh); // signaling ALF map
         }
 #else
         if (sh->alf_on)
         {
-            evce_eco_alf_tgh_param(bs, sh);
+            evce_eco_alf_sh_param(bs, sh);
         }
 #endif
     }
@@ -3620,9 +3620,9 @@ int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS * aps)
     return EVC_OK;
 }
 
-int evce_eco_alf_tgh_param(EVC_BSW * bs, EVC_SH * sh)
+int evce_eco_alf_sh_param(EVC_BSW * bs, EVC_SH * sh)
 {
-    evc_AlfTileGroupParam alfTileGroupParam = sh->alf_tgh_param;
+    evc_AlfTileGroupParam alfTileGroupParam = sh->alf_sh_param;
 
     evc_bsw_write1(bs, alfTileGroupParam.isCtbAlfOn);
 #if !APS_ALF_CTU_FLAG
@@ -3635,9 +3635,9 @@ int evce_eco_alf_tgh_param(EVC_BSW * bs, EVC_SH * sh)
     return EVC_OK;
 }
 #else
-int evce_eco_alf_tgh_param(EVC_BSW * bs, EVC_SH * sh)
+int evce_eco_alf_sh_param(EVC_BSW * bs, EVC_SH * sh)
 {
-    evc_AlfTileGroupParam alfTileGroupParam = sh->alf_tgh_param;
+    evc_AlfTileGroupParam alfTileGroupParam = sh->alf_sh_param;
     evc_bsw_write1(bs, alfTileGroupParam.enabledFlag[0]); //"alf_tile_group_enable_flag"
     if (!alfTileGroupParam.enabledFlag[0])
     {
@@ -3699,7 +3699,7 @@ int evce_eco_alf_tgh_param(EVC_BSW * bs, EVC_SH * sh)
             }
         }
 
-        evce_eco_alf_filter(bs, sh->alf_tgh_param, FALSE);
+        evce_eco_alf_filter(bs, sh->alf_sh_param, FALSE);
     }
 
     if (alfChromaIdc) 
@@ -3707,7 +3707,7 @@ int evce_eco_alf_tgh_param(EVC_BSW * bs, EVC_SH * sh)
         evc_bsw_write1(bs, alfTileGroupParam.chromaCtbPresentFlag);
         if (!(alfTileGroupParam.temporalAlfFlag))
         {
-            evce_eco_alf_filter(bs, sh->alf_tgh_param, TRUE);
+            evce_eco_alf_filter(bs, sh->alf_sh_param, TRUE);
         }
     }
 

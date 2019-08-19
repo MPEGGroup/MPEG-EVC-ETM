@@ -170,11 +170,11 @@ void call_dec_alf_process_aps(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * p
     load_alf_paramline_from_aps_buffer(&(alfTileGroupParam), idx);
 
     // load filter map buffer
-    alfTileGroupParam.isCtbAlfOn = ctx->sh.alf_tgh_param.isCtbAlfOn;
+    alfTileGroupParam.isCtbAlfOn = ctx->sh.alf_sh_param.isCtbAlfOn;
 #if ALF_CTU_MAP_DYNAMIC
-    memcpy(alfTileGroupParam.alfCtuEnableFlag, ctx->sh.alf_tgh_param.alfCtuEnableFlag, N_C * ctx->f_lcu * sizeof(u8));
+    memcpy(alfTileGroupParam.alfCtuEnableFlag, ctx->sh.alf_sh_param.alfCtuEnableFlag, N_C * ctx->f_lcu * sizeof(u8));
 #else
-    memcpy(alfTileGroupParam.alfCtuEnableFlag, ctx->sh.alf_tgh_param.alfCtuEnableFlag, 3 * 512 * sizeof(u8));
+    memcpy(alfTileGroupParam.alfCtuEnableFlag, ctx->sh.alf_sh_param.alfCtuEnableFlag, 3 * 512 * sizeof(u8));
 #endif
     ALFProcess(p, &cs, &alfTileGroupParam);
 }
@@ -187,7 +187,7 @@ void call_ALFProcess(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic)
     cs.pPic = pic;
 
     AlfTileGroupParam alfTileGroupParam;
-    evc_AlfTileGroupParam iAlfTileGroupParam = ctx->sh.alf_tgh_param;
+    evc_AlfTileGroupParam iAlfTileGroupParam = ctx->sh.alf_sh_param;
 #if ALF_CTU_MAP_DYNAMIC
     alfTileGroupParam.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
     memset(alfTileGroupParam.alfCtuEnableFlag, 0, N_C * ctx->f_lcu * sizeof(u8));

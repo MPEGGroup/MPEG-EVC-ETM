@@ -109,7 +109,7 @@ void evc_alfGolombEncode(EVC_BSW * bs, int coeff, int kMinTab);
 #if ALF_PARAMETER_APS
 int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS * aps);
 #endif
-int evce_eco_alf_tgh_param(EVC_BSW * bs, EVC_SH * sh);
+int evce_eco_alf_sh_param(EVC_BSW * bs, EVC_SH * sh);
 #endif
 #ifdef __cplusplus
 }

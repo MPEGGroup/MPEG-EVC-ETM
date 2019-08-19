@@ -1502,7 +1502,7 @@ typedef struct _EVC_TGH
     int                 aps_signaled;
     EVC_APS*         aps;
 #endif
-    evc_AlfTileGroupParam    alf_tgh_param;
+    evc_AlfTileGroupParam    alf_sh_param;
 #endif
 
     /* delta of presentation temporal reference */

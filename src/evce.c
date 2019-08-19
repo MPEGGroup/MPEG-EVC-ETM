@@ -1443,25 +1443,25 @@ int evce_alf_aps(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh, EVC_APS* aps)
 
 
     set_resetALFBufferFlag(p, sh->tile_group_type == TILE_GROUP_I ? 1 : 0);
-    alf_aps_enc_opt_process(p, lambdas, ctx, pic, &(sh->alf_tgh_param));
+    alf_aps_enc_opt_process(p, lambdas, ctx, pic, &(sh->alf_sh_param));
 
-    aps->alf_aps_param = sh->alf_tgh_param;
-    if (sh->alf_tgh_param.resetALFBufferFlag) // reset aps index counter (buffer) if ALF flag reset is present
+    aps->alf_aps_param = sh->alf_sh_param;
+    if (sh->alf_sh_param.resetALFBufferFlag) // reset aps index counter (buffer) if ALF flag reset is present
     {
         ctx->aps_counter = -1;
     }
-    sh->alf_on = sh->alf_tgh_param.enabledFlag[0];
+    sh->alf_on = sh->alf_sh_param.enabledFlag[0];
 #if APS_ALF_CTU_FLAG
     if (sh->alf_on == 0)
     {
-        sh->alf_tgh_param.isCtbAlfOn = 0;
+        sh->alf_sh_param.isCtbAlfOn = 0;
     }
 #endif
     if (sh->alf_on)
     {
         if (aps->alf_aps_param.temporalAlfFlag)
         {
-            aps->aps_id = sh->alf_tgh_param.prevIdx;
+            aps->aps_id = sh->alf_sh_param.prevIdx;
             sh->aps_signaled = aps->aps_id;
         }
         else
@@ -1482,7 +1482,7 @@ int evce_alf(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh)
         lambdas[i] = (ctx->lambda[i]) * ALF_LAMBDA_SCALE; //this is for appr match of different lambda sets
 
     set_resetALFBufferFlag(p, sh->tile_group_type == TILE_GROUP_I ? 1 : 0);
-    call_enc_ALFProcess(p, lambdas, ctx, pic, &(sh->alf_tgh_param) );
+    call_enc_ALFProcess(p, lambdas, ctx, pic, &(sh->alf_sh_param) );
     return EVC_OK;
 }
 #endif
@@ -2428,7 +2428,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     while(1)
     {
 #if APS_ALF_CTU_FLAG
-        evc_AlfTileGroupParam* alfTileGroupParam = &(ctx->sh.alf_tgh_param);
+        evc_AlfTileGroupParam* alfTileGroupParam = &(ctx->sh.alf_sh_param);
         if ((alfTileGroupParam->isCtbAlfOn) && (sh->alf_on))
         {
             EVCE_SBAC *sbac;
