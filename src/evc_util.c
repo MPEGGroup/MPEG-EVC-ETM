@@ -4922,24 +4922,24 @@ void evc_eco_sbac_ctx_initialize(SBAC_CTX_MODEL *ctx, s16 *ctx_init_model, u16 n
     for(i = 0; i < num_ctx; i++)
     {
 #if CTX_REPRESENTATION_IMPROVEMENT
-		int tmp = *(ctx_init_model);
-		int m;
-		int SLOPE_BITS = 4;
-		m = (tmp & 14) >> 1;  //(tmp & 0b1110)
-		m = m << 5;
-		m = (tmp & 1) ? -m : m;
-
-		tmp = *(ctx_init_model) >> SLOPE_BITS;
-		int c;
-		c = (tmp & 62) >> 1;    //(tmp & 0b111110)
-		c = c << 8;
-		c = (tmp & 1) ? -c : c;;
-		c += 4096;
-		slope = m;
-		offset = c;
+        int tmp = *(ctx_init_model);
+        int m;
+        int SLOPE_BITS = 4;
+        m = (tmp & 14) >> 1;  //(tmp & 0b1110)
+        m = m << 5;
+        m = (tmp & 1) ? -m : m;
+        
+        tmp = *(ctx_init_model) >> SLOPE_BITS;
+        int c;
+        c = (tmp & 62) >> 1;    //(tmp & 0b111110)
+        c = c << 8;
+        c = (tmp & 1) ? -c : c;;
+        c += 4096;
+        slope = m;
+        offset = c;
 #else
-		slope = *(ctx_init_model);
-		offset = *(ctx_init_model + 1);
+        slope = *(ctx_init_model);
+        offset = *(ctx_init_model + 1);
 #endif
 
 #if PROB_INIT_FIX
