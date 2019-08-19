@@ -1865,11 +1865,7 @@ void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
 
         if (core->log2_cuw <= ctx->sps.ibc_log_max_size && core->log2_cuh <= ctx->sps.ibc_log_max_size)
         {
-#if CTX_NEV_IBC_FLAG
             if (evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ibc_flag + ctx->ctx_flags[CNID_IBC_FLAG])) /* is ibc mode? */
-#else
-            if (evcd_eco_ibc_flag(bs, sbac)) /* is ibc mode? */
-#endif
             {
                 core->pred_mode = MODE_IBC;
                 core->ibc_flag = 1;

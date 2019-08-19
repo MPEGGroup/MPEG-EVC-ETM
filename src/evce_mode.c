@@ -315,16 +315,8 @@ void evce_rdo_bit_cnt_cu_ibc(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_ty
 
   if (!(core->skip_flag == 1 && tile_group_type == TILE_GROUP_I))
   {
-    evce_eco_ibc(&core->bs_temp, ibc_flag
-#if CTX_NEV_IBC_FLAG
-      , ctx->ctx_flags[CNID_IBC_FLAG]
-#endif
-    );
+    evce_eco_ibc(&core->bs_temp, ibc_flag, ctx->ctx_flags[CNID_IBC_FLAG]);
   }
-
-#if 0//!AMVR
-  evce_eco_mvp_idx(&core->bs_temp, mvp_idx);
-#endif
 
   evce_eco_mvd(&core->bs_temp, mvd);
 

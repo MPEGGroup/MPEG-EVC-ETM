@@ -52,11 +52,7 @@ int evce_eco_tgh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh);
 int evce_eco_udata(EVCE_CTX * ctx, EVC_BSW * bs);
 int evce_eco_pred_mode(EVC_BSW * bs, u8 pred_mode, int ctx);
 #if IBC
-int evce_eco_ibc(EVC_BSW * bs, u8 pred_mode_ibc_flag
-#if CTX_NEV_IBC_FLAG
-  , int ctx
-#endif
-);
+int evce_eco_ibc(EVC_BSW * bs, u8 pred_mode_ibc_flag, int ctx);
 #endif
 int evce_eco_mvd(EVC_BSW * bs, s16 mvd[MV_D]);
 void evce_sbac_reset(EVCE_SBAC * sbac, u8 tile_group_type, u8 tile_group_qp, int sps_cm_init_flag);
