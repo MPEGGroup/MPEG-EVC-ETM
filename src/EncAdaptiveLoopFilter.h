@@ -41,6 +41,7 @@
 #include <float.h>
 #include <math.h>
 #include <vector>
+#include <stdint.h>
 
 #include "enc_alf_wrapper.h"
 
