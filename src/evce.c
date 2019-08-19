@@ -162,9 +162,9 @@ static const s8 tbl_poc_gop_offset[5][15] =
 };
 
 #if HLS_M47668
-static const s8 tbl_tile_group_depth_P_orig[GOP_P] = { FRM_DEPTH_3,  FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_1 };
+static const s8 tbl_slice_depth_P_orig[GOP_P] = { FRM_DEPTH_3,  FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_1 };
 
-static const s8 tbl_tile_group_depth_P[5][16] =
+static const s8 tbl_slice_depth_P[5][16] =
 {
     /* gop_size = 2 */
     { FRM_DEPTH_2, FRM_DEPTH_1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, \
@@ -182,7 +182,7 @@ static const s8 tbl_tile_group_depth_P[5][16] =
       FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_3, FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_1 }
 };
 
-static const s8 tbl_tile_group_depth[5][15] =
+static const s8 tbl_slice_depth[5][15] =
 {
     /* gop_size = 2 */
     { FRM_DEPTH_2, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, \
@@ -200,7 +200,7 @@ static const s8 tbl_tile_group_depth[5][15] =
       FRM_DEPTH_5,  FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_5 }
 };
 
-static const s8 tbl_tile_group_depth_orig[5][15] =
+static const s8 tbl_slice_depth_orig[5][15] =
 {
     /* gop_size = 2 */
     { FRM_DEPTH_2, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, \
@@ -234,7 +234,7 @@ static const s8 tbl_ref_depth[5][15] =
      FRM_DEPTH_4,  FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_4, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_4}
 };
 
-static const s8 tbl_tile_group_ref[5][15] =
+static const s8 tbl_slice_ref[5][15] =
 {
     /* gop_size = 2 */
     { 1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
@@ -248,9 +248,9 @@ static const s8 tbl_tile_group_ref[5][15] =
     {1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0}
 };
 
-static const s8 tbl_tile_group_depth_P[GOP_P] = { FRM_DEPTH_3,  FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_1 };
+static const s8 tbl_slice_depth_P[GOP_P] = { FRM_DEPTH_3,  FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_1 };
 
-static const s8 tbl_tile_group_depth[5][15] =
+static const s8 tbl_slice_depth[5][15] =
 {
     /* gop_size = 2 */
     { FRM_DEPTH_2, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, \
@@ -810,8 +810,8 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
     QP_ADAPT_PARAM *qp_adapt_param = ctx->param.max_b_frames == 0 ? qp_adapt_param_ld : qp_adapt_param_ra;
 
     sh->dtr = ctx->dtr & DTR_BIT_MSK;
-    sh->tile_group_type = ctx->tile_group_type;
-    sh->keyframe = (sh->tile_group_type == TILE_GROUP_I) ? 1 : 0;
+    sh->slice_type = ctx->slice_type;
+    sh->keyframe = (sh->slice_type == TILE_GROUP_I) ? 1 : 0;
     sh->deblocking_filter_on = (ctx->param.use_deblock) ? 1 : 0;
 #if M49023_DBF_IMPROVE
     sh->sh_deblock_alpha_offset = ctx->param.deblock_alpha_offset;
@@ -820,9 +820,9 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
     sh->udata_exist = (ctx->param.use_pic_sign) ? 1 : 0;
     sh->dptr = ctx->ptr - ctx->dtr;
     sh->layer_id = ctx->layer_id;
-    sh->single_tile_in_tile_group_flag = 1;
+    sh->single_tile_in_slice_flag = 1;
 #if M49023_ADMVP_IMPROVE
-    sh->collocated_from_list_idx = (sh->tile_group_type == TILE_GROUP_P) ? REFP_0 : REFP_1;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
+    sh->collocated_from_list_idx = (sh->slice_type == TILE_GROUP_P) ? REFP_0 : REFP_1;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
     sh->collocated_from_ref_idx = 0;        // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
     sh->collocated_mvp_source_list_idx = REFP_0;  // Specifies source (List ID) in collocated pic that provides MV information (Applicability is function of NoBackwardPredFlag)
 #endif 
@@ -852,8 +852,8 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
         }
         else
         {
-            qp += qp_adapt_param[ctx->tile_group_depth].qp_offset_layer;
-            dqp_offset = qp * qp_adapt_param[ctx->tile_group_depth].qp_offset_model_scale + qp_adapt_param[ctx->tile_group_depth].qp_offset_model_offset + 0.5;
+            qp += qp_adapt_param[ctx->slice_depth].qp_offset_layer;
+            dqp_offset = qp * qp_adapt_param[ctx->slice_depth].qp_offset_model_scale + qp_adapt_param[ctx->slice_depth].qp_offset_model_offset + 0.5;
         }
 #else
         qp += qp_adapt_param[ctx->layer_id].qp_offset_layer;
@@ -890,7 +890,7 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
         sh->mmco.cnt = 0;
 #else
         /* set MMCO command */
-        if (ctx->tile_group_ref_flag == 0)
+        if (ctx->slice_ref_flag == 0)
         {
             sh->mmco_on = 1;
             sh->mmco.cnt = 1;
@@ -1442,7 +1442,7 @@ int evce_alf_aps(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh, EVC_APS* aps)
         lambdas[i] = (ctx->lambda[i]) * ALF_LAMBDA_SCALE; //this is for appr match of different lambda sets
 
 
-    set_resetALFBufferFlag(p, sh->tile_group_type == TILE_GROUP_I ? 1 : 0);
+    set_resetALFBufferFlag(p, sh->slice_type == TILE_GROUP_I ? 1 : 0);
     alf_aps_enc_opt_process(p, lambdas, ctx, pic, &(sh->alf_sh_param));
 
     aps->alf_aps_param = sh->alf_sh_param;
@@ -1481,7 +1481,7 @@ int evce_alf(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh)
     for(int i = 0; i < 3; i++)
         lambdas[i] = (ctx->lambda[i]) * ALF_LAMBDA_SCALE; //this is for appr match of different lambda sets
 
-    set_resetALFBufferFlag(p, sh->tile_group_type == TILE_GROUP_I ? 1 : 0);
+    set_resetALFBufferFlag(p, sh->slice_type == TILE_GROUP_I ? 1 : 0);
     call_enc_ALFProcess(p, lambdas, ctx, pic, &(sh->alf_sh_param) );
     return EVC_OK;
 }
@@ -1544,7 +1544,7 @@ int evce_aps_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, EVC_APS *
 
     /* encode sequence parameter set */
     /* skip first four byte to write the bitstream size */
-    evce_bsw_skip_tile_group_size(bs);
+    evce_bsw_skip_slice_size(bs);
 
     /* nalu header */
 
@@ -1560,7 +1560,7 @@ int evce_aps_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, EVC_APS *
     evc_bsw_deinit(bs);
 
     /* write the bitstream size */
-    evce_bsw_write_tile_group_size(bs);
+    evce_bsw_write_slice_size(bs);
 
     /* set stat ***************************************************************/
     evc_mset(stat, 0, sizeof(EVCE_STAT));
@@ -1585,7 +1585,7 @@ int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
     /* encode sequence parameter set */
     /* skip first four byte to write the bitstream size */
-    evce_bsw_skip_tile_group_size(bs);
+    evce_bsw_skip_slice_size(bs);
 
     /* nalu header */
     set_nalu(ctx, &nalu, EVC_VER_1, EVC_SPS_NUT);
@@ -1603,7 +1603,7 @@ int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     evc_bsw_deinit(bs);
 
     /* write the bitstream size */
-    evce_bsw_write_tile_group_size(bs);
+    evce_bsw_write_slice_size(bs);
 
     /* set stat ***************************************************************/
     evc_mset(stat, 0, sizeof(EVCE_STAT));
@@ -1674,82 +1674,82 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
 
     if(i_period == 0 && pic_imcnt == 0)
     {
-        ctx->tile_group_type = TILE_GROUP_I;
-        ctx->tile_group_depth = FRM_DEPTH_0;
+        ctx->slice_type = TILE_GROUP_I;
+        ctx->slice_depth = FRM_DEPTH_0;
         ctx->poc = pic_imcnt;
 #if HLS_M47668
         ctx->prev_doc_offset = 0;
         ctx->prev_pic_order_cnt_val = ctx->poc;
 #endif
-        ctx->tile_group_ref_flag = 1;
+        ctx->slice_ref_flag = 1;
     }
     else if((i_period != 0) && pic_imcnt % i_period == 0)
     {
-        ctx->tile_group_type = TILE_GROUP_I;
-        ctx->tile_group_depth = FRM_DEPTH_0;
+        ctx->slice_type = TILE_GROUP_I;
+        ctx->slice_depth = FRM_DEPTH_0;
         ctx->poc = pic_imcnt;
 #if HLS_M47668
         ctx->prev_doc_offset = 0;
         ctx->prev_pic_order_cnt_val = ctx->poc;
 #endif
-        ctx->tile_group_ref_flag = 1;
+        ctx->slice_ref_flag = 1;
     }
     else if(pic_imcnt % gop_size == 0)
     {
-        ctx->tile_group_type = TILE_GROUP_B;
-        ctx->tile_group_ref_flag = 1;
-        ctx->tile_group_depth = FRM_DEPTH_1;
+        ctx->slice_type = TILE_GROUP_B;
+        ctx->slice_ref_flag = 1;
+        ctx->slice_depth = FRM_DEPTH_1;
         ctx->poc = pic_imcnt;
 #if HLS_M47668
         ctx->prev_doc_offset = 0;
         ctx->prev_pic_order_cnt_val = ctx->poc;
 #endif
-        ctx->tile_group_ref_flag = 1;
+        ctx->slice_ref_flag = 1;
     }
     else
     {
-        ctx->tile_group_type = TILE_GROUP_B;
+        ctx->slice_type = TILE_GROUP_B;
         if(ctx->param.use_hgop)
         {
             pos = (pic_imcnt % gop_size) - 1;
 #if HLS_M47668
             if (ctx->sps.tool_pocs)
             {
-                ctx->tile_group_depth = tbl_tile_group_depth_orig[gop_size >> 2][pos];
+                ctx->slice_depth = tbl_slice_depth_orig[gop_size >> 2][pos];
                 ctx->poc = ((pic_imcnt / gop_size) * gop_size) +
                     tbl_poc_gop_offset[gop_size >> 2][pos];
             }
             else
             {
-                ctx->tile_group_depth = tbl_tile_group_depth[gop_size >> 2][pos];
-                int layer_id = ctx->tile_group_depth - (ctx->tile_group_depth > 0);
+                ctx->slice_depth = tbl_slice_depth[gop_size >> 2][pos];
+                int layer_id = ctx->slice_depth - (ctx->slice_depth > 0);
                 poc_derivation(ctx, layer_id);
             }
             if (!ctx->sps.tool_pocs && gop_size >= 2)
             {
-                ctx->tile_group_ref_flag = (ctx->tile_group_depth == tbl_tile_group_depth[gop_size >> 2][gop_size - 2] ? 0 : 1);
+                ctx->slice_ref_flag = (ctx->slice_depth == tbl_slice_depth[gop_size >> 2][gop_size - 2] ? 0 : 1);
             }
             else
             {
-                ctx->tile_group_ref_flag = 1;
+                ctx->slice_ref_flag = 1;
             }
 #else
-            ctx->tile_group_depth = tbl_tile_group_depth[gop_size >> 2][pos];
+            ctx->slice_depth = tbl_slice_depth[gop_size >> 2][pos];
             ctx->ref_depth = tbl_ref_depth[gop_size >> 2][pos];
             ctx->poc = ((pic_imcnt / gop_size) * gop_size) +
                 tbl_poc_gop_offset[gop_size >> 2][pos];
-            ctx->tile_group_ref_flag = tbl_tile_group_ref[gop_size >> 2][pos];
+            ctx->slice_ref_flag = tbl_slice_ref[gop_size >> 2][pos];
 #endif
         }
         else
         {
             pos = (pic_imcnt % gop_size) - 1;
-            ctx->tile_group_depth = FRM_DEPTH_2;
+            ctx->slice_depth = FRM_DEPTH_2;
 #if !HLS_M47668
             ctx->ref_depth = FRM_DEPTH_1;
 #endif
             ctx->poc = ((pic_imcnt / gop_size) * gop_size) - gop_size + pos + 1;
-            ctx->tile_group_ref_flag = 0;
+            ctx->slice_ref_flag = 0;
         }
         /* find current encoding picture's(B picture) pic_icnt */
         pic_icnt_b = ctx->poc;
@@ -1762,8 +1762,8 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
     }
 }
 
-/* tile_group_type / tile_group_depth / poc / PIC_ORIG setting */
-static void decide_tile_group_type(EVCE_CTX * ctx)
+/* slice_type / slice_depth / poc / PIC_ORIG setting */
+static void decide_slice_type(EVCE_CTX * ctx)
 {
     u32 pic_imcnt, pic_icnt;
     int i_period, gop_size;
@@ -1782,49 +1782,49 @@ static void decide_tile_group_type(EVCE_CTX * ctx)
         pic_imcnt = (i_period > 0) ? pic_icnt % i_period : pic_icnt;
         if(pic_imcnt == 0)
         {
-            ctx->tile_group_type = TILE_GROUP_I;
-            ctx->tile_group_depth = FRM_DEPTH_0;
+            ctx->slice_type = TILE_GROUP_I;
+            ctx->slice_depth = FRM_DEPTH_0;
             ctx->poc = 0;
-            ctx->tile_group_ref_flag = 1;
+            ctx->slice_ref_flag = 1;
         }
         else
         {
-            ctx->tile_group_type = TILE_GROUP_B;
+            ctx->slice_type = TILE_GROUP_B;
             if(ctx->param.use_hgop)
             {
 #if HLS_M47668
                 if (ctx->sps.tool_rpl)
                 {
-                    ctx->tile_group_depth = tbl_tile_group_depth_P_orig[(pic_imcnt - 1) % GOP_P];
+                    ctx->slice_depth = tbl_slice_depth_P_orig[(pic_imcnt - 1) % GOP_P];
                 }
                 else
                 {
-                    ctx->tile_group_depth = tbl_tile_group_depth_P[ctx->param.ref_pic_gap_length >> 2][(pic_imcnt - 1) % ctx->param.ref_pic_gap_length];
+                    ctx->slice_depth = tbl_slice_depth_P[ctx->param.ref_pic_gap_length >> 2][(pic_imcnt - 1) % ctx->param.ref_pic_gap_length];
                 }
 #else
-                ctx->tile_group_depth = tbl_tile_group_depth_P[(pic_imcnt - 1) % GOP_P];
+                ctx->slice_depth = tbl_slice_depth_P[(pic_imcnt - 1) % GOP_P];
 #endif
             }
             else
             {
-                ctx->tile_group_depth = FRM_DEPTH_1;
+                ctx->slice_depth = FRM_DEPTH_1;
             }
             ctx->poc = (i_period > 0) ? ctx->pic_cnt % i_period : ctx->pic_cnt;
-            ctx->tile_group_ref_flag = 1;
+            ctx->slice_ref_flag = 1;
         }
     }
     else /* include B Picture (gop_size = 2 or 4 or 8 or 16) */
     {
         if(pic_icnt == gop_size - 1) /* special case when sequence start */
         {
-            ctx->tile_group_type = TILE_GROUP_I;
-            ctx->tile_group_depth = FRM_DEPTH_0;
+            ctx->slice_type = TILE_GROUP_I;
+            ctx->slice_depth = FRM_DEPTH_0;
             ctx->poc = 0;
 #if HLS_M47668
             ctx->prev_doc_offset = 0;
             ctx->prev_pic_order_cnt_val = ctx->poc;
 #endif
-            ctx->tile_group_ref_flag = 1;
+            ctx->slice_ref_flag = 1;
 
             /* flush the first IDR picture */
             PIC_ORIG(ctx) = &ctx->pico_buf[0]->pic;
@@ -1856,16 +1856,16 @@ static void decide_tile_group_type(EVCE_CTX * ctx)
     {
         if (ctx->sps.tool_rpl)
         {
-            ctx->layer_id = ctx->tile_group_depth;
+            ctx->layer_id = ctx->slice_depth;
         } else
         {
-            ctx->layer_id = ctx->tile_group_depth - (ctx->tile_group_depth > 0);
+            ctx->layer_id = ctx->slice_depth - (ctx->slice_depth > 0);
         }
     }
 #else
     if (ctx->param.use_hgop)
     {
-        ctx->layer_id = ctx->tile_group_depth;
+        ctx->layer_id = ctx->slice_depth;
     }
 #endif
     else
@@ -1876,7 +1876,7 @@ static void decide_tile_group_type(EVCE_CTX * ctx)
     ctx->dtr = ctx->ptr;
 }
 
-int check_reorder(EVCE_PARAM * param, EVC_PM * pm, u8 num_ref_pics_act, u8 tile_group_type, u32 ptr, EVC_REFP(*refp)[REFP_NUM],
+int check_reorder(EVCE_PARAM * param, EVC_PM * pm, u8 num_ref_pics_act, u8 slice_type, u32 ptr, EVC_REFP(*refp)[REFP_NUM],
                   const EVC_REORDER_ARG * reorder, u32 last_intra, EVC_RMPNI * rmpni)
 {
     int i, j, pos, poc, idx;
@@ -1903,7 +1903,7 @@ int check_reorder(EVCE_PARAM * param, EVC_PM * pm, u8 num_ref_pics_act, u8 tile_
     }
 
     /* TILE_GROUP_P: current reordering argument is setup for TILE_GROUP_B only, TILE_GROUP_P case are not considered*/
-    if(tile_group_type == TILE_GROUP_I || tile_group_type == TILE_GROUP_P)
+    if(slice_type == TILE_GROUP_I || slice_type == TILE_GROUP_P)
     {
         return EVC_OK;
     }
@@ -2009,12 +2009,12 @@ int evce_enc_pic_prepare(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     }
 #endif
 
-    decide_tile_group_type(ctx);
+    decide_slice_type(ctx);
 
     ctx->lcu_cnt = ctx->f_lcu;
-    ctx->tile_group_num = 0;
+    ctx->slice_num = 0;
 
-    if(ctx->tile_group_type == TILE_GROUP_I) ctx->last_intra_ptr = ctx->ptr;
+    if(ctx->slice_type == TILE_GROUP_I) ctx->last_intra_ptr = ctx->ptr;
 
     size = sizeof(s8) * ctx->f_scu * REFP_NUM;
     evc_mset_x64a(ctx->map_refi, -1, size);
@@ -2062,18 +2062,18 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     evc_bsw_deinit(bs);
 
     /* ending */
-    evce_bsw_write_tile_group_size(bs);
+    evce_bsw_write_slice_size(bs);
 
     /* expand current encoding picture, if needs */
     ctx->fn_picbuf_expand(ctx, PIC_CURR(ctx));
 
     /* picture buffer management */
 #if HLS_M47668
-    ret = evc_picman_put_pic(&ctx->rpm, PIC_CURR(ctx), ctx->tile_group_type,
+    ret = evc_picman_put_pic(&ctx->rpm, PIC_CURR(ctx), ctx->slice_type,
                               ctx->ptr, ctx->dtr, ctx->layer_id, 0, ctx->refp,
-                              ctx->tile_group_ref_flag, ctx->sps.picture_num_present_flag, ctx->ref_pic_gap_length);
+                              ctx->slice_ref_flag, ctx->sps.picture_num_present_flag, ctx->ref_pic_gap_length);
 #else
-    ret = evc_picman_put_pic(&ctx->rpm, PIC_CURR(ctx), ctx->tile_group_type,
+    ret = evc_picman_put_pic(&ctx->rpm, PIC_CURR(ctx), ctx->slice_type,
                              ctx->ptr, ctx->dtr, ctx->layer_id, 0, ctx->refp,
                              (ctx->sh.mmco_on ? &ctx->sh.mmco : NULL), ctx->sps.picture_num_present_flag);
 #endif
@@ -2090,7 +2090,7 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     evc_mset(stat, 0, sizeof(EVCE_STAT));
     stat->write = EVC_BSW_GET_WRITE_BYTE(bs);
     stat->ctype = EVC_NONIDR_NUT; //TBD(@Chernyak): handle IDR
-    stat->stype = ctx->tile_group_type;
+    stat->stype = ctx->slice_type;
     stat->fnum = ctx->pic_cnt;
     stat->qp = ctx->sh.qp;
     stat->poc = ctx->ptr;
@@ -2150,13 +2150,13 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         last_intra_poc = INT_MAX;
         aps_counter_reset = TRUE;
     }
-    if (ctx->tile_group_type == TILE_GROUP_I)
+    if (ctx->slice_type == TILE_GROUP_I)
         last_intra_poc = ctx->ptr;
 
     if (aps_counter_reset)
         ctx->aps_counter = 0;
 #endif
-    if (ctx->tile_group_type == TILE_GROUP_I )
+    if (ctx->slice_type == TILE_GROUP_I )
     {
         ctx->aps_counter = -1;
         aps->aps_id = -1;
@@ -2167,7 +2167,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     if (ctx->sps.picture_num_present_flag)
     {
         /* initialize reference pictures */
-        ret = evc_picman_refp_init(&ctx->rpm, ctx->sps.num_ref_pics_act, ctx->tile_group_type, ctx->ptr, ctx->layer_id, ctx->last_intra_ptr, ctx->refp);
+        ret = evc_picman_refp_init(&ctx->rpm, ctx->sps.num_ref_pics_act, ctx->slice_type, ctx->ptr, ctx->layer_id, ctx->last_intra_ptr, ctx->refp);
     }
     else
     {
@@ -2175,7 +2175,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         //This needs to be done before reference picture marking and reference picture list construction are invoked
         set_sh(ctx, sh);
 
-        if (sh->tile_group_type != TILE_GROUP_I && sh->poc != 0) //TBD: change this condition to say that if this slice is not a slice in IDR picture
+        if (sh->slice_type != TILE_GROUP_I && sh->poc != 0) //TBD: change this condition to say that if this slice is not a slice in IDR picture
         {
             ret = create_explicit_rpl(&ctx->rpm, sh);
             if (ret == 1)
@@ -2194,7 +2194,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         /* reference picture lists construction */
         ret = evc_picman_refp_rpl_based_init(&ctx->rpm, sh, ctx->refp);
 #if M49023_ADMVP_IMPROVE
-        if (sh->tile_group_type != TILE_GROUP_I)
+        if (sh->slice_type != TILE_GROUP_I)
         {
             int dptr0 = (int)(ctx->ptr) - (int)(ctx->refp[0][REFP_0].ptr);
             int dptr1 = (int)(ctx->ptr) - (int)(ctx->refp[0][REFP_1].ptr);
@@ -2208,20 +2208,20 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #if !HLS_M47668
     if (ctx->sps.picture_num_present_flag)
     {
-        if (ctx->tile_group_type != TILE_GROUP_I)
+        if (ctx->slice_type != TILE_GROUP_I)
         {
             if (ctx->param.max_b_frames == 0)
             {
-                sh->rmpni_on = check_reorder(&ctx->param, &ctx->rpm, ctx->sps.num_ref_pics_act, ctx->tile_group_type, ctx->ptr, ctx->refp, reorder_arg_ldb, ctx->last_intra_ptr, sh->rmpni);
+                sh->rmpni_on = check_reorder(&ctx->param, &ctx->rpm, ctx->sps.num_ref_pics_act, ctx->slice_type, ctx->ptr, ctx->refp, reorder_arg_ldb, ctx->last_intra_ptr, sh->rmpni);
             } else
             {
-                sh->rmpni_on = check_reorder(&ctx->param, &ctx->rpm, ctx->sps.num_ref_pics_act, ctx->tile_group_type, ctx->ptr, ctx->refp, reorder_arg, ctx->last_intra_ptr, sh->rmpni);
+                sh->rmpni_on = check_reorder(&ctx->param, &ctx->rpm, ctx->sps.num_ref_pics_act, ctx->slice_type, ctx->ptr, ctx->refp, reorder_arg, ctx->last_intra_ptr, sh->rmpni);
             }
         }
 
-        if (sh->rmpni_on && ctx->tile_group_type != TILE_GROUP_I)
+        if (sh->rmpni_on && ctx->slice_type != TILE_GROUP_I)
         {
-            ret = evc_picman_refp_reorder(&ctx->rpm, ctx->sps.num_ref_pics_act, sh->tile_group_type, ctx->ptr, ctx->refp, ctx->last_intra_ptr, sh->rmpni);
+            ret = evc_picman_refp_reorder(&ctx->rpm, ctx->sps.num_ref_pics_act, sh->slice_type, ctx->ptr, ctx->refp, ctx->last_intra_ptr, sh->rmpni);
             evc_assert_rv(ret == EVC_OK, ret);
         }
     }
@@ -2267,14 +2267,14 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #endif
 
     /* initialize entropy coder */
-    evce_sbac_reset(GET_SBAC_ENC(bs), ctx->sh.tile_group_type, ctx->sh.qp, ctx->sps.tool_cm_init);
-    evce_sbac_reset(&core->s_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], ctx->sh.tile_group_type, ctx->sh.qp, ctx->sps.tool_cm_init);
+    evce_sbac_reset(GET_SBAC_ENC(bs), ctx->sh.slice_type, ctx->sh.qp, ctx->sps.tool_cm_init);
+    evce_sbac_reset(&core->s_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], ctx->sh.slice_type, ctx->sh.qp, ctx->sps.tool_cm_init);
 
     core->bs_temp.pdata[1] = &core->s_temp_run;
 
     /* LCU encoding */
 #if TRACE_RDO_EXCLUDE_I
-    if(ctx->tile_group_type != TILE_GROUP_I)
+    if(ctx->slice_type != TILE_GROUP_I)
     {
 #endif
         EVC_TRACE_SET(0);
@@ -2282,7 +2282,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     }
 #endif
 #if M48879_IMPROVEMENT_INTER
-    if (ctx->sps.tool_mmvd && (ctx->tile_group_type == TILE_GROUP_B))
+    if (ctx->sps.tool_mmvd && (ctx->slice_type == TILE_GROUP_B))
     {
         sh->mmvd_group_enable_flag = !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr);
     }
@@ -2336,11 +2336,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         /* end_of_picture_flag */
         if(ctx->lcu_cnt > 0)
         {
-            evce_eco_tile_group_end_flag(bs, 0);
+            evce_eco_slice_end_flag(bs, 0);
         }
         else
         {
-            evce_eco_tile_group_end_flag(bs, 1);
+            evce_eco_slice_end_flag(bs, 1);
             evce_sbac_finish(bs);
             break;
         }
@@ -2370,7 +2370,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     /* Bit-stream re-writing (START) */
     evc_bsw_init(&ctx->bs, (u8*)bitb->addr, bitb->bsize, NULL);
 #if TRACE_RDO_EXCLUDE_I
-    if(ctx->tile_group_type != TILE_GROUP_I)
+    if(ctx->slice_type != TILE_GROUP_I)
     {
 #endif
         EVC_TRACE_SET(1);
@@ -2378,8 +2378,8 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     }
 #endif
 
-    /* Encode skip tile_group_size field */
-    evce_bsw_skip_tile_group_size(bs);
+    /* Encode skip slice_size field */
+    evce_bsw_skip_slice_size(bs);
 
 #if ALF_PARAMETER_APS
     /* Encode ALF in APS */
@@ -2422,7 +2422,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         MCU_CLR_COD(ctx->map_scu[i]);
     }
 
-    evce_sbac_reset(GET_SBAC_ENC(bs), ctx->sh.tile_group_type, ctx->sh.qp, ctx->sps.tool_cm_init);
+    evce_sbac_reset(GET_SBAC_ENC(bs), ctx->sh.slice_type, ctx->sh.qp, ctx->sps.tool_cm_init);
 
     /* Encode slice data */
     while(1)
@@ -2456,11 +2456,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         /* end_of_picture_flag */
         if(ctx->lcu_cnt > 0)
         {
-            evce_eco_tile_group_end_flag(bs, 0);
+            evce_eco_slice_end_flag(bs, 0);
         }
         else
         {
-            evce_eco_tile_group_end_flag(bs, 1);
+            evce_eco_slice_end_flag(bs, 1);
             evce_sbac_finish(bs);
             break;
         }

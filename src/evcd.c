@@ -242,11 +242,11 @@ ERR:
     return ret;
 }
 
-static void tile_group_deinit(EVCD_CTX * ctx)
+static void slice_deinit(EVCD_CTX * ctx)
 {
 }
 
-static int tile_group_init(EVCD_CTX * ctx, EVCD_CORE * core, EVC_SH * sh)
+static int slice_init(EVCD_CTX * ctx, EVCD_CORE * core, EVC_SH * sh)
 {
     core->lcu_num = 0;
     core->x_lcu = 0;
@@ -270,7 +270,7 @@ static int tile_group_init(EVCD_CTX * ctx, EVCD_CORE * core, EVC_SH * sh)
     evc_mset_x64a(ctx->map_ats_inter, 0, sizeof(u8) * ctx->f_scu);
 #endif
     evc_mset_x64a(ctx->map_cu_mode, 0, sizeof(u32) * ctx->f_scu);
-    if(ctx->sh.tile_group_type == TILE_GROUP_I)
+    if(ctx->sh.slice_type == TILE_GROUP_I)
     {
         ctx->last_intra_ptr = ctx->ptr;
     }
@@ -365,7 +365,7 @@ static void make_stat(EVCD_CTX * ctx, int btype, EVCD_STAT * stat)
         if(btype < EVC_SPS_NUT)
         {
             stat->fnum = ctx->pic_cnt;
-            stat->stype = ctx->sh.tile_group_type;
+            stat->stype = ctx->sh.slice_type;
 
             /* increase decoded picture count */
             ctx->pic_cnt++;
@@ -483,7 +483,7 @@ static void get_nbr_yuv(int x, int y, int cuw, int cuh, u16 avail_cu, EVC_PIC *p
 }
 
 #if ADMVP
-static void update_history_buffer_parse(EVCD_CORE *core, int tile_group_type)
+static void update_history_buffer_parse(EVCD_CORE *core, int slice_type)
 {
     int i;
     if(core->history_buffer.currCnt == core->history_buffer.m_maxCnt)
@@ -516,7 +516,7 @@ static void update_history_buffer_parse(EVCD_CORE *core, int tile_group_type)
 }
 
 #if AFFINE_UPDATE && AFFINE
-static void update_history_buffer_parse_affine(EVCD_CORE *core, int tile_group_type)
+static void update_history_buffer_parse_affine(EVCD_CORE *core, int slice_type)
 {
     int i;
     if(core->history_buffer.currCnt == core->history_buffer.m_maxCnt)
@@ -533,8 +533,8 @@ static void update_history_buffer_parse_affine(EVCD_CORE *core, int tile_group_t
         if(core->affine_flag)
         {
             // some spatial neighbor may be unavailable
-            if((tile_group_type == TILE_GROUP_P && REFI_IS_VALID(core->refi_sp[REFP_0])) ||
-                (tile_group_type == TILE_GROUP_B && (REFI_IS_VALID(core->refi_sp[REFP_0]) || REFI_IS_VALID(core->refi_sp[REFP_1]))))
+            if((slice_type == TILE_GROUP_P && REFI_IS_VALID(core->refi_sp[REFP_0])) ||
+                (slice_type == TILE_GROUP_B && (REFI_IS_VALID(core->refi_sp[REFP_0]) || REFI_IS_VALID(core->refi_sp[REFP_1]))))
             {
                 evc_mcpy(core->history_buffer.history_mv_table[core->history_buffer.currCnt - 1], core->mv_sp, REFP_NUM * MV_D * sizeof(s16));
                 evc_mcpy(core->history_buffer.history_refi_table[core->history_buffer.currCnt - 1], core->refi_sp, REFP_NUM * sizeof(s8));
@@ -558,8 +558,8 @@ static void update_history_buffer_parse_affine(EVCD_CORE *core, int tile_group_t
 #if !M49023_ADMVP_IMPROVE
         if(core->affine_flag)
         {
-            if((tile_group_type == TILE_GROUP_P && REFI_IS_VALID(core->refi_sp[REFP_0])) ||
-                (tile_group_type == TILE_GROUP_B && (REFI_IS_VALID(core->refi_sp[REFP_0]) || REFI_IS_VALID(core->refi_sp[REFP_1]))))
+            if((slice_type == TILE_GROUP_P && REFI_IS_VALID(core->refi_sp[REFP_0])) ||
+                (slice_type == TILE_GROUP_B && (REFI_IS_VALID(core->refi_sp[REFP_0]) || REFI_IS_VALID(core->refi_sp[REFP_1]))))
             {
                 evc_mcpy(core->history_buffer.history_mv_table[core->history_buffer.currCnt], core->mv_sp, REFP_NUM * MV_D * sizeof(s16));
                 evc_mcpy(core->history_buffer.history_refi_table[core->history_buffer.currCnt], core->refi_sp, REFP_NUM * sizeof(s8));
@@ -593,7 +593,7 @@ void evcd_get_direct_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #if M49023_ADMVP_IMPROVE
     if (ctx->sps.tool_admvp == 0)
     {
-        evc_get_motion_skip_baseline(ctx->sh.tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, srefi, smvp, core->avail_cu
+        evc_get_motion_skip_baseline(ctx->sh.slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, srefi, smvp, core->avail_cu
         );
     }
     else
@@ -601,7 +601,7 @@ void evcd_get_direct_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #endif
 #endif
 #if M49023_ADMVP_IMPROVE
-        evc_get_motion_merge_main(ctx->ptr, ctx->sh.tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, srefi, smvp, ctx->map_scu, core->avail_lr
+        evc_get_motion_merge_main(ctx->ptr, ctx->sh.slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, srefi, smvp, ctx->map_scu, core->avail_lr
 #if DMVR_LAG
             , ctx->map_unrefined_mv
 #endif
@@ -625,7 +625,7 @@ void evcd_get_direct_motion(EVCD_CTX * ctx, EVCD_CORE * core)
     core->mv[REFP_0][MV_X] = smvp[REFP_0][core->mvp_idx[REFP_0]][MV_X];
     core->mv[REFP_0][MV_Y] = smvp[REFP_0][core->mvp_idx[REFP_0]][MV_Y];
 
-    if (ctx->sh.tile_group_type == TILE_GROUP_P)
+    if (ctx->sh.slice_type == TILE_GROUP_P)
     {
         core->refi[REFP_1] = REFI_INVALID;
         core->mv[REFP_1][MV_X] = 0;
@@ -663,7 +663,7 @@ void evcd_get_skip_motion(EVCD_CTX * ctx, EVCD_CORE * core)
             core->mv[REFP_0][MV_X] = smvp[REFP_0][core->mvp_idx[REFP_0]][MV_X];
             core->mv[REFP_0][MV_Y] = smvp[REFP_0][core->mvp_idx[REFP_0]][MV_Y];
 
-            if (ctx->sh.tile_group_type == TILE_GROUP_P)
+            if (ctx->sh.slice_type == TILE_GROUP_P)
             {
                 core->refi[REFP_1] = REFI_INVALID;
                 core->mv[REFP_1][MV_X] = 0;
@@ -774,7 +774,7 @@ void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
         int vertex, lidx;
         int mrg_idx = core->mvp_idx[0];
 
-        evc_get_affine_merge_candidate(ctx->ptr, ctx->sh.tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp, cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, aff_refi, aff_mrg_mvp, vertex_num, ctx->map_scu, ctx->map_affine
+        evc_get_affine_merge_candidate(ctx->ptr, ctx->sh.slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp, cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, aff_refi, aff_mrg_mvp, vertex_num, ctx->map_scu, ctx->map_affine
 #if M48933_AFFINE
             , ctx->log2_max_cuwh
 #endif
@@ -892,7 +892,7 @@ void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
             core->mv_sp[REFP_0][MV_X] = ctx->map_mv[neb_addr[k]][REFP_0][MV_X];
             core->mv_sp[REFP_0][MV_Y] = ctx->map_mv[neb_addr[k]][REFP_0][MV_Y];
 
-            if (ctx->sh.tile_group_type == TILE_GROUP_B)
+            if (ctx->sh.slice_type == TILE_GROUP_B)
             {
                 core->refi_sp[REFP_1] = REFI_IS_VALID(ctx->map_refi[neb_addr[k]][REFP_1]) ? ctx->map_refi[neb_addr[k]][REFP_1] : REFI_INVALID;
                 core->mv_sp[REFP_1][MV_X] = ctx->map_mv[neb_addr[k]][REFP_1][MV_X];
@@ -937,7 +937,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 #endif
 
     core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu);
-    evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->sh.tile_group_type, ctx->sps.tool_cm_init
+    evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
 #if IBC
         , ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size
 #endif
@@ -1053,9 +1053,9 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
             else
             {
 #if ADMVP
-                if ((ctx->sh.tile_group_type == TILE_GROUP_P) || (ctx->sps.tool_amis == 1 && !check_bi_applicability_dec(ctx->sh.tile_group_type, cuw, cuh)))
+                if ((ctx->sh.slice_type == TILE_GROUP_P) || (ctx->sps.tool_amis == 1 && !check_bi_applicability_dec(ctx->sh.slice_type, cuw, cuh)))
 #else
-                if (ctx->sh.tile_group_type == TILE_GROUP_P)
+                if (ctx->sh.slice_type == TILE_GROUP_P)
 #endif
                 {
                 }
@@ -1139,7 +1139,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
             )
 #endif
         {
-            update_history_buffer_parse_affine(core, ctx->sh.tile_group_type
+            update_history_buffer_parse_affine(core, ctx->sh.slice_type
             );
         }
 
@@ -1607,7 +1607,7 @@ int evcd_dec_tile_group(EVCD_CTX * ctx, EVCD_CORE * core)
     sbac = GET_SBAC_DEC(bs);
 
     /* reset SBAC */
-    evcd_eco_sbac_reset(bs, ctx->sh.tile_group_type, ctx->sh.qp, ctx->sps.tool_cm_init);
+    evcd_eco_sbac_reset(bs, ctx->sh.slice_type, ctx->sh.qp, ctx->sps.tool_cm_init);
 
     while(1)
     {
@@ -1637,7 +1637,7 @@ int evcd_dec_tile_group(EVCD_CTX * ctx, EVCD_CORE * core)
         evc_mcpy(ctx->map_suco[core->lcu_num], core->suco_flag, sizeof(s8) * MAX_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
 
         /* read end_of_picture_flag */
-        if(evcd_eco_tile_group_end_flag(bs, sbac))
+        if(evcd_eco_slice_end_flag(bs, sbac))
         {
             break;
         }
@@ -1721,7 +1721,7 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     /* set error status */
     ctx->bs_err = bitb->err;
 #if TRACE_RDO_EXCLUDE_I
-    if (sh->tile_group_type != TILE_GROUP_I)
+    if (sh->slice_type != TILE_GROUP_I)
     {
 #endif
         EVC_TRACE_SET(1);
@@ -1812,7 +1812,7 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 */
 
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
-        ret = tile_group_init(ctx, ctx->core, sh);
+        ret = slice_init(ctx, ctx->core, sh);
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
 #if HLS_M47668
         if(!sps->tool_pocs)
@@ -1822,24 +1822,24 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
                 sh->poc = 0;
                 ctx->prev_doc_offset = 0;
                 ctx->prev_pic_order_cnt_val = sh->poc;
-                ctx->tile_group_ref_flag = is_ref_pic(ctx, sh);
+                ctx->slice_ref_flag = is_ref_pic(ctx, sh);
             }
             else
             {
-                ctx->tile_group_ref_flag = is_ref_pic(ctx, sh);
+                ctx->slice_ref_flag = is_ref_pic(ctx, sh);
                 poc_derivation(ctx, sh);
             }
         }
         else
         {
-            ctx->tile_group_ref_flag = 1;
+            ctx->slice_ref_flag = 1;
         }
 #endif
 
         if (sps->picture_num_present_flag)
         {
             /* initialize reference pictures */
-            ret = evc_picman_refp_init(&ctx->dpm, ctx->sps.num_ref_pics_act, sh->tile_group_type, ctx->ptr, ctx->sh.layer_id, ctx->last_intra_ptr, ctx->refp);
+            ret = evc_picman_refp_init(&ctx->dpm, ctx->sps.num_ref_pics_act, sh->slice_type, ctx->ptr, ctx->sh.layer_id, ctx->last_intra_ptr, ctx->refp);
         }
         else
         {
@@ -1854,9 +1854,9 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 
         if (sps->picture_num_present_flag)
         {
-            if ((sh->rmpni_on && ctx->sh.tile_group_type != TILE_GROUP_I))
+            if ((sh->rmpni_on && ctx->sh.slice_type != TILE_GROUP_I))
             {
-                ret = evc_picman_refp_reorder(&ctx->dpm, ctx->sps.num_ref_pics_act, sh->tile_group_type, ctx->ptr, ctx->refp, ctx->last_intra_ptr, sh->rmpni);
+                ret = evc_picman_refp_reorder(&ctx->dpm, ctx->sps.num_ref_pics_act, sh->slice_type, ctx->ptr, ctx->refp, ctx->last_intra_ptr, sh->rmpni);
                 evc_assert_rv(ret == EVC_OK, ret);
             }
         }
@@ -1910,13 +1910,13 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 
         /* put decoded picture to DPB */
 #if HLS_M47668
-        ret = evc_picman_put_pic(&ctx->dpm, ctx->pic, ctx->sh.tile_group_type, ctx->ptr, ctx->dtr, ctx->sh.layer_id, 1, ctx->refp, ctx->tile_group_ref_flag, sps->picture_num_present_flag, ctx->ref_pic_gap_length);
+        ret = evc_picman_put_pic(&ctx->dpm, ctx->pic, ctx->sh.slice_type, ctx->ptr, ctx->dtr, ctx->sh.layer_id, 1, ctx->refp, ctx->slice_ref_flag, sps->picture_num_present_flag, ctx->ref_pic_gap_length);
 #else
-        ret = evc_picman_put_pic(&ctx->dpm, ctx->pic, ctx->sh.tile_group_type, ctx->ptr, ctx->dtr, ctx->sh.layer_id, 1, ctx->refp, (ctx->sh.mmco_on ? &ctx->sh.mmco : NULL), sps->picture_num_present_flag);
+        ret = evc_picman_put_pic(&ctx->dpm, ctx->pic, ctx->sh.slice_type, ctx->ptr, ctx->dtr, ctx->sh.layer_id, 1, ctx->refp, (ctx->sh.mmco_on ? &ctx->sh.mmco : NULL), sps->picture_num_present_flag);
 #endif
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
 
-        tile_group_deinit(ctx);
+        slice_deinit(ctx);
     }
     //else TBD handle bad bitstream
     

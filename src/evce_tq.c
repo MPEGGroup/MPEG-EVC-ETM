@@ -2455,7 +2455,7 @@ int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
 }
 #endif
 
-int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw, int log2_cuh, u16 scale, int ch_type, int tile_group_type, int sps_cm_init_flag
+int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw, int log2_cuh, u16 scale, int ch_type, int slice_type, int sps_cm_init_flag
 #if ADCC
                     , int tool_adcc
 #endif
@@ -2481,7 +2481,7 @@ int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw,
 
 #define FAST_RDOQ_INTRA_RND_OFST  201 //171
 #define FAST_RDOQ_INTER_RND_OFST  153 //85
-        offset = (s64)((tile_group_type == TILE_GROUP_I) ? FAST_RDOQ_INTRA_RND_OFST : FAST_RDOQ_INTER_RND_OFST) << (s64)(shift - 9);
+        offset = (s64)((slice_type == TILE_GROUP_I) ? FAST_RDOQ_INTRA_RND_OFST : FAST_RDOQ_INTER_RND_OFST) << (s64)(shift - 9);
         zero_coeff_threshold = ((s64)1 << (s64)shift) - offset;
 
         for(i = 0; i < (1 << (log2_cuw + log2_cuh)); i++)
@@ -2524,7 +2524,7 @@ int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw,
 
         tr_shift = MAX_TX_DYNAMIC_RANGE - BIT_DEPTH - log2_size + ns_shift;
         shift = QUANT_SHIFT + tr_shift + (qp / 6);
-        offset = (s64)((tile_group_type == TILE_GROUP_I) ? 171 : 85) << (s64)(shift - 9);
+        offset = (s64)((slice_type == TILE_GROUP_I) ? 171 : 85) << (s64)(shift - 9);
 
         for(i = 0; i < (1 << (log2_cuw + log2_cuh)); i++)
         {
@@ -2540,7 +2540,7 @@ int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw,
 }
 
 
-int evce_tq_nnz(u8 qp, double lambda, s16 * coef, int log2_cuw, int log2_cuh, u16 scale, int tile_group_type, int ch_type, int is_intra, int sps_cm_init_flag, int iqt_flag
+int evce_tq_nnz(u8 qp, double lambda, s16 * coef, int log2_cuw, int log2_cuh, u16 scale, int slice_type, int ch_type, int is_intra, int sps_cm_init_flag, int iqt_flag
 #if ATS_INTRA_PROCESS
                 , u8 ats_intra_cu, u8 ats_tu
 #endif
@@ -2562,14 +2562,14 @@ int evce_tq_nnz(u8 qp, double lambda, s16 * coef, int log2_cuw, int log2_cuh, u1
     evce_trans(coef, log2_cuw, log2_cuh, iqt_flag);
 #endif
 
-    return evce_quant_nnz(qp, lambda, is_intra, coef, log2_cuw, log2_cuh, scale, ch_type, tile_group_type, sps_cm_init_flag
+    return evce_quant_nnz(qp, lambda, is_intra, coef, log2_cuw, log2_cuh, scale, ch_type, slice_type, sps_cm_init_flag
 #if ADCC
         , tool_adcc
 #endif
     );
 }
 
-int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int tile_group_type, int nnz[N_C]
+int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int slice_type, int nnz[N_C]
                       , int nnz_sub[N_C][MAX_SUB_TB_NUM], int is_intra, double lambda_y, double lambda_u, double lambda_v, int run_stats, int sps_cm_init_flag, int iqt_flag
 #if ATS_INTRA_PROCESS
                       , u8 ats_intra_cu, u8 ats_tu
@@ -2640,7 +2640,7 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
                     }
 
                     int scale = quant_scale[qp[c] % 6];
-                    nnz_sub[c][(j << 1) | i] = evce_tq_nnz(qp[c], lambda[c], coef_temp[c], log2_w_sub - !!c, log2_h_sub - !!c, scale, tile_group_type, c, is_intra, sps_cm_init_flag, iqt_flag
+                    nnz_sub[c][(j << 1) | i] = evce_tq_nnz(qp[c], lambda[c], coef_temp[c], log2_w_sub - !!c, log2_h_sub - !!c, scale, slice_type, c, is_intra, sps_cm_init_flag, iqt_flag
 #if ATS_INTRA_PROCESS
                             , ats_intra_cu_on, ats_tu_mode
 #endif

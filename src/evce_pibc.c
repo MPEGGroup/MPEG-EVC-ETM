@@ -112,7 +112,7 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
     evce_diff_pred(x, y, log2_cuw, log2_cuh, pi->pic_o, pred[0], coef);
 
 //    /* transform and quantization */
-    tnnz = evce_sub_block_tq(coef, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, pi->tile_group_type, nnz
+    tnnz = evce_sub_block_tq(coef, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, pi->slice_type, nnz
       , core->nnz_sub, 0, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt
 #if ATS_INTRA_PROCESS
       , 0, 0
@@ -180,7 +180,7 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
         SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
         evce_sbac_bit_reset(&core->s_temp_run);
 
-        evce_rdo_bit_cnt_cu_ibc(ctx, core, ctx->sh.tile_group_type, core->scup, pi->mvd, coef, mvp_idx, pi->ibc_flag);
+        evce_rdo_bit_cnt_cu_ibc(ctx, core, ctx->sh.slice_type, core->scup, pi->mvd, coef, mvp_idx, pi->ibc_flag);
 
         bit_cnt = evce_get_bit_number(&core->s_temp_run);
         cost += RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);
@@ -238,7 +238,7 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 
         evce_sbac_bit_reset(&core->s_temp_run);
 
-        evce_rdo_bit_cnt_cu_ibc(ctx, core, ctx->sh.tile_group_type, core->scup, pi->mvd, coef, mvp_idx, pi->ibc_flag);
+        evce_rdo_bit_cnt_cu_ibc(ctx, core, ctx->sh.slice_type, core->scup, pi->mvd, coef, mvp_idx, pi->ibc_flag);
 
         bit_cnt = evce_get_bit_number(&core->s_temp_run);
         cost_best += RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);
@@ -935,7 +935,7 @@ static int pibc_init_frame(EVCE_CTX *ctx)
     pi->s_m[U_C] = pic->s_c;
     pi->s_m[V_C] = pic->s_c;
 
-    pi->tile_group_type = ctx->tile_group_type;
+    pi->slice_type = ctx->slice_type;
 
     pi->refi[0] = 0;
     pi->refi[1] = REFI_INVALID;

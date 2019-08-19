@@ -267,7 +267,7 @@ struct _EVCD_CTX
     /* current slice number, which is increased whenever decoding a slice.
     when receiving a slice for new picture, this value is set to zero.
     this value can be used for distinguishing b/w tile_groups */
-    u16                     tile_group_num;
+    u16                     slice_num;
     /* last coded intra picture's presentation temporal reference */
     int                     last_intra_ptr;
     /* picture width in LCU unit */
@@ -300,7 +300,7 @@ struct _EVCD_CTX
     u32                     pic_cnt;
 #if HLS_M47668
     /* flag whether current picture is refecened picture or not */
-    u8                     tile_group_ref_flag;
+    u8                     slice_ref_flag;
     /* distance between ref pics in addition to closest ref ref pic in LD*/
     int                    ref_pic_gap_length;
 #endif

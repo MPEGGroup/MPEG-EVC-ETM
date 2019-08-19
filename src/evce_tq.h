@@ -36,7 +36,7 @@
 
 #include "evce_def.h"
 
-int evce_tq_nnz(u8 qp, double lambda, s16 * coef, int log2_cuw, int log2_cuh, u16 scale, int tile_group_type, int ch_type, int is_intra, int sps_cm_init_flag, int iqt_flag
+int evce_tq_nnz(u8 qp, double lambda, s16 * coef, int log2_cuw, int log2_cuh, u16 scale, int slice_type, int ch_type, int is_intra, int sps_cm_init_flag, int iqt_flag
 #if ATS_INTRA_PROCESS
     , u8 ats_intra_cu, u8 ats_tu
 #endif
@@ -46,7 +46,7 @@ int evce_tq_nnz(u8 qp, double lambda, s16 * coef, int log2_cuw, int log2_cuh, u1
 );
 
 //! \todo Change list of arguments
-int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int tile_group_type, int nnz[N_C]
+int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int slice_type, int nnz[N_C]
                       , int nnz_sub[N_C][MAX_SUB_TB_NUM], int is_intra, double lambda_y, double lambda_u, double lambda_v, int run_stats, int sps_cm_init_flag, int iqt_flag
 #if ATS_INTRA_PROCESS
                       , u8 ats_intra_cu, u8 ats_tu

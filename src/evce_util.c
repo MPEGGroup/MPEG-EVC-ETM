@@ -57,12 +57,12 @@ void evce_pic_free(PICBUF_ALLOCATOR *pa, EVC_PIC *pic)
 /******************************************************************************
  * implementation of bitstream writer
  ******************************************************************************/
-void evce_bsw_skip_tile_group_size(EVC_BSW *bs)
+void evce_bsw_skip_slice_size(EVC_BSW *bs)
 {
     evc_bsw_write(bs, 0, 32);
 }
 
-void evce_bsw_write_tile_group_size(EVC_BSW *bs)
+void evce_bsw_write_slice_size(EVC_BSW *bs)
 {
     u32 size;
 

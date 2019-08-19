@@ -643,8 +643,8 @@ extern int fp_trace_counter;
 #define TILE_GROUP_P                            EVC_ST_P
 #define TILE_GROUP_B                            EVC_ST_B
 
-#define IS_INTRA_TILE_GROUP(tile_group_type)       ((tile_group_type) == TILE_GROUP_I))
-#define IS_INTER_TILE_GROUP(tile_group_type)      (((tile_group_type) == TILE_GROUP_P) || ((tile_group_type) == TILE_GROUP_B))
+#define IS_INTRA_TILE_GROUP(slice_type)       ((slice_type) == TILE_GROUP_I))
+#define IS_INTER_TILE_GROUP(slice_type)      (((slice_type) == TILE_GROUP_P) || ((slice_type) == TILE_GROUP_B))
 
 /*****************************************************************************
  * prediction mode
@@ -1344,7 +1344,7 @@ typedef struct _EVC_PPS
     int tile_id_len_minus1;
     int explicit_tile_id_flag;
     int tile_id_val[MAX_NUM_TILES_ROW][MAX_NUM_TILES_COL];
-    int arbitrary_tile_group_present_flag;
+    int arbitrary_slice_present_flag;
 #if M48879_IMPROVEMENT_INTRA
     int constrained_intra_pred_flag;
 #endif
@@ -1411,7 +1411,7 @@ typedef struct _evc_AlfSliceParam
     u8 alfCtuEnableFlag[3][512];
 #endif
 
-    BOOL                         enabledFlag[3];                                          // alf_tile_group_enable_flag, alf_chroma_idc
+    BOOL                         enabledFlag[3];                                          // alf_slice_enable_flag, alf_chroma_idc
     int                          lumaFilterType;                                          // filter_type_flag
     BOOL                         chromaCtbPresentFlag;                                    // alf_chroma_ctb_present_flag
     short                        lumaCoeff[MAX_NUM_ALF_CLASSES * MAX_NUM_ALF_LUMA_COEFF]; // alf_coeff_luma_delta[i][j]
@@ -1445,15 +1445,15 @@ typedef struct _EVC_APS
 
 typedef struct _EVC_SH
 {
-    int              tile_group_pic_parameter_set_id;
-    int              single_tile_in_tile_group_flag;
+    int              slice_pic_parameter_set_id;
+    int              single_tile_in_slice_flag;
     int              first_tile_id;
-    int              arbitrary_tile_group_flag;
+    int              arbitrary_slice_flag;
     int              last_tile_id;
-    int              num_remaining_tiles_in_tile_group_minus1;
+    int              num_remaining_tiles_in_slice_minus1;
     int              delta_tile_id_minus1[MAX_NUM_TILES_ROW * MAX_NUM_TILES_COL];
-    int              tile_group_type;
-    int              tile_group_alf_enabled_flag;
+    int              slice_type;
+    int              slice_alf_enabled_flag;
 #if M49023_ADMVP_IMPROVE
     int              temporal_mvp_asigned_flag;
     int                 collocated_from_list_idx;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag

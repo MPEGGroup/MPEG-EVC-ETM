@@ -223,7 +223,7 @@ typedef struct _EVCE_PINTRA
     u8                  qp_u;
     u8                  qp_v;
 
-    int                 tile_group_type;
+    int                 slice_type;
 
     int                 complexity;
     void              * pdata[4];
@@ -353,7 +353,7 @@ struct _EVCE_PINTER
     u32              lambda_mv;
     /* reference pictures */
     EVC_REFP      (*refp)[REFP_NUM];
-    int              tile_group_type;
+    int              slice_type;
     /* search level for motion estimation */
     int              me_level;
     int              complexity;
@@ -446,7 +446,7 @@ struct _EVCE_PIBC
   u8              qp_v;
   u32             lambda_mv;
 
-  int             tile_group_type;
+  int             slice_type;
 
   int             complexity;
   void            *pdata[4];
@@ -824,19 +824,19 @@ struct _EVCE_CTX
     /* initial frame return number(delayed input count) due to B picture or Forecast */
     u32                    frm_rnum;
     /* current encoding slice number in one picture */
-    int                    tile_group_num;
+    int                    slice_num;
     /* first mb number of current encoding slice in one picture */
     int                    sl_first_mb;
     /* current slice type */
-    u8                     tile_group_type;
+    u8                     slice_type;
     /* slice depth for current picture */
-    u8                     tile_group_depth;
+    u8                     slice_depth;
 #if !HLS_M47668
     /* whether current picture is referred or not */
     u8                     ref_depth;
 #endif
     /* flag whether current picture is refecened picture or not */
-    u8                     tile_group_ref_flag;
+    u8                     slice_ref_flag;
 #if HLS_M47668
     /* distance between ref pics in addition to closest ref ref pic in LD*/
     int                    ref_pic_gap_length;

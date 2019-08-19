@@ -55,7 +55,7 @@ int evce_eco_pred_mode(EVC_BSW * bs, u8 pred_mode, int ctx);
 int evce_eco_ibc(EVC_BSW * bs, u8 pred_mode_ibc_flag, int ctx);
 #endif
 int evce_eco_mvd(EVC_BSW * bs, s16 mvd[MV_D]);
-void evce_sbac_reset(EVCE_SBAC * sbac, u8 tile_group_type, u8 tile_group_qp, int sps_cm_init_flag);
+void evce_sbac_reset(EVCE_SBAC * sbac, u8 slice_type, u8 slice_qp, int sps_cm_init_flag);
 void evce_sbac_finish(EVC_BSW *bs);
 void evce_sbac_encode_bin(u32 bin, EVCE_SBAC *sbac, SBAC_CTX_MODEL *ctx_model, EVC_BSW *bs);
 void evce_sbac_encode_bin_trm(u32 bin, EVCE_SBAC *sbac, EVC_BSW *bs);
@@ -76,7 +76,7 @@ int evce_eco_split_mode(EVC_BSW *bs, EVCE_CTX *c, EVCE_CORE *core, int cud, int 
 int evce_eco_suco_flag(EVC_BSW *bs, EVCE_CTX *c, EVCE_CORE *core, int cud, int cup, int cuw, int cuh, int lcu_s, s8 split_mode, int boundary, u8 log2_max_cuwh);
 void evce_eco_mmvd_flag(EVC_BSW * bs, int flag);
 int evce_eco_mmvd_info(EVC_BSW *bs, int mvp_idx, int type);
-void evce_eco_tile_group_end_flag(EVC_BSW * bs, int flag);
+void evce_eco_slice_end_flag(EVC_BSW * bs, int flag);
 int evce_eco_mvp_idx(EVC_BSW *bs, int mvp_idx, int sps_amis_flag);
 int evce_eco_affine_mvp_idx(EVC_BSW *bs, int mvp_idx);
 int evce_eco_mvd(EVC_BSW *bs, s16 mvd[MV_D]);

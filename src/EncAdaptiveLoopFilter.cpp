@@ -93,7 +93,7 @@ void call_enc_ALFProcess(EncAdaptiveLoopFilter* p, const double* lambdas, EVCE_C
         m_lastRasPoc = INT_MAX;
         m_pendingRasInit = TRUE;
     }
-    if (ctx->sh.tile_group_type == TILE_GROUP_I)
+    if (ctx->sh.slice_type == TILE_GROUP_I)
     {
         m_lastRasPoc = ctx->ptr;
     }
@@ -194,7 +194,7 @@ void alf_aps_enc_opt_process(EncAdaptiveLoopFilter* p, const double* lambdas, EV
         m_lastRasPoc = INT_MAX;
         m_pendingRasInit = TRUE;
     }
-    if (ctx->sh.tile_group_type == TILE_GROUP_I)
+    if (ctx->sh.slice_type == TILE_GROUP_I)
     {
         m_lastRasPoc = ctx->ptr;
     }
@@ -221,7 +221,7 @@ void alf_aps_enc_opt_process(EncAdaptiveLoopFilter* p, const double* lambdas, EV
         storeEncALFParamLineAPS(&alfSliceParam, tidx);
         alfSliceParam.store2ALFBufferFlag = m_store2ALFBufferFlag;
     }
-    if (ctx->sh.tile_group_type == TILE_GROUP_I)
+    if (ctx->sh.slice_type == TILE_GROUP_I)
     {
         if (alfSliceParam.enabledFlag[0] && m_store2ALFBufferFlag)
         {
@@ -591,7 +591,7 @@ void EncAdaptiveLoopFilter::Enc_ALFProcess(CodingStructure& cs, const double *la
 
   // temporal prediction
 
-  if (ctx->tile_group_type != TILE_GROUP_I)
+  if (ctx->slice_type != TILE_GROUP_I)
   {
     deriveStatsForFiltering(&orgYuv, &recLuma);
 #if APS_ALF_SEQ_FIX
@@ -882,7 +882,7 @@ void EncAdaptiveLoopFilter::alfTemporalEncoderAPS(CodingStructure& cs, AlfSliceP
     double cost[MAX_NUM_CHANNEL_TYPE] = { DBL_MAX, DBL_MAX };
     const int tempLayerId = ctx->layer_id; //cs.slice->getTLayer();
 
-    AlfSliceParam *pcStoredAlfPara = ctx->tile_group_type == TILE_GROUP_I ? NULL : m_acAlfLineBuffer;
+    AlfSliceParam *pcStoredAlfPara = ctx->slice_type == TILE_GROUP_I ? NULL : m_acAlfLineBuffer;
 
     copyAlfParam(&m_alfSliceParamTemp, alfSliceParam);
     copyCtuEnableFlag(m_ctuEnableFlagTmp, m_ctuEnableFlag, CHANNEL_TYPE_LUMA);
@@ -1032,7 +1032,7 @@ void EncAdaptiveLoopFilter::alfTemporalEncoder(CodingStructure& cs, AlfSlicePara
   double cost[MAX_NUM_CHANNEL_TYPE] = { DBL_MAX, DBL_MAX };
   const int tempLayerId = ctx->layer_id; //cs.slice->getTLayer();
 
-  AlfSliceParam *pcStoredAlfPara = ctx->tile_group_type == TILE_GROUP_I ? NULL : m_acAlfLineBuffer;
+  AlfSliceParam *pcStoredAlfPara = ctx->slice_type == TILE_GROUP_I ? NULL : m_acAlfLineBuffer;
 
   copyAlfParam(&m_alfSliceParamTemp, alfSliceParam);
   copyCtuEnableFlag(m_ctuEnableFlagTmp, m_ctuEnableFlag, CHANNEL_TYPE_LUMA);

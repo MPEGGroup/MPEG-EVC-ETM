@@ -230,7 +230,7 @@ struct AlfSliceParam
 #else
   u8                           alfCtuEnableFlag[3][512];                                // put into slice header
 #endif
-  BOOL                         enabledFlag[MAX_NUM_COMPONENT];                          // alf_tile_group_enable_flag, alf_chroma_idc
+  BOOL                         enabledFlag[MAX_NUM_COMPONENT];                          // alf_slice_enable_flag, alf_chroma_idc
   AlfFilterType                lumaFilterType;                                          // filter_type_flag
   BOOL                         chromaCtbPresentFlag;                                    // alf_chroma_ctb_present_flag
   short                        lumaCoeff[MAX_NUM_ALF_CLASSES * MAX_NUM_ALF_LUMA_COEFF]; // alf_coeff_luma_delta[i][j]
