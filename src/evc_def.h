@@ -1443,7 +1443,7 @@ typedef struct _EVC_APS
 
 #endif
 
-typedef struct _EVC_TGH
+typedef struct _EVC_SH
 {
     int              tile_group_pic_parameter_set_id;
     int              single_tile_in_tile_group_flag;
