@@ -166,7 +166,7 @@ typedef struct _EVCE_MODE
 #else
 #define FRM_DEPTH_MAX                 6
 #endif
-/* I-tile_group, P-tile_group, B-tile_group + depth + 1 (max for GOP 8 size)*/
+/* I-slice, P-slice, B-slice + depth + 1 (max for GOP 8 size)*/
 #define LIST_NUM                      1
 
 /*****************************************************************************
@@ -463,7 +463,7 @@ typedef struct _EVCE_PARAM
     int                 h;
     /* picture bit depth*/
     int                 bit_depth;
-    /* qp value for I- and P- tile_group */
+    /* qp value for I- and P- slice */
     int                 qp;
     /* frame per second */
     int                 fps;
@@ -784,13 +784,13 @@ struct _EVCE_CTX
     u8                    aps_counter;
     u8                    aps_temp;
 #endif
-    /* tile_group header */
+    /* slice header */
     EVC_TGH                tgh;
     /* reference picture manager */
     EVC_PM                rpm;
     /* create descriptor */
     EVCE_CDSC             cdsc;
-    /* quantization value of current encoding tile_group */
+    /* quantization value of current encoding slice */
     u8                     qp;
 #if M49023_DBF_IMPROVE
     /* offset value of alpha and beta for deblocking filter */
@@ -816,20 +816,20 @@ struct _EVCE_CTX
     u32                    pic_icnt;
     /* total input picture count (only used for bumping process) */
     u32                    pic_ticnt;
-    /* remaining pictures is encoded to p or b tile_group (only used for bumping process) */
+    /* remaining pictures is encoded to p or b slice (only used for bumping process) */
     u8                     force_tile_group;
-    /* ignored pictures for force tile_group count (unavailable pictures cnt in gop,\
+    /* ignored pictures for force slice count (unavailable pictures cnt in gop,\
     only used for bumping process) */
     u8                     force_ignored_cnt;
     /* initial frame return number(delayed input count) due to B picture or Forecast */
     u32                    frm_rnum;
-    /* current encoding tile_group number in one picture */
+    /* current encoding slice number in one picture */
     int                    tile_group_num;
-    /* first mb number of current encoding tile_group in one picture */
+    /* first mb number of current encoding slice in one picture */
     int                    sl_first_mb;
-    /* current tile_group type */
+    /* current slice type */
     u8                     tile_group_type;
-    /* tile_group depth for current picture */
+    /* slice depth for current picture */
     u8                     tile_group_depth;
 #if !HLS_M47668
     /* whether current picture is referred or not */

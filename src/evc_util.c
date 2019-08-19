@@ -2273,7 +2273,7 @@ void evc_get_motion_merge_main(int ptr, int tile_group_type, int scup, s8(*map_r
             }
         }
     }
-    // B tile_group mv combination
+    // B slice mv combination
     if (check_bi_applicability(tile_group_type, cuw, cuh))
     {
 #if !M49023_ADMVP_IMPROVE

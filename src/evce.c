@@ -2171,11 +2171,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     }
     else
     {
-        /* Set tile_group header */
+        /* Set slice header */
         //This needs to be done before reference picture marking and reference picture list construction are invoked
         set_tgh(ctx, tgh);
 
-        if (tgh->tile_group_type != TILE_GROUP_I && tgh->poc != 0) //TBD: change this condition to say that if this tile_group is not a tile_group in IDR picture
+        if (tgh->tile_group_type != TILE_GROUP_I && tgh->poc != 0) //TBD: change this condition to say that if this slice is not a slice in IDR picture
         {
             ret = create_explicit_rpl(&ctx->rpm, tgh);
             if (ret == 1)
@@ -2233,7 +2233,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
     ctx->fn_mode_analyze_frame(ctx);
 
-    /* tile_group layer encoding loop */
+    /* slice layer encoding loop */
     core->x_lcu = core->y_lcu = 0;
     core->x_pel = core->y_pel = 0;
     core->lcu_num = 0;
@@ -2244,7 +2244,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
     if (ctx->sps.picture_num_present_flag)
     {
-        /* Set tile_group header */
+        /* Set slice header */
         set_tgh(ctx, tgh);
     }
 
@@ -2406,7 +2406,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     ret = evce_eco_nalu(bs, &nalu);
     evc_assert_rv(ret == EVC_OK, ret);
 
-    /* Encode tile_group header */
+    /* Encode slice header */
 #if ALF
     tgh->num_ctb = ctx->f_lcu;
 #endif
@@ -2424,7 +2424,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
     evce_sbac_reset(GET_SBAC_ENC(bs), ctx->tgh.tile_group_type, ctx->tgh.qp, ctx->sps.tool_cm_init);
 
-    /* Encode tile_group data */
+    /* Encode slice data */
     while(1)
     {
 #if APS_ALF_CTU_FLAG

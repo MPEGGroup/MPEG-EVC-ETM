@@ -208,7 +208,7 @@ struct _EVCD_CTX
     /* adaptive loop filter */
     void                   *alf;
 #endif
-    /* current tile_group header */
+    /* current slice header */
     EVC_TGH                tgh;
     /* decoded picture buffer management */
     EVC_PM                 dpm;
@@ -264,8 +264,8 @@ struct _EVCD_CTX
 #endif
 
     /**************************************************************************/
-    /* current tile_group number, which is increased whenever decoding a tile_group.
-    when receiving a tile_group for new picture, this value is set to zero.
+    /* current slice number, which is increased whenever decoding a slice.
+    when receiving a slice for new picture, this value is set to zero.
     this value can be used for distinguishing b/w tile_groups */
     u16                     tile_group_num;
     /* last coded intra picture's presentation temporal reference */
@@ -322,7 +322,7 @@ struct _EVCD_CTX
     void (* fn_flush)(EVCD_CTX * ctx);
     /* function address of decoding input bitstream */
     int  (* fn_dec_cnk)(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat);
-    /* function address of decoding tile_group */
+    /* function address of decoding slice */
     int  (* fn_dec_tile_group)(EVCD_CTX * ctx, EVCD_CORE * core);
     /* function address of pulling decoded picture */
     int  (* fn_pull)(EVCD_CTX * ctx, EVC_IMGB ** img);

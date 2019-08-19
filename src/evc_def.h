@@ -637,7 +637,7 @@ extern int fp_trace_counter;
 #define GET_AVAIL_FLAG(avail, bit)      (((avail)>>(bit)) & 0x1)
 
 /*****************************************************************************
- * tile_group type
+ * slice type
  *****************************************************************************/
 #define TILE_GROUP_I                            EVC_ST_I
 #define TILE_GROUP_P                            EVC_ST_P
@@ -796,7 +796,7 @@ typedef enum _TRANS_TYPE
  /*****************************************************************************
  * macros for CU map
 
- - [ 0: 6] : tile_group number (0 ~ 128)
+ - [ 0: 6] : slice number (0 ~ 128)
  - [ 7:14] : reserved
  - [15:15] : 1 -> intra CU, 0 -> inter CU
  - [16:22] : QP
@@ -811,7 +811,7 @@ typedef enum _TRANS_TYPE
 /*****************************************************************************
  * macros for CU map
 
- - [ 0: 6] : tile_group number (0 ~ 128)
+ - [ 0: 6] : slice number (0 ~ 128)
  - [ 7:14] : reserved
  - [15:15] : 1 -> intra CU, 0 -> inter CU
  - [16:22] : QP
@@ -822,9 +822,9 @@ typedef enum _TRANS_TYPE
  - [31:31] : 0 -> no encoded/decoded CU, 1 -> encoded/decoded CU
  *****************************************************************************/
 #endif
-/* set tile_group number to map */
+/* set slice number to map */
 #define MCU_SET_SN(m, sn)       (m)=(((m) & 0xFFFFFF80)|((sn) & 0x7F))
-/* get tile_group number from map */
+/* get slice number from map */
 #define MCU_GET_SN(m)           (int)((m) & 0x7F)
 
 /* set intra CU flag to map */
@@ -876,7 +876,7 @@ typedef enum _TRANS_TYPE
 /* clear encoded/decoded CU flag to map */
 #define MCU_CLR_COD(m)          (m)=((m) & 0x7FFFFFFF)
 
-/* multi bit setting: intra flag, encoded/decoded flag, tile_group number */
+/* multi bit setting: intra flag, encoded/decoded flag, slice number */
 #define MCU_SET_IF_COD_SN_QP(m, i, sn, qp) \
     (m) = (((m)&0xFF807F80)|((sn)&0x7F)|((qp)<<16)|((i)<<15)|(1<<31))
 
@@ -1399,7 +1399,7 @@ typedef struct _EVC_RMPNI
 } EVC_RMPNI;
 
 /*****************************************************************************
- * tile_group header
+ * slice header
  *****************************************************************************/
 #if ALF
 typedef struct _evc_AlfTileGroupParam
@@ -1466,8 +1466,8 @@ typedef struct _EVC_TGH
 
      /*   HLS_RPL */
     u8               ref_pic_list_sps_flag[2];
-    int              rpl_l0_idx;                            //-1 means this tile_group does not use RPL candidate in SPS for RPL0
-    int              rpl_l1_idx;                            //-1 means this tile_group does not use RPL candidate in SPS for RPL1
+    int              rpl_l0_idx;                            //-1 means this slice does not use RPL candidate in SPS for RPL0
+    int              rpl_l1_idx;                            //-1 means this slice does not use RPL candidate in SPS for RPL1
 
     EVC_RPL         rpl_l0;
     EVC_RPL         rpl_l1;
@@ -1558,7 +1558,7 @@ typedef enum _BLOCK_SHAPE
 
 #if ADMVP
 /*****************************************************************************
-* history-based MV prediction buffer (tile_group level)
+* history-based MV prediction buffer (slice level)
 *****************************************************************************/
 typedef struct _EVC_HISTORY_BUFFER
 {

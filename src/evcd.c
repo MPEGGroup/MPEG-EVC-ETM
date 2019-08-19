@@ -1784,7 +1784,7 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     else if (nalu->ctype == EVC_CT_TILE_GROUP)
 #endif
     {
-        /* decode tile_group header */
+        /* decode slice header */
 #if ALF
         tgh->num_ctb = ctx->f_lcu;
 #endif
@@ -1794,9 +1794,9 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 #endif
         ret = evcd_eco_tgh(bs, &ctx->sps, &ctx->pps, tgh);
 
-        /* HLS_RPL Test printing the content of RPL0 and RPL1 for each tile_group*/
+        /* HLS_RPL Test printing the content of RPL0 and RPL1 for each slice*/
 /*
-        printf("\nCurrent tile_group POC: %d RPL0 Index: %d RPL1 Index: %d\n", tgh->poc, tgh->rpl_l0_idx, tgh->rpl_l1_idx);
+        printf("\nCurrent slice POC: %d RPL0 Index: %d RPL1 Index: %d\n", tgh->poc, tgh->rpl_l0_idx, tgh->rpl_l1_idx);
         printf(" Number of ref pics in RPL0: %d Number of active ref pics in RPL0 %d [", tgh->rpl_l0.ref_pic_num, tgh->rpl_l0.ref_pic_active_num);
         for (int ii = 0; ii < tgh->rpl_l0.ref_pic_num; ii++)
         {
@@ -1870,7 +1870,7 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 #if DMVR_LAG
         ctx->map_unrefined_mv = ctx->pic->map_unrefined_mv;
 #endif
-        /* decode tile_group layer */
+        /* decode slice layer */
         ret = ctx->fn_dec_tile_group(ctx, ctx->core);
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
 

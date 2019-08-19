@@ -201,7 +201,7 @@ int print_stat(EVCD_STAT * stat, int ret)
                 stype = 'U';
                 break;
             }
-            v1print("%c-tile_group", stype);
+            v1print("%c-slice", stype);
         }
         else if (stat->ctype == EVC_SPS_NUT)
         {
@@ -436,7 +436,7 @@ int main(int argc, const char **argv)
             }
             else if (nalu->nal_unit_type_plus1 - 1 <  EVC_SPS_NUT)
             {
-                /* decode tile_group header */
+                /* decode slice header */
 #if ALF
                 ctx->w = sps->pic_width_in_luma_samples;
                 ctx->h = sps->pic_height_in_luma_samples;

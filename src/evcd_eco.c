@@ -173,7 +173,7 @@ u32 evcd_sbac_decode_bin_trm(EVC_BSR * bs, EVCD_SBAC * sbac)
         {
             evc_assert_rv(evc_bsr_read1(bs) == 0, EVC_ERR_MALFORMED_BITSTREAM);
         }
-        return 1; /* end of tile_group */
+        return 1; /* end of slice */
     }
 }
 

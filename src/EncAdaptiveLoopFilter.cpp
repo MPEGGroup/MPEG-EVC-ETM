@@ -880,7 +880,7 @@ void EncAdaptiveLoopFilter::alfTemporalEncoderAPS(CodingStructure& cs, AlfTileGr
     EVCE_CTX* ctx = (EVCE_CTX*)cs.pCtx;
 
     double cost[MAX_NUM_CHANNEL_TYPE] = { DBL_MAX, DBL_MAX };
-    const int tempLayerId = ctx->layer_id; //cs.tile_group->getTLayer();
+    const int tempLayerId = ctx->layer_id; //cs.slice->getTLayer();
 
     AlfTileGroupParam *pcStoredAlfPara = ctx->tile_group_type == TILE_GROUP_I ? NULL : m_acAlfLineBuffer;
 
@@ -1030,7 +1030,7 @@ void EncAdaptiveLoopFilter::alfTemporalEncoder(CodingStructure& cs, AlfTileGroup
   EVCE_CTX* ctx = (EVCE_CTX*)cs.pCtx;
 
   double cost[MAX_NUM_CHANNEL_TYPE] = { DBL_MAX, DBL_MAX };
-  const int tempLayerId = ctx->layer_id; //cs.tile_group->getTLayer();
+  const int tempLayerId = ctx->layer_id; //cs.slice->getTLayer();
 
   AlfTileGroupParam *pcStoredAlfPara = ctx->tile_group_type == TILE_GROUP_I ? NULL : m_acAlfLineBuffer;
 
