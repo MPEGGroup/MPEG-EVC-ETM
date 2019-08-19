@@ -1536,8 +1536,8 @@ int evcd_deblock_h263(EVCD_CTX * ctx)
     int i, j;
     u32 k;
 #if M49023_DBF_IMPROVE
-    ctx->pic->pic_deblock_alpha_offset = ctx->sh.tgh_deblock_alpha_offset;
-    ctx->pic->pic_deblock_beta_offset = ctx->sh.tgh_deblock_beta_offset;
+    ctx->pic->pic_deblock_alpha_offset = ctx->sh.sh_deblock_alpha_offset;
+    ctx->pic->pic_deblock_beta_offset = ctx->sh.sh_deblock_beta_offset;
 #endif
     for(k = 0; k < ctx->f_scu; k++)
     {

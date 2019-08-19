@@ -1476,8 +1476,8 @@ typedef struct _EVC_TGH
 
     int              deblocking_filter_on;
 #if M49023_DBF_IMPROVE
-    int                 tgh_deblock_alpha_offset;
-    int                 tgh_deblock_beta_offset;
+    int              sh_deblock_alpha_offset;
+    int              sh_deblock_beta_offset;
 #endif
     u8               qp;
     u8               qp_u;

@@ -455,8 +455,8 @@ int evce_eco_tgh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
 
     evc_bsw_write1(bs, sh->deblocking_filter_on);
 #if M49023_DBF_IMPROVE
-    evc_bsw_write_se(bs, sh->tgh_deblock_alpha_offset);
-    evc_bsw_write_se(bs, sh->tgh_deblock_beta_offset);
+    evc_bsw_write_se(bs, sh->sh_deblock_alpha_offset);
+    evc_bsw_write_se(bs, sh->sh_deblock_beta_offset);
 #endif
     evc_bsw_write(bs, sh->qp, 6);
     evc_bsw_write_se(bs, (int)sh->qp - (int)sh->qp_u);

@@ -814,8 +814,8 @@ static void set_tgh(EVCE_CTX *ctx, EVC_SH *sh)
     sh->keyframe = (sh->tile_group_type == TILE_GROUP_I) ? 1 : 0;
     sh->deblocking_filter_on = (ctx->param.use_deblock) ? 1 : 0;
 #if M49023_DBF_IMPROVE
-    sh->tgh_deblock_alpha_offset = ctx->param.deblock_alpha_offset;
-    sh->tgh_deblock_beta_offset = ctx->param.deblock_beta_offset;
+    sh->sh_deblock_alpha_offset = ctx->param.deblock_alpha_offset;
+    sh->sh_deblock_beta_offset = ctx->param.deblock_beta_offset;
 #endif
     sh->udata_exist = (ctx->param.use_pic_sign) ? 1 : 0;
     sh->dptr = ctx->ptr - ctx->dtr;
@@ -867,8 +867,8 @@ static void set_tgh(EVCE_CTX *ctx, EVC_SH *sh)
     sh->qp_u = (u8)(sh->qp + ctx->cdsc.cb_qp_offset); 
     sh->qp_v = (u8)(sh->qp + ctx->cdsc.cr_qp_offset);
 #if M49023_DBF_IMPROVE
-    sh->tgh_deblock_alpha_offset = ctx->cdsc.deblock_aplha_offset;
-    sh->tgh_deblock_beta_offset = ctx->cdsc.deblock_beta_offset;
+    sh->sh_deblock_alpha_offset = ctx->cdsc.deblock_aplha_offset;
+    sh->sh_deblock_beta_offset = ctx->cdsc.deblock_beta_offset;
 #endif
 
     qp_l_i = sh->qp;
@@ -1263,8 +1263,8 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
     int lcu_num;
     s8  suco_flag = 0;
 #if M49023_DBF_IMPROVE
-    pic->pic_deblock_alpha_offset = ctx->sh.tgh_deblock_alpha_offset;
-    pic->pic_deblock_beta_offset = ctx->sh.tgh_deblock_beta_offset;
+    pic->pic_deblock_alpha_offset = ctx->sh.sh_deblock_alpha_offset;
+    pic->pic_deblock_beta_offset = ctx->sh.sh_deblock_beta_offset;
 #endif
     lcu_num = (x >> ctx->log2_max_cuwh) + (y >> ctx->log2_max_cuwh) * ctx->w_lcu;
     evc_get_split_mode(&split_mode, cud, cup, cuw, cuh, ctx->max_cuwh, ctx->map_cu_data[lcu_num].split_mode);
