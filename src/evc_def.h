@@ -1514,7 +1514,7 @@ typedef struct _EVC_TGH
     u8               rmpni_on;
     EVC_RMPNI       rmpni[REFP_NUM];
 
-} EVC_TGH;
+} EVC_SH;
 
 /*****************************************************************************
  * user data types

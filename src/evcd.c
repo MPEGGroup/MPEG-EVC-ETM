@@ -246,7 +246,7 @@ static void tile_group_deinit(EVCD_CTX * ctx)
 {
 }
 
-static int tile_group_init(EVCD_CTX * ctx, EVCD_CORE * core, EVC_TGH * tgh)
+static int tile_group_init(EVCD_CTX * ctx, EVCD_CORE * core, EVC_SH * tgh)
 {
     core->lcu_num = 0;
     core->x_lcu = 0;
@@ -296,7 +296,7 @@ static int tile_group_init(EVCD_CTX * ctx, EVCD_CORE * core, EVC_TGH * tgh)
 }
 
 #if HLS_M47668
-int is_ref_pic(EVCD_CTX * ctx, EVC_TGH * tgh)
+int is_ref_pic(EVCD_CTX * ctx, EVC_SH * tgh)
 {
     return (tgh->layer_id == 0 || tgh->layer_id < ctx->sps.log2_sub_gop_length);
 }
@@ -310,7 +310,7 @@ static const s8 poc_offset_from_doc_offset[5][16] =
     { 0,  -8,   -12,   -4,  -14,  -10,  -6,   -2,  -15,  -13,  -11,   -9,   -7,   -5,   -3,   -1}   /* gop_size = 16 */
 };
 
-int poc_derivation(EVCD_CTX * ctx, EVC_TGH * tgh)
+int poc_derivation(EVCD_CTX * ctx, EVC_SH * tgh)
 {
     int sub_gop_length = (int)pow(2.0, ctx->sps.log2_sub_gop_length);
     int expected_temporal_id = 0;
@@ -1707,7 +1707,7 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 #if ALF_PARAMETER_APS
     EVC_APS  *aps = &ctx->aps;
 #endif
-    EVC_TGH   *tgh = &ctx->tgh;
+    EVC_SH   *tgh = &ctx->tgh;
     EVC_NALU *nalu = &ctx->nalu;
     int        ret;
 

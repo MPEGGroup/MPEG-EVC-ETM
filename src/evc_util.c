@@ -278,7 +278,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                            , EVC_HISTORY_BUFFER history_buffer, int admvp_flag
 #endif
 #if M49023_ADMVP_IMPROVE 
-    , EVC_TGH* tgh
+    , EVC_SH* tgh
 #endif
 )
 {
@@ -1959,7 +1959,7 @@ void evc_get_motion_merge_main(int ptr, int tile_group_type, int scup, s8(*map_r
 #endif
     , EVC_REFP(*refplx)[REFP_NUM]
 #if M49023_ADMVP_IMPROVE 
-    , EVC_TGH* tgh
+    , EVC_SH* tgh
 #endif
 )
 {
@@ -5445,7 +5445,7 @@ void evc_get_mv_collocated(
     , u32 ptr, int scup, int c_scu, u16 w_scu, u16 h_scu, s16 mvp[REFP_NUM][MV_D]
     , s8 *availablePredIdx
 #if M49023_ADMVP_IMPROVE 
-    , EVC_TGH* tgh
+    , EVC_SH* tgh
 #endif
 )
 {

@@ -2779,7 +2779,7 @@ int evcd_eco_alf_aps_param(EVC_BSR * bs, EVC_APS * aps)
     return EVC_OK;
 }
 
-int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_TGH * tgh)
+int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_SH * tgh)
 {
     evc_AlfTileGroupParam* alfTileGroupParam = &(tgh->alf_tgh_param);
 
@@ -2825,7 +2825,7 @@ int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_TGH * tgh)
     return EVC_OK;
 }
 #else
-int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_TGH * tgh)
+int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_SH * tgh)
 {
     evc_AlfTileGroupParam* alfTileGroupParam = &(tgh->alf_tgh_param);
     alfTileGroupParam->temporalAlfFlag = 0;
@@ -2952,7 +2952,7 @@ int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_TGH * tgh)
 #endif
 #endif
 
-int evcd_eco_tgh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh)
+int evcd_eco_tgh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * tgh)
 {
     int NumTilesInTileGroup = 0;    //TBD according to the spec
 #if HLS_M47668

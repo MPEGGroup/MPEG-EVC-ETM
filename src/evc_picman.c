@@ -357,7 +357,7 @@ int evc_picman_refp_reorder(EVC_PM *pm, int num_ref_pics_act, u8 tile_group_type
 }
 
 //This is implementation of reference picture list construction based on RPL. This is meant to replace function int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int tile_group_type, u32 ptr, u8 layer_id, int last_intra, EVC_REFP(*refp)[REFP_NUM])
-int evc_picman_refp_rpl_based_init(EVC_PM *pm, EVC_TGH *tgh, EVC_REFP(*refp)[REFP_NUM])
+int evc_picman_refp_rpl_based_init(EVC_PM *pm, EVC_SH *tgh, EVC_REFP(*refp)[REFP_NUM])
 {
     if (tgh->tile_group_type == TILE_GROUP_I)
     {
@@ -754,7 +754,7 @@ ERR:
 }
 
 /*This is the implementation of reference picture marking based on RPL*/
-int evc_picman_refpic_marking(EVC_PM *pm, EVC_TGH *tgh)
+int evc_picman_refpic_marking(EVC_PM *pm, EVC_SH *tgh)
 {
     picman_update_pic_ref(pm);
     if (tgh->tile_group_type != TILE_GROUP_I && tgh->poc != 0)

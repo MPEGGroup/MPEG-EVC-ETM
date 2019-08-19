@@ -589,7 +589,7 @@ QP_ADAPT_PARAM qp_adapt_param_ld[8] =
 };
 
   //Implementation for selecting and assigning RPL0 & RPL1 candidates in the SPS to SH
-static void select_assign_rpl_for_tgh(EVCE_CTX *ctx, EVC_TGH *tgh)
+static void select_assign_rpl_for_tgh(EVCE_CTX *ctx, EVC_SH *tgh)
 {
     //TBD: when NALU types are implemented; if the current picture is an IDR, simply return without doing the rest of the codes for this function
 
@@ -682,7 +682,7 @@ static int check_refpic_available(int currentPOC, EVC_PM *pm, EVC_RPL *rpl)
 
 //Return value 0 means no explicit RPL is created. The given input parameters rpl0 and rpl1 are not modified
 //Return value 1 means the given input parameters rpl0 and rpl1 are modified
-static int create_explicit_rpl(EVC_PM *pm, EVC_TGH *tgh)
+static int create_explicit_rpl(EVC_PM *pm, EVC_SH *tgh)
 
 {
     int currentPOC = tgh->poc;
@@ -802,7 +802,7 @@ static int create_explicit_rpl(EVC_PM *pm, EVC_TGH *tgh)
     return 1;
 }
 
-static void set_tgh(EVCE_CTX *ctx, EVC_TGH *tgh)
+static void set_tgh(EVCE_CTX *ctx, EVC_SH *tgh)
 {
     double qp;
     int qp_l_i;
@@ -1433,7 +1433,7 @@ int evce_deblock_h263(EVCE_CTX * ctx, EVC_PIC * pic)
 }
 #if ALF
 #if ALF_PARAMETER_APS
-int evce_alf_aps(EVCE_CTX * ctx, EVC_PIC * pic, EVC_TGH* tgh, EVC_APS* aps)
+int evce_alf_aps(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* tgh, EVC_APS* aps)
 {
     EncAdaptiveLoopFilter* p = (EncAdaptiveLoopFilter*)(ctx->enc_alf);
 
@@ -1473,7 +1473,7 @@ int evce_alf_aps(EVCE_CTX * ctx, EVC_PIC * pic, EVC_TGH* tgh, EVC_APS* aps)
     return EVC_OK;
 }
 #else
-int evce_alf(EVCE_CTX * ctx, EVC_PIC * pic, EVC_TGH* tgh)
+int evce_alf(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* tgh)
 {
     EncAdaptiveLoopFilter* p = (EncAdaptiveLoopFilter*)(ctx->enc_alf);
 
@@ -2128,7 +2128,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 {
     EVCE_CORE * core;
     EVC_BSW   * bs;
-    EVC_TGH    * tgh;
+    EVC_SH    * tgh;
 #if ALF_PARAMETER_APS
     EVC_APS   * aps;
 #endif

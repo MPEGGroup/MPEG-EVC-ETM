@@ -310,7 +310,7 @@ int evce_eco_aps(EVC_BSW * bs, EVC_APS * aps)
 }
 #endif
 
-int evce_eco_tgh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh)
+int evce_eco_tgh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * tgh)
 {
     int NumTilesInTileGroup = 0; //TBD according to the spec
 
@@ -3620,7 +3620,7 @@ int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS * aps)
     return EVC_OK;
 }
 
-int evce_eco_alf_tgh_param(EVC_BSW * bs, EVC_TGH * tgh)
+int evce_eco_alf_tgh_param(EVC_BSW * bs, EVC_SH * tgh)
 {
     evc_AlfTileGroupParam alfTileGroupParam = tgh->alf_tgh_param;
 
@@ -3635,7 +3635,7 @@ int evce_eco_alf_tgh_param(EVC_BSW * bs, EVC_TGH * tgh)
     return EVC_OK;
 }
 #else
-int evce_eco_alf_tgh_param(EVC_BSW * bs, EVC_TGH * tgh)
+int evce_eco_alf_tgh_param(EVC_BSW * bs, EVC_SH * tgh)
 {
     evc_AlfTileGroupParam alfTileGroupParam = tgh->alf_tgh_param;
     evc_bsw_write1(bs, alfTileGroupParam.enabledFlag[0]); //"alf_tile_group_enable_flag"

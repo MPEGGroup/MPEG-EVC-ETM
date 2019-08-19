@@ -267,7 +267,7 @@ static int set_extra_config(EVCD id)
     (ctx) = (EVCD_CTX *)id; \
     evc_assert_rv((ctx)->magic == EVCD_MAGIC_CODE, (ret));
 
-void write_tmp_bs(EVC_TGH * tgh, int add_dtr, FILE * merge_fp)
+void write_tmp_bs(EVC_SH * tgh, int add_dtr, FILE * merge_fp)
 {
     int i, idx;
     u8 tmp_bs;
@@ -330,7 +330,7 @@ int main(int argc, const char **argv)
     int                intra_dist_idx = 0;
     EVC_BSR         * bs;
     EVC_SPS         * sps;
-    EVC_TGH          * tgh;
+    EVC_SH          * tgh;
     EVC_NALU        * nalu;
     EVCD_CTX        * ctx;
 #if ALF_PARAMETER_APS

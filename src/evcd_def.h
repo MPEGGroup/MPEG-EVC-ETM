@@ -209,7 +209,7 @@ struct _EVCD_CTX
     void                   *alf;
 #endif
     /* current slice header */
-    EVC_TGH                tgh;
+    EVC_SH                tgh;
     /* decoded picture buffer management */
     EVC_PM                 dpm;
     /* create descriptor */
