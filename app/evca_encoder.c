@@ -1102,7 +1102,7 @@ static void print_stat_init(void)
         print("  Output YUV file         : %s \n", op_fname_rec);
     }
     print("---------------------------------------------------------------------------------------\n");
-    print(" POC       QP   PSNR-Y    PSNR-U    PSNR-V    Bits      EncT(ms)  ");
+    print("POC   Tid   Ftype   QP   PSNR-Y    PSNR-U    PSNR-V    Bits      EncT(ms)  ");
 #if CALC_SSIM
     print("MS-SSIM     ");
 #endif
@@ -1624,7 +1624,7 @@ void print_psnr(EVCE_STAT * stat, double * psnr, int bitrate, EVC_CLK clk_end)
 
 #if CALC_SSIM
 #if HLS_M47668
-    v1print("%-7d%-3d(%c) %-5d%-10.4f%-10.4f%-10.4f%-10d%-10d%-12.7f", \
+    v1print("%-7d%-5d(%c)     %-5d%-10.4f%-10.4f%-10.4f%-10d%-10d%-12.7f", \
         stat->poc, stat->tid, stype, stat->qp, psnr[0], psnr[1], psnr[2], \
         bitrate, evc_clk_msec(clk_end), ms_ssim);
 #else
