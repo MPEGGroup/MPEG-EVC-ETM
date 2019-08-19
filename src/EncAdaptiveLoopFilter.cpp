@@ -1231,7 +1231,7 @@ double EncAdaptiveLoopFilter::getFilterCoeffAndCost(CodingStructure& cs, double 
     }
     else
     {
-      CHECK(!m_alfTileGroupParamTemp.enabledFlag[COMPONENT_Y], "TileGroup Y is off");
+      CHECK(!m_alfTileGroupParamTemp.enabledFlag[COMPONENT_Y], "Slice Y is off");
     }
   }
   return dist + m_lambda[channel] * rate;
