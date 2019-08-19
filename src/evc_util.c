@@ -4913,11 +4913,11 @@ void evc_eco_sbac_ctx_initialize(SBAC_CTX_MODEL *ctx, s16 *ctx_init_model, u16 n
     int i, slope, offset;
     u16 cmps, p0, p1;
     int qp = EVC_CLIP3(0, 51, slice_qp);
-    int is_inter_tile_group = (slice_type == SLICE_B || slice_type == SLICE_P);
+    int is_inter_slice = (slice_type == SLICE_B || slice_type == SLICE_P);
 #if CTX_REPRESENTATION_IMPROVEMENT
-    ctx_init_model += (is_inter_tile_group * num_ctx * 1);
+    ctx_init_model += (is_inter_slice * num_ctx * 1);
 #else
-    ctx_init_model += (is_inter_tile_group * num_ctx * 2);
+    ctx_init_model += (is_inter_slice * num_ctx * 2);
 #endif
     for(i = 0; i < num_ctx; i++)
     {

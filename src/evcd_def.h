@@ -323,7 +323,7 @@ struct _EVCD_CTX
     /* function address of decoding input bitstream */
     int  (* fn_dec_cnk)(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat);
     /* function address of decoding slice */
-    int  (* fn_dec_tile_group)(EVCD_CTX * ctx, EVCD_CORE * core);
+    int  (* fn_dec_slice)(EVCD_CTX * ctx, EVCD_CORE * core);
     /* function address of pulling decoded picture */
     int  (* fn_pull)(EVCD_CTX * ctx, EVC_IMGB ** img);
     /* function address of deblocking filter */
@@ -346,7 +346,7 @@ void evcd_platform_deinit(EVCD_CTX * ctx);
 int evcd_ready(EVCD_CTX * ctx);
 void evcd_flush(EVCD_CTX * ctx);
 int evcd_deblock_h263(EVCD_CTX * ctx);
-int evcd_dec_tile_group(EVCD_CTX * ctx, EVCD_CORE * core);
+int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core);
 
 #include "evcd_util.h"
 #include "evcd_eco.h"

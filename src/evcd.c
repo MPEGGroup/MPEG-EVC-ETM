@@ -1585,7 +1585,7 @@ int evcd_alf(EVCD_CTX * ctx, EVC_PIC * pic)
 }
 #endif
 
-int evcd_dec_tile_group(EVCD_CTX * ctx, EVCD_CORE * core)
+int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
 {
     EVC_BSR   *bs;
     EVCD_SBAC *sbac;
@@ -1871,7 +1871,7 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         ctx->map_unrefined_mv = ctx->pic->map_unrefined_mv;
 #endif
         /* decode slice layer */
-        ret = ctx->fn_dec_tile_group(ctx, ctx->core);
+        ret = ctx->fn_dec_slice(ctx, ctx->core);
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
 
         /* deblocking filter */
@@ -1950,7 +1950,7 @@ int evcd_platform_init(EVCD_CTX *ctx)
     ctx->fn_ready         = evcd_ready;
     ctx->fn_flush         = evcd_flush;
     ctx->fn_dec_cnk       = evcd_dec_cnk;
-    ctx->fn_dec_tile_group     = evcd_dec_tile_group;
+    ctx->fn_dec_slice     = evcd_dec_slice;
     ctx->fn_pull          = evcd_pull_frm;
     ctx->fn_deblock       = evcd_deblock_h263;
     ctx->fn_picbuf_expand = evcd_picbuf_expand;
@@ -1966,7 +1966,7 @@ void evcd_platform_deinit(EVCD_CTX * ctx)
     ctx->fn_ready         = NULL;
     ctx->fn_flush         = NULL;
     ctx->fn_dec_cnk       = NULL;
-    ctx->fn_dec_tile_group     = NULL;
+    ctx->fn_dec_slice     = NULL;
     ctx->fn_pull          = NULL;
     ctx->fn_deblock       = NULL;
 #if ALF

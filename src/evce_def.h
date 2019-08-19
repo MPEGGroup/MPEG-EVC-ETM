@@ -817,7 +817,7 @@ struct _EVCE_CTX
     /* total input picture count (only used for bumping process) */
     u32                    pic_ticnt;
     /* remaining pictures is encoded to p or b slice (only used for bumping process) */
-    u8                     force_tile_group;
+    u8                     force_slice;
     /* ignored pictures for force slice count (unavailable pictures cnt in gop,\
     only used for bumping process) */
     u8                     force_ignored_cnt;

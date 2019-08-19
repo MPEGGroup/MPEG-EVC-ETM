@@ -1830,7 +1830,7 @@ static void decide_slice_type(EVCE_CTX * ctx)
             PIC_ORIG(ctx) = &ctx->pico_buf[0]->pic;
             ctx->pico = ctx->pico_buf[0];
         }
-        else if(ctx->force_tile_group)
+        else if(ctx->force_slice)
         {
             for(force_cnt = ctx->force_ignored_cnt; force_cnt < gop_size; force_cnt++)
             {
@@ -2479,7 +2479,7 @@ int evce_enc(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     pic_cnt = ctx->pic_icnt - ctx->frm_rnum;
     gop_size = ctx->param.gop_size;
 
-    ctx->force_tile_group = ((ctx->pic_ticnt % gop_size >= ctx->pic_ticnt - pic_cnt + 1) && FORCE_OUT(ctx)) ? 1 : 0;
+    ctx->force_slice = ((ctx->pic_ticnt % gop_size >= ctx->pic_ticnt - pic_cnt + 1) && FORCE_OUT(ctx)) ? 1 : 0;
 
     evc_assert_rv(bitb->addr && bitb->bsize > 0, EVC_ERR_INVALID_ARGUMENT);
 
