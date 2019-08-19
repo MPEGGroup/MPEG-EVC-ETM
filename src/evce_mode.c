@@ -89,7 +89,7 @@ void evce_rdo_bit_cnt_mvp(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s8 r
     {
         refi0 = refi[REFP_0];
         refi1 = refi[REFP_1];
-        if(IS_INTER_TILE_GROUP(slice_type) && REFI_IS_VALID(refi0))
+        if(IS_INTER_SLICE(slice_type) && REFI_IS_VALID(refi0))
         {
             evce_eco_mvp_idx(&core->bs_temp, mvp_idx, ctx->sps.tool_amis);
             evce_eco_mvd(&core->bs_temp, mvd[REFP_0]);
@@ -113,7 +113,7 @@ void evce_rdo_bit_cnt_affine_mvp(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_typ
     {
         refi0 = refi[REFP_0];
         refi1 = refi[REFP_1];
-        if(IS_INTER_TILE_GROUP(slice_type) && REFI_IS_VALID(refi0))
+        if(IS_INTER_SLICE(slice_type) && REFI_IS_VALID(refi0))
         {
             evce_eco_affine_mvp_idx( &core->bs_temp, mvp_idx );
             b_zero = 1;
@@ -473,7 +473,7 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
 #endif
             refi0 = refi[REFP_0];
             refi1 = refi[REFP_1];
-            if(IS_INTER_TILE_GROUP(slice_type) && REFI_IS_VALID(refi0))
+            if(IS_INTER_SLICE(slice_type) && REFI_IS_VALID(refi0))
             {
                 if(ctx->sps.tool_amis == 0)
                 {

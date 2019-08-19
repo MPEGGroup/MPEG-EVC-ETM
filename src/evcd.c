@@ -1781,7 +1781,7 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     }
     if (nalu->nal_unit_type_plus1 - 1 < EVC_SPS_NUT)
 #else
-    else if (nalu->ctype == EVC_CT_TILE_GROUP)
+    else if (nalu->ctype == EVC_CT_SLICE)
 #endif
     {
         /* decode slice header */

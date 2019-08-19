@@ -643,8 +643,8 @@ extern int fp_trace_counter;
 #define SLICE_P                            EVC_ST_P
 #define SLICE_B                            EVC_ST_B
 
-#define IS_INTRA_TILE_GROUP(slice_type)       ((slice_type) == SLICE_I))
-#define IS_INTER_TILE_GROUP(slice_type)      (((slice_type) == SLICE_P) || ((slice_type) == SLICE_B))
+#define IS_INTRA_SLICE(slice_type)       ((slice_type) == SLICE_I))
+#define IS_INTER_SLICE(slice_type)      (((slice_type) == SLICE_P) || ((slice_type) == SLICE_B))
 
 /*****************************************************************************
  * prediction mode

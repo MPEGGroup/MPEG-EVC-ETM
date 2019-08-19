@@ -2918,7 +2918,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                         refi0 = cu_data->refi[cup][REFP_0];
                         refi1 = cu_data->refi[cup][REFP_1];
 
-                        if(IS_INTER_TILE_GROUP(slice_type) && REFI_IS_VALID(refi0))
+                        if(IS_INTER_SLICE(slice_type) && REFI_IS_VALID(refi0))
                         {
                             int b_zero = 1;
 
@@ -2982,7 +2982,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 
                         refi0 = cu_data->refi[cup][REFP_0];
                         refi1 = cu_data->refi[cup][REFP_1];
-                        if(IS_INTER_TILE_GROUP(slice_type) && REFI_IS_VALID(refi0))
+                        if(IS_INTER_SLICE(slice_type) && REFI_IS_VALID(refi0))
                         {
                             if(ctx->sps.tool_amis == 0)
                             {

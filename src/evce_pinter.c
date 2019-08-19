@@ -1785,7 +1785,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
             SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
             evce_sbac_bit_reset(&core->s_temp_run);
 
-            if(IS_INTER_TILE_GROUP(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
+            if(IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
             {
                 pi->mvd[pidx][REFP_0][MV_X] >>= pi->mvr_idx[pidx];
                 pi->mvd[pidx][REFP_0][MV_Y] >>= pi->mvr_idx[pidx];
@@ -1802,7 +1802,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 #endif
             );
 
-            if(IS_INTER_TILE_GROUP(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
+            if(IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
             {
                 pi->mvd[pidx][REFP_0][MV_X] <<= pi->mvr_idx[pidx];
                 pi->mvd[pidx][REFP_0][MV_Y] <<= pi->mvr_idx[pidx];
@@ -1850,7 +1850,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
         evce_sbac_bit_reset(&core->s_temp_run);
 
-        if(IS_INTER_TILE_GROUP(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
+        if(IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
         {
             pi->mvd[pidx][REFP_0][MV_X] >>= pi->mvr_idx[pidx];
             pi->mvd[pidx][REFP_0][MV_Y] >>= pi->mvr_idx[pidx];
@@ -1867,7 +1867,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 #endif
         );
 
-        if(IS_INTER_TILE_GROUP(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
+        if(IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
         {
             pi->mvd[pidx][REFP_0][MV_X] <<= pi->mvr_idx[pidx];
             pi->mvd[pidx][REFP_0][MV_Y] <<= pi->mvr_idx[pidx];
@@ -1973,7 +1973,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
             SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
             evce_sbac_bit_reset(&core->s_temp_run);
 
-            if(IS_INTER_TILE_GROUP(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
+            if(IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
             {
                 pi->mvd[pidx][REFP_0][MV_X] >>= pi->mvr_idx[pidx];
                 pi->mvd[pidx][REFP_0][MV_Y] >>= pi->mvr_idx[pidx];
@@ -1990,7 +1990,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 #endif
             );
 
-            if(IS_INTER_TILE_GROUP(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
+            if(IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
             {
                 pi->mvd[pidx][REFP_0][MV_X] <<= pi->mvr_idx[pidx];
                 pi->mvd[pidx][REFP_0][MV_Y] <<= pi->mvr_idx[pidx];
@@ -2116,7 +2116,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 
         evce_sbac_bit_reset(&core->s_temp_run);
 
-        if(IS_INTER_TILE_GROUP(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
+        if(IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
         {
             pi->mvd[pidx][REFP_0][MV_X] >>= pi->mvr_idx[pidx];
             pi->mvd[pidx][REFP_0][MV_Y] >>= pi->mvr_idx[pidx];
@@ -2133,7 +2133,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 #endif
         );
 
-        if(IS_INTER_TILE_GROUP(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
+        if(IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
         {
             pi->mvd[pidx][REFP_0][MV_X] <<= pi->mvr_idx[pidx];
             pi->mvd[pidx][REFP_0][MV_Y] <<= pi->mvr_idx[pidx];
