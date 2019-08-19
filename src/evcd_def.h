@@ -266,7 +266,7 @@ struct _EVCD_CTX
     /**************************************************************************/
     /* current slice number, which is increased whenever decoding a slice.
     when receiving a slice for new picture, this value is set to zero.
-    this value can be used for distinguishing b/w tile_groups */
+    this value can be used for distinguishing b/w slices */
     u16                     slice_num;
     /* last coded intra picture's presentation temporal reference */
     int                     last_intra_ptr;
