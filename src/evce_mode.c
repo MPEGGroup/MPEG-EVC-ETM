@@ -94,7 +94,7 @@ void evce_rdo_bit_cnt_mvp(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s8 r
             evce_eco_mvp_idx(&core->bs_temp, mvp_idx, ctx->sps.tool_amis);
             evce_eco_mvd(&core->bs_temp, mvd[REFP_0]);
         }
-        if(slice_type == TILE_GROUP_B && REFI_IS_VALID(refi1))
+        if(slice_type == SLICE_B && REFI_IS_VALID(refi1))
         {
             evce_eco_mvp_idx(&core->bs_temp, mvp_idx, ctx->sps.tool_amis);
             evce_eco_mvd(&core->bs_temp, mvd[REFP_1]);
@@ -130,7 +130,7 @@ void evce_rdo_bit_cnt_affine_mvp(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_typ
                 for(vertex = 0; vertex < vertex_num; vertex++)
                     evce_eco_mvd(&core->bs_temp, mvd[REFP_0][vertex]);
         }
-        if(slice_type == TILE_GROUP_B && REFI_IS_VALID(refi1))
+        if(slice_type == SLICE_B && REFI_IS_VALID(refi1))
         {
             evce_eco_affine_mvp_idx( &core->bs_temp, mvp_idx );
             b_zero = 1;
@@ -158,7 +158,7 @@ void evce_rdo_bit_cnt_cu_intra_luma(EVCE_CTX *ctx, EVCE_CORE *core, s32 slice_ty
     int log2_cuh = core->log2_cuh;
     int* nnz = core->nnz;
 
-    if(slice_type != TILE_GROUP_I && (ctx->sps.tool_amis == 0 || !(core->log2_cuw <= MIN_CU_LOG2 && core->log2_cuh <= MIN_CU_LOG2)))
+    if(slice_type != SLICE_I && (ctx->sps.tool_amis == 0 || !(core->log2_cuw <= MIN_CU_LOG2 && core->log2_cuh <= MIN_CU_LOG2)))
     {
         evce_sbac_encode_bin(0, sbac, core->s_temp_run.ctx.skip_flag + ctx->ctx_flags[CNID_SKIP_FLAG], &core->bs_temp); /* skip_flag */
         evce_eco_pred_mode(&core->bs_temp, MODE_INTRA, ctx->ctx_flags[CNID_PRED_MODE]);
@@ -221,7 +221,7 @@ void evce_rdo_bit_cnt_cu_intra(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
     assert(core->ats_inter_info == 0);
 #endif
 
-    if(slice_type != TILE_GROUP_I && (ctx->sps.tool_amis == 0 || !(core->log2_cuw <= MIN_CU_LOG2 && core->log2_cuh <= MIN_CU_LOG2)))
+    if(slice_type != SLICE_I && (ctx->sps.tool_amis == 0 || !(core->log2_cuw <= MIN_CU_LOG2 && core->log2_cuh <= MIN_CU_LOG2)))
     {
         evce_sbac_encode_bin(0, sbac, core->s_temp_run.ctx.skip_flag + ctx->ctx_flags[CNID_SKIP_FLAG], &core->bs_temp); /* skip_flag */
         evce_eco_pred_mode(&core->bs_temp, MODE_INTRA, ctx->ctx_flags[CNID_PRED_MODE]);
@@ -313,7 +313,7 @@ void evce_rdo_bit_cnt_cu_ibc(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s
 {
   int b_no_cbf = 0;
 
-  if (!(core->skip_flag == 1 && slice_type == TILE_GROUP_I))
+  if (!(core->skip_flag == 1 && slice_type == SLICE_I))
   {
     evce_eco_ibc(&core->bs_temp, ibc_flag, ctx->ctx_flags[CNID_IBC_FLAG]);
   }
@@ -360,7 +360,7 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
         b_no_cbf = 0;
     }
 
-    if(slice_type != TILE_GROUP_I)
+    if(slice_type != SLICE_I)
     {
         evce_sbac_encode_bin(0, &core->s_temp_run, core->s_temp_run.ctx.skip_flag + ctx->ctx_flags[CNID_SKIP_FLAG], &core->bs_temp); /* skip_flag */
         evce_eco_pred_mode(&core->bs_temp, MODE_INTER, ctx->ctx_flags[CNID_PRED_MODE]);
@@ -372,7 +372,7 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
 
         if(ctx->sps.tool_mmvd)
         {
-            if(slice_type == TILE_GROUP_P)
+            if(slice_type == SLICE_P)
             {
                 if(mvr_idx == 0)
                 {
@@ -390,7 +390,7 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
             }
         }
 
-        if(slice_type == TILE_GROUP_B)
+        if(slice_type == SLICE_B)
         {
             int dir_flag = (pidx == PRED_DIR);
             dir_flag |= (pidx == PRED_DIR_MMVD);
@@ -527,7 +527,7 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
                 }
             }
 
-            if(slice_type == TILE_GROUP_B && REFI_IS_VALID(refi1))
+            if(slice_type == SLICE_B && REFI_IS_VALID(refi1))
             {
                 if(ctx->sps.tool_amis == 0)
                 {
@@ -598,7 +598,7 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
 
 void evce_rdo_bit_cnt_cu_skip(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s32 cup, int mvp_idx0, int mvp_idx1, int c_num , int tool_mmvd)
 {
-    if(slice_type != TILE_GROUP_I)
+    if(slice_type != SLICE_I)
     {
         evce_sbac_encode_bin(1, &core->s_temp_run, core->s_temp_run.ctx.skip_flag + ctx->ctx_flags[CNID_SKIP_FLAG], &core->bs_temp); /* skip_flag */
 
@@ -630,7 +630,7 @@ void evce_rdo_bit_cnt_cu_skip(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, 
 #endif
             evce_eco_mvp_idx(&core->bs_temp, mvp_idx0, ctx->sps.tool_amis);
 
-            if(ctx->sps.tool_amis == 0 && slice_type == TILE_GROUP_B)
+            if(ctx->sps.tool_amis == 0 && slice_type == SLICE_B)
             {
                 evce_eco_mvp_idx(&core->bs_temp,  mvp_idx1, ctx->sps.tool_amis);
             }
@@ -1070,7 +1070,7 @@ static int get_cu_pred_data(EVCE_CU_DATA *src, int x, int y, int log2_cuw, int l
                 mi->mv_sp[REFP_0][MV_X] = ctx->map_mv[neb_addr[k]][REFP_0][MV_X];
                 mi->mv_sp[REFP_0][MV_Y] = ctx->map_mv[neb_addr[k]][REFP_0][MV_Y];
 
-                if (ctx->slice_type == TILE_GROUP_B)
+                if (ctx->slice_type == SLICE_B)
                 {
                     mi->refi_sp[REFP_1] = REFI_IS_VALID(ctx->map_refi[neb_addr[k]][REFP_1]) ? ctx->map_refi[neb_addr[k]][REFP_1] : REFI_INVALID;
                     mi->mv_sp[REFP_1][MV_X] = ctx->map_mv[neb_addr[k]][REFP_1][MV_X];
@@ -1630,8 +1630,8 @@ static void update_history_buffer_affine(EVC_HISTORY_BUFFER *history_buffer, EVC
         if(mi->affine_flag)
         {
             // some spatial neighbor may be unavailable
-            if((slice_type == TILE_GROUP_P && REFI_IS_VALID(mi->refi_sp[REFP_0])) ||
-                (slice_type == TILE_GROUP_B && (REFI_IS_VALID(mi->refi_sp[REFP_0]) || REFI_IS_VALID(mi->refi_sp[REFP_1]))))
+            if((slice_type == SLICE_P && REFI_IS_VALID(mi->refi_sp[REFP_0])) ||
+                (slice_type == SLICE_B && (REFI_IS_VALID(mi->refi_sp[REFP_0]) || REFI_IS_VALID(mi->refi_sp[REFP_1]))))
             {
                 evc_mcpy(history_buffer->history_mv_table[history_buffer->currCnt - 1], mi->mv_sp, REFP_NUM * MV_D * sizeof(s16));
                 evc_mcpy(history_buffer->history_refi_table[history_buffer->currCnt - 1], mi->refi_sp, REFP_NUM * sizeof(s8));
@@ -1656,8 +1656,8 @@ static void update_history_buffer_affine(EVC_HISTORY_BUFFER *history_buffer, EVC
         if(mi->affine_flag)
         {
             // some spatial neighbor may be unavailable
-            if((slice_type == TILE_GROUP_P && REFI_IS_VALID(mi->refi_sp[REFP_0])) ||
-                (slice_type == TILE_GROUP_B && (REFI_IS_VALID(mi->refi_sp[REFP_0]) || REFI_IS_VALID(mi->refi_sp[REFP_1]))))
+            if((slice_type == SLICE_P && REFI_IS_VALID(mi->refi_sp[REFP_0])) ||
+                (slice_type == SLICE_B && (REFI_IS_VALID(mi->refi_sp[REFP_0]) || REFI_IS_VALID(mi->refi_sp[REFP_1]))))
             {
                 evc_mcpy(history_buffer->history_mv_table[history_buffer->currCnt], mi->mv_sp, REFP_NUM * MV_D * sizeof(s16));
                 evc_mcpy(history_buffer->history_refi_table[history_buffer->currCnt], mi->refi_sp, REFP_NUM * sizeof(s8));
@@ -1943,7 +1943,7 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
     cost_best = MAX_COST;
     core->cost_best = MAX_COST;
 
-    if(ctx->slice_type != TILE_GROUP_I && (ctx->sps.tool_amis == 0 || !(log2_cuw <= MIN_CU_LOG2 && log2_cuh <= MIN_CU_LOG2)))
+    if(ctx->slice_type != SLICE_I && (ctx->sps.tool_amis == 0 || !(log2_cuw <= MIN_CU_LOG2 && log2_cuh <= MIN_CU_LOG2)))
     {
         core->avail_cu = evc_get_avail_inter(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, core->cuw, core->cuh, ctx->map_scu);
         cost = ctx->fn_pinter_analyze_cu(ctx, core, x, y, log2_cuw, log2_cuh, mi, coef, rec, s_rec);
@@ -2021,7 +2021,7 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
     }
 #endif
     /* intra *************************************************************/
-    if(ctx->slice_type == TILE_GROUP_I || core->nnz[Y_C] != 0 || core->nnz[U_C] != 0 || core->nnz[V_C] != 0 || cost_best == MAX_COST)
+    if(ctx->slice_type == SLICE_I || core->nnz[Y_C] != 0 || core->nnz[U_C] != 0 || core->nnz[V_C] != 0 || cost_best == MAX_COST)
     {
         core->cost_best = cost_best;
         core->dist_cu_best = EVC_INT32_MAX;
@@ -2274,7 +2274,7 @@ static int check_nev_block(EVCE_CTX *ctx, int x0, int y0, int log2_cuw, int log2
     }
 
     *nbr_map_skip_flag = 0;
-    if((ctx->slice_type != TILE_GROUP_I) && (nbr_map_skipcnt > (nbr_map_cnt / 2)))
+    if((ctx->slice_type != SLICE_I) && (nbr_map_skipcnt > (nbr_map_cnt / 2)))
     {
         *nbr_map_skip_flag = 1;
     }
@@ -3142,7 +3142,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
         next_split = 0;
     }
 
-    if(cost_best != MAX_COST && ctx->sh.slice_type == TILE_GROUP_I
+    if(cost_best != MAX_COST && ctx->sh.slice_type == SLICE_I
 #if IBC
       && core->ibc_flag != 1
 #endif

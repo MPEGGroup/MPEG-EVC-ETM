@@ -270,7 +270,7 @@ static int slice_init(EVCD_CTX * ctx, EVCD_CORE * core, EVC_SH * sh)
     evc_mset_x64a(ctx->map_ats_inter, 0, sizeof(u8) * ctx->f_scu);
 #endif
     evc_mset_x64a(ctx->map_cu_mode, 0, sizeof(u32) * ctx->f_scu);
-    if(ctx->sh.slice_type == TILE_GROUP_I)
+    if(ctx->sh.slice_type == SLICE_I)
     {
         ctx->last_intra_ptr = ctx->ptr;
     }
@@ -533,8 +533,8 @@ static void update_history_buffer_parse_affine(EVCD_CORE *core, int slice_type)
         if(core->affine_flag)
         {
             // some spatial neighbor may be unavailable
-            if((slice_type == TILE_GROUP_P && REFI_IS_VALID(core->refi_sp[REFP_0])) ||
-                (slice_type == TILE_GROUP_B && (REFI_IS_VALID(core->refi_sp[REFP_0]) || REFI_IS_VALID(core->refi_sp[REFP_1]))))
+            if((slice_type == SLICE_P && REFI_IS_VALID(core->refi_sp[REFP_0])) ||
+                (slice_type == SLICE_B && (REFI_IS_VALID(core->refi_sp[REFP_0]) || REFI_IS_VALID(core->refi_sp[REFP_1]))))
             {
                 evc_mcpy(core->history_buffer.history_mv_table[core->history_buffer.currCnt - 1], core->mv_sp, REFP_NUM * MV_D * sizeof(s16));
                 evc_mcpy(core->history_buffer.history_refi_table[core->history_buffer.currCnt - 1], core->refi_sp, REFP_NUM * sizeof(s8));
@@ -558,8 +558,8 @@ static void update_history_buffer_parse_affine(EVCD_CORE *core, int slice_type)
 #if !M49023_ADMVP_IMPROVE
         if(core->affine_flag)
         {
-            if((slice_type == TILE_GROUP_P && REFI_IS_VALID(core->refi_sp[REFP_0])) ||
-                (slice_type == TILE_GROUP_B && (REFI_IS_VALID(core->refi_sp[REFP_0]) || REFI_IS_VALID(core->refi_sp[REFP_1]))))
+            if((slice_type == SLICE_P && REFI_IS_VALID(core->refi_sp[REFP_0])) ||
+                (slice_type == SLICE_B && (REFI_IS_VALID(core->refi_sp[REFP_0]) || REFI_IS_VALID(core->refi_sp[REFP_1]))))
             {
                 evc_mcpy(core->history_buffer.history_mv_table[core->history_buffer.currCnt], core->mv_sp, REFP_NUM * MV_D * sizeof(s16));
                 evc_mcpy(core->history_buffer.history_refi_table[core->history_buffer.currCnt], core->refi_sp, REFP_NUM * sizeof(s8));
@@ -625,7 +625,7 @@ void evcd_get_direct_motion(EVCD_CTX * ctx, EVCD_CORE * core)
     core->mv[REFP_0][MV_X] = smvp[REFP_0][core->mvp_idx[REFP_0]][MV_X];
     core->mv[REFP_0][MV_Y] = smvp[REFP_0][core->mvp_idx[REFP_0]][MV_Y];
 
-    if (ctx->sh.slice_type == TILE_GROUP_P)
+    if (ctx->sh.slice_type == SLICE_P)
     {
         core->refi[REFP_1] = REFI_INVALID;
         core->mv[REFP_1][MV_X] = 0;
@@ -663,7 +663,7 @@ void evcd_get_skip_motion(EVCD_CTX * ctx, EVCD_CORE * core)
             core->mv[REFP_0][MV_X] = smvp[REFP_0][core->mvp_idx[REFP_0]][MV_X];
             core->mv[REFP_0][MV_Y] = smvp[REFP_0][core->mvp_idx[REFP_0]][MV_Y];
 
-            if (ctx->sh.slice_type == TILE_GROUP_P)
+            if (ctx->sh.slice_type == SLICE_P)
             {
                 core->refi[REFP_1] = REFI_INVALID;
                 core->mv[REFP_1][MV_X] = 0;
@@ -892,7 +892,7 @@ void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
             core->mv_sp[REFP_0][MV_X] = ctx->map_mv[neb_addr[k]][REFP_0][MV_X];
             core->mv_sp[REFP_0][MV_Y] = ctx->map_mv[neb_addr[k]][REFP_0][MV_Y];
 
-            if (ctx->sh.slice_type == TILE_GROUP_B)
+            if (ctx->sh.slice_type == SLICE_B)
             {
                 core->refi_sp[REFP_1] = REFI_IS_VALID(ctx->map_refi[neb_addr[k]][REFP_1]) ? ctx->map_refi[neb_addr[k]][REFP_1] : REFI_INVALID;
                 core->mv_sp[REFP_1][MV_X] = ctx->map_mv[neb_addr[k]][REFP_1][MV_X];
@@ -1053,9 +1053,9 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
             else
             {
 #if ADMVP
-                if ((ctx->sh.slice_type == TILE_GROUP_P) || (ctx->sps.tool_amis == 1 && !check_bi_applicability_dec(ctx->sh.slice_type, cuw, cuh)))
+                if ((ctx->sh.slice_type == SLICE_P) || (ctx->sps.tool_amis == 1 && !check_bi_applicability_dec(ctx->sh.slice_type, cuw, cuh)))
 #else
-                if (ctx->sh.slice_type == TILE_GROUP_P)
+                if (ctx->sh.slice_type == SLICE_P)
 #endif
                 {
                 }
@@ -1721,7 +1721,7 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     /* set error status */
     ctx->bs_err = bitb->err;
 #if TRACE_RDO_EXCLUDE_I
-    if (sh->slice_type != TILE_GROUP_I)
+    if (sh->slice_type != SLICE_I)
     {
 #endif
         EVC_TRACE_SET(1);
@@ -1854,7 +1854,7 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 
         if (sps->picture_num_present_flag)
         {
-            if ((sh->rmpni_on && ctx->sh.slice_type != TILE_GROUP_I))
+            if ((sh->rmpni_on && ctx->sh.slice_type != SLICE_I))
             {
                 ret = evc_picman_refp_reorder(&ctx->dpm, ctx->sps.num_ref_pics_act, sh->slice_type, ctx->ptr, ctx->refp, ctx->last_intra_ptr, sh->rmpni);
                 evc_assert_rv(ret == EVC_OK, ret);

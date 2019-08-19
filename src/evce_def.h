@@ -508,7 +508,7 @@ typedef struct _EVCE_PARAM
     int                 ibc_fast_method;
 #endif
     int                 use_hgop;
-#if USE_TILE_GROUP_DQP
+#if USE_SLICE_DQP
     int                 qp_incread_frame;           /* 10 bits*/
 #endif
 

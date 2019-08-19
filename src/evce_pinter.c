@@ -1790,7 +1790,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
                 pi->mvd[pidx][REFP_0][MV_X] >>= pi->mvr_idx[pidx];
                 pi->mvd[pidx][REFP_0][MV_Y] >>= pi->mvr_idx[pidx];
             }
-            if(ctx->sh.slice_type == TILE_GROUP_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+            if(ctx->sh.slice_type == SLICE_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
             {
                 pi->mvd[pidx][REFP_1][MV_X] >>= pi->mvr_idx[pidx];
                 pi->mvd[pidx][REFP_1][MV_Y] >>= pi->mvr_idx[pidx];
@@ -1807,7 +1807,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
                 pi->mvd[pidx][REFP_0][MV_X] <<= pi->mvr_idx[pidx];
                 pi->mvd[pidx][REFP_0][MV_Y] <<= pi->mvr_idx[pidx];
             }
-            if(ctx->sh.slice_type == TILE_GROUP_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+            if(ctx->sh.slice_type == SLICE_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
             {
                 pi->mvd[pidx][REFP_1][MV_X] <<= pi->mvr_idx[pidx];
                 pi->mvd[pidx][REFP_1][MV_Y] <<= pi->mvr_idx[pidx];
@@ -1855,7 +1855,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
             pi->mvd[pidx][REFP_0][MV_X] >>= pi->mvr_idx[pidx];
             pi->mvd[pidx][REFP_0][MV_Y] >>= pi->mvr_idx[pidx];
         }
-        if(ctx->sh.slice_type == TILE_GROUP_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+        if(ctx->sh.slice_type == SLICE_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
         {
             pi->mvd[pidx][REFP_1][MV_X] >>= pi->mvr_idx[pidx];
             pi->mvd[pidx][REFP_1][MV_Y] >>= pi->mvr_idx[pidx];
@@ -1872,7 +1872,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
             pi->mvd[pidx][REFP_0][MV_X] <<= pi->mvr_idx[pidx];
             pi->mvd[pidx][REFP_0][MV_Y] <<= pi->mvr_idx[pidx];
         }
-        if(ctx->sh.slice_type == TILE_GROUP_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+        if(ctx->sh.slice_type == SLICE_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
         {
             pi->mvd[pidx][REFP_1][MV_X] <<= pi->mvr_idx[pidx];
             pi->mvd[pidx][REFP_1][MV_Y] <<= pi->mvr_idx[pidx];
@@ -1978,7 +1978,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
                 pi->mvd[pidx][REFP_0][MV_X] >>= pi->mvr_idx[pidx];
                 pi->mvd[pidx][REFP_0][MV_Y] >>= pi->mvr_idx[pidx];
             }
-            if(ctx->sh.slice_type == TILE_GROUP_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+            if(ctx->sh.slice_type == SLICE_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
             {
                 pi->mvd[pidx][REFP_1][MV_X] >>= pi->mvr_idx[pidx];
                 pi->mvd[pidx][REFP_1][MV_Y] >>= pi->mvr_idx[pidx];
@@ -1995,7 +1995,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
                 pi->mvd[pidx][REFP_0][MV_X] <<= pi->mvr_idx[pidx];
                 pi->mvd[pidx][REFP_0][MV_Y] <<= pi->mvr_idx[pidx];
             }
-            if(ctx->sh.slice_type == TILE_GROUP_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+            if(ctx->sh.slice_type == SLICE_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
             {
                 pi->mvd[pidx][REFP_1][MV_X] <<= pi->mvr_idx[pidx];
                 pi->mvd[pidx][REFP_1][MV_Y] <<= pi->mvr_idx[pidx];
@@ -2121,7 +2121,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
             pi->mvd[pidx][REFP_0][MV_X] >>= pi->mvr_idx[pidx];
             pi->mvd[pidx][REFP_0][MV_Y] >>= pi->mvr_idx[pidx];
         }
-        if(ctx->sh.slice_type == TILE_GROUP_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+        if(ctx->sh.slice_type == SLICE_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
         {
             pi->mvd[pidx][REFP_1][MV_X] >>= pi->mvr_idx[pidx];
             pi->mvd[pidx][REFP_1][MV_Y] >>= pi->mvr_idx[pidx];
@@ -2138,7 +2138,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
             pi->mvd[pidx][REFP_0][MV_X] <<= pi->mvr_idx[pidx];
             pi->mvd[pidx][REFP_0][MV_Y] <<= pi->mvr_idx[pidx];
         }
-        if(ctx->sh.slice_type == TILE_GROUP_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+        if(ctx->sh.slice_type == SLICE_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
         {
             pi->mvd[pidx][REFP_1][MV_X] <<= pi->mvr_idx[pidx];
             pi->mvd[pidx][REFP_1][MV_Y] <<= pi->mvr_idx[pidx];
@@ -2247,7 +2247,7 @@ static double analyze_skip_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y
     v_org = pi->o[V_C] + (x >> 1) + ((y >> 1) * pi->s_o[V_C]);
 
     evc_get_motion(core->scup, REFP_0, ctx->map_refi, ctx->map_mv, pi->refp, cuw, cuh, ctx->w_scu, core->avail_cu, pi->refi_pred[REFP_0], pi->mvp[REFP_0]);
-    if(ctx->slice_type == TILE_GROUP_B)
+    if(ctx->slice_type == SLICE_B)
     {
         evc_get_motion(core->scup, REFP_1, ctx->map_refi, ctx->map_mv, pi->refp, cuw, cuh, ctx->w_scu, core->avail_cu, pi->refi_pred[REFP_1], pi->mvp[REFP_1]);
     }
@@ -2257,7 +2257,7 @@ static double analyze_skip_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y
 
     for(idx0 = 0; idx0 < 4; idx0++)
     {
-        cnt = (ctx->slice_type == TILE_GROUP_B ? 4 : 1);
+        cnt = (ctx->slice_type == SLICE_B ? 4 : 1);
         for(idx1 = 0; idx1 < cnt; idx1++)
         {
             if(idx0 != idx1)
@@ -2270,7 +2270,7 @@ static double analyze_skip_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y
             mvp[REFP_1][MV_X] = pi->mvp[REFP_1][idx1][MV_X];
             mvp[REFP_1][MV_Y] = pi->mvp[REFP_1][idx1][MV_Y];
 
-            SET_REFI(refi, pi->refi_pred[REFP_0][idx0], ctx->sh.slice_type == TILE_GROUP_B ? pi->refi_pred[REFP_1][idx1] : REFI_INVALID);
+            SET_REFI(refi, pi->refi_pred[REFP_0][idx0], ctx->sh.slice_type == SLICE_B ? pi->refi_pred[REFP_1][idx1] : REFI_INVALID);
             if(!REFI_IS_VALID(refi[REFP_0]) && !REFI_IS_VALID(refi[REFP_1]))
             {
                 continue;
@@ -2415,9 +2415,9 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
 #endif
     {
 #if ADMVP
-        cnt = (ctx->slice_type == TILE_GROUP_B ? (cuw * cuh <= NUM_SAMPLES_BLOCK ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP) : 1);
+        cnt = (ctx->slice_type == SLICE_B ? (cuw * cuh <= NUM_SAMPLES_BLOCK ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP) : 1);
 #else
-        cnt = (ctx->slice_type == TILE_GROUP_B ? MAX_NUM_MVP : 1);
+        cnt = (ctx->slice_type == SLICE_B ? MAX_NUM_MVP : 1);
 #endif
         for(idx1 = 0; idx1 < cnt; idx1++)
         {
@@ -2431,7 +2431,7 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
             mvp[REFP_1][MV_X] = pi->mvp[REFP_1][idx1][MV_X];
             mvp[REFP_1][MV_Y] = pi->mvp[REFP_1][idx1][MV_Y];
 
-            SET_REFI(refi, pi->refi_pred[REFP_0][idx0], ctx->sh.slice_type == TILE_GROUP_B ? pi->refi_pred[REFP_1][idx1] : REFI_INVALID);
+            SET_REFI(refi, pi->refi_pred[REFP_0][idx0], ctx->sh.slice_type == SLICE_B ? pi->refi_pred[REFP_1][idx1] : REFI_INVALID);
             if(!REFI_IS_VALID(refi[REFP_0]) && !REFI_IS_VALID(refi[REFP_1]))
             {
                 continue;
@@ -2540,7 +2540,7 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
 
 #if MERGE
     {
-        assert(ctx->slice_type == TILE_GROUP_B);
+        assert(ctx->slice_type == SLICE_B);
         /* removes the cost above threshold and remove the duplicates */
 #if ADMVP
         for (idx0 = 0; idx0 < (cuw * cuh <= NUM_SAMPLES_BLOCK ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP); idx0++)
@@ -2682,7 +2682,7 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
         mvp[REFP_1][MV_X] = pi->mvp[REFP_1][idx0][MV_X];
         mvp[REFP_1][MV_Y] = pi->mvp[REFP_1][idx0][MV_Y];
 
-        SET_REFI(refi, pi->refi_pred[REFP_0][idx0], ctx->sh.slice_type == TILE_GROUP_B ? pi->refi_pred[REFP_1][idx0] : REFI_INVALID);
+        SET_REFI(refi, pi->refi_pred[REFP_0][idx0], ctx->sh.slice_type == SLICE_B ? pi->refi_pred[REFP_1][idx0] : REFI_INVALID);
         if(!REFI_IS_VALID(refi[REFP_0]) && !REFI_IS_VALID(refi[REFP_1]))
         {
             continue;
@@ -2853,13 +2853,13 @@ static double analyze_skip_mmvd(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, 
 
     t_base_num = MMVD_MAX_REFINE_NUM * MMVD_BASE_MV_NUM;
 
-    if((pi->slice_type == TILE_GROUP_B) || (pi->slice_type == TILE_GROUP_P))
+    if((pi->slice_type == SLICE_B) || (pi->slice_type == SLICE_P))
     {
         t_base_num = pi->best_index[PRED_DIR_MMVD][MMVD_SKIP_CON_NUM - 1];
     }
     for(iii = 0; iii < t_base_num; iii++)
     {
-        if((pi->slice_type == TILE_GROUP_B) || (pi->slice_type == TILE_GROUP_P))
+        if((pi->slice_type == SLICE_B) || (pi->slice_type == SLICE_P))
         {
             c_num = pi->best_index[PRED_DIR_MMVD][iii];
         }
@@ -2883,7 +2883,7 @@ static double analyze_skip_mmvd(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, 
         pi->refi[PRED_SKIP_MMVD][0] = real_mv[c_num][0][2];
         pi->refi[PRED_SKIP_MMVD][1] = real_mv[c_num][1][2];
 
-        SET_REFI(refi, real_mv[c_num][0][2], ctx->sh.slice_type == TILE_GROUP_B ? real_mv[c_num][1][2] : REFI_INVALID);
+        SET_REFI(refi, real_mv[c_num][0][2], ctx->sh.slice_type == SLICE_B ? real_mv[c_num][1][2] : REFI_INVALID);
         if(!REFI_IS_VALID(refi[REFP_0]) && !REFI_IS_VALID(refi[REFP_1]))
         {
             continue;
@@ -3000,7 +3000,7 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 #endif
 
     pidx = PRED_DIR_MMVD;
-    SET_REFI(pi->refi[pidx], 0, ctx->sh.slice_type == TILE_GROUP_B ? 0 : REFI_INVALID);
+    SET_REFI(pi->refi[pidx], 0, ctx->sh.slice_type == SLICE_B ? 0 : REFI_INVALID);
 
     for (i = 0; i < MMVD_SKIP_CON_NUM; i++)
     {
@@ -3049,7 +3049,7 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         pi->refi[pidx][0] = real_mv[c_num][0][2];
         pi->refi[pidx][1] = real_mv[c_num][1][2];
 
-        SET_REFI(refi, real_mv[c_num][0][2], ctx->sh.slice_type == TILE_GROUP_B ? real_mv[c_num][1][2] : REFI_INVALID);
+        SET_REFI(refi, real_mv[c_num][0][2], ctx->sh.slice_type == SLICE_B ? real_mv[c_num][1][2] : REFI_INVALID);
         if (!REFI_IS_VALID(refi[REFP_0]) && !REFI_IS_VALID(refi[REFP_1]))
         {
             continue;
@@ -3144,7 +3144,7 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         pi->refi[pidx][0] = real_mv[c_num][0][2];
         pi->refi[pidx][1] = real_mv[c_num][1][2];
 
-        SET_REFI(refi, real_mv[c_num][0][2], ctx->sh.slice_type == TILE_GROUP_B ? real_mv[c_num][1][2] : REFI_INVALID);
+        SET_REFI(refi, real_mv[c_num][0][2], ctx->sh.slice_type == SLICE_B ? real_mv[c_num][1][2] : REFI_INVALID);
         if (!REFI_IS_VALID(refi[REFP_0]) && !REFI_IS_VALID(refi[REFP_1]))
         {
             continue;
@@ -3245,7 +3245,7 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         pi->refi[pidx][0] = real_mv[c_num][0][2];
         pi->refi[pidx][1] = real_mv[c_num][1][2];
 
-        SET_REFI(refi, real_mv[c_num][0][2], ctx->sh.slice_type == TILE_GROUP_B ? real_mv[c_num][1][2] : REFI_INVALID);
+        SET_REFI(refi, real_mv[c_num][0][2], ctx->sh.slice_type == SLICE_B ? real_mv[c_num][1][2] : REFI_INVALID);
         if (!REFI_IS_VALID(refi[REFP_0]) && !REFI_IS_VALID(refi[REFP_1]))
         {
             continue;
@@ -3346,7 +3346,7 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         pi->refi[pidx][0] = real_mv[c_num][0][2];
         pi->refi[pidx][1] = real_mv[c_num][1][2];
 
-        SET_REFI(refi, real_mv[c_num][0][2], ctx->sh.slice_type == TILE_GROUP_B ? real_mv[c_num][1][2] : REFI_INVALID);
+        SET_REFI(refi, real_mv[c_num][0][2], ctx->sh.slice_type == SLICE_B ? real_mv[c_num][1][2] : REFI_INVALID);
         if (!REFI_IS_VALID(refi[REFP_0]) && !REFI_IS_VALID(refi[REFP_1]))
         {
             continue;
@@ -3448,7 +3448,7 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         pi->refi[pidx][0] = real_mv[c_num][0][2];
         pi->refi[pidx][1] = real_mv[c_num][1][2];
 
-        SET_REFI(refi, real_mv[c_num][0][2], ctx->sh.slice_type == TILE_GROUP_B ? real_mv[c_num][1][2] : REFI_INVALID);
+        SET_REFI(refi, real_mv[c_num][0][2], ctx->sh.slice_type == SLICE_B ? real_mv[c_num][1][2] : REFI_INVALID);
         if(!REFI_IS_VALID(refi[REFP_0]) && !REFI_IS_VALID(refi[REFP_1]))
         {
             continue;
@@ -3491,7 +3491,7 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         pi->refi[pidx][0] = real_mv[c_num][0][2];
         pi->refi[pidx][1] = real_mv[c_num][1][2];
 
-        SET_REFI(refi, real_mv[c_num][0][2], ctx->sh.slice_type == TILE_GROUP_B ? real_mv[c_num][1][2] : REFI_INVALID);
+        SET_REFI(refi, real_mv[c_num][0][2], ctx->sh.slice_type == SLICE_B ? real_mv[c_num][1][2] : REFI_INVALID);
         if(!REFI_IS_VALID(refi[REFP_0]) && !REFI_IS_VALID(refi[REFP_1]))
         {
             continue;
@@ -5546,7 +5546,7 @@ static double pinter_analyze_cu_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, 
         evc_mcpy(pi->nnz_sub_best[PRED_SKIP], core->nnz_sub, sizeof(int) * N_C * MAX_SUB_TB_NUM);
     }
 
-    if(pi->slice_type == TILE_GROUP_B)
+    if(pi->slice_type == SLICE_B)
     {
         cost = cost_inter[PRED_DIR] = analyze_t_direct(ctx, core, x, y, log2_cuw, log2_cuh);
         if(cost < cost_best)
@@ -5561,7 +5561,7 @@ static double pinter_analyze_cu_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, 
     }
 
     /* Motion Search *********************************************************/
-    for(lidx = 0; lidx <= ((pi->slice_type == TILE_GROUP_P) ? PRED_L0 : PRED_L1); lidx++)
+    for(lidx = 0; lidx <= ((pi->slice_type == SLICE_P) ? PRED_L0 : PRED_L1); lidx++)
     {
         pidx = lidx;
         refi = pi->refi[pidx];
@@ -5643,7 +5643,7 @@ static double pinter_analyze_cu_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, 
         }
     }
 
-    if(pi->slice_type == TILE_GROUP_B)
+    if(pi->slice_type == SLICE_B)
     {
         pidx = PRED_BI;
         cost = cost_inter[pidx] = analyze_bi(ctx, core, x, y, log2_cuw, log2_cuh, cost_inter);
@@ -5815,7 +5815,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
     affine_applicable = 1;
 #endif
 
-    if(ctx->sps.tool_mmvd && ((pi->slice_type == TILE_GROUP_B) || (pi->slice_type == TILE_GROUP_P)))
+    if(ctx->sps.tool_mmvd && ((pi->slice_type == SLICE_B) || (pi->slice_type == SLICE_P)))
     {
         for(k = 0; k < MAX_NUM_ACTIVE_REF_FRAME; k++)
         {
@@ -5851,7 +5851,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
         evc_mcpy(pi->nnz_sub_best[PRED_SKIP], core->nnz_sub, sizeof(int) * N_C * MAX_SUB_TB_NUM);
     }
 
-    if(pi->slice_type == TILE_GROUP_B)
+    if(pi->slice_type == SLICE_B)
     {
 #if MERGE
         cost = cost_inter[PRED_DIR] = analyze_merge(ctx, core, x, y, log2_cuw, log2_cuh);
@@ -5886,7 +5886,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 #endif
     }
 
-    if(ctx->sps.tool_mmvd && ((pi->slice_type == TILE_GROUP_B) || (pi->slice_type == TILE_GROUP_P)))
+    if(ctx->sps.tool_mmvd && ((pi->slice_type == SLICE_B) || (pi->slice_type == SLICE_P)))
     {
         /* MMVD mode for merge */
         cost = cost_inter[PRED_DIR_MMVD] = analyze_merge_mmvd(ctx, core, x, y, log2_cuw, log2_cuh, real_mv);
@@ -5970,7 +5970,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
             const int mvr_offset = pi->curr_mvr * ORG_PRED_NUM;
 
             /* Motion Search *********************************************************/
-            for(lidx = 0; lidx <= ((pi->slice_type == TILE_GROUP_P) ? PRED_L0 : PRED_L1); lidx++)
+            for(lidx = 0; lidx <= ((pi->slice_type == SLICE_P) ? PRED_L0 : PRED_L1); lidx++)
             {
                 pidx = lidx + mvr_offset;
                 pi->mvr_idx[pidx] = pi->curr_mvr;
@@ -6097,7 +6097,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 #if ADMVP
             if(check_bi_applicability(pi->slice_type, cuw, cuh))
 #else
-            if(pi->slice_type == TILE_GROUP_B)
+            if(pi->slice_type == SLICE_B)
 #endif
             {
                 int max_num_bi = MAX_NUM_BI;
@@ -6249,7 +6249,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                     /* AFFINE 4 paramters Motion Search *********************************************************/
                     core->affine_flag = 1;
                     vertex_num = 2;
-                    for(lidx = 0; lidx <= ((pi->slice_type == TILE_GROUP_P) ? PRED_L0 : PRED_L1); lidx++)
+                    for(lidx = 0; lidx <= ((pi->slice_type == SLICE_P) ? PRED_L0 : PRED_L1); lidx++)
                     {
                         pidx = lidx + AFF_L0;
                         refi = pi->refi[pidx];
@@ -6456,7 +6456,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                         }
                     }
 
-                    if(pi->slice_type == TILE_GROUP_B)
+                    if(pi->slice_type == SLICE_B)
                     {
                         pidx = AFF_BI;
                         cost = cost_inter[pidx] = analyze_affine_bi(ctx, core, pi, x, y, log2_cuw, log2_cuh, cost_inter, AFF_BI, vertex_num);
@@ -6481,7 +6481,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                         /* AFFINE 6 paramters Motion Search *********************************************************/
                         core->affine_flag = 2;
                         vertex_num = 3;
-                        for(lidx = 0; lidx <= ((pi->slice_type == TILE_GROUP_P) ? PRED_L0 : PRED_L1); lidx++)
+                        for(lidx = 0; lidx <= ((pi->slice_type == SLICE_P) ? PRED_L0 : PRED_L1); lidx++)
                         {
                             pidx = lidx + AFF_6_L0;
                             refi = pi->refi[pidx];
@@ -6689,7 +6689,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                             }
                         }
 
-                        if(pi->slice_type == TILE_GROUP_B)
+                        if(pi->slice_type == SLICE_B)
                         {
                             pidx = AFF_6_BI;
                             cost = cost_inter[pidx] = analyze_affine_bi(ctx, core, pi, x, y, log2_cuw, log2_cuh, cost_inter, AFF_6_BI, vertex_num);

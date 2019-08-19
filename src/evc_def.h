@@ -68,7 +68,7 @@
 #define ALF_PARAMETER_APS                  1
 #define TU_ZONAL_CODING                    1
 #define CTX_MODEL_FOR_RESIDUAL_IN_BASE     1
-#define USE_TILE_GROUP_DQP                 1
+#define USE_SLICE_DQP                 1
 
 /* Profiles definitions */
 #define PROFILE_BASELINE                   0
@@ -639,12 +639,12 @@ extern int fp_trace_counter;
 /*****************************************************************************
  * slice type
  *****************************************************************************/
-#define TILE_GROUP_I                            EVC_ST_I
-#define TILE_GROUP_P                            EVC_ST_P
-#define TILE_GROUP_B                            EVC_ST_B
+#define SLICE_I                            EVC_ST_I
+#define SLICE_P                            EVC_ST_P
+#define SLICE_B                            EVC_ST_B
 
-#define IS_INTRA_TILE_GROUP(slice_type)       ((slice_type) == TILE_GROUP_I))
-#define IS_INTER_TILE_GROUP(slice_type)      (((slice_type) == TILE_GROUP_P) || ((slice_type) == TILE_GROUP_B))
+#define IS_INTRA_TILE_GROUP(slice_type)       ((slice_type) == SLICE_I))
+#define IS_INTER_TILE_GROUP(slice_type)      (((slice_type) == SLICE_P) || ((slice_type) == SLICE_B))
 
 /*****************************************************************************
  * prediction mode

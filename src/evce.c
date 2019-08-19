@@ -396,7 +396,7 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
     param->ibc_fast_method = cdsc->ibc_fast_method;
 #endif
     param->use_hgop       = (cdsc->disable_hgop)? 0: 1;
-#if USE_TILE_GROUP_DQP
+#if USE_SLICE_DQP
     param->qp_incread_frame = cdsc->add_qp_frame;
 #endif
 
@@ -811,7 +811,7 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
 
     sh->dtr = ctx->dtr & DTR_BIT_MSK;
     sh->slice_type = ctx->slice_type;
-    sh->keyframe = (sh->slice_type == TILE_GROUP_I) ? 1 : 0;
+    sh->keyframe = (sh->slice_type == SLICE_I) ? 1 : 0;
     sh->deblocking_filter_on = (ctx->param.use_deblock) ? 1 : 0;
 #if M49023_DBF_IMPROVE
     sh->sh_deblock_alpha_offset = ctx->param.deblock_alpha_offset;
@@ -822,7 +822,7 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
     sh->layer_id = ctx->layer_id;
     sh->single_tile_in_slice_flag = 1;
 #if M49023_ADMVP_IMPROVE
-    sh->collocated_from_list_idx = (sh->slice_type == TILE_GROUP_P) ? REFP_0 : REFP_1;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
+    sh->collocated_from_list_idx = (sh->slice_type == SLICE_P) ? REFP_0 : REFP_1;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
     sh->collocated_from_ref_idx = 0;        // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
     sh->collocated_mvp_source_list_idx = REFP_0;  // Specifies source (List ID) in collocated pic that provides MV information (Applicability is function of NoBackwardPredFlag)
 #endif 
@@ -834,7 +834,7 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
     }
 
     /* set lambda */
-#if USE_TILE_GROUP_DQP
+#if USE_SLICE_DQP
     qp = EVC_CLIP3(0, MAX_QUANT, (ctx->param.qp_incread_frame != 0 && (int)(ctx->ptr) >= ctx->param.qp_incread_frame) ? ctx->qp + 1.0 : ctx->qp);
 #else
     qp = ctx->qp;
@@ -1442,7 +1442,7 @@ int evce_alf_aps(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh, EVC_APS* aps)
         lambdas[i] = (ctx->lambda[i]) * ALF_LAMBDA_SCALE; //this is for appr match of different lambda sets
 
 
-    set_resetALFBufferFlag(p, sh->slice_type == TILE_GROUP_I ? 1 : 0);
+    set_resetALFBufferFlag(p, sh->slice_type == SLICE_I ? 1 : 0);
     alf_aps_enc_opt_process(p, lambdas, ctx, pic, &(sh->alf_sh_param));
 
     aps->alf_aps_param = sh->alf_sh_param;
@@ -1481,7 +1481,7 @@ int evce_alf(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh)
     for(int i = 0; i < 3; i++)
         lambdas[i] = (ctx->lambda[i]) * ALF_LAMBDA_SCALE; //this is for appr match of different lambda sets
 
-    set_resetALFBufferFlag(p, sh->slice_type == TILE_GROUP_I ? 1 : 0);
+    set_resetALFBufferFlag(p, sh->slice_type == SLICE_I ? 1 : 0);
     call_enc_ALFProcess(p, lambdas, ctx, pic, &(sh->alf_sh_param) );
     return EVC_OK;
 }
@@ -1674,7 +1674,7 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
 
     if(i_period == 0 && pic_imcnt == 0)
     {
-        ctx->slice_type = TILE_GROUP_I;
+        ctx->slice_type = SLICE_I;
         ctx->slice_depth = FRM_DEPTH_0;
         ctx->poc = pic_imcnt;
 #if HLS_M47668
@@ -1685,7 +1685,7 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
     }
     else if((i_period != 0) && pic_imcnt % i_period == 0)
     {
-        ctx->slice_type = TILE_GROUP_I;
+        ctx->slice_type = SLICE_I;
         ctx->slice_depth = FRM_DEPTH_0;
         ctx->poc = pic_imcnt;
 #if HLS_M47668
@@ -1696,7 +1696,7 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
     }
     else if(pic_imcnt % gop_size == 0)
     {
-        ctx->slice_type = TILE_GROUP_B;
+        ctx->slice_type = SLICE_B;
         ctx->slice_ref_flag = 1;
         ctx->slice_depth = FRM_DEPTH_1;
         ctx->poc = pic_imcnt;
@@ -1708,7 +1708,7 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
     }
     else
     {
-        ctx->slice_type = TILE_GROUP_B;
+        ctx->slice_type = SLICE_B;
         if(ctx->param.use_hgop)
         {
             pos = (pic_imcnt % gop_size) - 1;
@@ -1782,14 +1782,14 @@ static void decide_slice_type(EVCE_CTX * ctx)
         pic_imcnt = (i_period > 0) ? pic_icnt % i_period : pic_icnt;
         if(pic_imcnt == 0)
         {
-            ctx->slice_type = TILE_GROUP_I;
+            ctx->slice_type = SLICE_I;
             ctx->slice_depth = FRM_DEPTH_0;
             ctx->poc = 0;
             ctx->slice_ref_flag = 1;
         }
         else
         {
-            ctx->slice_type = TILE_GROUP_B;
+            ctx->slice_type = SLICE_B;
             if(ctx->param.use_hgop)
             {
 #if HLS_M47668
@@ -1817,7 +1817,7 @@ static void decide_slice_type(EVCE_CTX * ctx)
     {
         if(pic_icnt == gop_size - 1) /* special case when sequence start */
         {
-            ctx->slice_type = TILE_GROUP_I;
+            ctx->slice_type = SLICE_I;
             ctx->slice_depth = FRM_DEPTH_0;
             ctx->poc = 0;
 #if HLS_M47668
@@ -1902,8 +1902,8 @@ int check_reorder(EVCE_PARAM * param, EVC_PM * pm, u8 num_ref_pics_act, u8 slice
         return EVC_OK;
     }
 
-    /* TILE_GROUP_P: current reordering argument is setup for TILE_GROUP_B only, TILE_GROUP_P case are not considered*/
-    if(slice_type == TILE_GROUP_I || slice_type == TILE_GROUP_P)
+    /* SLICE_P: current reordering argument is setup for SLICE_B only, SLICE_P case are not considered*/
+    if(slice_type == SLICE_I || slice_type == SLICE_P)
     {
         return EVC_OK;
     }
@@ -2014,7 +2014,7 @@ int evce_enc_pic_prepare(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     ctx->lcu_cnt = ctx->f_lcu;
     ctx->slice_num = 0;
 
-    if(ctx->slice_type == TILE_GROUP_I) ctx->last_intra_ptr = ctx->ptr;
+    if(ctx->slice_type == SLICE_I) ctx->last_intra_ptr = ctx->ptr;
 
     size = sizeof(s8) * ctx->f_scu * REFP_NUM;
     evc_mset_x64a(ctx->map_refi, -1, size);
@@ -2150,13 +2150,13 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         last_intra_poc = INT_MAX;
         aps_counter_reset = TRUE;
     }
-    if (ctx->slice_type == TILE_GROUP_I)
+    if (ctx->slice_type == SLICE_I)
         last_intra_poc = ctx->ptr;
 
     if (aps_counter_reset)
         ctx->aps_counter = 0;
 #endif
-    if (ctx->slice_type == TILE_GROUP_I )
+    if (ctx->slice_type == SLICE_I )
     {
         ctx->aps_counter = -1;
         aps->aps_id = -1;
@@ -2175,7 +2175,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         //This needs to be done before reference picture marking and reference picture list construction are invoked
         set_sh(ctx, sh);
 
-        if (sh->slice_type != TILE_GROUP_I && sh->poc != 0) //TBD: change this condition to say that if this slice is not a slice in IDR picture
+        if (sh->slice_type != SLICE_I && sh->poc != 0) //TBD: change this condition to say that if this slice is not a slice in IDR picture
         {
             ret = create_explicit_rpl(&ctx->rpm, sh);
             if (ret == 1)
@@ -2194,7 +2194,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         /* reference picture lists construction */
         ret = evc_picman_refp_rpl_based_init(&ctx->rpm, sh, ctx->refp);
 #if M49023_ADMVP_IMPROVE
-        if (sh->slice_type != TILE_GROUP_I)
+        if (sh->slice_type != SLICE_I)
         {
             int dptr0 = (int)(ctx->ptr) - (int)(ctx->refp[0][REFP_0].ptr);
             int dptr1 = (int)(ctx->ptr) - (int)(ctx->refp[0][REFP_1].ptr);
@@ -2208,7 +2208,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #if !HLS_M47668
     if (ctx->sps.picture_num_present_flag)
     {
-        if (ctx->slice_type != TILE_GROUP_I)
+        if (ctx->slice_type != SLICE_I)
         {
             if (ctx->param.max_b_frames == 0)
             {
@@ -2219,7 +2219,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             }
         }
 
-        if (sh->rmpni_on && ctx->slice_type != TILE_GROUP_I)
+        if (sh->rmpni_on && ctx->slice_type != SLICE_I)
         {
             ret = evc_picman_refp_reorder(&ctx->rpm, ctx->sps.num_ref_pics_act, sh->slice_type, ctx->ptr, ctx->refp, ctx->last_intra_ptr, sh->rmpni);
             evc_assert_rv(ret == EVC_OK, ret);
@@ -2274,7 +2274,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
     /* LCU encoding */
 #if TRACE_RDO_EXCLUDE_I
-    if(ctx->slice_type != TILE_GROUP_I)
+    if(ctx->slice_type != SLICE_I)
     {
 #endif
         EVC_TRACE_SET(0);
@@ -2282,7 +2282,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     }
 #endif
 #if M48879_IMPROVEMENT_INTER
-    if (ctx->sps.tool_mmvd && (ctx->slice_type == TILE_GROUP_B))
+    if (ctx->sps.tool_mmvd && (ctx->slice_type == SLICE_B))
     {
         sh->mmvd_group_enable_flag = !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr);
     }
@@ -2370,7 +2370,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     /* Bit-stream re-writing (START) */
     evc_bsw_init(&ctx->bs, (u8*)bitb->addr, bitb->bsize, NULL);
 #if TRACE_RDO_EXCLUDE_I
-    if(ctx->slice_type != TILE_GROUP_I)
+    if(ctx->slice_type != SLICE_I)
     {
 #endif
         EVC_TRACE_SET(1);

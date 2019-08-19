@@ -382,7 +382,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
         refi1[z] = srefi[REFP_1][z];
     }
 
-    if (slice_t == TILE_GROUP_B)
+    if (slice_t == SLICE_B)
     {
         for(k = 0; k < MMVD_BASE_MV_NUM; k++)
         {
@@ -405,9 +405,9 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 #endif
         {
 #if INCREASE_MVP_NUM
-            cnt = (slice_t == TILE_GROUP_B ? ORG_MAX_NUM_MVP : 1);
+            cnt = (slice_t == SLICE_B ? ORG_MAX_NUM_MVP : 1);
 #else
-            cnt = (slice_t == TILE_GROUP_B ? MAX_NUM_MVP : 1);
+            cnt = (slice_t == SLICE_B ? MAX_NUM_MVP : 1);
 #endif
             for (idx1 = 0; idx1 < cnt; idx1++)
             {
@@ -648,7 +648,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
             list1_r = base_mv[base_mv_idx][1][2];
 #endif
         ref_sign = 1;
-        if (slice_t == TILE_GROUP_B)
+        if (slice_t == SLICE_B)
         {
             if ((list0_r != -1) && (list1_r != -1))
             {
@@ -802,7 +802,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
             list1_r = base_mv[base_mv_idx][1][2];
 
             ref_sign = 1;
-            if (slice_t == TILE_GROUP_B)
+            if (slice_t == SLICE_B)
             {
                 if ((list0_r != -1) && (list1_r != -1))
                 {
@@ -1898,7 +1898,7 @@ static int evc_get_right_below_scup(int scup, int cuw, int cuh, int w_scu, int h
 BOOL check_bi_applicability(int slice_type, int cuw, int cuh)
 {
     BOOL is_applicable = FALSE;
-    if((slice_type == TILE_GROUP_B) &&
+    if((slice_type == SLICE_B) &&
        !((max(cuw, cuh) < 8 && min(cuw, cuh) < 8))
        )
     {
@@ -1921,7 +1921,7 @@ __inline static void check_redundancy(int slice_type, s16 mvp[REFP_NUM][MAX_NUM_
             {
                 if(refi[REFP_0][cnt] == refi[REFP_0][i] && mvp[REFP_0][cnt][MV_X] == mvp[REFP_0][i][MV_X] && mvp[REFP_0][cnt][MV_Y] == mvp[REFP_0][i][MV_Y])
                 {
-                    if(slice_type != TILE_GROUP_B || (refi[REFP_1][cnt] == refi[REFP_1][i] && mvp[REFP_1][cnt][MV_X] == mvp[REFP_1][i][MV_X] && mvp[REFP_1][cnt][MV_Y] == mvp[REFP_1][i][MV_Y]))
+                    if(slice_type != SLICE_B || (refi[REFP_1][cnt] == refi[REFP_1][i] && mvp[REFP_1][cnt][MV_X] == mvp[REFP_1][i][MV_X] && mvp[REFP_1][cnt][MV_Y] == mvp[REFP_1][i][MV_Y]))
                     {
                         cnt--;
                         break;
@@ -1935,7 +1935,7 @@ __inline static void check_redundancy(int slice_type, s16 mvp[REFP_NUM][MAX_NUM_
             {
                 if(mvp[REFP_0][cnt][MV_X] == mvp[REFP_0][i][MV_X] && mvp[REFP_0][cnt][MV_Y] == mvp[REFP_0][i][MV_Y])
                 {
-                    if(slice_type != TILE_GROUP_B || (mvp[REFP_1][cnt][MV_X] == mvp[REFP_1][i][MV_X] && mvp[REFP_1][cnt][MV_Y] == mvp[REFP_1][i][MV_Y]))
+                    if(slice_type != SLICE_B || (mvp[REFP_1][cnt][MV_X] == mvp[REFP_1][i][MV_X] && mvp[REFP_1][cnt][MV_Y] == mvp[REFP_1][i][MV_Y]))
                     {
                         cnt--;
                         break;
@@ -2013,7 +2013,7 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
                 refi[REFP_0][cnt] = REFI_IS_VALID(map_refi[neb_addr[k]][REFP_0]) ? map_refi[neb_addr[k]][REFP_0] : REFI_INVALID;
                 mvp[REFP_0][cnt][MV_X] = map_unrefined_mv[neb_addr[k]][REFP_0][MV_X];
                 mvp[REFP_0][cnt][MV_Y] = map_unrefined_mv[neb_addr[k]][REFP_0][MV_Y];
-                if (slice_type == TILE_GROUP_B)
+                if (slice_type == SLICE_B)
                 {
                     assert(map_unrefined_mv[neb_addr[k]][REFP_1][MV_X] != SHRT_MAX);
                     assert(map_unrefined_mv[neb_addr[k]][REFP_1][MV_Y] != SHRT_MAX);
@@ -2230,7 +2230,7 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
             //        small size: for (k = 3; k <= min(history_buffer.currCnt, ALLOWED_CHECKED_NUM - 2 * 4 ); k += 4)
             //        large size: for (k = 3; k <= min(history_buffer.currCnt, ALLOWED_CHECKED_NUM); k += 4)
         {
-            if (slice_type == TILE_GROUP_P)
+            if (slice_type == SLICE_P)
             {
                 refi[REFP_0][cnt] = history_buffer.history_refi_table[history_buffer.currCnt - k][REFP_0];
                 mvp[REFP_0][cnt][MV_X] = history_buffer.history_mv_table[history_buffer.currCnt - k][REFP_0][MV_X];
@@ -2244,7 +2244,7 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
                 }
             }
 
-            if (slice_type == TILE_GROUP_B)
+            if (slice_type == SLICE_B)
             {
                 refi[REFP_0][cnt] = history_buffer.history_refi_table[history_buffer.currCnt - k][REFP_0];
                 mvp[REFP_0][cnt][MV_X] = history_buffer.history_mv_table[history_buffer.currCnt - k][REFP_0][MV_X];
@@ -2350,7 +2350,7 @@ void evc_get_motion_skip_baseline(int slice_type, int scup, s8(*map_refi)[REFP_N
     evc_mset(mvp, 0, MAX_NUM_MVP * REFP_NUM * MV_D * sizeof(s16));
     evc_mset(refi, REFI_INVALID, MAX_NUM_MVP * REFP_NUM * sizeof(s8));
     evc_get_motion(scup, REFP_0, map_refi, map_mv, (EVC_REFP(*)[2])refp, cuw, cuh, w_scu, avail_lr, refi[REFP_0], mvp[REFP_0]);
-    if (slice_type == TILE_GROUP_B)
+    if (slice_type == SLICE_B)
     {
         evc_get_motion(scup, REFP_1, map_refi, map_mv, (EVC_REFP(*)[2])refp, cuw, cuh, w_scu, avail_lr, refi[REFP_1], mvp[REFP_1]);
     }
@@ -3353,13 +3353,13 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
     int num_pos_avail;
     int i, j;
 #if IBC
-    if ((slice_type == TILE_GROUP_I && ibc_flag == 0)
-      || (slice_type == TILE_GROUP_I && (cuw > (1 << ibc_log_max_size) || cuh > (1 << ibc_log_max_size))))
+    if ((slice_type == SLICE_I && ibc_flag == 0)
+      || (slice_type == SLICE_I && (cuw > (1 << ibc_log_max_size) || cuh > (1 << ibc_log_max_size))))
     {
       return;
     }
 #else
-    if(slice_type == TILE_GROUP_I)
+    if(slice_type == SLICE_I)
     {
         return;
     }
@@ -3386,7 +3386,7 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
           nev_info[CNID_SKIP_FLAG][j] = MCU_GET_SF(map_scu[scun[j]]);
           nev_info[CNID_PRED_MODE][j] = MCU_GET_IF(map_scu[scun[j]]);
 
-          if (slice_type != TILE_GROUP_I)
+          if (slice_type != SLICE_I)
           {
 #if AFFINE
             nev_info[CNID_AFFN_FLAG][j] = MCU_GET_AFF(map_scu[scun[j]]);
@@ -3398,7 +3398,7 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
             nev_info[CNID_IBC_FLAG][j] = MCU_GET_IBC(map_scu[scun[j]]);
           }
 #else
-            if(slice_type != TILE_GROUP_I)
+            if(slice_type != SLICE_I)
             {
                 nev_info[CNID_SKIP_FLAG][j] = MCU_GET_SF(map_scu[scun[j]]);
                 nev_info[CNID_PRED_MODE][j] = MCU_GET_IF(map_scu[scun[j]]);
@@ -4579,7 +4579,7 @@ int evc_get_affine_merge_candidate(int ptr, int slice_type, int scup, s8(*map_re
                 }
             }
             mrg_list_refi[cnt][REFP_0] = 0;
-            mrg_list_refi[cnt][REFP_1] = (slice_type == TILE_GROUP_B) ? 0 : REFI_INVALID;
+            mrg_list_refi[cnt][REFP_1] = (slice_type == SLICE_B) ? 0 : REFI_INVALID;
         }
     }
 
@@ -4913,7 +4913,7 @@ void evc_eco_sbac_ctx_initialize(SBAC_CTX_MODEL *ctx, s16 *ctx_init_model, u16 n
     int i, slope, offset;
     u16 cmps, p0, p1;
     int qp = EVC_CLIP3(0, 51, slice_qp);
-    int is_inter_tile_group = (slice_type == TILE_GROUP_B || slice_type == TILE_GROUP_P);
+    int is_inter_tile_group = (slice_type == SLICE_B || slice_type == SLICE_P);
 #if CTX_REPRESENTATION_IMPROVEMENT
     ctx_init_model += (is_inter_tile_group * num_ctx * 1);
 #else
@@ -5452,7 +5452,7 @@ void evc_get_mv_collocated(
     *availablePredIdx = 0;
 #if M49023_ADMVP_IMPROVE
     int temporal_mvp_asigned_flag = sh->temporal_mvp_asigned_flag;
-    int collocated_from_list_idx = (sh->slice_type == TILE_GROUP_P) ? REFP_0 : REFP_1;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
+    int collocated_from_list_idx = (sh->slice_type == SLICE_P) ? REFP_0 : REFP_1;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
     int collocated_from_ref_idx = 0;        // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
     int collocated_mvp_source_list_idx = REFP_0;  // Specifies source (List ID) in collocated pic that provides MV information (Applicability is function of NoBackwardPredFlag)
     if (sh->temporal_mvp_asigned_flag)

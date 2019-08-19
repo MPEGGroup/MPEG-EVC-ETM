@@ -353,7 +353,7 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
 
     evc_bsw_write_ue(bs, sh->slice_type);
 #if M48879_IMPROVEMENT_INTER
-    if (sps->tool_mmvd && (sh->slice_type == TILE_GROUP_B))
+    if (sps->tool_mmvd && (sh->slice_type == SLICE_B))
     {
         evc_bsw_write1(bs, sh->mmvd_group_enable_flag);
     }
@@ -435,13 +435,13 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
 
     if (!sps->picture_num_present_flag)
     {
-        if (sh->slice_type != TILE_GROUP_I)
+        if (sh->slice_type != SLICE_I)
         {
             evc_bsw_write1(bs, sh->num_ref_idx_active_override_flag);
             if (sh->num_ref_idx_active_override_flag)
             {
                 evc_bsw_write_ue(bs, (u32)(sh->rpl_l0).ref_pic_active_num - 1);
-                if (sh->slice_type == TILE_GROUP_B)
+                if (sh->slice_type == SLICE_B)
                 {
                     evc_bsw_write_ue(bs, (u32)(sh->rpl_l1).ref_pic_active_num - 1);
                 }
@@ -475,7 +475,7 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
     evc_bsw_write1(bs, sh->keyframe);
     evc_bsw_write1(bs, sh->udata_exist);
 
-    if(sh->slice_type != TILE_GROUP_I)
+    if(sh->slice_type != SLICE_I)
     {
         evc_bsw_write_se(bs, sh->dptr);
     }
@@ -2736,7 +2736,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
     }
 
     /* entropy coding a CU */
-    if(slice_type != TILE_GROUP_I && 
+    if(slice_type != SLICE_I && 
 #if IBC
     (ctx->sps.tool_amis == 0 || !(core->log2_cuw <= MIN_CU_LOG2 && core->log2_cuh <= MIN_CU_LOG2) || ctx->param.use_ibc_flag)
 #else  
@@ -2784,7 +2784,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                 {
                     evce_eco_mvp_idx(bs, cu_data->mvp_idx[cup][REFP_0], ctx->sps.tool_amis);
 
-                    if(ctx->sps.tool_amis == 0 && slice_type == TILE_GROUP_B)
+                    if(ctx->sps.tool_amis == 0 && slice_type == SLICE_B)
                     {
                         evce_eco_mvp_idx(bs, cu_data->mvp_idx[cup][REFP_1], ctx->sps.tool_amis);
                     }
@@ -2815,7 +2815,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 
                 if(ctx->sps.tool_mmvd)
                 {
-                    if(slice_type == TILE_GROUP_P)
+                    if(slice_type == SLICE_P)
                     {
                         if(cu_data->mvr_idx[cup] == 0)
                         {
@@ -2833,7 +2833,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                     }
                 }
 
-                if(slice_type == TILE_GROUP_B)
+                if(slice_type == SLICE_B)
                 {
                     if(ctx->sps.tool_mmvd)
                     {
@@ -2946,7 +2946,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                             }
                         }
 
-                        if(slice_type == TILE_GROUP_B && REFI_IS_VALID(refi1))
+                        if(slice_type == SLICE_B && REFI_IS_VALID(refi1))
                         {
                             int b_zero = 1;
 
@@ -3010,7 +3010,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                             }
                         }
 
-                        if(slice_type == TILE_GROUP_B && REFI_IS_VALID(refi1))
+                        if(slice_type == SLICE_B && REFI_IS_VALID(refi1))
                         {
                             if(ctx->sps.tool_amis == 0)
                             {
@@ -3045,7 +3045,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
         }
     }
 #if IBC
-    else if ((ctx->sh.slice_type == TILE_GROUP_I && ctx->param.use_ibc_flag))
+    else if ((ctx->sh.slice_type == SLICE_I && ctx->param.use_ibc_flag))
     {
       if (core->skip_flag == 0)
       {

@@ -1829,9 +1829,9 @@ void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
 
     /* get pred_mode */
 #if IBC
-    if (ctx->sh.slice_type != TILE_GROUP_I && !(!ctx->sps.ibc_flag && ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
+    if (ctx->sh.slice_type != SLICE_I && !(!ctx->sps.ibc_flag && ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
 #else
-    if (ctx->sh.slice_type != TILE_GROUP_I && !(ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
+    if (ctx->sh.slice_type != SLICE_I && !(ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
 #endif
     {
         core->pred_mode = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.pred_mode + ctx->ctx_flags[CNID_PRED_MODE]) ? MODE_INTRA : MODE_INTER;
@@ -1857,7 +1857,7 @@ void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
         EVC_TRACE_STR("\n");
     }
 #if IBC
-    else if (ctx->sh.slice_type == TILE_GROUP_I && ctx->sps.ibc_flag)
+    else if (ctx->sh.slice_type == SLICE_I && ctx->sps.ibc_flag)
     {
         core->pred_mode = MODE_INTRA;
         core->mmvd_flag = 0;
@@ -1876,7 +1876,7 @@ void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
         }
     }
 #endif
-    else /* TILE_GROUP_I */
+    else /* SLICE_I */
     {
         core->pred_mode = MODE_INTRA;
     }
@@ -1947,9 +1947,9 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
     core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu);
   
 #if IBC
-    if (ctx->sh.slice_type != TILE_GROUP_I && !(ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
+    if (ctx->sh.slice_type != SLICE_I && !(ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
 #else
-    if (ctx->sh.slice_type != TILE_GROUP_I && !(ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
+    if (ctx->sh.slice_type != SLICE_I && !(ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
 #endif
     {
         /* CU skip flag */
@@ -1984,7 +1984,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
 #endif
             {
                 core->mvp_idx[REFP_0] = evcd_eco_mvp_idx(bs, sbac, ctx->sps.tool_amis);
-                if (ctx->sps.tool_amis == 0 && ctx->sh.slice_type == TILE_GROUP_B)
+                if (ctx->sps.tool_amis == 0 && ctx->sh.slice_type == SLICE_B)
                 {
                     core->mvp_idx[REFP_1] = evcd_eco_mvp_idx(bs, sbac, ctx->sps.tool_amis);
                 }
@@ -2009,9 +2009,9 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                 core->mvr_idx = evcd_eco_mvr_idx(bs, sbac);
             }
 #if ADMVP
-            if ((ctx->sh.slice_type == TILE_GROUP_P) || (ctx->sps.tool_amis == 1 && !check_bi_applicability_dec(ctx->sh.slice_type, cuw, cuh)))
+            if ((ctx->sh.slice_type == SLICE_P) || (ctx->sps.tool_amis == 1 && !check_bi_applicability_dec(ctx->sh.slice_type, cuw, cuh)))
 #else
-            if (ctx->sh.slice_type == TILE_GROUP_P)
+            if (ctx->sh.slice_type == SLICE_P)
 #endif
             {
                 if (ctx->sps.tool_amis == 0)
@@ -2047,7 +2047,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                     }
                 }
             }
-            else /* if(ctx->sh.slice_type == TILE_GROUP_B) */
+            else /* if(ctx->sh.slice_type == SLICE_B) */
             {
                 if (ctx->sps.tool_amis == 0)
                 {
@@ -2994,7 +2994,7 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
 
     sh->slice_type = evc_bsr_read_ue(bs);
 #if M48879_IMPROVEMENT_INTER
-    if (sps->tool_mmvd && (sh->slice_type == TILE_GROUP_B))
+    if (sps->tool_mmvd && (sh->slice_type == SLICE_B))
     {
         sh->mmvd_group_enable_flag = evc_bsr_read1(bs);
     }
@@ -3082,13 +3082,13 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
 
     if (!sps->picture_num_present_flag)
     {
-        if (sh->slice_type != TILE_GROUP_I)
+        if (sh->slice_type != SLICE_I)
         {
             sh->num_ref_idx_active_override_flag = evc_bsr_read1(bs);
             if (sh->num_ref_idx_active_override_flag)
             {
                 sh->rpl_l0.ref_pic_active_num = (u32)evc_bsr_read_ue(bs) + 1;
-                if (sh->slice_type == TILE_GROUP_B)
+                if (sh->slice_type == SLICE_B)
                 {
                     sh->rpl_l1.ref_pic_active_num = (u32)evc_bsr_read_ue(bs) + 1;
                 }
@@ -3128,7 +3128,7 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
     sh->keyframe = evc_bsr_read1(bs);
     sh->udata_exist = evc_bsr_read1(bs);
 
-    if(sh->slice_type!= TILE_GROUP_I)
+    if(sh->slice_type!= SLICE_I)
     {
         /* dptr: delta of presentation temporal reference */
         sh->dptr = evc_bsr_read_se(bs);

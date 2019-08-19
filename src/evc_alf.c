@@ -237,7 +237,7 @@ void call_ALFProcess(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic)
         m_lastRasPoc = INT_MAX;
         m_pendingRasInit = TRUE;
     }
-    if( ctx->sh.slice_type == TILE_GROUP_I )
+    if( ctx->sh.slice_type == SLICE_I )
         m_lastRasPoc = ctx->ptr;
 
     if( m_pendingRasInit )
@@ -257,7 +257,7 @@ void call_ALFProcess(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic)
         m_lastRasPoc = INT_MAX;
         m_pendingRasInit = TRUE;
     }
-    if( ctx->sh.slice_type == TILE_GROUP_I )
+    if( ctx->sh.slice_type == SLICE_I )
         m_lastRasPoc = ctx->ptr;
 
     if( m_pendingRasInit )

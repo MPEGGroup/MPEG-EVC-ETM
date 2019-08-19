@@ -463,7 +463,7 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
 #if ATS_INTRA_PROCESS
     if (log2_cuw == 6 || log2_cuh == 6 || log2_cuw == 7 || log2_cuh == 7) ats_intra_usage = 1;
 #if ATS_INTRA_FAST
-    if (ctx->slice_type != TILE_GROUP_I && core->nnz[Y_C] <= ATS_INTRA_Y_NZZ_THR) ats_intra_usage = 1;
+    if (ctx->slice_type != SLICE_I && core->nnz[Y_C] <= ATS_INTRA_Y_NZZ_THR) ats_intra_usage = 1;
     if (ats_intra_usage > 1)
     {
         if (core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][evc_get_lr(core->avail_lr)].visit && core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][evc_get_lr(core->avail_lr)].ats_intra_cu_idx_intra == 0)

@@ -2481,7 +2481,7 @@ int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw,
 
 #define FAST_RDOQ_INTRA_RND_OFST  201 //171
 #define FAST_RDOQ_INTER_RND_OFST  153 //85
-        offset = (s64)((slice_type == TILE_GROUP_I) ? FAST_RDOQ_INTRA_RND_OFST : FAST_RDOQ_INTER_RND_OFST) << (s64)(shift - 9);
+        offset = (s64)((slice_type == SLICE_I) ? FAST_RDOQ_INTRA_RND_OFST : FAST_RDOQ_INTER_RND_OFST) << (s64)(shift - 9);
         zero_coeff_threshold = ((s64)1 << (s64)shift) - offset;
 
         for(i = 0; i < (1 << (log2_cuw + log2_cuh)); i++)
@@ -2524,7 +2524,7 @@ int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw,
 
         tr_shift = MAX_TX_DYNAMIC_RANGE - BIT_DEPTH - log2_size + ns_shift;
         shift = QUANT_SHIFT + tr_shift + (qp / 6);
-        offset = (s64)((slice_type == TILE_GROUP_I) ? 171 : 85) << (s64)(shift - 9);
+        offset = (s64)((slice_type == SLICE_I) ? 171 : 85) << (s64)(shift - 9);
 
         for(i = 0; i < (1 << (log2_cuw + log2_cuh)); i++)
         {

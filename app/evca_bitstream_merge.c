@@ -456,7 +456,7 @@ int main(int argc, const char **argv)
                 ret = evcd_eco_sh(bs, &ctx->sps, &ctx->pps, sh);
                 evc_assert_rv(EVC_SUCCEEDED(ret), ret);
 
-                if (bs_num == 0 && sh->slice_type == TILE_GROUP_I)
+                if (bs_num == 0 && sh->slice_type == SLICE_I)
                 {
                     intra_dist[intra_dist_idx] = sh->dtr;    
                     intra_dist_idx++;
@@ -469,7 +469,7 @@ int main(int argc, const char **argv)
                 }
                 else
                 {
-                    if (!intra_dist_idx && sh->slice_type == TILE_GROUP_I)
+                    if (!intra_dist_idx && sh->slice_type == SLICE_I)
                     {
                         intra_dist_idx++;
                     }
