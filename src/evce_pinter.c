@@ -1172,7 +1172,7 @@ static double pinter_residue_rdo_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int
 
     /* get bits */
 #if M48879_IMPROVEMENT_INTER
-    bit_cnt = mmvd_info_bit_cost(pi->mmvd_idx[pidx], ctx->tgh.mmvd_group_enable_flag && !((1 << core->log2_cuw)*(1 << core->log2_cuh) <= NUM_SAMPLES_BLOCK));
+    bit_cnt = mmvd_info_bit_cost(pi->mmvd_idx[pidx], ctx->sh.mmvd_group_enable_flag && !((1 << core->log2_cuw)*(1 << core->log2_cuh) <= NUM_SAMPLES_BLOCK));
 #else
     bit_cnt = mmvd_info_bit_cost(pi->mmvd_idx[pidx], !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr));
 #endif
@@ -1709,7 +1709,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
                 {
                     const int s_mod = pi->s_m[Y_C];
                     u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu);
-                    evc_htdf(rec[i], ctx->tgh.qp, cuw, cuh, cuw, FALSE, pi->m[Y_C] + (y * s_mod) + x, s_mod, avail_cu);
+                    evc_htdf(rec[i], ctx->sh.qp, cuw, cuh, cuw, FALSE, pi->m[Y_C] + (y * s_mod) + x, s_mod, avail_cu);
                 }
 #endif
                 dist[1][i] = evce_ssd_16b(log2_w[i], log2_h[i], rec[i], org[i], w[i], pi->s_o[i]);
@@ -1785,29 +1785,29 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
             SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
             evce_sbac_bit_reset(&core->s_temp_run);
 
-            if(IS_INTER_TILE_GROUP(ctx->tgh.tile_group_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
+            if(IS_INTER_TILE_GROUP(ctx->sh.tile_group_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
             {
                 pi->mvd[pidx][REFP_0][MV_X] >>= pi->mvr_idx[pidx];
                 pi->mvd[pidx][REFP_0][MV_Y] >>= pi->mvr_idx[pidx];
             }
-            if(ctx->tgh.tile_group_type == TILE_GROUP_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+            if(ctx->sh.tile_group_type == TILE_GROUP_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
             {
                 pi->mvd[pidx][REFP_1][MV_X] >>= pi->mvr_idx[pidx];
                 pi->mvd[pidx][REFP_1][MV_Y] >>= pi->mvr_idx[pidx];
             }
 
-            evce_rdo_bit_cnt_cu_inter(ctx, core, ctx->tgh.tile_group_type, core->scup, pi->refi[pidx], pi->mvd[pidx], coef, pidx, mvp_idx, pi->mvr_idx[pidx], pi->bi_idx[pidx]
+            evce_rdo_bit_cnt_cu_inter(ctx, core, ctx->sh.tile_group_type, core->scup, pi->refi[pidx], pi->mvd[pidx], coef, pidx, mvp_idx, pi->mvr_idx[pidx], pi->bi_idx[pidx]
 #if AFFINE
                                       , pi->affine_mvd[pidx]
 #endif
             );
 
-            if(IS_INTER_TILE_GROUP(ctx->tgh.tile_group_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
+            if(IS_INTER_TILE_GROUP(ctx->sh.tile_group_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
             {
                 pi->mvd[pidx][REFP_0][MV_X] <<= pi->mvr_idx[pidx];
                 pi->mvd[pidx][REFP_0][MV_Y] <<= pi->mvr_idx[pidx];
             }
-            if(ctx->tgh.tile_group_type == TILE_GROUP_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+            if(ctx->sh.tile_group_type == TILE_GROUP_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
             {
                 pi->mvd[pidx][REFP_1][MV_X] <<= pi->mvr_idx[pidx];
                 pi->mvd[pidx][REFP_1][MV_Y] <<= pi->mvr_idx[pidx];
@@ -1850,29 +1850,29 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
         evce_sbac_bit_reset(&core->s_temp_run);
 
-        if(IS_INTER_TILE_GROUP(ctx->tgh.tile_group_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
+        if(IS_INTER_TILE_GROUP(ctx->sh.tile_group_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
         {
             pi->mvd[pidx][REFP_0][MV_X] >>= pi->mvr_idx[pidx];
             pi->mvd[pidx][REFP_0][MV_Y] >>= pi->mvr_idx[pidx];
         }
-        if(ctx->tgh.tile_group_type == TILE_GROUP_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+        if(ctx->sh.tile_group_type == TILE_GROUP_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
         {
             pi->mvd[pidx][REFP_1][MV_X] >>= pi->mvr_idx[pidx];
             pi->mvd[pidx][REFP_1][MV_Y] >>= pi->mvr_idx[pidx];
         }
 
-        evce_rdo_bit_cnt_cu_inter(ctx, core, ctx->tgh.tile_group_type, core->scup, pi->refi[pidx], pi->mvd[pidx], coef, pidx, mvp_idx, pi->mvr_idx[pidx], pi->bi_idx[pidx]
+        evce_rdo_bit_cnt_cu_inter(ctx, core, ctx->sh.tile_group_type, core->scup, pi->refi[pidx], pi->mvd[pidx], coef, pidx, mvp_idx, pi->mvr_idx[pidx], pi->bi_idx[pidx]
 #if AFFINE
                                   , pi->affine_mvd[pidx]
 #endif
         );
 
-        if(IS_INTER_TILE_GROUP(ctx->tgh.tile_group_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
+        if(IS_INTER_TILE_GROUP(ctx->sh.tile_group_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
         {
             pi->mvd[pidx][REFP_0][MV_X] <<= pi->mvr_idx[pidx];
             pi->mvd[pidx][REFP_0][MV_Y] <<= pi->mvr_idx[pidx];
         }
-        if(ctx->tgh.tile_group_type == TILE_GROUP_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+        if(ctx->sh.tile_group_type == TILE_GROUP_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
         {
             pi->mvd[pidx][REFP_1][MV_X] <<= pi->mvr_idx[pidx];
             pi->mvd[pidx][REFP_1][MV_Y] <<= pi->mvr_idx[pidx];
@@ -1973,29 +1973,29 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
             SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
             evce_sbac_bit_reset(&core->s_temp_run);
 
-            if(IS_INTER_TILE_GROUP(ctx->tgh.tile_group_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
+            if(IS_INTER_TILE_GROUP(ctx->sh.tile_group_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
             {
                 pi->mvd[pidx][REFP_0][MV_X] >>= pi->mvr_idx[pidx];
                 pi->mvd[pidx][REFP_0][MV_Y] >>= pi->mvr_idx[pidx];
             }
-            if(ctx->tgh.tile_group_type == TILE_GROUP_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+            if(ctx->sh.tile_group_type == TILE_GROUP_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
             {
                 pi->mvd[pidx][REFP_1][MV_X] >>= pi->mvr_idx[pidx];
                 pi->mvd[pidx][REFP_1][MV_Y] >>= pi->mvr_idx[pidx];
             }
 
-            evce_rdo_bit_cnt_cu_inter(ctx, core, ctx->tgh.tile_group_type, core->scup, pi->refi[pidx], pi->mvd[pidx], coef, pidx, mvp_idx, pi->mvr_idx[pidx], pi->bi_idx[pidx]
+            evce_rdo_bit_cnt_cu_inter(ctx, core, ctx->sh.tile_group_type, core->scup, pi->refi[pidx], pi->mvd[pidx], coef, pidx, mvp_idx, pi->mvr_idx[pidx], pi->bi_idx[pidx]
 #if AFFINE
                                       , pi->affine_mvd[pidx]
 #endif
             );
 
-            if(IS_INTER_TILE_GROUP(ctx->tgh.tile_group_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
+            if(IS_INTER_TILE_GROUP(ctx->sh.tile_group_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
             {
                 pi->mvd[pidx][REFP_0][MV_X] <<= pi->mvr_idx[pidx];
                 pi->mvd[pidx][REFP_0][MV_Y] <<= pi->mvr_idx[pidx];
             }
-            if(ctx->tgh.tile_group_type == TILE_GROUP_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+            if(ctx->sh.tile_group_type == TILE_GROUP_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
             {
                 pi->mvd[pidx][REFP_1][MV_X] <<= pi->mvr_idx[pidx];
                 pi->mvd[pidx][REFP_1][MV_Y] <<= pi->mvr_idx[pidx];
@@ -2116,29 +2116,29 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 
         evce_sbac_bit_reset(&core->s_temp_run);
 
-        if(IS_INTER_TILE_GROUP(ctx->tgh.tile_group_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
+        if(IS_INTER_TILE_GROUP(ctx->sh.tile_group_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
         {
             pi->mvd[pidx][REFP_0][MV_X] >>= pi->mvr_idx[pidx];
             pi->mvd[pidx][REFP_0][MV_Y] >>= pi->mvr_idx[pidx];
         }
-        if(ctx->tgh.tile_group_type == TILE_GROUP_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+        if(ctx->sh.tile_group_type == TILE_GROUP_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
         {
             pi->mvd[pidx][REFP_1][MV_X] >>= pi->mvr_idx[pidx];
             pi->mvd[pidx][REFP_1][MV_Y] >>= pi->mvr_idx[pidx];
         }
 
-        evce_rdo_bit_cnt_cu_inter(ctx, core, ctx->tgh.tile_group_type, core->scup, pi->refi[pidx], pi->mvd[pidx], coef, pidx, mvp_idx, pi->mvr_idx[pidx], pi->bi_idx[pidx]
+        evce_rdo_bit_cnt_cu_inter(ctx, core, ctx->sh.tile_group_type, core->scup, pi->refi[pidx], pi->mvd[pidx], coef, pidx, mvp_idx, pi->mvr_idx[pidx], pi->bi_idx[pidx]
 #if AFFINE
                                   , pi->affine_mvd[pidx]
 #endif
         );
 
-        if(IS_INTER_TILE_GROUP(ctx->tgh.tile_group_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
+        if(IS_INTER_TILE_GROUP(ctx->sh.tile_group_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
         {
             pi->mvd[pidx][REFP_0][MV_X] <<= pi->mvr_idx[pidx];
             pi->mvd[pidx][REFP_0][MV_Y] <<= pi->mvr_idx[pidx];
         }
-        if(ctx->tgh.tile_group_type == TILE_GROUP_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+        if(ctx->sh.tile_group_type == TILE_GROUP_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
         {
             pi->mvd[pidx][REFP_1][MV_X] <<= pi->mvr_idx[pidx];
             pi->mvd[pidx][REFP_1][MV_Y] <<= pi->mvr_idx[pidx];
@@ -2270,7 +2270,7 @@ static double analyze_skip_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y
             mvp[REFP_1][MV_X] = pi->mvp[REFP_1][idx1][MV_X];
             mvp[REFP_1][MV_Y] = pi->mvp[REFP_1][idx1][MV_Y];
 
-            SET_REFI(refi, pi->refi_pred[REFP_0][idx0], ctx->tgh.tile_group_type == TILE_GROUP_B ? pi->refi_pred[REFP_1][idx1] : REFI_INVALID);
+            SET_REFI(refi, pi->refi_pred[REFP_0][idx0], ctx->sh.tile_group_type == TILE_GROUP_B ? pi->refi_pred[REFP_1][idx1] : REFI_INVALID);
             if(!REFI_IS_VALID(refi[REFP_0]) && !REFI_IS_VALID(refi[REFP_1]))
             {
                 continue;
@@ -2300,7 +2300,7 @@ static double analyze_skip_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y
             SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
 
             evce_sbac_bit_reset(&core->s_temp_run);
-            evce_rdo_bit_cnt_cu_skip(ctx, core, ctx->tgh.tile_group_type, core->scup, idx0, idx1, 0, ctx->sps.tool_mmvd);
+            evce_rdo_bit_cnt_cu_skip(ctx, core, ctx->sh.tile_group_type, core->scup, idx0, idx1, 0, ctx->sps.tool_mmvd);
 
             bit_cnt = evce_get_bit_number(&core->s_temp_run);
             cost += RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);
@@ -2383,7 +2383,7 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
 #if ADMVP
 #if M49023_ADMVP_IMPROVE
     if (ctx->sps.tool_admvp == 0)
-        evc_get_motion_skip_baseline(ctx->tgh.tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, pi->refi_pred, pi->mvp, core->avail_cu
+        evc_get_motion_skip_baseline(ctx->sh.tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, pi->refi_pred, pi->mvp, core->avail_cu
         );
     else
 #endif
@@ -2401,7 +2401,7 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
 #endif
 #if M49023_ADMVP_IMPROVE
             , (EVC_REFP(*)[2])ctx->refp[0]
-            , &ctx->tgh
+            , &ctx->sh
 #endif
         );
 #endif
@@ -2431,7 +2431,7 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
             mvp[REFP_1][MV_X] = pi->mvp[REFP_1][idx1][MV_X];
             mvp[REFP_1][MV_Y] = pi->mvp[REFP_1][idx1][MV_Y];
 
-            SET_REFI(refi, pi->refi_pred[REFP_0][idx0], ctx->tgh.tile_group_type == TILE_GROUP_B ? pi->refi_pred[REFP_1][idx1] : REFI_INVALID);
+            SET_REFI(refi, pi->refi_pred[REFP_0][idx0], ctx->sh.tile_group_type == TILE_GROUP_B ? pi->refi_pred[REFP_1][idx1] : REFI_INVALID);
             if(!REFI_IS_VALID(refi[REFP_0]) && !REFI_IS_VALID(refi[REFP_1]))
             {
                 continue;
@@ -2475,7 +2475,7 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
             SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
 
             evce_sbac_bit_reset(&core->s_temp_run);
-            evce_rdo_bit_cnt_cu_skip(ctx, core, ctx->tgh.tile_group_type, core->scup, idx0, idx1, 0, ctx->sps.tool_mmvd);
+            evce_rdo_bit_cnt_cu_skip(ctx, core, ctx->sh.tile_group_type, core->scup, idx0, idx1, 0, ctx->sps.tool_mmvd);
 
             bit_cnt = evce_get_bit_number(&core->s_temp_run);
             cost += RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);
@@ -2643,7 +2643,7 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
 #if ADMVP
 #if M49023_ADMVP_IMPROVE
     if (ctx->sps.tool_admvp == 0)
-        evc_get_motion_skip_baseline(ctx->tgh.tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, pi->refi_pred, pi->mvp, core->avail_cu
+        evc_get_motion_skip_baseline(ctx->sh.tile_group_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, pi->refi_pred, pi->mvp, core->avail_cu
         );
     else
 #endif
@@ -2661,7 +2661,7 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
 #endif
 #if M49023_ADMVP_IMPROVE
             , (EVC_REFP(*)[2])ctx->refp[0]
-            , &ctx->tgh
+            , &ctx->sh
 #endif
         );
 #endif
@@ -2682,7 +2682,7 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
         mvp[REFP_1][MV_X] = pi->mvp[REFP_1][idx0][MV_X];
         mvp[REFP_1][MV_Y] = pi->mvp[REFP_1][idx0][MV_Y];
 
-        SET_REFI(refi, pi->refi_pred[REFP_0][idx0], ctx->tgh.tile_group_type == TILE_GROUP_B ? pi->refi_pred[REFP_1][idx0] : REFI_INVALID);
+        SET_REFI(refi, pi->refi_pred[REFP_0][idx0], ctx->sh.tile_group_type == TILE_GROUP_B ? pi->refi_pred[REFP_1][idx0] : REFI_INVALID);
         if(!REFI_IS_VALID(refi[REFP_0]) && !REFI_IS_VALID(refi[REFP_1]))
         {
             continue;
@@ -2883,7 +2883,7 @@ static double analyze_skip_mmvd(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, 
         pi->refi[PRED_SKIP_MMVD][0] = real_mv[c_num][0][2];
         pi->refi[PRED_SKIP_MMVD][1] = real_mv[c_num][1][2];
 
-        SET_REFI(refi, real_mv[c_num][0][2], ctx->tgh.tile_group_type == TILE_GROUP_B ? real_mv[c_num][1][2] : REFI_INVALID);
+        SET_REFI(refi, real_mv[c_num][0][2], ctx->sh.tile_group_type == TILE_GROUP_B ? real_mv[c_num][1][2] : REFI_INVALID);
         if(!REFI_IS_VALID(refi[REFP_0]) && !REFI_IS_VALID(refi[REFP_1]))
         {
             continue;
@@ -2928,7 +2928,7 @@ static double analyze_skip_mmvd(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, 
         SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
 
         evce_sbac_bit_reset(&core->s_temp_run);
-        evce_rdo_bit_cnt_cu_skip(ctx, core, ctx->tgh.tile_group_type, core->scup, 0, 0, c_num, ctx->sps.tool_mmvd);
+        evce_rdo_bit_cnt_cu_skip(ctx, core, ctx->sh.tile_group_type, core->scup, 0, 0, c_num, ctx->sps.tool_mmvd);
         bit_cnt = evce_get_bit_number(&core->s_temp_run);
         cost += RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);
 
@@ -3000,7 +3000,7 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 #endif
 
     pidx = PRED_DIR_MMVD;
-    SET_REFI(pi->refi[pidx], 0, ctx->tgh.tile_group_type == TILE_GROUP_B ? 0 : REFI_INVALID);
+    SET_REFI(pi->refi[pidx], 0, ctx->sh.tile_group_type == TILE_GROUP_B ? 0 : REFI_INVALID);
 
     for (i = 0; i < MMVD_SKIP_CON_NUM; i++)
     {
@@ -3032,7 +3032,7 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
     for (moving_index = 0; moving_index < 3 * t_base_num; moving_index++)
     {
         c_num = current_array[moving_index];
-        if ((moving_index >= t_base_num) && (!(ctx->tgh.mmvd_group_enable_flag) || ((1 << core->log2_cuw)*(1 << core->log2_cuh) <= NUM_SAMPLES_BLOCK)))
+        if ((moving_index >= t_base_num) && (!(ctx->sh.mmvd_group_enable_flag) || ((1 << core->log2_cuw)*(1 << core->log2_cuh) <= NUM_SAMPLES_BLOCK)))
         {
             continue;
         }
@@ -3049,7 +3049,7 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         pi->refi[pidx][0] = real_mv[c_num][0][2];
         pi->refi[pidx][1] = real_mv[c_num][1][2];
 
-        SET_REFI(refi, real_mv[c_num][0][2], ctx->tgh.tile_group_type == TILE_GROUP_B ? real_mv[c_num][1][2] : REFI_INVALID);
+        SET_REFI(refi, real_mv[c_num][0][2], ctx->sh.tile_group_type == TILE_GROUP_B ? real_mv[c_num][1][2] : REFI_INVALID);
         if (!REFI_IS_VALID(refi[REFP_0]) && !REFI_IS_VALID(refi[REFP_1]))
         {
             continue;
@@ -3144,7 +3144,7 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         pi->refi[pidx][0] = real_mv[c_num][0][2];
         pi->refi[pidx][1] = real_mv[c_num][1][2];
 
-        SET_REFI(refi, real_mv[c_num][0][2], ctx->tgh.tile_group_type == TILE_GROUP_B ? real_mv[c_num][1][2] : REFI_INVALID);
+        SET_REFI(refi, real_mv[c_num][0][2], ctx->sh.tile_group_type == TILE_GROUP_B ? real_mv[c_num][1][2] : REFI_INVALID);
         if (!REFI_IS_VALID(refi[REFP_0]) && !REFI_IS_VALID(refi[REFP_1]))
         {
             continue;
@@ -3245,7 +3245,7 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         pi->refi[pidx][0] = real_mv[c_num][0][2];
         pi->refi[pidx][1] = real_mv[c_num][1][2];
 
-        SET_REFI(refi, real_mv[c_num][0][2], ctx->tgh.tile_group_type == TILE_GROUP_B ? real_mv[c_num][1][2] : REFI_INVALID);
+        SET_REFI(refi, real_mv[c_num][0][2], ctx->sh.tile_group_type == TILE_GROUP_B ? real_mv[c_num][1][2] : REFI_INVALID);
         if (!REFI_IS_VALID(refi[REFP_0]) && !REFI_IS_VALID(refi[REFP_1]))
         {
             continue;
@@ -3346,7 +3346,7 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         pi->refi[pidx][0] = real_mv[c_num][0][2];
         pi->refi[pidx][1] = real_mv[c_num][1][2];
 
-        SET_REFI(refi, real_mv[c_num][0][2], ctx->tgh.tile_group_type == TILE_GROUP_B ? real_mv[c_num][1][2] : REFI_INVALID);
+        SET_REFI(refi, real_mv[c_num][0][2], ctx->sh.tile_group_type == TILE_GROUP_B ? real_mv[c_num][1][2] : REFI_INVALID);
         if (!REFI_IS_VALID(refi[REFP_0]) && !REFI_IS_VALID(refi[REFP_1]))
         {
             continue;
@@ -3448,7 +3448,7 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         pi->refi[pidx][0] = real_mv[c_num][0][2];
         pi->refi[pidx][1] = real_mv[c_num][1][2];
 
-        SET_REFI(refi, real_mv[c_num][0][2], ctx->tgh.tile_group_type == TILE_GROUP_B ? real_mv[c_num][1][2] : REFI_INVALID);
+        SET_REFI(refi, real_mv[c_num][0][2], ctx->sh.tile_group_type == TILE_GROUP_B ? real_mv[c_num][1][2] : REFI_INVALID);
         if(!REFI_IS_VALID(refi[REFP_0]) && !REFI_IS_VALID(refi[REFP_1]))
         {
             continue;
@@ -3491,7 +3491,7 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         pi->refi[pidx][0] = real_mv[c_num][0][2];
         pi->refi[pidx][1] = real_mv[c_num][1][2];
 
-        SET_REFI(refi, real_mv[c_num][0][2], ctx->tgh.tile_group_type == TILE_GROUP_B ? real_mv[c_num][1][2] : REFI_INVALID);
+        SET_REFI(refi, real_mv[c_num][0][2], ctx->sh.tile_group_type == TILE_GROUP_B ? real_mv[c_num][1][2] : REFI_INVALID);
         if(!REFI_IS_VALID(refi[REFP_0]) && !REFI_IS_VALID(refi[REFP_1]))
         {
             continue;
@@ -5441,7 +5441,7 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
             SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
 
             evce_sbac_bit_reset(&core->s_temp_run);
-            evce_rdo_bit_cnt_cu_skip(ctx, core, ctx->tgh.tile_group_type, core->scup, idx, 0, 0, ctx->sps.tool_mmvd);
+            evce_rdo_bit_cnt_cu_skip(ctx, core, ctx->sh.tile_group_type, core->scup, idx, 0, 0, ctx->sps.tool_mmvd);
 
             bit_cnt = evce_get_bit_number(&core->s_temp_run);
             cost += RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);
@@ -5829,7 +5829,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                               , core->history_buffer, ctx->sps.tool_admvp
 #endif
 #if M49023_ADMVP_IMPROVE 
-            , &ctx->tgh
+            , &ctx->sh
 #endif
         );
     }
@@ -6761,7 +6761,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
         {
             const int s_mod = pi->s_m[Y_C];
             u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu);
-            evc_htdf(rec[i], ctx->tgh.qp, cuw, cuh, cuw, FALSE, pi->m[Y_C] + (y * s_mod) + x, s_mod, avail_cu);
+            evc_htdf(rec[i], ctx->sh.qp, cuw, cuh, cuw, FALSE, pi->m[Y_C] + (y * s_mod) + x, s_mod, avail_cu);
         }
 #endif
         core->nnz[i] = pi->nnz_best[best_idx][i];

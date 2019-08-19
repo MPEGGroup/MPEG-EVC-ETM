@@ -278,7 +278,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                            , EVC_HISTORY_BUFFER history_buffer, int admvp_flag
 #endif
 #if M49023_ADMVP_IMPROVE 
-    , EVC_SH* tgh
+    , EVC_SH* sh
 #endif
 )
 {
@@ -367,7 +367,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 #endif
 #if M49023_ADMVP_IMPROVE
             , (EVC_REFP(*)[2])refp
-            , tgh
+            , sh
 #endif
         );
 #endif
@@ -1959,7 +1959,7 @@ void evc_get_motion_merge_main(int ptr, int tile_group_type, int scup, s8(*map_r
 #endif
     , EVC_REFP(*refplx)[REFP_NUM]
 #if M49023_ADMVP_IMPROVE 
-    , EVC_SH* tgh
+    , EVC_SH* sh
 #endif
 )
 {
@@ -2062,7 +2062,7 @@ void evc_get_motion_merge_main(int ptr, int tile_group_type, int scup, s8(*map_r
             refplx,
             ptr, scup + ((cuw >> 1) >> MIN_CU_LOG2) + ((cuh >> 1) >> MIN_CU_LOG2) * w_scu, scup, w_scu, h_scu, tmvp, &availablePredIdx
 #if M49023_ADMVP_IMPROVE 
-            , tgh
+            , sh
 #endif
         );
         if ((availablePredIdx == 1) || (availablePredIdx == 3))
@@ -2117,7 +2117,7 @@ void evc_get_motion_merge_main(int ptr, int tile_group_type, int scup, s8(*map_r
                 refplx,
                 ptr, scup_tmp, scup, w_scu, h_scu, tmvp, &availablePredIdx
 #if M49023_ADMVP_IMPROVE 
-                , tgh
+                , sh
 #endif
             );
             if ((availablePredIdx == 1) || (availablePredIdx == 3))
@@ -2172,7 +2172,7 @@ void evc_get_motion_merge_main(int ptr, int tile_group_type, int scup, s8(*map_r
                 refplx,
                 ptr, scup_tmp, scup, w_scu, h_scu, tmvp, &availablePredIdx
 #if M49023_ADMVP_IMPROVE 
-                , tgh
+                , sh
 #endif
             );
             if ((availablePredIdx == 1) || (availablePredIdx == 3))
@@ -5445,21 +5445,21 @@ void evc_get_mv_collocated(
     , u32 ptr, int scup, int c_scu, u16 w_scu, u16 h_scu, s16 mvp[REFP_NUM][MV_D]
     , s8 *availablePredIdx
 #if M49023_ADMVP_IMPROVE 
-    , EVC_SH* tgh
+    , EVC_SH* sh
 #endif
 )
 {
     *availablePredIdx = 0;
 #if M49023_ADMVP_IMPROVE
-    int temporal_mvp_asigned_flag = tgh->temporal_mvp_asigned_flag;
-    int collocated_from_list_idx = (tgh->tile_group_type == TILE_GROUP_P) ? REFP_0 : REFP_1;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
+    int temporal_mvp_asigned_flag = sh->temporal_mvp_asigned_flag;
+    int collocated_from_list_idx = (sh->tile_group_type == TILE_GROUP_P) ? REFP_0 : REFP_1;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
     int collocated_from_ref_idx = 0;        // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
     int collocated_mvp_source_list_idx = REFP_0;  // Specifies source (List ID) in collocated pic that provides MV information (Applicability is function of NoBackwardPredFlag)
-    if (tgh->temporal_mvp_asigned_flag)
+    if (sh->temporal_mvp_asigned_flag)
     {
-        collocated_from_list_idx = tgh->collocated_from_list_idx;
-        collocated_from_ref_idx = tgh->collocated_from_ref_idx;
-        collocated_mvp_source_list_idx = tgh->collocated_mvp_source_list_idx;
+        collocated_from_list_idx = sh->collocated_from_list_idx;
+        collocated_from_ref_idx = sh->collocated_from_ref_idx;
+        collocated_mvp_source_list_idx = sh->collocated_mvp_source_list_idx;
     }
 #else
     int collocated_from_list_idx = REFP_1;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag

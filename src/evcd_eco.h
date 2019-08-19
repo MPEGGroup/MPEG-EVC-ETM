@@ -50,7 +50,7 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps);
 int evcd_eco_aps(EVC_BSR * bs, EVC_APS * aps);
 int evcd_eco_alf_aps_param(EVC_BSR * bs, EVC_APS * aps);
 #endif
-int evcd_eco_tgh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * tgh);
+int evcd_eco_tgh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh);
 
 int evcd_eco_udata(EVCD_CTX * ctx, EVC_BSR * bs);
 void evcd_eco_sbac_reset(EVC_BSR * bs, u8 tile_group_type, u8 tile_group_qp, int sps_cm_init_flag);

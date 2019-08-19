@@ -35,8 +35,8 @@
 #define _EVC_PICMAN_H_
 
  /*Declaration for ref pic marking and ref pic list construction functions */
-int evc_picman_refp_rpl_based_init(EVC_PM *pm, EVC_SH *tgh, EVC_REFP(*refp)[REFP_NUM]);
-int evc_picman_refpic_marking(EVC_PM *pm, EVC_SH *tgh);
+int evc_picman_refp_rpl_based_init(EVC_PM *pm, EVC_SH *sh, EVC_REFP(*refp)[REFP_NUM]);
+int evc_picman_refpic_marking(EVC_PM *pm, EVC_SH *sh);
 
 int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int tile_group_type, u32 ptr, u8 layer_id, int last_intra, EVC_REFP (*refp)[REFP_NUM]);
 

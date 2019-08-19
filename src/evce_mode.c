@@ -382,7 +382,7 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_
                 if((pidx == PRED_DIR_MMVD))
                 {
 #if M48879_IMPROVEMENT_INTER
-                    evce_eco_mmvd_info(&core->bs_temp, pi->mmvd_idx[pidx], ctx->tgh.mmvd_group_enable_flag && !((1 << core->log2_cuw)*(1 << core->log2_cuh) <= NUM_SAMPLES_BLOCK));
+                    evce_eco_mmvd_info(&core->bs_temp, pi->mmvd_idx[pidx], ctx->sh.mmvd_group_enable_flag && !((1 << core->log2_cuw)*(1 << core->log2_cuh) <= NUM_SAMPLES_BLOCK));
 #else
                     evce_eco_mmvd_info(&core->bs_temp, pi->mmvd_idx[pidx], !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr));
 #endif
@@ -413,7 +413,7 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_
                 if((pidx == PRED_DIR_MMVD))
                 {
 #if M48879_IMPROVEMENT_INTER
-                    evce_eco_mmvd_info(&core->bs_temp, pi->mmvd_idx[pidx], ctx->tgh.mmvd_group_enable_flag && !((1 << core->log2_cuw)*(1 << core->log2_cuh) <= NUM_SAMPLES_BLOCK));
+                    evce_eco_mmvd_info(&core->bs_temp, pi->mmvd_idx[pidx], ctx->sh.mmvd_group_enable_flag && !((1 << core->log2_cuw)*(1 << core->log2_cuh) <= NUM_SAMPLES_BLOCK));
 #else
                     evce_eco_mmvd_info(&core->bs_temp, pi->mmvd_idx[pidx], !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr));
 #endif
@@ -610,7 +610,7 @@ void evce_rdo_bit_cnt_cu_skip(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_t
         if(core->mmvd_flag)
         {
 #if M48879_IMPROVEMENT_INTER
-            evce_eco_mmvd_info(&core->bs_temp, c_num, ctx->tgh.mmvd_group_enable_flag && !((1 << core->log2_cuw)*(1 << core->log2_cuh) <= NUM_SAMPLES_BLOCK));
+            evce_eco_mmvd_info(&core->bs_temp, c_num, ctx->sh.mmvd_group_enable_flag && !((1 << core->log2_cuw)*(1 << core->log2_cuh) <= NUM_SAMPLES_BLOCK));
 #else
             evce_eco_mmvd_info(&core->bs_temp, c_num, !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr));
 #endif
@@ -1416,7 +1416,7 @@ static void copy_to_cu_data(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi, s16 c
             cu_data->qp_y[idx + i] = core->qp_y;
             cu_data->qp_u[idx + i] = core->qp_u;
             cu_data->qp_v[idx + i] = core->qp_v;
-            MCU_SET_IF_COD_SN_QP(cu_data->map_scu[idx + i], core->cu_mode == MODE_INTRA, ctx->tile_group_num, ctx->tgh.qp);
+            MCU_SET_IF_COD_SN_QP(cu_data->map_scu[idx + i], core->cu_mode == MODE_INTRA, ctx->tile_group_num, ctx->sh.qp);
             if(cu_data->skip_flag[idx + i])
             {
                 MCU_SET_SF(cu_data->map_scu[idx + i]);
@@ -1900,7 +1900,7 @@ void evce_init_bef_data(EVCE_CORE* core, EVCE_CTX* ctx)
             }
             else
             {
-                if(ALLOW_SPLIT_RATIO(ctx->tgh.layer_id, max(m1, m2) + 2, abs(m1 - m2)) || boundary_CTU)
+                if(ALLOW_SPLIT_RATIO(ctx->sh.layer_id, max(m1, m2) + 2, abs(m1 - m2)) || boundary_CTU)
                 {
                     evc_mset(&core->bef_data[m1][m2][0][0], 0, sizeof(EVCE_BEF_DATA) * NUM_NEIB * max_size);
                 }
@@ -1933,7 +1933,7 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 
     core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, (1 << log2_cuw), (1 << log2_cuh), ctx->w_scu, ctx->h_scu, ctx->map_scu);
 
-    evc_get_ctx_some_flags(core->x_scu, core->y_scu, 1 << log2_cuw, 1 << log2_cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->tgh.tile_group_type, ctx->sps.tool_cm_init
+    evc_get_ctx_some_flags(core->x_scu, core->y_scu, 1 << log2_cuw, 1 << log2_cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->sh.tile_group_type, ctx->sps.tool_cm_init
 #if IBC
       , ctx->param.use_ibc_flag, ctx->sps.ibc_log_max_size
 #endif
@@ -2452,7 +2452,7 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
     u8 ats_inter_pos = get_ats_inter_pos(ats_inter_info);
 #endif
 
-    if(ctx->tgh.deblocking_filter_on)
+    if(ctx->sh.deblocking_filter_on)
     {
         do_filter = 1;
     }
@@ -2622,7 +2622,7 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
                     ctx->map_mv[k][REFP_1][MV_X] = mv[REFP_1][MV_X];
                     ctx->map_mv[k][REFP_1][MV_Y] = mv[REFP_1][MV_Y];
                 }
-                MCU_SET_QP(ctx->map_scu[k], ctx->tgh.qp); //TODO: this is wrong when using cu delta qp
+                MCU_SET_QP(ctx->map_scu[k], ctx->sh.qp); //TODO: this is wrong when using cu delta qp
 
                 //clear coded (necessary)
                 MCU_CLR_COD(ctx->map_scu[k]);
@@ -2975,7 +2975,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
         /***************************** Step 1: decide normatively allowed split modes ********************************/
         int boundary_b = boundary && (y0 + cuh > ctx->h) && !(x0 + cuw > ctx->w);
         int boundary_r = boundary && (x0 + cuw > ctx->w) && !(y0 + cuh > ctx->h);
-        evc_check_split_mode(split_allow, log2_cuw, log2_cuh, boundary, boundary_b, boundary_r, ctx->log2_max_cuwh, ctx->tgh.layer_id
+        evc_check_split_mode(split_allow, log2_cuw, log2_cuh, boundary, boundary_b, boundary_r, ctx->log2_max_cuwh, ctx->sh.layer_id
                              , parent_split, same_layer_split, node_idx, parent_split_allow, qt_depth, btt_depth
                              , x0, y0, ctx->w, ctx->h
                              , &remaining_split, ctx->sps.sps_btt_flag);
@@ -3142,7 +3142,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
         next_split = 0;
     }
 
-    if(cost_best != MAX_COST && ctx->tgh.tile_group_type == TILE_GROUP_I
+    if(cost_best != MAX_COST && ctx->sh.tile_group_type == TILE_GROUP_I
 #if IBC
       && core->ibc_flag != 1
 #endif

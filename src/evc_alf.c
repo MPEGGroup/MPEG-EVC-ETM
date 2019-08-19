@@ -143,7 +143,7 @@ void store_dec_aps_to_buffer(EVCD_CTX * ctx)
     alfTileGroupParam.prevIdx = iAlfTileGroupParam.prevIdx;
     alfTileGroupParam.tLayer = iAlfTileGroupParam.tLayer;
     alfTileGroupParam.temporalAlfFlag = (iAlfTileGroupParam.temporalAlfFlag);
-    const unsigned tidx = ctx->tgh.layer_id;
+    const unsigned tidx = ctx->sh.layer_id;
 
 #if APS_ALF_SEQ_FIX
     // Initialize un-used variables at the decoder side  TODO: Modify structure
@@ -166,15 +166,15 @@ void call_dec_alf_process_aps(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * p
     memset(alfTileGroupParam.alfCtuEnableFlag, 0, N_C * ctx->f_lcu * sizeof(u8));
 #endif
     // load filter from buffer
-    u8 idx = ctx->tgh.aps_signaled;
+    u8 idx = ctx->sh.aps_signaled;
     load_alf_paramline_from_aps_buffer(&(alfTileGroupParam), idx);
 
     // load filter map buffer
-    alfTileGroupParam.isCtbAlfOn = ctx->tgh.alf_tgh_param.isCtbAlfOn;
+    alfTileGroupParam.isCtbAlfOn = ctx->sh.alf_tgh_param.isCtbAlfOn;
 #if ALF_CTU_MAP_DYNAMIC
-    memcpy(alfTileGroupParam.alfCtuEnableFlag, ctx->tgh.alf_tgh_param.alfCtuEnableFlag, N_C * ctx->f_lcu * sizeof(u8));
+    memcpy(alfTileGroupParam.alfCtuEnableFlag, ctx->sh.alf_tgh_param.alfCtuEnableFlag, N_C * ctx->f_lcu * sizeof(u8));
 #else
-    memcpy(alfTileGroupParam.alfCtuEnableFlag, ctx->tgh.alf_tgh_param.alfCtuEnableFlag, 3 * 512 * sizeof(u8));
+    memcpy(alfTileGroupParam.alfCtuEnableFlag, ctx->sh.alf_tgh_param.alfCtuEnableFlag, 3 * 512 * sizeof(u8));
 #endif
     ALFProcess(p, &cs, &alfTileGroupParam);
 }
@@ -187,7 +187,7 @@ void call_ALFProcess(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic)
     cs.pPic = pic;
 
     AlfTileGroupParam alfTileGroupParam;
-    evc_AlfTileGroupParam iAlfTileGroupParam = ctx->tgh.alf_tgh_param;
+    evc_AlfTileGroupParam iAlfTileGroupParam = ctx->sh.alf_tgh_param;
 #if ALF_CTU_MAP_DYNAMIC
     alfTileGroupParam.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
     memset(alfTileGroupParam.alfCtuEnableFlag, 0, N_C * ctx->f_lcu * sizeof(u8));
@@ -220,7 +220,7 @@ void call_ALFProcess(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic)
     alfTileGroupParam.prevIdx = iAlfTileGroupParam.prevIdx;
     alfTileGroupParam.tLayer  = iAlfTileGroupParam.tLayer;
     alfTileGroupParam.temporalAlfFlag = ( iAlfTileGroupParam.temporalAlfFlag );
-    const unsigned tidx = ctx->tgh.layer_id;
+    const unsigned tidx = ctx->sh.layer_id;
 
 
     alfTileGroupParam.resetALFBufferFlag = ( iAlfTileGroupParam.resetALFBufferFlag );
@@ -237,7 +237,7 @@ void call_ALFProcess(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic)
         m_lastRasPoc = INT_MAX;
         m_pendingRasInit = TRUE;
     }
-    if( ctx->tgh.tile_group_type == TILE_GROUP_I )
+    if( ctx->sh.tile_group_type == TILE_GROUP_I )
         m_lastRasPoc = ctx->ptr;
 
     if( m_pendingRasInit )
@@ -257,7 +257,7 @@ void call_ALFProcess(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic)
         m_lastRasPoc = INT_MAX;
         m_pendingRasInit = TRUE;
     }
-    if( ctx->tgh.tile_group_type == TILE_GROUP_I )
+    if( ctx->sh.tile_group_type == TILE_GROUP_I )
         m_lastRasPoc = ctx->ptr;
 
     if( m_pendingRasInit )

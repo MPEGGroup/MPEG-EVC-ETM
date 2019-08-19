@@ -785,7 +785,7 @@ struct _EVCE_CTX
     u8                    aps_temp;
 #endif
     /* slice header */
-    EVC_SH                tgh;
+    EVC_SH                sh;
     /* reference picture manager */
     EVC_PM                rpm;
     /* create descriptor */
@@ -955,9 +955,9 @@ struct _EVCE_CTX
 #if ALF
     void* enc_alf;
 #if ALF_PARAMETER_APS
-    int(*fn_alf)(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* tgh, EVC_APS* aps);
+    int(*fn_alf)(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh, EVC_APS* aps);
 #else
-    int (*fn_alf)(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* tgh);
+    int (*fn_alf)(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh);
 #endif
 #endif
 

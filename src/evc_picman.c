@@ -357,9 +357,9 @@ int evc_picman_refp_reorder(EVC_PM *pm, int num_ref_pics_act, u8 tile_group_type
 }
 
 //This is implementation of reference picture list construction based on RPL. This is meant to replace function int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int tile_group_type, u32 ptr, u8 layer_id, int last_intra, EVC_REFP(*refp)[REFP_NUM])
-int evc_picman_refp_rpl_based_init(EVC_PM *pm, EVC_SH *tgh, EVC_REFP(*refp)[REFP_NUM])
+int evc_picman_refp_rpl_based_init(EVC_PM *pm, EVC_SH *sh, EVC_REFP(*refp)[REFP_NUM])
 {
-    if (tgh->tile_group_type == TILE_GROUP_I)
+    if (sh->tile_group_type == TILE_GROUP_I)
     {
         return EVC_OK;
     }
@@ -372,9 +372,9 @@ int evc_picman_refp_rpl_based_init(EVC_PM *pm, EVC_SH *tgh, EVC_REFP(*refp)[REFP
     pm->num_refp[REFP_0] = pm->num_refp[REFP_1] = 0;
 
     //Do the L0 first
-    for (int i = 0; i < tgh->rpl_l0.ref_pic_active_num; i++)
+    for (int i = 0; i < sh->rpl_l0.ref_pic_active_num; i++)
     {
-        int refPicPoc = tgh->poc - tgh->rpl_l0.ref_pics[i];
+        int refPicPoc = sh->poc - sh->rpl_l0.ref_pics[i];
         //Find the ref pic in the DPB
         int j = 0;
         while (j < pm->cur_num_ref_pics && pm->pic_ref[j]->ptr != refPicPoc) j++;
@@ -389,12 +389,12 @@ int evc_picman_refp_rpl_based_init(EVC_PM *pm, EVC_SH *tgh, EVC_REFP(*refp)[REFP
             return EVC_ERR;   //The refence picture must be available in the DPB, if not found then there is problem
     }
 
-    if (tgh->tile_group_type == TILE_GROUP_P) return EVC_OK;
+    if (sh->tile_group_type == TILE_GROUP_P) return EVC_OK;
 
     //Do the L1 first
-    for (int i = 0; i < tgh->rpl_l1.ref_pic_active_num; i++)
+    for (int i = 0; i < sh->rpl_l1.ref_pic_active_num; i++)
     {
-        int refPicPoc = tgh->poc - tgh->rpl_l1.ref_pics[i];
+        int refPicPoc = sh->poc - sh->rpl_l1.ref_pics[i];
         //Find the ref pic in the DPB
         int j = 0;
         while (j < pm->cur_num_ref_pics && pm->pic_ref[j]->ptr != refPicPoc) j++;
@@ -754,10 +754,10 @@ ERR:
 }
 
 /*This is the implementation of reference picture marking based on RPL*/
-int evc_picman_refpic_marking(EVC_PM *pm, EVC_SH *tgh)
+int evc_picman_refpic_marking(EVC_PM *pm, EVC_SH *sh)
 {
     picman_update_pic_ref(pm);
-    if (tgh->tile_group_type != TILE_GROUP_I && tgh->poc != 0)
+    if (sh->tile_group_type != TILE_GROUP_I && sh->poc != 0)
         evc_assert_rv(pm->cur_num_ref_pics > 0, EVC_ERR_UNEXPECTED);
 
     EVC_PIC * pic;
@@ -770,9 +770,9 @@ int evc_picman_refpic_marking(EVC_PM *pm, EVC_SH *tgh)
             //If the pic in the DPB is a reference picture, check if this pic is included in RPL0
             int isIncludedInRPL = 0;
             int j = 0;
-            while (!isIncludedInRPL && j < tgh->rpl_l0.ref_pic_num)
+            while (!isIncludedInRPL && j < sh->rpl_l0.ref_pic_num)
             {
-                if (pic->ptr == (tgh->poc - tgh->rpl_l0.ref_pics[j]))  //NOTE: we need to put POC also in EVC_PIC
+                if (pic->ptr == (sh->poc - sh->rpl_l0.ref_pics[j]))  //NOTE: we need to put POC also in EVC_PIC
                 {
                     isIncludedInRPL = 1;
                 }
@@ -780,9 +780,9 @@ int evc_picman_refpic_marking(EVC_PM *pm, EVC_SH *tgh)
             }
             //Check if the pic is included in RPL1. This while loop will be executed only if the ref pic is not included in RPL0
             j = 0;
-            while (!isIncludedInRPL && j < tgh->rpl_l1.ref_pic_num)
+            while (!isIncludedInRPL && j < sh->rpl_l1.ref_pic_num)
             {
-                if (pic->ptr == (tgh->poc - tgh->rpl_l1.ref_pics[j]))
+                if (pic->ptr == (sh->poc - sh->rpl_l1.ref_pics[j]))
                 {
                     isIncludedInRPL = 1;
                 }

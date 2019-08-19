@@ -917,7 +917,7 @@ void evcd_eco_mmvd_data(EVCD_CTX * ctx, EVCD_CORE * core)
     EVCD_SBAC *sbac;
     EVC_BSR   *bs;
 #if M48879_IMPROVEMENT_INTER
-    int        type = ctx->tgh.mmvd_group_enable_flag && !(1 << (core->log2_cuw + core->log2_cuh) <= NUM_SAMPLES_BLOCK);
+    int        type = ctx->sh.mmvd_group_enable_flag && !(1 << (core->log2_cuw + core->log2_cuh) <= NUM_SAMPLES_BLOCK);
 #else
     int        type = !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr);
 #endif
@@ -1579,7 +1579,7 @@ s8 evcd_eco_split_mode(EVCD_CTX * c, EVC_BSR *bs, EVCD_SBAC *sbac, int cuw, int 
         return split_mode;
     }
 
-    evc_check_split_mode(split_allow, CONV_LOG2(cuw), CONV_LOG2(cuh), 0, 0, 0, c->log2_max_cuwh, c->tgh.layer_id
+    evc_check_split_mode(split_allow, CONV_LOG2(cuw), CONV_LOG2(cuh), 0, 0, 0, c->log2_max_cuwh, c->sh.layer_id
                           , parent_split, same_layer_split, node_idx, parent_split_allow, qt_depth, btt_depth
                           , x, y, c->w, c->h
                           , NULL, c->sps.sps_btt_flag);
@@ -1829,9 +1829,9 @@ void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
 
     /* get pred_mode */
 #if IBC
-    if (ctx->tgh.tile_group_type != TILE_GROUP_I && !(!ctx->sps.ibc_flag && ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
+    if (ctx->sh.tile_group_type != TILE_GROUP_I && !(!ctx->sps.ibc_flag && ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
 #else
-    if (ctx->tgh.tile_group_type != TILE_GROUP_I && !(ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
+    if (ctx->sh.tile_group_type != TILE_GROUP_I && !(ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
 #endif
     {
         core->pred_mode = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.pred_mode + ctx->ctx_flags[CNID_PRED_MODE]) ? MODE_INTRA : MODE_INTER;
@@ -1857,7 +1857,7 @@ void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
         EVC_TRACE_STR("\n");
     }
 #if IBC
-    else if (ctx->tgh.tile_group_type == TILE_GROUP_I && ctx->sps.ibc_flag)
+    else if (ctx->sh.tile_group_type == TILE_GROUP_I && ctx->sps.ibc_flag)
     {
         core->pred_mode = MODE_INTRA;
         core->mmvd_flag = 0;
@@ -1947,9 +1947,9 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
     core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu);
   
 #if IBC
-    if (ctx->tgh.tile_group_type != TILE_GROUP_I && !(ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
+    if (ctx->sh.tile_group_type != TILE_GROUP_I && !(ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
 #else
-    if (ctx->tgh.tile_group_type != TILE_GROUP_I && !(ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
+    if (ctx->sh.tile_group_type != TILE_GROUP_I && !(ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
 #endif
     {
         /* CU skip flag */
@@ -1984,7 +1984,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
 #endif
             {
                 core->mvp_idx[REFP_0] = evcd_eco_mvp_idx(bs, sbac, ctx->sps.tool_amis);
-                if (ctx->sps.tool_amis == 0 && ctx->tgh.tile_group_type == TILE_GROUP_B)
+                if (ctx->sps.tool_amis == 0 && ctx->sh.tile_group_type == TILE_GROUP_B)
                 {
                     core->mvp_idx[REFP_1] = evcd_eco_mvp_idx(bs, sbac, ctx->sps.tool_amis);
                 }
@@ -2009,9 +2009,9 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                 core->mvr_idx = evcd_eco_mvr_idx(bs, sbac);
             }
 #if ADMVP
-            if ((ctx->tgh.tile_group_type == TILE_GROUP_P) || (ctx->sps.tool_amis == 1 && !check_bi_applicability_dec(ctx->tgh.tile_group_type, cuw, cuh)))
+            if ((ctx->sh.tile_group_type == TILE_GROUP_P) || (ctx->sps.tool_amis == 1 && !check_bi_applicability_dec(ctx->sh.tile_group_type, cuw, cuh)))
 #else
-            if (ctx->tgh.tile_group_type == TILE_GROUP_P)
+            if (ctx->sh.tile_group_type == TILE_GROUP_P)
 #endif
             {
                 if (ctx->sps.tool_amis == 0)
@@ -2047,7 +2047,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                     }
                 }
             }
-            else /* if(ctx->tgh.tile_group_type == TILE_GROUP_B) */
+            else /* if(ctx->sh.tile_group_type == TILE_GROUP_B) */
             {
                 if (ctx->sps.tool_amis == 0)
                 {
@@ -2779,9 +2779,9 @@ int evcd_eco_alf_aps_param(EVC_BSR * bs, EVC_APS * aps)
     return EVC_OK;
 }
 
-int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_SH * tgh)
+int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_SH * sh)
 {
-    evc_AlfTileGroupParam* alfTileGroupParam = &(tgh->alf_tgh_param);
+    evc_AlfTileGroupParam* alfTileGroupParam = &(sh->alf_tgh_param);
 
     //AlfTileGroupParam reset
     alfTileGroupParam->temporalAlfFlag = 0;
@@ -2814,7 +2814,7 @@ int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_SH * tgh)
 #if !APS_ALF_CTU_FLAG
     if (alfTileGroupParam->isCtbAlfOn)
     {
-        for (int i = 0; i < tgh->num_ctb; i++)
+        for (int i = 0; i < sh->num_ctb; i++)
 #if ALF_CTU_MAP_DYNAMIC
             *(alfTileGroupParam->alfCtuEnableFlag + i) = evc_bsr_read1(bs);
 #else
@@ -2825,9 +2825,9 @@ int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_SH * tgh)
     return EVC_OK;
 }
 #else
-int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_SH * tgh)
+int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_SH * sh)
 {
-    evc_AlfTileGroupParam* alfTileGroupParam = &(tgh->alf_tgh_param);
+    evc_AlfTileGroupParam* alfTileGroupParam = &(sh->alf_tgh_param);
     alfTileGroupParam->temporalAlfFlag = 0;
     alfTileGroupParam->prevIdx = 0;
     alfTileGroupParam->tLayer = 0;
@@ -2924,7 +2924,7 @@ int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_SH * tgh)
         }
     }
 
-    evcd_eco_alf_filter(bs, &(tgh->alf_tgh_param), FALSE);
+    evcd_eco_alf_filter(bs, &(sh->alf_tgh_param), FALSE);
     }
 
     if (alfChromaIdc) 
@@ -2932,7 +2932,7 @@ int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_SH * tgh)
         alfTileGroupParam->chromaCtbPresentFlag = (BOOL)evc_bsr_read1(bs); 
         if (!(alfTileGroupParam->temporalAlfFlag))
         {
-            evcd_eco_alf_filter(bs, &(tgh->alf_tgh_param), TRUE);
+            evcd_eco_alf_filter(bs, &(sh->alf_tgh_param), TRUE);
         }
     }
 
@@ -2940,7 +2940,7 @@ int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_SH * tgh)
     alfTileGroupParam->isCtbAlfOn = evc_bsr_read1(bs);
     if(alfTileGroupParam->isCtbAlfOn)
     {
-        for(int i = 0; i < tgh->num_ctb; i++)
+        for(int i = 0; i < sh->num_ctb; i++)
 #if ALF_CTU_MAP_DYNAMIC
             *(alfTileGroupParam->alfCtuEnableFlag + i) = evc_bsr_read1(bs);
 #else
@@ -2952,71 +2952,71 @@ int evcd_eco_alf_tgh_param(EVC_BSR * bs, EVC_SH * tgh)
 #endif
 #endif
 
-int evcd_eco_tgh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * tgh)
+int evcd_eco_tgh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
 {
     int NumTilesInTileGroup = 0;    //TBD according to the spec
 #if HLS_M47668
-    tgh->dtr = evc_bsr_read(bs, DTR_BIT_CNT);
-    tgh->layer_id = evc_bsr_read(bs, 3);
+    sh->dtr = evc_bsr_read(bs, DTR_BIT_CNT);
+    sh->layer_id = evc_bsr_read(bs, 3);
 #endif
 #if M49023_ADMVP_IMPROVE
-    tgh->temporal_mvp_asigned_flag = evc_bsr_read1(bs);
-    if (tgh->temporal_mvp_asigned_flag)
+    sh->temporal_mvp_asigned_flag = evc_bsr_read1(bs);
+    if (sh->temporal_mvp_asigned_flag)
     {
-        tgh->collocated_from_list_idx = evc_bsr_read1(bs);
-        tgh->collocated_from_ref_idx = evc_bsr_read1(bs);
-        tgh->collocated_mvp_source_list_idx = evc_bsr_read1(bs);
+        sh->collocated_from_list_idx = evc_bsr_read1(bs);
+        sh->collocated_from_ref_idx = evc_bsr_read1(bs);
+        sh->collocated_mvp_source_list_idx = evc_bsr_read1(bs);
     }
 #endif
-    tgh->tile_group_pic_parameter_set_id = evc_bsr_read_ue(bs);
-    tgh->single_tile_in_tile_group_flag = evc_bsr_read1(bs);
-    tgh->first_tile_id = evc_bsr_read(bs, pps->tile_id_len_minus1 + 1);
+    sh->tile_group_pic_parameter_set_id = evc_bsr_read_ue(bs);
+    sh->single_tile_in_tile_group_flag = evc_bsr_read1(bs);
+    sh->first_tile_id = evc_bsr_read(bs, pps->tile_id_len_minus1 + 1);
 
-    if (!tgh->single_tile_in_tile_group_flag)
+    if (!sh->single_tile_in_tile_group_flag)
     {
         if (pps->arbitrary_tile_group_present_flag)
         {
-            tgh->arbitrary_tile_group_flag = evc_bsr_read1(bs);
+            sh->arbitrary_tile_group_flag = evc_bsr_read1(bs);
         }
-        if (!tgh->arbitrary_tile_group_flag)
+        if (!sh->arbitrary_tile_group_flag)
         {
-            tgh->last_tile_id = evc_bsr_read(bs, pps->tile_id_len_minus1 + 1);
+            sh->last_tile_id = evc_bsr_read(bs, pps->tile_id_len_minus1 + 1);
         }
         else
         {
-            tgh->num_remaining_tiles_in_tile_group_minus1 = evc_bsr_read_ue(bs);
+            sh->num_remaining_tiles_in_tile_group_minus1 = evc_bsr_read_ue(bs);
             for (int i = 0; i < NumTilesInTileGroup - 1; ++i)
             {
-                tgh->delta_tile_id_minus1[i] = evc_bsr_read_ue(bs);
+                sh->delta_tile_id_minus1[i] = evc_bsr_read_ue(bs);
             }
         }
     }
 
-    tgh->tile_group_type = evc_bsr_read_ue(bs);
+    sh->tile_group_type = evc_bsr_read_ue(bs);
 #if M48879_IMPROVEMENT_INTER
-    if (sps->tool_mmvd && (tgh->tile_group_type == TILE_GROUP_B))
+    if (sps->tool_mmvd && (sh->tile_group_type == TILE_GROUP_B))
     {
-        tgh->mmvd_group_enable_flag = evc_bsr_read1(bs);
+        sh->mmvd_group_enable_flag = evc_bsr_read1(bs);
     }
     else
     {
-        tgh->mmvd_group_enable_flag = 0;
+        sh->mmvd_group_enable_flag = 0;
     }
 #endif
 #if ALF
     if (sps->tool_alf)
     {
-        tgh->alf_on = evc_bsr_read1(bs);
+        sh->alf_on = evc_bsr_read1(bs);
 #if ALF_PARAMETER_APS
-        if (tgh->alf_on)
+        if (sh->alf_on)
         {
-            tgh->aps_signaled = evc_bsr_read(bs, 5); // parse APS ID in tile group header
-            evcd_eco_alf_tgh_param(bs, tgh); // parse ALF map
+            sh->aps_signaled = evc_bsr_read(bs, 5); // parse APS ID in tile group header
+            evcd_eco_alf_tgh_param(bs, sh); // parse ALF map
         }
 #else
-        if (tgh->alf_on)
+        if (sh->alf_on)
         {
-            evcd_eco_alf_tgh_param(bs, tgh);
+            evcd_eco_alf_tgh_param(bs, sh);
         }
 #endif
     }
@@ -3027,15 +3027,15 @@ int evcd_eco_tgh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * tgh)
 #if HLS_M47668
         if (sps->tool_pocs)
         {
-            tgh->poc = evc_bsr_read(bs, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
+            sh->poc = evc_bsr_read(bs, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
         }
 #else
-        tgh->poc = evc_bsr_read(bs, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
+        sh->poc = evc_bsr_read(bs, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
 #endif
         if (sps->picture_num_present_flag)
         {
-            tgh->ref_pic_flag = evc_bsr_read1(bs);
-            tgh->picture_num = evc_bsr_read(bs, 8);
+            sh->ref_pic_flag = evc_bsr_read1(bs);
+            sh->picture_num = evc_bsr_read(bs, 8);
         }
     }
     // else 
@@ -3043,60 +3043,60 @@ int evcd_eco_tgh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * tgh)
         if (!sps->picture_num_present_flag)
         {
             //L0 candidates signaling
-            tgh->ref_pic_list_sps_flag[0] = sps->rpl_candidates_present_flag ? evc_bsr_read1(bs) : 0;
+            sh->ref_pic_list_sps_flag[0] = sps->rpl_candidates_present_flag ? evc_bsr_read1(bs) : 0;
 
-            if (tgh->ref_pic_list_sps_flag[0])
+            if (sh->ref_pic_list_sps_flag[0])
             {
                 if (sps->rpls_l0_num)
                 {
-                    tgh->rpl_l0_idx = evc_bsr_read_ue(bs);
-                    memcpy(&tgh->rpl_l0, &sps->rpls_l0[tgh->rpl_l0_idx], sizeof(tgh->rpl_l0)); //TBD: temporal workaround, consider refactoring
-                    tgh->rpl_l0.poc = tgh->poc;
+                    sh->rpl_l0_idx = evc_bsr_read_ue(bs);
+                    memcpy(&sh->rpl_l0, &sps->rpls_l0[sh->rpl_l0_idx], sizeof(sh->rpl_l0)); //TBD: temporal workaround, consider refactoring
+                    sh->rpl_l0.poc = sh->poc;
                 }
             }
             else
             {
-                evcd_eco_rlp(bs, &tgh->rpl_l0);
-                tgh->rpl_l0.poc = tgh->poc;
+                evcd_eco_rlp(bs, &sh->rpl_l0);
+                sh->rpl_l0.poc = sh->poc;
             }
 
             //L1 candidates signaling
-            tgh->ref_pic_list_sps_flag[1] = sps->rpl_candidates_present_flag ? evc_bsr_read1(bs) : 0;
+            sh->ref_pic_list_sps_flag[1] = sps->rpl_candidates_present_flag ? evc_bsr_read1(bs) : 0;
 
-            if (tgh->ref_pic_list_sps_flag[1])
+            if (sh->ref_pic_list_sps_flag[1])
             {
                 if (sps->rpls_l1_num)
                 {
-                    tgh->rpl_l1_idx = evc_bsr_read_ue(bs);
-                    memcpy(&tgh->rpl_l1, &sps->rpls_l1[tgh->rpl_l1_idx], sizeof(tgh->rpl_l1)); //TBD: temporal workaround, consider refactoring
-                    tgh->rpl_l1.poc = tgh->poc;
+                    sh->rpl_l1_idx = evc_bsr_read_ue(bs);
+                    memcpy(&sh->rpl_l1, &sps->rpls_l1[sh->rpl_l1_idx], sizeof(sh->rpl_l1)); //TBD: temporal workaround, consider refactoring
+                    sh->rpl_l1.poc = sh->poc;
                 }
             }
             else
             {
-                evcd_eco_rlp(bs, &tgh->rpl_l1);
-                tgh->rpl_l1.poc = tgh->poc;
+                evcd_eco_rlp(bs, &sh->rpl_l1);
+                sh->rpl_l1.poc = sh->poc;
             }
         }
     }
 
     if (!sps->picture_num_present_flag)
     {
-        if (tgh->tile_group_type != TILE_GROUP_I)
+        if (sh->tile_group_type != TILE_GROUP_I)
         {
-            tgh->num_ref_idx_active_override_flag = evc_bsr_read1(bs);
-            if (tgh->num_ref_idx_active_override_flag)
+            sh->num_ref_idx_active_override_flag = evc_bsr_read1(bs);
+            if (sh->num_ref_idx_active_override_flag)
             {
-                tgh->rpl_l0.ref_pic_active_num = (u32)evc_bsr_read_ue(bs) + 1;
-                if (tgh->tile_group_type == TILE_GROUP_B)
+                sh->rpl_l0.ref_pic_active_num = (u32)evc_bsr_read_ue(bs) + 1;
+                if (sh->tile_group_type == TILE_GROUP_B)
                 {
-                    tgh->rpl_l1.ref_pic_active_num = (u32)evc_bsr_read_ue(bs) + 1;
+                    sh->rpl_l1.ref_pic_active_num = (u32)evc_bsr_read_ue(bs) + 1;
                 }
             }
             else
             {
-                tgh->rpl_l0.ref_pic_active_num = 2;  //Temporarily i set it to 2. this should be set equal to the signalled num_ref_idx_default_active_minus1[0] + 1.
-                tgh->rpl_l1.ref_pic_active_num = 2;  //Temporarily i set it to 2. this should be set equal to the signalled num_ref_idx_default_active_minus1[1] + 1.
+                sh->rpl_l0.ref_pic_active_num = 2;  //Temporarily i set it to 2. this should be set equal to the signalled num_ref_idx_default_active_minus1[0] + 1.
+                sh->rpl_l1.ref_pic_active_num = 2;  //Temporarily i set it to 2. this should be set equal to the signalled num_ref_idx_default_active_minus1[1] + 1.
             }
             if (sps->picture_num_present_flag)
             {
@@ -3105,68 +3105,68 @@ int evcd_eco_tgh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * tgh)
         }
     }
 
-    tgh->deblocking_filter_on = evc_bsr_read1(bs);
+    sh->deblocking_filter_on = evc_bsr_read1(bs);
 #if M49023_DBF_IMPROVE
-    tgh->tgh_deblock_alpha_offset = evc_bsr_read_se(bs);
-    tgh->tgh_deblock_beta_offset = evc_bsr_read_se(bs);
+    sh->tgh_deblock_alpha_offset = evc_bsr_read_se(bs);
+    sh->tgh_deblock_beta_offset = evc_bsr_read_se(bs);
 #endif
-    tgh->qp = evc_bsr_read(bs, 6);
-    tgh->qp_u = tgh->qp - evc_bsr_read_se(bs);
-    tgh->qp_v = tgh->qp - evc_bsr_read_se(bs);
+    sh->qp = evc_bsr_read(bs, 6);
+    sh->qp_u = sh->qp - evc_bsr_read_se(bs);
+    sh->qp_v = sh->qp - evc_bsr_read_se(bs);
 
-    if (!tgh->single_tile_in_tile_group_flag)
+    if (!sh->single_tile_in_tile_group_flag)
     {
         for (int i = 0; i < NumTilesInTileGroup - 1; ++i)
         {
-            tgh->entry_point_offset_minus1[i] = evc_bsr_read(bs, pps->tile_offset_lens_minus1 + 1);
+            sh->entry_point_offset_minus1[i] = evc_bsr_read(bs, pps->tile_offset_lens_minus1 + 1);
         }
     }
 
 #if !HLS_M47668
-    tgh->dtr = evc_bsr_read(bs, DTR_BIT_CNT);
+    sh->dtr = evc_bsr_read(bs, DTR_BIT_CNT);
 #endif
-    tgh->keyframe = evc_bsr_read1(bs);
-    tgh->udata_exist = evc_bsr_read1(bs);
+    sh->keyframe = evc_bsr_read1(bs);
+    sh->udata_exist = evc_bsr_read1(bs);
 
-    if(tgh->tile_group_type!= TILE_GROUP_I)
+    if(sh->tile_group_type!= TILE_GROUP_I)
     {
         /* dptr: delta of presentation temporal reference */
-        tgh->dptr = evc_bsr_read_se(bs);
+        sh->dptr = evc_bsr_read_se(bs);
     }
 
-    tgh->poc = tgh->dtr + tgh->dptr;
+    sh->poc = sh->dtr + sh->dptr;
 #if !HLS_M47668
-    tgh->layer_id = evc_bsr_read(bs, 3);
+    sh->layer_id = evc_bsr_read(bs, 3);
 #endif
 
     /* parse MMCO */
-    tgh->mmco_on = evc_bsr_read1(bs);
-    if(tgh->mmco_on)
+    sh->mmco_on = evc_bsr_read1(bs);
+    if(sh->mmco_on)
     {
-        tgh->mmco.cnt = 0;
-        while(tgh->mmco.cnt < MAX_NUM_MMCO)
+        sh->mmco.cnt = 0;
+        while(sh->mmco.cnt < MAX_NUM_MMCO)
         {
-            evc_assert_rv(tgh->mmco.cnt < MAX_NUM_MMCO, EVC_ERR_MALFORMED_BITSTREAM);
+            evc_assert_rv(sh->mmco.cnt < MAX_NUM_MMCO, EVC_ERR_MALFORMED_BITSTREAM);
 
-            tgh->mmco.type[tgh->mmco.cnt] = evc_bsr_read_ue(bs);
-            if(tgh->mmco.type[tgh->mmco.cnt] == MMCO_END) break; /* END of MMCO */
+            sh->mmco.type[sh->mmco.cnt] = evc_bsr_read_ue(bs);
+            if(sh->mmco.type[sh->mmco.cnt] == MMCO_END) break; /* END of MMCO */
 
-            tgh->mmco.data[tgh->mmco.cnt] = evc_bsr_read_ue(bs);
-            tgh->mmco.cnt++;
+            sh->mmco.data[sh->mmco.cnt] = evc_bsr_read_ue(bs);
+            sh->mmco.cnt++;
         }
     }
 
     /* parse RMPNI*/
-    tgh->rmpni_on = evc_bsr_read1(bs);
-    if(tgh->rmpni_on)
+    sh->rmpni_on = evc_bsr_read1(bs);
+    if(sh->rmpni_on)
     {
         static int aa =0;
         int t0, t1;
         aa++;
-        tgh->rmpni[REFP_0].cnt = 0;
-        while(tgh->rmpni[REFP_0].cnt < MAX_NUM_RMPNI)
+        sh->rmpni[REFP_0].cnt = 0;
+        while(sh->rmpni[REFP_0].cnt < MAX_NUM_RMPNI)
         {
-            evc_assert_rv(tgh->rmpni[REFP_0].cnt < MAX_NUM_RMPNI, EVC_ERR_MALFORMED_BITSTREAM);
+            evc_assert_rv(sh->rmpni[REFP_0].cnt < MAX_NUM_RMPNI, EVC_ERR_MALFORMED_BITSTREAM);
 
             t0 = evc_bsr_read_ue(bs);
             if(t0 == RMPNI_END) 
@@ -3176,14 +3176,14 @@ int evcd_eco_tgh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * tgh)
             else if(t0 == RMPNI_ADPN_NEG)
             {
                 t1 = evc_bsr_read_ue(bs);
-                tgh->rmpni[REFP_0].delta_poc[tgh->rmpni[REFP_0].cnt] = -(t1+1);
-                tgh->rmpni[REFP_0].cnt++;
+                sh->rmpni[REFP_0].delta_poc[sh->rmpni[REFP_0].cnt] = -(t1+1);
+                sh->rmpni[REFP_0].cnt++;
             }
             else if(t0 == RMPNI_ADPN_POS)
             {
                 t1 = evc_bsr_read_ue(bs);
-                tgh->rmpni[REFP_0].delta_poc[tgh->rmpni[REFP_0].cnt] = t1 +1;
-                tgh->rmpni[REFP_0].cnt++;
+                sh->rmpni[REFP_0].delta_poc[sh->rmpni[REFP_0].cnt] = t1 +1;
+                sh->rmpni[REFP_0].cnt++;
             }
             else
             {
@@ -3191,10 +3191,10 @@ int evcd_eco_tgh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * tgh)
             }
         }
 
-        tgh->rmpni[REFP_1].cnt = 0;
-        while(tgh->rmpni[REFP_1].cnt < MAX_NUM_RMPNI)
+        sh->rmpni[REFP_1].cnt = 0;
+        while(sh->rmpni[REFP_1].cnt < MAX_NUM_RMPNI)
         {
-            evc_assert_rv(tgh->rmpni[REFP_1].cnt < MAX_NUM_RMPNI,
+            evc_assert_rv(sh->rmpni[REFP_1].cnt < MAX_NUM_RMPNI,
                 EVC_ERR_MALFORMED_BITSTREAM);
 
             t0 = evc_bsr_read_ue(bs);
@@ -3205,14 +3205,14 @@ int evcd_eco_tgh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * tgh)
             else if(t0 == RMPNI_ADPN_NEG)
             {
                 t1 = evc_bsr_read_ue(bs);
-                tgh->rmpni[REFP_1].delta_poc[tgh->rmpni[REFP_1].cnt] = -(t1+1);
-                tgh->rmpni[REFP_1].cnt++;
+                sh->rmpni[REFP_1].delta_poc[sh->rmpni[REFP_1].cnt] = -(t1+1);
+                sh->rmpni[REFP_1].cnt++;
             }
             else if(t0 == RMPNI_ADPN_POS)
             {
                 t1 = evc_bsr_read_ue(bs);
-                tgh->rmpni[REFP_1].delta_poc[tgh->rmpni[REFP_1].cnt] = t1 +1;
-                tgh->rmpni[REFP_1].cnt++;
+                sh->rmpni[REFP_1].delta_poc[sh->rmpni[REFP_1].cnt] = t1 +1;
+                sh->rmpni[REFP_1].cnt++;
             }
             else
             {

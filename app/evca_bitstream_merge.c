@@ -267,11 +267,11 @@ static int set_extra_config(EVCD id)
     (ctx) = (EVCD_CTX *)id; \
     evc_assert_rv((ctx)->magic == EVCD_MAGIC_CODE, (ret));
 
-void write_tmp_bs(EVC_SH * tgh, int add_dtr, FILE * merge_fp)
+void write_tmp_bs(EVC_SH * sh, int add_dtr, FILE * merge_fp)
 {
     int i, idx;
     u8 tmp_bs;
-    u16 dtr = tgh->dtr + add_dtr;
+    u16 dtr = sh->dtr + add_dtr;
 
     tmp_bs = 0;
     idx = 7;
@@ -295,17 +295,17 @@ void write_tmp_bs(EVC_SH * tgh, int add_dtr, FILE * merge_fp)
 
     for (i = 0; i < 3; i++)
     {
-        tmp_bs |= (((tgh->tile_group_type >> (2 - i)) & 1) << idx);
+        tmp_bs |= (((sh->tile_group_type >> (2 - i)) & 1) << idx);
         idx--;
     }
 
-    tmp_bs |= ((tgh->keyframe  & 1) << idx);
+    tmp_bs |= ((sh->keyframe  & 1) << idx);
     idx--;
 
-    tmp_bs |= ((tgh->deblocking_filter_on  & 1) << idx);
+    tmp_bs |= ((sh->deblocking_filter_on  & 1) << idx);
     idx--;
 
-    tmp_bs |= ((tgh->udata_exist & 1) << idx);
+    tmp_bs |= ((sh->udata_exist & 1) << idx);
     idx--;
 
     fwrite(&tmp_bs, 1, 1, merge_fp);
@@ -330,7 +330,7 @@ int main(int argc, const char **argv)
     int                intra_dist_idx = 0;
     EVC_BSR         * bs;
     EVC_SPS         * sps;
-    EVC_SH          * tgh;
+    EVC_SH          * sh;
     EVC_NALU        * nalu;
     EVCD_CTX        * ctx;
 #if ALF_PARAMETER_APS
@@ -402,7 +402,7 @@ int main(int argc, const char **argv)
 
             bs = &ctx->bs;
             sps = &ctx->sps;
-            tgh = &ctx->tgh;
+            sh = &ctx->sh;
             nalu = &ctx->nalu;
 #if ALF_PARAMETER_APS
             aps = &ctx->aps;
@@ -423,10 +423,10 @@ int main(int argc, const char **argv)
                 ret = evcd_eco_sps(bs, sps);
                 evc_assert_rv(EVC_SUCCEEDED(ret), ret);
 #if ALF
-                tgh->alf_on = sps->tool_alf;
+                sh->alf_on = sps->tool_alf;
 #endif
 #if M48879_IMPROVEMENT_INTER
-                tgh->mmvd_group_enable_flag = sps->tool_mmvd;
+                sh->mmvd_group_enable_flag = sps->tool_mmvd;
 #endif
                 if (!bs_num)
                 {
@@ -447,18 +447,18 @@ int main(int argc, const char **argv)
                 ctx->h_lcu = (ctx->h + (size - 1)) / size;
 
                 ctx->f_lcu = ctx->w_lcu * ctx->h_lcu;
-                tgh->num_ctb = ctx->f_lcu;
+                sh->num_ctb = ctx->f_lcu;
 #endif
 #if ALF_PARAMETER_APS
                 ret = evcd_eco_aps(bs, aps);
                 evc_assert_rv(EVC_SUCCEEDED(ret), ret);
 #endif
-                ret = evcd_eco_tgh(bs, &ctx->sps, &ctx->pps, tgh);
+                ret = evcd_eco_tgh(bs, &ctx->sps, &ctx->pps, sh);
                 evc_assert_rv(EVC_SUCCEEDED(ret), ret);
 
-                if (bs_num == 0 && tgh->tile_group_type == TILE_GROUP_I)
+                if (bs_num == 0 && sh->tile_group_type == TILE_GROUP_I)
                 {
-                    intra_dist[intra_dist_idx] = tgh->dtr;    
+                    intra_dist[intra_dist_idx] = sh->dtr;    
                     intra_dist_idx++;
                 }
 
@@ -469,7 +469,7 @@ int main(int argc, const char **argv)
                 }
                 else
                 {
-                    if (!intra_dist_idx && tgh->tile_group_type == TILE_GROUP_I)
+                    if (!intra_dist_idx && sh->tile_group_type == TILE_GROUP_I)
                     {
                         intra_dist_idx++;
                     }
@@ -480,7 +480,7 @@ int main(int argc, const char **argv)
                         /* chnk header  */
                         fwrite(bs_buf, 1, 1, fp_bs_write);
                         /* re-write dtr */
-                        write_tmp_bs(tgh, intra_dist[0], fp_bs_write);
+                        write_tmp_bs(sh, intra_dist[0], fp_bs_write);
                         /* other stream */
                         fwrite(bs_buf + 3, 1, bs_size - 3, fp_bs_write);
                     }

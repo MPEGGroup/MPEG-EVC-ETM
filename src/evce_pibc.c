@@ -180,7 +180,7 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
         SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
         evce_sbac_bit_reset(&core->s_temp_run);
 
-        evce_rdo_bit_cnt_cu_ibc(ctx, core, ctx->tgh.tile_group_type, core->scup, pi->mvd, coef, mvp_idx, pi->ibc_flag);
+        evce_rdo_bit_cnt_cu_ibc(ctx, core, ctx->sh.tile_group_type, core->scup, pi->mvd, coef, mvp_idx, pi->ibc_flag);
 
         bit_cnt = evce_get_bit_number(&core->s_temp_run);
         cost += RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);
@@ -238,7 +238,7 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 
         evce_sbac_bit_reset(&core->s_temp_run);
 
-        evce_rdo_bit_cnt_cu_ibc(ctx, core, ctx->tgh.tile_group_type, core->scup, pi->mvd, coef, mvp_idx, pi->ibc_flag);
+        evce_rdo_bit_cnt_cu_ibc(ctx, core, ctx->sh.tile_group_type, core->scup, pi->mvd, coef, mvp_idx, pi->ibc_flag);
 
         bit_cnt = evce_get_bit_number(&core->s_temp_run);
         cost_best += RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);

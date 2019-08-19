@@ -589,7 +589,7 @@ QP_ADAPT_PARAM qp_adapt_param_ld[8] =
 };
 
   //Implementation for selecting and assigning RPL0 & RPL1 candidates in the SPS to SH
-static void select_assign_rpl_for_tgh(EVCE_CTX *ctx, EVC_SH *tgh)
+static void select_assign_rpl_for_tgh(EVCE_CTX *ctx, EVC_SH *sh)
 {
     //TBD: when NALU types are implemented; if the current picture is an IDR, simply return without doing the rest of the codes for this function
 
@@ -597,17 +597,17 @@ static void select_assign_rpl_for_tgh(EVCE_CTX *ctx, EVC_SH *tgh)
     int gopSize = (ctx->param.gop_size == 1) ? 4 : ctx->param.gop_size;
 
     //Assume it the pic is in the normal GOP first. Normal GOP here means it is not the first (few) GOP in the beginning of the bitstream
-    tgh->rpl_l0_idx = tgh->rpl_l1_idx = -1;
-    tgh->ref_pic_list_sps_flag[0] = tgh->ref_pic_list_sps_flag[1] = 0;
+    sh->rpl_l0_idx = sh->rpl_l1_idx = -1;
+    sh->ref_pic_list_sps_flag[0] = sh->ref_pic_list_sps_flag[1] = 0;
 
     int availableRPLs = (ctx->cdsc.rpls_l0_cfg_num < gopSize) ? ctx->cdsc.rpls_l0_cfg_num : gopSize;
     for (int i = 0; i < availableRPLs; i++)
     {
-        int pocIdx = (tgh->poc % gopSize == 0) ? gopSize : tgh->poc % gopSize;
+        int pocIdx = (sh->poc % gopSize == 0) ? gopSize : sh->poc % gopSize;
         if (pocIdx == ctx->cdsc.rpls_l0[i].poc)
         {
-            tgh->rpl_l0_idx = i;
-            tgh->rpl_l1_idx = tgh->rpl_l0_idx;
+            sh->rpl_l0_idx = i;
+            sh->rpl_l1_idx = sh->rpl_l0_idx;
             break;
         }
     }
@@ -615,10 +615,10 @@ static void select_assign_rpl_for_tgh(EVCE_CTX *ctx, EVC_SH *tgh)
     //For special case when the pic is in the first (few) GOP in the beginning of the bitstream.
     if(ctx->param.gop_size == 1)                          //For low delay configuration
     {
-        if (tgh->poc <= (ctx->cdsc.rpls_l0_cfg_num - gopSize))
+        if (sh->poc <= (ctx->cdsc.rpls_l0_cfg_num - gopSize))
         {
-            tgh->rpl_l0_idx = tgh->poc + gopSize - 1;
-            tgh->rpl_l1_idx = tgh->rpl_l0_idx;
+            sh->rpl_l0_idx = sh->poc + gopSize - 1;
+            sh->rpl_l1_idx = sh->rpl_l0_idx;
         }
     }
     else                                                 //For random access configuration
@@ -626,39 +626,39 @@ static void select_assign_rpl_for_tgh(EVCE_CTX *ctx, EVC_SH *tgh)
         //for (int i = ctx->param.gop_size; i < ctx->cdsc.rpls_l0_cfg_num; i++)
         for (int i = gopSize; i < ctx->cdsc.rpls_l0_cfg_num; i++)
         {
-            int pocIdx = ctx->param.i_period == 0 ? tgh->poc : (tgh->poc % ctx->param.i_period == 0) ? ctx->param.i_period : tgh->poc % ctx->param.i_period;
+            int pocIdx = ctx->param.i_period == 0 ? sh->poc : (sh->poc % ctx->param.i_period == 0) ? ctx->param.i_period : sh->poc % ctx->param.i_period;
             if (pocIdx == ctx->cdsc.rpls_l0[i].poc)
             {
-                tgh->rpl_l0_idx = i;
-                tgh->rpl_l1_idx = i;
+                sh->rpl_l0_idx = i;
+                sh->rpl_l1_idx = i;
                 break;
             }
         }
     }
     //Copy RPL0 from the candidate in SPS to this SH
-    tgh->rpl_l0.poc = tgh->poc;
-    tgh->rpl_l0.tid = ctx->cdsc.rpls_l0[tgh->rpl_l0_idx].tid;
-    tgh->rpl_l0.ref_pic_num = ctx->cdsc.rpls_l0[tgh->rpl_l0_idx].ref_pic_num;
-    tgh->rpl_l0.ref_pic_active_num = ctx->cdsc.rpls_l0[tgh->rpl_l0_idx].ref_pic_active_num;
-    for (int i = 0; i < tgh->rpl_l0.ref_pic_num; i++)
-        tgh->rpl_l0.ref_pics[i] = ctx->cdsc.rpls_l0[tgh->rpl_l0_idx].ref_pics[i];
+    sh->rpl_l0.poc = sh->poc;
+    sh->rpl_l0.tid = ctx->cdsc.rpls_l0[sh->rpl_l0_idx].tid;
+    sh->rpl_l0.ref_pic_num = ctx->cdsc.rpls_l0[sh->rpl_l0_idx].ref_pic_num;
+    sh->rpl_l0.ref_pic_active_num = ctx->cdsc.rpls_l0[sh->rpl_l0_idx].ref_pic_active_num;
+    for (int i = 0; i < sh->rpl_l0.ref_pic_num; i++)
+        sh->rpl_l0.ref_pics[i] = ctx->cdsc.rpls_l0[sh->rpl_l0_idx].ref_pics[i];
 
     //Copy RPL0 from the candidate in SPS to this SH
-    tgh->rpl_l1.poc = tgh->poc;
-    tgh->rpl_l1.tid = ctx->cdsc.rpls_l1[tgh->rpl_l1_idx].tid;
-    tgh->rpl_l1.ref_pic_num = ctx->cdsc.rpls_l1[tgh->rpl_l1_idx].ref_pic_num;
-    tgh->rpl_l1.ref_pic_active_num = ctx->cdsc.rpls_l1[tgh->rpl_l1_idx].ref_pic_active_num;
-    for (int i = 0; i < tgh->rpl_l1.ref_pic_num; i++)
-        tgh->rpl_l1.ref_pics[i] = ctx->cdsc.rpls_l1[tgh->rpl_l1_idx].ref_pics[i];
+    sh->rpl_l1.poc = sh->poc;
+    sh->rpl_l1.tid = ctx->cdsc.rpls_l1[sh->rpl_l1_idx].tid;
+    sh->rpl_l1.ref_pic_num = ctx->cdsc.rpls_l1[sh->rpl_l1_idx].ref_pic_num;
+    sh->rpl_l1.ref_pic_active_num = ctx->cdsc.rpls_l1[sh->rpl_l1_idx].ref_pic_active_num;
+    for (int i = 0; i < sh->rpl_l1.ref_pic_num; i++)
+        sh->rpl_l1.ref_pics[i] = ctx->cdsc.rpls_l1[sh->rpl_l1_idx].ref_pics[i];
 
-    if (tgh->rpl_l0_idx != -1)
+    if (sh->rpl_l0_idx != -1)
     {
-        tgh->ref_pic_list_sps_flag[0] = 1;
+        sh->ref_pic_list_sps_flag[0] = 1;
     }
 
-    if (tgh->rpl_l1_idx != -1)
+    if (sh->rpl_l1_idx != -1)
     {
-        tgh->ref_pic_list_sps_flag[1] = 1;
+        sh->ref_pic_list_sps_flag[1] = 1;
     }
 }
 
@@ -682,12 +682,12 @@ static int check_refpic_available(int currentPOC, EVC_PM *pm, EVC_RPL *rpl)
 
 //Return value 0 means no explicit RPL is created. The given input parameters rpl0 and rpl1 are not modified
 //Return value 1 means the given input parameters rpl0 and rpl1 are modified
-static int create_explicit_rpl(EVC_PM *pm, EVC_SH *tgh)
+static int create_explicit_rpl(EVC_PM *pm, EVC_SH *sh)
 
 {
-    int currentPOC = tgh->poc;
-    EVC_RPL *rpl0 = &tgh->rpl_l0;
-    EVC_RPL *rpl1 = &tgh->rpl_l1;
+    int currentPOC = sh->poc;
+    EVC_RPL *rpl0 = &sh->rpl_l0;
+    EVC_RPL *rpl1 = &sh->rpl_l1;
     if (!check_refpic_available(currentPOC, pm, rpl0) && !check_refpic_available(currentPOC, pm, rpl1))
     {
         return 0;
@@ -717,7 +717,7 @@ static int create_explicit_rpl(EVC_PM *pm, EVC_SH *tgh)
         }
     }
     if (isRPLChanged)
-        tgh->rpl_l0_idx = -1;
+        sh->rpl_l0_idx = -1;
 
     //Remove ref pic in RPL1 that is not available in the DPB
     isRPLChanged = 0;
@@ -741,7 +741,7 @@ static int create_explicit_rpl(EVC_PM *pm, EVC_SH *tgh)
         }
     }
     if (isRPLChanged)
-        tgh->rpl_l1_idx = -1;
+        sh->rpl_l1_idx = -1;
 
     /*if number of ref pic in RPL0 is less than its number of active ref pic, try to copy from RPL1*/
     if (rpl0->ref_pic_num < rpl0->ref_pic_active_num)
@@ -802,35 +802,35 @@ static int create_explicit_rpl(EVC_PM *pm, EVC_SH *tgh)
     return 1;
 }
 
-static void set_tgh(EVCE_CTX *ctx, EVC_SH *tgh)
+static void set_tgh(EVCE_CTX *ctx, EVC_SH *sh)
 {
     double qp;
     int qp_l_i;
     int qp_c_i;
     QP_ADAPT_PARAM *qp_adapt_param = ctx->param.max_b_frames == 0 ? qp_adapt_param_ld : qp_adapt_param_ra;
 
-    tgh->dtr = ctx->dtr & DTR_BIT_MSK;
-    tgh->tile_group_type = ctx->tile_group_type;
-    tgh->keyframe = (tgh->tile_group_type == TILE_GROUP_I) ? 1 : 0;
-    tgh->deblocking_filter_on = (ctx->param.use_deblock) ? 1 : 0;
+    sh->dtr = ctx->dtr & DTR_BIT_MSK;
+    sh->tile_group_type = ctx->tile_group_type;
+    sh->keyframe = (sh->tile_group_type == TILE_GROUP_I) ? 1 : 0;
+    sh->deblocking_filter_on = (ctx->param.use_deblock) ? 1 : 0;
 #if M49023_DBF_IMPROVE
-    tgh->tgh_deblock_alpha_offset = ctx->param.deblock_alpha_offset;
-    tgh->tgh_deblock_beta_offset = ctx->param.deblock_beta_offset;
+    sh->tgh_deblock_alpha_offset = ctx->param.deblock_alpha_offset;
+    sh->tgh_deblock_beta_offset = ctx->param.deblock_beta_offset;
 #endif
-    tgh->udata_exist = (ctx->param.use_pic_sign) ? 1 : 0;
-    tgh->dptr = ctx->ptr - ctx->dtr;
-    tgh->layer_id = ctx->layer_id;
-    tgh->single_tile_in_tile_group_flag = 1;
+    sh->udata_exist = (ctx->param.use_pic_sign) ? 1 : 0;
+    sh->dptr = ctx->ptr - ctx->dtr;
+    sh->layer_id = ctx->layer_id;
+    sh->single_tile_in_tile_group_flag = 1;
 #if M49023_ADMVP_IMPROVE
-    tgh->collocated_from_list_idx = (tgh->tile_group_type == TILE_GROUP_P) ? REFP_0 : REFP_1;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
-    tgh->collocated_from_ref_idx = 0;        // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
-    tgh->collocated_mvp_source_list_idx = REFP_0;  // Specifies source (List ID) in collocated pic that provides MV information (Applicability is function of NoBackwardPredFlag)
+    sh->collocated_from_list_idx = (sh->tile_group_type == TILE_GROUP_P) ? REFP_0 : REFP_1;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
+    sh->collocated_from_ref_idx = 0;        // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
+    sh->collocated_mvp_source_list_idx = REFP_0;  // Specifies source (List ID) in collocated pic that provides MV information (Applicability is function of NoBackwardPredFlag)
 #endif 
     if (!ctx->sps.picture_num_present_flag)
     {
-        tgh->poc = ctx->ptr;
-        select_assign_rpl_for_tgh(ctx, tgh);
-        tgh->num_ref_idx_active_override_flag = 1;
+        sh->poc = ctx->ptr;
+        select_assign_rpl_for_tgh(ctx, sh);
+        sh->num_ref_idx_active_override_flag = 1;
     }
 
     /* set lambda */
@@ -863,19 +863,19 @@ static void set_tgh(EVCE_CTX *ctx, EVC_SH *tgh)
         qp += qp_offset;
     }
 
-    tgh->qp = (u8)EVC_CLIP3(-(6 * (BIT_DEPTH - 8)), MAX_QUANT, qp);
-    tgh->qp_u = (u8)(tgh->qp + ctx->cdsc.cb_qp_offset); 
-    tgh->qp_v = (u8)(tgh->qp + ctx->cdsc.cr_qp_offset);
+    sh->qp = (u8)EVC_CLIP3(-(6 * (BIT_DEPTH - 8)), MAX_QUANT, qp);
+    sh->qp_u = (u8)(sh->qp + ctx->cdsc.cb_qp_offset); 
+    sh->qp_v = (u8)(sh->qp + ctx->cdsc.cr_qp_offset);
 #if M49023_DBF_IMPROVE
-    tgh->tgh_deblock_alpha_offset = ctx->cdsc.deblock_aplha_offset;
-    tgh->tgh_deblock_beta_offset = ctx->cdsc.deblock_beta_offset;
+    sh->tgh_deblock_alpha_offset = ctx->cdsc.deblock_aplha_offset;
+    sh->tgh_deblock_beta_offset = ctx->cdsc.deblock_beta_offset;
 #endif
 
-    qp_l_i = tgh->qp;
+    qp_l_i = sh->qp;
     ctx->lambda[0] = 0.57 * pow(2.0, (qp_l_i - 12.0) / 3.0);
-    qp_c_i = evc_tbl_qp_chroma_ajudst[tgh->qp_u];
+    qp_c_i = evc_tbl_qp_chroma_ajudst[sh->qp_u];
     ctx->dist_chroma_weight[0] = pow(2.0, (qp_l_i - qp_c_i) / 3.0);
-    qp_c_i = evc_tbl_qp_chroma_ajudst[tgh->qp_v];
+    qp_c_i = evc_tbl_qp_chroma_ajudst[sh->qp_v];
     ctx->dist_chroma_weight[1] = pow(2.0, (qp_l_i - qp_c_i) / 3.0);
     ctx->lambda[1] = ctx->lambda[0] / ctx->dist_chroma_weight[0];
     ctx->lambda[2] = ctx->lambda[0] / ctx->dist_chroma_weight[1];
@@ -886,20 +886,20 @@ static void set_tgh(EVCE_CTX *ctx, EVC_SH *tgh)
     if (ctx->sps.picture_num_present_flag)
     {
 #if HLS_M47668
-        tgh->mmco_on = 0;
-        tgh->mmco.cnt = 0;
+        sh->mmco_on = 0;
+        sh->mmco.cnt = 0;
 #else
         /* set MMCO command */
         if (ctx->tile_group_ref_flag == 0)
         {
-            tgh->mmco_on = 1;
-            tgh->mmco.cnt = 1;
-            tgh->mmco.type[0] = MMCO_UNUSED;
-            tgh->mmco.data[0] = 0; /* current picture */
+            sh->mmco_on = 1;
+            sh->mmco.cnt = 1;
+            sh->mmco.type[0] = MMCO_UNUSED;
+            sh->mmco.data[0] = 0; /* current picture */
         } else
         {
-            tgh->mmco_on = 0;
-            tgh->mmco.cnt = 0;
+            sh->mmco_on = 0;
+            sh->mmco.cnt = 0;
         }
 #endif
     }
@@ -1263,8 +1263,8 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
     int lcu_num;
     s8  suco_flag = 0;
 #if M49023_DBF_IMPROVE
-    pic->pic_deblock_alpha_offset = ctx->tgh.tgh_deblock_alpha_offset;
-    pic->pic_deblock_beta_offset = ctx->tgh.tgh_deblock_beta_offset;
+    pic->pic_deblock_alpha_offset = ctx->sh.tgh_deblock_alpha_offset;
+    pic->pic_deblock_beta_offset = ctx->sh.tgh_deblock_beta_offset;
 #endif
     lcu_num = (x >> ctx->log2_max_cuwh) + (y >> ctx->log2_max_cuwh) * ctx->w_lcu;
     evc_get_split_mode(&split_mode, cud, cup, cuw, cuh, ctx->max_cuwh, ctx->map_cu_data[lcu_num].split_mode);
@@ -1433,7 +1433,7 @@ int evce_deblock_h263(EVCE_CTX * ctx, EVC_PIC * pic)
 }
 #if ALF
 #if ALF_PARAMETER_APS
-int evce_alf_aps(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* tgh, EVC_APS* aps)
+int evce_alf_aps(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh, EVC_APS* aps)
 {
     EncAdaptiveLoopFilter* p = (EncAdaptiveLoopFilter*)(ctx->enc_alf);
 
@@ -1442,38 +1442,38 @@ int evce_alf_aps(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* tgh, EVC_APS* aps)
         lambdas[i] = (ctx->lambda[i]) * ALF_LAMBDA_SCALE; //this is for appr match of different lambda sets
 
 
-    set_resetALFBufferFlag(p, tgh->tile_group_type == TILE_GROUP_I ? 1 : 0);
-    alf_aps_enc_opt_process(p, lambdas, ctx, pic, &(tgh->alf_tgh_param));
+    set_resetALFBufferFlag(p, sh->tile_group_type == TILE_GROUP_I ? 1 : 0);
+    alf_aps_enc_opt_process(p, lambdas, ctx, pic, &(sh->alf_tgh_param));
 
-    aps->alf_aps_param = tgh->alf_tgh_param;
-    if (tgh->alf_tgh_param.resetALFBufferFlag) // reset aps index counter (buffer) if ALF flag reset is present
+    aps->alf_aps_param = sh->alf_tgh_param;
+    if (sh->alf_tgh_param.resetALFBufferFlag) // reset aps index counter (buffer) if ALF flag reset is present
     {
         ctx->aps_counter = -1;
     }
-    tgh->alf_on = tgh->alf_tgh_param.enabledFlag[0];
+    sh->alf_on = sh->alf_tgh_param.enabledFlag[0];
 #if APS_ALF_CTU_FLAG
-    if (tgh->alf_on == 0)
+    if (sh->alf_on == 0)
     {
-        tgh->alf_tgh_param.isCtbAlfOn = 0;
+        sh->alf_tgh_param.isCtbAlfOn = 0;
     }
 #endif
-    if (tgh->alf_on)
+    if (sh->alf_on)
     {
         if (aps->alf_aps_param.temporalAlfFlag)
         {
-            aps->aps_id = tgh->alf_tgh_param.prevIdx;
-            tgh->aps_signaled = aps->aps_id;
+            aps->aps_id = sh->alf_tgh_param.prevIdx;
+            sh->aps_signaled = aps->aps_id;
         }
         else
         {
             aps->aps_id = alf_aps_get_current_alf_idx();
-            tgh->aps_signaled = aps->aps_id;
+            sh->aps_signaled = aps->aps_id;
         }
     }
     return EVC_OK;
 }
 #else
-int evce_alf(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* tgh)
+int evce_alf(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh)
 {
     EncAdaptiveLoopFilter* p = (EncAdaptiveLoopFilter*)(ctx->enc_alf);
 
@@ -1481,8 +1481,8 @@ int evce_alf(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* tgh)
     for(int i = 0; i < 3; i++)
         lambdas[i] = (ctx->lambda[i]) * ALF_LAMBDA_SCALE; //this is for appr match of different lambda sets
 
-    set_resetALFBufferFlag(p, tgh->tile_group_type == TILE_GROUP_I ? 1 : 0);
-    call_enc_ALFProcess(p, lambdas, ctx, pic, &(tgh->alf_tgh_param) );
+    set_resetALFBufferFlag(p, sh->tile_group_type == TILE_GROUP_I ? 1 : 0);
+    call_enc_ALFProcess(p, lambdas, ctx, pic, &(sh->alf_tgh_param) );
     return EVC_OK;
 }
 #endif
@@ -2052,7 +2052,7 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     bs = &ctx->bs;
 
     /* adding user data */
-    if(ctx->tgh.udata_exist)
+    if(ctx->sh.udata_exist)
     {
         ret = evce_eco_udata(ctx, bs);
         evc_assert_rv(ret == EVC_OK, ret);
@@ -2075,7 +2075,7 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
 #else
     ret = evc_picman_put_pic(&ctx->rpm, PIC_CURR(ctx), ctx->tile_group_type,
                              ctx->ptr, ctx->dtr, ctx->layer_id, 0, ctx->refp,
-                             (ctx->tgh.mmco_on ? &ctx->tgh.mmco : NULL), ctx->sps.picture_num_present_flag);
+                             (ctx->sh.mmco_on ? &ctx->sh.mmco : NULL), ctx->sps.picture_num_present_flag);
 #endif
 
     evc_assert_rv(ret == EVC_OK, ret);
@@ -2092,13 +2092,13 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     stat->ctype = EVC_NONIDR_NUT; //TBD(@Chernyak): handle IDR
     stat->stype = ctx->tile_group_type;
     stat->fnum = ctx->pic_cnt;
-    stat->qp = ctx->tgh.qp;
+    stat->qp = ctx->sh.qp;
     stat->poc = ctx->ptr;
 #if HLS_M47668
-    stat->tid = ctx->tgh.layer_id;
+    stat->tid = ctx->sh.layer_id;
 #else
 #if ALF
-    stat->tid = ctx->tgh.layer_id;
+    stat->tid = ctx->sh.layer_id;
 #endif
 #endif
     for(i = 0; i < 2; i++)
@@ -2128,7 +2128,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 {
     EVCE_CORE * core;
     EVC_BSW   * bs;
-    EVC_SH    * tgh;
+    EVC_SH    * sh;
 #if ALF_PARAMETER_APS
     EVC_APS   * aps;
 #endif
@@ -2140,7 +2140,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
     bs = &ctx->bs;
     core = ctx->core;
-    tgh = &ctx->tgh;
+    sh = &ctx->sh;
 #if ALF_PARAMETER_APS
     aps = &ctx->aps;
 #if APS_ALF_SEQ_FIX
@@ -2160,7 +2160,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     {
         ctx->aps_counter = -1;
         aps->aps_id = -1;
-        ctx->tgh.aps_signaled = -1; // reset stored aps id in tile group header
+        ctx->sh.aps_signaled = -1; // reset stored aps id in tile group header
         ctx->aps_temp = 0;
     }
 #endif
@@ -2173,33 +2173,33 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     {
         /* Set slice header */
         //This needs to be done before reference picture marking and reference picture list construction are invoked
-        set_tgh(ctx, tgh);
+        set_tgh(ctx, sh);
 
-        if (tgh->tile_group_type != TILE_GROUP_I && tgh->poc != 0) //TBD: change this condition to say that if this slice is not a slice in IDR picture
+        if (sh->tile_group_type != TILE_GROUP_I && sh->poc != 0) //TBD: change this condition to say that if this slice is not a slice in IDR picture
         {
-            ret = create_explicit_rpl(&ctx->rpm, tgh);
+            ret = create_explicit_rpl(&ctx->rpm, sh);
             if (ret == 1)
             {
-                if (tgh->rpl_l0_idx == -1)
-                    tgh->ref_pic_list_sps_flag[0] = 0;
-                if (tgh->rpl_l1_idx == -1)
-                    tgh->ref_pic_list_sps_flag[1] = 0;
+                if (sh->rpl_l0_idx == -1)
+                    sh->ref_pic_list_sps_flag[0] = 0;
+                if (sh->rpl_l1_idx == -1)
+                    sh->ref_pic_list_sps_flag[1] = 0;
             }
         }
 
         /* reference picture marking */
-        ret = evc_picman_refpic_marking(&ctx->rpm, tgh);
+        ret = evc_picman_refpic_marking(&ctx->rpm, sh);
         evc_assert_rv(ret == EVC_OK, ret);
 
         /* reference picture lists construction */
-        ret = evc_picman_refp_rpl_based_init(&ctx->rpm, tgh, ctx->refp);
+        ret = evc_picman_refp_rpl_based_init(&ctx->rpm, sh, ctx->refp);
 #if M49023_ADMVP_IMPROVE
-        if (tgh->tile_group_type != TILE_GROUP_I)
+        if (sh->tile_group_type != TILE_GROUP_I)
         {
             int dptr0 = (int)(ctx->ptr) - (int)(ctx->refp[0][REFP_0].ptr);
             int dptr1 = (int)(ctx->ptr) - (int)(ctx->refp[0][REFP_1].ptr);
-            tgh->temporal_mvp_asigned_flag = !(((dptr0 > 0) && (dptr1 > 0)) || ((dptr0 < 0) && (dptr1 < 0)));
-            //            printf("tmvp: %d %d %d %d\n", ctx->ptr, ctx->refp[0][REFP_0].ptr, ctx->refp[0][REFP_1].ptr, tgh->temporal_mvp_asigned_flag);
+            sh->temporal_mvp_asigned_flag = !(((dptr0 > 0) && (dptr1 > 0)) || ((dptr0 < 0) && (dptr1 < 0)));
+            //            printf("tmvp: %d %d %d %d\n", ctx->ptr, ctx->refp[0][REFP_0].ptr, ctx->refp[0][REFP_1].ptr, sh->temporal_mvp_asigned_flag);
         }
 #endif
     }
@@ -2212,16 +2212,16 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         {
             if (ctx->param.max_b_frames == 0)
             {
-                tgh->rmpni_on = check_reorder(&ctx->param, &ctx->rpm, ctx->sps.num_ref_pics_act, ctx->tile_group_type, ctx->ptr, ctx->refp, reorder_arg_ldb, ctx->last_intra_ptr, tgh->rmpni);
+                sh->rmpni_on = check_reorder(&ctx->param, &ctx->rpm, ctx->sps.num_ref_pics_act, ctx->tile_group_type, ctx->ptr, ctx->refp, reorder_arg_ldb, ctx->last_intra_ptr, sh->rmpni);
             } else
             {
-                tgh->rmpni_on = check_reorder(&ctx->param, &ctx->rpm, ctx->sps.num_ref_pics_act, ctx->tile_group_type, ctx->ptr, ctx->refp, reorder_arg, ctx->last_intra_ptr, tgh->rmpni);
+                sh->rmpni_on = check_reorder(&ctx->param, &ctx->rpm, ctx->sps.num_ref_pics_act, ctx->tile_group_type, ctx->ptr, ctx->refp, reorder_arg, ctx->last_intra_ptr, sh->rmpni);
             }
         }
 
-        if (tgh->rmpni_on && ctx->tile_group_type != TILE_GROUP_I)
+        if (sh->rmpni_on && ctx->tile_group_type != TILE_GROUP_I)
         {
-            ret = evc_picman_refp_reorder(&ctx->rpm, ctx->sps.num_ref_pics_act, tgh->tile_group_type, ctx->ptr, ctx->refp, ctx->last_intra_ptr, tgh->rmpni);
+            ret = evc_picman_refp_reorder(&ctx->rpm, ctx->sps.num_ref_pics_act, sh->tile_group_type, ctx->ptr, ctx->refp, ctx->last_intra_ptr, sh->rmpni);
             evc_assert_rv(ret == EVC_OK, ret);
         }
     }
@@ -2245,12 +2245,12 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     if (ctx->sps.picture_num_present_flag)
     {
         /* Set slice header */
-        set_tgh(ctx, tgh);
+        set_tgh(ctx, sh);
     }
 
-    core->qp_y = ctx->tgh.qp + 6 * (BIT_DEPTH - 8);
-    core->qp_u = evc_tbl_qp_chroma_ajudst[tgh->qp_u] + 6 * (BIT_DEPTH - 8);
-    core->qp_v = evc_tbl_qp_chroma_ajudst[tgh->qp_v] + 6 * (BIT_DEPTH - 8);
+    core->qp_y = ctx->sh.qp + 6 * (BIT_DEPTH - 8);
+    core->qp_u = evc_tbl_qp_chroma_ajudst[sh->qp_u] + 6 * (BIT_DEPTH - 8);
+    core->qp_v = evc_tbl_qp_chroma_ajudst[sh->qp_v] + 6 * (BIT_DEPTH - 8);
 
 #if ADMVP
     evc_mset(core->history_buffer.history_mv_table, 0, ALLOWED_CHECKED_NUM * REFP_NUM * MV_D * sizeof(s16));
@@ -2267,8 +2267,8 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #endif
 
     /* initialize entropy coder */
-    evce_sbac_reset(GET_SBAC_ENC(bs), ctx->tgh.tile_group_type, ctx->tgh.qp, ctx->sps.tool_cm_init);
-    evce_sbac_reset(&core->s_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], ctx->tgh.tile_group_type, ctx->tgh.qp, ctx->sps.tool_cm_init);
+    evce_sbac_reset(GET_SBAC_ENC(bs), ctx->sh.tile_group_type, ctx->sh.qp, ctx->sps.tool_cm_init);
+    evce_sbac_reset(&core->s_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], ctx->sh.tile_group_type, ctx->sh.qp, ctx->sps.tool_cm_init);
 
     core->bs_temp.pdata[1] = &core->s_temp_run;
 
@@ -2284,11 +2284,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #if M48879_IMPROVEMENT_INTER
     if (ctx->sps.tool_mmvd && (ctx->tile_group_type == TILE_GROUP_B))
     {
-        tgh->mmvd_group_enable_flag = !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr);
+        sh->mmvd_group_enable_flag = !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr);
     }
     else
     {
-        tgh->mmvd_group_enable_flag = 0;
+        sh->mmvd_group_enable_flag = 0;
     }
 #endif
     while(1)
@@ -2355,13 +2355,13 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
 #if ALF
     /* adaptive loop filter */
-    tgh->alf_on = ctx->sps.tool_alf;
-    if(tgh->alf_on)
+    sh->alf_on = ctx->sps.tool_alf;
+    if(sh->alf_on)
     {
 #if ALF_PARAMETER_APS
-        ret = ctx->fn_alf(ctx, PIC_MODE(ctx), tgh, aps);
+        ret = ctx->fn_alf(ctx, PIC_MODE(ctx), sh, aps);
 #else
-        ret = ctx->fn_alf(ctx, PIC_MODE(ctx), tgh);
+        ret = ctx->fn_alf(ctx, PIC_MODE(ctx), sh);
 #endif
         evc_assert_rv(ret == EVC_OK, ret);
     }
@@ -2383,7 +2383,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
 #if ALF_PARAMETER_APS
     /* Encode ALF in APS */
-    if ((ctx->sps.tool_alf) && (ctx->tgh.alf_on)) // User defined params
+    if ((ctx->sps.tool_alf) && (ctx->sh.alf_on)) // User defined params
     {
         if ((aps->alf_aps_param.enabledFlag[0]) && (aps->alf_aps_param.temporalAlfFlag == 0))    // Encoder defined parameters (RDO): ALF is selected, and new ALF was derived for TG
         {
@@ -2408,9 +2408,9 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
     /* Encode slice header */
 #if ALF
-    tgh->num_ctb = ctx->f_lcu;
+    sh->num_ctb = ctx->f_lcu;
 #endif
-    ret = evce_eco_tgh(bs, &ctx->sps, &ctx->pps, tgh);
+    ret = evce_eco_tgh(bs, &ctx->sps, &ctx->pps, sh);
     evc_assert_rv(ret == EVC_OK, ret);
 
     core->x_lcu = core->y_lcu = 0;
@@ -2422,14 +2422,14 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         MCU_CLR_COD(ctx->map_scu[i]);
     }
 
-    evce_sbac_reset(GET_SBAC_ENC(bs), ctx->tgh.tile_group_type, ctx->tgh.qp, ctx->sps.tool_cm_init);
+    evce_sbac_reset(GET_SBAC_ENC(bs), ctx->sh.tile_group_type, ctx->sh.qp, ctx->sps.tool_cm_init);
 
     /* Encode slice data */
     while(1)
     {
 #if APS_ALF_CTU_FLAG
-        evc_AlfTileGroupParam* alfTileGroupParam = &(ctx->tgh.alf_tgh_param);
-        if ((alfTileGroupParam->isCtbAlfOn) && (tgh->alf_on))
+        evc_AlfTileGroupParam* alfTileGroupParam = &(ctx->sh.alf_tgh_param);
+        if ((alfTileGroupParam->isCtbAlfOn) && (sh->alf_on))
         {
             EVCE_SBAC *sbac;
             sbac = GET_SBAC_ENC(bs);
@@ -2654,7 +2654,7 @@ EVCE evce_create(EVCE_CDSC * cdsc, int * err)
     ctx->magic = EVCE_MAGIC_CODE;
     ctx->id = (EVCE)ctx;
 #if ALF_PARAMETER_APS
-    ctx->tgh.aps_signaled = -1;
+    ctx->sh.aps_signaled = -1;
 #endif
 
 #if ATS_INTRA_PROCESS

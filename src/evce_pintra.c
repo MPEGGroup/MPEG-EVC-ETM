@@ -118,7 +118,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 
         SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
         evce_sbac_bit_reset(&core->s_temp_run);
-        evce_rdo_bit_cnt_cu_intra_luma(ctx, core, ctx->tgh.tile_group_type, core->scup, pi->coef_tmp);
+        evce_rdo_bit_cnt_cu_intra_luma(ctx, core, ctx->sh.tile_group_type, core->scup, pi->coef_tmp);
         bit_cnt = evce_get_bit_number(&core->s_temp_run);
 
         evc_sub_block_itdq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->nnz, core->nnz_sub, ctx->sps.tool_iqt
@@ -138,7 +138,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 #if HTDF
         if(ctx->sps.tool_htdf == 1)
         {
-            evc_htdf(pi->rec[Y_C], ctx->tgh.qp, cuw, cuh, cuw, TRUE, pi->m[Y_C] + (y * pi->s_m[Y_C]) + x, pi->s_m[Y_C], core->avail_cu);
+            evc_htdf(pi->rec[Y_C], ctx->sh.qp, cuw, cuh, cuw, TRUE, pi->m[Y_C] + (y * pi->s_m[Y_C]) + x, pi->s_m[Y_C], core->avail_cu);
         }
 #endif
         cost += evce_ssd_16b(log2_cuw, log2_cuh, pi->rec[Y_C], org_luma, cuw, s_org);
@@ -235,7 +235,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 
         evce_sbac_bit_reset(&core->s_temp_run);
 
-        evce_rdo_bit_cnt_cu_intra_chroma(ctx, core, ctx->tgh.tile_group_type, core->scup, coef);
+        evce_rdo_bit_cnt_cu_intra_chroma(ctx, core, ctx->sh.tile_group_type, core->scup, coef);
 
         bit_cnt = evce_get_bit_number(&core->s_temp_run);
 
@@ -680,7 +680,7 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
     SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
 
     evce_sbac_bit_reset(&core->s_temp_run);
-    evce_rdo_bit_cnt_cu_intra(ctx, core, ctx->tgh.tile_group_type, core->scup, coef);
+    evce_rdo_bit_cnt_cu_intra(ctx, core, ctx->sh.tile_group_type, core->scup, coef);
 
     bit_cnt = evce_get_bit_number(&core->s_temp_run);
     cost = (best_dist_y + best_dist_c) + RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);

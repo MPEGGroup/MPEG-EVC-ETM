@@ -93,7 +93,7 @@ void call_enc_ALFProcess(EncAdaptiveLoopFilter* p, const double* lambdas, EVCE_C
         m_lastRasPoc = INT_MAX;
         m_pendingRasInit = TRUE;
     }
-    if (ctx->tgh.tile_group_type == TILE_GROUP_I)
+    if (ctx->sh.tile_group_type == TILE_GROUP_I)
     {
         m_lastRasPoc = ctx->ptr;
     }
@@ -116,7 +116,7 @@ void call_enc_ALFProcess(EncAdaptiveLoopFilter* p, const double* lambdas, EVCE_C
     if( alfTileGroupParam.enabledFlag[0] && m_store2ALFBufferFlag )
     {
         const unsigned tidxMAX = MAX_NUM_TLAYER - 1u;
-        const unsigned tidx = ctx->tgh.layer_id;
+        const unsigned tidx = ctx->sh.layer_id;
         assert(tidx <= tidxMAX);
         storeALFParamLine(&alfTileGroupParam, tidx);
         alfTileGroupParam.store2ALFBufferFlag = m_store2ALFBufferFlag;
@@ -173,7 +173,7 @@ void alf_aps_enc_opt_process(EncAdaptiveLoopFilter* p, const double* lambdas, EV
     }
     // Initialize ALF module for current POC
     m_currentPoc = ctx->ptr;
-    m_currentTempLayer = ctx->tgh.layer_id;
+    m_currentTempLayer = ctx->sh.layer_id;
     if (m_resetALFBufferFlag)
     {
         // initialize firstIdrPoc
@@ -194,7 +194,7 @@ void alf_aps_enc_opt_process(EncAdaptiveLoopFilter* p, const double* lambdas, EV
         m_lastRasPoc = INT_MAX;
         m_pendingRasInit = TRUE;
     }
-    if (ctx->tgh.tile_group_type == TILE_GROUP_I)
+    if (ctx->sh.tile_group_type == TILE_GROUP_I)
     {
         m_lastRasPoc = ctx->ptr;
     }
@@ -216,12 +216,12 @@ void alf_aps_enc_opt_process(EncAdaptiveLoopFilter* p, const double* lambdas, EV
     if (alfTileGroupParam.enabledFlag[0] && m_store2ALFBufferFlag)
     {
         const unsigned tidxMAX = MAX_NUM_TLAYER - 1u;
-        const unsigned tidx = ctx->tgh.layer_id;
+        const unsigned tidx = ctx->sh.layer_id;
         assert(tidx <= tidxMAX);
         storeEncALFParamLineAPS(&alfTileGroupParam, tidx);
         alfTileGroupParam.store2ALFBufferFlag = m_store2ALFBufferFlag;
     }
-    if (ctx->tgh.tile_group_type == TILE_GROUP_I)
+    if (ctx->sh.tile_group_type == TILE_GROUP_I)
     {
         if (alfTileGroupParam.enabledFlag[0] && m_store2ALFBufferFlag)
         {
