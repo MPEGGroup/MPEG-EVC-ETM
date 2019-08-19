@@ -588,7 +588,7 @@ QP_ADAPT_PARAM qp_adapt_param_ld[8] =
     { 9, -6.5000, 0.2590},
 };
 
-  //Implementation for selecting and assigning RPL0 & RPL1 candidates in the SPS to TGH
+  //Implementation for selecting and assigning RPL0 & RPL1 candidates in the SPS to SH
 static void select_assign_rpl_for_tgh(EVCE_CTX *ctx, EVC_TGH *tgh)
 {
     //TBD: when NALU types are implemented; if the current picture is an IDR, simply return without doing the rest of the codes for this function
