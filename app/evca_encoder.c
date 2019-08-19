@@ -389,11 +389,11 @@ static EVC_ARGS_OPTION options[] = \
         "use closed GOP structure. if not set, open GOP is used"
     },
 #if IBC
-        {
-          EVC_ARGS_NO_KEY,  "ibc_flag", EVC_ARGS_VAL_TYPE_INTEGER,
-          &op_flag[OP_FLAG_IBC], &op_enable_ibc,
-          "use IBC feature. if not set, IBC feature is disabled"
-        },
+    {
+      EVC_ARGS_NO_KEY,  "ibc", EVC_ARGS_VAL_TYPE_INTEGER,
+      &op_flag[OP_FLAG_IBC], &op_enable_ibc,
+      "use IBC feature. if not set, IBC feature is disabled"
+    },
 
     {
       EVC_ARGS_NO_KEY,  "ibc_search_range_x", EVC_ARGS_VAL_TYPE_INTEGER,
