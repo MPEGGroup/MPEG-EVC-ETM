@@ -2952,7 +2952,7 @@ int evcd_eco_alf_sh_param(EVC_BSR * bs, EVC_SH * sh)
 #endif
 #endif
 
-int evcd_eco_tgh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
+int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
 {
     int NumTilesInTileGroup = 0;    //TBD according to the spec
 #if HLS_M47668

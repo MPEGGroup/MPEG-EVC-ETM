@@ -310,7 +310,7 @@ int evce_eco_aps(EVC_BSW * bs, EVC_APS * aps)
 }
 #endif
 
-int evce_eco_tgh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
+int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
 {
     int NumTilesInTileGroup = 0; //TBD according to the spec
 

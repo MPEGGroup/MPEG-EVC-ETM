@@ -1792,7 +1792,7 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         sh->alf_sh_param.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
         memset(sh->alf_sh_param.alfCtuEnableFlag, 1, N_C * ctx->f_lcu * sizeof(u8));
 #endif
-        ret = evcd_eco_tgh(bs, &ctx->sps, &ctx->pps, sh);
+        ret = evcd_eco_sh(bs, &ctx->sps, &ctx->pps, sh);
 
         /* HLS_RPL Test printing the content of RPL0 and RPL1 for each slice*/
 /*

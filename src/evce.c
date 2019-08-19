@@ -589,7 +589,7 @@ QP_ADAPT_PARAM qp_adapt_param_ld[8] =
 };
 
   //Implementation for selecting and assigning RPL0 & RPL1 candidates in the SPS to SH
-static void select_assign_rpl_for_tgh(EVCE_CTX *ctx, EVC_SH *sh)
+static void select_assign_rpl_for_sh(EVCE_CTX *ctx, EVC_SH *sh)
 {
     //TBD: when NALU types are implemented; if the current picture is an IDR, simply return without doing the rest of the codes for this function
 
@@ -802,7 +802,7 @@ static int create_explicit_rpl(EVC_PM *pm, EVC_SH *sh)
     return 1;
 }
 
-static void set_tgh(EVCE_CTX *ctx, EVC_SH *sh)
+static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
 {
     double qp;
     int qp_l_i;
@@ -829,7 +829,7 @@ static void set_tgh(EVCE_CTX *ctx, EVC_SH *sh)
     if (!ctx->sps.picture_num_present_flag)
     {
         sh->poc = ctx->ptr;
-        select_assign_rpl_for_tgh(ctx, sh);
+        select_assign_rpl_for_sh(ctx, sh);
         sh->num_ref_idx_active_override_flag = 1;
     }
 
@@ -2173,7 +2173,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     {
         /* Set slice header */
         //This needs to be done before reference picture marking and reference picture list construction are invoked
-        set_tgh(ctx, sh);
+        set_sh(ctx, sh);
 
         if (sh->tile_group_type != TILE_GROUP_I && sh->poc != 0) //TBD: change this condition to say that if this slice is not a slice in IDR picture
         {
@@ -2245,7 +2245,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     if (ctx->sps.picture_num_present_flag)
     {
         /* Set slice header */
-        set_tgh(ctx, sh);
+        set_sh(ctx, sh);
     }
 
     core->qp_y = ctx->sh.qp + 6 * (BIT_DEPTH - 8);
@@ -2410,7 +2410,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #if ALF
     sh->num_ctb = ctx->f_lcu;
 #endif
-    ret = evce_eco_tgh(bs, &ctx->sps, &ctx->pps, sh);
+    ret = evce_eco_sh(bs, &ctx->sps, &ctx->pps, sh);
     evc_assert_rv(ret == EVC_OK, ret);
 
     core->x_lcu = core->y_lcu = 0;

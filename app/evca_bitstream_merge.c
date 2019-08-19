@@ -453,7 +453,7 @@ int main(int argc, const char **argv)
                 ret = evcd_eco_aps(bs, aps);
                 evc_assert_rv(EVC_SUCCEEDED(ret), ret);
 #endif
-                ret = evcd_eco_tgh(bs, &ctx->sps, &ctx->pps, sh);
+                ret = evcd_eco_sh(bs, &ctx->sps, &ctx->pps, sh);
                 evc_assert_rv(EVC_SUCCEEDED(ret), ret);
 
                 if (bs_num == 0 && sh->tile_group_type == TILE_GROUP_I)
