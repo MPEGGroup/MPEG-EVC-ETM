@@ -1136,19 +1136,11 @@ static void evce_eco_skip_flag(EVC_BSW * bs, int flag, int ctx)
     EVC_TRACE_STR("\n");
 }
 #if IBC
-static void evce_eco_ibc_flag(EVC_BSW * bs, int flag
-#if CTX_NEV_IBC_FLAG
-  , int ctx
-#endif
-)
+static void evce_eco_ibc_flag(EVC_BSW * bs, int flag, int ctx)
 {
   EVCE_SBAC *sbac;
   sbac = GET_SBAC_ENC(bs);
-#if CTX_NEV_IBC_FLAG
   evce_sbac_encode_bin(flag, sbac, sbac->ctx.ibc_flag + ctx, bs);
-#else
-  evce_sbac_encode_bin(flag, sbac, sbac->ctx.ibc_flag, bs);
-#endif
 }
 #endif
 void evce_eco_inter_t_direct(EVC_BSW *bs, int t_direct_flag)
@@ -1884,11 +1876,7 @@ int evce_eco_pred_mode(EVC_BSW * bs, u8 pred_mode, int ctx)
     return EVC_OK;
 }
 #if IBC
-int evce_eco_ibc(EVC_BSW * bs, u8 pred_mode_ibc_flag
-#if CTX_NEV_IBC_FLAG
-  , int ctx
-#endif
-)
+int evce_eco_ibc(EVC_BSW * bs, u8 pred_mode_ibc_flag, int ctx)
 {
   EVCE_SBAC * sbac = GET_SBAC_ENC(bs);
 
@@ -1897,11 +1885,7 @@ int evce_eco_ibc(EVC_BSW * bs, u8 pred_mode_ibc_flag
   EVC_TRACE_INT(!!pred_mode_ibc_flag);
   EVC_TRACE_STR("\n");
 
-#if CTX_NEV_IBC_FLAG
   evce_sbac_encode_bin(pred_mode_ibc_flag, sbac, sbac->ctx.ibc_flag + ctx, bs);
-#else
-  evce_sbac_encode_bin(1, sbac, sbac->ctx.ibc_flag, bs);
-#endif
 
   return EVC_OK;
 }
@@ -2814,11 +2798,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
             if (cu_data->pred_mode[cup] != MODE_INTRA && ctx->param.use_ibc_flag && core->log2_cuw <= ctx->sps.ibc_log_max_size && core->log2_cuh <= ctx->sps.ibc_log_max_size)
             {
 
-              evce_eco_ibc_flag(bs, core->ibc_flag
-#if CTX_NEV_IBC_FLAG
-                , ctx->ctx_flags[CNID_IBC_FLAG]
-#endif
-              );
+              evce_eco_ibc_flag(bs, core->ibc_flag, ctx->ctx_flags[CNID_IBC_FLAG]);
             }
 #endif
             if(cu_data->pred_mode[cup] != MODE_INTRA
@@ -3071,11 +3051,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
       {
         if (core->log2_cuw <= ctx->sps.ibc_log_max_size && core->log2_cuh <= ctx->sps.ibc_log_max_size)
         {
-          evce_eco_ibc_flag(bs, core->ibc_flag
-#if CTX_NEV_IBC_FLAG
-            , ctx->ctx_flags[CNID_IBC_FLAG]
-#endif
-          );
+          evce_eco_ibc_flag(bs, core->ibc_flag, ctx->ctx_flags[CNID_IBC_FLAG]);
         }
       }
     }

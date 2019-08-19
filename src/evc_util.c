@@ -3438,7 +3438,7 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
             {
               if (sps_cm_init_flag == 1)
               {
-                ctx[i] = min(ctx[i], CTX_NEV_IBC_FLAG - 1);
+                ctx[i] = min(ctx[i], NUM_SBAC_CTX_IBC_FLAG - 1);
               }
               else
               {

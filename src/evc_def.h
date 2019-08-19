@@ -325,10 +325,6 @@ enum SAD_POINT_INDEX
 #endif
 /* ALF (END) */
 
-#if IBC
-#define CTX_NEV_IBC_FLAG                   2 // number of ctx for ibc_flag
-#endif
-
 /* AFFINE (START) */
 #if AFFINE
  // AFFINE Constant
@@ -941,7 +937,7 @@ typedef u32 SBAC_CTX_MODEL;
 #define NUM_SBAC_CTX_AFFINE_MVD_FLAG       2
 #define NUM_SBAC_CTX_SKIP_FLAG             2
 #if IBC
-#define NUM_SBAC_CTX_IBC_FLAG             CTX_NEV_IBC_FLAG
+#define NUM_SBAC_CTX_IBC_FLAG              2
 #endif
 #define NUM_SBAC_CTX_BTT_SPLIT_FLAG        15
 #define NUM_SBAC_CTX_BTT_SPLIT_DIR         5
