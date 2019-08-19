@@ -2428,15 +2428,15 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     while(1)
     {
 #if APS_ALF_CTU_FLAG
-        evc_AlfTileGroupParam* alfTileGroupParam = &(ctx->sh.alf_sh_param);
-        if ((alfTileGroupParam->isCtbAlfOn) && (sh->alf_on))
+        evc_AlfSliceParam* alfSliceParam = &(ctx->sh.alf_sh_param);
+        if ((alfSliceParam->isCtbAlfOn) && (sh->alf_on))
         {
             EVCE_SBAC *sbac;
             sbac = GET_SBAC_ENC(bs);
 #if ALF_CTU_MAP_DYNAMIC
-            evce_sbac_encode_bin((int)(*(alfTileGroupParam->alfCtuEnableFlag + core->lcu_num)), sbac, sbac->ctx.ctb_alf_flag, bs);
+            evce_sbac_encode_bin((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)), sbac, sbac->ctx.ctb_alf_flag, bs);
 #else
-            evce_sbac_encode_bin((int)(alfTileGroupParam->alfCtuEnableFlag[0][core->lcu_num]), sbac, sbac->ctx.ctb_alf_flag, bs);
+            evce_sbac_encode_bin((int)(alfSliceParam->alfCtuEnableFlag[0][core->lcu_num]), sbac, sbac->ctx.ctb_alf_flag, bs);
 #endif
         }
 #endif

@@ -1618,13 +1618,13 @@ int evcd_dec_tile_group(EVCD_CTX * ctx, EVCD_CORE * core)
         /* invoke coding_tree() recursion */
         evc_mset(core->split_mode, 0, sizeof(s8) * MAX_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
 #if APS_ALF_CTU_FLAG
-        evc_AlfTileGroupParam* alfTileGroupParam = &(ctx->sh.alf_sh_param);
-        if ((alfTileGroupParam->isCtbAlfOn) && (ctx->sh.alf_on))
+        evc_AlfSliceParam* alfSliceParam = &(ctx->sh.alf_sh_param);
+        if ((alfSliceParam->isCtbAlfOn) && (ctx->sh.alf_on))
         {
 #if ALF_CTU_MAP_DYNAMIC
-            *(alfTileGroupParam->alfCtuEnableFlag + core->lcu_num) = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ctb_alf_flag);
+            *(alfSliceParam->alfCtuEnableFlag + core->lcu_num) = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ctb_alf_flag);
 #else
-            alfTileGroupParam->alfCtuEnableFlag[0][core->lcu_num] = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ctb_alf_flag);
+            alfSliceParam->alfCtuEnableFlag[0][core->lcu_num] = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ctb_alf_flag);
 #endif
         }
 #endif

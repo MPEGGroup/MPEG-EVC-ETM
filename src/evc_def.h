@@ -1402,7 +1402,7 @@ typedef struct _EVC_RMPNI
  * slice header
  *****************************************************************************/
 #if ALF
-typedef struct _evc_AlfTileGroupParam
+typedef struct _evc_AlfSliceParam
 {
     BOOL isCtbAlfOn;
 #if ALF_CTU_MAP_DYNAMIC
@@ -1430,13 +1430,13 @@ typedef struct _evc_AlfTileGroupParam
     BOOL resetALFBufferFlag;
     BOOL store2ALFBufferFlag;
 
-} evc_AlfTileGroupParam;
+} evc_AlfSliceParam;
 
 #if ALF_PARAMETER_APS
 typedef struct _EVC_APS
 {
     int                               aps_id;                    // adaptation_parameter_set_id
-    evc_AlfTileGroupParam          alf_aps_param;              // alf data
+    evc_AlfSliceParam          alf_aps_param;              // alf data
 } EVC_APS;
 
 #endif
@@ -1502,7 +1502,7 @@ typedef struct _EVC_SH
     int                 aps_signaled;
     EVC_APS*         aps;
 #endif
-    evc_AlfTileGroupParam    alf_sh_param;
+    evc_AlfSliceParam    alf_sh_param;
 #endif
 
     /* delta of presentation temporal reference */

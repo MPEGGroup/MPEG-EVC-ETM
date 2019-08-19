@@ -176,7 +176,7 @@ private:
   uint8_t*               m_ctuEnableFlagTmp[MAX_NUM_COMPONENT];
 
   //for RDO
-  AlfTileGroupParam      m_alfTileGroupParamTemp;
+  AlfSliceParam      m_alfSliceParamTemp;
   AlfCovariance          m_alfCovarianceMerged[ALF_NUM_OF_FILTER_TYPES][MAX_NUM_ALF_CLASSES + 1];
 
   EVCE_CORE *           m_core;
@@ -200,7 +200,7 @@ public:
   EncAdaptiveLoopFilter();
   virtual ~EncAdaptiveLoopFilter() {}
 
-  void Enc_ALFProcess(CodingStructure& cs, const double *lambdas, AlfTileGroupParam* alfTileGroupParam);
+  void Enc_ALFProcess(CodingStructure& cs, const double *lambdas, AlfSliceParam* alfSliceParam);
   void initCABACEstimator(EVCE_CORE * core);
   void create(const int picWidth, const int picHeight, const int maxCUWidth, const int maxCUHeight, const int maxCUDepth );
   void destroy();
@@ -208,9 +208,9 @@ public:
   static int getGolombKMin(AlfFilterShape& alfShape, const int numFilters, int kMinTab[MAX_NUM_ALF_LUMA_COEFF], int bitsCoeffScan[m_MAX_SCAN_VAL][m_MAX_EXP_GOLOMB]);
 
 private:
-  void   alfEncoder(CodingStructure& cs, AlfTileGroupParam* alfSliceParam, const ChannelType channel);
-  void   copyAlfTileGroupParam(AlfTileGroupParam* alfTileGroupParamDst, AlfTileGroupParam* alfTileGroupParamSrc, ChannelType channel);
-  double mergeFiltersAndCost(AlfTileGroupParam* alfTileGroupParam, AlfFilterShape& alfShape, AlfCovariance* covFrame, AlfCovariance* covMerged, int& uiCoeffBits);
+  void   alfEncoder(CodingStructure& cs, AlfSliceParam* alfSliceParam, const ChannelType channel);
+  void   copyAlfSliceParam(AlfSliceParam* alfSliceParamDst, AlfSliceParam* alfSliceParamSrc, ChannelType channel);
+  double mergeFiltersAndCost(AlfSliceParam* alfSliceParam, AlfFilterShape& alfShape, AlfCovariance* covFrame, AlfCovariance* covMerged, int& uiCoeffBits);
 
   void   getFrameStats(ChannelType channel, int iShapeIdx);  
   void   getFrameStat(AlfCovariance* frameCov, AlfCovariance** ctbCov, uint8_t* ctbEnableFlags, const int numClasses);
@@ -220,13 +220,13 @@ private:
 
   void   calcCovariance(int *ELocal, const Pel *rec, const int stride, const int *filterPattern, const int halfFilterLength, const int transposeIdx);
   void   mergeClasses(AlfCovariance* cov, AlfCovariance* covMerged, const int numClasses, short filterIndices[MAX_NUM_ALF_CLASSES][MAX_NUM_ALF_CLASSES]);
-  void   alfReconstructor(CodingStructure& cs, AlfTileGroupParam* alfTileGroupParam, const pel * orgUnitBuf, const int oStride, pel * recExtBuf, const int recStride, const ComponentID compID);
-  void   alfTemporalEncoder(CodingStructure& cs, AlfTileGroupParam* alfTileGroupParam);
+  void   alfReconstructor(CodingStructure& cs, AlfSliceParam* alfSliceParam, const pel * orgUnitBuf, const int oStride, pel * recExtBuf, const int recStride, const ComponentID compID);
+  void   alfTemporalEncoder(CodingStructure& cs, AlfSliceParam* alfSliceParam);
 #if APS_ALF_SEQ_FIX
-  void   alfTemporalEncoderAPS(CodingStructure& cs, AlfTileGroupParam* alfTileGroupParam);
+  void   alfTemporalEncoderAPS(CodingStructure& cs, AlfSliceParam* alfSliceParam);
 #endif
   
-  void   findBestFixedFilter(AlfTileGroupParam* alfTileGroupParam, AlfCovariance* cov);
+  void   findBestFixedFilter(AlfSliceParam* alfSliceParam, AlfCovariance* cov);
   void   xDeriveCovFromLgrTapFilter(AlfCovariance& covLgr, AlfCovariance& covSml, int* patternSml);
 
   double calculateError(AlfCovariance& cov);
@@ -244,14 +244,14 @@ private:
   double getDistCoeffForce0(bool* codedVarBins, double errorForce0CoeffTab[MAX_NUM_ALF_CLASSES][2], int* bitsVarBin, const int numFilters);
   int    lengthTruncatedUnary(int symbol, int maxSymbol);
   int    lengthUvlc(int uiCode);
-  int    getNonFilterCoeffRate(AlfTileGroupParam* alfTileGroupParam);
+  int    getNonFilterCoeffRate(AlfSliceParam* alfSliceParam);
   int    getTBlength(int uiSymbol, const int uiMaxSymbol);
 
   int    getCostFilterCoeffForce0(AlfFilterShape& alfShape, int **pDiffQFilterCoeffIntPP, const int numFilters, bool* codedVarBins);
   int    getCostFilterCoeff(AlfFilterShape& alfShape, int **pDiffQFilterCoeffIntPP, const int numFilters);
   int    lengthFilterCoeffs(AlfFilterShape& alfShape, const int numFilters, int **FilterCoeff, int* kMinTab);
   double getDistForce0(AlfFilterShape& alfShape, const int numFilters, double errorTabForce0Coeff[MAX_NUM_ALF_CLASSES][2], bool* codedVarBins);
-  int    getCoeffRate(AlfTileGroupParam* alfTileGroupParam, bool isChroma);
+  int    getCoeffRate(AlfSliceParam* alfSliceParam, bool isChroma);
 
   double getUnfilteredDistortion(AlfCovariance* cov, ChannelType channel);
   double getUnfilteredDistortion(AlfCovariance* cov, const int numClasses);
@@ -263,8 +263,8 @@ private:
   void gnsTransposeBacksubstitution(double U[MAX_NUM_ALF_COEFF][MAX_NUM_ALF_COEFF], double* rhs, double* x, int order);
   int  gnsCholeskyDec(double **inpMatr, double outMatr[MAX_NUM_ALF_COEFF][MAX_NUM_ALF_COEFF], int numEq);
 
-  void setEnableFlag(AlfTileGroupParam* alfTileGroupPara, ChannelType channel, bool val);
-  void setEnableFlag(AlfTileGroupParam* alfTileGroupPara, ChannelType channel, uint8_t** ctuFlags);
+  void setEnableFlag(AlfSliceParam* alfSlicePara, ChannelType channel, bool val);
+  void setEnableFlag(AlfSliceParam* alfSlicePara, ChannelType channel, uint8_t** ctuFlags);
   void setCtuEnableFlag(uint8_t** ctuFlags, ChannelType channel, uint8_t val);
   void copyCtuEnableFlag(uint8_t** ctuFlagsDst, uint8_t** ctuFlagsSrc, ChannelType channel);
 };

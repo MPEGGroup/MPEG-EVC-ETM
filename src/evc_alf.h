@@ -222,7 +222,7 @@ typedef struct AlfFilterShape
 
 extern void init_AlfFilterShape(void* _th, int size);
 
-struct AlfTileGroupParam
+struct AlfSliceParam
 {
   BOOL                         isCtbAlfOn;
 #if ALF_CTU_MAP_DYNAMIC
@@ -312,30 +312,30 @@ extern u8 m_acAlfLineBufferCurrentSize;
 
 #if ALF_PARAMETER_APS
 extern u8 m_alfIndxInScanOrder[APS_MAX_NUM];
-extern AlfTileGroupParam m_acAlfLineBuffer[APS_MAX_NUM];
+extern AlfSliceParam m_acAlfLineBuffer[APS_MAX_NUM];
 #else
-extern AlfTileGroupParam m_acAlfLineBuffer[ALF_TEMPORAL_WITH_LINE_BUFFER];
+extern AlfSliceParam m_acAlfLineBuffer[ALF_TEMPORAL_WITH_LINE_BUFFER];
 #endif
-extern AlfTileGroupParam m_IRAPFilter;
+extern AlfSliceParam m_IRAPFilter;
 
 extern void init_AlfFilterShape(void* _th, int size);
 extern int  getMaxGolombIdx( AlfFilterType filterType );
-extern void reconstructCoeff( AlfTileGroupParam* alfTileGroupParam, ChannelType channel, const BOOL bRdo, const BOOL bRedo );
+extern void reconstructCoeff( AlfSliceParam* alfSliceParam, ChannelType channel, const BOOL bRdo, const BOOL bRedo );
 extern void deriveClassification( AlfClassifier** classifier, const pel * srcLuma, const int srcLumaStride, const Area * blk );
 
-extern void copyAlfParam(AlfTileGroupParam* dst, AlfTileGroupParam* src);
-extern void storeALFParamLine(AlfTileGroupParam* pAlfParam, unsigned tLayer);
+extern void copyAlfParam(AlfSliceParam* dst, AlfSliceParam* src);
+extern void storeALFParamLine(AlfSliceParam* pAlfParam, unsigned tLayer);
 #if ALF_PARAMETER_APS
-void store_alf_paramline_from_aps(AlfTileGroupParam* pAlfParam, u8 idx);
-void load_alf_paramline_from_aps_buffer(AlfTileGroupParam* pAlfParam, u8 idx);
+void store_alf_paramline_from_aps(AlfSliceParam* pAlfParam, u8 idx);
+void load_alf_paramline_from_aps_buffer(AlfSliceParam* pAlfParam, u8 idx);
 #if APS_ALF_SEQ_FIX
 extern u8 m_nextFreeAlfIdxInBuffer;
-extern void resetAlfParam(AlfTileGroupParam* dst);
+extern void resetAlfParam(AlfSliceParam* dst);
 extern void resetIdrIndexListBufferAPS();
 extern int  getProtectIdxFromList(int idx);
-extern void storeEncALFParamLineAPS(AlfTileGroupParam* pAlfParam, unsigned tLayer);
-extern void storeDecALFParamLine(AlfTileGroupParam* pAlfParam, unsigned tLayer);
-extern void loadALFParamLineAPS(AlfTileGroupParam* pAlfParam, unsigned idx, unsigned tLayer);
+extern void storeEncALFParamLineAPS(AlfSliceParam* pAlfParam, unsigned tLayer);
+extern void storeDecALFParamLine(AlfSliceParam* pAlfParam, unsigned tLayer);
+extern void loadALFParamLineAPS(AlfSliceParam* pAlfParam, unsigned idx, unsigned tLayer);
 #endif
 #endif
 
@@ -345,7 +345,7 @@ extern void resetTemporalAlfBufferLine2First();
 void AdaptiveLoopFilter_create( const int picWidth, const int picHeight, const int maxCUWidth, const int maxCUHeight, const int maxCUDepth);
 void AdaptiveLoopFilter_destroy();
 
-void loadALFParamLine(AlfTileGroupParam* pAlfParam, unsigned idx, unsigned tLayer);
+void loadALFParamLine(AlfSliceParam* pAlfParam, unsigned idx, unsigned tLayer);
 
 void deriveClassificationBlk( AlfClassifier** classifier, const pel * srcLuma, const int srcStride, const Area * blk, const int shift );
 void filterBlk_7( AlfClassifier** classifier, pel * recDst, const int dstStride, const pel * recSrc, const int srcStride, const Area* blk, const ComponentID compId, short* filterSet, const ClpRng* clpRng );

@@ -2606,30 +2606,30 @@ u32 evcd_xReadTruncBinCode(EVC_BSR * bs, const int uiMaxSymbol)
     return ruiSymbol;
 }
 
-int evcd_eco_alf_filter(EVC_BSR * bs, evc_AlfTileGroupParam* alfTileGroupParam, const BOOL isChroma)
+int evcd_eco_alf_filter(EVC_BSR * bs, evc_AlfSliceParam* alfSliceParam, const BOOL isChroma)
 {
     if(!isChroma)
     {
-        alfTileGroupParam->coeffDeltaFlag = evc_bsr_read1(bs); // "alf_coefficients_delta_flag"
-        if(!alfTileGroupParam->coeffDeltaFlag)
+        alfSliceParam->coeffDeltaFlag = evc_bsr_read1(bs); // "alf_coefficients_delta_flag"
+        if(!alfSliceParam->coeffDeltaFlag)
         {
-            if(alfTileGroupParam->numLumaFilters > 1)
+            if(alfSliceParam->numLumaFilters > 1)
             {
-                alfTileGroupParam->coeffDeltaPredModeFlag = evc_bsr_read1(bs); // "coeff_delta_pred_mode_flag"
+                alfSliceParam->coeffDeltaPredModeFlag = evc_bsr_read1(bs); // "coeff_delta_pred_mode_flag"
             }
             else
             {
-                alfTileGroupParam->coeffDeltaPredModeFlag = 0;
+                alfSliceParam->coeffDeltaPredModeFlag = 0;
             }
         }
         else
         {
-            alfTileGroupParam->coeffDeltaPredModeFlag = 0;
+            alfSliceParam->coeffDeltaPredModeFlag = 0;
         }
     }
 
     evc_AlfFilterShape alfShape;
-    init_AlfFilterShape( &alfShape, isChroma ? 5 : ( alfTileGroupParam->lumaFilterType == ALF_FILTER_5 ? 5 : 7 ) );
+    init_AlfFilterShape( &alfShape, isChroma ? 5 : ( alfSliceParam->lumaFilterType == ALF_FILTER_5 ? 5 : 7 ) );
 
     const int maxGolombIdx = alfShape.filterType == 0 ? 2 : 3;
 
@@ -2637,8 +2637,8 @@ int evcd_eco_alf_filter(EVC_BSR * bs, evc_AlfTileGroupParam* alfTileGroupParam, 
     int kMin = min_golomb_order + 1;
     int kMinTab[MAX_NUM_ALF_COEFF];
 
-    const int numFilters = isChroma ? 1 : alfTileGroupParam->numLumaFilters;
-    short* coeff = isChroma ? alfTileGroupParam->chromaCoeff : alfTileGroupParam->lumaCoeff;
+    const int numFilters = isChroma ? 1 : alfSliceParam->numLumaFilters;
+    short* coeff = isChroma ? alfSliceParam->chromaCoeff : alfSliceParam->lumaCoeff;
 
     for(int idx = 0; idx < maxGolombIdx; idx++)
     {
@@ -2649,12 +2649,12 @@ int evcd_eco_alf_filter(EVC_BSR * bs, evc_AlfTileGroupParam* alfTileGroupParam, 
 
     if(!isChroma)
     {
-        if(alfTileGroupParam->coeffDeltaFlag)
+        if(alfSliceParam->coeffDeltaFlag)
         {
-            for(int ind = 0; ind < alfTileGroupParam->numLumaFilters; ++ind)
+            for(int ind = 0; ind < alfSliceParam->numLumaFilters; ++ind)
             {
                 int code = evc_bsr_read1(bs); // "filter_coefficient_flag[i]"
-                alfTileGroupParam->filterCoeffFlag[ind] = code;
+                alfSliceParam->filterCoeffFlag[ind] = code;
             }
         }
     }
@@ -2662,7 +2662,7 @@ int evcd_eco_alf_filter(EVC_BSR * bs, evc_AlfTileGroupParam* alfTileGroupParam, 
     // Filter coefficients
     for(int ind = 0; ind < numFilters; ++ind)
     {
-        if(!isChroma && !alfTileGroupParam->filterCoeffFlag[ind] && alfTileGroupParam->coeffDeltaFlag)
+        if(!isChroma && !alfSliceParam->filterCoeffFlag[ind] && alfSliceParam->coeffDeltaFlag)
         {
             memset(coeff + ind * MAX_NUM_ALF_LUMA_COEFF, 0, sizeof(*coeff) * alfShape.numCoeff);
             continue;
@@ -2679,85 +2679,85 @@ int evcd_eco_alf_filter(EVC_BSR * bs, evc_AlfTileGroupParam* alfTileGroupParam, 
 #if ALF_PARAMETER_APS
 int evcd_eco_alf_aps_param(EVC_BSR * bs, EVC_APS * aps)
 {
-    evc_AlfTileGroupParam* alfTileGroupParam = &(aps->alf_aps_param);
-    //AlfTileGroupParam reset
-    alfTileGroupParam->temporalAlfFlag = 0;
-    alfTileGroupParam->prevIdx = 0;
-    alfTileGroupParam->tLayer = 0;
-    alfTileGroupParam->resetALFBufferFlag = 0;
-    alfTileGroupParam->store2ALFBufferFlag = 0;
-    alfTileGroupParam->temporalAlfFlag = 0;
-    alfTileGroupParam->prevIdx = 0;
-    alfTileGroupParam->tLayer = 0;
-    alfTileGroupParam->isCtbAlfOn = 0;
+    evc_AlfSliceParam* alfSliceParam = &(aps->alf_aps_param);
+    //AlfSliceParam reset
+    alfSliceParam->temporalAlfFlag = 0;
+    alfSliceParam->prevIdx = 0;
+    alfSliceParam->tLayer = 0;
+    alfSliceParam->resetALFBufferFlag = 0;
+    alfSliceParam->store2ALFBufferFlag = 0;
+    alfSliceParam->temporalAlfFlag = 0;
+    alfSliceParam->prevIdx = 0;
+    alfSliceParam->tLayer = 0;
+    alfSliceParam->isCtbAlfOn = 0;
 #if !ALF_CTU_MAP_DYNAMIC
-    memset(alfTileGroupParam->alfCtuEnableFlag, 1, 512 * 3 * sizeof(u8));
+    memset(alfSliceParam->alfCtuEnableFlag, 1, 512 * 3 * sizeof(u8));
 #endif
-    memset(alfTileGroupParam->enabledFlag, 0, 3 * sizeof(BOOL));
-    alfTileGroupParam->lumaFilterType = ALF_FILTER_5;
-    memset(alfTileGroupParam->lumaCoeff, 0, sizeof(short) * 325);
-    memset(alfTileGroupParam->chromaCoeff, 0, sizeof(short) * 7);
-    memset(alfTileGroupParam->filterCoeffDeltaIdx, 0, sizeof(short)*MAX_NUM_ALF_CLASSES);
-    memset(alfTileGroupParam->filterCoeffFlag, 1, sizeof(BOOL) * 25);
-    alfTileGroupParam->numLumaFilters = 1;
-    alfTileGroupParam->coeffDeltaFlag = 0;
-    alfTileGroupParam->coeffDeltaPredModeFlag = 0;
-    alfTileGroupParam->chromaCtbPresentFlag = 0;
-    alfTileGroupParam->fixedFilterPattern = 0;
-    memset(alfTileGroupParam->fixedFilterIdx, 0, sizeof(int) * 25);
+    memset(alfSliceParam->enabledFlag, 0, 3 * sizeof(BOOL));
+    alfSliceParam->lumaFilterType = ALF_FILTER_5;
+    memset(alfSliceParam->lumaCoeff, 0, sizeof(short) * 325);
+    memset(alfSliceParam->chromaCoeff, 0, sizeof(short) * 7);
+    memset(alfSliceParam->filterCoeffDeltaIdx, 0, sizeof(short)*MAX_NUM_ALF_CLASSES);
+    memset(alfSliceParam->filterCoeffFlag, 1, sizeof(BOOL) * 25);
+    alfSliceParam->numLumaFilters = 1;
+    alfSliceParam->coeffDeltaFlag = 0;
+    alfSliceParam->coeffDeltaPredModeFlag = 0;
+    alfSliceParam->chromaCtbPresentFlag = 0;
+    alfSliceParam->fixedFilterPattern = 0;
+    memset(alfSliceParam->fixedFilterIdx, 0, sizeof(int) * 25);
 
-    alfTileGroupParam->enabledFlag[0] = evc_bsr_read1(bs);
+    alfSliceParam->enabledFlag[0] = evc_bsr_read1(bs);
 
-    if (!alfTileGroupParam->enabledFlag[0])
+    if (!alfSliceParam->enabledFlag[0])
     {
         return EVC_OK;
     }
 
     int alfChromaIdc = evcd_truncatedUnaryEqProb(bs, 3);
-    alfTileGroupParam->enabledFlag[2] = alfChromaIdc & 1;
-    alfTileGroupParam->enabledFlag[1] = (alfChromaIdc >> 1) & 1;
+    alfSliceParam->enabledFlag[2] = alfChromaIdc & 1;
+    alfSliceParam->enabledFlag[1] = (alfChromaIdc >> 1) & 1;
     {
 
-        alfTileGroupParam->numLumaFilters = evcd_xReadTruncBinCode(bs, MAX_NUM_ALF_CLASSES) + 1;
-        alfTileGroupParam->lumaFilterType = !(evc_bsr_read1(bs));
+        alfSliceParam->numLumaFilters = evcd_xReadTruncBinCode(bs, MAX_NUM_ALF_CLASSES) + 1;
+        alfSliceParam->lumaFilterType = !(evc_bsr_read1(bs));
 
-        if (alfTileGroupParam->numLumaFilters > 1)
+        if (alfSliceParam->numLumaFilters > 1)
         {
             for (int i = 0; i < MAX_NUM_ALF_CLASSES; i++)
             {
-                alfTileGroupParam->filterCoeffDeltaIdx[i] = (short)evcd_xReadTruncBinCode(bs, alfTileGroupParam->numLumaFilters);  //filter_coeff_delta[i]
+                alfSliceParam->filterCoeffDeltaIdx[i] = (short)evcd_xReadTruncBinCode(bs, alfSliceParam->numLumaFilters);  //filter_coeff_delta[i]
             }
         }
 
         char codetab_pred[3] = { 1, 0, 2 };
         const int iNumFixedFilterPerClass = 16;
-        memset(alfTileGroupParam->fixedFilterIdx, 0, sizeof(alfTileGroupParam->fixedFilterIdx));
+        memset(alfSliceParam->fixedFilterIdx, 0, sizeof(alfSliceParam->fixedFilterIdx));
         if (iNumFixedFilterPerClass > 0)
         {
-            alfTileGroupParam->fixedFilterPattern = codetab_pred[alfGolombDecode(bs, 0)];
-            if (alfTileGroupParam->fixedFilterPattern == 2)
+            alfSliceParam->fixedFilterPattern = codetab_pred[alfGolombDecode(bs, 0)];
+            if (alfSliceParam->fixedFilterPattern == 2)
             {
                 for (int classIdx = 0; classIdx < MAX_NUM_ALF_CLASSES; classIdx++)
                 {
-                    alfTileGroupParam->fixedFilterIdx[classIdx] = evc_bsr_read1(bs); // "fixed_filter_flag"
+                    alfSliceParam->fixedFilterIdx[classIdx] = evc_bsr_read1(bs); // "fixed_filter_flag"
                 }
             }
-            else if (alfTileGroupParam->fixedFilterPattern == 1)
+            else if (alfSliceParam->fixedFilterPattern == 1)
             {
                 for (int classIdx = 0; classIdx < MAX_NUM_ALF_CLASSES; classIdx++)
                 {
                     //on
-                    alfTileGroupParam->fixedFilterIdx[classIdx] = 1;
+                    alfSliceParam->fixedFilterIdx[classIdx] = 1;
                 }
             }
 
-            if (alfTileGroupParam->fixedFilterPattern > 0 && iNumFixedFilterPerClass > 1)
+            if (alfSliceParam->fixedFilterPattern > 0 && iNumFixedFilterPerClass > 1)
             {
                 for (int classIdx = 0; classIdx < MAX_NUM_ALF_CLASSES; classIdx++)
                 {
-                    if (alfTileGroupParam->fixedFilterIdx[classIdx] > 0)
+                    if (alfSliceParam->fixedFilterIdx[classIdx] > 0)
                     {
-                        alfTileGroupParam->fixedFilterIdx[classIdx] = (int)evcd_xReadTruncBinCode(bs, iNumFixedFilterPerClass) + 1;
+                        alfSliceParam->fixedFilterIdx[classIdx] = (int)evcd_xReadTruncBinCode(bs, iNumFixedFilterPerClass) + 1;
                     }
                 }
             }
@@ -2769,8 +2769,8 @@ int evcd_eco_alf_aps_param(EVC_BSR * bs, EVC_APS * aps)
 
     if (alfChromaIdc)
     {
-        alfTileGroupParam->chromaCtbPresentFlag = (BOOL)evc_bsr_read1(bs);
-        if (!(alfTileGroupParam->temporalAlfFlag))
+        alfSliceParam->chromaCtbPresentFlag = (BOOL)evc_bsr_read1(bs);
+        if (!(alfSliceParam->temporalAlfFlag))
         {
             evcd_eco_alf_filter(bs, &(aps->alf_aps_param), TRUE);
         }
@@ -2781,44 +2781,44 @@ int evcd_eco_alf_aps_param(EVC_BSR * bs, EVC_APS * aps)
 
 int evcd_eco_alf_sh_param(EVC_BSR * bs, EVC_SH * sh)
 {
-    evc_AlfTileGroupParam* alfTileGroupParam = &(sh->alf_sh_param);
+    evc_AlfSliceParam* alfSliceParam = &(sh->alf_sh_param);
 
-    //AlfTileGroupParam reset
-    alfTileGroupParam->temporalAlfFlag = 0;
-    alfTileGroupParam->prevIdx = 0;
-    alfTileGroupParam->tLayer = 0;
-    alfTileGroupParam->resetALFBufferFlag = 0;
-    alfTileGroupParam->store2ALFBufferFlag = 0;
-    alfTileGroupParam->temporalAlfFlag = 0;
-    alfTileGroupParam->prevIdx = 0;
-    alfTileGroupParam->tLayer = 0;
-    alfTileGroupParam->isCtbAlfOn = 0;
+    //AlfSliceParam reset
+    alfSliceParam->temporalAlfFlag = 0;
+    alfSliceParam->prevIdx = 0;
+    alfSliceParam->tLayer = 0;
+    alfSliceParam->resetALFBufferFlag = 0;
+    alfSliceParam->store2ALFBufferFlag = 0;
+    alfSliceParam->temporalAlfFlag = 0;
+    alfSliceParam->prevIdx = 0;
+    alfSliceParam->tLayer = 0;
+    alfSliceParam->isCtbAlfOn = 0;
 #if !ALF_CTU_MAP_DYNAMIC
-    memset(alfTileGroupParam->alfCtuEnableFlag, 1, 512 * 3 * sizeof(u8));
+    memset(alfSliceParam->alfCtuEnableFlag, 1, 512 * 3 * sizeof(u8));
 #endif
-    memset(alfTileGroupParam->enabledFlag, 0, 3 * sizeof(BOOL));
-    alfTileGroupParam->lumaFilterType = ALF_FILTER_5;
-    memset(alfTileGroupParam->lumaCoeff, 0, sizeof(short) * 325);
-    memset(alfTileGroupParam->chromaCoeff, 0, sizeof(short) * 7);
-    memset(alfTileGroupParam->filterCoeffDeltaIdx, 0, sizeof(short)*MAX_NUM_ALF_CLASSES);
-    memset(alfTileGroupParam->filterCoeffFlag, 1, sizeof(BOOL) * 25);
-    alfTileGroupParam->numLumaFilters = 1;
-    alfTileGroupParam->coeffDeltaFlag = 0;
-    alfTileGroupParam->coeffDeltaPredModeFlag = 0;
-    alfTileGroupParam->chromaCtbPresentFlag = 0;
-    alfTileGroupParam->fixedFilterPattern = 0;
-    memset(alfTileGroupParam->fixedFilterIdx, 0, sizeof(int) * 25);
+    memset(alfSliceParam->enabledFlag, 0, 3 * sizeof(BOOL));
+    alfSliceParam->lumaFilterType = ALF_FILTER_5;
+    memset(alfSliceParam->lumaCoeff, 0, sizeof(short) * 325);
+    memset(alfSliceParam->chromaCoeff, 0, sizeof(short) * 7);
+    memset(alfSliceParam->filterCoeffDeltaIdx, 0, sizeof(short)*MAX_NUM_ALF_CLASSES);
+    memset(alfSliceParam->filterCoeffFlag, 1, sizeof(BOOL) * 25);
+    alfSliceParam->numLumaFilters = 1;
+    alfSliceParam->coeffDeltaFlag = 0;
+    alfSliceParam->coeffDeltaPredModeFlag = 0;
+    alfSliceParam->chromaCtbPresentFlag = 0;
+    alfSliceParam->fixedFilterPattern = 0;
+    memset(alfSliceParam->fixedFilterIdx, 0, sizeof(int) * 25);
 
     //decode map
-    alfTileGroupParam->isCtbAlfOn = evc_bsr_read1(bs);
+    alfSliceParam->isCtbAlfOn = evc_bsr_read1(bs);
 #if !APS_ALF_CTU_FLAG
-    if (alfTileGroupParam->isCtbAlfOn)
+    if (alfSliceParam->isCtbAlfOn)
     {
         for (int i = 0; i < sh->num_ctb; i++)
 #if ALF_CTU_MAP_DYNAMIC
-            *(alfTileGroupParam->alfCtuEnableFlag + i) = evc_bsr_read1(bs);
+            *(alfSliceParam->alfCtuEnableFlag + i) = evc_bsr_read1(bs);
 #else
-            alfTileGroupParam->alfCtuEnableFlag[0][i] = evc_bsr_read1(bs);
+            alfSliceParam->alfCtuEnableFlag[0][i] = evc_bsr_read1(bs);
 #endif
     }
 #endif
@@ -2827,98 +2827,98 @@ int evcd_eco_alf_sh_param(EVC_BSR * bs, EVC_SH * sh)
 #else
 int evcd_eco_alf_sh_param(EVC_BSR * bs, EVC_SH * sh)
 {
-    evc_AlfTileGroupParam* alfTileGroupParam = &(sh->alf_sh_param);
-    alfTileGroupParam->temporalAlfFlag = 0;
-    alfTileGroupParam->prevIdx = 0;
-    alfTileGroupParam->tLayer = 0;
-    alfTileGroupParam->resetALFBufferFlag = 0;
-    alfTileGroupParam->store2ALFBufferFlag = 0;
-    alfTileGroupParam->temporalAlfFlag = 0;
-    alfTileGroupParam->prevIdx = 0;
-    alfTileGroupParam->tLayer = 0;
-    alfTileGroupParam->isCtbAlfOn = 0;
+    evc_AlfSliceParam* alfSliceParam = &(sh->alf_sh_param);
+    alfSliceParam->temporalAlfFlag = 0;
+    alfSliceParam->prevIdx = 0;
+    alfSliceParam->tLayer = 0;
+    alfSliceParam->resetALFBufferFlag = 0;
+    alfSliceParam->store2ALFBufferFlag = 0;
+    alfSliceParam->temporalAlfFlag = 0;
+    alfSliceParam->prevIdx = 0;
+    alfSliceParam->tLayer = 0;
+    alfSliceParam->isCtbAlfOn = 0;
 #if !ALF_CTU_MAP_DYNAMIC
-    memset(alfTileGroupParam->alfCtuEnableFlag, 1 , 512*3*sizeof(u8));
+    memset(alfSliceParam->alfCtuEnableFlag, 1 , 512*3*sizeof(u8));
 #endif
-    memset(alfTileGroupParam->enabledFlag, 0, 3*sizeof(BOOL));
-    alfTileGroupParam->lumaFilterType = ALF_FILTER_5;
-    memset(alfTileGroupParam->lumaCoeff, 0, sizeof(short)*325);
-    memset(alfTileGroupParam->chromaCoeff, 0, sizeof(short)*7);
-    memset(alfTileGroupParam->filterCoeffDeltaIdx, 0, sizeof(short)*MAX_NUM_ALF_CLASSES);
-    memset(alfTileGroupParam->filterCoeffFlag, 1, sizeof(BOOL)*25);
-    alfTileGroupParam->numLumaFilters = 1;
-    alfTileGroupParam->coeffDeltaFlag = 0;
-    alfTileGroupParam->coeffDeltaPredModeFlag = 0;
-    alfTileGroupParam->chromaCtbPresentFlag = 0;
-    alfTileGroupParam->fixedFilterPattern = 0;
-    memset(alfTileGroupParam->fixedFilterIdx, 0, sizeof(int)*25);
+    memset(alfSliceParam->enabledFlag, 0, 3*sizeof(BOOL));
+    alfSliceParam->lumaFilterType = ALF_FILTER_5;
+    memset(alfSliceParam->lumaCoeff, 0, sizeof(short)*325);
+    memset(alfSliceParam->chromaCoeff, 0, sizeof(short)*7);
+    memset(alfSliceParam->filterCoeffDeltaIdx, 0, sizeof(short)*MAX_NUM_ALF_CLASSES);
+    memset(alfSliceParam->filterCoeffFlag, 1, sizeof(BOOL)*25);
+    alfSliceParam->numLumaFilters = 1;
+    alfSliceParam->coeffDeltaFlag = 0;
+    alfSliceParam->coeffDeltaPredModeFlag = 0;
+    alfSliceParam->chromaCtbPresentFlag = 0;
+    alfSliceParam->fixedFilterPattern = 0;
+    memset(alfSliceParam->fixedFilterIdx, 0, sizeof(int)*25);
 
-    alfTileGroupParam->enabledFlag[0] = evc_bsr_read1(bs);
+    alfSliceParam->enabledFlag[0] = evc_bsr_read1(bs);
 
-    if (!alfTileGroupParam->enabledFlag[0])
+    if (!alfSliceParam->enabledFlag[0])
     {
         return EVC_OK;
     }
 
     int alfChromaIdc = evcd_truncatedUnaryEqProb(bs, 3);
-    alfTileGroupParam->enabledFlag[2] = alfChromaIdc & 1;
-    alfTileGroupParam->enabledFlag[1] = (alfChromaIdc >> 1) & 1;
+    alfSliceParam->enabledFlag[2] = alfChromaIdc & 1;
+    alfSliceParam->enabledFlag[1] = (alfChromaIdc >> 1) & 1;
     {
-        alfTileGroupParam->temporalAlfFlag = evc_bsr_read1(bs); // "alf_temporal_enable_flag"
-        if ( alfTileGroupParam->temporalAlfFlag )
+        alfSliceParam->temporalAlfFlag = evc_bsr_read1(bs); // "alf_temporal_enable_flag"
+        if ( alfSliceParam->temporalAlfFlag )
         {
-            alfTileGroupParam->prevIdx = evc_bsr_read_ue(bs);  // "alf_temporal_index"
+            alfSliceParam->prevIdx = evc_bsr_read_ue(bs);  // "alf_temporal_index"
         }
         else
         {
-            alfTileGroupParam->resetALFBufferFlag  = evc_bsr_read1( bs );
-            alfTileGroupParam->store2ALFBufferFlag = evc_bsr_read1( bs );
+            alfSliceParam->resetALFBufferFlag  = evc_bsr_read1( bs );
+            alfSliceParam->store2ALFBufferFlag = evc_bsr_read1( bs );
         }
     }
 
-    if (!alfTileGroupParam->temporalAlfFlag)
+    if (!alfSliceParam->temporalAlfFlag)
     {
 
-    alfTileGroupParam->numLumaFilters = evcd_xReadTruncBinCode( bs, MAX_NUM_ALF_CLASSES) + 1;
-    alfTileGroupParam->lumaFilterType = !(evc_bsr_read1(bs));
+    alfSliceParam->numLumaFilters = evcd_xReadTruncBinCode( bs, MAX_NUM_ALF_CLASSES) + 1;
+    alfSliceParam->lumaFilterType = !(evc_bsr_read1(bs));
 
-    if (alfTileGroupParam->numLumaFilters > 1)
+    if (alfSliceParam->numLumaFilters > 1)
     {
         for (int i = 0; i < MAX_NUM_ALF_CLASSES; i++)
         {
-            alfTileGroupParam->filterCoeffDeltaIdx[i] = (short)evcd_xReadTruncBinCode( bs, alfTileGroupParam->numLumaFilters );  //filter_coeff_delta[i]
+            alfSliceParam->filterCoeffDeltaIdx[i] = (short)evcd_xReadTruncBinCode( bs, alfSliceParam->numLumaFilters );  //filter_coeff_delta[i]
         }
     }
 
     char codetab_pred[3] = {1, 0, 2};
     const int iNumFixedFilterPerClass = 16;
-    memset(alfTileGroupParam->fixedFilterIdx, 0, sizeof(alfTileGroupParam->fixedFilterIdx));
+    memset(alfSliceParam->fixedFilterIdx, 0, sizeof(alfSliceParam->fixedFilterIdx));
     if(iNumFixedFilterPerClass > 0)
     {
-        alfTileGroupParam->fixedFilterPattern = codetab_pred[alfGolombDecode(bs, 0)];
-        if(alfTileGroupParam->fixedFilterPattern == 2)
+        alfSliceParam->fixedFilterPattern = codetab_pred[alfGolombDecode(bs, 0)];
+        if(alfSliceParam->fixedFilterPattern == 2)
         {
             for(int classIdx = 0; classIdx < MAX_NUM_ALF_CLASSES; classIdx++)
             {
-                alfTileGroupParam->fixedFilterIdx[classIdx] = evc_bsr_read1(bs); // "fixed_filter_flag"
+                alfSliceParam->fixedFilterIdx[classIdx] = evc_bsr_read1(bs); // "fixed_filter_flag"
             }
         }
-        else if(alfTileGroupParam->fixedFilterPattern == 1)
+        else if(alfSliceParam->fixedFilterPattern == 1)
         {
             for(int classIdx = 0; classIdx < MAX_NUM_ALF_CLASSES; classIdx++)
             {
                 //on
-                alfTileGroupParam->fixedFilterIdx[classIdx] = 1;
+                alfSliceParam->fixedFilterIdx[classIdx] = 1;
             }
         }
 
-        if(alfTileGroupParam->fixedFilterPattern > 0 && iNumFixedFilterPerClass > 1)
+        if(alfSliceParam->fixedFilterPattern > 0 && iNumFixedFilterPerClass > 1)
         {
             for(int classIdx = 0; classIdx < MAX_NUM_ALF_CLASSES; classIdx++)
             {
-                if(alfTileGroupParam->fixedFilterIdx[classIdx] > 0)
+                if(alfSliceParam->fixedFilterIdx[classIdx] > 0)
                 {
-                    alfTileGroupParam->fixedFilterIdx[classIdx] = (int)evcd_xReadTruncBinCode(bs, iNumFixedFilterPerClass) + 1;
+                    alfSliceParam->fixedFilterIdx[classIdx] = (int)evcd_xReadTruncBinCode(bs, iNumFixedFilterPerClass) + 1;
                 }
             }
         }
@@ -2929,22 +2929,22 @@ int evcd_eco_alf_sh_param(EVC_BSR * bs, EVC_SH * sh)
 
     if (alfChromaIdc) 
     {
-        alfTileGroupParam->chromaCtbPresentFlag = (BOOL)evc_bsr_read1(bs); 
-        if (!(alfTileGroupParam->temporalAlfFlag))
+        alfSliceParam->chromaCtbPresentFlag = (BOOL)evc_bsr_read1(bs); 
+        if (!(alfSliceParam->temporalAlfFlag))
         {
             evcd_eco_alf_filter(bs, &(sh->alf_sh_param), TRUE);
         }
     }
 
     //decode map
-    alfTileGroupParam->isCtbAlfOn = evc_bsr_read1(bs);
-    if(alfTileGroupParam->isCtbAlfOn)
+    alfSliceParam->isCtbAlfOn = evc_bsr_read1(bs);
+    if(alfSliceParam->isCtbAlfOn)
     {
         for(int i = 0; i < sh->num_ctb; i++)
 #if ALF_CTU_MAP_DYNAMIC
-            *(alfTileGroupParam->alfCtuEnableFlag + i) = evc_bsr_read1(bs);
+            *(alfSliceParam->alfCtuEnableFlag + i) = evc_bsr_read1(bs);
 #else
-            alfTileGroupParam->alfCtuEnableFlag[0][i] = evc_bsr_read1(bs);
+            alfSliceParam->alfCtuEnableFlag[0][i] = evc_bsr_read1(bs);
 #endif
     }
     return EVC_OK;
@@ -2954,7 +2954,7 @@ int evcd_eco_alf_sh_param(EVC_BSR * bs, EVC_SH * sh)
 
 int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
 {
-    int NumTilesInTileGroup = 0;    //TBD according to the spec
+    int NumTilesInSlice = 0;    //TBD according to the spec
 #if HLS_M47668
     sh->dtr = evc_bsr_read(bs, DTR_BIT_CNT);
     sh->layer_id = evc_bsr_read(bs, 3);
@@ -2985,7 +2985,7 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
         else
         {
             sh->num_remaining_tiles_in_tile_group_minus1 = evc_bsr_read_ue(bs);
-            for (int i = 0; i < NumTilesInTileGroup - 1; ++i)
+            for (int i = 0; i < NumTilesInSlice - 1; ++i)
             {
                 sh->delta_tile_id_minus1[i] = evc_bsr_read_ue(bs);
             }
@@ -3116,7 +3116,7 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
 
     if (!sh->single_tile_in_tile_group_flag)
     {
-        for (int i = 0; i < NumTilesInTileGroup - 1; ++i)
+        for (int i = 0; i < NumTilesInSlice - 1; ++i)
         {
             sh->entry_point_offset_minus1[i] = evc_bsr_read(bs, pps->tile_offset_lens_minus1 + 1);
         }

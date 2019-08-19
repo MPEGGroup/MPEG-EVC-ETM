@@ -60,7 +60,7 @@ extern "C" {
 
 typedef struct AdaptiveLoopFilter AdaptiveLoopFilter;
 typedef struct AlfFilterShape AlfFilterShape;
-typedef struct AlfTileGroupParam AlfTileGroupParam;
+typedef struct AlfSliceParam AlfSliceParam;
 
 AdaptiveLoopFilter* new_ALF();
 void delete_ALF(AdaptiveLoopFilter*);
