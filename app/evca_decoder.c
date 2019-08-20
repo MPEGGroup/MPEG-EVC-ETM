@@ -218,7 +218,7 @@ static int print_stat(EVCD_STAT * stat, int ret)
                 stype = 'U';
                 break;
             }
-            v1print("%c-tile_group", stype);
+            v1print("%c-slice", stype);
         }
         else if(stat->ctype == EVC_SPS_NUT)
         {

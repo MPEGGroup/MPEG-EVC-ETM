@@ -68,7 +68,7 @@
 #define ALF_PARAMETER_APS                  1
 #define TU_ZONAL_CODING                    1
 #define CTX_MODEL_FOR_RESIDUAL_IN_BASE     1
-#define USE_TILE_GROUP_DQP                 1
+#define USE_SLICE_DQP                 1
 
 /* Profiles definitions */
 #define PROFILE_BASELINE                   0
@@ -637,14 +637,14 @@ extern int fp_trace_counter;
 #define GET_AVAIL_FLAG(avail, bit)      (((avail)>>(bit)) & 0x1)
 
 /*****************************************************************************
- * tile_group type
+ * slice type
  *****************************************************************************/
-#define TILE_GROUP_I                            EVC_ST_I
-#define TILE_GROUP_P                            EVC_ST_P
-#define TILE_GROUP_B                            EVC_ST_B
+#define SLICE_I                            EVC_ST_I
+#define SLICE_P                            EVC_ST_P
+#define SLICE_B                            EVC_ST_B
 
-#define IS_INTRA_TILE_GROUP(tile_group_type)       ((tile_group_type) == TILE_GROUP_I))
-#define IS_INTER_TILE_GROUP(tile_group_type)      (((tile_group_type) == TILE_GROUP_P) || ((tile_group_type) == TILE_GROUP_B))
+#define IS_INTRA_SLICE(slice_type)       ((slice_type) == SLICE_I))
+#define IS_INTER_SLICE(slice_type)      (((slice_type) == SLICE_P) || ((slice_type) == SLICE_B))
 
 /*****************************************************************************
  * prediction mode
@@ -796,7 +796,7 @@ typedef enum _TRANS_TYPE
  /*****************************************************************************
  * macros for CU map
 
- - [ 0: 6] : tile_group number (0 ~ 128)
+ - [ 0: 6] : slice number (0 ~ 128)
  - [ 7:14] : reserved
  - [15:15] : 1 -> intra CU, 0 -> inter CU
  - [16:22] : QP
@@ -811,7 +811,7 @@ typedef enum _TRANS_TYPE
 /*****************************************************************************
  * macros for CU map
 
- - [ 0: 6] : tile_group number (0 ~ 128)
+ - [ 0: 6] : slice number (0 ~ 128)
  - [ 7:14] : reserved
  - [15:15] : 1 -> intra CU, 0 -> inter CU
  - [16:22] : QP
@@ -822,9 +822,9 @@ typedef enum _TRANS_TYPE
  - [31:31] : 0 -> no encoded/decoded CU, 1 -> encoded/decoded CU
  *****************************************************************************/
 #endif
-/* set tile_group number to map */
+/* set slice number to map */
 #define MCU_SET_SN(m, sn)       (m)=(((m) & 0xFFFFFF80)|((sn) & 0x7F))
-/* get tile_group number from map */
+/* get slice number from map */
 #define MCU_GET_SN(m)           (int)((m) & 0x7F)
 
 /* set intra CU flag to map */
@@ -876,7 +876,7 @@ typedef enum _TRANS_TYPE
 /* clear encoded/decoded CU flag to map */
 #define MCU_CLR_COD(m)          (m)=((m) & 0x7FFFFFFF)
 
-/* multi bit setting: intra flag, encoded/decoded flag, tile_group number */
+/* multi bit setting: intra flag, encoded/decoded flag, slice number */
 #define MCU_SET_IF_COD_SN_QP(m, i, sn, qp) \
     (m) = (((m)&0xFF807F80)|((sn)&0x7F)|((qp)<<16)|((i)<<15)|(1<<31))
 
@@ -1344,7 +1344,7 @@ typedef struct _EVC_PPS
     int tile_id_len_minus1;
     int explicit_tile_id_flag;
     int tile_id_val[MAX_NUM_TILES_ROW][MAX_NUM_TILES_COL];
-    int arbitrary_tile_group_present_flag;
+    int arbitrary_slice_present_flag;
 #if M48879_IMPROVEMENT_INTRA
     int constrained_intra_pred_flag;
 #endif
@@ -1399,10 +1399,10 @@ typedef struct _EVC_RMPNI
 } EVC_RMPNI;
 
 /*****************************************************************************
- * tile_group header
+ * slice header
  *****************************************************************************/
 #if ALF
-typedef struct _evc_AlfTileGroupParam
+typedef struct _evc_AlfSliceParam
 {
     BOOL isCtbAlfOn;
 #if ALF_CTU_MAP_DYNAMIC
@@ -1411,7 +1411,7 @@ typedef struct _evc_AlfTileGroupParam
     u8 alfCtuEnableFlag[3][512];
 #endif
 
-    BOOL                         enabledFlag[3];                                          // alf_tile_group_enable_flag, alf_chroma_idc
+    BOOL                         enabledFlag[3];                                          // alf_slice_enable_flag, alf_chroma_idc
     int                          lumaFilterType;                                          // filter_type_flag
     BOOL                         chromaCtbPresentFlag;                                    // alf_chroma_ctb_present_flag
     short                        lumaCoeff[MAX_NUM_ALF_CLASSES * MAX_NUM_ALF_LUMA_COEFF]; // alf_coeff_luma_delta[i][j]
@@ -1430,30 +1430,30 @@ typedef struct _evc_AlfTileGroupParam
     BOOL resetALFBufferFlag;
     BOOL store2ALFBufferFlag;
 
-} evc_AlfTileGroupParam;
+} evc_AlfSliceParam;
 
 #if ALF_PARAMETER_APS
 typedef struct _EVC_APS
 {
     int                               aps_id;                    // adaptation_parameter_set_id
-    evc_AlfTileGroupParam          alf_aps_param;              // alf data
+    evc_AlfSliceParam          alf_aps_param;              // alf data
 } EVC_APS;
 
 #endif
 
 #endif
 
-typedef struct _EVC_TGH
+typedef struct _EVC_SH
 {
-    int              tile_group_pic_parameter_set_id;
-    int              single_tile_in_tile_group_flag;
+    int              slice_pic_parameter_set_id;
+    int              single_tile_in_slice_flag;
     int              first_tile_id;
-    int              arbitrary_tile_group_flag;
+    int              arbitrary_slice_flag;
     int              last_tile_id;
-    int              num_remaining_tiles_in_tile_group_minus1;
+    int              num_remaining_tiles_in_slice_minus1;
     int              delta_tile_id_minus1[MAX_NUM_TILES_ROW * MAX_NUM_TILES_COL];
-    int              tile_group_type;
-    int              tile_group_alf_enabled_flag;
+    int              slice_type;
+    int              slice_alf_enabled_flag;
 #if M49023_ADMVP_IMPROVE
     int              temporal_mvp_asigned_flag;
     int                 collocated_from_list_idx;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
@@ -1466,8 +1466,8 @@ typedef struct _EVC_TGH
 
      /*   HLS_RPL */
     u8               ref_pic_list_sps_flag[2];
-    int              rpl_l0_idx;                            //-1 means this tile_group does not use RPL candidate in SPS for RPL0
-    int              rpl_l1_idx;                            //-1 means this tile_group does not use RPL candidate in SPS for RPL1
+    int              rpl_l0_idx;                            //-1 means this slice does not use RPL candidate in SPS for RPL0
+    int              rpl_l1_idx;                            //-1 means this slice does not use RPL candidate in SPS for RPL1
 
     EVC_RPL         rpl_l0;
     EVC_RPL         rpl_l1;
@@ -1476,8 +1476,8 @@ typedef struct _EVC_TGH
 
     int              deblocking_filter_on;
 #if M49023_DBF_IMPROVE
-    int                 tgh_deblock_alpha_offset;
-    int                 tgh_deblock_beta_offset;
+    int              sh_deblock_alpha_offset;
+    int              sh_deblock_beta_offset;
 #endif
     u8               qp;
     u8               qp_u;
@@ -1502,7 +1502,7 @@ typedef struct _EVC_TGH
     int                 aps_signaled;
     EVC_APS*         aps;
 #endif
-    evc_AlfTileGroupParam    alf_tgh_param;
+    evc_AlfSliceParam    alf_sh_param;
 #endif
 
     /* delta of presentation temporal reference */
@@ -1514,7 +1514,7 @@ typedef struct _EVC_TGH
     u8               rmpni_on;
     EVC_RMPNI       rmpni[REFP_NUM];
 
-} EVC_TGH;
+} EVC_SH;
 
 /*****************************************************************************
  * user data types
@@ -1558,7 +1558,7 @@ typedef enum _BLOCK_SHAPE
 
 #if ADMVP
 /*****************************************************************************
-* history-based MV prediction buffer (tile_group level)
+* history-based MV prediction buffer (slice level)
 *****************************************************************************/
 typedef struct _EVC_HISTORY_BUFFER
 {

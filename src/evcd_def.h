@@ -208,8 +208,8 @@ struct _EVCD_CTX
     /* adaptive loop filter */
     void                   *alf;
 #endif
-    /* current tile_group header */
-    EVC_TGH                tgh;
+    /* current slice header */
+    EVC_SH                sh;
     /* decoded picture buffer management */
     EVC_PM                 dpm;
     /* create descriptor */
@@ -264,10 +264,10 @@ struct _EVCD_CTX
 #endif
 
     /**************************************************************************/
-    /* current tile_group number, which is increased whenever decoding a tile_group.
-    when receiving a tile_group for new picture, this value is set to zero.
-    this value can be used for distinguishing b/w tile_groups */
-    u16                     tile_group_num;
+    /* current slice number, which is increased whenever decoding a slice.
+    when receiving a slice for new picture, this value is set to zero.
+    this value can be used for distinguishing b/w slices */
+    u16                     slice_num;
     /* last coded intra picture's presentation temporal reference */
     int                     last_intra_ptr;
     /* picture width in LCU unit */
@@ -300,7 +300,7 @@ struct _EVCD_CTX
     u32                     pic_cnt;
 #if HLS_M47668
     /* flag whether current picture is refecened picture or not */
-    u8                     tile_group_ref_flag;
+    u8                     slice_ref_flag;
     /* distance between ref pics in addition to closest ref ref pic in LD*/
     int                    ref_pic_gap_length;
 #endif
@@ -322,8 +322,8 @@ struct _EVCD_CTX
     void (* fn_flush)(EVCD_CTX * ctx);
     /* function address of decoding input bitstream */
     int  (* fn_dec_cnk)(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat);
-    /* function address of decoding tile_group */
-    int  (* fn_dec_tile_group)(EVCD_CTX * ctx, EVCD_CORE * core);
+    /* function address of decoding slice */
+    int  (* fn_dec_slice)(EVCD_CTX * ctx, EVCD_CORE * core);
     /* function address of pulling decoded picture */
     int  (* fn_pull)(EVCD_CTX * ctx, EVC_IMGB ** img);
     /* function address of deblocking filter */
@@ -346,7 +346,7 @@ void evcd_platform_deinit(EVCD_CTX * ctx);
 int evcd_ready(EVCD_CTX * ctx);
 void evcd_flush(EVCD_CTX * ctx);
 int evcd_deblock_h263(EVCD_CTX * ctx);
-int evcd_dec_tile_group(EVCD_CTX * ctx, EVCD_CORE * core);
+int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core);
 
 #include "evcd_util.h"
 #include "evcd_eco.h"

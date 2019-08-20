@@ -162,9 +162,9 @@ static const s8 tbl_poc_gop_offset[5][15] =
 };
 
 #if HLS_M47668
-static const s8 tbl_tile_group_depth_P_orig[GOP_P] = { FRM_DEPTH_3,  FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_1 };
+static const s8 tbl_slice_depth_P_orig[GOP_P] = { FRM_DEPTH_3,  FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_1 };
 
-static const s8 tbl_tile_group_depth_P[5][16] =
+static const s8 tbl_slice_depth_P[5][16] =
 {
     /* gop_size = 2 */
     { FRM_DEPTH_2, FRM_DEPTH_1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, \
@@ -182,7 +182,7 @@ static const s8 tbl_tile_group_depth_P[5][16] =
       FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_3, FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_1 }
 };
 
-static const s8 tbl_tile_group_depth[5][15] =
+static const s8 tbl_slice_depth[5][15] =
 {
     /* gop_size = 2 */
     { FRM_DEPTH_2, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, \
@@ -200,7 +200,7 @@ static const s8 tbl_tile_group_depth[5][15] =
       FRM_DEPTH_5,  FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_5 }
 };
 
-static const s8 tbl_tile_group_depth_orig[5][15] =
+static const s8 tbl_slice_depth_orig[5][15] =
 {
     /* gop_size = 2 */
     { FRM_DEPTH_2, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, \
@@ -234,7 +234,7 @@ static const s8 tbl_ref_depth[5][15] =
      FRM_DEPTH_4,  FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_4, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_4}
 };
 
-static const s8 tbl_tile_group_ref[5][15] =
+static const s8 tbl_slice_ref[5][15] =
 {
     /* gop_size = 2 */
     { 1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
@@ -248,9 +248,9 @@ static const s8 tbl_tile_group_ref[5][15] =
     {1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0}
 };
 
-static const s8 tbl_tile_group_depth_P[GOP_P] = { FRM_DEPTH_3,  FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_1 };
+static const s8 tbl_slice_depth_P[GOP_P] = { FRM_DEPTH_3,  FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_1 };
 
-static const s8 tbl_tile_group_depth[5][15] =
+static const s8 tbl_slice_depth[5][15] =
 {
     /* gop_size = 2 */
     { FRM_DEPTH_2, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, \
@@ -396,7 +396,7 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
     param->ibc_fast_method = cdsc->ibc_fast_method;
 #endif
     param->use_hgop       = (cdsc->disable_hgop)? 0: 1;
-#if USE_TILE_GROUP_DQP
+#if USE_SLICE_DQP
     param->qp_incread_frame = cdsc->add_qp_frame;
 #endif
 
@@ -588,8 +588,8 @@ QP_ADAPT_PARAM qp_adapt_param_ld[8] =
     { 9, -6.5000, 0.2590},
 };
 
-  //Implementation for selecting and assigning RPL0 & RPL1 candidates in the SPS to TGH
-static void select_assign_rpl_for_tgh(EVCE_CTX *ctx, EVC_TGH *tgh)
+  //Implementation for selecting and assigning RPL0 & RPL1 candidates in the SPS to SH
+static void select_assign_rpl_for_sh(EVCE_CTX *ctx, EVC_SH *sh)
 {
     //TBD: when NALU types are implemented; if the current picture is an IDR, simply return without doing the rest of the codes for this function
 
@@ -597,17 +597,17 @@ static void select_assign_rpl_for_tgh(EVCE_CTX *ctx, EVC_TGH *tgh)
     int gopSize = (ctx->param.gop_size == 1) ? 4 : ctx->param.gop_size;
 
     //Assume it the pic is in the normal GOP first. Normal GOP here means it is not the first (few) GOP in the beginning of the bitstream
-    tgh->rpl_l0_idx = tgh->rpl_l1_idx = -1;
-    tgh->ref_pic_list_sps_flag[0] = tgh->ref_pic_list_sps_flag[1] = 0;
+    sh->rpl_l0_idx = sh->rpl_l1_idx = -1;
+    sh->ref_pic_list_sps_flag[0] = sh->ref_pic_list_sps_flag[1] = 0;
 
     int availableRPLs = (ctx->cdsc.rpls_l0_cfg_num < gopSize) ? ctx->cdsc.rpls_l0_cfg_num : gopSize;
     for (int i = 0; i < availableRPLs; i++)
     {
-        int pocIdx = (tgh->poc % gopSize == 0) ? gopSize : tgh->poc % gopSize;
+        int pocIdx = (sh->poc % gopSize == 0) ? gopSize : sh->poc % gopSize;
         if (pocIdx == ctx->cdsc.rpls_l0[i].poc)
         {
-            tgh->rpl_l0_idx = i;
-            tgh->rpl_l1_idx = tgh->rpl_l0_idx;
+            sh->rpl_l0_idx = i;
+            sh->rpl_l1_idx = sh->rpl_l0_idx;
             break;
         }
     }
@@ -615,10 +615,10 @@ static void select_assign_rpl_for_tgh(EVCE_CTX *ctx, EVC_TGH *tgh)
     //For special case when the pic is in the first (few) GOP in the beginning of the bitstream.
     if(ctx->param.gop_size == 1)                          //For low delay configuration
     {
-        if (tgh->poc <= (ctx->cdsc.rpls_l0_cfg_num - gopSize))
+        if (sh->poc <= (ctx->cdsc.rpls_l0_cfg_num - gopSize))
         {
-            tgh->rpl_l0_idx = tgh->poc + gopSize - 1;
-            tgh->rpl_l1_idx = tgh->rpl_l0_idx;
+            sh->rpl_l0_idx = sh->poc + gopSize - 1;
+            sh->rpl_l1_idx = sh->rpl_l0_idx;
         }
     }
     else                                                 //For random access configuration
@@ -626,39 +626,39 @@ static void select_assign_rpl_for_tgh(EVCE_CTX *ctx, EVC_TGH *tgh)
         //for (int i = ctx->param.gop_size; i < ctx->cdsc.rpls_l0_cfg_num; i++)
         for (int i = gopSize; i < ctx->cdsc.rpls_l0_cfg_num; i++)
         {
-            int pocIdx = ctx->param.i_period == 0 ? tgh->poc : (tgh->poc % ctx->param.i_period == 0) ? ctx->param.i_period : tgh->poc % ctx->param.i_period;
+            int pocIdx = ctx->param.i_period == 0 ? sh->poc : (sh->poc % ctx->param.i_period == 0) ? ctx->param.i_period : sh->poc % ctx->param.i_period;
             if (pocIdx == ctx->cdsc.rpls_l0[i].poc)
             {
-                tgh->rpl_l0_idx = i;
-                tgh->rpl_l1_idx = i;
+                sh->rpl_l0_idx = i;
+                sh->rpl_l1_idx = i;
                 break;
             }
         }
     }
     //Copy RPL0 from the candidate in SPS to this SH
-    tgh->rpl_l0.poc = tgh->poc;
-    tgh->rpl_l0.tid = ctx->cdsc.rpls_l0[tgh->rpl_l0_idx].tid;
-    tgh->rpl_l0.ref_pic_num = ctx->cdsc.rpls_l0[tgh->rpl_l0_idx].ref_pic_num;
-    tgh->rpl_l0.ref_pic_active_num = ctx->cdsc.rpls_l0[tgh->rpl_l0_idx].ref_pic_active_num;
-    for (int i = 0; i < tgh->rpl_l0.ref_pic_num; i++)
-        tgh->rpl_l0.ref_pics[i] = ctx->cdsc.rpls_l0[tgh->rpl_l0_idx].ref_pics[i];
+    sh->rpl_l0.poc = sh->poc;
+    sh->rpl_l0.tid = ctx->cdsc.rpls_l0[sh->rpl_l0_idx].tid;
+    sh->rpl_l0.ref_pic_num = ctx->cdsc.rpls_l0[sh->rpl_l0_idx].ref_pic_num;
+    sh->rpl_l0.ref_pic_active_num = ctx->cdsc.rpls_l0[sh->rpl_l0_idx].ref_pic_active_num;
+    for (int i = 0; i < sh->rpl_l0.ref_pic_num; i++)
+        sh->rpl_l0.ref_pics[i] = ctx->cdsc.rpls_l0[sh->rpl_l0_idx].ref_pics[i];
 
     //Copy RPL0 from the candidate in SPS to this SH
-    tgh->rpl_l1.poc = tgh->poc;
-    tgh->rpl_l1.tid = ctx->cdsc.rpls_l1[tgh->rpl_l1_idx].tid;
-    tgh->rpl_l1.ref_pic_num = ctx->cdsc.rpls_l1[tgh->rpl_l1_idx].ref_pic_num;
-    tgh->rpl_l1.ref_pic_active_num = ctx->cdsc.rpls_l1[tgh->rpl_l1_idx].ref_pic_active_num;
-    for (int i = 0; i < tgh->rpl_l1.ref_pic_num; i++)
-        tgh->rpl_l1.ref_pics[i] = ctx->cdsc.rpls_l1[tgh->rpl_l1_idx].ref_pics[i];
+    sh->rpl_l1.poc = sh->poc;
+    sh->rpl_l1.tid = ctx->cdsc.rpls_l1[sh->rpl_l1_idx].tid;
+    sh->rpl_l1.ref_pic_num = ctx->cdsc.rpls_l1[sh->rpl_l1_idx].ref_pic_num;
+    sh->rpl_l1.ref_pic_active_num = ctx->cdsc.rpls_l1[sh->rpl_l1_idx].ref_pic_active_num;
+    for (int i = 0; i < sh->rpl_l1.ref_pic_num; i++)
+        sh->rpl_l1.ref_pics[i] = ctx->cdsc.rpls_l1[sh->rpl_l1_idx].ref_pics[i];
 
-    if (tgh->rpl_l0_idx != -1)
+    if (sh->rpl_l0_idx != -1)
     {
-        tgh->ref_pic_list_sps_flag[0] = 1;
+        sh->ref_pic_list_sps_flag[0] = 1;
     }
 
-    if (tgh->rpl_l1_idx != -1)
+    if (sh->rpl_l1_idx != -1)
     {
-        tgh->ref_pic_list_sps_flag[1] = 1;
+        sh->ref_pic_list_sps_flag[1] = 1;
     }
 }
 
@@ -682,12 +682,12 @@ static int check_refpic_available(int currentPOC, EVC_PM *pm, EVC_RPL *rpl)
 
 //Return value 0 means no explicit RPL is created. The given input parameters rpl0 and rpl1 are not modified
 //Return value 1 means the given input parameters rpl0 and rpl1 are modified
-static int create_explicit_rpl(EVC_PM *pm, EVC_TGH *tgh)
+static int create_explicit_rpl(EVC_PM *pm, EVC_SH *sh)
 
 {
-    int currentPOC = tgh->poc;
-    EVC_RPL *rpl0 = &tgh->rpl_l0;
-    EVC_RPL *rpl1 = &tgh->rpl_l1;
+    int currentPOC = sh->poc;
+    EVC_RPL *rpl0 = &sh->rpl_l0;
+    EVC_RPL *rpl1 = &sh->rpl_l1;
     if (!check_refpic_available(currentPOC, pm, rpl0) && !check_refpic_available(currentPOC, pm, rpl1))
     {
         return 0;
@@ -717,7 +717,7 @@ static int create_explicit_rpl(EVC_PM *pm, EVC_TGH *tgh)
         }
     }
     if (isRPLChanged)
-        tgh->rpl_l0_idx = -1;
+        sh->rpl_l0_idx = -1;
 
     //Remove ref pic in RPL1 that is not available in the DPB
     isRPLChanged = 0;
@@ -741,7 +741,7 @@ static int create_explicit_rpl(EVC_PM *pm, EVC_TGH *tgh)
         }
     }
     if (isRPLChanged)
-        tgh->rpl_l1_idx = -1;
+        sh->rpl_l1_idx = -1;
 
     /*if number of ref pic in RPL0 is less than its number of active ref pic, try to copy from RPL1*/
     if (rpl0->ref_pic_num < rpl0->ref_pic_active_num)
@@ -802,39 +802,39 @@ static int create_explicit_rpl(EVC_PM *pm, EVC_TGH *tgh)
     return 1;
 }
 
-static void set_tgh(EVCE_CTX *ctx, EVC_TGH *tgh)
+static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
 {
     double qp;
     int qp_l_i;
     int qp_c_i;
     QP_ADAPT_PARAM *qp_adapt_param = ctx->param.max_b_frames == 0 ? qp_adapt_param_ld : qp_adapt_param_ra;
 
-    tgh->dtr = ctx->dtr & DTR_BIT_MSK;
-    tgh->tile_group_type = ctx->tile_group_type;
-    tgh->keyframe = (tgh->tile_group_type == TILE_GROUP_I) ? 1 : 0;
-    tgh->deblocking_filter_on = (ctx->param.use_deblock) ? 1 : 0;
+    sh->dtr = ctx->dtr & DTR_BIT_MSK;
+    sh->slice_type = ctx->slice_type;
+    sh->keyframe = (sh->slice_type == SLICE_I) ? 1 : 0;
+    sh->deblocking_filter_on = (ctx->param.use_deblock) ? 1 : 0;
 #if M49023_DBF_IMPROVE
-    tgh->tgh_deblock_alpha_offset = ctx->param.deblock_alpha_offset;
-    tgh->tgh_deblock_beta_offset = ctx->param.deblock_beta_offset;
+    sh->sh_deblock_alpha_offset = ctx->param.deblock_alpha_offset;
+    sh->sh_deblock_beta_offset = ctx->param.deblock_beta_offset;
 #endif
-    tgh->udata_exist = (ctx->param.use_pic_sign) ? 1 : 0;
-    tgh->dptr = ctx->ptr - ctx->dtr;
-    tgh->layer_id = ctx->layer_id;
-    tgh->single_tile_in_tile_group_flag = 1;
+    sh->udata_exist = (ctx->param.use_pic_sign) ? 1 : 0;
+    sh->dptr = ctx->ptr - ctx->dtr;
+    sh->layer_id = ctx->layer_id;
+    sh->single_tile_in_slice_flag = 1;
 #if M49023_ADMVP_IMPROVE
-    tgh->collocated_from_list_idx = (tgh->tile_group_type == TILE_GROUP_P) ? REFP_0 : REFP_1;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
-    tgh->collocated_from_ref_idx = 0;        // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
-    tgh->collocated_mvp_source_list_idx = REFP_0;  // Specifies source (List ID) in collocated pic that provides MV information (Applicability is function of NoBackwardPredFlag)
+    sh->collocated_from_list_idx = (sh->slice_type == SLICE_P) ? REFP_0 : REFP_1;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
+    sh->collocated_from_ref_idx = 0;        // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
+    sh->collocated_mvp_source_list_idx = REFP_0;  // Specifies source (List ID) in collocated pic that provides MV information (Applicability is function of NoBackwardPredFlag)
 #endif 
     if (!ctx->sps.picture_num_present_flag)
     {
-        tgh->poc = ctx->ptr;
-        select_assign_rpl_for_tgh(ctx, tgh);
-        tgh->num_ref_idx_active_override_flag = 1;
+        sh->poc = ctx->ptr;
+        select_assign_rpl_for_sh(ctx, sh);
+        sh->num_ref_idx_active_override_flag = 1;
     }
 
     /* set lambda */
-#if USE_TILE_GROUP_DQP
+#if USE_SLICE_DQP
     qp = EVC_CLIP3(0, MAX_QUANT, (ctx->param.qp_incread_frame != 0 && (int)(ctx->ptr) >= ctx->param.qp_incread_frame) ? ctx->qp + 1.0 : ctx->qp);
 #else
     qp = ctx->qp;
@@ -852,8 +852,8 @@ static void set_tgh(EVCE_CTX *ctx, EVC_TGH *tgh)
         }
         else
         {
-            qp += qp_adapt_param[ctx->tile_group_depth].qp_offset_layer;
-            dqp_offset = qp * qp_adapt_param[ctx->tile_group_depth].qp_offset_model_scale + qp_adapt_param[ctx->tile_group_depth].qp_offset_model_offset + 0.5;
+            qp += qp_adapt_param[ctx->slice_depth].qp_offset_layer;
+            dqp_offset = qp * qp_adapt_param[ctx->slice_depth].qp_offset_model_scale + qp_adapt_param[ctx->slice_depth].qp_offset_model_offset + 0.5;
         }
 #else
         qp += qp_adapt_param[ctx->layer_id].qp_offset_layer;
@@ -863,19 +863,19 @@ static void set_tgh(EVCE_CTX *ctx, EVC_TGH *tgh)
         qp += qp_offset;
     }
 
-    tgh->qp = (u8)EVC_CLIP3(-(6 * (BIT_DEPTH - 8)), MAX_QUANT, qp);
-    tgh->qp_u = (u8)(tgh->qp + ctx->cdsc.cb_qp_offset); 
-    tgh->qp_v = (u8)(tgh->qp + ctx->cdsc.cr_qp_offset);
+    sh->qp = (u8)EVC_CLIP3(-(6 * (BIT_DEPTH - 8)), MAX_QUANT, qp);
+    sh->qp_u = (u8)(sh->qp + ctx->cdsc.cb_qp_offset); 
+    sh->qp_v = (u8)(sh->qp + ctx->cdsc.cr_qp_offset);
 #if M49023_DBF_IMPROVE
-    tgh->tgh_deblock_alpha_offset = ctx->cdsc.deblock_aplha_offset;
-    tgh->tgh_deblock_beta_offset = ctx->cdsc.deblock_beta_offset;
+    sh->sh_deblock_alpha_offset = ctx->cdsc.deblock_aplha_offset;
+    sh->sh_deblock_beta_offset = ctx->cdsc.deblock_beta_offset;
 #endif
 
-    qp_l_i = tgh->qp;
+    qp_l_i = sh->qp;
     ctx->lambda[0] = 0.57 * pow(2.0, (qp_l_i - 12.0) / 3.0);
-    qp_c_i = evc_tbl_qp_chroma_ajudst[tgh->qp_u];
+    qp_c_i = evc_tbl_qp_chroma_ajudst[sh->qp_u];
     ctx->dist_chroma_weight[0] = pow(2.0, (qp_l_i - qp_c_i) / 3.0);
-    qp_c_i = evc_tbl_qp_chroma_ajudst[tgh->qp_v];
+    qp_c_i = evc_tbl_qp_chroma_ajudst[sh->qp_v];
     ctx->dist_chroma_weight[1] = pow(2.0, (qp_l_i - qp_c_i) / 3.0);
     ctx->lambda[1] = ctx->lambda[0] / ctx->dist_chroma_weight[0];
     ctx->lambda[2] = ctx->lambda[0] / ctx->dist_chroma_weight[1];
@@ -886,20 +886,20 @@ static void set_tgh(EVCE_CTX *ctx, EVC_TGH *tgh)
     if (ctx->sps.picture_num_present_flag)
     {
 #if HLS_M47668
-        tgh->mmco_on = 0;
-        tgh->mmco.cnt = 0;
+        sh->mmco_on = 0;
+        sh->mmco.cnt = 0;
 #else
         /* set MMCO command */
-        if (ctx->tile_group_ref_flag == 0)
+        if (ctx->slice_ref_flag == 0)
         {
-            tgh->mmco_on = 1;
-            tgh->mmco.cnt = 1;
-            tgh->mmco.type[0] = MMCO_UNUSED;
-            tgh->mmco.data[0] = 0; /* current picture */
+            sh->mmco_on = 1;
+            sh->mmco.cnt = 1;
+            sh->mmco.type[0] = MMCO_UNUSED;
+            sh->mmco.data[0] = 0; /* current picture */
         } else
         {
-            tgh->mmco_on = 0;
-            tgh->mmco.cnt = 0;
+            sh->mmco_on = 0;
+            sh->mmco.cnt = 0;
         }
 #endif
     }
@@ -1263,8 +1263,8 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
     int lcu_num;
     s8  suco_flag = 0;
 #if M49023_DBF_IMPROVE
-    pic->pic_deblock_alpha_offset = ctx->tgh.tgh_deblock_alpha_offset;
-    pic->pic_deblock_beta_offset = ctx->tgh.tgh_deblock_beta_offset;
+    pic->pic_deblock_alpha_offset = ctx->sh.sh_deblock_alpha_offset;
+    pic->pic_deblock_beta_offset = ctx->sh.sh_deblock_beta_offset;
 #endif
     lcu_num = (x >> ctx->log2_max_cuwh) + (y >> ctx->log2_max_cuwh) * ctx->w_lcu;
     evc_get_split_mode(&split_mode, cud, cup, cuw, cuh, ctx->max_cuwh, ctx->map_cu_data[lcu_num].split_mode);
@@ -1433,7 +1433,7 @@ int evce_deblock_h263(EVCE_CTX * ctx, EVC_PIC * pic)
 }
 #if ALF
 #if ALF_PARAMETER_APS
-int evce_alf_aps(EVCE_CTX * ctx, EVC_PIC * pic, EVC_TGH* tgh, EVC_APS* aps)
+int evce_alf_aps(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh, EVC_APS* aps)
 {
     EncAdaptiveLoopFilter* p = (EncAdaptiveLoopFilter*)(ctx->enc_alf);
 
@@ -1442,38 +1442,38 @@ int evce_alf_aps(EVCE_CTX * ctx, EVC_PIC * pic, EVC_TGH* tgh, EVC_APS* aps)
         lambdas[i] = (ctx->lambda[i]) * ALF_LAMBDA_SCALE; //this is for appr match of different lambda sets
 
 
-    set_resetALFBufferFlag(p, tgh->tile_group_type == TILE_GROUP_I ? 1 : 0);
-    alf_aps_enc_opt_process(p, lambdas, ctx, pic, &(tgh->alf_tgh_param));
+    set_resetALFBufferFlag(p, sh->slice_type == SLICE_I ? 1 : 0);
+    alf_aps_enc_opt_process(p, lambdas, ctx, pic, &(sh->alf_sh_param));
 
-    aps->alf_aps_param = tgh->alf_tgh_param;
-    if (tgh->alf_tgh_param.resetALFBufferFlag) // reset aps index counter (buffer) if ALF flag reset is present
+    aps->alf_aps_param = sh->alf_sh_param;
+    if (sh->alf_sh_param.resetALFBufferFlag) // reset aps index counter (buffer) if ALF flag reset is present
     {
         ctx->aps_counter = -1;
     }
-    tgh->alf_on = tgh->alf_tgh_param.enabledFlag[0];
+    sh->alf_on = sh->alf_sh_param.enabledFlag[0];
 #if APS_ALF_CTU_FLAG
-    if (tgh->alf_on == 0)
+    if (sh->alf_on == 0)
     {
-        tgh->alf_tgh_param.isCtbAlfOn = 0;
+        sh->alf_sh_param.isCtbAlfOn = 0;
     }
 #endif
-    if (tgh->alf_on)
+    if (sh->alf_on)
     {
         if (aps->alf_aps_param.temporalAlfFlag)
         {
-            aps->aps_id = tgh->alf_tgh_param.prevIdx;
-            tgh->aps_signaled = aps->aps_id;
+            aps->aps_id = sh->alf_sh_param.prevIdx;
+            sh->aps_signaled = aps->aps_id;
         }
         else
         {
             aps->aps_id = alf_aps_get_current_alf_idx();
-            tgh->aps_signaled = aps->aps_id;
+            sh->aps_signaled = aps->aps_id;
         }
     }
     return EVC_OK;
 }
 #else
-int evce_alf(EVCE_CTX * ctx, EVC_PIC * pic, EVC_TGH* tgh)
+int evce_alf(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh)
 {
     EncAdaptiveLoopFilter* p = (EncAdaptiveLoopFilter*)(ctx->enc_alf);
 
@@ -1481,8 +1481,8 @@ int evce_alf(EVCE_CTX * ctx, EVC_PIC * pic, EVC_TGH* tgh)
     for(int i = 0; i < 3; i++)
         lambdas[i] = (ctx->lambda[i]) * ALF_LAMBDA_SCALE; //this is for appr match of different lambda sets
 
-    set_resetALFBufferFlag(p, tgh->tile_group_type == TILE_GROUP_I ? 1 : 0);
-    call_enc_ALFProcess(p, lambdas, ctx, pic, &(tgh->alf_tgh_param) );
+    set_resetALFBufferFlag(p, sh->slice_type == SLICE_I ? 1 : 0);
+    call_enc_ALFProcess(p, lambdas, ctx, pic, &(sh->alf_sh_param) );
     return EVC_OK;
 }
 #endif
@@ -1544,7 +1544,7 @@ int evce_aps_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, EVC_APS *
 
     /* encode sequence parameter set */
     /* skip first four byte to write the bitstream size */
-    evce_bsw_skip_tile_group_size(bs);
+    evce_bsw_skip_slice_size(bs);
 
     /* nalu header */
 
@@ -1560,7 +1560,7 @@ int evce_aps_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, EVC_APS *
     evc_bsw_deinit(bs);
 
     /* write the bitstream size */
-    evce_bsw_write_tile_group_size(bs);
+    evce_bsw_write_slice_size(bs);
 
     /* set stat ***************************************************************/
     evc_mset(stat, 0, sizeof(EVCE_STAT));
@@ -1585,7 +1585,7 @@ int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
     /* encode sequence parameter set */
     /* skip first four byte to write the bitstream size */
-    evce_bsw_skip_tile_group_size(bs);
+    evce_bsw_skip_slice_size(bs);
 
     /* nalu header */
     set_nalu(ctx, &nalu, EVC_VER_1, EVC_SPS_NUT);
@@ -1603,7 +1603,7 @@ int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     evc_bsw_deinit(bs);
 
     /* write the bitstream size */
-    evce_bsw_write_tile_group_size(bs);
+    evce_bsw_write_slice_size(bs);
 
     /* set stat ***************************************************************/
     evc_mset(stat, 0, sizeof(EVCE_STAT));
@@ -1674,82 +1674,82 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
 
     if(i_period == 0 && pic_imcnt == 0)
     {
-        ctx->tile_group_type = TILE_GROUP_I;
-        ctx->tile_group_depth = FRM_DEPTH_0;
+        ctx->slice_type = SLICE_I;
+        ctx->slice_depth = FRM_DEPTH_0;
         ctx->poc = pic_imcnt;
 #if HLS_M47668
         ctx->prev_doc_offset = 0;
         ctx->prev_pic_order_cnt_val = ctx->poc;
 #endif
-        ctx->tile_group_ref_flag = 1;
+        ctx->slice_ref_flag = 1;
     }
     else if((i_period != 0) && pic_imcnt % i_period == 0)
     {
-        ctx->tile_group_type = TILE_GROUP_I;
-        ctx->tile_group_depth = FRM_DEPTH_0;
+        ctx->slice_type = SLICE_I;
+        ctx->slice_depth = FRM_DEPTH_0;
         ctx->poc = pic_imcnt;
 #if HLS_M47668
         ctx->prev_doc_offset = 0;
         ctx->prev_pic_order_cnt_val = ctx->poc;
 #endif
-        ctx->tile_group_ref_flag = 1;
+        ctx->slice_ref_flag = 1;
     }
     else if(pic_imcnt % gop_size == 0)
     {
-        ctx->tile_group_type = TILE_GROUP_B;
-        ctx->tile_group_ref_flag = 1;
-        ctx->tile_group_depth = FRM_DEPTH_1;
+        ctx->slice_type = SLICE_B;
+        ctx->slice_ref_flag = 1;
+        ctx->slice_depth = FRM_DEPTH_1;
         ctx->poc = pic_imcnt;
 #if HLS_M47668
         ctx->prev_doc_offset = 0;
         ctx->prev_pic_order_cnt_val = ctx->poc;
 #endif
-        ctx->tile_group_ref_flag = 1;
+        ctx->slice_ref_flag = 1;
     }
     else
     {
-        ctx->tile_group_type = TILE_GROUP_B;
+        ctx->slice_type = SLICE_B;
         if(ctx->param.use_hgop)
         {
             pos = (pic_imcnt % gop_size) - 1;
 #if HLS_M47668
             if (ctx->sps.tool_pocs)
             {
-                ctx->tile_group_depth = tbl_tile_group_depth_orig[gop_size >> 2][pos];
+                ctx->slice_depth = tbl_slice_depth_orig[gop_size >> 2][pos];
                 ctx->poc = ((pic_imcnt / gop_size) * gop_size) +
                     tbl_poc_gop_offset[gop_size >> 2][pos];
             }
             else
             {
-                ctx->tile_group_depth = tbl_tile_group_depth[gop_size >> 2][pos];
-                int layer_id = ctx->tile_group_depth - (ctx->tile_group_depth > 0);
+                ctx->slice_depth = tbl_slice_depth[gop_size >> 2][pos];
+                int layer_id = ctx->slice_depth - (ctx->slice_depth > 0);
                 poc_derivation(ctx, layer_id);
             }
             if (!ctx->sps.tool_pocs && gop_size >= 2)
             {
-                ctx->tile_group_ref_flag = (ctx->tile_group_depth == tbl_tile_group_depth[gop_size >> 2][gop_size - 2] ? 0 : 1);
+                ctx->slice_ref_flag = (ctx->slice_depth == tbl_slice_depth[gop_size >> 2][gop_size - 2] ? 0 : 1);
             }
             else
             {
-                ctx->tile_group_ref_flag = 1;
+                ctx->slice_ref_flag = 1;
             }
 #else
-            ctx->tile_group_depth = tbl_tile_group_depth[gop_size >> 2][pos];
+            ctx->slice_depth = tbl_slice_depth[gop_size >> 2][pos];
             ctx->ref_depth = tbl_ref_depth[gop_size >> 2][pos];
             ctx->poc = ((pic_imcnt / gop_size) * gop_size) +
                 tbl_poc_gop_offset[gop_size >> 2][pos];
-            ctx->tile_group_ref_flag = tbl_tile_group_ref[gop_size >> 2][pos];
+            ctx->slice_ref_flag = tbl_slice_ref[gop_size >> 2][pos];
 #endif
         }
         else
         {
             pos = (pic_imcnt % gop_size) - 1;
-            ctx->tile_group_depth = FRM_DEPTH_2;
+            ctx->slice_depth = FRM_DEPTH_2;
 #if !HLS_M47668
             ctx->ref_depth = FRM_DEPTH_1;
 #endif
             ctx->poc = ((pic_imcnt / gop_size) * gop_size) - gop_size + pos + 1;
-            ctx->tile_group_ref_flag = 0;
+            ctx->slice_ref_flag = 0;
         }
         /* find current encoding picture's(B picture) pic_icnt */
         pic_icnt_b = ctx->poc;
@@ -1762,8 +1762,8 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
     }
 }
 
-/* tile_group_type / tile_group_depth / poc / PIC_ORIG setting */
-static void decide_tile_group_type(EVCE_CTX * ctx)
+/* slice_type / slice_depth / poc / PIC_ORIG setting */
+static void decide_slice_type(EVCE_CTX * ctx)
 {
     u32 pic_imcnt, pic_icnt;
     int i_period, gop_size;
@@ -1782,55 +1782,55 @@ static void decide_tile_group_type(EVCE_CTX * ctx)
         pic_imcnt = (i_period > 0) ? pic_icnt % i_period : pic_icnt;
         if(pic_imcnt == 0)
         {
-            ctx->tile_group_type = TILE_GROUP_I;
-            ctx->tile_group_depth = FRM_DEPTH_0;
+            ctx->slice_type = SLICE_I;
+            ctx->slice_depth = FRM_DEPTH_0;
             ctx->poc = 0;
-            ctx->tile_group_ref_flag = 1;
+            ctx->slice_ref_flag = 1;
         }
         else
         {
-            ctx->tile_group_type = TILE_GROUP_B;
+            ctx->slice_type = SLICE_B;
             if(ctx->param.use_hgop)
             {
 #if HLS_M47668
                 if (ctx->sps.tool_rpl)
                 {
-                    ctx->tile_group_depth = tbl_tile_group_depth_P_orig[(pic_imcnt - 1) % GOP_P];
+                    ctx->slice_depth = tbl_slice_depth_P_orig[(pic_imcnt - 1) % GOP_P];
                 }
                 else
                 {
-                    ctx->tile_group_depth = tbl_tile_group_depth_P[ctx->param.ref_pic_gap_length >> 2][(pic_imcnt - 1) % ctx->param.ref_pic_gap_length];
+                    ctx->slice_depth = tbl_slice_depth_P[ctx->param.ref_pic_gap_length >> 2][(pic_imcnt - 1) % ctx->param.ref_pic_gap_length];
                 }
 #else
-                ctx->tile_group_depth = tbl_tile_group_depth_P[(pic_imcnt - 1) % GOP_P];
+                ctx->slice_depth = tbl_slice_depth_P[(pic_imcnt - 1) % GOP_P];
 #endif
             }
             else
             {
-                ctx->tile_group_depth = FRM_DEPTH_1;
+                ctx->slice_depth = FRM_DEPTH_1;
             }
             ctx->poc = (i_period > 0) ? ctx->pic_cnt % i_period : ctx->pic_cnt;
-            ctx->tile_group_ref_flag = 1;
+            ctx->slice_ref_flag = 1;
         }
     }
     else /* include B Picture (gop_size = 2 or 4 or 8 or 16) */
     {
         if(pic_icnt == gop_size - 1) /* special case when sequence start */
         {
-            ctx->tile_group_type = TILE_GROUP_I;
-            ctx->tile_group_depth = FRM_DEPTH_0;
+            ctx->slice_type = SLICE_I;
+            ctx->slice_depth = FRM_DEPTH_0;
             ctx->poc = 0;
 #if HLS_M47668
             ctx->prev_doc_offset = 0;
             ctx->prev_pic_order_cnt_val = ctx->poc;
 #endif
-            ctx->tile_group_ref_flag = 1;
+            ctx->slice_ref_flag = 1;
 
             /* flush the first IDR picture */
             PIC_ORIG(ctx) = &ctx->pico_buf[0]->pic;
             ctx->pico = ctx->pico_buf[0];
         }
-        else if(ctx->force_tile_group)
+        else if(ctx->force_slice)
         {
             for(force_cnt = ctx->force_ignored_cnt; force_cnt < gop_size; force_cnt++)
             {
@@ -1856,16 +1856,16 @@ static void decide_tile_group_type(EVCE_CTX * ctx)
     {
         if (ctx->sps.tool_rpl)
         {
-            ctx->layer_id = ctx->tile_group_depth;
+            ctx->layer_id = ctx->slice_depth;
         } else
         {
-            ctx->layer_id = ctx->tile_group_depth - (ctx->tile_group_depth > 0);
+            ctx->layer_id = ctx->slice_depth - (ctx->slice_depth > 0);
         }
     }
 #else
     if (ctx->param.use_hgop)
     {
-        ctx->layer_id = ctx->tile_group_depth;
+        ctx->layer_id = ctx->slice_depth;
     }
 #endif
     else
@@ -1876,7 +1876,7 @@ static void decide_tile_group_type(EVCE_CTX * ctx)
     ctx->dtr = ctx->ptr;
 }
 
-int check_reorder(EVCE_PARAM * param, EVC_PM * pm, u8 num_ref_pics_act, u8 tile_group_type, u32 ptr, EVC_REFP(*refp)[REFP_NUM],
+int check_reorder(EVCE_PARAM * param, EVC_PM * pm, u8 num_ref_pics_act, u8 slice_type, u32 ptr, EVC_REFP(*refp)[REFP_NUM],
                   const EVC_REORDER_ARG * reorder, u32 last_intra, EVC_RMPNI * rmpni)
 {
     int i, j, pos, poc, idx;
@@ -1902,8 +1902,8 @@ int check_reorder(EVCE_PARAM * param, EVC_PM * pm, u8 num_ref_pics_act, u8 tile_
         return EVC_OK;
     }
 
-    /* TILE_GROUP_P: current reordering argument is setup for TILE_GROUP_B only, TILE_GROUP_P case are not considered*/
-    if(tile_group_type == TILE_GROUP_I || tile_group_type == TILE_GROUP_P)
+    /* SLICE_P: current reordering argument is setup for SLICE_B only, SLICE_P case are not considered*/
+    if(slice_type == SLICE_I || slice_type == SLICE_P)
     {
         return EVC_OK;
     }
@@ -2009,12 +2009,12 @@ int evce_enc_pic_prepare(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     }
 #endif
 
-    decide_tile_group_type(ctx);
+    decide_slice_type(ctx);
 
     ctx->lcu_cnt = ctx->f_lcu;
-    ctx->tile_group_num = 0;
+    ctx->slice_num = 0;
 
-    if(ctx->tile_group_type == TILE_GROUP_I) ctx->last_intra_ptr = ctx->ptr;
+    if(ctx->slice_type == SLICE_I) ctx->last_intra_ptr = ctx->ptr;
 
     size = sizeof(s8) * ctx->f_scu * REFP_NUM;
     evc_mset_x64a(ctx->map_refi, -1, size);
@@ -2052,7 +2052,7 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     bs = &ctx->bs;
 
     /* adding user data */
-    if(ctx->tgh.udata_exist)
+    if(ctx->sh.udata_exist)
     {
         ret = evce_eco_udata(ctx, bs);
         evc_assert_rv(ret == EVC_OK, ret);
@@ -2062,20 +2062,20 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     evc_bsw_deinit(bs);
 
     /* ending */
-    evce_bsw_write_tile_group_size(bs);
+    evce_bsw_write_slice_size(bs);
 
     /* expand current encoding picture, if needs */
     ctx->fn_picbuf_expand(ctx, PIC_CURR(ctx));
 
     /* picture buffer management */
 #if HLS_M47668
-    ret = evc_picman_put_pic(&ctx->rpm, PIC_CURR(ctx), ctx->tile_group_type,
+    ret = evc_picman_put_pic(&ctx->rpm, PIC_CURR(ctx), ctx->slice_type,
                               ctx->ptr, ctx->dtr, ctx->layer_id, 0, ctx->refp,
-                              ctx->tile_group_ref_flag, ctx->sps.picture_num_present_flag, ctx->ref_pic_gap_length);
+                              ctx->slice_ref_flag, ctx->sps.picture_num_present_flag, ctx->ref_pic_gap_length);
 #else
-    ret = evc_picman_put_pic(&ctx->rpm, PIC_CURR(ctx), ctx->tile_group_type,
+    ret = evc_picman_put_pic(&ctx->rpm, PIC_CURR(ctx), ctx->slice_type,
                              ctx->ptr, ctx->dtr, ctx->layer_id, 0, ctx->refp,
-                             (ctx->tgh.mmco_on ? &ctx->tgh.mmco : NULL), ctx->sps.picture_num_present_flag);
+                             (ctx->sh.mmco_on ? &ctx->sh.mmco : NULL), ctx->sps.picture_num_present_flag);
 #endif
 
     evc_assert_rv(ret == EVC_OK, ret);
@@ -2090,15 +2090,15 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     evc_mset(stat, 0, sizeof(EVCE_STAT));
     stat->write = EVC_BSW_GET_WRITE_BYTE(bs);
     stat->ctype = EVC_NONIDR_NUT; //TBD(@Chernyak): handle IDR
-    stat->stype = ctx->tile_group_type;
+    stat->stype = ctx->slice_type;
     stat->fnum = ctx->pic_cnt;
-    stat->qp = ctx->tgh.qp;
+    stat->qp = ctx->sh.qp;
     stat->poc = ctx->ptr;
 #if HLS_M47668
-    stat->tid = ctx->tgh.layer_id;
+    stat->tid = ctx->sh.layer_id;
 #else
 #if ALF
-    stat->tid = ctx->tgh.layer_id;
+    stat->tid = ctx->sh.layer_id;
 #endif
 #endif
     for(i = 0; i < 2; i++)
@@ -2128,7 +2128,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 {
     EVCE_CORE * core;
     EVC_BSW   * bs;
-    EVC_TGH    * tgh;
+    EVC_SH    * sh;
 #if ALF_PARAMETER_APS
     EVC_APS   * aps;
 #endif
@@ -2140,7 +2140,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
     bs = &ctx->bs;
     core = ctx->core;
-    tgh = &ctx->tgh;
+    sh = &ctx->sh;
 #if ALF_PARAMETER_APS
     aps = &ctx->aps;
 #if APS_ALF_SEQ_FIX
@@ -2150,56 +2150,56 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         last_intra_poc = INT_MAX;
         aps_counter_reset = TRUE;
     }
-    if (ctx->tile_group_type == TILE_GROUP_I)
+    if (ctx->slice_type == SLICE_I)
         last_intra_poc = ctx->ptr;
 
     if (aps_counter_reset)
         ctx->aps_counter = 0;
 #endif
-    if (ctx->tile_group_type == TILE_GROUP_I )
+    if (ctx->slice_type == SLICE_I )
     {
         ctx->aps_counter = -1;
         aps->aps_id = -1;
-        ctx->tgh.aps_signaled = -1; // reset stored aps id in tile group header
+        ctx->sh.aps_signaled = -1; // reset stored aps id in tile group header
         ctx->aps_temp = 0;
     }
 #endif
     if (ctx->sps.picture_num_present_flag)
     {
         /* initialize reference pictures */
-        ret = evc_picman_refp_init(&ctx->rpm, ctx->sps.num_ref_pics_act, ctx->tile_group_type, ctx->ptr, ctx->layer_id, ctx->last_intra_ptr, ctx->refp);
+        ret = evc_picman_refp_init(&ctx->rpm, ctx->sps.num_ref_pics_act, ctx->slice_type, ctx->ptr, ctx->layer_id, ctx->last_intra_ptr, ctx->refp);
     }
     else
     {
-        /* Set tile_group header */
+        /* Set slice header */
         //This needs to be done before reference picture marking and reference picture list construction are invoked
-        set_tgh(ctx, tgh);
+        set_sh(ctx, sh);
 
-        if (tgh->tile_group_type != TILE_GROUP_I && tgh->poc != 0) //TBD: change this condition to say that if this tile_group is not a tile_group in IDR picture
+        if (sh->slice_type != SLICE_I && sh->poc != 0) //TBD: change this condition to say that if this slice is not a slice in IDR picture
         {
-            ret = create_explicit_rpl(&ctx->rpm, tgh);
+            ret = create_explicit_rpl(&ctx->rpm, sh);
             if (ret == 1)
             {
-                if (tgh->rpl_l0_idx == -1)
-                    tgh->ref_pic_list_sps_flag[0] = 0;
-                if (tgh->rpl_l1_idx == -1)
-                    tgh->ref_pic_list_sps_flag[1] = 0;
+                if (sh->rpl_l0_idx == -1)
+                    sh->ref_pic_list_sps_flag[0] = 0;
+                if (sh->rpl_l1_idx == -1)
+                    sh->ref_pic_list_sps_flag[1] = 0;
             }
         }
 
         /* reference picture marking */
-        ret = evc_picman_refpic_marking(&ctx->rpm, tgh);
+        ret = evc_picman_refpic_marking(&ctx->rpm, sh);
         evc_assert_rv(ret == EVC_OK, ret);
 
         /* reference picture lists construction */
-        ret = evc_picman_refp_rpl_based_init(&ctx->rpm, tgh, ctx->refp);
+        ret = evc_picman_refp_rpl_based_init(&ctx->rpm, sh, ctx->refp);
 #if M49023_ADMVP_IMPROVE
-        if (tgh->tile_group_type != TILE_GROUP_I)
+        if (sh->slice_type != SLICE_I)
         {
             int dptr0 = (int)(ctx->ptr) - (int)(ctx->refp[0][REFP_0].ptr);
             int dptr1 = (int)(ctx->ptr) - (int)(ctx->refp[0][REFP_1].ptr);
-            tgh->temporal_mvp_asigned_flag = !(((dptr0 > 0) && (dptr1 > 0)) || ((dptr0 < 0) && (dptr1 < 0)));
-            //            printf("tmvp: %d %d %d %d\n", ctx->ptr, ctx->refp[0][REFP_0].ptr, ctx->refp[0][REFP_1].ptr, tgh->temporal_mvp_asigned_flag);
+            sh->temporal_mvp_asigned_flag = !(((dptr0 > 0) && (dptr1 > 0)) || ((dptr0 < 0) && (dptr1 < 0)));
+            //            printf("tmvp: %d %d %d %d\n", ctx->ptr, ctx->refp[0][REFP_0].ptr, ctx->refp[0][REFP_1].ptr, sh->temporal_mvp_asigned_flag);
         }
 #endif
     }
@@ -2208,20 +2208,20 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #if !HLS_M47668
     if (ctx->sps.picture_num_present_flag)
     {
-        if (ctx->tile_group_type != TILE_GROUP_I)
+        if (ctx->slice_type != SLICE_I)
         {
             if (ctx->param.max_b_frames == 0)
             {
-                tgh->rmpni_on = check_reorder(&ctx->param, &ctx->rpm, ctx->sps.num_ref_pics_act, ctx->tile_group_type, ctx->ptr, ctx->refp, reorder_arg_ldb, ctx->last_intra_ptr, tgh->rmpni);
+                sh->rmpni_on = check_reorder(&ctx->param, &ctx->rpm, ctx->sps.num_ref_pics_act, ctx->slice_type, ctx->ptr, ctx->refp, reorder_arg_ldb, ctx->last_intra_ptr, sh->rmpni);
             } else
             {
-                tgh->rmpni_on = check_reorder(&ctx->param, &ctx->rpm, ctx->sps.num_ref_pics_act, ctx->tile_group_type, ctx->ptr, ctx->refp, reorder_arg, ctx->last_intra_ptr, tgh->rmpni);
+                sh->rmpni_on = check_reorder(&ctx->param, &ctx->rpm, ctx->sps.num_ref_pics_act, ctx->slice_type, ctx->ptr, ctx->refp, reorder_arg, ctx->last_intra_ptr, sh->rmpni);
             }
         }
 
-        if (tgh->rmpni_on && ctx->tile_group_type != TILE_GROUP_I)
+        if (sh->rmpni_on && ctx->slice_type != SLICE_I)
         {
-            ret = evc_picman_refp_reorder(&ctx->rpm, ctx->sps.num_ref_pics_act, tgh->tile_group_type, ctx->ptr, ctx->refp, ctx->last_intra_ptr, tgh->rmpni);
+            ret = evc_picman_refp_reorder(&ctx->rpm, ctx->sps.num_ref_pics_act, sh->slice_type, ctx->ptr, ctx->refp, ctx->last_intra_ptr, sh->rmpni);
             evc_assert_rv(ret == EVC_OK, ret);
         }
     }
@@ -2233,7 +2233,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
     ctx->fn_mode_analyze_frame(ctx);
 
-    /* tile_group layer encoding loop */
+    /* slice layer encoding loop */
     core->x_lcu = core->y_lcu = 0;
     core->x_pel = core->y_pel = 0;
     core->lcu_num = 0;
@@ -2244,13 +2244,13 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
     if (ctx->sps.picture_num_present_flag)
     {
-        /* Set tile_group header */
-        set_tgh(ctx, tgh);
+        /* Set slice header */
+        set_sh(ctx, sh);
     }
 
-    core->qp_y = ctx->tgh.qp + 6 * (BIT_DEPTH - 8);
-    core->qp_u = evc_tbl_qp_chroma_ajudst[tgh->qp_u] + 6 * (BIT_DEPTH - 8);
-    core->qp_v = evc_tbl_qp_chroma_ajudst[tgh->qp_v] + 6 * (BIT_DEPTH - 8);
+    core->qp_y = ctx->sh.qp + 6 * (BIT_DEPTH - 8);
+    core->qp_u = evc_tbl_qp_chroma_ajudst[sh->qp_u] + 6 * (BIT_DEPTH - 8);
+    core->qp_v = evc_tbl_qp_chroma_ajudst[sh->qp_v] + 6 * (BIT_DEPTH - 8);
 
 #if ADMVP
     evc_mset(core->history_buffer.history_mv_table, 0, ALLOWED_CHECKED_NUM * REFP_NUM * MV_D * sizeof(s16));
@@ -2267,14 +2267,14 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #endif
 
     /* initialize entropy coder */
-    evce_sbac_reset(GET_SBAC_ENC(bs), ctx->tgh.tile_group_type, ctx->tgh.qp, ctx->sps.tool_cm_init);
-    evce_sbac_reset(&core->s_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], ctx->tgh.tile_group_type, ctx->tgh.qp, ctx->sps.tool_cm_init);
+    evce_sbac_reset(GET_SBAC_ENC(bs), ctx->sh.slice_type, ctx->sh.qp, ctx->sps.tool_cm_init);
+    evce_sbac_reset(&core->s_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], ctx->sh.slice_type, ctx->sh.qp, ctx->sps.tool_cm_init);
 
     core->bs_temp.pdata[1] = &core->s_temp_run;
 
     /* LCU encoding */
 #if TRACE_RDO_EXCLUDE_I
-    if(ctx->tile_group_type != TILE_GROUP_I)
+    if(ctx->slice_type != SLICE_I)
     {
 #endif
         EVC_TRACE_SET(0);
@@ -2282,13 +2282,13 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     }
 #endif
 #if M48879_IMPROVEMENT_INTER
-    if (ctx->sps.tool_mmvd && (ctx->tile_group_type == TILE_GROUP_B))
+    if (ctx->sps.tool_mmvd && (ctx->slice_type == SLICE_B))
     {
-        tgh->mmvd_group_enable_flag = !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr);
+        sh->mmvd_group_enable_flag = !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr);
     }
     else
     {
-        tgh->mmvd_group_enable_flag = 0;
+        sh->mmvd_group_enable_flag = 0;
     }
 #endif
     while(1)
@@ -2336,11 +2336,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         /* end_of_picture_flag */
         if(ctx->lcu_cnt > 0)
         {
-            evce_eco_tile_group_end_flag(bs, 0);
+            evce_eco_slice_end_flag(bs, 0);
         }
         else
         {
-            evce_eco_tile_group_end_flag(bs, 1);
+            evce_eco_slice_end_flag(bs, 1);
             evce_sbac_finish(bs);
             break;
         }
@@ -2355,13 +2355,13 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
 #if ALF
     /* adaptive loop filter */
-    tgh->alf_on = ctx->sps.tool_alf;
-    if(tgh->alf_on)
+    sh->alf_on = ctx->sps.tool_alf;
+    if(sh->alf_on)
     {
 #if ALF_PARAMETER_APS
-        ret = ctx->fn_alf(ctx, PIC_MODE(ctx), tgh, aps);
+        ret = ctx->fn_alf(ctx, PIC_MODE(ctx), sh, aps);
 #else
-        ret = ctx->fn_alf(ctx, PIC_MODE(ctx), tgh);
+        ret = ctx->fn_alf(ctx, PIC_MODE(ctx), sh);
 #endif
         evc_assert_rv(ret == EVC_OK, ret);
     }
@@ -2370,7 +2370,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     /* Bit-stream re-writing (START) */
     evc_bsw_init(&ctx->bs, (u8*)bitb->addr, bitb->bsize, NULL);
 #if TRACE_RDO_EXCLUDE_I
-    if(ctx->tile_group_type != TILE_GROUP_I)
+    if(ctx->slice_type != SLICE_I)
     {
 #endif
         EVC_TRACE_SET(1);
@@ -2378,12 +2378,12 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     }
 #endif
 
-    /* Encode skip tile_group_size field */
-    evce_bsw_skip_tile_group_size(bs);
+    /* Encode skip slice_size field */
+    evce_bsw_skip_slice_size(bs);
 
 #if ALF_PARAMETER_APS
     /* Encode ALF in APS */
-    if ((ctx->sps.tool_alf) && (ctx->tgh.alf_on)) // User defined params
+    if ((ctx->sps.tool_alf) && (ctx->sh.alf_on)) // User defined params
     {
         if ((aps->alf_aps_param.enabledFlag[0]) && (aps->alf_aps_param.temporalAlfFlag == 0))    // Encoder defined parameters (RDO): ALF is selected, and new ALF was derived for TG
         {
@@ -2406,11 +2406,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     ret = evce_eco_nalu(bs, &nalu);
     evc_assert_rv(ret == EVC_OK, ret);
 
-    /* Encode tile_group header */
+    /* Encode slice header */
 #if ALF
-    tgh->num_ctb = ctx->f_lcu;
+    sh->num_ctb = ctx->f_lcu;
 #endif
-    ret = evce_eco_tgh(bs, &ctx->sps, &ctx->pps, tgh);
+    ret = evce_eco_sh(bs, &ctx->sps, &ctx->pps, sh);
     evc_assert_rv(ret == EVC_OK, ret);
 
     core->x_lcu = core->y_lcu = 0;
@@ -2422,21 +2422,21 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         MCU_CLR_COD(ctx->map_scu[i]);
     }
 
-    evce_sbac_reset(GET_SBAC_ENC(bs), ctx->tgh.tile_group_type, ctx->tgh.qp, ctx->sps.tool_cm_init);
+    evce_sbac_reset(GET_SBAC_ENC(bs), ctx->sh.slice_type, ctx->sh.qp, ctx->sps.tool_cm_init);
 
-    /* Encode tile_group data */
+    /* Encode slice data */
     while(1)
     {
 #if APS_ALF_CTU_FLAG
-        evc_AlfTileGroupParam* alfTileGroupParam = &(ctx->tgh.alf_tgh_param);
-        if ((alfTileGroupParam->isCtbAlfOn) && (tgh->alf_on))
+        evc_AlfSliceParam* alfSliceParam = &(ctx->sh.alf_sh_param);
+        if ((alfSliceParam->isCtbAlfOn) && (sh->alf_on))
         {
             EVCE_SBAC *sbac;
             sbac = GET_SBAC_ENC(bs);
 #if ALF_CTU_MAP_DYNAMIC
-            evce_sbac_encode_bin((int)(*(alfTileGroupParam->alfCtuEnableFlag + core->lcu_num)), sbac, sbac->ctx.ctb_alf_flag, bs);
+            evce_sbac_encode_bin((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)), sbac, sbac->ctx.ctb_alf_flag, bs);
 #else
-            evce_sbac_encode_bin((int)(alfTileGroupParam->alfCtuEnableFlag[0][core->lcu_num]), sbac, sbac->ctx.ctb_alf_flag, bs);
+            evce_sbac_encode_bin((int)(alfSliceParam->alfCtuEnableFlag[0][core->lcu_num]), sbac, sbac->ctx.ctb_alf_flag, bs);
 #endif
         }
 #endif
@@ -2456,11 +2456,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         /* end_of_picture_flag */
         if(ctx->lcu_cnt > 0)
         {
-            evce_eco_tile_group_end_flag(bs, 0);
+            evce_eco_slice_end_flag(bs, 0);
         }
         else
         {
-            evce_eco_tile_group_end_flag(bs, 1);
+            evce_eco_slice_end_flag(bs, 1);
             evce_sbac_finish(bs);
             break;
         }
@@ -2479,7 +2479,7 @@ int evce_enc(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     pic_cnt = ctx->pic_icnt - ctx->frm_rnum;
     gop_size = ctx->param.gop_size;
 
-    ctx->force_tile_group = ((ctx->pic_ticnt % gop_size >= ctx->pic_ticnt - pic_cnt + 1) && FORCE_OUT(ctx)) ? 1 : 0;
+    ctx->force_slice = ((ctx->pic_ticnt % gop_size >= ctx->pic_ticnt - pic_cnt + 1) && FORCE_OUT(ctx)) ? 1 : 0;
 
     evc_assert_rv(bitb->addr && bitb->bsize > 0, EVC_ERR_INVALID_ARGUMENT);
 
@@ -2654,7 +2654,7 @@ EVCE evce_create(EVCE_CDSC * cdsc, int * err)
     ctx->magic = EVCE_MAGIC_CODE;
     ctx->id = (EVCE)ctx;
 #if ALF_PARAMETER_APS
-    ctx->tgh.aps_signaled = -1;
+    ctx->sh.aps_signaled = -1;
 #endif
 
 #if ATS_INTRA_PROCESS

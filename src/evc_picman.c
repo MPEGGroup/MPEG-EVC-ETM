@@ -305,13 +305,13 @@ int check_copy_refp(EVC_REFP(*refp)[REFP_NUM], int cnt, int lidx, EVC_REFP  * re
     return EVC_OK;
 }
 
-int evc_picman_refp_reorder(EVC_PM *pm, int num_ref_pics_act, u8 tile_group_type, u32 ptr, EVC_REFP(*refp)[REFP_NUM], int last_intra, EVC_RMPNI *rmpni)
+int evc_picman_refp_reorder(EVC_PM *pm, int num_ref_pics_act, u8 slice_type, u32 ptr, EVC_REFP(*refp)[REFP_NUM], int last_intra, EVC_RMPNI *rmpni)
 {
     int i, j, cnt;
     EVC_REFP refp_temp[MAX_NUM_REF_PICS][REFP_NUM];
     int refp_idx, num_refp;
 
-    if(tile_group_type == TILE_GROUP_I)
+    if(slice_type == SLICE_I)
     {
         return EVC_OK;
     }
@@ -356,10 +356,10 @@ int evc_picman_refp_reorder(EVC_PM *pm, int num_ref_pics_act, u8 tile_group_type
     return EVC_OK;
 }
 
-//This is implementation of reference picture list construction based on RPL. This is meant to replace function int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int tile_group_type, u32 ptr, u8 layer_id, int last_intra, EVC_REFP(*refp)[REFP_NUM])
-int evc_picman_refp_rpl_based_init(EVC_PM *pm, EVC_TGH *tgh, EVC_REFP(*refp)[REFP_NUM])
+//This is implementation of reference picture list construction based on RPL. This is meant to replace function int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int slice_type, u32 ptr, u8 layer_id, int last_intra, EVC_REFP(*refp)[REFP_NUM])
+int evc_picman_refp_rpl_based_init(EVC_PM *pm, EVC_SH *sh, EVC_REFP(*refp)[REFP_NUM])
 {
-    if (tgh->tile_group_type == TILE_GROUP_I)
+    if (sh->slice_type == SLICE_I)
     {
         return EVC_OK;
     }
@@ -372,9 +372,9 @@ int evc_picman_refp_rpl_based_init(EVC_PM *pm, EVC_TGH *tgh, EVC_REFP(*refp)[REF
     pm->num_refp[REFP_0] = pm->num_refp[REFP_1] = 0;
 
     //Do the L0 first
-    for (int i = 0; i < tgh->rpl_l0.ref_pic_active_num; i++)
+    for (int i = 0; i < sh->rpl_l0.ref_pic_active_num; i++)
     {
-        int refPicPoc = tgh->poc - tgh->rpl_l0.ref_pics[i];
+        int refPicPoc = sh->poc - sh->rpl_l0.ref_pics[i];
         //Find the ref pic in the DPB
         int j = 0;
         while (j < pm->cur_num_ref_pics && pm->pic_ref[j]->ptr != refPicPoc) j++;
@@ -389,12 +389,12 @@ int evc_picman_refp_rpl_based_init(EVC_PM *pm, EVC_TGH *tgh, EVC_REFP(*refp)[REF
             return EVC_ERR;   //The refence picture must be available in the DPB, if not found then there is problem
     }
 
-    if (tgh->tile_group_type == TILE_GROUP_P) return EVC_OK;
+    if (sh->slice_type == SLICE_P) return EVC_OK;
 
     //Do the L1 first
-    for (int i = 0; i < tgh->rpl_l1.ref_pic_active_num; i++)
+    for (int i = 0; i < sh->rpl_l1.ref_pic_active_num; i++)
     {
-        int refPicPoc = tgh->poc - tgh->rpl_l1.ref_pics[i];
+        int refPicPoc = sh->poc - sh->rpl_l1.ref_pics[i];
         //Find the ref pic in the DPB
         int j = 0;
         while (j < pm->cur_num_ref_pics && pm->pic_ref[j]->ptr != refPicPoc) j++;
@@ -413,10 +413,10 @@ int evc_picman_refp_rpl_based_init(EVC_PM *pm, EVC_TGH *tgh, EVC_REFP(*refp)[REF
 }
 
 #if HLS_M47668
-int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int tile_group_type, u32 ptr, u8 layer_id, int last_intra, EVC_REFP(*refp)[REFP_NUM])
+int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int slice_type, u32 ptr, u8 layer_id, int last_intra, EVC_REFP(*refp)[REFP_NUM])
 {
     int i, cnt;
-    if(tile_group_type == TILE_GROUP_I)
+    if(slice_type == SLICE_I)
     {
         return EVC_OK;
     }
@@ -431,7 +431,7 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int tile_group_type, 
     pm->num_refp[REFP_0] = pm->num_refp[REFP_1] = 0;
 
     /* forward */
-    if(tile_group_type == TILE_GROUP_P)
+    if(slice_type == SLICE_P)
     {
         if(layer_id > 0)
         {
@@ -472,7 +472,7 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int tile_group_type, 
             }
         }
     }
-    else /* TILE_GROUP_B */
+    else /* SLICE_B */
     {
         int next_layer_id = EVC_MAX(layer_id - 1, 0);
         for(i = 0, cnt = 0; i < pm->cur_num_ref_pics && cnt < num_ref_pics_act; i++)
@@ -487,7 +487,7 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int tile_group_type, 
         }
     }
 
-    if(cnt < num_ref_pics_act && tile_group_type == TILE_GROUP_B)
+    if(cnt < num_ref_pics_act && slice_type == SLICE_B)
     {
         int next_layer_id = EVC_MAX(layer_id - 1, 0);
         for(i = pm->cur_num_ref_pics - 1; i >= 0 && cnt < num_ref_pics_act; i--)
@@ -506,7 +506,7 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int tile_group_type, 
     pm->num_refp[REFP_0] = cnt;
 
     /* backward */
-    if(tile_group_type == TILE_GROUP_B)
+    if(slice_type == SLICE_B)
     {
         int next_layer_id = EVC_MAX(layer_id - 1, 0);
         for(i = pm->cur_num_ref_pics - 1, cnt = 0; i >= 0 && cnt < num_ref_pics_act; i--)
@@ -540,7 +540,7 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int tile_group_type, 
         pm->num_refp[REFP_1] = cnt;
     }
 
-    if(tile_group_type == TILE_GROUP_B)
+    if(slice_type == SLICE_B)
     {
         pm->num_refp[REFP_0] = EVC_MIN(pm->num_refp[REFP_0], num_ref_pics_act);
         pm->num_refp[REFP_1] = EVC_MIN(pm->num_refp[REFP_1], num_ref_pics_act);
@@ -549,10 +549,10 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int tile_group_type, 
     return EVC_OK;
 }
 #else
-int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int tile_group_type, u32 ptr, u8 layer_id, int last_intra, EVC_REFP(*refp)[REFP_NUM])
+int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int slice_type, u32 ptr, u8 layer_id, int last_intra, EVC_REFP(*refp)[REFP_NUM])
 {
     int i, cnt;
-    if (tile_group_type == TILE_GROUP_I)
+    if (slice_type == SLICE_I)
     {
         return EVC_OK;
     }
@@ -569,7 +569,7 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int tile_group_type, 
     /* forward */
     if (layer_id > 0)
     {
-        if (tile_group_type == TILE_GROUP_P)
+        if (slice_type == SLICE_P)
         {
             for (i = 0, cnt = 0; i < pm->cur_num_ref_pics && cnt < num_ref_pics_act; i++)
             {
@@ -592,7 +592,7 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int tile_group_type, 
                     cnt++;
                 }
             }
-        } else /* TILE_GROUP_B */
+        } else /* SLICE_B */
         {
             for (i = 0, cnt = 0; i < pm->cur_num_ref_pics && cnt < num_ref_pics_act; i++)
             {
@@ -617,7 +617,7 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int tile_group_type, 
         }
     }
 
-    if (cnt < num_ref_pics_act && tile_group_type == TILE_GROUP_B)
+    if (cnt < num_ref_pics_act && slice_type == SLICE_B)
     {
         if (layer_id > 0)
         {
@@ -648,7 +648,7 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int tile_group_type, 
     pm->num_refp[REFP_0] = cnt;
 
     /* backward */
-    if (tile_group_type == TILE_GROUP_B)
+    if (slice_type == SLICE_B)
     {
         if (layer_id > 0)
         {
@@ -707,7 +707,7 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int tile_group_type, 
         pm->num_refp[REFP_1] = cnt;
     }
 
-    if (tile_group_type == TILE_GROUP_B)
+    if (slice_type == SLICE_B)
     {
         pm->num_refp[REFP_0] = EVC_MIN(pm->num_refp[REFP_0], num_ref_pics_act);
         pm->num_refp[REFP_1] = EVC_MIN(pm->num_refp[REFP_1], num_ref_pics_act);
@@ -754,10 +754,10 @@ ERR:
 }
 
 /*This is the implementation of reference picture marking based on RPL*/
-int evc_picman_refpic_marking(EVC_PM *pm, EVC_TGH *tgh)
+int evc_picman_refpic_marking(EVC_PM *pm, EVC_SH *sh)
 {
     picman_update_pic_ref(pm);
-    if (tgh->tile_group_type != TILE_GROUP_I && tgh->poc != 0)
+    if (sh->slice_type != SLICE_I && sh->poc != 0)
         evc_assert_rv(pm->cur_num_ref_pics > 0, EVC_ERR_UNEXPECTED);
 
     EVC_PIC * pic;
@@ -770,9 +770,9 @@ int evc_picman_refpic_marking(EVC_PM *pm, EVC_TGH *tgh)
             //If the pic in the DPB is a reference picture, check if this pic is included in RPL0
             int isIncludedInRPL = 0;
             int j = 0;
-            while (!isIncludedInRPL && j < tgh->rpl_l0.ref_pic_num)
+            while (!isIncludedInRPL && j < sh->rpl_l0.ref_pic_num)
             {
-                if (pic->ptr == (tgh->poc - tgh->rpl_l0.ref_pics[j]))  //NOTE: we need to put POC also in EVC_PIC
+                if (pic->ptr == (sh->poc - sh->rpl_l0.ref_pics[j]))  //NOTE: we need to put POC also in EVC_PIC
                 {
                     isIncludedInRPL = 1;
                 }
@@ -780,9 +780,9 @@ int evc_picman_refpic_marking(EVC_PM *pm, EVC_TGH *tgh)
             }
             //Check if the pic is included in RPL1. This while loop will be executed only if the ref pic is not included in RPL0
             j = 0;
-            while (!isIncludedInRPL && j < tgh->rpl_l1.ref_pic_num)
+            while (!isIncludedInRPL && j < sh->rpl_l1.ref_pic_num)
             {
-                if (pic->ptr == (tgh->poc - tgh->rpl_l1.ref_pics[j]))
+                if (pic->ptr == (sh->poc - sh->rpl_l1.ref_pics[j]))
                 {
                     isIncludedInRPL = 1;
                 }
@@ -803,12 +803,12 @@ int evc_picman_refpic_marking(EVC_PM *pm, EVC_TGH *tgh)
 }
 
 #if HLS_M47668
-int evc_picman_put_pic(EVC_PM * pm, EVC_PIC * pic, int tile_group_type,
+int evc_picman_put_pic(EVC_PM * pm, EVC_PIC * pic, int slice_type,
                         u32 ptr, u32 dtr, u8 layer_id, int need_for_output,
                         EVC_REFP(*refp)[REFP_NUM], int ref_pic, int pnpf, int ref_pic_gap_length)
 {
     /* manage RPB */
-    if(pm->use_closed_gop && tile_group_type == TILE_GROUP_I)
+    if(pm->use_closed_gop && slice_type == SLICE_I)
     {
         picman_flush_pb(pm);
     }
@@ -854,12 +854,12 @@ int evc_picman_put_pic(EVC_PM * pm, EVC_PIC * pic, int tile_group_type,
     return EVC_OK;
 }
 #else
-int evc_picman_put_pic(EVC_PM * pm, EVC_PIC * pic, int tile_group_type,
+int evc_picman_put_pic(EVC_PM * pm, EVC_PIC * pic, int slice_type,
                        u32 ptr, u32 dtr, u8 layer_id, int need_for_output,
                        EVC_REFP(*refp)[REFP_NUM], EVC_MMCO * mmco, int pnpf)
 {
     /* manage RPB */
-    if (pm->use_closed_gop && tile_group_type == TILE_GROUP_I)
+    if (pm->use_closed_gop && slice_type == SLICE_I)
     {
         picman_flush_pb(pm);
     }

@@ -361,7 +361,7 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
                 MCU_CLR_MMVDS(map_cu_mode[j]);
             }
 
-            MCU_SET_IF_COD_SN_QP(map_scu[j], flag, ctx->tile_group_num, ctx->tgh.qp);
+            MCU_SET_IF_COD_SN_QP(map_scu[j], flag, ctx->slice_num, ctx->sh.qp);
 
             map_refi[j][REFP_0] = core->refi[REFP_0];
             map_refi[j][REFP_1] = core->refi[REFP_1];
@@ -827,10 +827,10 @@ void evcd_draw_partition(EVCD_CTX * ctx, EVC_PIC * pic)
 #endif
 
 #if ADMVP
-BOOL check_bi_applicability_dec(int tile_group_type, int cuw, int cuh)
+BOOL check_bi_applicability_dec(int slice_type, int cuw, int cuh)
 {
     BOOL is_applicable = FALSE;
-    if ((tile_group_type == TILE_GROUP_B) &&
+    if ((slice_type == SLICE_B) &&
         !((max(cuw, cuh) < 8 && min(cuw, cuh) < 8))
         )
     {
@@ -856,12 +856,12 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
     cuw = (1 << core->log2_cuw);
     cuh = (1 << core->log2_cuh);
 
-    evc_get_mmvd_mvp_list(ctx->map_refi, ctx->refp[0], ctx->map_mv, ctx->w_scu, ctx->h_scu, core->scup, core->avail_cu, core->log2_cuw, core->log2_cuh, ctx->tgh.tile_group_type, real_mv, ctx->map_scu, REF_SET, core->avail_lr
+    evc_get_mmvd_mvp_list(ctx->map_refi, ctx->refp[0], ctx->map_mv, ctx->w_scu, ctx->h_scu, core->scup, core->avail_cu, core->log2_cuw, core->log2_cuh, ctx->sh.slice_type, real_mv, ctx->map_scu, REF_SET, core->avail_lr
 #if ADMVP
         , core->history_buffer, ctx->sps.tool_admvp
 #endif
 #if M49023_ADMVP_IMPROVE 
-        , &ctx->tgh
+        , &ctx->sh
 #endif
     );
 
@@ -869,16 +869,16 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
     core->mv[REFP_0][MV_Y] = real_mv[core->mmvd_idx][0][MV_Y];
     core->refi[REFP_0] = real_mv[core->mmvd_idx][0][2];;
 
-    if (ctx->tgh.tile_group_type == TILE_GROUP_B)
+    if (ctx->sh.slice_type == SLICE_B)
     {
         core->refi[REFP_1] = real_mv[core->mmvd_idx][1][2];
         core->mv[REFP_1][MV_X] = real_mv[core->mmvd_idx][1][MV_X];
         core->mv[REFP_1][MV_Y] = real_mv[core->mmvd_idx][1][MV_Y];
     }
 #if ADMVP
-    if ((ctx->tgh.tile_group_type == TILE_GROUP_P) || (!check_bi_applicability_dec(ctx->tgh.tile_group_type, cuw, cuh)))
+    if ((ctx->sh.slice_type == SLICE_P) || (!check_bi_applicability_dec(ctx->sh.slice_type, cuw, cuh)))
 #else
-    if (ctx->tgh.tile_group_type == TILE_GROUP_P)
+    if (ctx->sh.slice_type == SLICE_P)
 #endif
     {
         core->refi[REFP_1] = -1;

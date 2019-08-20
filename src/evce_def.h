@@ -166,7 +166,7 @@ typedef struct _EVCE_MODE
 #else
 #define FRM_DEPTH_MAX                 6
 #endif
-/* I-tile_group, P-tile_group, B-tile_group + depth + 1 (max for GOP 8 size)*/
+/* I-slice, P-slice, B-slice + depth + 1 (max for GOP 8 size)*/
 #define LIST_NUM                      1
 
 /*****************************************************************************
@@ -223,7 +223,7 @@ typedef struct _EVCE_PINTRA
     u8                  qp_u;
     u8                  qp_v;
 
-    int                 tile_group_type;
+    int                 slice_type;
 
     int                 complexity;
     void              * pdata[4];
@@ -353,7 +353,7 @@ struct _EVCE_PINTER
     u32              lambda_mv;
     /* reference pictures */
     EVC_REFP      (*refp)[REFP_NUM];
-    int              tile_group_type;
+    int              slice_type;
     /* search level for motion estimation */
     int              me_level;
     int              complexity;
@@ -446,7 +446,7 @@ struct _EVCE_PIBC
   u8              qp_v;
   u32             lambda_mv;
 
-  int             tile_group_type;
+  int             slice_type;
 
   int             complexity;
   void            *pdata[4];
@@ -463,7 +463,7 @@ typedef struct _EVCE_PARAM
     int                 h;
     /* picture bit depth*/
     int                 bit_depth;
-    /* qp value for I- and P- tile_group */
+    /* qp value for I- and P- slice */
     int                 qp;
     /* frame per second */
     int                 fps;
@@ -508,7 +508,7 @@ typedef struct _EVCE_PARAM
     int                 ibc_fast_method;
 #endif
     int                 use_hgop;
-#if USE_TILE_GROUP_DQP
+#if USE_SLICE_DQP
     int                 qp_incread_frame;           /* 10 bits*/
 #endif
 
@@ -784,13 +784,13 @@ struct _EVCE_CTX
     u8                    aps_counter;
     u8                    aps_temp;
 #endif
-    /* tile_group header */
-    EVC_TGH                tgh;
+    /* slice header */
+    EVC_SH                sh;
     /* reference picture manager */
     EVC_PM                rpm;
     /* create descriptor */
     EVCE_CDSC             cdsc;
-    /* quantization value of current encoding tile_group */
+    /* quantization value of current encoding slice */
     u8                     qp;
 #if M49023_DBF_IMPROVE
     /* offset value of alpha and beta for deblocking filter */
@@ -816,27 +816,27 @@ struct _EVCE_CTX
     u32                    pic_icnt;
     /* total input picture count (only used for bumping process) */
     u32                    pic_ticnt;
-    /* remaining pictures is encoded to p or b tile_group (only used for bumping process) */
-    u8                     force_tile_group;
-    /* ignored pictures for force tile_group count (unavailable pictures cnt in gop,\
+    /* remaining pictures is encoded to p or b slice (only used for bumping process) */
+    u8                     force_slice;
+    /* ignored pictures for force slice count (unavailable pictures cnt in gop,\
     only used for bumping process) */
     u8                     force_ignored_cnt;
     /* initial frame return number(delayed input count) due to B picture or Forecast */
     u32                    frm_rnum;
-    /* current encoding tile_group number in one picture */
-    int                    tile_group_num;
-    /* first mb number of current encoding tile_group in one picture */
+    /* current encoding slice number in one picture */
+    int                    slice_num;
+    /* first mb number of current encoding slice in one picture */
     int                    sl_first_mb;
-    /* current tile_group type */
-    u8                     tile_group_type;
-    /* tile_group depth for current picture */
-    u8                     tile_group_depth;
+    /* current slice type */
+    u8                     slice_type;
+    /* slice depth for current picture */
+    u8                     slice_depth;
 #if !HLS_M47668
     /* whether current picture is referred or not */
     u8                     ref_depth;
 #endif
     /* flag whether current picture is refecened picture or not */
-    u8                     tile_group_ref_flag;
+    u8                     slice_ref_flag;
 #if HLS_M47668
     /* distance between ref pics in addition to closest ref ref pic in LD*/
     int                    ref_pic_gap_length;
@@ -955,9 +955,9 @@ struct _EVCE_CTX
 #if ALF
     void* enc_alf;
 #if ALF_PARAMETER_APS
-    int(*fn_alf)(EVCE_CTX * ctx, EVC_PIC * pic, EVC_TGH* tgh, EVC_APS* aps);
+    int(*fn_alf)(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh, EVC_APS* aps);
 #else
-    int (*fn_alf)(EVCE_CTX * ctx, EVC_PIC * pic, EVC_TGH* tgh);
+    int (*fn_alf)(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh);
 #endif
 #endif
 

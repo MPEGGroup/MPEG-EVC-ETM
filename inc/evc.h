@@ -183,7 +183,7 @@ extern "C"
 #define EVC_SEI_NUT                     (27)
 
 /*****************************************************************************
- * tile_group type
+ * slice type
  *****************************************************************************/
 #define EVC_ST_UNKNOWN                  (0)
 #define EVC_ST_I                        (1)
@@ -330,7 +330,7 @@ typedef struct _EVCD_STAT
     int            read;
     /* nalu type */
     int            ctype;
-    /* tile_group type */
+    /* slice type */
     int            stype;
     /* frame number monotonically increased whenever decoding a frame.
     note that it has negative value if the decoded data is not frame */
@@ -467,7 +467,7 @@ typedef struct _EVCE_STAT
     unsigned long  fnum;
     /* nalu type */
     int            ctype;
-    /* tile_group type */
+    /* slice type */
     int            stype;
     /* quantization parameter used for encoding */
     int            qp;

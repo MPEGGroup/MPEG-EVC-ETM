@@ -41,7 +41,7 @@ int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16]);
 
 void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core);
 #if ADMVP
-BOOL check_bi_applicability_dec(int tile_group_type, int cuw, int cuh);
+BOOL check_bi_applicability_dec(int slice_type, int cuw, int cuh);
 #endif
 
 /* set decoded information, such as MVs, inter_dir, etc. */

@@ -40,7 +40,7 @@
 extern "C" {
 #endif
 #if ALF
-typedef struct AlfTileGroupParam AlfTileGroupParam;
+typedef struct AlfSliceParam AlfSliceParam;
 typedef struct AdaptiveLoopFilter AdaptiveLoopFilter;
 typedef struct EncAdaptiveLoopFilter EncAdaptiveLoopFilter;
 typedef struct AlfFilterShape AlfFilterShape;
@@ -53,11 +53,11 @@ void call_destroy_enc_ALF(EncAdaptiveLoopFilter* p);
 
 void set_resetALFBufferFlag(EncAdaptiveLoopFilter* p, int flag);
 
-void call_enc_ALFProcess(EncAdaptiveLoopFilter* p, const double* lambdas, EVCE_CTX * ctx, EVC_PIC * pic, evc_AlfTileGroupParam* iAlfTileGroupParam);
+void call_enc_ALFProcess(EncAdaptiveLoopFilter* p, const double* lambdas, EVCE_CTX * ctx, EVC_PIC * pic, evc_AlfSliceParam* iAlfSliceParam);
 
 #if APS_ALF_SEQ_FIX
 u8 alf_aps_get_current_alf_idx();
-void alf_aps_enc_opt_process(EncAdaptiveLoopFilter* p, const double* lambdas, EVCE_CTX * ctx, EVC_PIC * pic, evc_AlfTileGroupParam* iAlfTileGroupParam);
+void alf_aps_enc_opt_process(EncAdaptiveLoopFilter* p, const double* lambdas, EVCE_CTX * ctx, EVC_PIC * pic, evc_AlfSliceParam* iAlfSliceParam);
 #endif
 
 #endif

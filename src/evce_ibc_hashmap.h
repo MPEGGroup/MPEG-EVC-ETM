@@ -38,6 +38,8 @@
 #ifndef __EVCE_IBC_HASHMAP__
 #define __EVCE_IBC_HASHMAP__
 
+#include <stdint.h>
+
 #include "evc_def.h"
 #include "evce_def.h"
 

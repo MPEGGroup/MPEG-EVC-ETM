@@ -60,7 +60,7 @@ static int pintra_init_frame(EVCE_CTX * ctx)
     pi->s_m[U_C] = pic->s_c;
     pi->s_m[V_C] = pic->s_c;
 
-    pi->tile_group_type = ctx->tile_group_type;
+    pi->slice_type = ctx->slice_type;
 
     return EVC_OK;
 }
@@ -95,7 +95,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
         pred = pi->pred_cache[core->ipm[0]];
         evce_diff_16b(log2_cuw, log2_cuh, org_luma, pred, s_org, cuw, cuw, pi->coef_tmp[Y_C]);
 
-        evce_sub_block_tq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, pi->tile_group_type, core->nnz
+        evce_sub_block_tq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, pi->slice_type, core->nnz
                           , core->nnz_sub, 1, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L, ctx->sps.tool_cm_init, ctx->sps.tool_iqt
 #if ATS_INTRA_PROCESS
                           , core->ats_intra_cu, core->ats_tu
@@ -118,7 +118,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 
         SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
         evce_sbac_bit_reset(&core->s_temp_run);
-        evce_rdo_bit_cnt_cu_intra_luma(ctx, core, ctx->tgh.tile_group_type, core->scup, pi->coef_tmp);
+        evce_rdo_bit_cnt_cu_intra_luma(ctx, core, ctx->sh.slice_type, core->scup, pi->coef_tmp);
         bit_cnt = evce_get_bit_number(&core->s_temp_run);
 
         evc_sub_block_itdq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->nnz, core->nnz_sub, ctx->sps.tool_iqt
@@ -138,7 +138,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 #if HTDF
         if(ctx->sps.tool_htdf == 1)
         {
-            evc_htdf(pi->rec[Y_C], ctx->tgh.qp, cuw, cuh, cuw, TRUE, pi->m[Y_C] + (y * pi->s_m[Y_C]) + x, pi->s_m[Y_C], core->avail_cu);
+            evc_htdf(pi->rec[Y_C], ctx->sh.qp, cuw, cuh, cuw, TRUE, pi->m[Y_C] + (y * pi->s_m[Y_C]) + x, pi->s_m[Y_C], core->avail_cu);
         }
 #endif
         cost += evce_ssd_16b(log2_cuw, log2_cuh, pi->rec[Y_C], org_luma, cuw, s_org);
@@ -186,7 +186,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
             evc_mcpy(tmp_cbf_sub_l, core->nnz_sub[Y_C], sizeof(int) * MAX_SUB_TB_NUM);
         }
 
-        evce_sub_block_tq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, pi->tile_group_type, core->nnz, core->nnz_sub
+        evce_sub_block_tq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, pi->slice_type, core->nnz, core->nnz_sub
                           , 1, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt
 #if ATS_INTRA_PROCESS
                           , core->ats_intra_cu, core->ats_tu
@@ -235,7 +235,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 
         evce_sbac_bit_reset(&core->s_temp_run);
 
-        evce_rdo_bit_cnt_cu_intra_chroma(ctx, core, ctx->tgh.tile_group_type, core->scup, coef);
+        evce_rdo_bit_cnt_cu_intra_chroma(ctx, core, ctx->sh.slice_type, core->scup, coef);
 
         bit_cnt = evce_get_bit_number(&core->s_temp_run);
 
@@ -463,7 +463,7 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
 #if ATS_INTRA_PROCESS
     if (log2_cuw == 6 || log2_cuh == 6 || log2_cuw == 7 || log2_cuh == 7) ats_intra_usage = 1;
 #if ATS_INTRA_FAST
-    if (ctx->tile_group_type != TILE_GROUP_I && core->nnz[Y_C] <= ATS_INTRA_Y_NZZ_THR) ats_intra_usage = 1;
+    if (ctx->slice_type != SLICE_I && core->nnz[Y_C] <= ATS_INTRA_Y_NZZ_THR) ats_intra_usage = 1;
     if (ats_intra_usage > 1)
     {
         if (core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][evc_get_lr(core->avail_lr)].visit && core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][evc_get_lr(core->avail_lr)].ats_intra_cu_idx_intra == 0)
@@ -680,7 +680,7 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
     SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
 
     evce_sbac_bit_reset(&core->s_temp_run);
-    evce_rdo_bit_cnt_cu_intra(ctx, core, ctx->tgh.tile_group_type, core->scup, coef);
+    evce_rdo_bit_cnt_cu_intra(ctx, core, ctx->sh.slice_type, core->scup, coef);
 
     bit_cnt = evce_get_bit_number(&core->s_temp_run);
     cost = (best_dist_y + best_dist_c) + RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);

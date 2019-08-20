@@ -41,16 +41,16 @@ extern "C"
 
 int evce_mode_create(EVCE_CTX * ctx, int complexity);
 
-void evce_rdo_bit_cnt_cu_intra(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_type, s32 cup, s16 coef[N_C][MAX_CU_DIM]);
-void evce_rdo_bit_cnt_cu_intra_luma(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_type, s32 cup, s16 coef[N_C][MAX_CU_DIM]);
-void evce_rdo_bit_cnt_cu_intra_chroma(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_type, s32 cup, s16 coef[N_C][MAX_CU_DIM]);
-void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_type, s32 cup, s8 refi[REFP_NUM], s16 mvd[REFP_NUM][MV_D], s16 coef[N_C][MAX_CU_DIM], int pidx, u8 * mvp_idx, u8 mvr_idx, u8 bi_idx
+void evce_rdo_bit_cnt_cu_intra(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s32 cup, s16 coef[N_C][MAX_CU_DIM]);
+void evce_rdo_bit_cnt_cu_intra_luma(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s32 cup, s16 coef[N_C][MAX_CU_DIM]);
+void evce_rdo_bit_cnt_cu_intra_chroma(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s32 cup, s16 coef[N_C][MAX_CU_DIM]);
+void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s32 cup, s8 refi[REFP_NUM], s16 mvd[REFP_NUM][MV_D], s16 coef[N_C][MAX_CU_DIM], int pidx, u8 * mvp_idx, u8 mvr_idx, u8 bi_idx
 #if AFFINE
                                , s16 affine_mvd[REFP_NUM][VER_NUM][MV_D]
 #endif
 );
 #if IBC
-void evce_rdo_bit_cnt_cu_ibc(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_type, s32 cup, s16 mvd[MV_D],
+void evce_rdo_bit_cnt_cu_ibc(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s32 cup, s16 mvd[MV_D],
   s16 coef[N_C][MAX_CU_DIM], u8 mvp_idx, u8 pred_mode);
 #endif
 void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM], int ch_type, int pidx
@@ -58,11 +58,11 @@ void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM],
                                     , EVCE_CTX * ctx
 #endif
 );
-void evce_rdo_bit_cnt_cu_skip(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_type, s32 cup, int mvp_idx0, int mvp_idx1, int c_num, int tool_mmvd);
-void evce_rdo_bit_cnt_mvp(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_type, s8 refi[REFP_NUM], s16 mvd[REFP_NUM][MV_D], int pidx, int mvp_idx);
+void evce_rdo_bit_cnt_cu_skip(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s32 cup, int mvp_idx0, int mvp_idx1, int c_num, int tool_mmvd);
+void evce_rdo_bit_cnt_mvp(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s8 refi[REFP_NUM], s16 mvd[REFP_NUM][MV_D], int pidx, int mvp_idx);
 
 #if AFFINE
-void evce_rdo_bit_cnt_affine_mvp(EVCE_CTX * ctx, EVCE_CORE * core, s32 tile_group_type, s8 refi[REFP_NUM], s16 mvd[REFP_NUM][VER_NUM][MV_D], int pidx, int mvp_idx, int vertex_num);
+void evce_rdo_bit_cnt_affine_mvp(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s8 refi[REFP_NUM], s16 mvd[REFP_NUM][VER_NUM][MV_D], int pidx, int mvp_idx, int vertex_num);
 #endif
 
 void evce_sbac_bit_reset(EVCE_SBAC * sbac);

@@ -266,7 +266,7 @@ int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps)
         }
     }
 
-    evc_bsw_write1(bs, pps->arbitrary_tile_group_present_flag);
+    evc_bsw_write1(bs, pps->arbitrary_slice_present_flag);
 
 #if M48879_IMPROVEMENT_INTRA
     evc_bsw_write1(bs, pps->constrained_intra_pred_flag); /* constrained_intra_pred_flag */
@@ -310,68 +310,68 @@ int evce_eco_aps(EVC_BSW * bs, EVC_APS * aps)
 }
 #endif
 
-int evce_eco_tgh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh)
+int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
 {
-    int NumTilesInTileGroup = 0; //TBD according to the spec
+    int NumTilesInSlice = 0; //TBD according to the spec
 
 #if HLS_M47668
-    evc_bsw_write(bs, tgh->dtr, DTR_BIT_CNT);
-    evc_bsw_write(bs, tgh->layer_id, 3);
+    evc_bsw_write(bs, sh->dtr, DTR_BIT_CNT);
+    evc_bsw_write(bs, sh->layer_id, 3);
 #endif
 #if M49023_ADMVP_IMPROVE
-    evc_bsw_write1(bs, tgh->temporal_mvp_asigned_flag);
-    if (tgh->temporal_mvp_asigned_flag)
+    evc_bsw_write1(bs, sh->temporal_mvp_asigned_flag);
+    if (sh->temporal_mvp_asigned_flag)
     {
-        evc_bsw_write1(bs, tgh->collocated_from_list_idx);
-        evc_bsw_write1(bs, tgh->collocated_from_ref_idx);
-        evc_bsw_write1(bs, tgh->collocated_mvp_source_list_idx);
+        evc_bsw_write1(bs, sh->collocated_from_list_idx);
+        evc_bsw_write1(bs, sh->collocated_from_ref_idx);
+        evc_bsw_write1(bs, sh->collocated_mvp_source_list_idx);
     }
 #endif
-    evc_bsw_write_ue(bs, tgh->tile_group_pic_parameter_set_id);
-    evc_bsw_write1(bs, tgh->single_tile_in_tile_group_flag);
-    evc_bsw_write(bs, tgh->first_tile_id, pps->tile_id_len_minus1 + 1);
+    evc_bsw_write_ue(bs, sh->slice_pic_parameter_set_id);
+    evc_bsw_write1(bs, sh->single_tile_in_slice_flag);
+    evc_bsw_write(bs, sh->first_tile_id, pps->tile_id_len_minus1 + 1);
 
-    if (!tgh->single_tile_in_tile_group_flag)
+    if (!sh->single_tile_in_slice_flag)
     {
-        if (pps->arbitrary_tile_group_present_flag)
+        if (pps->arbitrary_slice_present_flag)
         {
-            evc_bsw_write1(bs, tgh->arbitrary_tile_group_flag);
+            evc_bsw_write1(bs, sh->arbitrary_slice_flag);
         }
-        if (!tgh->arbitrary_tile_group_flag)
+        if (!sh->arbitrary_slice_flag)
         {
-            evc_bsw_write(bs, tgh->last_tile_id, pps->tile_id_len_minus1 + 1);
+            evc_bsw_write(bs, sh->last_tile_id, pps->tile_id_len_minus1 + 1);
         }
         else
         {
-            evc_bsw_write_ue(bs, tgh->num_remaining_tiles_in_tile_group_minus1);
-            for (int i = 0; i < NumTilesInTileGroup - 1; ++i)
+            evc_bsw_write_ue(bs, sh->num_remaining_tiles_in_slice_minus1);
+            for (int i = 0; i < NumTilesInSlice - 1; ++i)
             {
-                evc_bsw_write_ue(bs, tgh->delta_tile_id_minus1[i]);
+                evc_bsw_write_ue(bs, sh->delta_tile_id_minus1[i]);
             }
         }
     }
 
-    evc_bsw_write_ue(bs, tgh->tile_group_type);
+    evc_bsw_write_ue(bs, sh->slice_type);
 #if M48879_IMPROVEMENT_INTER
-    if (sps->tool_mmvd && (tgh->tile_group_type == TILE_GROUP_B))
+    if (sps->tool_mmvd && (sh->slice_type == SLICE_B))
     {
-        evc_bsw_write1(bs, tgh->mmvd_group_enable_flag);
+        evc_bsw_write1(bs, sh->mmvd_group_enable_flag);
     }
 #endif
 #if ALF
     if (sps->tool_alf)
     {
-        evc_bsw_write1(bs, tgh->alf_on);
+        evc_bsw_write1(bs, sh->alf_on);
 #if ALF_PARAMETER_APS
-        if (tgh->alf_on)
+        if (sh->alf_on)
         {
-            evc_bsw_write(bs, tgh->aps_signaled, APS_MAX_NUM_IN_BITS); //encode tile group aps id
-            evce_eco_alf_tgh_param(bs, tgh); // signaling ALF map
+            evc_bsw_write(bs, sh->aps_signaled, APS_MAX_NUM_IN_BITS); //encode tile group aps id
+            evce_eco_alf_sh_param(bs, sh); // signaling ALF map
         }
 #else
-        if (tgh->alf_on)
+        if (sh->alf_on)
         {
-            evce_eco_alf_tgh_param(bs, tgh);
+            evce_eco_alf_sh_param(bs, sh);
         }
 #endif
     }
@@ -382,15 +382,15 @@ int evce_eco_tgh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh)
 #if HLS_M47668
         if (sps->tool_pocs)
         {
-            evc_bsw_write(bs, tgh->poc, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
+            evc_bsw_write(bs, sh->poc, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
         }
 #else
-        evc_bsw_write(bs, tgh->poc, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
+        evc_bsw_write(bs, sh->poc, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
 #endif
         if (sps->picture_num_present_flag)
         {
-            evc_bsw_write1(bs, tgh->ref_pic_flag);
-            evc_bsw_write(bs, tgh->picture_num, 8);
+            evc_bsw_write1(bs, sh->ref_pic_flag);
+            evc_bsw_write(bs, sh->picture_num, 8);
         }
     }
     // else
@@ -400,50 +400,50 @@ int evce_eco_tgh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh)
             //L0 candidates signaling
             if (sps->rpl_candidates_present_flag)
             {
-                evc_bsw_write1(bs, tgh->ref_pic_list_sps_flag[0]);
+                evc_bsw_write1(bs, sh->ref_pic_list_sps_flag[0]);
             }
-            if (tgh->ref_pic_list_sps_flag[0])
+            if (sh->ref_pic_list_sps_flag[0])
             {
                 if (sps->rpls_l0_num)
                 {
-                    evc_bsw_write_ue(bs, tgh->rpl_l0_idx);
+                    evc_bsw_write_ue(bs, sh->rpl_l0_idx);
                 }
             }
             else
             {
-                evce_eco_rlp(bs, &tgh->rpl_l0);
+                evce_eco_rlp(bs, &sh->rpl_l0);
             }
 
             //L1 candidates signaling
             if (sps->rpl_candidates_present_flag)
             {
-                evc_bsw_write1(bs, tgh->ref_pic_list_sps_flag[1]);
+                evc_bsw_write1(bs, sh->ref_pic_list_sps_flag[1]);
             }
-            if (tgh->ref_pic_list_sps_flag[1])
+            if (sh->ref_pic_list_sps_flag[1])
             {
                 if (sps->rpls_l1_num)
                 {
-                    evc_bsw_write_ue(bs, tgh->rpl_l1_idx);
+                    evc_bsw_write_ue(bs, sh->rpl_l1_idx);
                 }
             }
             else
             {
-                evce_eco_rlp(bs, &tgh->rpl_l1);
+                evce_eco_rlp(bs, &sh->rpl_l1);
             }
         }
     }
 
     if (!sps->picture_num_present_flag)
     {
-        if (tgh->tile_group_type != TILE_GROUP_I)
+        if (sh->slice_type != SLICE_I)
         {
-            evc_bsw_write1(bs, tgh->num_ref_idx_active_override_flag);
-            if (tgh->num_ref_idx_active_override_flag)
+            evc_bsw_write1(bs, sh->num_ref_idx_active_override_flag);
+            if (sh->num_ref_idx_active_override_flag)
             {
-                evc_bsw_write_ue(bs, (u32)(tgh->rpl_l0).ref_pic_active_num - 1);
-                if (tgh->tile_group_type == TILE_GROUP_B)
+                evc_bsw_write_ue(bs, (u32)(sh->rpl_l0).ref_pic_active_num - 1);
+                if (sh->slice_type == SLICE_B)
                 {
-                    evc_bsw_write_ue(bs, (u32)(tgh->rpl_l1).ref_pic_active_num - 1);
+                    evc_bsw_write_ue(bs, (u32)(sh->rpl_l1).ref_pic_active_num - 1);
                 }
             }
             if (sps->picture_num_present_flag)
@@ -453,82 +453,82 @@ int evce_eco_tgh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_TGH * tgh)
         }
     }
 
-    evc_bsw_write1(bs, tgh->deblocking_filter_on);
+    evc_bsw_write1(bs, sh->deblocking_filter_on);
 #if M49023_DBF_IMPROVE
-    evc_bsw_write_se(bs, tgh->tgh_deblock_alpha_offset);
-    evc_bsw_write_se(bs, tgh->tgh_deblock_beta_offset);
+    evc_bsw_write_se(bs, sh->sh_deblock_alpha_offset);
+    evc_bsw_write_se(bs, sh->sh_deblock_beta_offset);
 #endif
-    evc_bsw_write(bs, tgh->qp, 6);
-    evc_bsw_write_se(bs, (int)tgh->qp - (int)tgh->qp_u);
-    evc_bsw_write_se(bs, (int)tgh->qp - (int)tgh->qp_v);
+    evc_bsw_write(bs, sh->qp, 6);
+    evc_bsw_write_se(bs, (int)sh->qp - (int)sh->qp_u);
+    evc_bsw_write_se(bs, (int)sh->qp - (int)sh->qp_v);
 
-    if (!tgh->single_tile_in_tile_group_flag)
+    if (!sh->single_tile_in_slice_flag)
     {
-        for (int i = 0; i < NumTilesInTileGroup - 1; ++i)
+        for (int i = 0; i < NumTilesInSlice - 1; ++i)
         {
-            evc_bsw_write(bs, tgh->entry_point_offset_minus1[i], pps->tile_offset_lens_minus1 + 1);
+            evc_bsw_write(bs, sh->entry_point_offset_minus1[i], pps->tile_offset_lens_minus1 + 1);
         }
     }
 #if !HLS_M47668
-    evc_bsw_write(bs, tgh->dtr, DTR_BIT_CNT);
+    evc_bsw_write(bs, sh->dtr, DTR_BIT_CNT);
 #endif
-    evc_bsw_write1(bs, tgh->keyframe);
-    evc_bsw_write1(bs, tgh->udata_exist);
+    evc_bsw_write1(bs, sh->keyframe);
+    evc_bsw_write1(bs, sh->udata_exist);
 
-    if(tgh->tile_group_type != TILE_GROUP_I)
+    if(sh->slice_type != SLICE_I)
     {
-        evc_bsw_write_se(bs, tgh->dptr);
+        evc_bsw_write_se(bs, sh->dptr);
     }
 
 #if !HLS_M47668
-    evc_bsw_write(bs, tgh->layer_id, 3);
+    evc_bsw_write(bs, sh->layer_id, 3);
 #endif
 
     /* write MMCO */
-    evc_bsw_write1(bs, tgh->mmco_on);
+    evc_bsw_write1(bs, sh->mmco_on);
 
-    if(tgh->mmco_on)
+    if(sh->mmco_on)
     {
-        int cnt = tgh->mmco.cnt;
+        int cnt = sh->mmco.cnt;
         while(cnt-- > 0)
         {
-            evc_bsw_write_ue(bs, tgh->mmco.type[cnt]);
-            evc_bsw_write_ue(bs, tgh->mmco.data[cnt]);
+            evc_bsw_write_ue(bs, sh->mmco.type[cnt]);
+            evc_bsw_write_ue(bs, sh->mmco.data[cnt]);
         }
         evc_bsw_write_ue(bs, MMCO_END);
     }
 
     /* write RMPNI */
-    evc_bsw_write1(bs, tgh->rmpni_on);
-    if(tgh->rmpni_on)
+    evc_bsw_write1(bs, sh->rmpni_on);
+    if(sh->rmpni_on)
     {
         int i;
-        for(i = 0; i < tgh->rmpni[REFP_0].cnt; i++)
+        for(i = 0; i < sh->rmpni[REFP_0].cnt; i++)
         {
-            if(tgh->rmpni[REFP_0].delta_poc[i] < 0)
+            if(sh->rmpni[REFP_0].delta_poc[i] < 0)
             {
                 evc_bsw_write_ue(bs, RMPNI_ADPN_NEG);
-                evc_bsw_write_ue(bs, -(tgh->rmpni[REFP_0].delta_poc[i] + 1));
+                evc_bsw_write_ue(bs, -(sh->rmpni[REFP_0].delta_poc[i] + 1));
             }
             else
             {
                 evc_bsw_write_ue(bs, RMPNI_ADPN_POS);
-                evc_bsw_write_ue(bs, tgh->rmpni[REFP_0].delta_poc[i] - 1);
+                evc_bsw_write_ue(bs, sh->rmpni[REFP_0].delta_poc[i] - 1);
             }
         }
         evc_bsw_write_ue(bs, RMPNI_END);
 
-        for(i = 0; i < tgh->rmpni[REFP_1].cnt; i++)
+        for(i = 0; i < sh->rmpni[REFP_1].cnt; i++)
         {
-            if(tgh->rmpni[REFP_1].delta_poc[i] < 0)
+            if(sh->rmpni[REFP_1].delta_poc[i] < 0)
             {
                 evc_bsw_write_ue(bs, RMPNI_ADPN_NEG);
-                evc_bsw_write_ue(bs, -(tgh->rmpni[REFP_1].delta_poc[i] + 1));
+                evc_bsw_write_ue(bs, -(sh->rmpni[REFP_1].delta_poc[i] + 1));
             }
             else
             {
                 evc_bsw_write_ue(bs, RMPNI_ADPN_POS);
-                evc_bsw_write_ue(bs, tgh->rmpni[REFP_1].delta_poc[i] - 1);
+                evc_bsw_write_ue(bs, sh->rmpni[REFP_1].delta_poc[i] - 1);
             }
         }
         evc_bsw_write_ue(bs, RMPNI_END);
@@ -859,7 +859,7 @@ void evce_sbac_encode_bin_trm(u32 bin, EVCE_SBAC *sbac, EVC_BSW *bs)
 #endif
 }
 
-void evce_sbac_reset(EVCE_SBAC *sbac, u8 tile_group_type, u8 tile_group_qp, int sps_cm_init_flag)
+void evce_sbac_reset(EVCE_SBAC *sbac, u8 slice_type, u8 slice_qp, int sps_cm_init_flag)
 {
     EVC_SBAC_CTX *sbac_ctx;
     sbac_ctx = &sbac->ctx;
@@ -888,68 +888,68 @@ void evce_sbac_reset(EVCE_SBAC *sbac, u8 tile_group_type, u8 tile_group_qp, int 
         int i; 
 #endif
 
-        evc_eco_sbac_ctx_initialize(sbac_ctx->cbf, (s16*)init_cbf, NUM_QT_CBF_CTX, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->all_cbf, (s16*)init_all_cbf, NUM_QT_ROOT_CBF_CTX, tile_group_type, tile_group_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->cbf, (s16*)init_cbf, NUM_QT_CBF_CTX, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->all_cbf, (s16*)init_all_cbf, NUM_QT_ROOT_CBF_CTX, slice_type, slice_qp);
 #if ADCC 
 #if COEFF_CODE_ADCC2
-        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gt0, (s16*)init_cc_gt0_3, NUM_CTX_GT0, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gtA, (s16*)init_cc_gtA_3, NUM_CTX_GTA, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_x, (s16*)init_cc_scanr_x_3, NUM_CTX_SCANR, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_y, (s16*)init_cc_scanr_y_3, NUM_CTX_SCANR, tile_group_type, tile_group_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gt0, (s16*)init_cc_gt0_3, NUM_CTX_GT0, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gtA, (s16*)init_cc_gtA_3, NUM_CTX_GTA, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_x, (s16*)init_cc_scanr_x_3, NUM_CTX_SCANR, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_y, (s16*)init_cc_scanr_y_3, NUM_CTX_SCANR, slice_type, slice_qp);
 #else
-        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gt0, (s16*)init_cc_gt0, NUM_CTX_GT0, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gtA, (s16*)init_cc_gtA, NUM_CTX_GTA, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_x, (s16*)init_cc_scanr_x, NUM_CTX_SCANR, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_y, (s16*)init_cc_scanr_y, NUM_CTX_SCANR, tile_group_type, tile_group_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gt0, (s16*)init_cc_gt0, NUM_CTX_GT0, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gtA, (s16*)init_cc_gtA, NUM_CTX_GTA, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_x, (s16*)init_cc_scanr_x, NUM_CTX_SCANR, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_y, (s16*)init_cc_scanr_y, NUM_CTX_SCANR, slice_type, slice_qp);
 #endif
 #endif
-        evc_eco_sbac_ctx_initialize(sbac_ctx->pred_mode, (s16*)init_pred_mode, NUM_PRED_MODE_CTX, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->inter_dir, (s16*)init_inter_dir, NUM_INTER_DIR_CTX, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->intra_dir, (s16*)init_intra_dir, NUM_INTRA_DIR_CTX, tile_group_type, tile_group_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->pred_mode, (s16*)init_pred_mode, NUM_PRED_MODE_CTX, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->inter_dir, (s16*)init_inter_dir, NUM_INTER_DIR_CTX, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->intra_dir, (s16*)init_intra_dir, NUM_INTRA_DIR_CTX, slice_type, slice_qp);
 #if CTX_REPRESENTATION_IMPROVEMENT
-        evc_eco_sbac_ctx_initialize(sbac_ctx->run, (s16*)init_run, NUM_SBAC_CTX_RUN, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->last, (s16*)init_last, NUM_SBAC_CTX_LAST, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->level, (s16*)init_level, NUM_SBAC_CTX_LEVEL, tile_group_type, tile_group_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->run, (s16*)init_run, NUM_SBAC_CTX_RUN, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->last, (s16*)init_last, NUM_SBAC_CTX_LAST, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->level, (s16*)init_level, NUM_SBAC_CTX_LEVEL, slice_type, slice_qp);
 #else
         for(i = 0; i < NUM_SBAC_CTX_RUN; i++) sbac_ctx->run[i] = PROB_INIT;
         for(i = 0; i < NUM_SBAC_CTX_LAST; i++) sbac_ctx->last[i] = PROB_INIT;
         for(i = 0; i < NUM_SBAC_CTX_LEVEL; i++) sbac_ctx->level[i] = PROB_INIT;
 #endif
-        evc_eco_sbac_ctx_initialize(sbac_ctx->mmvd_flag, (s16*)init_mmvd_flag, NUM_SBAC_CTX_MMVD_FLAG, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->mmvd_merge_idx, (s16*)init_mmvd_merge_idx, NUM_SBAC_CTX_MMVD_MERGE_IDX, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->mmvd_distance_idx, (s16*)init_mmvd_distance_idx, NUM_SBAC_CTX_MMVD_DIST_IDX, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->mmvd_direction_idx, (s16*)init_mmvd_direction_idx, NUM_SBAC_CTX_DIRECTION_IDX, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->mmvd_group_idx, (s16*)init_mmvd_group_idx, NUM_SBAC_CTX_MMVD_GRP_IDX, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->mvp_idx, (s16*)init_mvp_idx, NUM_MVP_IDX_CTX, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->affine_mvp_idx, (s16*)init_affine_mvp_idx, NUM_AFFINE_MVP_IDX_CTX, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->mvr_idx, (s16*)init_mvr_idx, NUM_MVR_IDX_CTX, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->bi_idx, (s16*)init_bi_idx, NUM_BI_IDX_CTX, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->mvd, (s16*)init_mvd, NUM_MV_RES_CTX, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->refi, (s16*)init_refi, NUM_REFI_CTX, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->btt_split_flag, (s16*)init_btt_split_flag, NUM_SBAC_CTX_BTT_SPLIT_FLAG, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->btt_split_dir, (s16*)init_btt_split_dir, NUM_SBAC_CTX_BTT_SPLIT_DIR, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->btt_split_type, (s16*)init_btt_split_type, NUM_SBAC_CTX_BTT_SPLIT_TYPE, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->suco_flag, (s16*)init_suco_flag, NUM_SBAC_CTX_SUCO_FLAG, tile_group_type, tile_group_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->mmvd_flag, (s16*)init_mmvd_flag, NUM_SBAC_CTX_MMVD_FLAG, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->mmvd_merge_idx, (s16*)init_mmvd_merge_idx, NUM_SBAC_CTX_MMVD_MERGE_IDX, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->mmvd_distance_idx, (s16*)init_mmvd_distance_idx, NUM_SBAC_CTX_MMVD_DIST_IDX, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->mmvd_direction_idx, (s16*)init_mmvd_direction_idx, NUM_SBAC_CTX_DIRECTION_IDX, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->mmvd_group_idx, (s16*)init_mmvd_group_idx, NUM_SBAC_CTX_MMVD_GRP_IDX, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->mvp_idx, (s16*)init_mvp_idx, NUM_MVP_IDX_CTX, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->affine_mvp_idx, (s16*)init_affine_mvp_idx, NUM_AFFINE_MVP_IDX_CTX, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->mvr_idx, (s16*)init_mvr_idx, NUM_MVR_IDX_CTX, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->bi_idx, (s16*)init_bi_idx, NUM_BI_IDX_CTX, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->mvd, (s16*)init_mvd, NUM_MV_RES_CTX, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->refi, (s16*)init_refi, NUM_REFI_CTX, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->btt_split_flag, (s16*)init_btt_split_flag, NUM_SBAC_CTX_BTT_SPLIT_FLAG, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->btt_split_dir, (s16*)init_btt_split_dir, NUM_SBAC_CTX_BTT_SPLIT_DIR, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->btt_split_type, (s16*)init_btt_split_type, NUM_SBAC_CTX_BTT_SPLIT_TYPE, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->suco_flag, (s16*)init_suco_flag, NUM_SBAC_CTX_SUCO_FLAG, slice_type, slice_qp);
 #if ALF
-        evc_eco_sbac_ctx_initialize(sbac_ctx->ctb_alf_flag, (s16*)init_ctb_alf_flag, NUM_SBAC_CTX_ALF_FLAG, tile_group_type, tile_group_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->ctb_alf_flag, (s16*)init_ctb_alf_flag, NUM_SBAC_CTX_ALF_FLAG, slice_type, slice_qp);
 #endif
 #if AFFINE
-        evc_eco_sbac_ctx_initialize(sbac_ctx->affine_flag, (s16*)init_affine_flag, NUM_SBAC_CTX_AFFINE_FLAG, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->affine_mode, (s16*)init_affine_mode, NUM_SBAC_CTX_AFFINE_MODE, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->affine_mrg, (s16*)init_affine_mrg, AFF_MAX_CAND, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->affine_mvd_flag, (s16*)init_affine_mvd_flag, NUM_SBAC_CTX_AFFINE_MVD_FLAG, tile_group_type, tile_group_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->affine_flag, (s16*)init_affine_flag, NUM_SBAC_CTX_AFFINE_FLAG, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->affine_mode, (s16*)init_affine_mode, NUM_SBAC_CTX_AFFINE_MODE, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->affine_mrg, (s16*)init_affine_mrg, AFF_MAX_CAND, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->affine_mvd_flag, (s16*)init_affine_mvd_flag, NUM_SBAC_CTX_AFFINE_MVD_FLAG, slice_type, slice_qp);
 #endif
-        evc_eco_sbac_ctx_initialize(sbac_ctx->skip_flag, (s16*)init_skip_flag, NUM_SBAC_CTX_SKIP_FLAG, tile_group_type, tile_group_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->skip_flag, (s16*)init_skip_flag, NUM_SBAC_CTX_SKIP_FLAG, slice_type, slice_qp);
 #if IBC
-        evc_eco_sbac_ctx_initialize(sbac_ctx->ibc_flag, (s16*)init_ibc_flag, NUM_SBAC_CTX_IBC_FLAG, tile_group_type, tile_group_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->ibc_flag, (s16*)init_ibc_flag, NUM_SBAC_CTX_IBC_FLAG, slice_type, slice_qp);
 #endif
 #if ATS_INTRA_PROCESS
-        evc_eco_sbac_ctx_initialize(sbac_ctx->ats_intra_cu, (s16*)init_ats_intra_cu, NUM_ATS_INTRA_CU_FLAG_CTX, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->ats_tu_h, (s16*)init_ats_tu_h, NUM_ATS_INTRA_TU_FLAG_CTX, tile_group_type, tile_group_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->ats_tu_v, (s16*)init_ats_tu_v, NUM_ATS_INTRA_TU_FLAG_CTX, tile_group_type, tile_group_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->ats_intra_cu, (s16*)init_ats_intra_cu, NUM_ATS_INTRA_CU_FLAG_CTX, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->ats_tu_h, (s16*)init_ats_tu_h, NUM_ATS_INTRA_TU_FLAG_CTX, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->ats_tu_v, (s16*)init_ats_tu_v, NUM_ATS_INTRA_TU_FLAG_CTX, slice_type, slice_qp);
 #endif
 #if ATS_INTER_PROCESS
-        evc_eco_sbac_ctx_initialize(sbac_ctx->ats_inter_info, (s16*)init_ats_inter_info, NUM_SBAC_CTX_ATS_INTER_INFO, tile_group_type, tile_group_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->ats_inter_info, (s16*)init_ats_inter_info, NUM_SBAC_CTX_ATS_INTER_INFO, slice_type, slice_qp);
 #endif
     }
     else // (sps_cm_init_flag == 0)
@@ -1155,7 +1155,7 @@ void evce_eco_inter_t_direct(EVC_BSW *bs, int t_direct_flag)
     EVC_TRACE_STR("\n");
 }
 
-void evce_eco_tile_group_end_flag(EVC_BSW * bs, int flag)
+void evce_eco_slice_end_flag(EVC_BSW * bs, int flag)
 {
     EVCE_SBAC *sbac;
     sbac = GET_SBAC_ENC(bs);
@@ -2674,7 +2674,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
     s16(*coef)[MAX_CU_DIM] = core->ctmp;
     EVC_BSW *bs;
     u32 *map_scu;
-    int tile_group_type, refi0, refi1;
+    int slice_type, refi0, refi1;
     int i, j, w, h;
     EVCE_CU_DATA *cu_data = &ctx->map_cu_data[core->lcu_num];
     u32 *map_cu_mode;
@@ -2690,7 +2690,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 #if TRACE_ENC_CU_DATA_CHECK
     evc_assert(core->trace_idx != 0);
 #endif
-    tile_group_type = ctx->tile_group_type;
+    slice_type = ctx->slice_type;
     bs = &ctx->bs;
 
     cu_init(ctx, core, x, y, cup, cuw, cuh);
@@ -2708,7 +2708,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
     EVC_TRACE_INT(cuh);
     EVC_TRACE_STR("\n");
 
-    evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->tgh.tile_group_type, ctx->sps.tool_cm_init
+    evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
 #if IBC
       , ctx->param.use_ibc_flag, ctx->sps.ibc_log_max_size
 #endif
@@ -2736,7 +2736,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
     }
 
     /* entropy coding a CU */
-    if(tile_group_type != TILE_GROUP_I && 
+    if(slice_type != SLICE_I && 
 #if IBC
     (ctx->sps.tool_amis == 0 || !(core->log2_cuw <= MIN_CU_LOG2 && core->log2_cuh <= MIN_CU_LOG2) || ctx->param.use_ibc_flag)
 #else  
@@ -2762,7 +2762,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
             if(core->mmvd_flag)
             {
 #if M48879_IMPROVEMENT_INTER
-                evce_eco_mmvd_info(bs, cu_data->mmvd_idx[cup], ctx->tgh.mmvd_group_enable_flag && !(cuw*cuh <= NUM_SAMPLES_BLOCK));
+                evce_eco_mmvd_info(bs, cu_data->mmvd_idx[cup], ctx->sh.mmvd_group_enable_flag && !(cuw*cuh <= NUM_SAMPLES_BLOCK));
 #else
                 evce_eco_mmvd_info(bs, cu_data->mmvd_idx[cup], !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr));
 #endif
@@ -2784,7 +2784,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                 {
                     evce_eco_mvp_idx(bs, cu_data->mvp_idx[cup][REFP_0], ctx->sps.tool_amis);
 
-                    if(ctx->sps.tool_amis == 0 && tile_group_type == TILE_GROUP_B)
+                    if(ctx->sps.tool_amis == 0 && slice_type == SLICE_B)
                     {
                         evce_eco_mvp_idx(bs, cu_data->mvp_idx[cup][REFP_1], ctx->sps.tool_amis);
                     }
@@ -2815,7 +2815,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 
                 if(ctx->sps.tool_mmvd)
                 {
-                    if(tile_group_type == TILE_GROUP_P)
+                    if(slice_type == SLICE_P)
                     {
                         if(cu_data->mvr_idx[cup] == 0)
                         {
@@ -2825,7 +2825,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                         if((cu_data->pred_mode[cup] == MODE_DIR_MMVD))
                         {
 #if M48879_IMPROVEMENT_INTER
-                            evce_eco_mmvd_info(bs, cu_data->mmvd_idx[cup], ctx->tgh.mmvd_group_enable_flag && !(cuw*cuh <= NUM_SAMPLES_BLOCK));
+                            evce_eco_mmvd_info(bs, cu_data->mmvd_idx[cup], ctx->sh.mmvd_group_enable_flag && !(cuw*cuh <= NUM_SAMPLES_BLOCK));
 #else
                             evce_eco_mmvd_info(bs, cu_data->mmvd_idx[cup], !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr));
 #endif
@@ -2833,7 +2833,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                     }
                 }
 
-                if(tile_group_type == TILE_GROUP_B)
+                if(slice_type == SLICE_B)
                 {
                     if(ctx->sps.tool_mmvd)
                     {
@@ -2860,7 +2860,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                         if((cu_data->pred_mode[cup] == MODE_DIR_MMVD))
                         {
 #if M48879_IMPROVEMENT_INTER
-                            evce_eco_mmvd_info(bs, cu_data->mmvd_idx[cup], ctx->tgh.mmvd_group_enable_flag && !(cuw*cuh <= NUM_SAMPLES_BLOCK));
+                            evce_eco_mmvd_info(bs, cu_data->mmvd_idx[cup], ctx->sh.mmvd_group_enable_flag && !(cuw*cuh <= NUM_SAMPLES_BLOCK));
 #else
                             evce_eco_mmvd_info(bs, cu_data->mmvd_idx[cup], !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr));
 #endif
@@ -2918,7 +2918,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                         refi0 = cu_data->refi[cup][REFP_0];
                         refi1 = cu_data->refi[cup][REFP_1];
 
-                        if(IS_INTER_TILE_GROUP(tile_group_type) && REFI_IS_VALID(refi0))
+                        if(IS_INTER_SLICE(slice_type) && REFI_IS_VALID(refi0))
                         {
                             int b_zero = 1;
 
@@ -2946,7 +2946,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                             }
                         }
 
-                        if(tile_group_type == TILE_GROUP_B && REFI_IS_VALID(refi1))
+                        if(slice_type == SLICE_B && REFI_IS_VALID(refi1))
                         {
                             int b_zero = 1;
 
@@ -2982,7 +2982,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 
                         refi0 = cu_data->refi[cup][REFP_0];
                         refi1 = cu_data->refi[cup][REFP_1];
-                        if(IS_INTER_TILE_GROUP(tile_group_type) && REFI_IS_VALID(refi0))
+                        if(IS_INTER_SLICE(slice_type) && REFI_IS_VALID(refi0))
                         {
                             if(ctx->sps.tool_amis == 0)
                             {
@@ -3010,7 +3010,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                             }
                         }
 
-                        if(tile_group_type == TILE_GROUP_B && REFI_IS_VALID(refi1))
+                        if(slice_type == SLICE_B && REFI_IS_VALID(refi1))
                         {
                             if(ctx->sps.tool_amis == 0)
                             {
@@ -3045,7 +3045,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
         }
     }
 #if IBC
-    else if ((ctx->tgh.tile_group_type == TILE_GROUP_I && ctx->param.use_ibc_flag))
+    else if ((ctx->sh.slice_type == SLICE_I && ctx->param.use_ibc_flag))
     {
       if (core->skip_flag == 0)
       {
@@ -3473,36 +3473,36 @@ void evce_xWriteTruncBinCode(EVC_BSW * bs, u32 uiSymbol, const int uiMaxSymbol)
     }
 }
 
-void evce_eco_alf_filter(EVC_BSW * bs, evc_AlfTileGroupParam asp, const BOOL isChroma)
+void evce_eco_alf_filter(EVC_BSW * bs, evc_AlfSliceParam asp, const BOOL isChroma)
 {
-    const evc_AlfTileGroupParam alfTileGroupParam = asp;
+    const evc_AlfSliceParam alfSliceParam = asp;
     if (!isChroma)
     {
-        evc_bsw_write1(bs, alfTileGroupParam.coeffDeltaFlag); // "alf_coefficients_delta_flag"
-        if (!alfTileGroupParam.coeffDeltaFlag)
+        evc_bsw_write1(bs, alfSliceParam.coeffDeltaFlag); // "alf_coefficients_delta_flag"
+        if (!alfSliceParam.coeffDeltaFlag)
         {
-            if (alfTileGroupParam.numLumaFilters > 1)
+            if (alfSliceParam.numLumaFilters > 1)
             {
-                evc_bsw_write1(bs, alfTileGroupParam.coeffDeltaPredModeFlag); // "coeff_delta_pred_mode_flag"
+                evc_bsw_write1(bs, alfSliceParam.coeffDeltaPredModeFlag); // "coeff_delta_pred_mode_flag"
             }
         }
     }
 
     // this logic need to be moved to ALF files
     evc_AlfFilterShape alfShape;
-    init_AlfFilterShape( &alfShape, isChroma ? 5 : ( alfTileGroupParam.lumaFilterType == ALF_FILTER_5 ? 5 : 7 ) );
+    init_AlfFilterShape( &alfShape, isChroma ? 5 : ( alfSliceParam.lumaFilterType == ALF_FILTER_5 ? 5 : 7 ) );
 
     int bitsCoeffScan[m_MAX_SCAN_VAL][m_MAX_EXP_GOLOMB];
     memset(bitsCoeffScan, 0, m_MAX_SCAN_VAL*m_MAX_EXP_GOLOMB * sizeof(int));
 
     const int maxGolombIdx = alfShape.filterType == 0 ? 2 : 3;
-    const short* coeff = isChroma ? alfTileGroupParam.chromaCoeff : alfTileGroupParam.lumaCoeff;
-    const int numFilters = isChroma ? 1 : alfTileGroupParam.numLumaFilters;
+    const short* coeff = isChroma ? alfSliceParam.chromaCoeff : alfSliceParam.lumaCoeff;
+    const int numFilters = isChroma ? 1 : alfSliceParam.numLumaFilters;
 
     // vlc for all
     for (int ind = 0; ind < numFilters; ++ind)
     {
-        if (isChroma || !alfTileGroupParam.coeffDeltaFlag || alfTileGroupParam.filterCoeffFlag[ind])
+        if (isChroma || !alfSliceParam.coeffDeltaFlag || alfSliceParam.filterCoeffFlag[ind])
         {
             for (int i = 0; i < alfShape.numCoeff - 1; i++)
             {
@@ -3531,11 +3531,11 @@ void evce_eco_alf_filter(EVC_BSW * bs, evc_AlfTileGroupParam asp, const BOOL isC
 
     if (!isChroma)
     {
-        if (alfTileGroupParam.coeffDeltaFlag)
+        if (alfSliceParam.coeffDeltaFlag)
         {
             for (int ind = 0; ind < numFilters; ++ind)
             {
-                evc_bsw_write1(bs, alfTileGroupParam.filterCoeffFlag[ind]);  // WRITE_FLAG(alfTileGroupParam.filterCoeffFlag[ind], "filter_coefficient_flag[i]");
+                evc_bsw_write1(bs, alfSliceParam.filterCoeffFlag[ind]);  // WRITE_FLAG(alfSliceParam.filterCoeffFlag[ind], "filter_coefficient_flag[i]");
             }
         }
     }
@@ -3543,7 +3543,7 @@ void evce_eco_alf_filter(EVC_BSW * bs, evc_AlfTileGroupParam asp, const BOOL isC
     // Filter coefficients
     for (int ind = 0; ind < numFilters; ++ind)
     {
-        if (!isChroma && !alfTileGroupParam.filterCoeffFlag[ind] && alfTileGroupParam.coeffDeltaFlag)
+        if (!isChroma && !alfSliceParam.filterCoeffFlag[ind] && alfSliceParam.coeffDeltaFlag)
         {
             continue;
         }
@@ -3557,25 +3557,25 @@ void evce_eco_alf_filter(EVC_BSW * bs, evc_AlfTileGroupParam asp, const BOOL isC
 #if ALF_PARAMETER_APS
 int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS * aps)
 {
-    evc_AlfTileGroupParam alfTileGroupParam = aps->alf_aps_param;
+    evc_AlfSliceParam alfSliceParam = aps->alf_aps_param;
 
-    evc_bsw_write1(bs, alfTileGroupParam.enabledFlag[0]); //"alf_tile_group_enable_flag"
-    if (!alfTileGroupParam.enabledFlag[0])
+    evc_bsw_write1(bs, alfSliceParam.enabledFlag[0]); //"alf_slice_enable_flag"
+    if (!alfSliceParam.enabledFlag[0])
     {
         return 0;
     }
 
-    const int alfChromaIdc = alfTileGroupParam.enabledFlag[1] * 2 + alfTileGroupParam.enabledFlag[2];
+    const int alfChromaIdc = alfSliceParam.enabledFlag[1] * 2 + alfSliceParam.enabledFlag[2];
     evce_truncatedUnaryEqProb(bs, alfChromaIdc, 3);
     {
-        evce_xWriteTruncBinCode(bs, alfTileGroupParam.numLumaFilters - 1, MAX_NUM_ALF_CLASSES);
-        evc_bsw_write1(bs, !alfTileGroupParam.lumaFilterType); //  "filter_type_flag"
+        evce_xWriteTruncBinCode(bs, alfSliceParam.numLumaFilters - 1, MAX_NUM_ALF_CLASSES);
+        evc_bsw_write1(bs, !alfSliceParam.lumaFilterType); //  "filter_type_flag"
 
-        if (alfTileGroupParam.numLumaFilters > 1)
+        if (alfSliceParam.numLumaFilters > 1)
         {
             for (int i = 0; i < MAX_NUM_ALF_CLASSES; i++)
             {
-                evce_xWriteTruncBinCode(bs, (u32)(alfTileGroupParam.filterCoeffDeltaIdx[i]), alfTileGroupParam.numLumaFilters);  //filter_coeff_delta[i]
+                evce_xWriteTruncBinCode(bs, (u32)(alfSliceParam.filterCoeffDeltaIdx[i]), alfSliceParam.numLumaFilters);  //filter_coeff_delta[i]
             }
         }
 
@@ -3583,23 +3583,23 @@ int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS * aps)
         const int iNumFixedFilterPerClass = 16;
         if (iNumFixedFilterPerClass > 0)
         {
-            evc_alfGolombEncode(bs, codetab_pred[alfTileGroupParam.fixedFilterPattern], 0);
+            evc_alfGolombEncode(bs, codetab_pred[alfSliceParam.fixedFilterPattern], 0);
 
-            if (alfTileGroupParam.fixedFilterPattern == 2)
+            if (alfSliceParam.fixedFilterPattern == 2)
             {
                 for (int classIdx = 0; classIdx < MAX_NUM_ALF_CLASSES; classIdx++)
                 {
-                    evc_bsw_write1(bs, alfTileGroupParam.fixedFilterIdx[classIdx] > 0 ? 1 : 0); // "fixed_filter_flag"
+                    evc_bsw_write1(bs, alfSliceParam.fixedFilterIdx[classIdx] > 0 ? 1 : 0); // "fixed_filter_flag"
                 }
             }
 
-            if (alfTileGroupParam.fixedFilterPattern > 0 && iNumFixedFilterPerClass > 1)
+            if (alfSliceParam.fixedFilterPattern > 0 && iNumFixedFilterPerClass > 1)
             {
                 for (int classIdx = 0; classIdx < MAX_NUM_ALF_CLASSES; classIdx++)
                 {
-                    if (alfTileGroupParam.fixedFilterIdx[classIdx] > 0)
+                    if (alfSliceParam.fixedFilterIdx[classIdx] > 0)
                     {
-                        evce_xWriteTruncBinCode(bs, alfTileGroupParam.fixedFilterIdx[classIdx] - 1, iNumFixedFilterPerClass);
+                        evce_xWriteTruncBinCode(bs, alfSliceParam.fixedFilterIdx[classIdx] - 1, iNumFixedFilterPerClass);
                     }
                 }
             }
@@ -3610,8 +3610,8 @@ int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS * aps)
 
     if (alfChromaIdc)
     {
-        evc_bsw_write1(bs, alfTileGroupParam.chromaCtbPresentFlag);
-        if (!(alfTileGroupParam.temporalAlfFlag))
+        evc_bsw_write1(bs, alfSliceParam.chromaCtbPresentFlag);
+        if (!(alfSliceParam.temporalAlfFlag))
         {
             evce_eco_alf_filter(bs, aps->alf_aps_param, TRUE);
         }
@@ -3620,56 +3620,56 @@ int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS * aps)
     return EVC_OK;
 }
 
-int evce_eco_alf_tgh_param(EVC_BSW * bs, EVC_TGH * tgh)
+int evce_eco_alf_sh_param(EVC_BSW * bs, EVC_SH * sh)
 {
-    evc_AlfTileGroupParam alfTileGroupParam = tgh->alf_tgh_param;
+    evc_AlfSliceParam alfSliceParam = sh->alf_sh_param;
 
-    evc_bsw_write1(bs, alfTileGroupParam.isCtbAlfOn);
+    evc_bsw_write1(bs, alfSliceParam.isCtbAlfOn);
 #if !APS_ALF_CTU_FLAG
-    if (alfTileGroupParam.isCtbAlfOn)
+    if (alfSliceParam.isCtbAlfOn)
     {
-        for (int i = 0; i < tgh->num_ctb; i++)
-            evc_bsw_write1(bs, (int)(alfTileGroupParam.alfCtuEnableFlag[0][i]));
+        for (int i = 0; i < sh->num_ctb; i++)
+            evc_bsw_write1(bs, (int)(alfSliceParam.alfCtuEnableFlag[0][i]));
     }
 #endif
     return EVC_OK;
 }
 #else
-int evce_eco_alf_tgh_param(EVC_BSW * bs, EVC_TGH * tgh)
+int evce_eco_alf_sh_param(EVC_BSW * bs, EVC_SH * sh)
 {
-    evc_AlfTileGroupParam alfTileGroupParam = tgh->alf_tgh_param;
-    evc_bsw_write1(bs, alfTileGroupParam.enabledFlag[0]); //"alf_tile_group_enable_flag"
-    if (!alfTileGroupParam.enabledFlag[0])
+    evc_AlfSliceParam alfSliceParam = sh->alf_sh_param;
+    evc_bsw_write1(bs, alfSliceParam.enabledFlag[0]); //"alf_slice_enable_flag"
+    if (!alfSliceParam.enabledFlag[0])
     {
         return 0;
     }
 
-    const int alfChromaIdc = alfTileGroupParam.enabledFlag[1] * 2 + alfTileGroupParam.enabledFlag[2];
+    const int alfChromaIdc = alfSliceParam.enabledFlag[1] * 2 + alfSliceParam.enabledFlag[2];
     evce_truncatedUnaryEqProb(bs, alfChromaIdc, 3);
 
     {
-        evc_bsw_write1( bs, alfTileGroupParam.temporalAlfFlag ); // "alf_temporal_enable_flag"
-        if( alfTileGroupParam.temporalAlfFlag )
+        evc_bsw_write1( bs, alfSliceParam.temporalAlfFlag ); // "alf_temporal_enable_flag"
+        if( alfSliceParam.temporalAlfFlag )
         {
-            evc_bsw_write_ue( bs, alfTileGroupParam.prevIdx );   // "alf_temporal_index"
+            evc_bsw_write_ue( bs, alfSliceParam.prevIdx );   // "alf_temporal_index"
         }
         else
         {
-            evc_bsw_write1( bs, alfTileGroupParam.resetALFBufferFlag );
-            evc_bsw_write1( bs, alfTileGroupParam.store2ALFBufferFlag );
+            evc_bsw_write1( bs, alfSliceParam.resetALFBufferFlag );
+            evc_bsw_write1( bs, alfSliceParam.store2ALFBufferFlag );
         }
     }
 
-    if (!alfTileGroupParam.temporalAlfFlag)
+    if (!alfSliceParam.temporalAlfFlag)
     {
-        evce_xWriteTruncBinCode(bs, alfTileGroupParam.numLumaFilters - 1, MAX_NUM_ALF_CLASSES);
-        evc_bsw_write1(bs, !alfTileGroupParam.lumaFilterType); //  "filter_type_flag"
+        evce_xWriteTruncBinCode(bs, alfSliceParam.numLumaFilters - 1, MAX_NUM_ALF_CLASSES);
+        evc_bsw_write1(bs, !alfSliceParam.lumaFilterType); //  "filter_type_flag"
 
-        if (alfTileGroupParam.numLumaFilters > 1)
+        if (alfSliceParam.numLumaFilters > 1)
         {
             for (int i = 0; i < MAX_NUM_ALF_CLASSES; i++)
             {
-                evce_xWriteTruncBinCode(bs, (u32)(alfTileGroupParam.filterCoeffDeltaIdx[i]), alfTileGroupParam.numLumaFilters);  //filter_coeff_delta[i]
+                evce_xWriteTruncBinCode(bs, (u32)(alfSliceParam.filterCoeffDeltaIdx[i]), alfSliceParam.numLumaFilters);  //filter_coeff_delta[i]
             }
         }
 
@@ -3677,48 +3677,48 @@ int evce_eco_alf_tgh_param(EVC_BSW * bs, EVC_TGH * tgh)
         const int iNumFixedFilterPerClass = 16;
         if (iNumFixedFilterPerClass > 0)
         {
-            evc_alfGolombEncode(bs, codetab_pred[alfTileGroupParam.fixedFilterPattern], 0);
+            evc_alfGolombEncode(bs, codetab_pred[alfSliceParam.fixedFilterPattern], 0);
 
-            if (alfTileGroupParam.fixedFilterPattern == 2)
+            if (alfSliceParam.fixedFilterPattern == 2)
             {
                 for (int classIdx = 0; classIdx < MAX_NUM_ALF_CLASSES; classIdx++)
                 {
-                    evc_bsw_write1(bs, alfTileGroupParam.fixedFilterIdx[classIdx] > 0 ? 1 : 0); // "fixed_filter_flag"
+                    evc_bsw_write1(bs, alfSliceParam.fixedFilterIdx[classIdx] > 0 ? 1 : 0); // "fixed_filter_flag"
                 }
             }
 
-            if (alfTileGroupParam.fixedFilterPattern > 0 && iNumFixedFilterPerClass > 1)
+            if (alfSliceParam.fixedFilterPattern > 0 && iNumFixedFilterPerClass > 1)
             {
                 for (int classIdx = 0; classIdx < MAX_NUM_ALF_CLASSES; classIdx++)
                 {
-                    if (alfTileGroupParam.fixedFilterIdx[classIdx] > 0)
+                    if (alfSliceParam.fixedFilterIdx[classIdx] > 0)
                     {
-                        evce_xWriteTruncBinCode(bs, alfTileGroupParam.fixedFilterIdx[classIdx] - 1, iNumFixedFilterPerClass);
+                        evce_xWriteTruncBinCode(bs, alfSliceParam.fixedFilterIdx[classIdx] - 1, iNumFixedFilterPerClass);
                     }
                 }
             }
         }
 
-        evce_eco_alf_filter(bs, tgh->alf_tgh_param, FALSE);
+        evce_eco_alf_filter(bs, sh->alf_sh_param, FALSE);
     }
 
     if (alfChromaIdc) 
     {
-        evc_bsw_write1(bs, alfTileGroupParam.chromaCtbPresentFlag);
-        if (!(alfTileGroupParam.temporalAlfFlag))
+        evc_bsw_write1(bs, alfSliceParam.chromaCtbPresentFlag);
+        if (!(alfSliceParam.temporalAlfFlag))
         {
-            evce_eco_alf_filter(bs, tgh->alf_tgh_param, TRUE);
+            evce_eco_alf_filter(bs, sh->alf_sh_param, TRUE);
         }
     }
 
-    evc_bsw_write1(bs, alfTileGroupParam.isCtbAlfOn);
-    if( alfTileGroupParam.isCtbAlfOn )
+    evc_bsw_write1(bs, alfSliceParam.isCtbAlfOn);
+    if( alfSliceParam.isCtbAlfOn )
     {
-        for(int i = 0; i < tgh->num_ctb; i++)
+        for(int i = 0; i < sh->num_ctb; i++)
 #if ALF_CTU_MAP_DYNAMIC
-            evc_bsw_write1(bs, (int)(*(alfTileGroupParam.alfCtuEnableFlag + i)));
+            evc_bsw_write1(bs, (int)(*(alfSliceParam.alfCtuEnableFlag + i)));
 #else
-            evc_bsw_write1(bs, (int)(alfTileGroupParam.alfCtuEnableFlag[0][i]));
+            evc_bsw_write1(bs, (int)(alfSliceParam.alfCtuEnableFlag[0][i]));
 #endif
     }
 
