@@ -421,7 +421,12 @@ static int set_enc_param(EVCE_CTX * ctx, EVCE_PARAM * param)
 
 static void set_nalu(EVCE_CTX * ctx, EVC_NALU * nalu, int ver, int ctype)
 {
+    nalu->forbidden_zero_bit = 0;
     nalu->nal_unit_type_plus1 = ctype + 1;
+    nalu->nuh_temporal_id = 0;
+    nalu->nuh_temporal_id = 0;
+    nalu->nuh_reserved_zero_5bits = 0;
+    nalu->nuh_extension_flag = 0;
 }
 
 static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
@@ -2693,7 +2698,7 @@ void evce_delete(EVCE id)
     evc_scan_tbl_delete();
 }
 
-int evce_encode_header(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
+int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
 {
     EVCE_CTX * ctx;
 
@@ -2703,8 +2708,58 @@ int evce_encode_header(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
     /* update BSB */
     bitb->err = 0;
 
-    return ctx->fn_enc_header(ctx, bitb, stat);
+    EVC_BSW * bs = &ctx->bs;
+    EVC_SPS * sps = &ctx->sps;
+    EVC_PPS * pps = &ctx->pps;
+    EVC_NALU  nalu;
+
+    evc_assert_rv(bitb->addr && bitb->bsize > 0, EVC_ERR_INVALID_ARGUMENT);
+
+    /* bitsteam initialize for sequence */
+    evc_bsw_init(bs, bitb->addr, bitb->bsize, NULL);
+    bs->pdata[1] = &ctx->sbac_enc;
+
+    /* encode sequence parameter set */
+    /* skip first four byte to write the bitstream size */
+    evce_bsw_skip_slice_size(bs);
+
+    /* nalu header */
+    set_nalu(ctx, &nalu, EVC_VER_1, EVC_SPS_NUT);
+    evce_eco_nalu(bs, &nalu);
+
+    /* sequence parameter set*/
+    set_sps(ctx, sps);
+    evc_assert_rv(evce_eco_sps(bs, sps) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
+
+    /* picture parameter set*/
+    set_pps(ctx, pps);
+    evc_assert_rv(evce_eco_pps(bs, sps, pps) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
+
+    /* de-init BSW */
+    evc_bsw_deinit(bs);
+
+    /* write the bitstream size */
+    evce_bsw_write_slice_size(bs);
+
+    /* set stat ***************************************************************/
+    evc_mset(stat, 0, sizeof(EVCE_STAT));
+    stat->write = EVC_BSW_GET_WRITE_BYTE(bs);
+    stat->ctype = EVC_SPS_NUT;
+
+    return EVC_OK;
 }
+
+/*int evce_encode_header(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
+{
+    EVCE_CTX * ctx;
+
+    EVCE_ID_TO_CTX_RV(id, ctx, EVC_ERR_INVALID_ARGUMENT);
+    evc_assert_rv(ctx->fn_enc_header, EVC_ERR_UNEXPECTED);
+
+    bitb->err = 0;
+
+    return ctx->fn_enc_header(ctx, bitb, stat);
+}*/
 
 static int check_frame_delay(EVCE_CTX * ctx)
 {

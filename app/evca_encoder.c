@@ -1801,13 +1801,15 @@ int main(int argc, const char **argv)
     udata_size += 4; /* 4-byte prefix (length field of nalu) */
 #endif
 
-    /* encode Sequence Header if needed **************************************/
-    ret = evce_encode_header(id, &bitb, &stat);
+    ret = evce_encode_sps(id, &bitb, &stat);
+    
+    //ret = evce_encode_header(id, &bitb, &stat);
     if(EVC_FAILED(ret))
     {
         v0print("cannot encode header \n");
         return -1;
     }
+
     if(op_flag[OP_FLAG_FNAME_OUT])
     {
         /* write Sequence Header bitstream to file */
