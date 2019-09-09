@@ -62,7 +62,7 @@ void evce_bsw_skip_slice_size(EVC_BSW *bs)
     evc_bsw_write(bs, 0, 32);
 }
 
-void evce_bsw_write_slice_size(EVC_BSW *bs)
+void evce_bsw_write_nalu_size(EVC_BSW *bs)
 {
     u32 size;
 

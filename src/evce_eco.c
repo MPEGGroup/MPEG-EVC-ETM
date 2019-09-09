@@ -44,6 +44,7 @@
 
 int evce_eco_nalu(EVC_BSW * bs, EVC_NALU * nalu)
 {
+    evc_bsw_write(bs, nalu->nal_unit_size, 32);
     evc_bsw_write(bs, nalu->forbidden_zero_bit, 1);
     evc_bsw_write(bs, nalu->nal_unit_type_plus1, 6);
     evc_bsw_write(bs, nalu->nuh_temporal_id, 3);

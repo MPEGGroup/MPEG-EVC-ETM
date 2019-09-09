@@ -1226,6 +1226,7 @@ typedef struct _EVC_REFP
  *****************************************************************************/
 typedef struct _EVC_NALU
 {
+    int nal_unit_size;
     int forbidden_zero_bit;
     int nal_unit_type_plus1;
     int nuh_temporal_id;

@@ -50,7 +50,6 @@
 #define MAX_BUMP_FRM_CNT           (8 <<1)
 
 #define MAX_BS_BUF                 (16*1024*1024)
-#define PRECISE_BS_SIZE            1
 
 typedef enum _STATES
 {
@@ -1797,22 +1796,24 @@ int main(int argc, const char **argv)
     bitb.bsize = MAX_BS_BUF;
 
     udata_size = (op_use_pic_signature)? 18: 0;
-#if !PRECISE_BS_SIZE
-    udata_size += 4; /* 4-byte prefix (length field of nalu) */
-#endif
 
     ret = evce_encode_sps(id, &bitb, &stat);
-    
-    //ret = evce_encode_header(id, &bitb, &stat);
     if(EVC_FAILED(ret))
     {
-        v0print("cannot encode header \n");
+        v0print("cannot encode SPS\n");
         return -1;
     }
 
+    //ret = evce_encode_pps(id, &bitb, &stat);
+    //if (EVC_FAILED(ret))
+    //{
+    //    v0print("cannot encode PPS\n");
+    //    return -1;
+    //}
+
     if(op_flag[OP_FLAG_FNAME_OUT])
     {
-        /* write Sequence Header bitstream to file */
+        /* write SPS bitstream to file */
         if(write_data(op_fname_out, bs_buf, stat.write))
         {
             v0print("Cannot write header information (SPS)\n");
@@ -1820,16 +1821,9 @@ int main(int argc, const char **argv)
         }
     }
 
-#if PRECISE_BS_SIZE
     bitrate += stat.write;
 #if !CALC_SSIM
     seq_header_bit = stat.write;
-#endif
-#else
-    bitrate += (stat.write - 4)/* 4-byte prefix (length field of nalu) */;
-#if !CALC_SSIM
-    seq_header_bit = (stat.write - 4)/* 4-byte prefix (length field of nalu) */;
-#endif
 #endif
 
     if(op_flag[OP_FLAG_SKIP_FRAMES] && op_skip_frames > 0)

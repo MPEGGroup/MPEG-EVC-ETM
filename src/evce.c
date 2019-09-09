@@ -421,6 +421,7 @@ static int set_enc_param(EVCE_CTX * ctx, EVCE_PARAM * param)
 
 static void set_nalu(EVCE_CTX * ctx, EVC_NALU * nalu, int ver, int ctype)
 {
+    nalu->nal_unit_size = 0;
     nalu->forbidden_zero_bit = 0;
     nalu->nal_unit_type_plus1 = ctype + 1;
     nalu->nuh_temporal_id = 0;
@@ -1565,7 +1566,7 @@ int evce_aps_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, EVC_APS *
     evc_bsw_deinit(bs);
 
     /* write the bitstream size */
-    evce_bsw_write_slice_size(bs);
+    evce_bsw_write_nalu_size(bs);
 
     /* set stat ***************************************************************/
     evc_mset(stat, 0, sizeof(EVCE_STAT));
@@ -1608,7 +1609,7 @@ int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     evc_bsw_deinit(bs);
 
     /* write the bitstream size */
-    evce_bsw_write_slice_size(bs);
+    evce_bsw_write_nalu_size(bs);
 
     /* set stat ***************************************************************/
     evc_mset(stat, 0, sizeof(EVCE_STAT));
@@ -2067,7 +2068,7 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     evc_bsw_deinit(bs);
 
     /* ending */
-    evce_bsw_write_slice_size(bs);
+    evce_bsw_write_nalu_size(bs);
 
     /* expand current encoding picture, if needs */
     ctx->fn_picbuf_expand(ctx, PIC_CURR(ctx));
@@ -2710,7 +2711,6 @@ int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
 
     EVC_BSW * bs = &ctx->bs;
     EVC_SPS * sps = &ctx->sps;
-    EVC_PPS * pps = &ctx->pps;
     EVC_NALU  nalu;
 
     evc_assert_rv(bitb->addr && bitb->bsize > 0, EVC_ERR_INVALID_ARGUMENT);
@@ -2718,10 +2718,6 @@ int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
     /* bitsteam initialize for sequence */
     evc_bsw_init(bs, bitb->addr, bitb->bsize, NULL);
     bs->pdata[1] = &ctx->sbac_enc;
-
-    /* encode sequence parameter set */
-    /* skip first four byte to write the bitstream size */
-    evce_bsw_skip_slice_size(bs);
 
     /* nalu header */
     set_nalu(ctx, &nalu, EVC_VER_1, EVC_SPS_NUT);
@@ -2731,15 +2727,11 @@ int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
     set_sps(ctx, sps);
     evc_assert_rv(evce_eco_sps(bs, sps) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
 
-    /* picture parameter set*/
-    set_pps(ctx, pps);
-    evc_assert_rv(evce_eco_pps(bs, sps, pps) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
-
     /* de-init BSW */
     evc_bsw_deinit(bs);
 
     /* write the bitstream size */
-    evce_bsw_write_slice_size(bs);
+    evce_bsw_write_nalu_size(bs);
 
     /* set stat ***************************************************************/
     evc_mset(stat, 0, sizeof(EVCE_STAT));
