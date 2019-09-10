@@ -1655,12 +1655,12 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
         core->y_pel = core->y_lcu << ctx->log2_max_cuwh;
     }
 
-    /* parse user data */
-    if(ctx->sh.udata_exist)
-    {
-        ret = evcd_eco_udata(ctx, bs);
-        evc_assert_g(EVC_SUCCEEDED(ret), ERR);
-    }
+    ///* parse user data */
+    //if(ctx->sh.udata_exist)
+    //{
+    //    ret = evcd_eco_udata(ctx, bs);
+    //    evc_assert_g(EVC_SUCCEEDED(ret), ERR);
+    //}
 
     return EVC_OK;
 

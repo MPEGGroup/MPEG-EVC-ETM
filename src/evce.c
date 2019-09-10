@@ -2051,24 +2051,24 @@ int evce_enc_pic_prepare(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
 {
     EVC_IMGB *imgb_o, *imgb_c;
-    EVC_BSW  *bs;
+    //EVC_BSW  *bs;
     int        ret;
     int        i, j;
 
-    bs = &ctx->bs;
+    //bs = &ctx->bs;
 
-    /* adding user data */
-    if(ctx->sh.udata_exist)
-    {
-        ret = evce_eco_udata(ctx, bs);
-        evc_assert_rv(ret == EVC_OK, ret);
-    }
+    ///* adding user data */
+    //if(ctx->sh.udata_exist)
+    //{
+    //    ret = evce_eco_udata(ctx, bs);
+    //    evc_assert_rv(ret == EVC_OK, ret);
+    //}
 
-    /* de-init BSW */
-    evc_bsw_deinit(bs);
+    ///* de-init BSW */
+    //evc_bsw_deinit(bs);
 
-    /* ending */
-    evce_bsw_write_nalu_size(bs);
+    ///* ending */
+    //evce_bsw_write_nalu_size(bs);
 
     /* expand current encoding picture, if needs */
     ctx->fn_picbuf_expand(ctx, PIC_CURR(ctx));
@@ -2094,7 +2094,7 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
 
     /* set stat */
     evc_mset(stat, 0, sizeof(EVCE_STAT));
-    stat->write = EVC_BSW_GET_WRITE_BYTE(bs);
+    stat->write = EVC_BSW_GET_WRITE_BYTE(&ctx->bs);
     stat->ctype = EVC_NONIDR_NUT; //TBD(@Chernyak): handle IDR
     stat->stype = ctx->slice_type;
     stat->fnum = ctx->pic_cnt;
@@ -2384,9 +2384,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     }
 #endif
 
-    /* Encode skip slice_size field */
-    evce_bsw_skip_slice_size(bs);
-
 #if ALF_PARAMETER_APS
     /* Encode ALF in APS */
     if ((ctx->sps.tool_alf) && (ctx->sh.alf_on)) // User defined params
@@ -2472,7 +2469,8 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         }
     }
 
-    /* Bit-stream re-writing (END) */
+    evc_bsw_deinit(bs);
+    evce_bsw_write_nalu_size(bs);
 
     return EVC_OK;
 }
