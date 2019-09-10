@@ -2263,6 +2263,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
 
 int evcd_eco_nalu(EVC_BSR * bs, EVC_NALU * nalu)
 {
+    //nalu->nal_unit_size = evc_bsr_read(bs, 32);
     nalu->forbidden_zero_bit = evc_bsr_read(bs, 1);
     nalu->nal_unit_type_plus1 = evc_bsr_read(bs, 6);
     nalu->nuh_temporal_id = evc_bsr_read(bs,3);

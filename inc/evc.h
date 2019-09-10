@@ -506,6 +506,7 @@ int evce_push(EVCE id, EVC_IMGB * imgb);
 int evce_encode(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat);
 //int evce_encode_header(EVCE id, EVC_BITB * bitb,  EVCE_STAT * stat);
 int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat);
+int evce_encode_pps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat);
 int evce_get_inbuf(EVCE id, EVC_IMGB ** imgb);
 int evce_config(EVCE id, int cfg, void * buf, int * size);
 

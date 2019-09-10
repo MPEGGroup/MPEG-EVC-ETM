@@ -119,7 +119,7 @@ static void print_usage(void)
     }
 }
 
-static int read_a_bs(FILE * fp, int * pos, unsigned char * bs_buf)
+static int read_nalu(FILE * fp, int * pos, unsigned char * bs_buf)
 {
     int read_size, bs_size, tmp;
     unsigned char b = 0;
@@ -380,7 +380,7 @@ int main(int argc, const char **argv)
 
         while (1)
         {           
-            bs_size = read_a_bs(fp_bs, &bs_read_pos, bs_buf);
+            bs_size = read_nalu(fp_bs, &bs_read_pos, bs_buf);
 
             tmp_size[0] = (bs_size & 0xff000000) >> 24;
             tmp_size[1] = (bs_size & 0x00ff0000) >> 16;

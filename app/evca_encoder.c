@@ -1804,16 +1804,26 @@ int main(int argc, const char **argv)
         return -1;
     }
 
-    //ret = evce_encode_pps(id, &bitb, &stat);
-    //if (EVC_FAILED(ret))
-    //{
-    //    v0print("cannot encode PPS\n");
-    //    return -1;
-    //}
+    if (op_flag[OP_FLAG_FNAME_OUT])
+    {
+        if (write_data(op_fname_out, bs_buf, stat.write))
+        {
+            v0print("Cannot write header information (SPS)\n");
+            return -1;
+        }
+    }
+
+    bitrate += stat.write;
+
+    ret = evce_encode_pps(id, &bitb, &stat);
+    if (EVC_FAILED(ret))
+    {
+        v0print("cannot encode PPS\n");
+        return -1;
+    }
 
     if(op_flag[OP_FLAG_FNAME_OUT])
     {
-        /* write SPS bitstream to file */
         if(write_data(op_fname_out, bs_buf, stat.write))
         {
             v0print("Cannot write header information (SPS)\n");

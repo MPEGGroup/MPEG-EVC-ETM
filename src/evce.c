@@ -2741,6 +2741,49 @@ int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
     return EVC_OK;
 }
 
+int evce_encode_pps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
+{
+    EVCE_CTX * ctx;
+
+    EVCE_ID_TO_CTX_RV(id, ctx, EVC_ERR_INVALID_ARGUMENT);
+    evc_assert_rv(ctx->fn_enc_header, EVC_ERR_UNEXPECTED);
+
+    /* update BSB */
+    bitb->err = 0;
+
+    EVC_BSW * bs = &ctx->bs;
+    EVC_SPS * sps = &ctx->sps;
+    EVC_PPS * pps = &ctx->pps;
+    EVC_NALU  nalu;
+
+    evc_assert_rv(bitb->addr && bitb->bsize > 0, EVC_ERR_INVALID_ARGUMENT);
+
+    /* bitsteam initialize for sequence */
+    evc_bsw_init(bs, bitb->addr, bitb->bsize, NULL);
+    bs->pdata[1] = &ctx->sbac_enc;
+
+    /* nalu header */
+    set_nalu(ctx, &nalu, EVC_VER_1, EVC_PPS_NUT);
+    evce_eco_nalu(bs, &nalu);
+
+    /* sequence parameter set*/
+    set_pps(ctx, pps);
+    evc_assert_rv(evce_eco_pps(bs, sps, pps) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
+
+    /* de-init BSW */
+    evc_bsw_deinit(bs);
+
+    /* write the bitstream size */
+    evce_bsw_write_nalu_size(bs);
+
+    /* set stat ***************************************************************/
+    evc_mset(stat, 0, sizeof(EVCE_STAT));
+    stat->write = EVC_BSW_GET_WRITE_BYTE(bs);
+    stat->ctype = EVC_PPS_NUT;
+
+    return EVC_OK;
+}
+
 /*int evce_encode_header(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
 {
     EVCE_CTX * ctx;

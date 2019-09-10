@@ -128,7 +128,7 @@ static void print_usage(void)
     }
 }
 
-static int read_a_bs(FILE * fp, int * pos, unsigned char * bs_buf)
+static int read_nalu(FILE * fp, int * pos, unsigned char * bs_buf)
 {
 #if HLS_M47668
     int read_size, bs_size;
@@ -223,6 +223,10 @@ static int print_stat(EVCD_STAT * stat, int ret)
         else if(stat->ctype == EVC_SPS_NUT)
         {
             v1print("Sequence Parameter Set");
+        }
+        else if (stat->ctype == EVC_PPS_NUT)
+        {
+            v1print("Picture Parameter Set");
         }
 #if ALF_PARAMETER_APS
         else if (stat->ctype == EVC_APS_NUT)
@@ -382,7 +386,7 @@ int main(int argc, const char **argv)
     {
         if(state == STATE_DECODING)
         {
-            bs_size = read_a_bs(fp_bs, &bs_read_pos, bs_buf);
+            bs_size = read_nalu(fp_bs, &bs_read_pos, bs_buf);
 
             if(bs_size <= 0)
             {

@@ -1749,10 +1749,6 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 
         ret = sequence_init(ctx, sps);
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
-
-        ret = evcd_eco_pps(bs, sps, pps);
-        evc_assert_rv(EVC_SUCCEEDED(ret), ret);
-
 #if ALF
         //TDB: check if should be here
         sh->alf_on = sps->tool_alf;
@@ -1760,6 +1756,11 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 #if M48879_IMPROVEMENT_INTER
         sh->mmvd_group_enable_flag = sps->tool_mmvd;
 #endif
+    }
+    else if (nalu->nal_unit_type_plus1 - 1 == EVC_PPS_NUT)
+    {
+        ret = evcd_eco_pps(bs, sps, pps);
+        evc_assert_rv(EVC_SUCCEEDED(ret), ret);
     }
 #if ALF_PARAMETER_APS
     else if (nalu->nal_unit_type_plus1 - 1 == EVC_APS_NUT)
