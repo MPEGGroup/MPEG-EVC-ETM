@@ -2048,6 +2048,8 @@ int evce_enc_pic_prepare(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     return EVC_OK;
 }
 
+#pragma optimize("",off)
+
 int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
 {
     EVC_IMGB *imgb_o, *imgb_c;
@@ -2129,6 +2131,8 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
 
     return EVC_OK;
 }
+
+#pragma optimize("",off)
 
 int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 {
@@ -2384,6 +2388,9 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     }
 #endif
 
+    EVC_NALU aps_nalu = nalu;
+    int aps_nalu_size = 0;
+
 #if ALF_PARAMETER_APS
     /* Encode ALF in APS */
     if ((ctx->sps.tool_alf) && (ctx->sh.alf_on)) // User defined params
@@ -2391,7 +2398,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         if ((aps->alf_aps_param.enabledFlag[0]) && (aps->alf_aps_param.temporalAlfFlag == 0))    // Encoder defined parameters (RDO): ALF is selected, and new ALF was derived for TG
         {
             /* Encode APS nalu header */
-            EVC_NALU aps_nalu = nalu;
             aps_nalu.nal_unit_type_plus1 = EVC_APS_NUT + 1;
 
             ret = evce_eco_nalu(bs, &aps_nalu);
@@ -2401,6 +2407,9 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             set_aps(ctx, aps); // TBD: empty function call
             evc_assert_rv(evce_eco_aps(bs, aps) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
 
+            evc_bsw_deinit(bs);
+            aps_nalu.nal_unit_size = evce_bsw_write_nalu_size(bs);
+            aps_nalu_size = aps_nalu.nal_unit_size + 4;
         }
     }
 #endif
@@ -2408,6 +2417,8 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     /* Encode nalu header */
     ret = evce_eco_nalu(bs, &nalu);
     evc_assert_rv(ret == EVC_OK, ret);
+
+    int* size_field = (int*)(*(&bs->cur) - 4);
 
     /* Encode slice header */
 #if ALF
@@ -2470,7 +2481,9 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     }
 
     evc_bsw_deinit(bs);
-    evce_bsw_write_nalu_size(bs);
+    *size_field = EVC_BSW_GET_WRITE_BYTE(bs) - 4 - aps_nalu_size;
+
+    //evce_bsw_write_nalu_size(bs);
 
     return EVC_OK;
 }

@@ -1775,10 +1775,6 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         store_dec_aps_to_buffer(ctx);
         ctx->aps_temp = 0;
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
-
-        /* parse nalu header */
-        ret = evcd_eco_nalu(bs, nalu);
-        evc_assert_rv(EVC_SUCCEEDED(ret), ret);
     }
     if (nalu->nal_unit_type_plus1 - 1 < EVC_SPS_NUT)
 #else
