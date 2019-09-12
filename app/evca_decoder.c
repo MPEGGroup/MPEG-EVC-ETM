@@ -399,7 +399,7 @@ int main(int argc, const char **argv)
             bitb.ssize = bs_size;
             bitb.bsize = MAX_BS_BUF;
 
-            v1print("[%4d]-th BS (%07dbytes)   --> ", bs_cnt++, bs_size);
+            v1print("[%4d] NALU --> ", bs_cnt++);
 #if !DECODING_TIME_TEST
             clk_beg = evc_clk_get();
 #endif
@@ -469,7 +469,7 @@ END:
 #endif
     v1print("=======================================================================================\n");
     v1print("Resolution                        = %d x %d\n", w, h);
-    v1print("Processed BS count                = %d\n", bs_cnt);
+    v1print("Processed NALUs                   = %d\n", bs_cnt);
     v1print("Decoded frame count               = %d\n", pic_cnt);
     if(pic_cnt > 0)
     {
