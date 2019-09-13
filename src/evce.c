@@ -2053,24 +2053,27 @@ int evce_enc_pic_prepare(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
 {
     EVC_IMGB *imgb_o, *imgb_c;
-    //EVC_BSW  *bs;
     int        ret;
     int        i, j;
 
-    //bs = &ctx->bs;
+    /* adding user data */
+    if(ctx->sh.udata_exist)
+    {
+        EVC_BSW  *bs = &ctx->bs;
+        EVC_NALU sei_nalu;
+        set_nalu(ctx, &sei_nalu, EVC_VER_1, EVC_SEI_NUT);
+        
+        int* size_field = (int*)(*(&bs->cur));
+        u8* cur_tmp = bs->cur;
 
-    ///* adding user data */
-    //if(ctx->sh.udata_exist)
-    //{
-    //    ret = evce_eco_udata(ctx, bs);
-    //    evc_assert_rv(ret == EVC_OK, ret);
-    //}
-
-    ///* de-init BSW */
-    //evc_bsw_deinit(bs);
-
-    ///* ending */
-    //evce_bsw_write_nalu_size(bs);
+        evce_eco_nalu(bs, &sei_nalu);
+        
+        ret = evce_eco_udata(ctx, bs);
+        evc_assert_rv(ret == EVC_OK, ret);
+       
+        evc_bsw_deinit(bs);
+        *size_field = (int)(bs->cur - cur_tmp) - 4;
+    }  
 
     /* expand current encoding picture, if needs */
     ctx->fn_picbuf_expand(ctx, PIC_CURR(ctx));
@@ -2414,11 +2417,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     }
 #endif
 
+    int* size_field = (int*)(*(&bs->cur));
+
     /* Encode nalu header */
     ret = evce_eco_nalu(bs, &nalu);
     evc_assert_rv(ret == EVC_OK, ret);
-
-    int* size_field = (int*)(*(&bs->cur) - 4);
 
     /* Encode slice header */
 #if ALF
@@ -2482,8 +2485,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
     evc_bsw_deinit(bs);
     *size_field = EVC_BSW_GET_WRITE_BYTE(bs) - 4 - aps_nalu_size;
-
-    //evce_bsw_write_nalu_size(bs);
 
     return EVC_OK;
 }

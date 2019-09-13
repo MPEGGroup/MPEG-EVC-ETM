@@ -44,6 +44,8 @@ static int evc_bsw_flush(EVC_BSW * bs)
         bs->code <<= 8;
     }
 
+    bs->leftbits = 32;
+
     return 0;
 }
 

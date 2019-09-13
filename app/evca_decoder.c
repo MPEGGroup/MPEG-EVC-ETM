@@ -234,6 +234,10 @@ static int print_stat(EVCD_STAT * stat, int ret)
             v1print("Adaptation Parameter Set");
         }
 #endif
+        else if (stat->ctype == EVC_SEI_NUT)
+        {
+            v1print("SEI message");
+        }
         else
         {
             v0print("Unknown bitstream");

@@ -1655,12 +1655,6 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
         core->y_pel = core->y_lcu << ctx->log2_max_cuwh;
     }
 
-    ///* parse user data */
-    //if(ctx->sh.udata_exist)
-    //{
-    //    ret = evcd_eco_udata(ctx, bs);
-    //    evc_assert_g(EVC_SUCCEEDED(ret), ERR);
-    //}
 
     return EVC_OK;
 
@@ -1776,7 +1770,7 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         ctx->aps_temp = 0;
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
     }
-    if (nalu->nal_unit_type_plus1 - 1 < EVC_SPS_NUT)
+    else if (nalu->nal_unit_type_plus1 - 1 < EVC_SPS_NUT)
 #else
     else if (nalu->ctype == EVC_CT_SLICE)
 #endif
@@ -1892,14 +1886,6 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         evcd_draw_partition(ctx, ctx->pic);
 #endif
 
-        if(ctx->use_pic_sign && ctx->pic_sign_exist)
-        {
-            ret = evcd_picbuf_check_signature(ctx->pic, ctx->pic_sign);
-            evc_assert_rv(EVC_SUCCEEDED(ret), ret);
-
-            ctx->pic_sign_exist = 0; /* reset flag */
-        }
-
 #if PIC_PAD_SIZE_L > 0
         /* expand pixels to padding area */
         ctx->fn_picbuf_expand(ctx, ctx->pic);
@@ -1915,7 +1901,25 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 
         slice_deinit(ctx);
     }
-    //else TBD handle bad bitstream
+    else if (nalu->nal_unit_type_plus1 - 1 == EVC_SEI_NUT)
+    {
+        if(ctx->sh.udata_exist)
+        {
+            ret = evcd_eco_udata(ctx, bs);
+        }
+
+        if (ctx->use_pic_sign && ctx->pic_sign_exist)
+        {
+            ret = evcd_picbuf_check_signature(ctx->pic, ctx->pic_sign);
+            evc_assert_rv(EVC_SUCCEEDED(ret), ret);
+
+            ctx->pic_sign_exist = 0;
+        }
+    }
+    else
+    {
+        assert(!"wrong NALU type");
+    }
     
     make_stat(ctx, nalu->nal_unit_type_plus1 - 1, stat);
 
