@@ -419,7 +419,7 @@ static int set_enc_param(EVCE_CTX * ctx, EVCE_PARAM * param)
     return ret;
 }
 
-static void set_nalu(EVCE_CTX * ctx, EVC_NALU * nalu, int ver, int nalu_type)
+static void set_nalu(EVCE_CTX * ctx, EVC_NALU * nalu, int nalu_type)
 {
     nalu->nal_unit_size = 0;
     nalu->forbidden_zero_bit = 0;
@@ -1556,7 +1556,7 @@ int evce_aps_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, EVC_APS *
 
     /* Encode APS nalu header */
     EVC_NALU aps_nalu;
-    set_nalu(ctx, &aps_nalu, EVC_VER_1, EVC_APS_NUT);
+    set_nalu(ctx, &aps_nalu, EVC_APS_NUT);
 
     /* Write ALF-APS */
     set_aps(ctx, aps); // TBD: empty function call
@@ -1594,7 +1594,7 @@ int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     evce_bsw_skip_slice_size(bs);
 
     /* nalu header */
-    set_nalu(ctx, &nalu, EVC_VER_1, EVC_SPS_NUT);
+    set_nalu(ctx, &nalu, EVC_SPS_NUT);
     evce_eco_nalu(bs, &nalu);
 
     /* sequence parameter set*/
@@ -2063,7 +2063,7 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     {
         EVC_BSW  *bs = &ctx->bs;
         EVC_NALU sei_nalu;
-        set_nalu(ctx, &sei_nalu, EVC_VER_1, EVC_SEI_NUT);
+        set_nalu(ctx, &sei_nalu, EVC_SEI_NUT);
         
         int* size_field = (int*)(*(&bs->cur));
         u8* cur_tmp = bs->cur;
@@ -2255,7 +2255,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     ctx->lcu_cnt = ctx->f_lcu;
 
     /* Set nalu header */
-    set_nalu(ctx, &nalu, EVC_VER_1, EVC_NONIDR_NUT); 
+    set_nalu(ctx, &nalu, ctx->slice_type == SLICE_I ? EVC_IDR_NUT: EVC_NONIDR_NUT);
 
     if (ctx->sps.picture_num_present_flag)
     {
@@ -2734,7 +2734,7 @@ int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
     bs->pdata[1] = &ctx->sbac_enc;
 
     /* nalu header */
-    set_nalu(ctx, &nalu, EVC_VER_1, EVC_SPS_NUT);
+    set_nalu(ctx, &nalu, EVC_SPS_NUT);
     evce_eco_nalu(bs, &nalu);
 
     /* sequence parameter set*/
@@ -2777,7 +2777,7 @@ int evce_encode_pps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
     bs->pdata[1] = &ctx->sbac_enc;
 
     /* nalu header */
-    set_nalu(ctx, &nalu, EVC_VER_1, EVC_PPS_NUT);
+    set_nalu(ctx, &nalu, EVC_PPS_NUT);
     evce_eco_nalu(bs, &nalu);
 
     /* sequence parameter set*/

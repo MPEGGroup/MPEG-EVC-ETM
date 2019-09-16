@@ -1692,7 +1692,7 @@ void evcd_flush(EVCD_CTX * ctx)
     }
 }
 
-int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
+int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 {
     EVC_BSR  *bs = &ctx->bs;
     EVC_SPS  *sps = &ctx->sps;
@@ -1944,7 +1944,7 @@ int evcd_platform_init(EVCD_CTX *ctx)
 {
     ctx->fn_ready         = evcd_ready;
     ctx->fn_flush         = evcd_flush;
-    ctx->fn_dec_cnk       = evcd_dec_cnk;
+    ctx->fn_dec_cnk       = evcd_dec_nalu;
     ctx->fn_dec_slice     = evcd_dec_slice;
     ctx->fn_pull          = evcd_pull_frm;
     ctx->fn_deblock       = evcd_deblock_h263;
