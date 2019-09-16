@@ -419,11 +419,11 @@ static int set_enc_param(EVCE_CTX * ctx, EVCE_PARAM * param)
     return ret;
 }
 
-static void set_nalu(EVCE_CTX * ctx, EVC_NALU * nalu, int ver, int ctype)
+static void set_nalu(EVCE_CTX * ctx, EVC_NALU * nalu, int ver, int nalu_type)
 {
     nalu->nal_unit_size = 0;
     nalu->forbidden_zero_bit = 0;
-    nalu->nal_unit_type_plus1 = ctype + 1;
+    nalu->nal_unit_type_plus1 = nalu_type + 1;
     nalu->nuh_temporal_id = 0;
     nalu->nuh_temporal_id = 0;
     nalu->nuh_reserved_zero_5bits = 0;
@@ -1571,7 +1571,7 @@ int evce_aps_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, EVC_APS *
     /* set stat ***************************************************************/
     evc_mset(stat, 0, sizeof(EVCE_STAT));
     stat->write = EVC_BSW_GET_WRITE_BYTE(bs);
-    stat->ctype = EVC_APS_NUT;
+    stat->nalu_type = EVC_APS_NUT;
 
     return EVC_OK;
 }
@@ -1614,7 +1614,7 @@ int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     /* set stat ***************************************************************/
     evc_mset(stat, 0, sizeof(EVCE_STAT));
     stat->write = EVC_BSW_GET_WRITE_BYTE(bs);
-    stat->ctype = EVC_SPS_NUT;
+    stat->nalu_type = EVC_SPS_NUT;
 
     return EVC_OK;
 }
@@ -2102,7 +2102,7 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
 
     /* set stat */
     stat->write = EVC_BSW_GET_WRITE_BYTE(&ctx->bs);
-    stat->ctype = EVC_NONIDR_NUT; //TBD(@Chernyak): handle IDR
+    stat->nalu_type = EVC_NONIDR_NUT; //TBD(@Chernyak): handle IDR
     stat->stype = ctx->slice_type;
     stat->fnum = ctx->pic_cnt;
     stat->qp = ctx->sh.qp;
@@ -2750,7 +2750,7 @@ int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
     /* set stat ***************************************************************/
     evc_mset(stat, 0, sizeof(EVCE_STAT));
     stat->write = EVC_BSW_GET_WRITE_BYTE(bs);
-    stat->ctype = EVC_SPS_NUT;
+    stat->nalu_type = EVC_SPS_NUT;
 
     return EVC_OK;
 }
@@ -2793,7 +2793,7 @@ int evce_encode_pps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
     /* set stat ***************************************************************/
     evc_mset(stat, 0, sizeof(EVCE_STAT));
     stat->write = EVC_BSW_GET_WRITE_BYTE(bs);
-    stat->ctype = EVC_PPS_NUT;
+    stat->nalu_type = EVC_PPS_NUT;
 
     return EVC_OK;
 }

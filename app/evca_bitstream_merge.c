@@ -180,7 +180,7 @@ int print_stat(EVCD_STAT * stat, int ret)
 
     if (EVC_SUCCEEDED(ret))
     {
-        if (stat->ctype < EVC_SPS_NUT)
+        if (stat->nalu_type < EVC_SPS_NUT)
         {
             switch (stat->stype)
             {
@@ -203,7 +203,7 @@ int print_stat(EVCD_STAT * stat, int ret)
             }
             v1print("%c-slice", stype);
         }
-        else if (stat->ctype == EVC_SPS_NUT)
+        else if (stat->nalu_type == EVC_SPS_NUT)
         {
             v1print("Sequence Parameter Set");
         }

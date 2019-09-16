@@ -355,13 +355,12 @@ int poc_derivation(EVCD_CTX * ctx, EVC_SH * sh)
 static void make_stat(EVCD_CTX * ctx, int btype, EVCD_STAT * stat)
 {
     int i, j;
-    stat->read = 0;
-    stat->ctype = btype;
+    stat->nalu_type = btype;
     stat->stype = 0;
     stat->fnum = -1;
     if(ctx)
     {
-        stat->read = EVC_BSR_GET_READ_BYTE(&ctx->bs);
+        stat->read += EVC_BSR_GET_READ_BYTE(&ctx->bs);
         if(btype < EVC_SPS_NUT)
         {
             stat->fnum = ctx->pic_cnt;
@@ -1707,11 +1706,6 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 
     ret = EVC_OK;
 
-    if(stat)
-    {
-        evc_mset(stat, 0, sizeof(EVCD_STAT));
-    }
-
     /* set error status */
     ctx->bs_err = bitb->err;
 #if TRACE_RDO_EXCLUDE_I
@@ -1772,7 +1766,7 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     }
     else if (nalu->nal_unit_type_plus1 - 1 < EVC_SPS_NUT)
 #else
-    else if (nalu->ctype == EVC_CT_SLICE)
+    else if (nalu->nalu_type == EVC_CT_SLICE)
 #endif
     {
         /* decode slice header */

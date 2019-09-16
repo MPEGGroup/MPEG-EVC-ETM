@@ -329,7 +329,7 @@ typedef struct _EVCD_STAT
     /* byte size of decoded bitstream (read size of bitstream) */
     int            read;
     /* nalu type */
-    int            ctype;
+    int            nalu_type;
     /* slice type */
     int            stype;
     /* frame number monotonically increased whenever decoding a frame.
@@ -468,7 +468,7 @@ typedef struct _EVCE_STAT
     /* picture number increased whenever encoding a frame */
     unsigned long  fnum;
     /* nalu type */
-    int            ctype;
+    int            nalu_type;
     /* slice type */
     int            stype;
     /* quantization parameter used for encoding */

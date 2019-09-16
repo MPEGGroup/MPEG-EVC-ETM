@@ -197,7 +197,7 @@ static int print_stat(EVCD_STAT * stat, int ret)
 
     if(EVC_SUCCEEDED(ret))
     {
-        if(stat->ctype < EVC_SPS_NUT)
+        if(stat->nalu_type < EVC_SPS_NUT)
         {
             switch(stat->stype)
             {
@@ -220,21 +220,21 @@ static int print_stat(EVCD_STAT * stat, int ret)
             }
             v1print("%c-slice", stype);
         }
-        else if(stat->ctype == EVC_SPS_NUT)
+        else if(stat->nalu_type == EVC_SPS_NUT)
         {
             v1print("Sequence Parameter Set");
         }
-        else if (stat->ctype == EVC_PPS_NUT)
+        else if (stat->nalu_type == EVC_PPS_NUT)
         {
             v1print("Picture Parameter Set");
         }
 #if ALF_PARAMETER_APS
-        else if (stat->ctype == EVC_APS_NUT)
+        else if (stat->nalu_type == EVC_APS_NUT)
         {
             v1print("Adaptation Parameter Set");
         }
 #endif
-        else if (stat->ctype == EVC_SEI_NUT)
+        else if (stat->nalu_type == EVC_SEI_NUT)
         {
             v1print("SEI message");
         }
@@ -242,16 +242,23 @@ static int print_stat(EVCD_STAT * stat, int ret)
         {
             v0print("Unknown bitstream");
         }
-#if HLS_M47668
-        v1print(" (read=%d, poc=%d, tid=%d) ", stat->read, (int)stat->poc, (int)stat->tid);
-#else 
-        v1print(" (read=%d, poc=%d) ", stat->read, (int)stat->poc);
-#endif
-        for(i=0; i < 2; i++)
+
+        v1print(" (%d bytes", stat->read);
+
+        if (stat->nalu_type < EVC_SPS_NUT)
         {
-            v1print("[L%d ", i);
-            for(j=0; j < stat->refpic_num[i]; j++) v1print("%d ",stat->refpic[i][j]);
-            v1print("] ");
+            v1print(", poc=%d, tid=%d) ", (int)stat->poc, (int)stat->tid);
+
+            for (i = 0; i < 2; i++)
+            {
+                v1print("[L%d ", i);
+                for (j = 0; j < stat->refpic_num[i]; j++) v1print("%d ", stat->refpic[i][j]);
+                v1print("] ");
+            }
+        }
+        else
+        {
+            v1print(")");
         }
 
         if(ret == EVC_OK)
@@ -390,7 +397,10 @@ int main(int argc, const char **argv)
     {
         if(state == STATE_DECODING)
         {
+            evc_mset(&stat, 0, sizeof(EVCD_STAT));
+
             bs_size = read_nalu(fp_bs, &bs_read_pos, bs_buf);
+            int nalu_size_field_in_bytes = 4;
 
             if(bs_size <= 0)
             {
@@ -398,7 +408,9 @@ int main(int argc, const char **argv)
                 v1print("bumping process starting...\n");
                 continue;
             }
-            bs_read_pos += (4 + bs_size);
+
+            bs_read_pos += (nalu_size_field_in_bytes + bs_size);
+            stat.read += nalu_size_field_in_bytes;
             bitb.addr  = bs_buf;
             bitb.ssize = bs_size;
             bitb.bsize = MAX_BS_BUF;
@@ -419,7 +431,7 @@ int main(int argc, const char **argv)
 #endif
             print_stat(&stat, ret);
 
-            if(stat.read != bs_size)
+            if(stat.read - nalu_size_field_in_bytes != bs_size)
             {
                 v0print("\t=> different reading of bitstream (in:%d, read:%d)\n",
                     bs_size, stat.read);
