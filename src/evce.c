@@ -2048,8 +2048,6 @@ int evce_enc_pic_prepare(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     return EVC_OK;
 }
 
-#pragma optimize("",off)
-
 int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
 {
     EVC_IMGB *imgb_o, *imgb_c;
@@ -2102,7 +2100,7 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
 
     /* set stat */
     stat->write = EVC_BSW_GET_WRITE_BYTE(&ctx->bs);
-    stat->nalu_type = EVC_NONIDR_NUT; //TBD(@Chernyak): handle IDR
+    stat->nalu_type = ctx->slice_type == SLICE_I ? EVC_IDR_NUT : EVC_NONIDR_NUT;
     stat->stype = ctx->slice_type;
     stat->fnum = ctx->pic_cnt;
     stat->qp = ctx->sh.qp;
@@ -2136,8 +2134,6 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
 
     return EVC_OK;
 }
-
-#pragma optimize("",off)
 
 int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 {
@@ -2393,7 +2389,8 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     }
 #endif
 
-    EVC_NALU aps_nalu = nalu;
+    EVC_NALU aps_nalu;
+    set_nalu(ctx, &aps_nalu, EVC_APS_NUT);
     int aps_nalu_size = 0;
 
 #if ALF_PARAMETER_APS
@@ -2403,8 +2400,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         if ((aps->alf_aps_param.enabledFlag[0]) && (aps->alf_aps_param.temporalAlfFlag == 0))    // Encoder defined parameters (RDO): ALF is selected, and new ALF was derived for TG
         {
             /* Encode APS nalu header */
-            aps_nalu.nal_unit_type_plus1 = EVC_APS_NUT + 1;
-
             ret = evce_eco_nalu(bs, &aps_nalu);
             evc_assert_rv(ret == EVC_OK, ret);
 
