@@ -2265,10 +2265,29 @@ int evcd_eco_nalu(EVC_BSR * bs, EVC_NALU * nalu)
 {
     //nalu->nal_unit_size = evc_bsr_read(bs, 32);
     nalu->forbidden_zero_bit = evc_bsr_read(bs, 1);
+    if (nalu->forbidden_zero_bit != 0)
+    {
+        printf("malformed bitstream: forbidden_zero_bit != 0\n");
+        return EVC_ERR_MALFORMED_BITSTREAM;
+    }
+
     nalu->nal_unit_type_plus1 = evc_bsr_read(bs, 6);
     nalu->nuh_temporal_id = evc_bsr_read(bs,3);
+
     nalu->nuh_reserved_zero_5bits = evc_bsr_read(bs, 5);
+    if (nalu->nuh_reserved_zero_5bits != 0)
+    {
+        printf("malformed bitstream: nuh_reserved_zero_5bits != 0");
+        return EVC_ERR_MALFORMED_BITSTREAM;
+    }
+
     nalu->nuh_extension_flag = evc_bsr_read(bs, 1);
+    if (nalu->nuh_extension_flag != 0)
+    {
+        printf("malformed bitstream: nuh_extension_flag != 0");
+        return EVC_ERR_MALFORMED_BITSTREAM;
+    }
+
     return EVC_OK;
 }
 
