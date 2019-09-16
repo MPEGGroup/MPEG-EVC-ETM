@@ -2056,6 +2056,8 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     int        ret;
     int        i, j;
 
+    evc_mset(stat, 0, sizeof(EVCE_STAT));
+
     /* adding user data */
     if(ctx->sh.udata_exist)
     {
@@ -2072,7 +2074,8 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
         evc_assert_rv(ret == EVC_OK, ret);
        
         evc_bsw_deinit(bs);
-        *size_field = (int)(bs->cur - cur_tmp) - 4;
+        stat->sei_size = (int)(bs->cur - cur_tmp);
+        *size_field = stat->sei_size - 4;
     }  
 
     /* expand current encoding picture, if needs */
@@ -2098,7 +2101,6 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     evc_assert(imgb_c != NULL);
 
     /* set stat */
-    evc_mset(stat, 0, sizeof(EVCE_STAT));
     stat->write = EVC_BSW_GET_WRITE_BYTE(&ctx->bs);
     stat->ctype = EVC_NONIDR_NUT; //TBD(@Chernyak): handle IDR
     stat->stype = ctx->slice_type;
@@ -2115,7 +2117,7 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     for(i = 0; i < 2; i++)
     {
         stat->refpic_num[i] = ctx->rpm.num_refp[i];
-        for(j = 0; j < stat->refpic_num[i]; j++)
+        for (j = 0; j < stat->refpic_num[i]; j++)
         {
             stat->refpic[i][j] = ctx->refp[j][i].ptr;
         }

@@ -1672,7 +1672,6 @@ int main(int argc, const char **argv)
     EVC_IMGB          *imgb_enc = NULL;
     EVC_IMGB          *imgb_rec = NULL;
     EVCE_STAT          stat;
-    int                 udata_size;
     int                 i, ret, size;
     EVC_CLK            clk_beg, clk_end, clk_tot;
     EVC_MTIME          pic_icnt, pic_ocnt, pic_skip;
@@ -1794,8 +1793,6 @@ int main(int argc, const char **argv)
 
     bitb.addr = bs_buf;
     bitb.bsize = MAX_BS_BUF;
-
-    udata_size = (op_use_pic_signature)? 18: 0;
 
     ret = evce_encode_sps(id, &bitb, &stat);
     if(EVC_FAILED(ret))
@@ -1981,7 +1978,7 @@ int main(int argc, const char **argv)
             if(is_first_enc)
             {
 #if CALC_SSIM
-                print_psnr(&stat, psnr, ms_ssim, (stat.write - udata_size + (int)bitrate) << 3, clk_end);
+                print_psnr(&stat, psnr, ms_ssim, (stat.write - stat.sei_size + (int)bitrate) << 3, clk_end);
 #else
                 print_psnr(&stat, psnr, (stat.write - udata_size + (int)seq_header_bit) << 3, clk_end);
 #endif
@@ -1990,13 +1987,13 @@ int main(int argc, const char **argv)
             else
             {
 #if CALC_SSIM
-                print_psnr(&stat, psnr, ms_ssim, (stat.write - udata_size) << 3, clk_end);
+                print_psnr(&stat, psnr, ms_ssim, (stat.write - stat.sei_size) << 3, clk_end);
 #else
                 print_psnr(&stat, psnr, (stat.write - udata_size) << 3, clk_end);
 #endif
             }
 
-            bitrate += (stat.write - udata_size);
+            bitrate += (stat.write - stat.sei_size);
             for(i=0; i<3; i++) psnr_avg[i] += psnr[i];
 #if CALC_SSIM
             ms_ssim_avg += ms_ssim;

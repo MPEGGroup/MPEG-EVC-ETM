@@ -463,6 +463,8 @@ typedef struct _EVCE_STAT
 {
     /* encoded bitstream byte size */
     int            write;
+    /* encoded sei messages byte size */
+    int            sei_size;
     /* picture number increased whenever encoding a frame */
     unsigned long  fnum;
     /* nalu type */
