@@ -467,9 +467,9 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
         sps->log2_diff_max_11_min_11_cb_size = ctx->cdsc.framework_cu11_max - ctx->cdsc.framework_cu11_min;
         sps->log2_diff_max_11_max_12_cb_size = ctx->cdsc.framework_cu11_max - ctx->cdsc.framework_cu12_max;
         sps->log2_diff_min_11_min_12_cb_size_minus1 = ctx->cdsc.framework_cu12_min - ctx->cdsc.framework_cu11_min - 1;
-        sps->log2_diff_max_12_max_14_cb_size = ctx->cdsc.framework_cu12_max - ctx->cdsc.framework_cu14_max;
+        sps->log2_diff_max_12_max_14_cb_size_minus1 = ctx->cdsc.framework_cu12_max - ctx->cdsc.framework_cu14_max - 1;
         sps->log2_diff_min_12_min_14_cb_size_minus1 = ctx->cdsc.framework_cu14_min - ctx->cdsc.framework_cu12_min - 1;
-        sps->log2_diff_max_11_max_tt_cb_size = ctx->cdsc.framework_cu11_max - ctx->cdsc.framework_tris_max;
+        sps->log2_diff_max_11_max_tt_cb_size_minus1 = ctx->cdsc.framework_cu11_max - ctx->cdsc.framework_tris_max - 1;
         sps->log2_diff_min_11_min_tt_cb_size_minus2 = ctx->cdsc.framework_tris_min - ctx->cdsc.framework_cu11_min - 2;
         sps->log2_diff_ctu_size_max_suco_cb_size = ctx->log2_max_cuwh - ctx->cdsc.framework_suco_max;
         sps->log2_diff_max_suco_min_suco_cb_size = ctx->cdsc.framework_suco_max - ctx->cdsc.framework_suco_min;

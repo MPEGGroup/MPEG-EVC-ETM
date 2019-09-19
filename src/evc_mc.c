@@ -1032,15 +1032,15 @@ static const s8 tbl_mc_l_coeff[2][4 << MC_PRECISION_ADD][8] =
         {  0, 1,  -3, 63,  4,  -2,  1,  0 },
         { -1, 2,  -5, 62,  8,  -3,  1,  0 },
         { -1, 3,  -8, 60, 13,  -4,  1,  0 },
-        { -1, 3,  -9, 57, 19,  -7,  3, -1 },
+        { -1, 4, -10, 58, 17,  -5,  1,  0 },
         { -1, 4, -11, 52, 26,  -8,  3, -1 },
         { -1, 3,  -9, 47, 31, -10,  4, -1 },
         { -1, 4, -11, 45, 34, -10,  4, -1 },
-        { -1, 4, -10, 39, 39, -10,  4, -1 },
+        { -1, 4, -11, 40, 40, -11,  4, -1 },
         { -1, 4, -10, 34, 45, -11,  4, -1 },
         { -1, 4, -10, 31, 47,  -9,  3, -1 },
         { -1, 3,  -8, 26, 52, -11,  4, -1 },
-        { -1, 3, -7,  19, 57,  -9,  3, -1 },
+        {  0, 1,  -5, 17, 58, -10,  4, -1 },
         {  0, 1,  -4, 13, 60,  -8,  3, -1 },
         {  0, 1,  -3,  8, 62,  -5,  2, -1 },
         {  0, 1,  -2,  4, 63,  -3,  1,  0 },
@@ -4293,7 +4293,7 @@ static const s8 tbl_mc_c_coeff[8 << MC_PRECISION_ADD][4] =
         { -1, 63,  2,  0 },
         { -2, 62,  4,  0 },
         { -2, 60,  7, -1 },
-        { -3, 60,  8, -1 },
+        { -2, 58, 10, -2 },
         { -3, 57, 12, -2 },
         { -4, 56, 14, -2 },
         { -4, 55, 15, -2 },
@@ -4301,7 +4301,7 @@ static const s8 tbl_mc_c_coeff[8 << MC_PRECISION_ADD][4] =
         { -5, 53, 18, -2 },
         { -6, 52, 20, -2 },
         { -6, 49, 24, -3 },
-        { -5, 46, 27, -4 },
+        { -6, 46, 28, -4 },
         { -5, 44, 29, -4 },
         { -4, 42, 30, -4 },
         { -4, 39, 33, -4 },
@@ -4309,7 +4309,7 @@ static const s8 tbl_mc_c_coeff[8 << MC_PRECISION_ADD][4] =
         { -4, 33, 39, -4 },
         { -4, 30, 42, -4 },
         { -4, 29, 44, -5 },
-        { -4, 27, 46, -5 },
+        { -4, 28, 46, -6 },
         { -3, 24, 49, -6 },
         { -2, 20, 52, -6 },
         { -2, 18, 53, -5 },
@@ -4317,7 +4317,7 @@ static const s8 tbl_mc_c_coeff[8 << MC_PRECISION_ADD][4] =
         { -2, 15, 55, -4 },
         { -2, 14, 56, -4 },
         { -2, 12, 57, -3 },
-        { -1,  8, 60, -3 },
+        { -2, 10, 58, -2 },
         { -1,  7, 60, -2 },
         {  0,  4, 62, -2 },
         {  0,  2, 63, -1 },
@@ -6625,9 +6625,9 @@ void final_paddedMC_forDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8
     pel *temp = pred[i][Y_C] + sub_pred_offset_x + sub_pred_offset_y * cu_pred_stride;
     evc_mc_l(ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, cu_pred_stride, temp, w, h);
     temp = pred[i][U_C] + (sub_pred_offset_x >> 1) + (sub_pred_offset_y >> 1) * (cu_pred_stride >> 1);
-    evc_mc_c(ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cu_pred_stride >> 1, temp, w >> 1, h >> 1);
+    evc_mc_c(qpel_gmv_x, qpel_gmv_y, ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cu_pred_stride >> 1, temp, w >> 1, h >> 1);
     temp = pred[i][V_C] + (sub_pred_offset_x >> 1) + (sub_pred_offset_y >> 1) * (cu_pred_stride >> 1);
-    evc_mc_c(ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cu_pred_stride >> 1, temp, w >> 1, h >> 1);
+    evc_mc_c(qpel_gmv_x, qpel_gmv_y, ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cu_pred_stride >> 1, temp, w >> 1, h >> 1);
 #endif
 #else
     assert(false);  
@@ -6901,6 +6901,12 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
 #endif
     int          bidx = 0;
     s16          mv_t[REFP_NUM][MV_D];
+    s16          mv_before_clipping[REFP_NUM][MV_D]; //store it to pass it to interpolation function for deriving correct interpolation filter
+
+    mv_before_clipping[REFP_0][MV_X]=mv[REFP_0][MV_X];
+    mv_before_clipping[REFP_0][MV_Y]=mv[REFP_0][MV_Y];
+    mv_before_clipping[REFP_1][MV_X]=mv[REFP_1][MV_X];
+    mv_before_clipping[REFP_1][MV_Y]=mv[REFP_1][MV_Y];
 
     mv_clip(x, y, pic_w, pic_h, w, h, refi, mv, mv_t);
 
@@ -6950,14 +6956,14 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
 
         if(!apply_DMVR)
         {
-            evc_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, w, pred[0][Y_C], w, h);
+            evc_mc_l(mv_before_clipping[REFP_0][MV_X]<<2, mv_before_clipping[REFP_0][MV_Y]<<2, ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, w, pred[0][Y_C], w, h);
         }
 #if DMVR
         if(!REFI_IS_VALID(refi[REFP_1]) || !apply_DMVR || !dmvr_poc_condition)
 #endif
         {
-            evc_mc_c(ref_pic->u, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[0][U_C], w >> 1, h >> 1);
-            evc_mc_c(ref_pic->v, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[0][V_C], w >> 1, h >> 1);
+            evc_mc_c(mv_before_clipping[REFP_0][MV_X]<<2, mv_before_clipping[REFP_0][MV_Y]<<2, ref_pic->u, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[0][U_C], w >> 1, h >> 1);
+            evc_mc_c(mv_before_clipping[REFP_0][MV_X]<<2, mv_before_clipping[REFP_0][MV_Y]<<2, ref_pic->v, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[0][V_C], w >> 1, h >> 1);
         }
 #else
 
@@ -6965,15 +6971,15 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
         if(!apply_DMVR)
 #endif
         {
-            evc_mc_l(ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, w, pred[0][Y_C], w, h);
+            evc_mc_l(mv_before_clipping[REFP_0][MV_X], mv_before_clipping[REFP_0][MV_Y], ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, w, pred[0][Y_C], w, h);
         }
 
 #if DMVR
         if(!REFI_IS_VALID(refi[REFP_1]) || !apply_DMVR || !dmvr_poc_condition)
 #endif
         {
-            evc_mc_c(ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[0][U_C], w >> 1, h >> 1);
-            evc_mc_c(ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[0][V_C], w >> 1, h >> 1);
+            evc_mc_c(mv_before_clipping[REFP_0][MV_X], mv_before_clipping[REFP_0][MV_Y], ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[0][U_C], w >> 1, h >> 1);
+            evc_mc_c(mv_before_clipping[REFP_0][MV_X], mv_before_clipping[REFP_0][MV_Y], ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[0][V_C], w >> 1, h >> 1);
         }
 #endif
 
@@ -7000,14 +7006,14 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
 
         if(!apply_DMVR)
         {
-            evc_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, w, pred[bidx][Y_C], w, h);
+            evc_mc_l(mv_before_clipping[REFP_1][MV_X]<<2, mv_before_clipping[REFP_1][MV_Y]<<2, ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, w, pred[bidx][Y_C], w, h);
         }
 #if DMVR
         if(!REFI_IS_VALID(refi[REFP_0]) || !apply_DMVR || !dmvr_poc_condition)
 #endif
         {
-            evc_mc_c(ref_pic->u, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[bidx][U_C], w >> 1, h >> 1);
-            evc_mc_c(ref_pic->v, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[bidx][V_C], w >> 1, h >> 1);
+            evc_mc_c(mv_before_clipping[REFP_1][MV_X]<<2, mv_before_clipping[REFP_1][MV_Y]<<2,ref_pic->u, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[bidx][U_C], w >> 1, h >> 1);
+            evc_mc_c(mv_before_clipping[REFP_1][MV_X]<<2, mv_before_clipping[REFP_1][MV_Y]<<2,ref_pic->v, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[bidx][V_C], w >> 1, h >> 1);
         }
 #else
 
@@ -7015,15 +7021,15 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
         if(!apply_DMVR)
 #endif
         {
-            evc_mc_l(ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, w, pred[bidx][Y_C], w, h);
+            evc_mc_l(mv_before_clipping[REFP_1][MV_X], mv_before_clipping[REFP_1][MV_Y], ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, w, pred[bidx][Y_C], w, h);
         }
 
 #if DMVR
         if(!REFI_IS_VALID(refi[REFP_0]) || !apply_DMVR || !dmvr_poc_condition)
 #endif
         {
-            evc_mc_c(ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[bidx][U_C], w >> 1, h >> 1);
-            evc_mc_c(ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[bidx][V_C], w >> 1, h >> 1);
+            evc_mc_c(mv_before_clipping[REFP_1][MV_X], mv_before_clipping[REFP_1][MV_Y],ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[bidx][U_C], w >> 1, h >> 1);
+            evc_mc_c(mv_before_clipping[REFP_1][MV_X], mv_before_clipping[REFP_1][MV_Y],ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[bidx][V_C], w >> 1, h >> 1);
         }
 #endif
         bidx++;
@@ -7299,6 +7305,7 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
     }
 #endif
 
+    int mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori;
     // get prediction block by block
     for(h = 0; h < cuh; h += sub_h)
     {
@@ -7314,7 +7321,8 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
             mv_scale_tmp_hor = (mv_scale_hor + dmv_hor_x * half_w + dmv_ver_x * half_h) >> shift;
             mv_scale_tmp_ver = (mv_scale_ver + dmv_hor_y * half_w + dmv_ver_y * half_h) >> shift;
 #endif
-
+            mv_scale_tmp_ver_ori = mv_scale_tmp_ver;
+            mv_scale_tmp_hor_ori = mv_scale_tmp_hor;
             // clip
             mv_scale_tmp_hor = min(hor_max, max(hor_min, mv_scale_tmp_hor));
             mv_scale_tmp_ver = min(ver_max, max(ver_min, mv_scale_tmp_ver));
@@ -7322,7 +7330,7 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
             qpel_gmv_x = ((x + w) << mc_prec) + mv_scale_tmp_hor;
             qpel_gmv_y = ((y + h) << mc_prec) + mv_scale_tmp_ver;
 
-            evc_mc_l(ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, cuw, (pred_y + w), sub_w, sub_h);
+            evc_mc_l(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, cuw, (pred_y + w), sub_w, sub_h);
         }
         pred_y += (cuw * sub_h);
     }
@@ -7413,6 +7421,7 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
       return;
     }
 #endif
+    int mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori;
 
     // get prediction block by block
     for(h = 0; h < cuh; h += sub_h)
@@ -7429,6 +7438,8 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
             mv_scale_tmp_hor = (mv_scale_hor + dmv_hor_x * half_w + dmv_ver_x * half_h) >> shift;
             mv_scale_tmp_ver = (mv_scale_ver + dmv_hor_y * half_w + dmv_ver_y * half_h) >> shift;
 #endif
+            mv_scale_tmp_ver_ori = mv_scale_tmp_ver;
+            mv_scale_tmp_hor_ori = mv_scale_tmp_hor;
             // clip
             mv_scale_tmp_hor = min(hor_max, max(hor_min, mv_scale_tmp_hor));
             mv_scale_tmp_ver = min(ver_max, max(ver_min, mv_scale_tmp_ver));
@@ -7436,17 +7447,17 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
             qpel_gmv_x = ((x + w) << mc_prec) + mv_scale_tmp_hor;
             qpel_gmv_y = ((y + h) << mc_prec) + mv_scale_tmp_ver;
 
-            evc_mc_l(ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, cuw, (pred_y + w), sub_w, sub_h);
+            evc_mc_l(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, cuw, (pred_y + w), sub_w, sub_h);
 
 #if (AFFINE_MIN_BLOCK_SIZE == 1)
             if((w & 1) == 0 && (h & 1) == 0)
             {
-                evc_mc_c(ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> 1, pred_u + (w >> 1), max((sub_w >> 1), 1), max((sub_h >> 1), 1));
-                evc_mc_c(ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> 1, pred_v + (w >> 1), max((sub_w >> 1), 1), max((sub_h >> 1), 1));
+                evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> 1, pred_u + (w >> 1), max((sub_w >> 1), 1), max((sub_h >> 1), 1));
+                evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> 1, pred_v + (w >> 1), max((sub_w >> 1), 1), max((sub_h >> 1), 1));
             }
 #else
-            evc_mc_c(ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> 1, pred_u + (w >> 1), sub_w >> 1, sub_h >> 1);
-            evc_mc_c(ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> 1, pred_v + (w >> 1), sub_w >> 1, sub_h >> 1);
+            evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> 1, pred_u + (w >> 1), sub_w >> 1, sub_h >> 1);
+            evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> 1, pred_v + (w >> 1), sub_w >> 1, sub_h >> 1);
 #endif
         }
 

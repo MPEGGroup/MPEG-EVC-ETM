@@ -1900,7 +1900,7 @@ void evce_init_bef_data(EVCE_CORE* core, EVCE_CTX* ctx)
             }
             else
             {
-                if(ALLOW_SPLIT_RATIO(ctx->sh.layer_id, max(m1, m2) + 2, abs(m1 - m2)) || boundary_CTU)
+                if(ALLOW_SPLIT_RATIO(max(m1, m2) + 2, abs(m1 - m2)) || boundary_CTU)
                 {
                     evc_mset(&core->bef_data[m1][m2][0][0], 0, sizeof(EVCE_BEF_DATA) * NUM_NEIB * max_size);
                 }
@@ -2960,11 +2960,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
 #endif
 
     core->avail_lr = avail_lr;
-#if SUCO_SPLIT_HIGH_COMP
-    avail_lr = parent_suco;
-#else
     avail_lr = evc_get_lr(core->avail_lr);
-#endif
 
     SBAC_LOAD(core->s_curr_before_split[log2_cuw - 2][log2_cuh - 2], core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
 
@@ -2975,7 +2971,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
         /***************************** Step 1: decide normatively allowed split modes ********************************/
         int boundary_b = boundary && (y0 + cuh > ctx->h) && !(x0 + cuw > ctx->w);
         int boundary_r = boundary && (x0 + cuw > ctx->w) && !(y0 + cuh > ctx->h);
-        evc_check_split_mode(split_allow, log2_cuw, log2_cuh, boundary, boundary_b, boundary_r, ctx->log2_max_cuwh, ctx->sh.layer_id
+        evc_check_split_mode(split_allow, log2_cuw, log2_cuh, boundary, boundary_b, boundary_r, ctx->log2_max_cuwh
                              , parent_split, same_layer_split, node_idx, parent_split_allow, qt_depth, btt_depth
                              , x0, y0, ctx->w, ctx->h
                              , &remaining_split, ctx->sps.sps_btt_flag);

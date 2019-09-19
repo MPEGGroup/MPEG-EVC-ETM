@@ -530,22 +530,18 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
 
 void evcd_split_tbl_init(EVCD_CTX *ctx)
 {
-    int i;
-    for(i = 0; i < 6; i++)
-    {
-        evc_split_tbl[i][0][0] = ctx->sps.log2_diff_ctu_max_11_cb_size + ctx->log2_max_cuwh;
-        evc_split_tbl[i][0][1] = evc_split_tbl[i][0][0] - ctx->sps.log2_diff_max_11_min_11_cb_size;
-        evc_split_tbl[i][1][0] = evc_split_tbl[i][0][0] - ctx->sps.log2_diff_max_11_max_12_cb_size;
-        evc_split_tbl[i][1][1] = evc_split_tbl[i][0][1] + 1 + ctx->sps.log2_diff_min_11_min_12_cb_size_minus1;
-        evc_split_tbl[i][2][0] = evc_split_tbl[i][1][0] - ctx->sps.log2_diff_max_12_max_14_cb_size;
-        evc_split_tbl[i][2][1] = evc_split_tbl[i][1][1] + 1 + ctx->sps.log2_diff_min_12_min_14_cb_size_minus1;
-        evc_split_tbl[i][3][0] = 0;
-        evc_split_tbl[i][3][1] = 0;
-        evc_split_tbl[i][4][0] = 0;
-        evc_split_tbl[i][4][1] = 0;
-        evc_split_tbl[i][5][0] = evc_split_tbl[i][0][0] - ctx->sps.log2_diff_max_11_max_tt_cb_size;
-        evc_split_tbl[i][5][1] = evc_split_tbl[i][0][1] + 2 + ctx->sps.log2_diff_min_11_min_tt_cb_size_minus2;
-    }
+    evc_split_tbl[0][0] = ctx->sps.log2_diff_ctu_max_11_cb_size + ctx->log2_max_cuwh;
+    evc_split_tbl[0][1] = evc_split_tbl[0][0] - ctx->sps.log2_diff_max_11_min_11_cb_size;
+    evc_split_tbl[1][0] = evc_split_tbl[0][0] - ctx->sps.log2_diff_max_11_max_12_cb_size;
+    evc_split_tbl[1][1] = evc_split_tbl[0][1] + 1 + ctx->sps.log2_diff_min_11_min_12_cb_size_minus1;
+    evc_split_tbl[2][0] = evc_split_tbl[1][0] - 1 - ctx->sps.log2_diff_max_12_max_14_cb_size_minus1;
+    evc_split_tbl[2][1] = evc_split_tbl[1][1] + 1 + ctx->sps.log2_diff_min_12_min_14_cb_size_minus1;
+    evc_split_tbl[3][0] = 0;
+    evc_split_tbl[3][1] = 0;
+    evc_split_tbl[4][0] = 0;
+    evc_split_tbl[4][1] = 0;
+    evc_split_tbl[5][0] = evc_split_tbl[0][0] - 1 - ctx->sps.log2_diff_max_11_max_tt_cb_size_minus1;
+    evc_split_tbl[5][1] = evc_split_tbl[0][1] + 2 + ctx->sps.log2_diff_min_11_min_tt_cb_size_minus2;
 }
 
 #if USE_DRAW_PARTITION_DEC

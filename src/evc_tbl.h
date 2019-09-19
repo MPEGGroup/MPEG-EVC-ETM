@@ -64,7 +64,7 @@ extern const u8 evc_tbl_df_st[4][52];
 extern const int evc_tbl_ipred_adi[32][4];
 extern const int evc_tbl_ipred_dxdy[IPD_CNT][2];
 
-extern u16 evc_split_tbl[6][SPLIT_CHECK_NUM][2];
+extern u16 evc_split_tbl[SPLIT_CHECK_NUM][2];
 extern const u8  evc_split_order[2][SPLIT_CHECK_NUM];
 
 extern int evc_tbl_qp_chroma_ajudst_main[58];

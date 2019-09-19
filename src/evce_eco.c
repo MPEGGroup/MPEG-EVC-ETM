@@ -102,9 +102,9 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
         evc_bsw_write_ue(bs, (u32)sps->log2_diff_max_11_min_11_cb_size);
         evc_bsw_write_ue(bs, (u32)sps->log2_diff_max_11_max_12_cb_size);
         evc_bsw_write_ue(bs, (u32)sps->log2_diff_min_11_min_12_cb_size_minus1);
-        evc_bsw_write_ue(bs, (u32)sps->log2_diff_max_12_max_14_cb_size);
+        evc_bsw_write_ue(bs, (u32)sps->log2_diff_max_12_max_14_cb_size_minus1);
         evc_bsw_write_ue(bs, (u32)sps->log2_diff_min_12_min_14_cb_size_minus1);
-        evc_bsw_write_ue(bs, (u32)sps->log2_diff_max_11_max_tt_cb_size);
+        evc_bsw_write_ue(bs, (u32)sps->log2_diff_max_11_max_tt_cb_size_minus1);
         evc_bsw_write_ue(bs, (u32)sps->log2_diff_min_11_min_tt_cb_size_minus2);
     }
     evc_bsw_write1(bs, (u32)sps->sps_suco_flag);
@@ -1602,15 +1602,16 @@ int evce_eco_ats_inter_info(EVC_BSW * bs, int log2_cuw, int log2_cuh, int ats_in
         u8 ats_inter_quad = is_ats_inter_quad_size(ats_inter_idx);
         u8 ats_inter_pos = get_ats_inter_pos(ats_inter_info);
         int size = 1 << (log2_cuw + log2_cuh);
-        u8 ctx_ats_inter_flag = size >= 256 ? 0 : 1;
-        u8 ctx_ats_inter_quad = 2;
-        u8 ctx_ats_inter_dir = ((log2_cuw == log2_cuh) ? 0 : (log2_cuw < log2_cuh ? 1 : 2)) + 3;
-        u8 ctx_ats_inter_pos = 6;
 
         EVCE_SBAC    *sbac;
         EVC_SBAC_CTX *sbac_ctx;
         sbac = GET_SBAC_ENC(bs);
         sbac_ctx = &sbac->ctx;
+
+        u8 ctx_ats_inter_flag = sbac->ctx.sps_cm_init_flag == 1 ? (size >= 256 ? 0 : 1) : 0;
+        u8 ctx_ats_inter_quad = sbac->ctx.sps_cm_init_flag == 1 ? 2 : 1;
+        u8 ctx_ats_inter_dir = sbac->ctx.sps_cm_init_flag == 1 ? (((log2_cuw == log2_cuh) ? 0 : (log2_cuw < log2_cuh ? 1 : 2)) + 3) : 2;
+        u8 ctx_ats_inter_pos = sbac->ctx.sps_cm_init_flag == 1 ? 6 : 3;
 
         if (ats_inter_idx == 0)
             assert(ats_inter_pos == 0);
@@ -1769,6 +1770,7 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
     int cbf_all = 0;
 #if ATS_INTRA_PROCESS
     u8 is_intra = (pred_mode == MODE_INTRA) ? 1 : 0;
+    EVCE_SBAC    * sbac = GET_SBAC_ENC(bs);
 #endif
 #if ATS_INTER_PROCESS
     u8 ats_inter_avail = check_ats_inter_info_coded(1 << log2_cuw, 1 << log2_cuh, pred_mode, tool_ats_inter);
@@ -1801,7 +1803,7 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
 #if ATS_INTRA_PROCESS
             if (tool_ats_intra && (!!nnz_sub[Y_C][(j << 1) | i]) && (log2_cuw <= 5 && log2_cuh <= 5) && is_intra)
             {
-                evce_eco_ats_intra_cu(bs, ats_intra_cu, ((log2_cuw > log2_cuh) ? log2_cuw : log2_cuh) - MIN_CU_LOG2);
+                evce_eco_ats_intra_cu(bs, ats_intra_cu, sbac->ctx.sps_cm_init_flag == 1 ? ((log2_cuw > log2_cuh) ? log2_cuw : log2_cuh) - MIN_CU_LOG2 : 0);
                 if (ats_intra_cu)
                 {
                     evce_eco_ats_tu_h(bs, (ats_tu >> 1), is_intra);
@@ -2477,7 +2479,7 @@ int evce_eco_split_mode(EVC_BSW *bs, EVCE_CTX *c, EVCE_CORE *core, int cud, int 
         return ret;
     }
 
-    evc_check_split_mode(split_allow, CONV_LOG2(cuw), CONV_LOG2(cuh), 0, 0, 0, c->log2_max_cuwh, c->layer_id
+    evc_check_split_mode(split_allow, CONV_LOG2(cuw), CONV_LOG2(cuh), 0, 0, 0, c->log2_max_cuwh
                          , parent_split, same_layer_split, node_idx, parent_split_allow, qt_depth, btt_depth
                          , x, y, c->w, c->h
                          , NULL, c->sps.sps_btt_flag);

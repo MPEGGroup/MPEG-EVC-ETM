@@ -3105,7 +3105,7 @@ int evc_set_split_mode(s8 split_mode, int cud, int cup, int cuw, int cuh, int lc
     return ret;
 }
 
-void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boundary, int boundary_b, int boundary_r, int log2_max_cuwh, int id
+void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boundary, int boundary_b, int boundary_r, int log2_max_cuwh
                           , const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth
                           , int x, int y, int im_w, int im_h
                           , u8 *remaining_split, int sps_btt_flag)
@@ -3132,16 +3132,10 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
         {
             if(boundary_b)
             {
-              if(log2_cuw == 7 && log2_cuh ==7)
-                split_allow[SPLIT_BI_VER] = 1;
-              else
                 split_allow[SPLIT_BI_HOR] = 1;
             }
             else if(boundary_r)
             {
-              if (log2_cuw == 7 && log2_cuh ==7)
-                split_allow[SPLIT_BI_HOR] = 1;
-              else
                 split_allow[SPLIT_BI_VER] = 1;
             }
             else if(boundary && !boundary_b && !boundary_r)
@@ -3150,9 +3144,9 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
             }
             else
             {
-                split_allow[SPLIT_BI_HOR] = ALLOW_SPLIT_RATIO(id, log2_cuw, 1);
-                split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(id, log2_cuw, 1);
-                split_allow[SPLIT_TRI_VER] = ALLOW_SPLIT_RATIO(id, log2_cuw, 2) & ALLOW_SPLIT_TRI(id, log2_cuw);
+                split_allow[SPLIT_BI_HOR] = ALLOW_SPLIT_RATIO(log2_cuw, 1);
+                split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(log2_cuw, 1);
+                split_allow[SPLIT_TRI_VER] = ALLOW_SPLIT_RATIO(log2_cuw, 2) & ALLOW_SPLIT_TRI(log2_cuw);
                 split_allow[SPLIT_TRI_HOR] = split_allow[SPLIT_TRI_VER];
             }
         }
@@ -3168,7 +3162,14 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                     ratio = EVC_ABS(log2_sub_cuw - log2_sub_cuh);
                     if(boundary_b)
                     {
-                        split_allow[SPLIT_BI_HOR] = 1;
+                        if (log2_cuw == 7 && log2_cuh == 6)
+                        {
+                            split_allow[SPLIT_BI_VER] = 1;
+                        }
+                        else
+                        {
+                            split_allow[SPLIT_BI_HOR] = 1;
+                        }
                     }
                     else if(boundary_r)
                     {
@@ -3176,19 +3177,19 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                     }
                     else
                     {
-                        split_allow[SPLIT_QUAD] = 1;
+                        assert(0);
                     }
                 }
                 else
                 {
-                    split_allow[SPLIT_BI_HOR] = ALLOW_SPLIT_RATIO(id, log2_cuw, log2_cuw - log2_cuh + 1);
+                    split_allow[SPLIT_BI_HOR] = ALLOW_SPLIT_RATIO(log2_cuw, log2_cuw - log2_cuh + 1);
 
                     log2_sub_cuw = log2_cuw - 1;
                     log2_sub_cuh = log2_cuh;
                     long_side = log2_sub_cuw > log2_sub_cuh ? log2_sub_cuw : log2_sub_cuh;
                     ratio = EVC_ABS(log2_sub_cuw - log2_sub_cuh);
 
-                    split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(id, long_side, ratio);
+                    split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(long_side, ratio);
                     if(from_boundary_b && (ratio == 3 || ratio == 4))
                         split_allow[SPLIT_BI_VER] = 1;
 
@@ -3197,7 +3198,7 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                     long_side = log2_sub_cuw > log2_sub_cuh ? log2_sub_cuw : log2_sub_cuh;
                     ratio = EVC_ABS(log2_sub_cuw - log2_sub_cuh);
 
-                    split_allow[SPLIT_TRI_VER] = ALLOW_SPLIT_RATIO(id, long_side, ratio) & ALLOW_SPLIT_TRI(id, log2_cuw);
+                    split_allow[SPLIT_TRI_VER] = ALLOW_SPLIT_RATIO(long_side, ratio) & ALLOW_SPLIT_TRI(log2_cuw);
                     if(from_boundary_b && (log2_cuw == 7 || ratio == 3))
                     {
                         split_allow[SPLIT_TRI_VER] = 1;
@@ -3219,11 +3220,18 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                     }
                     else if(boundary_r)
                     {
-                        split_allow[SPLIT_BI_VER] = 1;
+                        if (log2_cuw == 6 && log2_cuh == 7)
+                        {
+                            split_allow[SPLIT_BI_HOR] = 1;
+                        }
+                        else
+                        {
+                            split_allow[SPLIT_BI_VER] = 1;
+                        }
                     }
                     else
                     {
-                        split_allow[SPLIT_QUAD] = 1;
+                        assert(0);
                     }
                 }
                 else
@@ -3233,10 +3241,10 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                     long_side = log2_sub_cuw > log2_sub_cuh ? log2_sub_cuw : log2_sub_cuh;
                     ratio = EVC_ABS(log2_sub_cuw - log2_sub_cuh);
 
-                    split_allow[SPLIT_BI_HOR] = ALLOW_SPLIT_RATIO(id, long_side, ratio);
+                    split_allow[SPLIT_BI_HOR] = ALLOW_SPLIT_RATIO(long_side, ratio);
                     if(from_boundary_r && (ratio == 3 || ratio == 4))
                         split_allow[SPLIT_BI_HOR] = 1;
-                    split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(id, log2_cuh, log2_cuh - log2_cuw + 1);
+                    split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(log2_cuh, log2_cuh - log2_cuw + 1);
 
                     split_allow[SPLIT_TRI_VER] = 0;
 
@@ -3245,7 +3253,7 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                     long_side = log2_sub_cuw > log2_sub_cuh ? log2_sub_cuw : log2_sub_cuh;
                     ratio = EVC_ABS(log2_sub_cuw - log2_sub_cuh);
 
-                    split_allow[SPLIT_TRI_HOR] = ALLOW_SPLIT_RATIO(id, long_side, ratio) & ALLOW_SPLIT_TRI(id, log2_cuh);
+                    split_allow[SPLIT_TRI_HOR] = ALLOW_SPLIT_RATIO(long_side, ratio) & ALLOW_SPLIT_TRI(log2_cuh);
                     if(from_boundary_r && (log2_cuh == 7 || ratio == 3))
                     {
                         split_allow[SPLIT_TRI_HOR] = 1;

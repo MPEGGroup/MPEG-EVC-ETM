@@ -326,9 +326,9 @@ int evc_picbuf_signature(EVC_PIC * pic, u8 * md5_out);
 int evc_atomic_inc(volatile int * pcnt);
 int evc_atomic_dec(volatile int * pcnt);
 
-#define ALLOW_SPLIT_RATIO(id, long_side, block_ratio) (block_ratio < 5 && (long_side <= evc_split_tbl[id][block_ratio][0] && long_side >= evc_split_tbl[id][block_ratio][1]) ? 1 : 0)
-#define ALLOW_SPLIT_TRI(id, long_side) ((long_side <= evc_split_tbl[id][5][0] && long_side >= evc_split_tbl[id][5][1]) ? 1 : 0)
-void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boundary, int boundary_b, int boundary_r, int log2_max_cuwh, int id
+#define ALLOW_SPLIT_RATIO(long_side, block_ratio) (block_ratio < 5 && (long_side <= evc_split_tbl[block_ratio][0] && long_side >= evc_split_tbl[block_ratio][1]) ? 1 : 0)
+#define ALLOW_SPLIT_TRI(long_side) ((long_side <= evc_split_tbl[5][0] && long_side >= evc_split_tbl[5][1]) ? 1 : 0)
+void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boundary, int boundary_b, int boundary_r, int log2_max_cuwh
                           , const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth
                           , int x, int y, int im_w, int im_h
                           , u8* remaining_split, int sps_btt_flag);
