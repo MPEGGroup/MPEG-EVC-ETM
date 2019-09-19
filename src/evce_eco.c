@@ -44,11 +44,12 @@
 
 int evce_eco_nalu(EVC_BSW * bs, EVC_NALU * nalu)
 {
-    evc_bsw_write(bs, /*nalu->forbidden_zero_bit*/0, 1);
+    evc_bsw_write(bs, nalu->nal_unit_size, 32);
+    evc_bsw_write(bs, nalu->forbidden_zero_bit, 1);
     evc_bsw_write(bs, nalu->nal_unit_type_plus1, 6);
-    evc_bsw_write(bs, /*nalu->nuh_temporal_id*/0, 3);
-    evc_bsw_write(bs, /*nalu->nuh_reserved_zero_5bits*/0, 5);
-    evc_bsw_write(bs, /*nalu->nuh_extension_flag*/0, 1);
+    evc_bsw_write(bs, nalu->nuh_temporal_id, 3);
+    evc_bsw_write(bs, nalu->nuh_reserved_zero_5bits, 5);
+    evc_bsw_write(bs, nalu->nuh_extension_flag, 1);
 
     return EVC_OK;
 }

@@ -44,7 +44,7 @@ EVC_PIC * evce_pic_alloc(PICBUF_ALLOCATOR *pa, int *ret);
 void evce_pic_free(PICBUF_ALLOCATOR *pa, EVC_PIC *pic);
 
 void evce_bsw_skip_slice_size(EVC_BSW *bs);
-void evce_bsw_write_slice_size(EVC_BSW *bs);
+int evce_bsw_write_nalu_size(EVC_BSW *bs);
 
 void evce_diff_pred(int x, int y, int log2_cuw, int log2_cuh, EVC_PIC *org, pel pred[N_C][MAX_CU_DIM], s16 diff[N_C][MAX_CU_DIM]);
 

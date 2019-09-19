@@ -355,13 +355,12 @@ int poc_derivation(EVCD_CTX * ctx, EVC_SH * sh)
 static void make_stat(EVCD_CTX * ctx, int btype, EVCD_STAT * stat)
 {
     int i, j;
-    stat->read = 0;
-    stat->ctype = btype;
+    stat->nalu_type = btype;
     stat->stype = 0;
     stat->fnum = -1;
     if(ctx)
     {
-        stat->read = EVC_BSR_GET_READ_BYTE(&ctx->bs);
+        stat->read += EVC_BSR_GET_READ_BYTE(&ctx->bs);
         if(btype < EVC_SPS_NUT)
         {
             stat->fnum = ctx->pic_cnt;
@@ -1655,12 +1654,6 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
         core->y_pel = core->y_lcu << ctx->log2_max_cuwh;
     }
 
-    /* parse user data */
-    if(ctx->sh.udata_exist)
-    {
-        ret = evcd_eco_udata(ctx, bs);
-        evc_assert_g(EVC_SUCCEEDED(ret), ERR);
-    }
 
     return EVC_OK;
 
@@ -1699,7 +1692,7 @@ void evcd_flush(EVCD_CTX * ctx)
     }
 }
 
-int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
+int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 {
     EVC_BSR  *bs = &ctx->bs;
     EVC_SPS  *sps = &ctx->sps;
@@ -1712,11 +1705,6 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     int        ret;
 
     ret = EVC_OK;
-
-    if(stat)
-    {
-        evc_mset(stat, 0, sizeof(EVCD_STAT));
-    }
 
     /* set error status */
     ctx->bs_err = bitb->err;
@@ -1749,10 +1737,6 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 
         ret = sequence_init(ctx, sps);
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
-
-        ret = evcd_eco_pps(bs, sps, pps);
-        evc_assert_rv(EVC_SUCCEEDED(ret), ret);
-
 #if ALF
         //TDB: check if should be here
         sh->alf_on = sps->tool_alf;
@@ -1760,6 +1744,11 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 #if M48879_IMPROVEMENT_INTER
         sh->mmvd_group_enable_flag = sps->tool_mmvd;
 #endif
+    }
+    else if (nalu->nal_unit_type_plus1 - 1 == EVC_PPS_NUT)
+    {
+        ret = evcd_eco_pps(bs, sps, pps);
+        evc_assert_rv(EVC_SUCCEEDED(ret), ret);
     }
 #if ALF_PARAMETER_APS
     else if (nalu->nal_unit_type_plus1 - 1 == EVC_APS_NUT)
@@ -1774,14 +1763,10 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         store_dec_aps_to_buffer(ctx);
         ctx->aps_temp = 0;
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
-
-        /* parse nalu header */
-        ret = evcd_eco_nalu(bs, nalu);
-        evc_assert_rv(EVC_SUCCEEDED(ret), ret);
     }
-    if (nalu->nal_unit_type_plus1 - 1 < EVC_SPS_NUT)
+    else if (nalu->nal_unit_type_plus1 - 1 < EVC_SPS_NUT)
 #else
-    else if (nalu->ctype == EVC_CT_SLICE)
+    else if (nalu->nalu_type == EVC_CT_SLICE)
 #endif
     {
         /* decode slice header */
@@ -1895,14 +1880,6 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         evcd_draw_partition(ctx, ctx->pic);
 #endif
 
-        if(ctx->use_pic_sign && ctx->pic_sign_exist)
-        {
-            ret = evcd_picbuf_check_signature(ctx->pic, ctx->pic_sign);
-            evc_assert_rv(EVC_SUCCEEDED(ret), ret);
-
-            ctx->pic_sign_exist = 0; /* reset flag */
-        }
-
 #if PIC_PAD_SIZE_L > 0
         /* expand pixels to padding area */
         ctx->fn_picbuf_expand(ctx, ctx->pic);
@@ -1918,7 +1895,25 @@ int evcd_dec_cnk(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 
         slice_deinit(ctx);
     }
-    //else TBD handle bad bitstream
+    else if (nalu->nal_unit_type_plus1 - 1 == EVC_SEI_NUT)
+    {
+        if(ctx->sh.udata_exist)
+        {
+            ret = evcd_eco_udata(ctx, bs);
+        }
+
+        if (ctx->use_pic_sign && ctx->pic_sign_exist)
+        {
+            ret = evcd_picbuf_check_signature(ctx->pic, ctx->pic_sign);
+            evc_assert_rv(EVC_SUCCEEDED(ret), ret);
+
+            ctx->pic_sign_exist = 0;
+        }
+    }
+    else
+    {
+        assert(!"wrong NALU type");
+    }
     
     make_stat(ctx, nalu->nal_unit_type_plus1 - 1, stat);
 
@@ -1949,7 +1944,7 @@ int evcd_platform_init(EVCD_CTX *ctx)
 {
     ctx->fn_ready         = evcd_ready;
     ctx->fn_flush         = evcd_flush;
-    ctx->fn_dec_cnk       = evcd_dec_cnk;
+    ctx->fn_dec_cnk       = evcd_dec_nalu;
     ctx->fn_dec_slice     = evcd_dec_slice;
     ctx->fn_pull          = evcd_pull_frm;
     ctx->fn_deblock       = evcd_deblock_h263;

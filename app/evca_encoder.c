@@ -50,7 +50,6 @@
 #define MAX_BUMP_FRM_CNT           (8 <<1)
 
 #define MAX_BS_BUF                 (16*1024*1024)
-#define PRECISE_BS_SIZE            1
 
 typedef enum _STATES
 {
@@ -85,7 +84,7 @@ static char op_fname_inp[256]     = "\0"; /* input original video */
 static char op_fname_out[256]     = "\0"; /* output bitstream */
 static char op_fname_rec[256]     = "\0"; /* reconstructed video */
 static int  op_max_frm_num        = 0;
-static int  op_use_pic_signature  = 1;
+static int  op_use_pic_signature  = 0;
 static int  op_w                  = 0;
 static int  op_h                  = 0;
 static int  op_qp                 = 0;
@@ -1673,7 +1672,6 @@ int main(int argc, const char **argv)
     EVC_IMGB          *imgb_enc = NULL;
     EVC_IMGB          *imgb_rec = NULL;
     EVCE_STAT          stat;
-    int                 udata_size;
     int                 i, ret, size;
     EVC_CLK            clk_beg, clk_end, clk_tot;
     EVC_MTIME          pic_icnt, pic_ocnt, pic_skip;
@@ -1796,21 +1794,33 @@ int main(int argc, const char **argv)
     bitb.addr = bs_buf;
     bitb.bsize = MAX_BS_BUF;
 
-    udata_size = (op_use_pic_signature)? 18: 0;
-#if !PRECISE_BS_SIZE
-    udata_size += 4; /* 4-byte prefix (length field of nalu) */
-#endif
-
-    /* encode Sequence Header if needed **************************************/
-    ret = evce_encode_header(id, &bitb, &stat);
+    ret = evce_encode_sps(id, &bitb, &stat);
     if(EVC_FAILED(ret))
     {
-        v0print("cannot encode header \n");
+        v0print("cannot encode SPS\n");
         return -1;
     }
+
+    if (op_flag[OP_FLAG_FNAME_OUT])
+    {
+        if (write_data(op_fname_out, bs_buf, stat.write))
+        {
+            v0print("Cannot write header information (SPS)\n");
+            return -1;
+        }
+    }
+
+    bitrate += stat.write;
+
+    ret = evce_encode_pps(id, &bitb, &stat);
+    if (EVC_FAILED(ret))
+    {
+        v0print("cannot encode PPS\n");
+        return -1;
+    }
+
     if(op_flag[OP_FLAG_FNAME_OUT])
     {
-        /* write Sequence Header bitstream to file */
         if(write_data(op_fname_out, bs_buf, stat.write))
         {
             v0print("Cannot write header information (SPS)\n");
@@ -1818,16 +1828,9 @@ int main(int argc, const char **argv)
         }
     }
 
-#if PRECISE_BS_SIZE
     bitrate += stat.write;
 #if !CALC_SSIM
     seq_header_bit = stat.write;
-#endif
-#else
-    bitrate += (stat.write - 4)/* 4-byte prefix (length field of nalu) */;
-#if !CALC_SSIM
-    seq_header_bit = (stat.write - 4)/* 4-byte prefix (length field of nalu) */;
-#endif
 #endif
 
     if(op_flag[OP_FLAG_SKIP_FRAMES] && op_skip_frames > 0)
@@ -1975,7 +1978,7 @@ int main(int argc, const char **argv)
             if(is_first_enc)
             {
 #if CALC_SSIM
-                print_psnr(&stat, psnr, ms_ssim, (stat.write - udata_size + (int)bitrate) << 3, clk_end);
+                print_psnr(&stat, psnr, ms_ssim, (stat.write - stat.sei_size + (int)bitrate) << 3, clk_end);
 #else
                 print_psnr(&stat, psnr, (stat.write - udata_size + (int)seq_header_bit) << 3, clk_end);
 #endif
@@ -1984,13 +1987,13 @@ int main(int argc, const char **argv)
             else
             {
 #if CALC_SSIM
-                print_psnr(&stat, psnr, ms_ssim, (stat.write - udata_size) << 3, clk_end);
+                print_psnr(&stat, psnr, ms_ssim, (stat.write - stat.sei_size) << 3, clk_end);
 #else
                 print_psnr(&stat, psnr, (stat.write - udata_size) << 3, clk_end);
 #endif
             }
 
-            bitrate += (stat.write - udata_size);
+            bitrate += (stat.write - stat.sei_size);
             for(i=0; i<3; i++) psnr_avg[i] += psnr[i];
 #if CALC_SSIM
             ms_ssim_avg += ms_ssim;

@@ -62,11 +62,12 @@ void evce_bsw_skip_slice_size(EVC_BSW *bs)
     evc_bsw_write(bs, 0, 32);
 }
 
-void evce_bsw_write_slice_size(EVC_BSW *bs)
+int evce_bsw_write_nalu_size(EVC_BSW *bs)
 {
     u32 size;
 
     size = EVC_BSW_GET_WRITE_BYTE(bs) - 4;
+
 #if HLS_M47668
     bs->beg[0] = size & 0x000000ff;
     bs->beg[1] = (size & 0x0000ff00) >> 8;
@@ -78,6 +79,8 @@ void evce_bsw_write_slice_size(EVC_BSW *bs)
     bs->beg[2] = (size & 0x0000ff00) >> 8;
     bs->beg[3] = (size & 0x000000ff) >> 0;
 #endif
+
+    return size;
 }
 
 void evce_diff_pred(int x, int y, int log2_cuw, int log2_cuh, EVC_PIC *org, pel pred[N_C][MAX_CU_DIM], s16 diff[N_C][MAX_CU_DIM])

@@ -419,9 +419,15 @@ static int set_enc_param(EVCE_CTX * ctx, EVCE_PARAM * param)
     return ret;
 }
 
-static void set_nalu(EVCE_CTX * ctx, EVC_NALU * nalu, int ver, int ctype)
+static void set_nalu(EVCE_CTX * ctx, EVC_NALU * nalu, int nalu_type)
 {
-    nalu->nal_unit_type_plus1 = ctype + 1;
+    nalu->nal_unit_size = 0;
+    nalu->forbidden_zero_bit = 0;
+    nalu->nal_unit_type_plus1 = nalu_type + 1;
+    nalu->nuh_temporal_id = 0;
+    nalu->nuh_temporal_id = 0;
+    nalu->nuh_reserved_zero_5bits = 0;
+    nalu->nuh_extension_flag = 0;
 }
 
 static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
@@ -1550,7 +1556,7 @@ int evce_aps_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, EVC_APS *
 
     /* Encode APS nalu header */
     EVC_NALU aps_nalu;
-    set_nalu(ctx, &aps_nalu, EVC_VER_1, EVC_APS_NUT);
+    set_nalu(ctx, &aps_nalu, EVC_APS_NUT);
 
     /* Write ALF-APS */
     set_aps(ctx, aps); // TBD: empty function call
@@ -1560,12 +1566,12 @@ int evce_aps_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, EVC_APS *
     evc_bsw_deinit(bs);
 
     /* write the bitstream size */
-    evce_bsw_write_slice_size(bs);
+    evce_bsw_write_nalu_size(bs);
 
     /* set stat ***************************************************************/
     evc_mset(stat, 0, sizeof(EVCE_STAT));
     stat->write = EVC_BSW_GET_WRITE_BYTE(bs);
-    stat->ctype = EVC_APS_NUT;
+    stat->nalu_type = EVC_APS_NUT;
 
     return EVC_OK;
 }
@@ -1588,7 +1594,7 @@ int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     evce_bsw_skip_slice_size(bs);
 
     /* nalu header */
-    set_nalu(ctx, &nalu, EVC_VER_1, EVC_SPS_NUT);
+    set_nalu(ctx, &nalu, EVC_SPS_NUT);
     evce_eco_nalu(bs, &nalu);
 
     /* sequence parameter set*/
@@ -1603,12 +1609,12 @@ int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     evc_bsw_deinit(bs);
 
     /* write the bitstream size */
-    evce_bsw_write_slice_size(bs);
+    evce_bsw_write_nalu_size(bs);
 
     /* set stat ***************************************************************/
     evc_mset(stat, 0, sizeof(EVCE_STAT));
     stat->write = EVC_BSW_GET_WRITE_BYTE(bs);
-    stat->ctype = EVC_SPS_NUT;
+    stat->nalu_type = EVC_SPS_NUT;
 
     return EVC_OK;
 }
@@ -2045,24 +2051,30 @@ int evce_enc_pic_prepare(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
 {
     EVC_IMGB *imgb_o, *imgb_c;
-    EVC_BSW  *bs;
     int        ret;
     int        i, j;
 
-    bs = &ctx->bs;
+    evc_mset(stat, 0, sizeof(EVCE_STAT));
 
     /* adding user data */
     if(ctx->sh.udata_exist)
     {
+        EVC_BSW  *bs = &ctx->bs;
+        EVC_NALU sei_nalu;
+        set_nalu(ctx, &sei_nalu, EVC_SEI_NUT);
+        
+        int* size_field = (int*)(*(&bs->cur));
+        u8* cur_tmp = bs->cur;
+
+        evce_eco_nalu(bs, &sei_nalu);
+        
         ret = evce_eco_udata(ctx, bs);
         evc_assert_rv(ret == EVC_OK, ret);
-    }
-
-    /* de-init BSW */
-    evc_bsw_deinit(bs);
-
-    /* ending */
-    evce_bsw_write_slice_size(bs);
+       
+        evc_bsw_deinit(bs);
+        stat->sei_size = (int)(bs->cur - cur_tmp);
+        *size_field = stat->sei_size - 4;
+    }  
 
     /* expand current encoding picture, if needs */
     ctx->fn_picbuf_expand(ctx, PIC_CURR(ctx));
@@ -2087,9 +2099,8 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     evc_assert(imgb_c != NULL);
 
     /* set stat */
-    evc_mset(stat, 0, sizeof(EVCE_STAT));
-    stat->write = EVC_BSW_GET_WRITE_BYTE(bs);
-    stat->ctype = EVC_NONIDR_NUT; //TBD(@Chernyak): handle IDR
+    stat->write = EVC_BSW_GET_WRITE_BYTE(&ctx->bs);
+    stat->nalu_type = ctx->slice_type == SLICE_I ? EVC_IDR_NUT : EVC_NONIDR_NUT;
     stat->stype = ctx->slice_type;
     stat->fnum = ctx->pic_cnt;
     stat->qp = ctx->sh.qp;
@@ -2104,7 +2115,7 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     for(i = 0; i < 2; i++)
     {
         stat->refpic_num[i] = ctx->rpm.num_refp[i];
-        for(j = 0; j < stat->refpic_num[i]; j++)
+        for (j = 0; j < stat->refpic_num[i]; j++)
         {
             stat->refpic[i][j] = ctx->refp[j][i].ptr;
         }
@@ -2240,7 +2251,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     ctx->lcu_cnt = ctx->f_lcu;
 
     /* Set nalu header */
-    set_nalu(ctx, &nalu, EVC_VER_1, EVC_NONIDR_NUT); 
+    set_nalu(ctx, &nalu, ctx->slice_type == SLICE_I ? EVC_IDR_NUT: EVC_NONIDR_NUT);
 
     if (ctx->sps.picture_num_present_flag)
     {
@@ -2378,8 +2389,9 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     }
 #endif
 
-    /* Encode skip slice_size field */
-    evce_bsw_skip_slice_size(bs);
+    EVC_NALU aps_nalu;
+    set_nalu(ctx, &aps_nalu, EVC_APS_NUT);
+    int aps_nalu_size = 0;
 
 #if ALF_PARAMETER_APS
     /* Encode ALF in APS */
@@ -2388,9 +2400,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         if ((aps->alf_aps_param.enabledFlag[0]) && (aps->alf_aps_param.temporalAlfFlag == 0))    // Encoder defined parameters (RDO): ALF is selected, and new ALF was derived for TG
         {
             /* Encode APS nalu header */
-            EVC_NALU aps_nalu = nalu;
-            aps_nalu.nal_unit_type_plus1 = EVC_APS_NUT + 1;
-
             ret = evce_eco_nalu(bs, &aps_nalu);
             evc_assert_rv(ret == EVC_OK, ret);
 
@@ -2398,9 +2407,14 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             set_aps(ctx, aps); // TBD: empty function call
             evc_assert_rv(evce_eco_aps(bs, aps) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
 
+            evc_bsw_deinit(bs);
+            aps_nalu.nal_unit_size = evce_bsw_write_nalu_size(bs);
+            aps_nalu_size = aps_nalu.nal_unit_size + 4;
         }
     }
 #endif
+
+    int* size_field = (int*)(*(&bs->cur));
 
     /* Encode nalu header */
     ret = evce_eco_nalu(bs, &nalu);
@@ -2466,7 +2480,8 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         }
     }
 
-    /* Bit-stream re-writing (END) */
+    evc_bsw_deinit(bs);
+    *size_field = EVC_BSW_GET_WRITE_BYTE(bs) - 4 - aps_nalu_size;
 
     return EVC_OK;
 }
@@ -2693,7 +2708,7 @@ void evce_delete(EVCE id)
     evc_scan_tbl_delete();
 }
 
-int evce_encode_header(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
+int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
 {
     EVCE_CTX * ctx;
 
@@ -2703,8 +2718,92 @@ int evce_encode_header(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
     /* update BSB */
     bitb->err = 0;
 
-    return ctx->fn_enc_header(ctx, bitb, stat);
+    EVC_BSW * bs = &ctx->bs;
+    EVC_SPS * sps = &ctx->sps;
+    EVC_NALU  nalu;
+
+    evc_assert_rv(bitb->addr && bitb->bsize > 0, EVC_ERR_INVALID_ARGUMENT);
+
+    /* bitsteam initialize for sequence */
+    evc_bsw_init(bs, bitb->addr, bitb->bsize, NULL);
+    bs->pdata[1] = &ctx->sbac_enc;
+
+    /* nalu header */
+    set_nalu(ctx, &nalu, EVC_SPS_NUT);
+    evce_eco_nalu(bs, &nalu);
+
+    /* sequence parameter set*/
+    set_sps(ctx, sps);
+    evc_assert_rv(evce_eco_sps(bs, sps) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
+
+    /* de-init BSW */
+    evc_bsw_deinit(bs);
+
+    /* write the bitstream size */
+    evce_bsw_write_nalu_size(bs);
+
+    /* set stat ***************************************************************/
+    evc_mset(stat, 0, sizeof(EVCE_STAT));
+    stat->write = EVC_BSW_GET_WRITE_BYTE(bs);
+    stat->nalu_type = EVC_SPS_NUT;
+
+    return EVC_OK;
 }
+
+int evce_encode_pps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
+{
+    EVCE_CTX * ctx;
+
+    EVCE_ID_TO_CTX_RV(id, ctx, EVC_ERR_INVALID_ARGUMENT);
+    evc_assert_rv(ctx->fn_enc_header, EVC_ERR_UNEXPECTED);
+
+    /* update BSB */
+    bitb->err = 0;
+
+    EVC_BSW * bs = &ctx->bs;
+    EVC_SPS * sps = &ctx->sps;
+    EVC_PPS * pps = &ctx->pps;
+    EVC_NALU  nalu;
+
+    evc_assert_rv(bitb->addr && bitb->bsize > 0, EVC_ERR_INVALID_ARGUMENT);
+
+    /* bitsteam initialize for sequence */
+    evc_bsw_init(bs, bitb->addr, bitb->bsize, NULL);
+    bs->pdata[1] = &ctx->sbac_enc;
+
+    /* nalu header */
+    set_nalu(ctx, &nalu, EVC_PPS_NUT);
+    evce_eco_nalu(bs, &nalu);
+
+    /* sequence parameter set*/
+    set_pps(ctx, pps);
+    evc_assert_rv(evce_eco_pps(bs, sps, pps) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
+
+    /* de-init BSW */
+    evc_bsw_deinit(bs);
+
+    /* write the bitstream size */
+    evce_bsw_write_nalu_size(bs);
+
+    /* set stat ***************************************************************/
+    evc_mset(stat, 0, sizeof(EVCE_STAT));
+    stat->write = EVC_BSW_GET_WRITE_BYTE(bs);
+    stat->nalu_type = EVC_PPS_NUT;
+
+    return EVC_OK;
+}
+
+/*int evce_encode_header(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
+{
+    EVCE_CTX * ctx;
+
+    EVCE_ID_TO_CTX_RV(id, ctx, EVC_ERR_INVALID_ARGUMENT);
+    evc_assert_rv(ctx->fn_enc_header, EVC_ERR_UNEXPECTED);
+
+    bitb->err = 0;
+
+    return ctx->fn_enc_header(ctx, bitb, stat);
+}*/
 
 static int check_frame_delay(EVCE_CTX * ctx)
 {

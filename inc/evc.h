@@ -191,12 +191,6 @@ extern "C"
 #define EVC_ST_B                        (3)
 
 /*****************************************************************************
- * evc version
- *****************************************************************************/
-#define EVC_VER_UNKNOWN                 (0)
-#define EVC_VER_1                       (1)
-
-/*****************************************************************************
  * type and macro for media time
  *****************************************************************************/
 /* media time in 100-nanosec unit */
@@ -329,7 +323,7 @@ typedef struct _EVCD_STAT
     /* byte size of decoded bitstream (read size of bitstream) */
     int            read;
     /* nalu type */
-    int            ctype;
+    int            nalu_type;
     /* slice type */
     int            stype;
     /* frame number monotonically increased whenever decoding a frame.
@@ -463,10 +457,12 @@ typedef struct _EVCE_STAT
 {
     /* encoded bitstream byte size */
     int            write;
+    /* encoded sei messages byte size */
+    int            sei_size;
     /* picture number increased whenever encoding a frame */
     unsigned long  fnum;
     /* nalu type */
-    int            ctype;
+    int            nalu_type;
     /* slice type */
     int            stype;
     /* quantization parameter used for encoding */
@@ -504,7 +500,8 @@ EVCE evce_create(EVCE_CDSC * cdsc, int * err);
 void evce_delete(EVCE id);
 int evce_push(EVCE id, EVC_IMGB * imgb);
 int evce_encode(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat);
-int evce_encode_header(EVCE id, EVC_BITB * bitb,  EVCE_STAT * stat);
+int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat);
+int evce_encode_pps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat);
 int evce_get_inbuf(EVCE id, EVC_IMGB ** imgb);
 int evce_config(EVCE id, int cfg, void * buf, int * size);
 

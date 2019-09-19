@@ -119,7 +119,7 @@ static void print_usage(void)
     }
 }
 
-static int read_a_bs(FILE * fp, int * pos, unsigned char * bs_buf)
+static int read_nalu(FILE * fp, int * pos, unsigned char * bs_buf)
 {
     int read_size, bs_size, tmp;
     unsigned char b = 0;
@@ -180,7 +180,7 @@ int print_stat(EVCD_STAT * stat, int ret)
 
     if (EVC_SUCCEEDED(ret))
     {
-        if (stat->ctype < EVC_SPS_NUT)
+        if (stat->nalu_type < EVC_SPS_NUT)
         {
             switch (stat->stype)
             {
@@ -203,7 +203,7 @@ int print_stat(EVCD_STAT * stat, int ret)
             }
             v1print("%c-slice", stype);
         }
-        else if (stat->ctype == EVC_SPS_NUT)
+        else if (stat->nalu_type == EVC_SPS_NUT)
         {
             v1print("Sequence Parameter Set");
         }
@@ -380,7 +380,7 @@ int main(int argc, const char **argv)
 
         while (1)
         {           
-            bs_size = read_a_bs(fp_bs, &bs_read_pos, bs_buf);
+            bs_size = read_nalu(fp_bs, &bs_read_pos, bs_buf);
 
             tmp_size[0] = (bs_size & 0xff000000) >> 24;
             tmp_size[1] = (bs_size & 0x00ff0000) >> 16;
