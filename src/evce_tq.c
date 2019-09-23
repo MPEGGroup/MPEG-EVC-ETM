@@ -1219,9 +1219,9 @@ void evce_init_err_scale()
 
 #if ADCC
 #if USE_RDOQ
-__inline static s64 get_rate_positionLastXY(int pos_x, int pos_y, int width, int height, int ch_type, s64 lambda)
+__inline static s64 get_rate_positionLastXY(int pos_x, int pos_y, int width, int height, int ch_type, s64 lambda, int sps_cm_init_flag)
 #else
-__inline static double get_rate_positionLastXY(int pos_x, int pos_y, int width, int height, int ch_type, double lambda)
+__inline static double get_rate_positionLastXY(int pos_x, int pos_y, int width, int height, int ch_type, double lambda, int sps_cm_init_flag)
 #endif
 {
     int group_idx_x;
@@ -1229,13 +1229,22 @@ __inline static double get_rate_positionLastXY(int pos_x, int pos_y, int width, 
     int blk_offset_x, blk_offset_y, shift_x, shift_y;
     int bin, cnt;
     int rate = 0;
-    int offset_x = (ch_type == Y_C ? 0 : NUM_CTX_SCANR_LUMA);
-    int offset_y = (ch_type == Y_C ? 0 : NUM_CTX_SCANR_LUMA);
+    int offset_x = (ch_type == Y_C ? 0 : (sps_cm_init_flag == 1 ? NUM_CTX_SCANR_LUMA : 11));
+    int offset_y = (ch_type == Y_C ? 0 : (sps_cm_init_flag == 1 ? NUM_CTX_SCANR_LUMA : 11));
 
     group_idx_x = g_group_idx[pos_x];
     group_idx_y = g_group_idx[pos_y];
-
-    evc_get_ctx_last_pos_xy_para(ch_type, width, height, &blk_offset_x, &blk_offset_y, &shift_x, &shift_y);
+    if (sps_cm_init_flag == 1)
+    {
+        evc_get_ctx_last_pos_xy_para(ch_type, width, height, &blk_offset_x, &blk_offset_y, &shift_x, &shift_y);
+    }
+    else
+    {
+        blk_offset_x = 0;
+        blk_offset_y = 0;
+        shift_x = 0;
+        shift_y = 0;
+    }
     //------------------
 
     // posX
@@ -1826,7 +1835,7 @@ int evce_rdoq_run_length_cc(u8 qp, double lambda, u8 is_intra, s16 *src_coef, s1
 }
 
 #if ADCC
-int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s16 *dst_tmp, int log2_cuw, int log2_cuh, int ch_type)
+int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s16 *dst_tmp, int log2_cuw, int log2_cuh, int ch_type, int sps_cm_init_flag)
 {
     const int ns_shift = ((log2_cuw + log2_cuh) & 1) ? 7 : 0;
     const int ns_scale = ((log2_cuw + log2_cuh) & 1) ? 181 : 1;
@@ -1855,8 +1864,8 @@ int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
     int last_scan_set;
     int sub_set;
 
-    int offset1 = (ch_type == Y_C) ? 0 : NUM_CTX_GTA_LUMA;
-    int offset0 = (ch_type == Y_C) ? (log2_block_size <= 2 ? 0 : NUM_CTX_GT0_LUMA_TU << (EVC_MIN(1, (log2_block_size - 3)))) : NUM_CTX_GT0_LUMA;
+    int offset1 = (sps_cm_init_flag == 1) ? ((ch_type == Y_C) ? 0 : NUM_CTX_GTA_LUMA) : ((ch_type == Y_C) ? 0 : 1);
+    int offset0 = (sps_cm_init_flag == 1) ? ((ch_type == Y_C) ? (log2_block_size <= 2 ? 0 : NUM_CTX_GT0_LUMA_TU << (EVC_MIN(1, (log2_block_size - 3)))) : NUM_CTX_GT0_LUMA) : (ch_type == Y_C ? 0 : 1);
     int c1_idx = 0;
     int c2_idx = 0;
     s64 cost_base = 0;
@@ -1973,8 +1982,10 @@ int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
                 int bypass_sigmap = (max_abs_level) && ((sx == 0 && sy == sr_y && row[sr_y] == 1) || (sy == 0 && sx == sr_x && col[sr_x] == 1)) ? 1 : 0;
 
                 int base_level = (c1_idx < num_gtA) ? (2 + (c2_idx < num_gtB ? 1 : 0)) : 1;
-                ctx_gt0 = get_ctx_gt012_inc(coef_dst, blk_pos, width, height, ch_type, &ctx_gtA, &ctx_gtB, sr_x, sr_y);
-
+                if (sps_cm_init_flag == 1)
+                {
+                    ctx_gt0 = get_ctx_gt012_inc(coef_dst, blk_pos, width, height, ch_type, &ctx_gtA, &ctx_gtB, sr_x, sr_y);
+                }
                 if (blk_pos == scan_pos_last)
                 {
                     ctx_gt0 = 0;
@@ -2126,7 +2137,7 @@ int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
 
             err = (err * err_scale) >> ERR_SCALE_PRECISION_BITS;
             curr_cost0 += err * err + cost1;
-            curr_cost0 += get_rate_positionLastXY(0, 0, width, height, ch_type, lambda);
+            curr_cost0 += get_rate_positionLastXY(0, 0, width, height, ch_type, lambda, sps_cm_init_flag);
             if(curr_cost0 < cost_best)
             {
                 cost_best = curr_cost0;
@@ -2141,7 +2152,7 @@ int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
             {
                 break;
             }
-            cost_last = get_rate_positionLastXY(sr_x, sr_y, width, height, ch_type, lambda);
+            cost_last = get_rate_positionLastXY(sr_x, sr_y, width, height, ch_type, lambda, sps_cm_init_flag);
             total_cost = cost_base + cost_last - removal_cost;
             if(sr_x == 0 || sr_y == 0)
             {
@@ -2505,7 +2516,7 @@ int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw,
     {
 #if ADCC
         if (tool_adcc)
-            nnz = ifvce_rdoq_method_ccA(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type);
+            nnz = ifvce_rdoq_method_ccA(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type, sps_cm_init_flag);
         else
 #endif
             nnz = evce_rdoq_run_length_cc(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type, sps_cm_init_flag);

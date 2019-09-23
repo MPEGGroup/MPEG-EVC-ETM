@@ -1051,14 +1051,6 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
             }
             else
             {
-#if ADMVP
-                if ((ctx->sh.slice_type == SLICE_P) || (ctx->sps.tool_amis == 1 && !check_bi_applicability_dec(ctx->sh.slice_type, cuw, cuh)))
-#else
-                if (ctx->sh.slice_type == SLICE_P)
-#endif
-                {
-                }
-                else
                 {
                     if (core->inter_dir == PRED_DIR)
                     {

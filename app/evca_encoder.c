@@ -857,6 +857,32 @@ static void print_usage(void)
     }
 }
 
+static char get_pic_type(char * in)
+{
+    int len = (int)strlen(in);
+    char type = 0;
+    for (int i = 0; i < len; i++)
+    {
+        if (in[i] == 'P')
+        {
+            type = 'P';
+            break;
+        }
+        else if (in[i] == 'B')
+        {
+            type = 'B';
+            break;
+        }
+    }
+
+    if (type == 0)
+    {
+        return 0;
+    }
+
+    return type;
+}
+
 static int get_conf(EVCE_CDSC * cdsc)
 {
     memset(cdsc, 0, sizeof(EVCE_CDSC));
@@ -951,7 +977,8 @@ static int get_conf(EVCE_CDSC * cdsc)
 #endif
     for (int i = 0; i < MAX_NUM_RPLS && op_rpl0[i][0] != 0; ++i)
     {
-        strtok(op_rpl0[i], " ");
+        cdsc->rpls_l0[i].pic_type = get_pic_type(strtok(op_rpl0[i], " "));
+
         cdsc->rpls_l0[i].poc = atoi(strtok(NULL, " "));
         cdsc->rpls_l0[i].tid = atoi(strtok(NULL, " "));
         cdsc->rpls_l0[i].ref_pic_active_num = atoi(strtok(NULL, " "));
@@ -971,7 +998,7 @@ static int get_conf(EVCE_CDSC * cdsc)
 
     for (int i = 0; i < MAX_NUM_RPLS && op_rpl1[i][0] != 0; ++i)
     {
-        strtok(op_rpl1[i], " ");
+        cdsc->rpls_l0[i].pic_type = get_pic_type(strtok(op_rpl1[i], " "));
         cdsc->rpls_l1[i].poc = atoi(strtok(NULL, " "));
         cdsc->rpls_l1[i].tid = atoi(strtok(NULL, " "));
         cdsc->rpls_l1[i].ref_pic_active_num = atoi(strtok(NULL, " "));

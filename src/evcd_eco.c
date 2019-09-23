@@ -509,14 +509,23 @@ static int evcd_eco_ats_tu_v(EVC_BSR * bs, EVCD_SBAC * sbac, u8 ctx)
 static void parse_positionLastXY(EVC_BSR *bs, EVCD_SBAC *sbac, int* sr_x, int* sr_y, int width, int height, int ch_type)
 {
     EVC_SBAC_CTX *sbac_ctx = &sbac->ctx;
-    SBAC_CTX_MODEL* cm_x = sbac_ctx->cc_scanr_x + (ch_type == Y_C ? 0 : NUM_CTX_SCANR_LUMA);
-    SBAC_CTX_MODEL* cm_y = sbac_ctx->cc_scanr_y + (ch_type == Y_C ? 0 : NUM_CTX_SCANR_LUMA);
+    SBAC_CTX_MODEL* cm_x = sbac_ctx->cc_scanr_x + (ch_type == Y_C ? 0 : (sbac->ctx.sps_cm_init_flag == 1 ? NUM_CTX_SCANR_LUMA : 11));
+    SBAC_CTX_MODEL* cm_y = sbac_ctx->cc_scanr_y + (ch_type == Y_C ? 0 : (sbac->ctx.sps_cm_init_flag == 1 ? NUM_CTX_SCANR_LUMA : 11));
     int last;
     int blk_offset_x, blk_offset_y, shift_x, shift_y;
     int pos_x, pos_y;
     int i, cnt, tmp;
-    evc_get_ctx_last_pos_xy_para(ch_type, width, height, &blk_offset_x, &blk_offset_y, &shift_x, &shift_y);
-
+    if (sbac->ctx.sps_cm_init_flag == 1)
+    {
+        evc_get_ctx_last_pos_xy_para(ch_type, width, height, &blk_offset_x, &blk_offset_y, &shift_x, &shift_y);
+    }
+    else
+    {
+        blk_offset_x = 0;
+        blk_offset_y = 0;
+        shift_x = 0;
+        shift_y = 0;
+    }
     // posX
     for (pos_x = 0; pos_x < g_group_idx[width - 1]; pos_x++)
     {
@@ -645,9 +654,16 @@ static int evcd_eco_ccA(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int log2_w, int
     num_coeff = last_pos_in_scan + 1;
     //===== code significance flag =====
     offset0 = log2_block_size <= 2 ? 0 : NUM_CTX_GT0_LUMA_TU << (EVC_MIN(1, (log2_block_size - 3)));
-    cm_gt0 = (ch_type == Y_C) ? sbac->ctx.cc_gt0 + offset0 : sbac->ctx.cc_gt0 + NUM_CTX_GT0_LUMA;
-    cm_gtx = (ch_type == Y_C) ? sbac->ctx.cc_gtA : sbac->ctx.cc_gtA + NUM_CTX_GTA_LUMA;
-
+    if (sbac->ctx.sps_cm_init_flag == 1)
+    {
+        cm_gt0 = (ch_type == Y_C) ? sbac->ctx.cc_gt0 + offset0 : sbac->ctx.cc_gt0 + NUM_CTX_GT0_LUMA;
+        cm_gtx = (ch_type == Y_C) ? sbac->ctx.cc_gtA : sbac->ctx.cc_gtA + NUM_CTX_GTA_LUMA;
+    }
+    else
+    {
+        cm_gt0 = (ch_type == Y_C) ? sbac->ctx.cc_gt0 : sbac->ctx.cc_gt0 + 1;
+        cm_gtx = (ch_type == Y_C) ? sbac->ctx.cc_gtA : sbac->ctx.cc_gtA + 1;
+    }
     last_scan_set = (num_coeff - 1) >> cg_log2_size;
     scan_pos_last = num_coeff - 1;
 
@@ -679,7 +695,7 @@ static int evcd_eco_ccA(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int log2_w, int
                 }
                 else
                 {
-                    ctx_gt0 = evc_get_ctx_gt0_inc(coef, blkpos, width, height, ch_type, sr_x, sr_y);
+                    ctx_gt0 = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gt0_inc(coef, blkpos, width, height, ch_type, sr_x, sr_y) : 0;
                 }
 
                 if (!(ipos == scan_pos_last)) // skipping signaling flag for last, we know it is non-zero
@@ -730,7 +746,7 @@ static int evcd_eco_ccA(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int log2_w, int
                 {
                     if (pos[idx] != pos_last)
                     {
-                        ctx_gtA = evc_get_ctx_gtA_inc(coef, pos[idx], width, height, ch_type, sr_x, sr_y);
+                        ctx_gtA = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gtA_inc(coef, pos[idx], width, height, ch_type, sr_x, sr_y) : 0;
                     }
                     bin = evcd_sbac_decode_bin(bs, sbac, cm_gtx + ctx_gtA);
                     coef[pos[idx]] += bin;
@@ -751,7 +767,7 @@ static int evcd_eco_ccA(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int log2_w, int
                 {
                     if (pos[firstC2FlagIdx] != pos_last)
                     {
-                        ctx_gtB = evc_get_ctx_gtB_inc(coef, pos[firstC2FlagIdx], width, height, ch_type, sr_x, sr_y);
+                        ctx_gtB = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gtB_inc(coef, pos[firstC2FlagIdx], width, height, ch_type, sr_x, sr_y) : 0;
                     }
                     bin = evcd_sbac_decode_bin(bs, sbac, cm_gtx + ctx_gtB);
                     coef[pos[firstC2FlagIdx]] += bin;
@@ -1968,57 +1984,16 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
             {
                 core->mvr_idx = evcd_eco_mvr_idx(bs, sbac);
             }
-#if ADMVP
-            if ((ctx->sh.slice_type == SLICE_P) || (ctx->sps.tool_amis == 1 && !check_bi_applicability_dec(ctx->sh.slice_type, cuw, cuh)))
-#else
-            if (ctx->sh.slice_type == SLICE_P)
-#endif
+            
+            if (ctx->sps.tool_amis == 0)
             {
-                if (ctx->sps.tool_amis == 0)
-                {
-                    core->inter_dir = PRED_L0;
-                }
-                else
-                {
-                    if (core->mvr_idx == 0)
-                    {
-                        core->inter_dir = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.inter_dir);
-                        if (core->inter_dir == PRED_DIR)
-                        {
-                            if (cuw >= 8 && cuh >= 8 && ctx->sps.tool_affine)
-                            {
-                                evcd_eco_affine_flag(ctx, core);
-                            }
-
-                            if (core->affine_flag)
-                            {
-                                core->inter_dir = AFF_DIR;
-                            }
-                            else
-                            {
-                                core->inter_dir = PRED_DIR_MMVD;
-                                evcd_eco_mmvd_data(ctx, core);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        core->inter_dir = PRED_L0;
-                    }
-                }
+                evcd_eco_direct_mode_flag(ctx, core);
             }
-            else /* if(ctx->sh.slice_type == SLICE_B) */
+            else
             {
-                if (ctx->sps.tool_amis == 0)
-                {
-                    evcd_eco_direct_mode_flag(ctx, core);
-                }
-                else
-                {
-                    evcd_eco_merge_mode_flag(ctx, core);
-                }
+                evcd_eco_merge_mode_flag(ctx, core);
             }
-
+            
             if (core->inter_dir == PRED_DIR)
             {
                 if (ctx->sps.tool_amis != 0)
@@ -2092,6 +2067,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
             }
             else
             {
+
                 evcd_eco_inter_pred_idc(ctx, core); /* inter_pred_idc */
 
 #if AFFINE // affine inter mode

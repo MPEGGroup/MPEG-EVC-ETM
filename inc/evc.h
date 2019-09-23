@@ -352,6 +352,7 @@ typedef struct _EVC_RPL
     int ref_pic_num;
     int ref_pic_active_num;
     int ref_pics[MAX_NUM_REF_PICS];
+    char pic_type;
 } EVC_RPL;
 
 /*****************************************************************************

@@ -2540,6 +2540,7 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
     }
 
 #if MERGE
+    if(ctx->slice_type == SLICE_B)
     {
         assert(ctx->slice_type == SLICE_B);
         /* removes the cost above threshold and remove the duplicates */
@@ -5826,7 +5827,6 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
         evc_mcpy(pi->nnz_sub_best[PRED_SKIP], core->nnz_sub, sizeof(int) * N_C * MAX_SUB_TB_NUM);
     }
 
-    if(pi->slice_type == SLICE_B)
     {
 #if MERGE
         cost = cost_inter[PRED_DIR] = analyze_merge(ctx, core, x, y, log2_cuw, log2_cuh);
