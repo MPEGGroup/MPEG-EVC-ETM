@@ -305,6 +305,7 @@ int check_copy_refp(EVC_REFP(*refp)[REFP_NUM], int cnt, int lidx, EVC_REFP  * re
     return EVC_OK;
 }
 
+#if !HLS_M47668
 int evc_picman_refp_reorder(EVC_PM *pm, int num_ref_pics_act, u8 slice_type, u32 ptr, EVC_REFP(*refp)[REFP_NUM], int last_intra, EVC_RMPNI *rmpni)
 {
     int i, j, cnt;
@@ -355,6 +356,7 @@ int evc_picman_refp_reorder(EVC_PM *pm, int num_ref_pics_act, u8 slice_type, u32
 
     return EVC_OK;
 }
+#endif
 
 //This is implementation of reference picture list construction based on RPL. This is meant to replace function int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int slice_type, u32 ptr, u8 layer_id, int last_intra, EVC_REFP(*refp)[REFP_NUM])
 int evc_picman_refp_rpl_based_init(EVC_PM *pm, EVC_SH *sh, EVC_REFP(*refp)[REFP_NUM])

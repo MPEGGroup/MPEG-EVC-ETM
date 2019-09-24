@@ -508,6 +508,10 @@ typedef struct _EVCE_PARAM
     int                 ibc_fast_method;
 #endif
     int                 use_hgop;
+#if DQP_CFG
+    /* config parameter for cu_qp_delta_area*/
+    int                 cu_qp_delta_area;
+#endif
 #if USE_SLICE_DQP
     int                 qp_incread_frame;           /* 10 bits*/
 #endif
@@ -609,7 +613,6 @@ typedef struct _EVCE_BEF_DATA
 #endif
 
 } EVCE_BEF_DATA;
-
 /*****************************************************************************
  * CORE information used for encoding process.
  *
@@ -630,6 +633,15 @@ typedef struct _EVCE_CORE
     pel            nb[N_C][N_REF][MAX_CU_SIZE * 3];
     /* current encoding LCU number */
     int            lcu_num;
+#if DQP
+    /*QP for current encoding CU. Used to derive Luma and chroma qp*/
+    u8             qp;
+    u8             cu_qp_delta_code;
+    u16            x_dqp;
+    u16            y_dqp;
+    u8             cu_qp_delta_is_coded;
+    u8             cu_qp_delta_code_mode;
+#endif
     /* QP for luma of current encoding CU */
     u8             qp_y;
     /* QP for chroma of current encoding CU */
@@ -889,8 +901,10 @@ struct _EVCE_CTX
     u32                    dtr;
     /* current picture's presentation temporal reference */
     u32                    ptr;
+#if !HLS_M47668
     /* picture coding structure unit for reorder*/
     EVC_REORDER_ARG       reorder[32];
+#endif
     /*current picutre's layer id for hierachical structure */
     u8                     layer_id;
     /* MAPS *******************************************************************/
@@ -910,7 +924,11 @@ struct _EVCE_CTX
     s8                    *map_ipm;
     s16                  (*map_block_size)[2];
     s8                    *map_depth;
-
+    /*map of dqp*/
+#if DQP
+    s8                    *map_input_dqp;
+    u8                    *map_dqp_used;
+#endif
 #if RDO_DBK
     EVC_PIC              *pic_dbk;          //one picture that arranges cu pixels and neighboring pixels for deblocking (just to match the interface of deblocking functions)
     s64                    delta_dist[N_C];  //delta distortion from filtering (negative values mean distortion reduced)

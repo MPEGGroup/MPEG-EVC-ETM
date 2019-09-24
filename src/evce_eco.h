@@ -59,6 +59,9 @@ void evce_sbac_reset(EVCE_SBAC * sbac, u8 slice_type, u8 slice_qp, int sps_cm_in
 void evce_sbac_finish(EVC_BSW *bs);
 void evce_sbac_encode_bin(u32 bin, EVCE_SBAC *sbac, SBAC_CTX_MODEL *ctx_model, EVC_BSW *bs);
 void evce_sbac_encode_bin_trm(u32 bin, EVCE_SBAC *sbac, EVC_BSW *bs);
+#if DQP
+int evce_eco_dqp(EVC_BSW * bs, int ref_qp, int cur_qp);
+#endif
 int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 pred_mode, int nnz_sub[N_C][MAX_SUB_TB_NUM], int b_no_cbf, int run_stats
 #if ATS_INTRA_PROCESS
                   , int tool_ats_intra, u8 ats_intra_cu, u8 ats_tu
@@ -66,8 +69,11 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
 #if ATS_INTER_PROCESS
                   , int tool_ats_inter, u8 ats_inter_info
 #endif
-#if ADCC  
+#if ADCC || DQP
                   , EVCE_CTX * ctx
+#endif
+#if DQP
+                  , EVCE_CORE * core, int enc_dqp, u8 cur_qp
 #endif
 );
 int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int cuw, int cuh);

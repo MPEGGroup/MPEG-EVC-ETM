@@ -103,6 +103,17 @@
 #define ET_BY_RDC_CHILD_SPLIT              0 // early termination of split based on RD cost & child split (10% EncT)
 #endif
 
+#define DQP_EVC                            1
+#if DQP_EVC
+#define DQP                                1
+#define DQP_UNUSED                         (0)
+#define RANDOM_DQP_GENERATION              1 /* test for dqp */
+
+#define DQP_IN_RANGE(x)                    (x >= -26 && x <= 25)
+#define GET_QP(qp,dqp)                     ((qp + dqp + 52) % 52)
+#define GET_LUMA_QP(qp)                    (qp + 6 * (BIT_DEPTH - 8))
+#endif
+
 //platform tools & trivial improvement
 #if ADMVP
 #define MERGE                              1
@@ -761,9 +772,12 @@ extern int fp_trace_counter;
 #define IPD_CHROMA_CNT                     5
 #define IPD_INVALID                       (-1)
 
-#define IPD_DIA_R                          18 /* Luma, Right diagonal */
+#define IPD_DIA_R                          18 /* Luma, Right diagonal */ /* (IPD_VER + IPD_HOR) >> 1 */
 #define IPD_DIA_L                          6  /* Luma, Left diagonal */
 #define IPD_DIA_U                          30 /* Luma, up diagonal */
+
+#define INTRA_MPM_NUM                      2
+#define INTRA_PIMS_NUM                     8
 
 #if IBC
 #define IBC_MAX_CU_LOG2                      4 /* max block size for ibc search in unit of log2 */
@@ -837,6 +851,9 @@ typedef enum _TRANS_TYPE
 #define MCU_SET_QP(m, qp)       (m)=((m)|((qp)&0x7F)<<16)
 /* get QP from map */
 #define MCU_GET_QP(m)           (int)(((m)>>16)&0x7F)
+#if DQP
+#define MCU_RESET_QP(m)         (m)=((m) & (~((127)<<16)))
+#endif
 
 /* set skip mode flag */
 #define MCU_SET_SF(m)           (m)=((m)|(1<<23))
@@ -979,6 +996,9 @@ typedef u32 SBAC_CTX_MODEL;
 #if ALF
 #define NUM_SBAC_CTX_ALF_FLAG              9
 #endif
+#if DQP
+#define NUM_DELTA_QP_CTX                   1
+#endif
 
 #if ATS_INTRA_PROCESS 
 #define NUM_ATS_INTRA_CU_FLAG_CTX                8
@@ -1038,6 +1058,9 @@ typedef struct _EVC_SBAC_CTX
     SBAC_CTX_MODEL   suco_flag       [NUM_SBAC_CTX_SUCO_FLAG];
 #if ALF
     SBAC_CTX_MODEL   ctb_alf_flag    [NUM_SBAC_CTX_ALF_FLAG]; //todo: add *3 for every component
+#endif
+#if DQP
+    SBAC_CTX_MODEL   delta_qp        [NUM_DELTA_QP_CTX];
 #endif
     int              sps_cm_init_flag;
 #if ATS_INTRA_PROCESS   
@@ -1317,6 +1340,9 @@ typedef struct _EVC_SPS
 
     u8               closed_gop;                 /* 1 bit  : flag of closed_gop or not */
     u8               num_ref_pics_act;           /* 4 bits : number of reference pictures active */
+#if DQP
+    int              dquant_flag;              /*1 specifies the improved delta qp signaling processes is used*/
+#endif
 #if IBC
     u8               ibc_flag;                   /* 1 bit : flag of enabling IBC or not */
     int              ibc_log_max_size;           /* log2 max ibc size */
@@ -1348,8 +1374,13 @@ typedef struct _EVC_PPS
 #if M48879_IMPROVEMENT_INTRA
     int constrained_intra_pred_flag;
 #endif
+#if DQP
+    int cu_qp_delta_enabled_flag;
+    int cu_qp_delta_area;
+#endif
 } EVC_PPS;
 
+#if !HLS_M47668
 /*****************************************************************************
  * MMCO syntax
  *****************************************************************************/
@@ -1397,6 +1428,7 @@ typedef struct _EVC_RMPNI
     /* ADPN: Absolute Difference of Picture Numbers (delta poc) */
     s8               delta_poc[MAX_NUM_RMPNI];
 } EVC_RMPNI;
+#endif
 
 /*****************************************************************************
  * slice header
@@ -1483,6 +1515,10 @@ typedef struct _EVC_SH
     u8               qp_u;
     u8               qp_v;
     int              entry_point_offset_minus1[MAX_NUM_TILES_ROW * MAX_NUM_TILES_COL];
+#if DQP
+    /*QP of previous cu in decoding order (used for dqp)*/
+    u8               qp_prev;
+#endif
 
     /* decoding temporal reference */
     u32              dtr;
@@ -1507,12 +1543,14 @@ typedef struct _EVC_SH
 
     /* delta of presentation temporal reference */
     s32              dptr;
+#if !HLS_M47668
     /* flag of MMCO */
     u8               mmco_on;
     EVC_MMCO        mmco;
     /* flag of RMPNI*/
     u8               rmpni_on;
     EVC_RMPNI       rmpni[REFP_NUM];
+#endif
 
 } EVC_SH;
 

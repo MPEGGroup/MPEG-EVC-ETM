@@ -103,7 +103,9 @@ static void sequence_deinit(EVCD_CTX * ctx)
 #if ATS_INTER_PROCESS
     evc_mfree(ctx->map_ats_inter);
 #endif
-
+#if DQP
+    evc_mfree(ctx->map_dqp_used);
+#endif
     evc_picman_deinit(&ctx->dpm);
 }
 
@@ -209,6 +211,16 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
         evc_assert_gv(ctx->map_ipm, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
         evc_mset_x64a(ctx->map_ipm, -1, size);
     }
+
+#if DQP
+    if (ctx->map_dqp_used == NULL)
+    {
+        size = sizeof(s8) * ctx->f_scu;
+        ctx->map_dqp_used = (u8 *)evc_malloc(size);
+        evc_assert_gv(ctx->map_dqp_used, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
+        evc_mset_x64a(ctx->map_dqp_used, DQP_UNUSED, size);
+    }
+#endif
 
     /* initialize reference picture manager */
     ctx->pa.fn_alloc = evcd_picbuf_alloc;
@@ -1210,7 +1222,11 @@ ERR:
 }
 
 static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int log2_cuw, int log2_cuh, int cup, int cud, EVC_BSR * bs, EVCD_SBAC * sbac, int next_split
-                         , int parent_suco, const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth)
+                         , int parent_suco, const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth
+#if DQP
+                         , int cu_qp_delta_code
+#endif
+)
 {
     int ret;
     s8  split_mode;
@@ -1341,6 +1357,33 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
         split_mode = NO_SPLIT;
     }
 
+#if DQP
+    if(ctx->sps.sps_btt_flag)
+    {
+        if(ctx->pps.cu_qp_delta_enabled_flag && ctx->sps.dquant_flag)
+        {
+            if (split_mode == NO_SPLIT && (log2_cuh + log2_cuw >= ctx->pps.cu_qp_delta_area) && cu_qp_delta_code != 2)
+            {
+                if (log2_cuh == 7 || log2_cuw == 7)
+                {
+                    cu_qp_delta_code = 2;
+                }
+                else
+                {
+                    cu_qp_delta_code = 1;
+                }
+                core->cu_qp_delta_is_coded = 0;
+            }
+            else if ((((split_mode == SPLIT_TRI_VER || split_mode == SPLIT_TRI_HOR) && (log2_cuh + log2_cuw == ctx->pps.cu_qp_delta_area + 1)) ||
+                (log2_cuh + log2_cuw == ctx->pps.cu_qp_delta_area && cu_qp_delta_code != 2)))
+            {
+                cu_qp_delta_code = 2;
+                core->cu_qp_delta_is_coded = 0;
+            }
+        }
+    }
+#endif
+
     evc_set_split_mode(split_mode, cud, cup, cuw, cuh, ctx->max_cuwh, core->split_mode);
     same_layer_split[node_idx] = split_mode;
 
@@ -1367,13 +1410,20 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
             {
                 ret = evcd_eco_tree(ctx, core, x_pos, y_pos, log2_sub_cuw, log2_sub_cuh, split_struct.cup[cur_part_num], split_struct.cud[cur_part_num], bs, sbac, 1
                                     , suco_flag, split_mode, split_mode_child, part_num, split_allow
-                                    , INC_QT_DEPTH(qt_depth, split_mode), INC_BTT_DEPTH(btt_depth, split_mode, bound));
+                                    , INC_QT_DEPTH(qt_depth, split_mode), INC_BTT_DEPTH(btt_depth, split_mode, bound)
+#if DQP
+                    , cu_qp_delta_code
+#endif
+                );
                 evc_assert_g(ret == EVC_OK, ERR);
             }
         }
     }
     else
     {
+#if DQP
+        core->cu_qp_delta_code = cu_qp_delta_code;
+#endif
         ret = evcd_eco_unit(ctx, core, x0, y0, log2_cuw, log2_cuh);
         evc_assert_g(ret == EVC_OK, ERR);
     }
@@ -1596,6 +1646,18 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
     /* reset SBAC */
     evcd_eco_sbac_reset(bs, ctx->sh.slice_type, ctx->sh.qp, ctx->sps.tool_cm_init);
 
+#if DQP
+    /* reset dqp used map data */
+    {
+        int size;
+        size = sizeof(s8) * ctx->f_scu;
+        evc_mset_x64a(ctx->map_dqp_used, DQP_UNUSED, size);
+    }
+#endif
+#if DQP
+    ctx->sh.qp_prev = ctx->sh.qp;
+#endif
+
     while(1)
     {
         int same_layer_split[4];
@@ -1616,7 +1678,11 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
         }
 #endif
         ret = evcd_eco_tree(ctx, core, core->x_pel, core->y_pel, ctx->log2_max_cuwh, ctx->log2_max_cuwh, 0, 0, bs, sbac, 1
-                            , 0, NO_SPLIT, same_layer_split, 0, split_allow, 0, 0);
+                            , 0, NO_SPLIT, same_layer_split, 0, split_allow, 0, 0
+#if DQP
+                            , 0
+#endif
+        );
         evc_assert_g(EVC_SUCCEEDED(ret), ERR);
 
         /* set split flags to map */
@@ -1825,6 +1891,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         }
         evc_assert_rv(ret == EVC_OK, ret);
 
+#if !HLS_M47668
         if (sps->picture_num_present_flag)
         {
             if ((sh->rmpni_on && ctx->sh.slice_type != SLICE_I))
@@ -1833,6 +1900,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
                 evc_assert_rv(ret == EVC_OK, ret);
             }
         }
+#endif
         /* get available frame buffer for decoded image */
         ctx->pic = evc_picman_get_empty_pic(&ctx->dpm, &ret);
         evc_assert_rv(ctx->pic, ret);
