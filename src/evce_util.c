@@ -294,20 +294,16 @@ void evc_set_affine_mvf(EVCE_CTX * ctx, EVCE_CORE * core, int w, int h, s8 refi[
 
 void evce_split_tbl_init(EVCE_CTX *ctx)
 {
-    int i;
-    for(i = 0; i < 6; i++)
-    {
-        evc_split_tbl[i][0][0] = ctx->cdsc.framework_cu11_max;
-        evc_split_tbl[i][0][1] = ctx->cdsc.framework_cu11_min;
-        evc_split_tbl[i][1][0] = ctx->cdsc.framework_cu12_max;
-        evc_split_tbl[i][1][1] = ctx->cdsc.framework_cu12_min;
-        evc_split_tbl[i][2][0] = ctx->cdsc.framework_cu14_max;
-        evc_split_tbl[i][2][1] = ctx->cdsc.framework_cu14_min;
-        evc_split_tbl[i][3][0] = 0;
-        evc_split_tbl[i][3][1] = 0;
-        evc_split_tbl[i][4][0] = 0;
-        evc_split_tbl[i][4][1] = 0;
-        evc_split_tbl[i][5][0] = ctx->cdsc.framework_tris_max;
-        evc_split_tbl[i][5][1] = ctx->cdsc.framework_tris_min;
-    }
+    evc_split_tbl[0][0] = ctx->cdsc.framework_cu11_max;
+    evc_split_tbl[0][1] = ctx->cdsc.framework_cu11_min;
+    evc_split_tbl[1][0] = ctx->cdsc.framework_cu12_max;
+    evc_split_tbl[1][1] = ctx->cdsc.framework_cu12_min;
+    evc_split_tbl[2][0] = ctx->cdsc.framework_cu14_max;
+    evc_split_tbl[2][1] = ctx->cdsc.framework_cu14_min;
+    evc_split_tbl[3][0] = 0;
+    evc_split_tbl[3][1] = 0;
+    evc_split_tbl[4][0] = 0;
+    evc_split_tbl[4][1] = 0;
+    evc_split_tbl[5][0] = ctx->cdsc.framework_tris_max;
+    evc_split_tbl[5][1] = ctx->cdsc.framework_tris_min;
 }

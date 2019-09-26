@@ -35,9 +35,9 @@
 #define _EVC_ITDQ_H_
 #include "evc_def.h"
 
-void evc_itdq(s16 *coef, int log2_w, int log2_h, u16 scale, int iqt_flag
+void evc_itdq(s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag
 #if ATS_INTRA_PROCESS
-    , u8 ats_intra_cu, u8 ats_tu
+              , u8 ats_intra_cu, u8 ats_tu
 #endif
 );
 

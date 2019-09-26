@@ -57,16 +57,14 @@ extern EVC_DMVR_MC_C evc_tbl_dmvr_mc_c[2][2];
 extern EVC_MC_C evc_tbl_bl_mc_l[2][2];
 
 #if MC_PRECISION_ADD
-
-#define evc_mc_l(ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h) \
-    (evc_tbl_mc_l[((gmv_x) | ((gmv_x)>>1) | ((gmv_x)>>2) | ((gmv_x)>>3)) & 0x1])\
-        [((gmv_y) | ((gmv_y)>>1) | ((gmv_y)>>2) | ((gmv_y)>>3)) & 0x1]\
+#define evc_mc_l(ori_mv_x, ori_mv_y, ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h) \
+    (evc_tbl_mc_l[((ori_mv_x) | ((ori_mv_x)>>1) | ((ori_mv_x)>>2) | ((ori_mv_x)>>3)) & 0x1])\
+        [((ori_mv_y) | ((ori_mv_y)>>1) | ((ori_mv_y)>>2) | ((ori_mv_y)>>3)) & 0x1]\
         (ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h)
 
-
-#define evc_mc_c(ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h) \
-    (evc_tbl_mc_c[((gmv_x) | ((gmv_x)>>1) | ((gmv_x)>>2)| ((gmv_x)>>3) | ((gmv_x)>>4)) & 0x1]\
-        [((gmv_y) | ((gmv_y)>>1) | ((gmv_y)>>2) | ((gmv_y)>>3) | ((gmv_y)>>4)) & 0x1])\
+#define evc_mc_c(ori_mv_x, ori_mv_y, ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h) \
+    (evc_tbl_mc_c[((ori_mv_x) | ((ori_mv_x)>>1) | ((ori_mv_x)>>2)| ((ori_mv_x)>>3) | ((ori_mv_x)>>4)) & 0x1]\
+        [((ori_mv_y) | ((ori_mv_y)>>1) | ((ori_mv_y)>>2) | ((ori_mv_y)>>3) | ((ori_mv_y)>>4)) & 0x1])\
         (ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h)
 
 #if DMVR_PADDING

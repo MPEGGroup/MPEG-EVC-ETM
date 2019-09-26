@@ -769,7 +769,7 @@ static u32 me_spel_pattern(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2
 
         /* get the interpolated(predicted) image */
 #if MC_PRECISION_ADD
-        evc_mc_l(ref, (mv_x << 2), (mv_y << 2), s_ref, cuw, pred, cuw, cuh);
+        evc_mc_l((mv_x << 2), (mv_y << 2), ref, (mv_x << 2), (mv_y << 2), s_ref, cuw, pred, cuw, cuh);
 #else
         evc_mc_l(ref, mv_x, mv_y, s_ref, cuw, pred, cuw, cuh);
 #endif
@@ -820,7 +820,7 @@ static u32 me_spel_pattern(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2
 
             /* get the interpolated(predicted) image */
 #if MC_PRECISION_ADD
-            evc_mc_l(ref, (mv_x << 2), (mv_y << 2), s_ref, cuw, pred, cuw, cuh);
+            evc_mc_l((mv_x << 2), (mv_y << 2), ref, (mv_x << 2), (mv_y << 2), s_ref, cuw, pred, cuw, cuh);
 #else
             evc_mc_l(ref, mv_x, mv_y, s_ref, cuw, pred, cuw, cuh);
 #endif
@@ -1126,9 +1126,10 @@ __inline static int mmvd_info_bit_cost(int mvp_idx, int type)
     var1 = (mvp_idx - (var0 * MMVD_MAX_REFINE_NUM)) / 4;
     var2 = mvp_idx - (var0 * MMVD_MAX_REFINE_NUM) - var1 * 4;
 
-    bits += mmvd_bit_unary_sym(var, NUM_SBAC_CTX_MMVD_MERGE_IDX, MMVD_BASE_MV_NUM); /* mmvd_merge_idx */
-    bits += mmvd_bit_unary_sym(var, NUM_SBAC_CTX_MMVD_DIST_IDX, MMVD_DIST_NUM); /* mmvd_distance_idx */
-
+    /* mmvd_merge_idx */
+    bits += mmvd_bit_unary_sym(var0, NUM_SBAC_CTX_MMVD_MERGE_IDX, MMVD_BASE_MV_NUM); 
+    /* mmvd_distance_idx */
+    bits += mmvd_bit_unary_sym(var1, NUM_SBAC_CTX_MMVD_DIST_IDX, MMVD_DIST_NUM); 
     /* mmvd_direction_idx */
     if(var2 == 0)
     {
@@ -3066,57 +3067,31 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 
         if (temp_cost < direct_cost[current_idx])
         {
-            int s, t;
-            if (current_idx == 0)
+            direct_cost[current_idx] = temp_cost;
+            pi->best_index[pidx][current_idx] = c_num;
+
+            for (int c = current_idx; c >= 1; c--)
             {
-                direct_cost[current_idx] = temp_cost;
-                pi->best_index[pidx][current_idx] = c_num;
-                current_idx++;
-            }
-            else
-            {
-                int insert_or_not = -1;
-                for (s = current_idx; s >= 1; s--)
+                if (direct_cost[c] < direct_cost[c - 1])
                 {
-                    if ((direct_cost[s] > temp_cost) && (temp_cost >= direct_cost[s - 1]))
-                    {
-                        t = current_idx;
-                        do
-                        {
-                            direct_cost[t] = direct_cost[t - 1];
-                            pi->best_index[pidx][t] = pi->best_index[pidx][t - 1];
-                            t = t - 1;
-                        } while (t >= s);
+                    int tmp_idx;
+                    double tmp_cost;
 
-                        direct_cost[s] = temp_cost;
-                        pi->best_index[pidx][s] = c_num;
+                    tmp_cost = direct_cost[c];
+                    tmp_idx = pi->best_index[pidx][c];
 
-                        current_idx++;
-                        if (current_idx >= MMVD_SKIP_CON_NUM)
-                        {
-                            current_idx = (MMVD_SKIP_CON_NUM - 1);
-                        }
-                        insert_or_not = 1;
-                        break;
-                    }
+                    direct_cost[c] = direct_cost[c - 1];
+                    pi->best_index[pidx][c] = pi->best_index[pidx][c - 1];
+
+                    direct_cost[c - 1] = tmp_cost;
+                    pi->best_index[pidx][c - 1] = tmp_idx;
                 }
-                if (insert_or_not != 1)
+                else
                 {
-                    for (t = current_idx; t >= 1; t--)
-                    {
-                        direct_cost[t] = direct_cost[t - 1];
-                        pi->best_index[pidx][t] = pi->best_index[pidx][t - 1];
-                    }
-                    direct_cost[0] = temp_cost;
-                    pi->best_index[pidx][0] = c_num;
-
-                    current_idx++;
-                    if (current_idx >= MMVD_SKIP_CON_NUM)
-                    {
-                        current_idx = (MMVD_SKIP_CON_NUM - 1);
-                    }
+                    break;
                 }
             }
+            current_idx = EVC_MIN(current_idx + 1, MMVD_SKIP_CON_NUM - 1);
         }
     }
 #else

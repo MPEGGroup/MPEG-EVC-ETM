@@ -655,8 +655,8 @@ int lut_size_plus1[MAX_CU_LOG2 + 1] = {2048, 1365, 819, 455, 241, 124, 63, 32};/
 void ipred_bi(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h)
 {
     int x, y;
-    int ishift_x = evc_tbl_log2[w] < 2 ? 2 : evc_tbl_log2[w];
-    int ishift_y = evc_tbl_log2[h] < 2 ? 2 : evc_tbl_log2[h];
+    int ishift_x = evc_tbl_log2[w];
+    int ishift_y = evc_tbl_log2[h];
     int ishift = EVC_MIN(ishift_x, ishift_y);
     int ishift_xy = ishift_x + ishift_y + 1;
     int offset = 1 << (ishift_x + ishift_y);

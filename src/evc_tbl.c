@@ -331,7 +331,7 @@ const u8 evc_tbl_df_st[4][52] =
     },
 };
 
-u16 evc_split_tbl[6][SPLIT_CHECK_NUM][2];
+u16 evc_split_tbl[SPLIT_CHECK_NUM][2];
 
 const u8 evc_split_order[2][SPLIT_CHECK_NUM] =
 {

@@ -540,7 +540,6 @@ extern int fp_trace_counter;
 #define N_REF                              3  /* left, up, right */
 #define NUM_NEIB                           4  /* LR: 00, 10, 01, 11*/
 #define NUM_SUCO_FAST_NEIB                 1  /* other config, 1, 2, 4 */
-#define SUCO_SPLIT_HIGH_COMP               0  /* high complexity */
 
 #define MAX_CU_LOG2                        7
 #define MIN_CU_LOG2                        2
@@ -1255,9 +1254,9 @@ typedef struct _EVC_SPS
     int              log2_diff_max_11_min_11_cb_size;
     int              log2_diff_max_11_max_12_cb_size;
     int              log2_diff_min_11_min_12_cb_size_minus1;
-    int              log2_diff_max_12_max_14_cb_size;
+    int              log2_diff_max_12_max_14_cb_size_minus1;
     int              log2_diff_min_12_min_14_cb_size_minus1;
-    int              log2_diff_max_11_max_tt_cb_size;
+    int              log2_diff_max_11_max_tt_cb_size_minus1;
     int              log2_diff_min_11_min_tt_cb_size_minus2;
     int              log2_diff_ctu_size_max_suco_cb_size;
     int              log2_diff_max_suco_min_suco_cb_size;
@@ -1544,17 +1543,12 @@ typedef enum _SPLIT_DIR
 
 typedef enum _BLOCK_SHAPE
 {
-    NON_SQUARE_116,
-    NON_SQUARE_18,
     NON_SQUARE_14,
     NON_SQUARE_12,
     SQUARE,
     NON_SQUARE_21,
     NON_SQUARE_41,
-    NON_SQUARE_81,
-    NON_SQUARE_161,
     NUM_BLOCK_SHAPE,
-
 } BLOCK_SHAPE;
 
 #if ADMVP

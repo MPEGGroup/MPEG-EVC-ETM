@@ -48,9 +48,6 @@
 #define MIN_TX_VAL_32                      (-2147483647-1)
 #define ITX_CLIP_32(x) \
     (s32)(((x)<=MIN_TX_VAL_32)? MIN_TX_VAL_32: (((x)>=MAX_TX_VAL_32)? MAX_TX_VAL_32: (x)))
-
-#define DQUANT(c, scale, offset, shift) (((c)*(scale)+(offset))>>(shift))
-
 #ifdef X86_SSE
 #define MAC_8PEL_MEM(src1, src2, m01, m02, m03, m04, mac) \
     m01 = _mm_loadu_si128((__m128i*)(src1)); \
@@ -1270,20 +1267,20 @@ void evc_itrans_ats_intra(s16* coef, int log2_w, int log2_h, u8 ats_tu, int skip
     evc_it_MxN_ats_intra(coef, (1 << log2_w), (1 << log2_h), BIT_DEPTH, 15, ats_tu, skip_w, skip_h);
 }
 #endif
-
-static void evc_dquant(s16 *coef, int log2_w, int log2_h, u16 scale, s32 offset, u8 shift)
+static void evc_dquant(s16 *coef, int log2_w, int log2_h, int scale, s32 offset, u8 shift)
 {
     int i;
-    s32 lev;
+    s64 lev;
+
     const int ns_scale = ((log2_w + log2_h) & 1) ? 181 : 1;
     for(i = 0; i < (1 << (log2_w + log2_h)); i++)
     {
-        lev = DQUANT(coef[i], scale * ns_scale, offset, shift);
+        lev = (coef[i] * (scale * (s64)ns_scale) + offset) >> shift;
         coef[i] = (s16)EVC_CLIP(lev, -32768, 32767);
     }
 }
 
-void evc_itdq(s16 *coef, int log2_w, int log2_h, u16 scale, int iqt_flag
+void evc_itdq(s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag
 #if ATS_INTRA_PROCESS
               , u8 ats_intra_cu, u8 ats_tu
 #endif

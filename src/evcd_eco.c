@@ -288,10 +288,10 @@ static int eco_ats_inter_info(EVC_BSR * bs, EVCD_SBAC * sbac, int log2_cuw, int 
         u8 ats_inter_quad = 0;
         u8 ats_inter_pos = 0;
         int size = 1 << (log2_cuw + log2_cuh);
-        u8 ctx_ats_inter_flag = size >= 256 ? 0 : 1;
-        u8 ctx_ats_inter_quad = 2;
-        u8 ctx_ats_inter_dir = ((log2_cuw == log2_cuh) ? 0 : (log2_cuw < log2_cuh ? 1 : 2)) + 3;
-        u8 ctx_ats_inter_pos = 6;
+        u8 ctx_ats_inter_flag = sbac->ctx.sps_cm_init_flag == 1 ? (size >= 256 ? 0 : 1) : 0;
+        u8 ctx_ats_inter_quad = sbac->ctx.sps_cm_init_flag == 1 ? 2 : 1;
+        u8 ctx_ats_inter_dir = sbac->ctx.sps_cm_init_flag == 1 ? (((log2_cuw == log2_cuh) ? 0 : (log2_cuw < log2_cuh ? 1 : 2)) + 3) : 2;
+        u8 ctx_ats_inter_pos = sbac->ctx.sps_cm_init_flag == 1 ? 6 : 3;
 
         EVC_SBAC_CTX * sbac_ctx;
         sbac_ctx = &sbac->ctx;
@@ -1126,7 +1126,7 @@ int evcd_eco_coef(EVCD_CTX * ctx, EVCD_CORE * core)
 #if ATS_INTRA_PROCESS
                 if (ctx->sps.tool_ats_intra && cbf[Y_C] && (core->log2_cuw <= 5 && core->log2_cuh <= 5) && is_intra)
                 {
-                    ats_intra_cu_on = evcd_eco_ats_intra_cu(bs, sbac, ((core->log2_cuw > core->log2_cuh) ? core->log2_cuw : core->log2_cuh) - MIN_CU_LOG2);
+                    ats_intra_cu_on = evcd_eco_ats_intra_cu(bs, sbac, sbac->ctx.sps_cm_init_flag == 1 ? ((core->log2_cuw > core->log2_cuh) ? core->log2_cuw : core->log2_cuh) - MIN_CU_LOG2 : 0);
                     ats_tu_mode = 0;
                     if (ats_intra_cu_on)
                     {
@@ -1556,10 +1556,8 @@ s8 evcd_eco_split_mode(EVCD_CTX * c, EVC_BSR *bs, EVCD_SBAC *sbac, int cuw, int 
     int sps_cm_init_flag = sbac->ctx.sps_cm_init_flag;
     s8 split_mode = NO_SPLIT;
     int ctx = 0;
-    int order_idx = cuw >= cuh ? 0 : 1;
-    u32 t0;
     int split_allow[SPLIT_CHECK_NUM];
-    int i, split_mode_sum;
+    int i;
 
     if(cuw < 8 && cuh < 8)
     {
@@ -1579,23 +1577,17 @@ s8 evcd_eco_split_mode(EVCD_CTX * c, EVC_BSR *bs, EVCD_SBAC *sbac, int cuw, int 
         return split_mode;
     }
 
-    evc_check_split_mode(split_allow, CONV_LOG2(cuw), CONV_LOG2(cuh), 0, 0, 0, c->log2_max_cuwh, c->sh.layer_id
+    evc_check_split_mode(split_allow, CONV_LOG2(cuw), CONV_LOG2(cuh), 0, 0, 0, c->log2_max_cuwh
                           , parent_split, same_layer_split, node_idx, parent_split_allow, qt_depth, btt_depth
                           , x, y, c->w, c->h
                           , NULL, c->sps.sps_btt_flag);
-    split_mode_sum = 1;
 
     for(i = 1; i < SPLIT_CHECK_NUM; i++)
     {
-        split_mode_sum += split_allow[evc_split_order[order_idx][i]];
         curr_split_allow[i] = split_allow[i];
     }
 
-    if(split_mode_sum == 1)
-    {
-        t0 = 0;
-    }
-    else
+    if(split_allow[SPLIT_BI_VER] || split_allow[SPLIT_BI_HOR] || split_allow[SPLIT_TRI_VER] || split_allow[SPLIT_TRI_HOR])
     {
         int log2_cuw = CONV_LOG2(cuw);
         int log2_cuh = CONV_LOG2(cuh);
@@ -1639,77 +1631,45 @@ s8 evcd_eco_split_mode(EVCD_CTX * c, EVC_BSR *bs, EVCD_SBAC *sbac, int cuw, int 
         {
             ctx = 0;
         }
-
-        t0 = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.btt_split_flag + ctx); /* btt_split_flag */
-        if(!t0)
+                
+        int btt_split_flag = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.btt_split_flag + ctx); /* btt_split_flag */
+        if(btt_split_flag)
         {
-            split_mode = NO_SPLIT;
-        }
-        else
-        {
-            u8 HBT = split_allow[SPLIT_BI_HOR];
-            u8 VBT = split_allow[SPLIT_BI_VER];
-            u8 HTT = split_allow[SPLIT_TRI_HOR];
-            u8 VTT = split_allow[SPLIT_TRI_VER];
-            u8 sum = HBT + VBT + HTT + VTT;
             u8 ctx_dir = sps_cm_init_flag == 1 ? (log2_cuw - log2_cuh + 2) : 0;
             u8 ctx_typ = 0;
-            u8 split_dir, split_typ;
+            u8 btt_split_dir, btt_split_type;
 
-            if(sum == 4)
+            if((split_allow[SPLIT_BI_VER] || split_allow[SPLIT_TRI_VER]) &&
+               (split_allow[SPLIT_BI_HOR] || split_allow[SPLIT_TRI_HOR]))
             {
-                split_dir = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.btt_split_dir + ctx_dir); /* btt_split_dir */
-                split_typ = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.btt_split_type + ctx_typ); /* btt_split_type */
+                btt_split_dir = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.btt_split_dir + ctx_dir); /* btt_split_dir */
             }
-            else if(sum == 3)
-            {
-                split_dir = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.btt_split_dir + ctx_dir); /* btt_split_dir */
-                if(!HBT || !HTT)
-                {
-                    if(split_dir)
-                        split_typ = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.btt_split_type + ctx_typ); /* btt_split_type */
-                    else
-                        split_typ = !HBT;
-                }
-                else// if(!VBT || !VTT)
-                {
-                    if(!split_dir)
-                        split_typ = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.btt_split_type + ctx_typ); /* btt_split_type */
-                    else
-                        split_typ = !VBT;
-                }
-            }
-            else if(sum == 2)
-            {
-                if((HBT && HTT) || (VBT && VTT))
-                {
-                    split_dir = !HBT;
-                    split_typ = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.btt_split_type + ctx_typ); /* btt_split_type */
-                }
-                else
-                {
-                    split_dir = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.btt_split_dir + ctx_dir); /* btt_split_dir */
-
-                    if(!HTT && !VTT)
-                        split_typ = 0;
-                    else if(HBT && VTT)
-                        split_typ = split_dir;
-                    else if(VBT && HTT)
-                        split_typ = !split_dir;
-                    else
-                        assert(0);
-                }
-            }
-            else // if(sum==1)
-            {
-                split_dir = (VBT || VTT);
-                split_typ = (HTT || VTT);
-            }
-
-            if(split_typ == 0) //BT
-                split_mode = split_dir ? SPLIT_BI_VER : SPLIT_BI_HOR;
             else
-                split_mode = split_dir ? SPLIT_TRI_VER : SPLIT_TRI_HOR;
+            {
+                if(split_allow[SPLIT_BI_VER] || split_allow[SPLIT_TRI_VER])
+                    btt_split_dir = 1;
+                else
+                    btt_split_dir = 0;
+            }
+
+            if((btt_split_dir && split_allow[SPLIT_BI_VER] && split_allow[SPLIT_TRI_VER]) ||
+              (!btt_split_dir && split_allow[SPLIT_BI_HOR] && split_allow[SPLIT_TRI_HOR]))
+            {
+                btt_split_type = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.btt_split_type + ctx_typ); /* btt_split_type */
+            }
+            else
+            {
+                if((btt_split_dir && split_allow[SPLIT_TRI_VER]) ||
+                  (!btt_split_dir && split_allow[SPLIT_TRI_HOR]))
+                    btt_split_type = 1;
+                else
+                    btt_split_type = 0;
+            }
+
+            if(btt_split_type == 0) // BT
+                split_mode = btt_split_dir ? SPLIT_BI_VER : SPLIT_BI_HOR;
+            else
+                split_mode = btt_split_dir ? SPLIT_TRI_VER : SPLIT_TRI_HOR;
         }
     }
     EVC_TRACE_STR("split mode ");
@@ -2333,9 +2293,9 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
         sps->log2_diff_max_11_min_11_cb_size = (u32)evc_bsr_read_ue(bs);
         sps->log2_diff_max_11_max_12_cb_size = (u32)evc_bsr_read_ue(bs);
         sps->log2_diff_min_11_min_12_cb_size_minus1 = (u32)evc_bsr_read_ue(bs);
-        sps->log2_diff_max_12_max_14_cb_size = (u32)evc_bsr_read_ue(bs);
+        sps->log2_diff_max_12_max_14_cb_size_minus1 = (u32)evc_bsr_read_ue(bs);
         sps->log2_diff_min_12_min_14_cb_size_minus1 = (u32)evc_bsr_read_ue(bs);
-        sps->log2_diff_max_11_max_tt_cb_size = (u32)evc_bsr_read_ue(bs);
+        sps->log2_diff_max_11_max_tt_cb_size_minus1 = (u32)evc_bsr_read_ue(bs);
         sps->log2_diff_min_11_min_tt_cb_size_minus2 = (u32)evc_bsr_read_ue(bs);
     }
     sps->sps_suco_flag = (u32)evc_bsr_read1(bs);

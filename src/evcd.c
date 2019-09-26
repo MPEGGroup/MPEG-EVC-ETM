@@ -1282,19 +1282,13 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
                 }
                 else if(boundary_b)
                 {
-                    if(cuw == 128 && cuh == 128)
-                        split_mode = SPLIT_BI_VER;
-                    else
-                        split_mode = SPLIT_BI_HOR;
+                    split_mode = SPLIT_BI_HOR;
                 }
                 else if(boundary_r)
                 {
-                    if(cuw == 128 && cuh == 128)
-                        split_mode = SPLIT_BI_HOR;
-                    else
-                        split_mode = SPLIT_BI_VER;
+                    split_mode = SPLIT_BI_VER;
                 }
-                else if(boundary && !boundary_b && !boundary_r)
+                else if(!boundary_b && !boundary_r)
                 {
                     split_mode = SPLIT_QUAD;
                 }
@@ -1303,46 +1297,48 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
             {
                 if(cuw > cuh)
                 {
-                    if(boundary)
+                    if(boundary_b)
                     {
-                        if(boundary_b)
-                        {
-                            split_mode = SPLIT_BI_HOR;
-                        }
-                        else if(boundary_r)
+                        if (log2_cuw == 7 && log2_cuh == 6)
                         {
                             split_mode = SPLIT_BI_VER;
                         }
                         else
                         {
-                            split_mode = SPLIT_QUAD;
+                            split_mode = SPLIT_BI_HOR;
                         }
+
+                    }
+                    else if(boundary_r)
+                    {
+                        split_mode = SPLIT_BI_VER;
                     }
                     else
                     {
-                        split_mode = evcd_eco_split_mode(ctx, bs, sbac, cuw, cuh, parent_split, same_layer_split, node_idx, parent_split_allow, split_allow, qt_depth, btt_depth, x0, y0);
+                        assert(0);
+
                     }
                 }
                 else
                 {
-                    if(boundary)
+                    if(boundary_b)
                     {
-                        if(boundary_b)
+                        split_mode = SPLIT_BI_HOR;
+                    }
+                    else if(boundary_r)
+                    {
+                        if (log2_cuw == 6 && log2_cuh == 7)
                         {
                             split_mode = SPLIT_BI_HOR;
                         }
-                        else if(boundary_r)
-                        {
-                            split_mode = SPLIT_BI_VER;
-                        }
                         else
                         {
-                            split_mode = SPLIT_QUAD;
+                            split_mode = SPLIT_BI_VER;
                         }
                     }
                     else
                     {
-                        split_mode = evcd_eco_split_mode(ctx, bs, sbac, cuw, cuh, parent_split, same_layer_split, node_idx, parent_split_allow, split_allow, qt_depth, btt_depth, x0, y0);
+                        assert(0);
                     }
                 }
             }
