@@ -446,8 +446,7 @@ typedef struct _EVCE_CDSC
     int            use_dqp;
     int            cu_qp_delta_area;
 #endif
-    int            tool_ats_intra;
-    int            tool_ats_inter;
+    int            tool_ats;
     int            constrained_intra_pred;
     int            deblock_aplha_offset;
     int            deblock_beta_offset;
