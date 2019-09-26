@@ -280,6 +280,9 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 #if M49023_ADMVP_IMPROVE 
     , EVC_SH* sh
 #endif
+#if TMVP_ALIGN_SPEC
+    , int log2_max_cuwh
+#endif
 )
 {
     int idx0, idx1, cnt;
@@ -368,6 +371,9 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 #if M49023_ADMVP_IMPROVE
             , (EVC_REFP(*)[2])refp
             , sh
+#endif
+#if TMVP_ALIGN_SPEC
+            , log2_max_cuwh
 #endif
         );
 #endif
@@ -1778,7 +1784,11 @@ void evc_get_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int num_re
 
 #if MERGE_MVP
 #if ADMVP
-static int evc_get_right_below_scup_qc_merge(int scup, int cuw, int cuh, int w_scu, int h_scu, int bottom_right)
+static int evc_get_right_below_scup_qc_merge(int scup, int cuw, int cuh, int w_scu, int h_scu, int bottom_right
+#if TMVP_ALIGN_SPEC
+    , int log2_max_cuwh
+#endif
+)
 {
     int scuw = cuw >> MIN_CU_LOG2;
     int scuh = cuh >> MIN_CU_LOG2;
@@ -1790,20 +1800,38 @@ static int evc_get_right_below_scup_qc_merge(int scup, int cuw, int cuh, int w_s
     {
         if (y_scu + 1 >= h_scu)
             return -1;
+#if TMVP_ALIGN_SPEC
+        else if ( ((y_scu + 1) << MIN_CU_LOG2 >> log2_max_cuwh) != (y_scu << MIN_CU_LOG2 >> log2_max_cuwh) )
+            return -1; // check same CTU row, align to spec
+        else
+            return (y_scu + 1) * w_scu + (x_scu);
+#else
         else
             return (y_scu + 1)*w_scu + x_scu;
+#endif
     }
     else if (bottom_right == 1)        // fetch bottom-to-right sample
     {
         if (x_scu + 1 >= w_scu)
             return -1;
+#if TMVP_ALIGN_SPEC
+        else if ( ((x_scu + 1) << MIN_CU_LOG2 >> log2_max_cuwh) != (x_scu << MIN_CU_LOG2 >> log2_max_cuwh) )
+            return -1; // check same CTU column, align to spec
+        else
+            return (y_scu) * w_scu + (x_scu + 1);
+#else
         else
             return y_scu*w_scu + (x_scu + 1);
+#endif
     }
     return -1;
 }
 
-static int evc_get_right_below_scup_qc_merge_suco(int scup, int cuw, int cuh, int w_scu, int h_scu, int bottom_right)
+static int evc_get_right_below_scup_qc_merge_suco(int scup, int cuw, int cuh, int w_scu, int h_scu, int bottom_right
+#if TMVP_ALIGN_SPEC
+    , int log2_max_cuwh
+#endif
+)
 {
     int scuw = cuw >> MIN_CU_LOG2;
     int scuh = cuh >> MIN_CU_LOG2;
@@ -1813,17 +1841,31 @@ static int evc_get_right_below_scup_qc_merge_suco(int scup, int cuw, int cuh, in
 
     if (bottom_right == 0)            // fetch bottom sample
     {
-        if (y_scu + 1 >= h_scu)
+        if ( y_scu + 1 >= h_scu )
             return -1;
+#if TMVP_ALIGN_SPEC
+        else if ( ((y_scu + 1) << MIN_CU_LOG2 >> log2_max_cuwh) != (y_scu << MIN_CU_LOG2 >> log2_max_cuwh) )
+            return -1; // check same CTU row, align to spec
+        else
+            return (y_scu + 1) * w_scu + (x_scu + 1);  // bottom sample
+#else
         else
             return (y_scu + 1)*w_scu + x_scu + 1;  // bottom sample
+#endif
     }
     else if (bottom_right == 1)        // fetch bottom-to-left sample
     {
         if (x_scu < 0)
             return -1;
+#if TMVP_ALIGN_SPEC
+        else if ( ((x_scu + 1) << MIN_CU_LOG2 >> log2_max_cuwh) != (x_scu << MIN_CU_LOG2 >> log2_max_cuwh) )
+            return -1; // check same CTU column, align to spec
+        else
+            return (y_scu) * w_scu + (x_scu);
+#else
         else
             return y_scu * w_scu + x_scu;
+#endif
     }
     return -1;
 }
@@ -1922,6 +1964,9 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
     , EVC_REFP(*refplx)[REFP_NUM]
 #if M49023_ADMVP_IMPROVE 
     , EVC_SH* sh
+#endif
+#if TMVP_ALIGN_SPEC
+    , int log2_max_cuwh
 #endif
 )
 {
@@ -2051,6 +2096,17 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
             mvp[REFP_1][cnt][MV_X] = 0;
             mvp[REFP_1][cnt][MV_Y] = 0;
         }
+#if TMVP_ALIGN_SPEC // remove pruning of TMVP (align with spec)
+        if ( availablePredIdx != 0 )
+        {
+            cnt++;
+            tmvp_added = 1;
+            if ( cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP) )
+            {
+                return;
+            }
+        }
+#else
         tmvp_cnt_pos0 = cnt;
         if (availablePredIdx != 0)
         {
@@ -2064,15 +2120,24 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
                 return;
             }
         }
+#endif
     } // TMVP-central
     if (!tmvp_added)
     {// Bottom first
         s8 availablePredIdx = 0;
         tmpvBottomRight = 0;
         if (avail_lr == LR_01)
-            scup_tmp = evc_get_right_below_scup_qc_merge_suco(scup, cuw, cuh, w_scu, h_scu, tmpvBottomRight);
+            scup_tmp = evc_get_right_below_scup_qc_merge_suco(scup, cuw, cuh, w_scu, h_scu, tmpvBottomRight
+#if TMVP_ALIGN_SPEC
+                , log2_max_cuwh
+#endif
+            );
         else
-            scup_tmp = evc_get_right_below_scup_qc_merge(scup, cuw, cuh, w_scu, h_scu, tmpvBottomRight);
+            scup_tmp = evc_get_right_below_scup_qc_merge(scup, cuw, cuh, w_scu, h_scu, tmpvBottomRight
+#if TMVP_ALIGN_SPEC
+                , log2_max_cuwh
+#endif
+            );
         if (scup_tmp != -1)  // if available, add it to candidate list
         {
             evc_get_mv_collocated(
@@ -2106,6 +2171,17 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
                 mvp[REFP_1][cnt][MV_X] = 0;
                 mvp[REFP_1][cnt][MV_Y] = 0;
             }
+#if TMVP_ALIGN_SPEC // remove pruning of TMVP (align with spec)
+            if ( availablePredIdx != 0 )
+            {
+                cnt++;
+                tmvp_added = 1;
+                if ( cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP) )
+                {
+                    return;
+                }
+            }
+#else
             tmvp_cnt_pos0 = cnt;
             if (availablePredIdx != 0)
             {
@@ -2119,15 +2195,24 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
                     return;
                 }
             }
+#endif
         }
     }
     if (!tmvp_added)
     {
         s8 availablePredIdx = 0;
         if (avail_lr == LR_01)
-            scup_tmp = evc_get_right_below_scup_qc_merge_suco(scup, cuw, cuh, w_scu, h_scu, !tmpvBottomRight);
+            scup_tmp = evc_get_right_below_scup_qc_merge_suco(scup, cuw, cuh, w_scu, h_scu, !tmpvBottomRight
+#if TMVP_ALIGN_SPEC
+                , log2_max_cuwh
+#endif
+            );
         else
-            scup_tmp = evc_get_right_below_scup_qc_merge(scup, cuw, cuh, w_scu, h_scu, !tmpvBottomRight);
+            scup_tmp = evc_get_right_below_scup_qc_merge(scup, cuw, cuh, w_scu, h_scu, !tmpvBottomRight
+#if TMVP_ALIGN_SPEC
+                , log2_max_cuwh
+#endif
+            );
         if (scup_tmp != -1)  // if available, add it to candidate list
         {
             evc_get_mv_collocated(
@@ -2161,6 +2246,17 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
                 mvp[REFP_1][cnt][MV_X] = 0;
                 mvp[REFP_1][cnt][MV_Y] = 0;
             }
+#if TMVP_ALIGN_SPEC // remove pruning of TMVP (align with spec)
+            if ( availablePredIdx != 0 )
+            {
+                cnt++;
+                tmvp_added = 1;
+                if ( cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP) )
+                {
+                    return;
+                }
+            }
+#else
             tmvp_cnt_pos0 = cnt;
             if (availablePredIdx != 0)
             {
@@ -2174,6 +2270,7 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
                     return;
                 }
             }
+#endif
         }
     }
 #endif

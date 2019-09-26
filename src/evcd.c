@@ -626,6 +626,9 @@ void evcd_get_direct_motion(EVCD_CTX * ctx, EVCD_CORE * core)
             , (EVC_REFP(*)[2])ctx->refp[0]
             , &ctx->sh
 #endif
+#if TMVP_ALIGN_SPEC
+            , ctx->log2_max_cuwh
+#endif
         );
     }
 #endif
