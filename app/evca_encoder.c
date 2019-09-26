@@ -163,6 +163,11 @@ static int  op_deblock_beta_offset = 0;  /* default offset 0*/
 static char  op_rpl0[MAX_NUM_RPLS][256];
 static char  op_rpl1[MAX_NUM_RPLS][256];
 
+#if DQP_CFG
+static int  op_use_dqp             = 0; /*default cu_delta_qp is off*/
+static int  op_cu_qp_delta_area    = 6; /*default cu_delta_qp_area is 6 (i.e. 64)*/
+#endif
+
 typedef enum _OP_FLAGS
 {
     OP_FLAG_FNAME_CFG,
@@ -172,6 +177,10 @@ typedef enum _OP_FLAGS
     OP_FLAG_WIDTH_INP,
     OP_FLAG_HEIGHT_INP,
     OP_FLAG_QP,
+#if DQP_CFG
+    OP_FLAG_USE_DQP,
+    OP_FLAG_CU_QP_DELTA_AREA,
+#endif
     OP_FLAG_FPS,
     OP_FLAG_IPERIOD,
     OP_FLAG_MAX_FRM_NUM,
@@ -328,6 +337,18 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_FLAG_QP], &op_qp,
         "QP value (0~51)"
     },
+#if DQP_CFG
+    {
+     EVC_ARGS_NO_KEY,  "use_dqp", EVC_ARGS_VAL_TYPE_INTEGER,
+     &op_flag[OP_FLAG_USE_DQP], &op_use_dqp,
+     "use_dqp (0, 1)(default: 0) "
+    },
+    {
+        EVC_ARGS_NO_KEY,  "cu_qp_delta_area", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_FLAG_CU_QP_DELTA_AREA], &op_cu_qp_delta_area,
+        "cu_qp_delta_area (>= 6)(default: 6) "
+    },
+#endif
     {
         'z',  "hz", EVC_ARGS_VAL_TYPE_INTEGER|EVC_ARGS_VAL_TYPE_MANDATORY,
         &op_flag[OP_FLAG_FPS], &op_fps,
@@ -897,6 +918,10 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->level = op_level;
     cdsc->btt = op_btt;
     cdsc->suco = op_suco;
+#if DQP_CFG
+    cdsc->use_dqp = op_use_dqp;
+    cdsc->cu_qp_delta_area = op_cu_qp_delta_area;
+#endif
 #if HLS_M47668
     cdsc->ref_pic_gap_length = op_ref_pic_gap_length;
 #endif

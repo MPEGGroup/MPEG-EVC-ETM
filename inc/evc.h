@@ -40,6 +40,10 @@
 extern "C"
 {
 #endif
+
+#define USE_TILE_GROUP_DQP              1
+#define DQP_CFG                         1
+
 /*****************************************************************************
  * return values and error code
  *****************************************************************************/
@@ -438,6 +442,10 @@ typedef struct _EVCE_CDSC
     int            tool_adcc;
     int            cb_qp_offset;
     int            cr_qp_offset;
+#if DQP_CFG
+    int            use_dqp;
+    int            cu_qp_delta_area;
+#endif
     int            tool_ats_intra;
     int            tool_ats_inter;
     int            constrained_intra_pred;

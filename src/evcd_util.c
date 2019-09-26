@@ -361,7 +361,19 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
                 MCU_CLR_MMVDS(map_cu_mode[j]);
             }
 
+#if DQP
+            if(ctx->pps.cu_qp_delta_enabled_flag)
+            {
+                MCU_RESET_QP(map_scu[j]);
+                MCU_SET_IF_COD_SN_QP(map_scu[j], flag, ctx->slice_num, core->qp);
+            }
+            else
+            {
+                MCU_SET_IF_COD_SN_QP(map_scu[j], flag, ctx->slice_num, ctx->sh.qp);
+            }
+#else
             MCU_SET_IF_COD_SN_QP(map_scu[j], flag, ctx->slice_num, ctx->sh.qp);
+#endif
 
             map_refi[j][REFP_0] = core->refi[REFP_0];
             map_refi[j][REFP_1] = core->refi[REFP_1];
@@ -636,7 +648,7 @@ static int draw_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y,
     lcu_num = (x >> ctx->log2_max_cuwh) + (y >> ctx->log2_max_cuwh) * ctx->w_lcu;
     evc_get_split_mode(&split_mode, cud, cup, cuw, cuh, ctx->max_cuwh, ctx->map_split[lcu_num]);
 
-    if (split_mode != NO_SPLIT && !(cuw == 4 && cuh == 4) && next_split)
+    if (split_mode != NO_SPLIT && !(cuw == 4 && cuh == 4))
     {
         if (split_mode == SPLIT_BI_VER)
         {

@@ -182,7 +182,10 @@ void evce_rdo_bit_cnt_cu_intra_luma(EVCE_CTX *ctx, EVCE_CORE *core, s32 slice_ty
 #endif
 #if ADCC  
             , ctx
-#endif   
+#endif
+#if DQP
+                  , core, 0, 0
+#endif
     );
 }
 
@@ -207,7 +210,10 @@ void evce_rdo_bit_cnt_cu_intra_chroma(EVCE_CTX *ctx, EVCE_CORE *core, s32 slice_
 #endif
 #if ADCC  
             , ctx
-#endif   
+#endif
+#if DQP
+                  , core, 0, 0
+#endif
     );
 }
 
@@ -246,7 +252,10 @@ void evce_rdo_bit_cnt_cu_intra(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
 #endif
 #if ADCC  
             , ctx
-#endif   
+#endif
+#if DQP
+                  , core, 0, 0
+#endif
     );
 }
 
@@ -273,7 +282,11 @@ void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM],
 #endif
 #if ADCC  
             , ctx
-#endif   
+#endif
+#if DQP
+            , core, 0, 0
+#endif
+
         );
     }
        
@@ -288,7 +301,10 @@ void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM],
 #endif
 #if ADCC  
             , ctx
-#endif   
+#endif
+#if DQP
+            , core, 0, 0
+#endif
         );
     }
 
@@ -303,7 +319,10 @@ void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM],
 #endif
 #if ADCC  
             , ctx
-#endif   
+#endif
+#if DQP
+            , core, 0, 0
+#endif
         );
     }
 }
@@ -331,6 +350,9 @@ void evce_rdo_bit_cnt_cu_ibc(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s
 #if ADCC  
     , ctx
 #endif   
+#if DQP
+    , core, 0, 0
+#endif
   );
 }
 #endif
@@ -582,7 +604,6 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
             }
         }
     }
-
     evce_eco_coef(&core->bs_temp, coef, core->log2_cuw, core->log2_cuh, MODE_INTER, core->nnz_sub, b_no_cbf, RUN_L | RUN_CB | RUN_CR
 #if ATS_INTRA_PROCESS
         , 0, 0, 0
@@ -592,7 +613,10 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
 #endif
 #if ADCC  
         , ctx
-#endif    
+#endif
+#if DQP
+        , core, 0, 0
+#endif
     );
 }
 
@@ -1086,12 +1110,29 @@ static int get_cu_pred_data(EVCE_CU_DATA *src, int x, int y, int log2_cuw, int l
     return EVC_OK;
 }
 #endif
+#if DQP
+s8 get_dqp_for_blk(EVCE_CTX * ctx, EVCE_CORE * core)
+{
+    s8 dqp;
+    int x_scu_pos, y_scu_pos, scup_pos;
 
+    x_scu_pos = core->x_dqp >> MIN_CU_LOG2;
+    y_scu_pos = core->y_dqp >> MIN_CU_LOG2;
+    scup_pos = x_scu_pos + y_scu_pos * ctx->w_scu;
+
+    dqp = ctx->map_input_dqp[scup_pos];
+
+    return  dqp;
+}
+#endif
 static int mode_cu_init(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int log2_cuw, int log2_cuh, int cud)
 {
 #if TRACE_ENC_CU_DATA
     static u64  trace_idx = 1;
     core->trace_idx = trace_idx++;
+#endif
+#if DQP
+    u8 qp_added_dqp;
 #endif
     core->cuw = 1 << log2_cuw;
     core->cuh = 1 << log2_cuh;
@@ -1119,7 +1160,35 @@ static int mode_cu_init(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int log2
 #if ATS_INTER_PROCESS
     core->ats_inter_info = 0;
 #endif
+#if DQP
+    /* Getting the appropriate QP based on dqp table*/
+    int qp_i_cb, qp_i_cr;
+    if(ctx->pps.cu_qp_delta_enabled_flag)
+    {
+        qp_added_dqp = GET_QP(ctx->sh.qp, get_dqp_for_blk(ctx, core));
+    }
+    else
+    {
+        qp_added_dqp = GET_QP(ctx->sh.qp, 0);
+    }
 
+    core->qp = qp_added_dqp;
+    core->qp_y = GET_LUMA_QP(core->qp);
+
+    qp_i_cb = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_u));
+    qp_i_cr = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_v));
+
+    core->qp_u = evc_tbl_qp_chroma_ajudst[qp_i_cb] + 6 * (BIT_DEPTH - 8);
+    core->qp_v = evc_tbl_qp_chroma_ajudst[qp_i_cr] + 6 * (BIT_DEPTH - 8);
+
+    ctx->pinter.qp_y = core->qp_y;
+    ctx->pinter.qp_u = core->qp_u;
+    ctx->pinter.qp_v = core->qp_v;
+
+    ctx->pibc.qp_y = core->qp_y;
+    ctx->pibc.qp_u = core->qp_u;
+    ctx->pibc.qp_v = core->qp_v;
+#endif
     evce_rdoq_bit_est(&core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
 
     return EVC_OK;
@@ -1413,10 +1482,29 @@ static void copy_to_cu_data(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi, s16 c
                     cu_data->nnz_sub[c][sb][idx + i] = core->nnz_sub[c][sb];
                 }
             }
+#if DQP
+            if(ctx->pps.cu_qp_delta_enabled_flag)
+            {
+                cu_data->qp_y[idx + i] = core->qp_y;
+                cu_data->qp_u[idx + i] = core->qp_u;
+                cu_data->qp_v[idx + i] = core->qp_v;
+                MCU_RESET_QP(cu_data->map_scu[idx + i]);
+                MCU_SET_IF_COD_SN_QP(cu_data->map_scu[idx + i], core->cu_mode == MODE_INTRA, ctx->slice_num, core->qp);
+            }
+            else
+            {
+                cu_data->qp_y[idx + i] = core->qp_y;
+                cu_data->qp_u[idx + i] = core->qp_u;
+                cu_data->qp_v[idx + i] = core->qp_v;
+                MCU_RESET_QP(cu_data->map_scu[idx + i]);
+                MCU_SET_IF_COD_SN_QP(cu_data->map_scu[idx + i], core->cu_mode == MODE_INTRA, ctx->slice_num, ctx->sh.qp);
+            }
+#else
             cu_data->qp_y[idx + i] = core->qp_y;
             cu_data->qp_u[idx + i] = core->qp_u;
             cu_data->qp_v[idx + i] = core->qp_v;
             MCU_SET_IF_COD_SN_QP(cu_data->map_scu[idx + i], core->cu_mode == MODE_INTRA, ctx->slice_num, ctx->sh.qp);
+#endif
             if(cu_data->skip_flag[idx + i])
             {
                 MCU_SET_SF(cu_data->map_scu[idx + i]);
@@ -1700,6 +1788,11 @@ static void update_map_scu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int src
     int   w, h, i, size, size_ipm, size_mv, size_refi;
     int   log2_src_cuw, log2_src_cuh;
     int   scu_x, scu_y;
+#if DQP
+    u8 * map_qp_used;
+    u8 * src_qp;
+    int size_qp;
+#endif
 #if AFFINE
     u32  *map_affine = 0, *src_map_affine = 0;
 #endif
@@ -1745,6 +1838,11 @@ static void update_map_scu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int src
     map_cu_mode = ctx->map_cu_mode + scu_y * ctx->w_scu + scu_x;
     src_map_cu_mode = core->cu_data_best[log2_src_cuw - 2][log2_src_cuh - 2].map_cu_mode;
 
+#if DQP
+    map_qp_used = ctx->map_dqp_used + scu_y * ctx->w_scu + scu_x;
+    src_qp = core->cu_data_best[log2_src_cuw - 2][log2_src_cuh - 2].qp_y;
+#endif
+
     if(x + src_cuw > ctx->w)
     {
         w = (ctx->w - x) >> MIN_CU_LOG2;
@@ -1769,6 +1867,9 @@ static void update_map_scu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int src
     size_refi = sizeof(s8) * w * REFP_NUM;
     size_block_size = sizeof(s16) * w * 2;
     size_depth = sizeof(s8) * w;
+#if DQP
+    size_qp = sizeof(s8) * w;
+#endif
 
     for(i = 0; i < h; i++)
     {
@@ -1820,6 +1921,11 @@ static void update_map_scu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int src
         evc_mcpy(map_cu_mode, src_map_cu_mode, size);
         map_cu_mode += ctx->w_scu;
         src_map_cu_mode += (src_cuw >> MIN_CU_LOG2);
+#if DQP
+        evc_mcpy(map_qp_used, src_qp, size_qp);
+        map_qp_used += ctx->w_scu;
+        src_qp += (src_cuw >> MIN_CU_LOG2);
+#endif
     }
 }
 
@@ -2622,7 +2728,20 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
                     ctx->map_mv[k][REFP_1][MV_X] = mv[REFP_1][MV_X];
                     ctx->map_mv[k][REFP_1][MV_Y] = mv[REFP_1][MV_Y];
                 }
+#if DQP
+                if(ctx->pps.cu_qp_delta_enabled_flag)
+                {
+                    MCU_RESET_QP(ctx->map_scu[k]);
+                    MCU_SET_QP(ctx->map_scu[k], ctx->core->qp);
+                }
+                else
+                {
+                    MCU_SET_QP(ctx->map_scu[k], ctx->sh.qp);
+                }
+
+#else
                 MCU_SET_QP(ctx->map_scu[k], ctx->sh.qp); //TODO: this is wrong when using cu delta qp
+#endif
 
                 //clear coded (necessary)
                 MCU_CLR_COD(ctx->map_scu[k]);
@@ -2951,7 +3070,6 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
     int cud_max = cud;
     int cud_avg = cud;
 #endif
-
 #if ADMVP
     // stroe the previous stored history MV list to m_pSplitTempMotLUTs, backup
     EVC_HISTORY_BUFFER OrigMotLUT, TempSubMotLUT;
@@ -3049,6 +3167,13 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                 evce_sbac_bit_reset(&core->s_temp_run);
                 evc_set_split_mode(NO_SPLIT, cud, 0, cuw, cuh, cuw, core->cu_data_temp[log2_cuw - 2][log2_cuh - 2].split_mode);
                 evce_eco_split_mode(&core->bs_temp, ctx, core, cud, 0, cuw, cuh, cuw, parent_split, same_layer_split, node_idx, parent_split_allow, curr_split_allow, qt_depth, btt_depth, x0, y0);
+#if DQP
+                if (ctx->pps.cu_qp_delta_enabled_flag && (!ctx->sps.dquant_flag || (log2_cuw + log2_cuh >= ctx->pps.cu_qp_delta_area && core->cu_qp_delta_code_mode != 2)))
+                {
+                    core->x_dqp = x0;
+                    core->y_dqp = y0;
+                }
+#endif
                 bit_cnt = evce_get_bit_number(&core->s_temp_run);
                 cost_temp += RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);
                 SBAC_STORE(core->s_curr_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_run);
@@ -3227,7 +3352,9 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                         evc_split_get_suco_order(suco_flag, split_mode, suco_order);
                         int prev_log2_sub_cuw = split_struct.log_cuw[suco_order[0]];
                         int prev_log2_sub_cuh = split_struct.log_cuh[suco_order[0]];
-
+#if DQP
+                        int is_dqp_set = 0;
+#endif
                         if(num_suco == 2)
                         {
                             if(prev_suco > 0 && suco_flag != (prev_suco - 1) && allow_suco)
@@ -3255,7 +3382,16 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                             evce_sbac_bit_reset(&core->s_temp_run);
                             evc_set_split_mode(split_mode, cud, 0, cuw, cuh, cuw, core->cu_data_temp[log2_cuw - 2][log2_cuh - 2].split_mode);
                             evce_eco_split_mode(&core->bs_temp, ctx, core, cud, 0, cuw, cuh, cuw, parent_split, same_layer_split, node_idx, parent_split_allow, curr_split_allow, qt_depth, btt_depth, x0, y0);
-       
+#if DQP
+                            if (ctx->pps.cu_qp_delta_enabled_flag && ctx->sps.dquant_flag && ((log2_cuw + log2_cuh == ctx->pps.cu_qp_delta_area + 1 && (split_mode == SPLIT_TRI_VER || split_mode == SPLIT_TRI_HOR)) ||
+                                (log2_cuw + log2_cuh == ctx->pps.cu_qp_delta_area && core->cu_qp_delta_code_mode != 2)))
+                            {
+                                core->x_dqp = x0;
+                                core->y_dqp = y0;
+                                core->cu_qp_delta_code_mode = 2;
+                                is_dqp_set = 1;
+                            }
+#endif
                             if(num_suco == 2)
                             {
                                 evc_set_suco_flag(suco_flag, cud, 0, cuw, cuh, cuw, core->cu_data_temp[log2_cuw - 2][log2_cuh - 2].suco_flag);
@@ -3293,10 +3429,14 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
 #endif
                             if((x_pos < ctx->w) && (y_pos < ctx->h))
                             {
-                                if(part_num == 0)
+                                if (part_num == 0)
+                                {
                                     SBAC_LOAD(core->s_curr_best[log2_sub_cuw - 2][log2_sub_cuh - 2], core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
+                                }
                                 else
+                                {
                                     SBAC_LOAD(core->s_curr_best[log2_sub_cuw - 2][log2_sub_cuh - 2], core->s_next_best[prev_log2_sub_cuw - 2][prev_log2_sub_cuh - 2]);
+                                }
 
                                 cost_temp += mode_coding_tree(ctx, core, x_pos, y_pos, split_struct.cup[cur_part_num], log2_sub_cuw, log2_sub_cuh, split_struct.cud[cur_part_num], mi, 1
                                                               , (num_suco == 2) ? suco_flag : parent_suco, split_mode, split_mode_child
@@ -3347,6 +3487,13 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                             copy_history_buffer(&core->m_pBestMotLUTs[log2_cuw - 2][log2_cuh - 2], &TempSubMotLUT);
 #endif
                         }
+
+#if DQP
+                        if (is_dqp_set)
+                        {
+                            core->cu_qp_delta_code_mode = 0;
+                        }
+#endif
                     }
                 }
 

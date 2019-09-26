@@ -125,6 +125,11 @@ typedef struct _EVCD_CORE
     u8             ibc_skip_flag;
     u8             ibc_merge_flag;
 #endif
+#if DQP
+    u8             qp;
+    u8             cu_qp_delta_code;
+    u8             cu_qp_delta_is_coded;
+#endif
     /************** current LCU *************/
     /* address of current LCU,  */
     u16            lcu_num;
@@ -316,6 +321,10 @@ struct _EVCD_CTX
     u8                      pic_sign[16];
     /* flag to indicate picture signature existing or not */
     u8                      pic_sign_exist;
+#if DQP
+    /*map of dqp values used*/
+    u8                     *map_dqp_used;
+#endif
     /* address of ready function */
     int  (* fn_ready)(EVCD_CTX * ctx);
     /* address of flush function */

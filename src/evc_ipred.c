@@ -777,7 +777,7 @@ void ipred_bi(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int
 
 #define GET_REF_POS(mt,d_in,d_out,offset) \
     (d_out) = ((d_in) * (mt)) >> 10;\
-    (offset) = ((((d_in) * (mt)) << 5) >> 10) - ((d_out) << 5);
+    (offset) = (((d_in) * (mt)) >> 5) - ((d_out) << 5);
 
 #define ADI_4T_FILTER_BITS                 7
 #define ADI_4T_FILTER_OFFSET              (1<<(ADI_4T_FILTER_BITS-1))
@@ -785,8 +785,8 @@ void ipred_bi(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int
 __inline
 pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ipm, int i, int j, int w, int pos_min, int pos_max, int h)
 {
-    int offset, offset_x, offset_y;
-    int t_dx, t_dy, xx, xy, yx, yy;
+    int offset;
+    int t_dx, t_dy;
     int x, y, xn, yn, xn_n1, yn_n1, xn_p2, yn_p2;
     const int dxy = (ipm > IPD_HOR || ipm < IPD_VER) ? -1 : 1;
     const int * filter;
@@ -801,8 +801,6 @@ pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ip
 
     x = INT_MAX;
     y = INT_MAX;
-    xx = INT_MAX;
-    yy = INT_MAX;
 
     tbl_filt = evc_tbl_ipred_adi;
     filter_offset = ADI_4T_FILTER_OFFSET;
@@ -810,44 +808,39 @@ pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ip
 
     evc_assert(ipm < IPD_CNT);
 
-    if (ipm == IPD_VER)
-    {
-        return src_up[i];
-    }
-    else if (ipm == IPD_HOR)
-    {
-        return (avail_lr == LR_01 ? src_ri[j] : src_le[j]);
-    }
-
-
     if(ipm < IPD_VER)
     {
         /* case x-line */
         GET_REF_POS(mt[0], j + 1, t_dx, offset);
-        x = i + t_dx;
-        y = -1;
-        if(x >= w && (avail_lr == LR_01 || avail_lr == LR_11))
+
+        if((avail_lr == LR_01 || avail_lr == LR_11) && i >= (w - t_dx))
         {
             GET_REF_POS(mt[1], w - i, t_dy, offset);
-            t_dy = -t_dy;
             x = w;
-            y = j + t_dy;
+            y = j - t_dy;
+        }
+        else
+        {
+            x = i + t_dx;
+            y = -1;
         }
     }
     else if(ipm > IPD_HOR)
     {
         if (avail_lr == LR_01 || avail_lr == LR_11)
         {
-            GET_REF_POS(mt[1], w - i, t_dy, offset);
-            t_dy = -t_dy;
-            x = w;
-            y = j + t_dy;
+            GET_REF_POS(mt[1], w - i, t_dy, offset);            
 
-            if (y <= -1)
+            if(j < t_dy)
             {
                 GET_REF_POS(mt[0], w - i, t_dx, offset);
                 x = i + t_dx;
                 y = -1;
+            }
+            else
+            {
+                x = w;
+                y = j - t_dy;
             }
         }
         else
@@ -859,36 +852,26 @@ pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ip
     }
     else
     {
-        GET_REF_POS(mt[0], j + 1, t_dx, offset_x);
-        t_dx = -t_dx;
-        xx = i + t_dx;
-        yx = -1;
+        GET_REF_POS(mt[1], i + 1, t_dy, offset);
 
-        GET_REF_POS(mt[1], i + 1, t_dy, offset_y);
-        t_dy = -t_dy;
-        xy = -1;
-        yy = j + t_dy;
-
-        if(yy <= -1)
+        if(j < t_dy)
         {
-            x = xx;
-            y = yx;
-            offset = offset_x;
+            GET_REF_POS(mt[0], j + 1, t_dx, offset);
+            x = i - t_dx;
+            y = -1;
         }
         else
         {
             if (avail_lr == LR_01)
             {
-                GET_REF_POS(mt[1], w - i, t_dy, offset_y);
+                GET_REF_POS(mt[1], w - i, t_dy, offset);
                 x = w;
                 y = j + t_dy;
-                offset = offset_y;
             }
             else
             {
-                x = xy;
-                y = yy;
-                offset = offset_y;
+                x = -1;
+                y = j - t_dy;
             }
         }
     }
@@ -1272,7 +1255,6 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
     int scuw = cuw >> MIN_CU_LOG2;
     int valid_l = 0, valid_u = 0;
     int valid_r = 0;
-    int ipd_dia = (IPD_VER + IPD_HOR) >> 1;
     int i;
     int mode_idx = 0;
     int check = 8;
@@ -1291,7 +1273,7 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
         valid_l = 1;
     }
 
-    if(y_scu > 0 && MCU_GET_IF(map_scu[scup - w_scu]))
+    if(y_scu > 0 && MCU_GET_IF(map_scu[scup - w_scu]) && MCU_GET_COD(map_scu[scup - w_scu]))
     {
         ipm_u = map_ipm[scup - w_scu];
         valid_u = 1;
@@ -1355,7 +1337,7 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
                 }
                 mpm_ext[1] = IPD_VER;
                 mpm_ext[2] = IPD_HOR;
-                mpm_ext[3] = ipd_dia;
+                mpm_ext[3] = IPD_DIA_R;
                 mpm_ext[4] = IPD_DIA_L;
                 mpm_ext[5] = IPD_DIA_U;
                 mpm_ext[6] = IPD_VER + 4;
@@ -1419,7 +1401,7 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
                     mpm_ext[4] = IPD_CNT - 4;
                     mpm_ext[5] = IPD_CNT - 5;
                     mpm_ext[6] = IPD_HOR;
-                    mpm_ext[7] = ipd_dia;
+                    mpm_ext[7] = IPD_DIA_R;
                 }
                 else if(mpm[1] < 5)
                 {
@@ -1428,7 +1410,7 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
                     mpm_ext[4] = 6;
                     mpm_ext[5] = 7;
                     mpm_ext[6] = IPD_VER;
-                    mpm_ext[7] = ipd_dia;
+                    mpm_ext[7] = IPD_DIA_R;
                 }
                 else
                 {
@@ -1592,7 +1574,7 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
             }
             mpm_ext[1] = IPD_VER;
             mpm_ext[2] = IPD_HOR;
-            mpm_ext[3] = ipd_dia;
+            mpm_ext[3] = IPD_DIA_R;
             mpm_ext[4] = IPD_DIA_L;
             mpm_ext[5] = IPD_DIA_U;
             mpm_ext[6] = IPD_VER + 4;
@@ -1618,7 +1600,7 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
                 mpm_ext[4] = IPD_CNT - 4;
                 mpm_ext[5] = IPD_CNT - 5;
                 mpm_ext[6] = IPD_HOR;
-                mpm_ext[7] = ipd_dia;
+                mpm_ext[7] = IPD_DIA_R;
             }
 
             else if(mpm[1] < 5)
@@ -1628,7 +1610,7 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
                 mpm_ext[4] = 6;
                 mpm_ext[5] = 7;
                 mpm_ext[6] = IPD_VER;
-                mpm_ext[7] = ipd_dia;
+                mpm_ext[7] = IPD_DIA_R;
             }
             else
             {

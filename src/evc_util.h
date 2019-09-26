@@ -332,6 +332,9 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                           , const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth
                           , int x, int y, int im_w, int im_h
                           , u8* remaining_split, int sps_btt_flag);
+#if DQP
+u8  *evc_get_dqp_used(int x_scu, int y_scu, int w_scu, u8 * map_dqp_input, int dqp_depth);
+#endif
 
 #if ADCC
 void evc_init_scan_sr(int *scan, int size_x, int size_y, int width, int height, int scan_type);
