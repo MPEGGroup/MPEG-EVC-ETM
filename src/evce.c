@@ -641,6 +641,10 @@ static void select_assign_rpl_for_sh(EVCE_CTX *ctx, EVC_SH *sh)
             }
         }
     }
+    if (ctx->slice_type != SLICE_I)
+    {
+        ctx->slice_type = ctx->cdsc.rpls_l0[sh->rpl_l0_idx].pic_type == 'P' ? SLICE_P : SLICE_B;
+    }
     //Copy RPL0 from the candidate in SPS to this SH
     sh->rpl_l0.poc = sh->poc;
     sh->rpl_l0.tid = ctx->cdsc.rpls_l0[sh->rpl_l0_idx].tid;
@@ -815,6 +819,13 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
     int qp_c_i;
     QP_ADAPT_PARAM *qp_adapt_param = ctx->param.max_b_frames == 0 ? qp_adapt_param_ld : qp_adapt_param_ra;
 
+    if (!ctx->sps.picture_num_present_flag)
+    {
+        sh->poc = ctx->ptr;
+        select_assign_rpl_for_sh(ctx, sh);
+        sh->num_ref_idx_active_override_flag = 1;
+    }
+
     sh->dtr = ctx->dtr & DTR_BIT_MSK;
     sh->slice_type = ctx->slice_type;
     sh->keyframe = (sh->slice_type == SLICE_I) ? 1 : 0;
@@ -832,12 +843,6 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
     sh->collocated_from_ref_idx = 0;        // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
     sh->collocated_mvp_source_list_idx = REFP_0;  // Specifies source (List ID) in collocated pic that provides MV information (Applicability is function of NoBackwardPredFlag)
 #endif 
-    if (!ctx->sps.picture_num_present_flag)
-    {
-        sh->poc = ctx->ptr;
-        select_assign_rpl_for_sh(ctx, sh);
-        sh->num_ref_idx_active_override_flag = 1;
-    }
 
     /* set lambda */
 #if USE_SLICE_DQP
@@ -1796,6 +1801,7 @@ static void decide_slice_type(EVCE_CTX * ctx)
         else
         {
             ctx->slice_type = SLICE_B;
+            
             if(ctx->param.use_hgop)
             {
 #if HLS_M47668

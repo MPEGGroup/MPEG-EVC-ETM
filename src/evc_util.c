@@ -4526,7 +4526,7 @@ int evc_get_affine_merge_candidate(int ptr, int slice_type, int scup, s8(*map_re
             map_refi_co = refp[0][REFP_1].map_refi; // col picture is ref idx 0 and list 1
             for (lidx = 0; lidx < REFP_NUM; lidx++)
             {
-                if (REFI_IS_VALID(map_refi_co[neb_addr_rb[0]][lidx]))
+                if(slice_type == SLICE_B && REFI_IS_VALID(map_refi_co[neb_addr_rb[0]][lidx]))
                 {
                     dptr_co = refp[0][REFP_1].ptr - refp[0][REFP_1].list_ptr[map_refi_co[neb_addr_rb[0]][lidx]];
                     if (dptr_co == 0)

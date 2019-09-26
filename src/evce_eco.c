@@ -1098,6 +1098,11 @@ void evce_eco_affine_mode(EVC_BSW * bs, int flag)
     EVCE_SBAC *sbac;
     sbac = GET_SBAC_ENC(bs);
     evce_sbac_encode_bin(flag, sbac, sbac->ctx.affine_mode, bs);
+
+    EVC_TRACE_COUNTER;
+    EVC_TRACE_STR("affine mode ");
+    EVC_TRACE_INT(flag);
+    EVC_TRACE_STR("\n");
 }
 
 int evce_eco_affine_mrg_idx(EVC_BSW * bs, s16 affine_mrg)
@@ -1242,8 +1247,9 @@ void evce_eco_run_length_cc(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int 
 static void code_positionLastXY(EVC_BSW *bs, int sr_x, int sr_y, int width, int height, int ch_type)
 {
     EVCE_SBAC *sbac = GET_SBAC_ENC(bs);
-    SBAC_CTX_MODEL *cm_x = sbac->ctx.cc_scanr_x + (ch_type == Y_C ? 0 : NUM_CTX_SCANR_LUMA);
-    SBAC_CTX_MODEL *cm_y = sbac->ctx.cc_scanr_y + (ch_type == Y_C ? 0 : NUM_CTX_SCANR_LUMA);
+    SBAC_CTX_MODEL* cm_x = sbac->ctx.cc_scanr_x + (ch_type == Y_C ? 0 : (sbac->ctx.sps_cm_init_flag == 1 ? NUM_CTX_SCANR_LUMA : 11));
+    SBAC_CTX_MODEL* cm_y = sbac->ctx.cc_scanr_y + (ch_type == Y_C ? 0 : (sbac->ctx.sps_cm_init_flag == 1 ? NUM_CTX_SCANR_LUMA : 11));
+
     int bin;
     int group_idx_x;
     int group_idx_y;
@@ -1252,8 +1258,17 @@ static void code_positionLastXY(EVC_BSW *bs, int sr_x, int sr_y, int width, int 
 
     group_idx_x = g_group_idx[sr_x];
     group_idx_y = g_group_idx[sr_y];
-
-    evc_get_ctx_last_pos_xy_para(ch_type, width, height, &blk_offset_x, &blk_offset_y, &shift_x, &shift_y);
+    if (sbac->ctx.sps_cm_init_flag == 1)
+    {
+        evc_get_ctx_last_pos_xy_para(ch_type, width, height, &blk_offset_x, &blk_offset_y, &shift_x, &shift_y);
+    }
+    else
+    {
+        blk_offset_x = 0;
+        blk_offset_y = 0;
+        shift_x = 0;
+        shift_y = 0;
+    }
     //------------------
 
     // posX
@@ -1396,11 +1411,17 @@ static void evce_eco_ccA(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num
 
         //===== code significance flag =====
         last_scan_set = last_pos_in_scan >> cg_log2_size;  
-
-        offset0 = log2_block_size <= 2 ? 0 : NUM_CTX_GT0_LUMA_TU << (EVC_MIN(1, (log2_block_size - 3)));
-        cm_gt0 = (ch_type == Y_C) ? sbac->ctx.cc_gt0 + offset0 : sbac->ctx.cc_gt0 + NUM_CTX_GT0_LUMA;
-        cm_gtx = (ch_type == Y_C) ? sbac->ctx.cc_gtA : sbac->ctx.cc_gtA + NUM_CTX_GTA_LUMA;
-
+        if (sbac->ctx.sps_cm_init_flag == 1)
+        {
+            offset0 = log2_block_size <= 2 ? 0 : NUM_CTX_GT0_LUMA_TU << (EVC_MIN(1, (log2_block_size - 3)));
+            cm_gt0 = (ch_type == Y_C) ? sbac->ctx.cc_gt0 + offset0 : sbac->ctx.cc_gt0 + NUM_CTX_GT0_LUMA;
+            cm_gtx = (ch_type == Y_C) ? sbac->ctx.cc_gtA : sbac->ctx.cc_gtA + NUM_CTX_GTA_LUMA;
+        }
+        else
+        {
+            cm_gt0 = (ch_type == Y_C) ? sbac->ctx.cc_gt0 : sbac->ctx.cc_gt0 + 1;
+            cm_gtx = (ch_type == Y_C) ? sbac->ctx.cc_gtA : sbac->ctx.cc_gtA + 1;
+        }
         rice_param = 0;
         ipos = last_pos_in_scan;
 
@@ -1429,7 +1450,7 @@ static void evce_eco_ccA(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num
                     }
                     else
                     {
-                        ctx_gt0 = evc_get_ctx_gt0_inc(coef, blkpos, width, height, ch_type, sr_x, sr_y); 
+                        ctx_gt0 = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gt0_inc(coef, blkpos, width, height, ch_type, sr_x, sr_y) : 0;
                     }
 
                     if (!(ipos == last_pos_in_scan)) 
@@ -1469,7 +1490,7 @@ static void evce_eco_ccA(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num
                         u32 symbol = abs_coef[idx] > 1 ? 1 : 0;
                         if (pos[idx] != pos_last)  
                         {
-                            ctx_gtA = evc_get_ctx_gtA_inc(coef, pos[idx], width, height, ch_type, sr_x, sr_y);
+                            ctx_gtA = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gtA_inc(coef, pos[idx], width, height, ch_type, sr_x, sr_y) : 0;
                         }
                         evce_sbac_encode_bin(symbol, sbac, &cm_gtx[ctx_gtA], bs);
                         if (symbol)
@@ -1489,7 +1510,7 @@ static void evce_eco_ccA(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num
                         u32 symbol2 = abs_coef[firstC2FlagIdx] > 2 ? 1 : 0;
                         if (pos[firstC2FlagIdx] != pos_last)  
                         {
-                            ctx_gtB = evc_get_ctx_gtB_inc(coef, pos[firstC2FlagIdx], width, height, ch_type, sr_x, sr_y);
+                            ctx_gtB = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gtB_inc(coef, pos[firstC2FlagIdx], width, height, ch_type, sr_x, sr_y) : 0;
                         }
                         evce_sbac_encode_bin(symbol2, sbac, &cm_gtx[ctx_gtB], bs);
 
@@ -2816,27 +2837,6 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                     evce_eco_mvr_idx(bs, cu_data->mvr_idx[cup]);
                 }
 
-                if(ctx->sps.tool_mmvd)
-                {
-                    if(slice_type == SLICE_P)
-                    {
-                        if(cu_data->mvr_idx[cup] == 0)
-                        {
-                            evce_eco_mmvd_flag(bs, cu_data->pred_mode[cup] == MODE_DIR_MMVD);
-                        }
-
-                        if((cu_data->pred_mode[cup] == MODE_DIR_MMVD))
-                        {
-#if M48879_IMPROVEMENT_INTER
-                            evce_eco_mmvd_info(bs, cu_data->mmvd_idx[cup], ctx->sh.mmvd_group_enable_flag && !(cuw*cuh <= NUM_SAMPLES_BLOCK));
-#else
-                            evce_eco_mmvd_info(bs, cu_data->mmvd_idx[cup], !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr));
-#endif
-                        }
-                    }
-                }
-
-                if(slice_type == SLICE_B)
                 {
                     if(ctx->sps.tool_mmvd)
                     {
