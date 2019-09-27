@@ -5263,15 +5263,15 @@ void evc_block_copy(s16 * src, int src_stride, s16 * dst, int dst_stride, int lo
 }
 
 #if ATS_INTER_PROCESS
-u8 check_ats_inter_info_coded(int cuw, int cuh, int pred_mode, int tool_ats_inter)
+u8 check_ats_inter_info_coded(int cuw, int cuh, int pred_mode, int tool_ats)
 {
     int min_size = 8;
     int max_size = 1 << MAX_TR_LOG2;
     u8  mode_hori, mode_vert, mode_hori_quad, mode_vert_quad;
 #if IBC
-    if (!tool_ats_inter || pred_mode == MODE_INTRA || cuw > max_size || cuh > max_size || pred_mode == MODE_IBC)
+    if (!tool_ats || pred_mode == MODE_INTRA || cuw > max_size || cuh > max_size || pred_mode == MODE_IBC)
 #else
-    if (!tool_ats_inter || pred_mode == MODE_INTRA || cuw > max_size || cuh > max_size)
+    if (!tool_ats || pred_mode == MODE_INTRA || cuw > max_size || cuh > max_size)
 #endif
     {
         mode_hori = mode_vert = mode_hori_quad = mode_vert_quad = 0;

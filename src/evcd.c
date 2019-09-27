@@ -1493,21 +1493,6 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                     , 0
 #endif
                 );
-#if ATS_INTER_PROCESS // deblock
-                if (ats_inter_idx && is_ats_inter_horizontal(ats_inter_idx))
-                {
-                    int y_offset = is_ats_inter_quad_size(ats_inter_idx) ? cuh / 4 : cuh / 2;
-                    y_offset = ats_inter_pos == 0 ? y_offset : cuh - y_offset;
-                    if ((y + y_offset) % 8 == 0)
-                    {
-                        evc_deblock_cu_hor(pic, x, y + y_offset, cuw, cuh - y_offset, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp
-#if M49023_DBF_IMPROVE
-                            , ats_inter_pos + 1
-#endif
-                        );
-                    }
-                }
-#endif
             }
         }
         else
@@ -1544,25 +1529,6 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                     , 0
 #endif
                 );
-#if ATS_INTER_PROCESS // deblock
-                if (ats_inter_idx && !is_ats_inter_horizontal(ats_inter_idx))
-                {
-                    int x_offset = is_ats_inter_quad_size(ats_inter_idx) ? cuw / 4 : cuw / 2;
-                    x_offset = ats_inter_pos == 0 ? x_offset : cuw - x_offset;
-                    if ((x + x_offset) % 8 == 0)
-                    {
-                        evc_deblock_cu_ver(pic, x + x_offset, y, cuw - x_offset, cuh, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh
-#if FIX_PARALLEL_DBF
-                                           , ctx->map_cu_mode
-#endif
-                                           , ctx->refp
-#if M49023_DBF_IMPROVE
-                            , ats_inter_pos + 1
-#endif
-                        );
-                    }
-                }
-#endif
             }
         }
     }

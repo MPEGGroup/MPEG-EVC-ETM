@@ -143,11 +143,8 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
     if (sps->ibc_flag)
        evc_bsw_write_ue(bs, (u32)(sps->ibc_log_max_size - 2));
 #endif
-#if ATS_INTRA_PROCESS
-    evc_bsw_write1(bs, sps->tool_ats_intra);
-#endif
-#if ATS_INTER_PROCESS
-    evc_bsw_write1(bs, sps->tool_ats_inter);
+#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+    evc_bsw_write1(bs, sps->tool_ats);
 #endif
 
 #if HLS_M47668
@@ -1811,11 +1808,14 @@ int evce_eco_dqp(EVC_BSW * bs, int ref_qp, int cur_qp)
 #endif
 
 int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 pred_mode, int nnz_sub[N_C][MAX_SUB_TB_NUM], int b_no_cbf, int run_stats
-#if ATS_INTRA_PROCESS
-                  , int tool_ats_intra, u8 ats_intra_cu, u8 ats_tu
+#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+                  , int tool_ats
+#endif
+#if ATS_INTRA_PROCESS    
+                  , u8 ats_intra_cu, u8 ats_tu
 #endif
 #if ATS_INTER_PROCESS
-                  , int tool_ats_inter, u8 ats_inter_info
+                  , u8 ats_inter_info
 #endif
 #if ADCC  
     , EVCE_CTX * ctx
@@ -1843,7 +1843,7 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
     EVCE_SBAC    * sbac = GET_SBAC_ENC(bs);
 #endif
 #if ATS_INTER_PROCESS
-    u8 ats_inter_avail = check_ats_inter_info_coded(1 << log2_cuw, 1 << log2_cuh, pred_mode, tool_ats_inter);
+    u8 ats_inter_avail = check_ats_inter_info_coded(1 << log2_cuw, 1 << log2_cuh, pred_mode, tool_ats);
     if( ats_inter_avail )
     {
         get_tu_size( ats_inter_info, log2_cuw, log2_cuh, &log2_w_sub, &log2_h_sub );
@@ -1891,7 +1891,7 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
 #endif
 
 #if ATS_INTRA_PROCESS
-            if (tool_ats_intra && (!!nnz_sub[Y_C][(j << 1) | i]) && (log2_cuw <= 5 && log2_cuh <= 5) && is_intra)
+            if (tool_ats && (!!nnz_sub[Y_C][(j << 1) | i]) && (log2_cuw <= 5 && log2_cuh <= 5) && is_intra)
             {
                 evce_eco_ats_intra_cu(bs, ats_intra_cu, sbac->ctx.sps_cm_init_flag == 1 ? ((log2_cuw > log2_cuh) ? log2_cuw : log2_cuh) - MIN_CU_LOG2 : 0);
                 if (ats_intra_cu)
@@ -3179,11 +3179,14 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
         enc_dqp = 1;
 #endif
         evce_eco_coef(bs, coef, core->log2_cuw, core->log2_cuh, cu_data->pred_mode[cup], core->nnz_sub, b_no_cbf, RUN_L | RUN_CB | RUN_CR
-#if ATS_INTRA_PROCESS
-                      , ctx->sps.tool_ats_intra, cu_data->ats_intra_cu[cup], (cu_data->ats_tu_h[cup] << 1 | cu_data->ats_tu_v[cup])
+#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+                      , ctx->sps.tool_ats
+#endif
+#if ATS_INTRA_PROCESS            
+                      , cu_data->ats_intra_cu[cup], (cu_data->ats_tu_h[cup] << 1 | cu_data->ats_tu_v[cup])
 #endif
 #if ATS_INTER_PROCESS
-                      , ctx->sps.tool_ats_inter, core->ats_inter_info
+                      , core->ats_inter_info
 #endif
 #if ADCC || DQP
             , ctx

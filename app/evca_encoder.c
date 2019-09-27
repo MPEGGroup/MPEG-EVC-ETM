@@ -147,11 +147,8 @@ static int  op_tool_adcc          = 1; /* default on */
 #endif
 static int  op_cb_qp_offset       = 0;
 static int  op_cr_qp_offset       = 0;
-#if ATS_INTRA_PROCESS
-static int op_tool_ats_intra      = 1; /* default on */
-#endif
-#if ATS_INTER_PROCESS
-static int  op_tool_ats_inter     = 1; /* default on */
+#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+static int op_tool_ats            = 1; /* default on */
 #endif
 #if M48879_IMPROVEMENT_INTRA
 static int  op_constrained_intra_pred = 0;
@@ -235,11 +232,8 @@ typedef enum _OP_FLAGS
 #endif
     OP_CB_QP_OFFSET,
     OP_CR_QP_OFFSET,
-#if ATS_INTRA_PROCESS
-    OP_TOOL_ATS_INTRA,
-#endif
-#if ATS_INTER_PROCESS
-    OP_TOOL_ATS_INTER,
+#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+    OP_TOOL_ATS,
 #endif
 #if M48879_IMPROVEMENT_INTRA
     OP_CONSTRAINED_INTRA_PRED,
@@ -613,18 +607,11 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_CR_QP_OFFSET], &op_cr_qp_offset,
         "cr qp offset"
     },
-#if ATS_INTRA_PROCESS
+#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
     {
-         EVC_ARGS_NO_KEY,  "ats_intra", EVC_ARGS_VAL_TYPE_INTEGER,
-         &op_flag[OP_TOOL_ATS_INTRA], &op_tool_ats_intra,
-         "ats intra on/off flag"
-    },
-#endif
-#if ATS_INTER_PROCESS
-    {
-        EVC_ARGS_NO_KEY, "ats_inter", EVC_ARGS_VAL_TYPE_INTEGER,
-        &op_flag[OP_TOOL_ATS_INTER], &op_tool_ats_inter,
-        "ats inter on/off flag"
+         EVC_ARGS_NO_KEY,  "ats", EVC_ARGS_VAL_TYPE_INTEGER,
+         &op_flag[OP_TOOL_ATS], &op_tool_ats,
+         "ats on/off flag"
     },
 #endif
 #if M48879_IMPROVEMENT_INTRA
@@ -987,11 +974,8 @@ static int get_conf(EVCE_CDSC * cdsc)
 #endif
     cdsc->cb_qp_offset       = op_cb_qp_offset;
     cdsc->cr_qp_offset       = op_cr_qp_offset;
-#if ATS_INTRA_PROCESS
-    cdsc->tool_ats_intra     = op_tool_ats_intra;
-#endif
-#if ATS_INTER_PROCESS
-    cdsc->tool_ats_inter     = op_tool_ats_inter;
+#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+    cdsc->tool_ats           = op_tool_ats;
 #endif
 #if M48879_IMPROVEMENT_INTRA
     cdsc->constrained_intra_pred = op_constrained_intra_pred;
@@ -1068,10 +1052,7 @@ static int print_enc_conf(EVCE_CDSC * cdsc)
     printf("IBC: %d ", cdsc->ibc_flag);
 #endif
 #if ATS_INTRA_PROCESS
-    printf("ATS_INTRA: %d ",    cdsc->tool_ats_intra);
-#endif
-#if ATS_INTER_PROCESS
-    printf("ATS_INTER: %d ", cdsc->tool_ats_inter);
+    printf("ATS: %d ",    cdsc->tool_ats);
 #endif
 #if M48879_IMPROVEMENT_INTRA
     printf("CONSTRAINED_INTRA_PRED: %d ", cdsc->constrained_intra_pred);
@@ -1105,8 +1086,7 @@ int check_conf(EVCE_CDSC* cdsc)
         if (cdsc->tool_cm_init == 1) { v0print("CM_INIT cannot be on in base profile\n"); success = 0; }
 #if PROFILE_SANITY_CHECK_FIX
         if (cdsc->tool_adcc    == 1) { v0print("ADCC cannot be on in base profile\n"); success = 0; }
-        if (cdsc->tool_ats_intra == 1) { v0print("ATS_INTRA cannot be on in base profile\n"); success = 0; }
-        if (cdsc->tool_ats_inter == 1) { v0print("ATS_INTER cannot be on in base profile\n"); success = 0; }
+        if (cdsc->tool_ats == 1) { v0print("ATS_INTRA cannot be on in base profile\n"); success = 0; }
         if (cdsc->ibc_flag     == 1)   { v0print("IBC cannot be on in base profile\n"); success = 0; }
 #endif
     }

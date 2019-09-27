@@ -174,11 +174,14 @@ void evce_rdo_bit_cnt_cu_intra_luma(EVCE_CTX *ctx, EVCE_CORE *core, s32 slice_ty
     }
 
     evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTRA, core->nnz_sub, 0, RUN_L
+#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+                  , ctx->sps.tool_ats
+#endif
 #if ATS_INTRA_PROCESS
-                  , ctx->sps.tool_ats_intra, core->ats_intra_cu, core->ats_tu
+                  , core->ats_intra_cu, core->ats_tu
 #endif
 #if ATS_INTER_PROCESS
-                  , 0, 0
+                  , 0
 #endif
 #if ADCC  
             , ctx
@@ -202,11 +205,14 @@ void evce_rdo_bit_cnt_cu_intra_chroma(EVCE_CTX *ctx, EVCE_CORE *core, s32 slice_
     }
 
     evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTRA, core->nnz_sub, 0, RUN_CB | RUN_CR
-#if ATS_INTRA_PROCESS
-                  , ctx->sps.tool_ats_intra, 0, 0
+#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+                  , ctx->sps.tool_ats
+#endif
+#if ATS_INTRA_PROCESS        
+                  , 0, 0
 #endif
 #if ATS_INTER_PROCESS
-                  , 0, 0
+                  , 0
 #endif
 #if ADCC  
             , ctx
@@ -244,11 +250,14 @@ void evce_rdo_bit_cnt_cu_intra(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
     }
 
     evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTRA, core->nnz_sub, 0, RUN_L | RUN_CB | RUN_CR
-#if ATS_INTRA_PROCESS
-                  , ctx->sps.tool_ats_intra, core->ats_intra_cu, core->ats_tu
+#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+                  , ctx->sps.tool_ats
+#endif
+#if ATS_INTRA_PROCESS        
+                  , core->ats_intra_cu, core->ats_tu
 #endif
 #if ATS_INTER_PROCESS
-                  , 0, 0
+                  , 0
 #endif
 #if ADCC  
             , ctx
@@ -274,11 +283,14 @@ void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM],
     if(ch_type == Y_C)
     {
         evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTER, core->nnz_sub, b_no_cbf, RUN_L
-#if ATS_INTRA_PROCESS
-            , 0, 0, 0
+#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+            , ctx->sps.tool_ats
+#endif
+#if ATS_INTRA_PROCESS            
+            , 0, 0
 #endif
 #if ATS_INTER_PROCESS
-            , ctx->sps.tool_ats_inter, core->ats_inter_info
+            , core->ats_inter_info
 #endif
 #if ADCC  
             , ctx
@@ -293,11 +305,14 @@ void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM],
     if(ch_type == U_C)
     {
         evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTER, core->nnz_sub, b_no_cbf, RUN_CB
+#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+            , ctx->sps.tool_ats
+#endif
 #if ATS_INTRA_PROCESS
-            , 0, 0, 0
+            , 0, 0
 #endif
 #if ATS_INTER_PROCESS
-            , ctx->sps.tool_ats_inter, core->ats_inter_info
+            , core->ats_inter_info
 #endif
 #if ADCC  
             , ctx
@@ -311,11 +326,14 @@ void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM],
     if(ch_type == V_C)
     {
         evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTER, core->nnz_sub, b_no_cbf, RUN_CR
-#if ATS_INTRA_PROCESS
-            , 0, 0, 0
+#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+            , ctx->sps.tool_ats
+#endif
+#if ATS_INTRA_PROCESS            
+            , 0, 0
 #endif
 #if ATS_INTER_PROCESS
-            , ctx->sps.tool_ats_inter, core->ats_inter_info
+            , core->ats_inter_info
 #endif
 #if ADCC  
             , ctx
@@ -341,11 +359,14 @@ void evce_rdo_bit_cnt_cu_ibc(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s
 
   evce_eco_coef(&core->bs_temp, coef, core->log2_cuw, core->log2_cuh, MODE_IBC, core->nnz_sub, b_no_cbf
     , RUN_L | RUN_CB | RUN_CR 
+#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+      , ctx->sps.tool_ats
+#endif
 #if ATS_INTRA_PROCESS
-    , 0, 0, 0
+      , 0, 0
 #endif
 #if ATS_INTER_PROCESS
-    , 0, 0
+    , 0
 #endif
 #if ADCC  
     , ctx
@@ -605,11 +626,14 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
         }
     }
     evce_eco_coef(&core->bs_temp, coef, core->log2_cuw, core->log2_cuh, MODE_INTER, core->nnz_sub, b_no_cbf, RUN_L | RUN_CB | RUN_CR
+#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+        , ctx->sps.tool_ats
+#endif
 #if ATS_INTRA_PROCESS
-        , 0, 0, 0
+        , 0, 0
 #endif
 #if ATS_INTER_PROCESS
-        , ctx->sps.tool_ats_inter, core->ats_inter_info
+        , core->ats_inter_info
 #endif
 #if ADCC  
         , ctx
@@ -2760,21 +2784,6 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
             , 0
 #endif
         );
-#if ATS_INTER_PROCESS // deblock
-        if (ats_inter_idx && is_ats_inter_horizontal(ats_inter_idx))
-        {
-            int y_offset = is_ats_inter_quad_size(ats_inter_idx) ? cuh / 4 : cuh / 2;
-            y_offset = ats_inter_pos == 0 ? y_offset : cuh - y_offset;
-            if ((y + y_offset) % 8 == 0)
-            {
-                evc_deblock_cu_hor(pic_dbk, x, y + y_offset, cuw, cuh - y_offset, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp
-#if M49023_DBF_IMPROVE
-                    , ats_inter_pos + 1
-#endif
-                );
-            }
-        }
-#endif
 
         //clean coded flag in between two directional filtering (not necessary here)
         for(j = 0; j < h_scu; j++)
@@ -2797,25 +2806,6 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
             , 0
 #endif
         );
-#if ATS_INTER_PROCESS // deblock
-        if (ats_inter_idx && !is_ats_inter_horizontal(ats_inter_idx))
-        {
-            int x_offset = is_ats_inter_quad_size(ats_inter_idx) ? cuw / 4 : cuw / 2;
-            x_offset = ats_inter_pos == 0 ? x_offset : cuw - x_offset;
-            if ((x + x_offset) % 8 == 0)
-            {
-                evc_deblock_cu_ver(pic_dbk, x + x_offset, y, cuw - x_offset, cuh, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh
-#if FIX_PARALLEL_DBF
-                                   , ctx->map_cu_mode
-#endif
-                                   , ctx->refp
-#if M49023_DBF_IMPROVE
-                    , ats_inter_pos + 1
-#endif
-                );
-            }
-        }
-#endif
 
         //recover best cu info
         for(j = 0; j < h_scu; j++)

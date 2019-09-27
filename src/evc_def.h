@@ -1304,11 +1304,8 @@ typedef struct _EVC_SPS
     int              tool_eipd;
     int              tool_iqt;
     int              tool_cm_init;
-#if ATS_INTRA_PROCESS
-    int              tool_ats_intra;
-#endif
-#if ATS_INTER_PROCESS
-    int              tool_ats_inter;
+#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+    int              tool_ats;
 #endif
 #if HLS_M47668
     int              tool_rpl;

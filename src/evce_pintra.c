@@ -376,7 +376,7 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
 #if ATS_INTRA_PROCESS
     u8 best_ats_intra_cu = 0;
     u8 best_ats_tu = 0;
-    u8 ats_intra_usage = ctx->sps.tool_ats_intra ? 2 : 1;
+    u8 ats_intra_usage = ctx->sps.tool_ats ? 2 : 1;
     u8 ats_intra_cu_flag = 0;
 #if ATS_INTRA_FAST
     u8 ats_intra_zero_cu_flag = 0;

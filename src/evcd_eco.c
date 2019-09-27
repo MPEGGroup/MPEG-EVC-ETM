@@ -1117,7 +1117,7 @@ int evcd_eco_coef(EVCD_CTX * ctx, EVCD_CORE * core)
     int         ret;
     int         b_no_cbf = 0;
 #if ATS_INTER_PROCESS
-    u8          ats_inter_avail = check_ats_inter_info_coded(1 << core->log2_cuw, 1 << core->log2_cuh, core->pred_mode, ctx->sps.tool_ats_inter);
+    u8          ats_inter_avail = check_ats_inter_info_coded(1 << core->log2_cuw, 1 << core->log2_cuh, core->pred_mode, ctx->sps.tool_ats);
     int         log2_tuw = core->log2_cuw;
     int         log2_tuh = core->log2_cuh;
 #endif
@@ -1216,7 +1216,7 @@ int evcd_eco_coef(EVCD_CTX * ctx, EVCD_CORE * core)
                 }
 #endif
 #if ATS_INTRA_PROCESS
-                if (ctx->sps.tool_ats_intra && cbf[Y_C] && (core->log2_cuw <= 5 && core->log2_cuh <= 5) && is_intra)
+                if (ctx->sps.tool_ats && cbf[Y_C] && (core->log2_cuw <= 5 && core->log2_cuh <= 5) && is_intra)
                 {
                     ats_intra_cu_on = evcd_eco_ats_intra_cu(bs, sbac, sbac->ctx.sps_cm_init_flag == 1 ? ((core->log2_cuw > core->log2_cuh) ? core->log2_cuw : core->log2_cuh) - MIN_CU_LOG2 : 0);
                     ats_tu_mode = 0;
@@ -2415,11 +2415,8 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
     if(sps->ibc_flag)
        sps->ibc_log_max_size = (u32)evc_bsr_read_ue(bs) + 2;
 #endif
-#if ATS_INTRA_PROCESS
-    sps->tool_ats_intra = evc_bsr_read1(bs);
-#endif
-#if ATS_INTER_PROCESS
-    sps->tool_ats_inter = evc_bsr_read1(bs);
+#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+    sps->tool_ats = evc_bsr_read1(bs);
 #endif
 
 #if HLS_M47668

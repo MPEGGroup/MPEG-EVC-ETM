@@ -1507,7 +1507,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
     int    num_rdo;
     int    nnz_best[N_C] = { -1, -1, -1 };
     int    ats_inter_mode_idx;
-    u8     ats_inter_avail = check_ats_inter_info_coded(1 << log2_cuw, 1 << log2_cuh, MODE_INTER, ctx->sps.tool_ats_inter);
+    u8     ats_inter_avail = check_ats_inter_info_coded(1 << log2_cuw, 1 << log2_cuh, MODE_INTER, ctx->sps.tool_ats);
     s64    ats_inter_est_dist[9];
     s64    dist_ats_inter0 = UINT_MAX;
     double cost_ats_inter0 = MAX_COST;
