@@ -796,6 +796,8 @@ struct _EVCE_CTX
     u8                    aps_counter;
     u8                    aps_temp;
 #endif
+    /* nal unit header */
+    EVC_NALU              nalu;
     /* slice header */
     EVC_SH                sh;
     /* reference picture manager */

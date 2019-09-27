@@ -306,7 +306,7 @@ int check_copy_refp(EVC_REFP(*refp)[REFP_NUM], int cnt, int lidx, EVC_REFP  * re
 }
 
 #if !HLS_M47668
-int evc_picman_refp_reorder(EVC_PM *pm, int num_ref_pics_act, u8 slice_type, u32 ptr, EVC_REFP(*refp)[REFP_NUM], int last_intra, EVC_RMPNI *rmpni)
+int evc_picman_refp_reorder(EVC_PM *pm, int max_num_ref_pics, u8 slice_type, u32 ptr, EVC_REFP(*refp)[REFP_NUM], int last_intra, EVC_RMPNI *rmpni)
 {
     int i, j, cnt;
     EVC_REFP refp_temp[MAX_NUM_REF_PICS][REFP_NUM];
@@ -337,7 +337,7 @@ int evc_picman_refp_reorder(EVC_PM *pm, int num_ref_pics_act, u8 slice_type, u32
             }
 
             cnt = 0;
-            for(j = 0; j < num_refp && cnt < num_ref_pics_act; j++)
+            for(j = 0; j < num_refp && cnt < max_num_ref_pics; j++)
             {
                 for(i = 0; i < pm->cur_num_ref_pics; i++)
                 {
@@ -358,7 +358,7 @@ int evc_picman_refp_reorder(EVC_PM *pm, int num_ref_pics_act, u8 slice_type, u32
 }
 #endif
 
-//This is implementation of reference picture list construction based on RPL. This is meant to replace function int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int slice_type, u32 ptr, u8 layer_id, int last_intra, EVC_REFP(*refp)[REFP_NUM])
+//This is implementation of reference picture list construction based on RPL
 int evc_picman_refp_rpl_based_init(EVC_PM *pm, EVC_SH *sh, EVC_REFP(*refp)[REFP_NUM])
 {
     if (sh->slice_type == SLICE_I)
@@ -415,7 +415,7 @@ int evc_picman_refp_rpl_based_init(EVC_PM *pm, EVC_SH *sh, EVC_REFP(*refp)[REFP_
 }
 
 #if HLS_M47668
-int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int slice_type, u32 ptr, u8 layer_id, int last_intra, EVC_REFP(*refp)[REFP_NUM])
+int evc_picman_refp_init(EVC_PM *pm, int max_num_ref_pics, int slice_type, u32 ptr, u8 layer_id, int last_intra, EVC_REFP(*refp)[REFP_NUM])
 {
     int i, cnt;
     if(slice_type == SLICE_I)
@@ -437,7 +437,7 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int slice_type, u32 p
     {
         if(layer_id > 0)
         {
-            for(i = 0, cnt = 0; i < pm->cur_num_ref_pics && cnt < num_ref_pics_act; i++)
+            for(i = 0, cnt = 0; i < pm->cur_num_ref_pics && cnt < max_num_ref_pics; i++)
             {
                 /* if(ptr >= last_intra && pm->pic_ref[i]->ptr < last_intra) continue; */
                 if(layer_id == 1)
@@ -463,7 +463,7 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int slice_type, u32 p
         }
         else /* layer_id == 0, non-scalable  */
         {
-            for(i = 0, cnt = 0; i < pm->cur_num_ref_pics && cnt < num_ref_pics_act; i++)
+            for(i = 0, cnt = 0; i < pm->cur_num_ref_pics && cnt < max_num_ref_pics; i++)
             {
                 if(ptr >= (u32)last_intra && pm->pic_ref[i]->ptr < (u32)last_intra) continue;
                 if(pm->pic_ref[i]->ptr < ptr)
@@ -477,7 +477,7 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int slice_type, u32 p
     else /* SLICE_B */
     {
         int next_layer_id = EVC_MAX(layer_id - 1, 0);
-        for(i = 0, cnt = 0; i < pm->cur_num_ref_pics && cnt < num_ref_pics_act; i++)
+        for(i = 0, cnt = 0; i < pm->cur_num_ref_pics && cnt < max_num_ref_pics; i++)
         {
             if(ptr >= (u32)last_intra && pm->pic_ref[i]->ptr < (u32)last_intra) continue;
             if(pm->pic_ref[i]->ptr < ptr && pm->pic_ref[i]->layer_id <= next_layer_id)
@@ -489,10 +489,10 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int slice_type, u32 p
         }
     }
 
-    if(cnt < num_ref_pics_act && slice_type == SLICE_B)
+    if(cnt < max_num_ref_pics && slice_type == SLICE_B)
     {
         int next_layer_id = EVC_MAX(layer_id - 1, 0);
-        for(i = pm->cur_num_ref_pics - 1; i >= 0 && cnt < num_ref_pics_act; i--)
+        for(i = pm->cur_num_ref_pics - 1; i >= 0 && cnt < max_num_ref_pics; i--)
         {
             if(ptr >= (u32)last_intra && pm->pic_ref[i]->ptr < (u32)last_intra) continue;
             if(pm->pic_ref[i]->ptr > ptr && pm->pic_ref[i]->layer_id <= next_layer_id)
@@ -511,7 +511,7 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int slice_type, u32 p
     if(slice_type == SLICE_B)
     {
         int next_layer_id = EVC_MAX(layer_id - 1, 0);
-        for(i = pm->cur_num_ref_pics - 1, cnt = 0; i >= 0 && cnt < num_ref_pics_act; i--)
+        for(i = pm->cur_num_ref_pics - 1, cnt = 0; i >= 0 && cnt < max_num_ref_pics; i--)
         {
             if(ptr >= (u32)last_intra && pm->pic_ref[i]->ptr < (u32)last_intra) continue;
             if(pm->pic_ref[i]->ptr > ptr && pm->pic_ref[i]->layer_id <= next_layer_id)
@@ -522,10 +522,10 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int slice_type, u32 p
             }
         }
 
-        if(cnt < num_ref_pics_act)
+        if(cnt < max_num_ref_pics)
         {
             next_layer_id = EVC_MAX(layer_id - 1, 0);
-            for(i = 0; i < pm->cur_num_ref_pics && cnt < num_ref_pics_act; i++)
+            for(i = 0; i < pm->cur_num_ref_pics && cnt < max_num_ref_pics; i++)
             {
 
                 if(ptr >= (u32)last_intra && pm->pic_ref[i]->ptr < (u32)last_intra) continue;
@@ -544,14 +544,14 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int slice_type, u32 p
 
     if(slice_type == SLICE_B)
     {
-        pm->num_refp[REFP_0] = EVC_MIN(pm->num_refp[REFP_0], num_ref_pics_act);
-        pm->num_refp[REFP_1] = EVC_MIN(pm->num_refp[REFP_1], num_ref_pics_act);
+        pm->num_refp[REFP_0] = EVC_MIN(pm->num_refp[REFP_0], max_num_ref_pics);
+        pm->num_refp[REFP_1] = EVC_MIN(pm->num_refp[REFP_1], max_num_ref_pics);
     }
 
     return EVC_OK;
 }
 #else
-int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int slice_type, u32 ptr, u8 layer_id, int last_intra, EVC_REFP(*refp)[REFP_NUM])
+int evc_picman_refp_init(EVC_PM *pm, int max_num_ref_pics, int slice_type, u32 ptr, u8 layer_id, int last_intra, EVC_REFP(*refp)[REFP_NUM])
 {
     int i, cnt;
     if (slice_type == SLICE_I)
@@ -573,7 +573,7 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int slice_type, u32 p
     {
         if (slice_type == SLICE_P)
         {
-            for (i = 0, cnt = 0; i < pm->cur_num_ref_pics && cnt < num_ref_pics_act; i++)
+            for (i = 0, cnt = 0; i < pm->cur_num_ref_pics && cnt < max_num_ref_pics; i++)
             {
                 /* if(ptr >= last_intra && pm->pic_ref[i]->ptr < last_intra) continue; */
                 if (layer_id == 1)
@@ -596,7 +596,7 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int slice_type, u32 p
             }
         } else /* SLICE_B */
         {
-            for (i = 0, cnt = 0; i < pm->cur_num_ref_pics && cnt < num_ref_pics_act; i++)
+            for (i = 0, cnt = 0; i < pm->cur_num_ref_pics && cnt < max_num_ref_pics; i++)
             {
                 if (ptr >= (u32)last_intra && pm->pic_ref[i]->ptr < (u32)last_intra) continue;
                 if (pm->pic_ref[i]->ptr < ptr && pm->pic_ref[i]->layer_id <= layer_id)
@@ -608,7 +608,7 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int slice_type, u32 p
         }
     } else /* layer_id == 0, non-scalable  */
     {
-        for (i = 0, cnt = 0; i < pm->cur_num_ref_pics && cnt < num_ref_pics_act; i++)
+        for (i = 0, cnt = 0; i < pm->cur_num_ref_pics && cnt < max_num_ref_pics; i++)
         {
             if (ptr >= (u32)last_intra && pm->pic_ref[i]->ptr < (u32)last_intra) continue;
             if (pm->pic_ref[i]->ptr < ptr)
@@ -619,11 +619,11 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int slice_type, u32 p
         }
     }
 
-    if (cnt < num_ref_pics_act && slice_type == SLICE_B)
+    if (cnt < max_num_ref_pics && slice_type == SLICE_B)
     {
         if (layer_id > 0)
         {
-            for (i = pm->cur_num_ref_pics - 1; i >= 0 && cnt < num_ref_pics_act; i--)
+            for (i = pm->cur_num_ref_pics - 1; i >= 0 && cnt < max_num_ref_pics; i--)
             {
                 if (ptr >= (u32)last_intra && pm->pic_ref[i]->ptr < (u32)last_intra) continue;
                 if (pm->pic_ref[i]->ptr > ptr && pm->pic_ref[i]->layer_id <= layer_id)
@@ -634,7 +634,7 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int slice_type, u32 p
             }
         } else
         {
-            for (i = pm->cur_num_ref_pics - 1; i >= 0 && cnt < num_ref_pics_act; i--)
+            for (i = pm->cur_num_ref_pics - 1; i >= 0 && cnt < max_num_ref_pics; i--)
             {
                 if (ptr >= (u32)last_intra && pm->pic_ref[i]->ptr < (u32)last_intra) continue;
                 if (pm->pic_ref[i]->ptr > ptr)
@@ -654,7 +654,7 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int slice_type, u32 p
     {
         if (layer_id > 0)
         {
-            for (i = pm->cur_num_ref_pics - 1, cnt = 0; i >= 0 && cnt < num_ref_pics_act; i--)
+            for (i = pm->cur_num_ref_pics - 1, cnt = 0; i >= 0 && cnt < max_num_ref_pics; i--)
             {
                 if (ptr >= (u32)last_intra && pm->pic_ref[i]->ptr < (u32)last_intra) continue;
                 if (pm->pic_ref[i]->ptr > ptr && pm->pic_ref[i]->layer_id <= layer_id)
@@ -665,7 +665,7 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int slice_type, u32 p
             }
         } else /* layer_id == 0, non-scalable  */
         {
-            for (i = pm->cur_num_ref_pics - 1, cnt = 0; i >= 0 && cnt < num_ref_pics_act; i--)
+            for (i = pm->cur_num_ref_pics - 1, cnt = 0; i >= 0 && cnt < max_num_ref_pics; i--)
             {
                 if (ptr >= (u32)last_intra && pm->pic_ref[i]->ptr < (u32)last_intra) continue;
                 if (pm->pic_ref[i]->ptr > ptr)
@@ -676,11 +676,11 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int slice_type, u32 p
             }
         }
 
-        if (cnt < num_ref_pics_act)
+        if (cnt < max_num_ref_pics)
         {
             if (layer_id > 0)
             {
-                for (i = 0; i < pm->cur_num_ref_pics && cnt < num_ref_pics_act; i++)
+                for (i = 0; i < pm->cur_num_ref_pics && cnt < max_num_ref_pics; i++)
                 {
 
                     if (ptr >= (u32)last_intra && pm->pic_ref[i]->ptr < (u32)last_intra) continue;
@@ -693,7 +693,7 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int slice_type, u32 p
             } else
             {
 
-                for (i = 0; i < pm->cur_num_ref_pics && cnt < num_ref_pics_act; i++)
+                for (i = 0; i < pm->cur_num_ref_pics && cnt < max_num_ref_pics; i++)
                 {
                     if (ptr >= (u32)last_intra && pm->pic_ref[i]->ptr < (u32)last_intra) continue;
                     if (pm->pic_ref[i]->ptr < ptr)
@@ -711,8 +711,8 @@ int evc_picman_refp_init(EVC_PM *pm, int num_ref_pics_act, int slice_type, u32 p
 
     if (slice_type == SLICE_B)
     {
-        pm->num_refp[REFP_0] = EVC_MIN(pm->num_refp[REFP_0], num_ref_pics_act);
-        pm->num_refp[REFP_1] = EVC_MIN(pm->num_refp[REFP_1], num_ref_pics_act);
+        pm->num_refp[REFP_0] = EVC_MIN(pm->num_refp[REFP_0], max_num_ref_pics);
+        pm->num_refp[REFP_1] = EVC_MIN(pm->num_refp[REFP_1], max_num_ref_pics);
     }
 
     return EVC_OK;
@@ -805,17 +805,17 @@ int evc_picman_refpic_marking(EVC_PM *pm, EVC_SH *sh)
 }
 
 #if HLS_M47668
-int evc_picman_put_pic(EVC_PM * pm, EVC_PIC * pic, int slice_type,
+int evc_picman_put_pic(EVC_PM * pm, EVC_PIC * pic, int is_idr,
                         u32 ptr, u32 dtr, u8 layer_id, int need_for_output,
-                        EVC_REFP(*refp)[REFP_NUM], int ref_pic, int pnpf, int ref_pic_gap_length)
+                        EVC_REFP(*refp)[REFP_NUM], int ref_pic, int tool_rpl, int ref_pic_gap_length)
 {
     /* manage RPB */
-    if(pm->use_closed_gop && slice_type == SLICE_I)
+    if(is_idr)
     {
         picman_flush_pb(pm);
     }
     //Perform picture marking if RPL approach is not used
-    else if(pnpf)
+    else if(tool_rpl == 0)
     {
         if (layer_id == 0)
         {
@@ -856,17 +856,17 @@ int evc_picman_put_pic(EVC_PM * pm, EVC_PIC * pic, int slice_type,
     return EVC_OK;
 }
 #else
-int evc_picman_put_pic(EVC_PM * pm, EVC_PIC * pic, int slice_type,
+int evc_picman_put_pic(EVC_PM * pm, EVC_PIC * pic, int is_idr,
                        u32 ptr, u32 dtr, u8 layer_id, int need_for_output,
-                       EVC_REFP(*refp)[REFP_NUM], EVC_MMCO * mmco, int pnpf)
+                       EVC_REFP(*refp)[REFP_NUM], EVC_MMCO * mmco, int tool_rpl)
 {
     /* manage RPB */
-    if (pm->use_closed_gop && slice_type == SLICE_I)
+    if (is_idr)
     {
         picman_flush_pb(pm);
     }
     //When RPL approach is used, we don't apply sliding window
-    else if (pnpf)
+    else if (tool_rpl == 0)
     {
         picman_sliding_window(pm);
     }
@@ -965,7 +965,7 @@ int evc_picman_deinit(EVC_PM * pm)
 }
 
 int evc_picman_init(EVC_PM * pm, int max_pb_size, int max_num_ref_pics,
-                     int use_closed_gop, PICBUF_ALLOCATOR * pa)
+                          PICBUF_ALLOCATOR * pa)
 {
     if(max_num_ref_pics > MAX_NUM_REF_PICS || max_pb_size > MAX_PB_SIZE)
     {
@@ -974,7 +974,6 @@ int evc_picman_init(EVC_PM * pm, int max_pb_size, int max_num_ref_pics,
     pm->max_num_ref_pics = max_num_ref_pics;
     pm->max_pb_size = max_pb_size;
     pm->ptr_increase = 1;
-    pm->use_closed_gop = use_closed_gop;
     pm->pic_lease = NULL;
 
     evc_mcpy(&pm->pa, pa, sizeof(PICBUF_ALLOCATOR));

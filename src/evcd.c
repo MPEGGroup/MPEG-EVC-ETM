@@ -233,7 +233,7 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
     ctx->ref_pic_gap_length = (int)pow(2.0, sps->log2_ref_pic_gap_length);
 #endif
 
-    ret = evc_picman_init(&ctx->dpm, MAX_PB_SIZE, MAX_NUM_REF_PICS, sps->closed_gop, &ctx->pa);
+    ret = evc_picman_init(&ctx->dpm, MAX_PB_SIZE, MAX_NUM_REF_PICS, &ctx->pa);
     evc_assert_g(EVC_SUCCEEDED(ret), ERR);
 
     evcd_split_tbl_init(ctx);
@@ -1875,10 +1875,10 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         }
 #endif
 
-        if (sps->picture_num_present_flag)
+        if (!sps->tool_rpl)
         {
             /* initialize reference pictures */
-            ret = evc_picman_refp_init(&ctx->dpm, ctx->sps.num_ref_pics_act, sh->slice_type, ctx->ptr, ctx->sh.layer_id, ctx->last_intra_ptr, ctx->refp);
+            ret = evc_picman_refp_init(&ctx->dpm, ctx->sps.max_num_ref_pics, sh->slice_type, ctx->ptr, ctx->sh.layer_id, ctx->last_intra_ptr, ctx->refp);
         }
         else
         {
@@ -1892,11 +1892,11 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         evc_assert_rv(ret == EVC_OK, ret);
 
 #if !HLS_M47668
-        if (sps->picture_num_present_flag)
+        if (!sps->tool_rpl)
         {
             if ((sh->rmpni_on && ctx->sh.slice_type != SLICE_I))
             {
-                ret = evc_picman_refp_reorder(&ctx->dpm, ctx->sps.num_ref_pics_act, sh->slice_type, ctx->ptr, ctx->refp, ctx->last_intra_ptr, sh->rmpni);
+                ret = evc_picman_refp_reorder(&ctx->dpm, ctx->sps.max_num_ref_pics, sh->slice_type, ctx->ptr, ctx->refp, ctx->last_intra_ptr, sh->rmpni);
                 evc_assert_rv(ret == EVC_OK, ret);
             }
         }
@@ -1943,9 +1943,9 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 
         /* put decoded picture to DPB */
 #if HLS_M47668
-        ret = evc_picman_put_pic(&ctx->dpm, ctx->pic, ctx->sh.slice_type, ctx->ptr, ctx->dtr, ctx->sh.layer_id, 1, ctx->refp, ctx->slice_ref_flag, sps->picture_num_present_flag, ctx->ref_pic_gap_length);
+        ret = evc_picman_put_pic(&ctx->dpm, ctx->pic, ctx->nalu.nal_unit_type_plus1 - 1 == EVC_IDR_NUT, ctx->ptr, ctx->dtr, ctx->sh.layer_id, 1, ctx->refp, ctx->slice_ref_flag, sps->tool_rpl, ctx->ref_pic_gap_length);
 #else
-        ret = evc_picman_put_pic(&ctx->dpm, ctx->pic, ctx->sh.slice_type, ctx->ptr, ctx->dtr, ctx->sh.layer_id, 1, ctx->refp, (ctx->sh.mmco_on ? &ctx->sh.mmco : NULL), sps->picture_num_present_flag);
+        ret = evc_picman_put_pic(&ctx->dpm, ctx->pic, ctx->nalu.nal_unit_type_plus1 - 1 == EVC_IDR_NUT, ctx->ptr, ctx->dtr, ctx->sh.layer_id, 1, ctx->refp, (ctx->sh.mmco_on ? &ctx->sh.mmco : NULL), sps->tool_rpl);
 #endif
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
 
