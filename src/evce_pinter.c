@@ -2404,6 +2404,9 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
             , (EVC_REFP(*)[2])ctx->refp[0]
             , &ctx->sh
 #endif
+#if TMVP_ALIGN_SPEC
+            , ctx->log2_max_cuwh
+#endif
         );
 #endif
 
@@ -2664,6 +2667,9 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
 #if M49023_ADMVP_IMPROVE
             , (EVC_REFP(*)[2])ctx->refp[0]
             , &ctx->sh
+#endif
+#if TMVP_ALIGN_SPEC
+            , ctx->log2_max_cuwh
 #endif
         );
 #endif
@@ -5806,6 +5812,9 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 #endif
 #if M49023_ADMVP_IMPROVE 
             , &ctx->sh
+#endif
+#if TMVP_ALIGN_SPEC
+            , ctx->log2_max_cuwh
 #endif
         );
     }
