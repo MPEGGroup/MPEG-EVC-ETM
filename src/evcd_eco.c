@@ -2350,11 +2350,6 @@ int evcd_eco_rlp(EVC_BSR * bs, EVC_RPL * rpl)
     return EVC_OK;
 }
 
-int evcd_eco_ref_pic_list_mod(EVC_BSR * bs)
-{
-    return EVC_OK;
-}
-
 int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
 {
     sps->sps_seq_parameter_set_id = (u32)evc_bsr_read_ue(bs);
@@ -2422,7 +2417,12 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
 #if HLS_M47668
     sps->tool_rpl = evc_bsr_read1(bs);
     sps->tool_pocs = evc_bsr_read1(bs);
-    if (!sps->tool_rpl)
+#endif
+#if DQP
+    sps->dquant_flag = evc_bsr_read1(bs);
+#endif
+#if HLS_M47668
+    if (sps->tool_pocs)
     {
         sps->log2_max_pic_order_cnt_lsb_minus4 = (u32)evc_bsr_read_ue(bs);
     }
@@ -2439,11 +2439,7 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
     sps->log2_max_pic_order_cnt_lsb_minus4 = (u32)evc_bsr_read_ue(bs);
 #endif
     sps->sps_max_dec_pic_buffering_minus1 = (u32)evc_bsr_read_ue(bs);
-    sps->picture_num_present_flag = evc_bsr_read1(bs);
-#if DQP
-    sps->dquant_flag = evc_bsr_read1(bs);
-#endif
-    if (sps->picture_num_present_flag)
+    if (!sps->tool_rpl)
     {
         sps->max_num_ref_pics = (u32)evc_bsr_read_ue(bs);
     }
@@ -2482,9 +2478,6 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
         sps->picture_crop_top_offset = (u32)evc_bsr_read_ue(bs);
         sps->picture_crop_bottom_offset = (u32)evc_bsr_read_ue(bs);
     }
-
-    sps->closed_gop = evc_bsr_read1(bs);
-    sps->num_ref_pics_act = evc_bsr_read(bs, 4) + 1;
 
     while (!EVC_BSR_IS_BYTE_ALIGN(bs))
     {
@@ -3101,15 +3094,10 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
 #else
         sh->poc = evc_bsr_read(bs, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
 #endif
-        if (sps->picture_num_present_flag)
-        {
-            sh->ref_pic_flag = evc_bsr_read1(bs);
-            sh->picture_num = evc_bsr_read(bs, 8);
-        }
     }
     // else 
     {
-        if (!sps->picture_num_present_flag)
+        if (sps->tool_rpl)
         {
             //L0 candidates signaling
             sh->ref_pic_list_sps_flag[0] = sps->rpl_candidates_present_flag ? evc_bsr_read1(bs) : 0;
@@ -3149,28 +3137,21 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
         }
     }
 
-    if (!sps->picture_num_present_flag)
+    if (sh->slice_type != SLICE_I)
     {
-        if (sh->slice_type != SLICE_I)
+        sh->num_ref_idx_active_override_flag = evc_bsr_read1(bs);
+        if (sh->num_ref_idx_active_override_flag)
         {
-            sh->num_ref_idx_active_override_flag = evc_bsr_read1(bs);
-            if (sh->num_ref_idx_active_override_flag)
+            sh->rpl_l0.ref_pic_active_num = (u32)evc_bsr_read_ue(bs) + 1;
+            if (sh->slice_type == SLICE_B)
             {
-                sh->rpl_l0.ref_pic_active_num = (u32)evc_bsr_read_ue(bs) + 1;
-                if (sh->slice_type == SLICE_B)
-                {
-                    sh->rpl_l1.ref_pic_active_num = (u32)evc_bsr_read_ue(bs) + 1;
-                }
+                sh->rpl_l1.ref_pic_active_num = (u32)evc_bsr_read_ue(bs) + 1;
             }
-            else
-            {
-                sh->rpl_l0.ref_pic_active_num = 2;  //Temporarily i set it to 2. this should be set equal to the signalled num_ref_idx_default_active_minus1[0] + 1.
-                sh->rpl_l1.ref_pic_active_num = 2;  //Temporarily i set it to 2. this should be set equal to the signalled num_ref_idx_default_active_minus1[1] + 1.
-            }
-            if (sps->picture_num_present_flag)
-            {
-                evcd_eco_ref_pic_list_mod(bs);
-            }
+        }
+        else
+        {
+            sh->rpl_l0.ref_pic_active_num = 2;  //Temporarily i set it to 2. this should be set equal to the signalled num_ref_idx_default_active_minus1[0] + 1.
+            sh->rpl_l1.ref_pic_active_num = 2;  //Temporarily i set it to 2. this should be set equal to the signalled num_ref_idx_default_active_minus1[1] + 1.
         }
     }
 

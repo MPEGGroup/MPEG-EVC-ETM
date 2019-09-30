@@ -42,14 +42,14 @@
 
 #pragma warning(disable:4018)
 
-int evce_eco_nalu(EVC_BSW * bs, EVC_NALU * nalu)
+int evce_eco_nalu(EVC_BSW * bs, EVC_NALU nalu)
 {
-    evc_bsw_write(bs, nalu->nal_unit_size, 32);
-    evc_bsw_write(bs, nalu->forbidden_zero_bit, 1);
-    evc_bsw_write(bs, nalu->nal_unit_type_plus1, 6);
-    evc_bsw_write(bs, nalu->nuh_temporal_id, 3);
-    evc_bsw_write(bs, nalu->nuh_reserved_zero_5bits, 5);
-    evc_bsw_write(bs, nalu->nuh_extension_flag, 1);
+    evc_bsw_write(bs, nalu.nal_unit_size, 32);
+    evc_bsw_write(bs, nalu.forbidden_zero_bit, 1);
+    evc_bsw_write(bs, nalu.nal_unit_type_plus1, 6);
+    evc_bsw_write(bs, nalu.nuh_temporal_id, 3);
+    evc_bsw_write(bs, nalu.nuh_reserved_zero_5bits, 5);
+    evc_bsw_write(bs, nalu.nuh_extension_flag, 1);
 
     return EVC_OK;
 }
@@ -150,7 +150,12 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
 #if HLS_M47668
     evc_bsw_write1(bs, sps->tool_rpl);
     evc_bsw_write1(bs, sps->tool_pocs);
-    if (!sps->tool_rpl)
+#endif
+#if DQP
+    evc_bsw_write1(bs, sps->dquant_flag);
+#endif
+#if HLS_M47668
+    if (sps->tool_pocs)
     {
         evc_bsw_write_ue(bs, (u32)sps->log2_max_pic_order_cnt_lsb_minus4);
     }
@@ -166,11 +171,7 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
     evc_bsw_write_ue(bs, (u32)sps->log2_max_pic_order_cnt_lsb_minus4);
 #endif
     evc_bsw_write_ue(bs, (u32)sps->sps_max_dec_pic_buffering_minus1);
-    evc_bsw_write1(bs, sps->picture_num_present_flag);
-#if DQP
-    evc_bsw_write1(bs, sps->dquant_flag);
-#endif
-    if (sps->picture_num_present_flag)
+    if (!sps->tool_rpl)
     {
         evc_bsw_write_ue(bs, (u32)sps->max_num_ref_pics);
     }
@@ -204,9 +205,6 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
         evc_bsw_write_ue(bs, (u32)sps->picture_crop_top_offset);
         evc_bsw_write_ue(bs, (u32)sps->picture_crop_bottom_offset);
     }
-
-    evc_bsw_write1(bs, sps->closed_gop);
-    evc_bsw_write(bs, (sps->num_ref_pics_act - 1), 4);
 
     while(!EVC_BSW_IS_BYTE_ALIGN(bs))
     {
@@ -396,15 +394,10 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
 #else
         evc_bsw_write(bs, sh->poc, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
 #endif
-        if (sps->picture_num_present_flag)
-        {
-            evc_bsw_write1(bs, sh->ref_pic_flag);
-            evc_bsw_write(bs, sh->picture_num, 8);
-        }
     }
     // else
     {
-        if (!sps->picture_num_present_flag)
+        if (sps->tool_rpl)
         {
             //L0 candidates signaling
             if (sps->rpl_candidates_present_flag)
@@ -442,22 +435,15 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
         }
     }
 
-    if (!sps->picture_num_present_flag)
+    if (sh->slice_type != SLICE_I)
     {
-        if (sh->slice_type != SLICE_I)
+        evc_bsw_write1(bs, sh->num_ref_idx_active_override_flag);
+        if (sh->num_ref_idx_active_override_flag)
         {
-            evc_bsw_write1(bs, sh->num_ref_idx_active_override_flag);
-            if (sh->num_ref_idx_active_override_flag)
+            evc_bsw_write_ue(bs, (u32)(sh->rpl_l0).ref_pic_active_num - 1);
+            if (sh->slice_type == SLICE_B)
             {
-                evc_bsw_write_ue(bs, (u32)(sh->rpl_l0).ref_pic_active_num - 1);
-                if (sh->slice_type == SLICE_B)
-                {
-                    evc_bsw_write_ue(bs, (u32)(sh->rpl_l1).ref_pic_active_num - 1);
-                }
-            }
-            if (sps->picture_num_present_flag)
-            {
-                evce_eco_ref_pic_list_mod(bs);
+                evc_bsw_write_ue(bs, (u32)(sh->rpl_l1).ref_pic_active_num - 1);
             }
         }
     }

@@ -1220,8 +1220,6 @@ typedef struct _EVC_PM
     u8               max_pb_size;
     /* current picture buffer size */
     u8               cur_pb_size;
-    /* closed or open GOP */
-    u8               use_closed_gop;
     /* address of leased picture for current decoding/encoding buffer */
     EVC_PIC        *pic_lease;
     /* picture buffer allocator */
@@ -1318,7 +1316,6 @@ typedef struct _EVC_SPS
 #endif
     int              log2_max_pic_order_cnt_lsb_minus4;
     int              sps_max_dec_pic_buffering_minus1;
-    int              picture_num_present_flag;
     int              max_num_ref_pics;
     u8               long_term_ref_pics_flag;
     /* HLS_RPL  */
@@ -1334,9 +1331,6 @@ typedef struct _EVC_SPS
     int              picture_crop_right_offset;
     int              picture_crop_top_offset;
     int              picture_crop_bottom_offset;
-
-    u8               closed_gop;                 /* 1 bit  : flag of closed_gop or not */
-    u8               num_ref_pics_act;           /* 4 bits : number of reference pictures active */
 #if DQP
     int              dquant_flag;              /*1 specifies the improved delta qp signaling processes is used*/
 #endif
@@ -1489,8 +1483,6 @@ typedef struct _EVC_SH
     int                 collocated_from_ref_idx;   // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
     int                 collocated_mvp_source_list_idx;  // Specifies source (List ID) in collocated pic that provides MV information 
 #endif
-    int              ref_pic_flag;
-    int              picture_num;
     s32              poc;
 
      /*   HLS_RPL */
