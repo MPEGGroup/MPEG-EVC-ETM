@@ -1800,7 +1800,7 @@ static int evc_get_right_below_scup_qc_merge(int scup, int cuw, int cuh, int w_s
     {
         if (y_scu + 1 >= h_scu)
             return -1;
-#if TMVP_ALIGN_SPEC
+#if TMVP_ALIGN_SPEC && 0
         else if ( ((y_scu + 1) << MIN_CU_LOG2 >> log2_max_cuwh) != (y_scu << MIN_CU_LOG2 >> log2_max_cuwh) )
             return -1; // check same CTU row, align to spec
         else
@@ -1814,7 +1814,7 @@ static int evc_get_right_below_scup_qc_merge(int scup, int cuw, int cuh, int w_s
     {
         if (x_scu + 1 >= w_scu)
             return -1;
-#if TMVP_ALIGN_SPEC
+#if TMVP_ALIGN_SPEC && 0
         else if ( ((x_scu + 1) << MIN_CU_LOG2 >> log2_max_cuwh) != (x_scu << MIN_CU_LOG2 >> log2_max_cuwh) )
             return -1; // check same CTU column, align to spec
         else
@@ -1843,7 +1843,7 @@ static int evc_get_right_below_scup_qc_merge_suco(int scup, int cuw, int cuh, in
     {
         if ( y_scu + 1 >= h_scu )
             return -1;
-#if TMVP_ALIGN_SPEC
+#if TMVP_ALIGN_SPEC && 0
         else if ( ((y_scu + 1) << MIN_CU_LOG2 >> log2_max_cuwh) != (y_scu << MIN_CU_LOG2 >> log2_max_cuwh) )
             return -1; // check same CTU row, align to spec
         else
@@ -1857,7 +1857,7 @@ static int evc_get_right_below_scup_qc_merge_suco(int scup, int cuw, int cuh, in
     {
         if (x_scu < 0)
             return -1;
-#if TMVP_ALIGN_SPEC
+#if TMVP_ALIGN_SPEC && 0
         else if ( ((x_scu + 1) << MIN_CU_LOG2 >> log2_max_cuwh) != (x_scu << MIN_CU_LOG2 >> log2_max_cuwh) )
             return -1; // check same CTU column, align to spec
         else
