@@ -871,9 +871,6 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #if M49023_ADMVP_IMPROVE 
         , &ctx->sh
 #endif
-#if TMVP_ALIGN_SPEC
-        , ctx->log2_max_cuwh
-#endif
     );
 
     core->mv[REFP_0][MV_X] = real_mv[core->mmvd_idx][0][MV_X];

@@ -106,9 +106,6 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 #if M49023_ADMVP_IMPROVE 
     , EVC_SH* sh
 #endif
-#if TMVP_ALIGN_SPEC
-    , int log2_max_cuwh
-#endif
 );
 
 #if ADMVP
@@ -164,9 +161,6 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
 #if M49023_ADMVP_IMPROVE
     , EVC_REFP(*refplx)[REFP_NUM]
     , EVC_SH* sh
-#endif
-#if TMVP_ALIGN_SPEC
-    , int log2_max_cuwh
 #endif
 );
 

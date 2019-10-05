@@ -37,9 +37,6 @@
 #include "evc.h"
 #include "evc_port.h"
 
-#define TMVP_ALIGN_SPEC                    1
-
-
 #define M49023_IMPROVEMENT                 1
 #if M49023_IMPROVEMENT
 #define PROFILE_SANITY_CHECK_FIX           1 
