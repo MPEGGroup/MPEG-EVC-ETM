@@ -2591,8 +2591,14 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
 #if ADCC
                      , int tool_adcc
 #endif
+#if M50761_CHROMA_NOT_SPLIT
+                     , TREE_CONS tree_cons
+#endif
 )
 {
+#if M50761_CHROMA_NOT_SPLIT
+    run_stats = evc_get_run(run_stats, tree_cons);
+#endif
     int run[N_C] = {run_stats & 1, (run_stats >> 1) & 1, (run_stats >> 2) & 1};
     s16 *coef_temp[N_C];
     s16 coef_temp_buf[N_C][MAX_TR_DIM];

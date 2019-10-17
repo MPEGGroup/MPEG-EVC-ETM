@@ -1,4 +1,4 @@
-/* The copyright in this software is being made available under the BSD
+﻿/* The copyright in this software is being made available under the BSD
 *  License, included below. This software may be subject to other third party
 *  and contributor rights, including patent rights, and no such rights are
 *  granted under this license.
@@ -1650,6 +1650,9 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 #if ADCC
         , ctx->sps.tool_adcc
 #endif
+#if M50761_CHROMA_NOT_SPLIT
+        , ctx->tree_cons
+#endif
     );
 
     if(tnnz)
@@ -1927,6 +1930,9 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
                     evce_rdo_bit_cnt_cu_inter_comp(core, coef, i, pidx
 #if ATS_INTRA_PROCESS || ADCC
                                                   , ctx
+#endif
+#if M50761_CHROMA_NOT_SPLIT
+                                                  , ctx->tree_cons
 #endif
                     );
 
@@ -2276,7 +2282,13 @@ static double analyze_skip_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y
             {
                 continue;
             }
-
+#if M50761_REMOVE_BIBLOCKS_8x4
+            if (!check_bi_applicability_rdo(ctx->slice_type, cuw, cuh) && REFI_IS_VALID(refi[REFP_0]) && REFI_IS_VALID(refi[REFP_1]))
+            {
+                if (!process_bi_mv((s16 *)mvp, refi))
+                    continue;
+            }
+#endif
             evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi, mvp, pi->refp, pi->pred[PRED_NUM],
                    ctx->ptr, pi->dmvr_template, pi->dmvr_ref_pred_interpolated,
                    pi->dmvr_half_pred_interpolated, FALSE, pi->dmvr_padding_buf, &core->dmvr_flag, dmvr_mv, ctx->sps.tool_amis);
@@ -2404,6 +2416,9 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
             , (EVC_REFP(*)[2])ctx->refp[0]
             , &ctx->sh
 #endif
+#if M50761_TMVP_8X8_GRID
+            , ctx->log2_max_cuwh
+#endif
         );
 #endif
 
@@ -2437,6 +2452,13 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
             {
                 continue;
             }
+#if M50761_REMOVE_BIBLOCKS_8x4
+            if (!check_bi_applicability_rdo(ctx->slice_type, cuw, cuh) && REFI_IS_VALID(refi[REFP_0]) && REFI_IS_VALID(refi[REFP_1]))
+            {
+                if (!process_bi_mv((s16 *)mvp, refi))
+                    continue;
+            }
+#endif
 
 #if DMVR
             evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi, mvp, pi->refp, pi->pred[PRED_NUM], ctx->ptr, pi->dmvr_template, pi->dmvr_ref_pred_interpolated
@@ -2665,6 +2687,9 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
             , (EVC_REFP(*)[2])ctx->refp[0]
             , &ctx->sh
 #endif
+#if M50761_TMVP_8X8_GRID
+            , ctx->log2_max_cuwh
+#endif
         );
 #endif
 #if ADMVP
@@ -2689,6 +2714,13 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
         {
             continue;
         }
+#if M50761_REMOVE_BIBLOCKS_8x4
+        if (!check_bi_applicability_rdo(ctx->slice_type, cuw, cuh) && REFI_IS_VALID(refi[REFP_0]) && REFI_IS_VALID(refi[REFP_1]))
+        {
+            if (!process_bi_mv((s16 *)mvp, refi))
+                continue;
+        }
+#endif
 
         pi->mvp_idx[pidx][REFP_0] = idx0;
         pi->mvp_idx[pidx][REFP_1] = idx0;
@@ -2815,6 +2847,13 @@ static double analyze_t_direct(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
     pi->mvd[pidx][REFP_1][MV_Y] = 0;
 
     SET_REFI(pi->refi[pidx], 0, 0);
+#if M50761_REMOVE_BIBLOCKS_8x4 
+    if (!check_bi_applicability_rdo(ctx->slice_type, 1 << log2_cuw, 1 << log2_cuh))
+    {
+        if (process_bi_mv((s16 *)pi->mv[pidx], pi->refi[pidx]) != 2)
+            return MAX_COST;
+    }
+#endif
 
     cost = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[pidx], pi->coef[pidx], pidx, pi->mvp_idx[pidx], FALSE);
 
@@ -2890,6 +2929,13 @@ static double analyze_skip_mmvd(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, 
         {
             continue;
         }
+#if M50761_REMOVE_BIBLOCKS_8x4
+        if (!check_bi_applicability_rdo(ctx->slice_type, cuw, cuh) && REFI_IS_VALID(refi[REFP_0]) && REFI_IS_VALID(refi[REFP_1]))
+        {
+            if (!process_bi_mv((s16 *)mvp, refi))
+                continue;
+        }
+#endif
 
 #if DMVR
         evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi, mvp, pi->refp, pi->pred[PRED_NUM], ctx->ptr, pi->dmvr_template, pi->dmvr_ref_pred_interpolated
@@ -2968,6 +3014,13 @@ static double analyze_skip_mmvd(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, 
     mvp[REFP_1][MV_Y] = real_mv[best_idx_num][1][MV_Y];
     pi->refi[PRED_SKIP_MMVD][REFP_0] = real_mv[best_idx_num][0][2];
     pi->refi[PRED_SKIP_MMVD][REFP_1] = real_mv[best_idx_num][1][2];
+#if M50761_REMOVE_BIBLOCKS_8x4 
+    if (!check_bi_applicability_rdo(ctx->slice_type, cuw, cuh) && REFI_IS_VALID(pi->refi[PRED_SKIP_MMVD][REFP_0]) && REFI_IS_VALID(pi->refi[PRED_SKIP_MMVD][REFP_1]))
+    {
+        if (!process_bi_mv((s16 *)mvp, pi->refi[PRED_SKIP_MMVD]))
+            return MAX_COST;
+    }
+#endif
 
     pi->mvd[PRED_SKIP_MMVD][REFP_0][MV_X] = 0;
     pi->mvd[PRED_SKIP_MMVD][REFP_0][MV_Y] = 0;
@@ -3056,6 +3109,14 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         {
             continue;
         }
+#if M50761_REMOVE_BIBLOCKS_8x4
+        if (!check_bi_applicability_rdo(ctx->slice_type, 1 << log2_cuw, 1 << log2_cuh) && REFI_IS_VALID(pi->refi[pidx][REFP_0]) && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+        {
+            if (!process_bi_mv((s16 *)pi->mv[pidx], pi->refi[pidx]))
+                continue;
+            evc_mcpy(refi, pi->refi, sizeof(refi));
+        }
+#endif
 
         pi->mvd[pidx][REFP_0][MV_X] = 0;
         pi->mvd[pidx][REFP_0][MV_Y] = 0;
@@ -3429,6 +3490,16 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         {
             continue;
         }
+#if M50761_REMOVE_BIBLOCKS_8x4
+        if (c_num == -1)
+            continue;
+        if (!check_bi_applicability_rdo(ctx->slice_type, 1 << log2_cuw, 1 << log2_cuh) && REFI_IS_VALID(pi->refi[pidx][REFP_0]) && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+        {
+            if (!process_bi_mv((s16 *)pi->mv[pidx], pi->refi[pidx]))
+                continue;
+            evc_mcpy(refi, pi->refi, sizeof(refi));
+        }
+#endif
         pi->mvd[pidx][REFP_0][MV_X] = 0;
         pi->mvd[pidx][REFP_0][MV_Y] = 0;
         pi->mvd[pidx][REFP_1][MV_X] = 0;
@@ -3472,6 +3543,17 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         {
             continue;
         }
+#if M50761_REMOVE_BIBLOCKS_8x4
+        if (c_num == -1)
+            continue;
+        if (!check_bi_applicability_rdo(ctx->slice_type, 1 << log2_cuw, 1 << log2_cuh) && REFI_IS_VALID(pi->refi[pidx][REFP_0]) && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+        {
+            if (!process_bi_mv((s16 *)pi->mv[pidx], pi->refi[pidx]))
+                continue;
+            evc_mcpy(refi, pi->refi, sizeof(refi));
+        }
+#endif
+
         pi->mvd[pidx][REFP_0][MV_X] = 0;
         pi->mvd[pidx][REFP_0][MV_Y] = 0;
         pi->mvd[pidx][REFP_1][MV_X] = 0;
@@ -3521,6 +3603,13 @@ static double analyze_bi(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_
 
     cuw = (1 << log2_cuw);
     cuh = (1 << log2_cuh);
+
+#if M50761_REMOVE_BIBLOCKS_8x4
+    if (!check_bi_applicability_rdo(ctx->slice_type, cuw, cuh))
+    {
+        return MAX_COST;
+    }
+#endif
 
     if(bi_idx == BI_FL0 || bi_idx == BI_FL1)
     {
@@ -5092,8 +5181,12 @@ static double analyze_affine_bi(EVCE_CTX * ctx, EVCE_CORE * core, EVCE_PINTER * 
     int         pidx, pidx_ref, pidx_cnd, i;
     int         vertex;
     int         mebits;
+
+#if !EIF_MEMORY_BANDWIDTH_RESTRICTION
     int         memory_access[REFP_NUM];
     int         mem = MAX_MEMORY_ACCESS_BI * (1 << log2_cuw) * (1 << log2_cuh);
+#endif
+
 #if ATS_INTER_PROCESS
     core->ats_inter_info = 0;
 #endif
@@ -5257,13 +5350,20 @@ static double analyze_affine_bi(EVCE_CTX * ctx, EVCE_CORE * core, EVCE_PINTER * 
             pi->affine_mv[pidx][i][3][MV_X] = pi->affine_mv[pidx][i][0][MV_X] - (pi->affine_mv[pidx][i][1][MV_Y] + pi->affine_mv[pidx][i][0][MV_Y]) * cuh / cuh;
             pi->affine_mv[pidx][i][3][MV_Y] = pi->affine_mv[pidx][i][0][MV_Y] + (pi->affine_mv[pidx][i][1][MV_X] + pi->affine_mv[pidx][i][0][MV_X]) * cuh / cuh;
         }
+
+#if !EIF_MEMORY_BANDWIDTH_RESTRICTION
         memory_access[i] = evc_get_affine_memory_access(pi->affine_mv[pidx][i], cuw, cuh);
+#endif
+
     }
+
+#if !EIF_MEMORY_BANDWIDTH_RESTRICTION
     if(memory_access[0] > mem || memory_access[1] > mem)
     {
         return MAX_COST;
     }
     else
+#endif
     {
         cost = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[pidx], pi->coef[pidx], pidx, pi->mvp_idx[pidx]
 #if DMVR
@@ -5311,6 +5411,9 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
 #if M48879_IMPROVEMENT_SUCO
                                              , core->avail_lr
 #endif
+#if M50761_TMVP_ALIGN_SPEC
+                                             , &ctx->sh
+#endif
     );
 
     if(mrg_cnt == 0)
@@ -5318,8 +5421,10 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
 
     for(idx = 0; idx < mrg_cnt; idx++)
     {
+#if !EIF_MEMORY_BANDWIDTH_RESTRICTION
         int memory_access[REFP_NUM];
         int allowed = 1;
+#endif
         int i;
         for ( i = 0; i < REFP_NUM; i++ )
         {
@@ -5337,10 +5442,15 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
                     mrg_list_cp_mv[idx][i][3][MV_X] = mrg_list_cp_mv[idx][i][1][MV_X] - (mrg_list_cp_mv[idx][i][1][MV_Y] - mrg_list_cp_mv[idx][i][0][MV_Y]) * (s16)cuh / (s16)cuw;
                     mrg_list_cp_mv[idx][i][3][MV_Y] = mrg_list_cp_mv[idx][i][1][MV_Y] + (mrg_list_cp_mv[idx][i][1][MV_X] - mrg_list_cp_mv[idx][i][0][MV_X]) * (s16)cuh / (s16)cuw;
                 }
+
+#if !EIF_MEMORY_BANDWIDTH_RESTRICTION
                 memory_access[i] = evc_get_affine_memory_access( mrg_list_cp_mv[idx][i], cuw, cuh );
+#endif
+
             }
         }
 
+#if !EIF_MEMORY_BANDWIDTH_RESTRICTION
         if ( REFI_IS_VALID( mrg_list_refi[idx][0] ) && REFI_IS_VALID( mrg_list_refi[idx][1] ) )
         {
             int mem = MAX_MEMORY_ACCESS_BI * cuw * cuh;
@@ -5362,6 +5472,7 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
         {
             continue;
         }
+#endif
 
         // set motion information for MC
         core->affine_flag = mrg_list_cp_num[idx] - 1;
@@ -5729,9 +5840,13 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
     u32 cost_trans[REFP_NUM][MAX_NUM_ACTIVE_REF_FRAME];
     s16 mv_trans[MAX_NUM_ACTIVE_REF_FRAME][REFP_NUM][MV_D];
     s16 tmp_mv_array[VER_NUM][MV_D];
+
+#if !EIF_MEMORY_BANDWIDTH_RESTRICTION
     int memory_access;
     int allowed = 1;
     int mem = MAX_MEMORY_ACCESS_UNI * (1 << log2_cuw) * (1 << log2_cuh);
+#endif
+
 #endif
     int k;
     int REF_SET[3][MAX_NUM_ACTIVE_REF_FRAME] = {{0,0,},};
@@ -5806,6 +5921,9 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 #endif
 #if M49023_ADMVP_IMPROVE 
             , &ctx->sh
+#endif
+#if M50761_TMVP_8X8_GRID
+            , ctx->log2_max_cuwh
 #endif
         );
     }
@@ -6070,7 +6188,11 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                 }
             }
 #if ADMVP
-            if(check_bi_applicability(pi->slice_type, cuw, cuh))
+            if(check_bi_applicability(pi->slice_type, cuw, cuh)
+#if M50761_REMOVE_BIBLOCKS_8x4
+                && check_bi_applicability_rdo(pi->slice_type, cuw, cuh)
+#endif
+                )
 #else
             if(pi->slice_type == SLICE_B)
 #endif
@@ -6386,7 +6508,10 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                         affine_mv[2][MV_Y] = affine_mv[0][MV_Y] + (affine_mv[1][MV_X] - affine_mv[0][MV_X]) * cuh / cuw;
                         affine_mv[3][MV_X] = affine_mv[1][MV_X] - (affine_mv[1][MV_Y] - affine_mv[0][MV_Y]) * cuh / cuw;
                         affine_mv[3][MV_Y] = affine_mv[1][MV_Y] + (affine_mv[1][MV_X] - affine_mv[0][MV_X]) * cuh / cuw;
+
+#if !EIF_MEMORY_BANDWIDTH_RESTRICTION
                         allowed = 1;
+
                         memory_access = evc_get_affine_memory_access(affine_mv, cuw, cuh);
                         if(memory_access > mem)
                         {
@@ -6394,6 +6519,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                         }
 
                         if(allowed)
+#endif
                         {
                             cost = cost_inter[pidx] = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[PRED_NUM], pi->coef[PRED_NUM], pidx, mvp_idx
 #if DMVR
@@ -6620,6 +6746,8 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 
                             affine_mv[3][MV_X] = affine_mv[1][MV_X] + affine_mv[2][MV_X] - affine_mv[0][MV_X];
                             affine_mv[3][MV_Y] = affine_mv[1][MV_Y] + affine_mv[2][MV_Y] - affine_mv[0][MV_Y];
+
+#if !EIF_MEMORY_BANDWIDTH_RESTRICTION
                             allowed = 1;
                             memory_access = evc_get_affine_memory_access(affine_mv, cuw, cuh);
                             if(memory_access > mem)
@@ -6628,6 +6756,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                             }
 
                             if(allowed)
+#endif
                             {
                                 cost = cost_inter[pidx] = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[PRED_NUM], pi->coef[PRED_NUM], pidx, mvp_idx
 #if DMVR
@@ -6818,7 +6947,25 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
         core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][evc_get_lr(core->avail_lr)].affine_flag = best_affine_mode;
     }
 #endif
-
+#if TRACE_ADDITIONAL_FLAGS
+    EVC_TRACE_COUNTER;
+    EVC_TRACE_STR("Inter analyze for block [(");
+    EVC_TRACE_INT(x);
+    EVC_TRACE_STR(", ");
+    EVC_TRACE_INT(y);
+    EVC_TRACE_STR("), ");
+    EVC_TRACE_INT(1 << log2_cuw);
+    EVC_TRACE_STR("x");
+    EVC_TRACE_INT(1 << log2_cuh);
+    EVC_TRACE_STR("]Inter costs: ");
+    for (int i = 0; i < PRED_NUM; ++i)
+    {
+        EVC_TRACE_DOUBLE(cost_inter[i]);
+    }
+    EVC_TRACE_STR(". Best idx = ");
+    EVC_TRACE_INT(best_idx);
+    EVC_TRACE_STR("\n");
+#endif
     return cost_inter[best_idx];
 }
 

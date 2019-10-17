@@ -93,6 +93,17 @@ void evcd_set_affine_mvf(EVCD_CTX * ctx, EVCD_CORE * core)
     aff_scup[2] = (h_cu - 1) * w_scu;
     aff_scup[3] = (w_cu - 1) + (h_cu - 1) * w_scu;
 
+#if M50761_AFFINE_ADAPT_SUB_SIZE
+    // derive sub-block size
+    int sub_w = 4, sub_h = 4;
+    derive_affine_subblock_size_bi( core->affine_mv, core->refi, (1 << core->log2_cuw), (1 << core->log2_cuh), &sub_w, &sub_h, vertex_num );
+
+    int   sub_w_in_scu = PEL2SCU( sub_w );
+    int   sub_h_in_scu = PEL2SCU( sub_h );
+    int   half_w = sub_w >> 1;
+    int   half_h = sub_h >> 1;
+#endif
+
     for(lidx = 0; lidx < REFP_NUM; lidx++)
     {
         if(core->refi[lidx] >= 0)
@@ -120,6 +131,7 @@ void evcd_set_affine_mvf(EVCD_CTX * ctx, EVCD_CORE * core)
                 dmv_ver_y = dmv_hor_x;
             }
 
+#if !M50761_AFFINE_ADAPT_SUB_SIZE
             // derive sub-block size
             int sub_w = 4, sub_h = 4;
             derive_affine_subblock_size( core->affine_mv[lidx], (1 << core->log2_cuw), (1 << core->log2_cuh), &sub_w, &sub_h, vertex_num );
@@ -127,6 +139,7 @@ void evcd_set_affine_mvf(EVCD_CTX * ctx, EVCD_CORE * core)
             int   sub_h_in_scu = PEL2SCU( sub_h );
             int   half_w = sub_w >> 1;
             int   half_h = sub_h >> 1;
+#endif
 
             for ( int h = 0; h < h_cu; h += sub_h_in_scu )
             {
@@ -289,6 +302,10 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
 #if DMVR_LAG
     idx = 0;
 #endif
+#if M50761_CHROMA_NOT_SPLIT
+    if (evcd_check_luma(ctx))
+    {
+#endif
     for(i = 0; i < h_cu; i++)
     {
         for(j = 0; j < w_cu; j++)
@@ -407,10 +424,17 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
                 map_mv[j][REFP_1][MV_X] = core->mv[REFP_1][MV_X];
                 map_mv[j][REFP_1][MV_Y] = core->mv[REFP_1][MV_Y];
 #if DMVR_LAG
+#if M50761_DMVR_SIMP_SPATIAL_MV
+                map_unrefined_mv[j][REFP_0][MV_X] = core->mv[REFP_0][MV_X];
+                map_unrefined_mv[j][REFP_0][MV_Y] = core->mv[REFP_0][MV_Y];
+                map_unrefined_mv[j][REFP_1][MV_X] = core->mv[REFP_1][MV_X];
+                map_unrefined_mv[j][REFP_1][MV_Y] = core->mv[REFP_1][MV_Y];
+#else
                 map_unrefined_mv[j][REFP_0][MV_X] = SHRT_MAX;
                 map_unrefined_mv[j][REFP_0][MV_Y] = SHRT_MAX;
                 map_unrefined_mv[j][REFP_1][MV_X] = SHRT_MAX;
                 map_unrefined_mv[j][REFP_1][MV_Y] = SHRT_MAX;
+#endif
 #endif
 
             }
@@ -458,7 +482,9 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
     evc_mcpy(core->mv, map_mv, sizeof(core->mv));
     evc_mcpy(core->refi, map_refi, sizeof(core->refi));
 #endif
-
+#if M50761_CHROMA_NOT_SPLIT
+    }
+#endif
 #if MVF_TRACE
     // Trace MVF in decoder
 #if ENC_DEC_TRACE
@@ -871,6 +897,9 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #if M49023_ADMVP_IMPROVE 
         , &ctx->sh
 #endif
+#if M50761_TMVP_8X8_GRID
+        , ctx->log2_max_cuwh
+#endif
     );
 
     core->mv[REFP_0][MV_X] = real_mv[core->mmvd_idx][0][MV_X];
@@ -892,3 +921,43 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
         core->refi[REFP_1] = -1;
     }
 }
+
+#if M50761_CHROMA_NOT_SPLIT
+u8 evcd_check_luma(EVCD_CTX *ctx)
+{
+    return evc_check_luma(ctx->tree_cons);
+}
+
+u8 evcd_check_chroma(EVCD_CTX *ctx)
+{
+    return evc_check_chroma(ctx->tree_cons);
+}
+u8 evcd_check_all(EVCD_CTX *ctx)
+{
+    return evc_check_all(ctx->tree_cons);
+}
+
+u8 evcd_check_only_intra(EVCD_CTX *ctx)
+{
+    return evc_check_only_intra(ctx->tree_cons);
+}
+
+u8 evcd_check_only_inter(EVCD_CTX *ctx)
+{
+    return evc_check_only_inter(ctx->tree_cons);
+}
+
+u8 evcd_check_all_preds(EVCD_CTX *ctx)
+{
+    return evc_check_all_preds(ctx->tree_cons);
+}
+
+MODE_CONS evcd_derive_mode_cons(EVCD_CTX *ctx, int scup)
+{
+    return ( MCU_GET_IF(ctx->map_scu[scup])
+#if IBC
+        || MCU_GET_IBC(ctx->map_scu[scup])
+#endif
+        ) ? eOnlyIntra : eOnlyInter;
+}
+#endif

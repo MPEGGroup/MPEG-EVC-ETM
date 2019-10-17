@@ -42,6 +42,13 @@ extern "C"
 
 #define GET_SBAC_ENC(bs)   ((EVCE_SBAC *)(bs)->pdata[1])
 
+#if GRAB_STAT
+void ence_stat_cu(int x, int y, int cuw, int cuh, int cup, void *ctx, void *core
+#if M50761_CHROMA_NOT_SPLIT
+    , TREE_CONS tree_cons
+#endif
+);
+#endif
 int evce_eco_nalu(EVC_BSW * bs, EVC_NALU nalu);
 int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps);
 int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps);
@@ -78,8 +85,18 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
 #if DQP
                   , EVCE_CORE * core, int enc_dqp, u8 cur_qp
 #endif
+#if M50761_CHROMA_NOT_SPLIT
+                  , TREE_CONS tree_cons
+#endif
 );
-int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int cuw, int cuh);
+int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int cuw, int cuh
+#if M50761_CHROMA_NOT_SPLIT
+    , TREE_CONS tree_cons
+#endif
+);
+#if M50761_CHROMA_NOT_SPLIT
+int evce_eco_mode_constr(EVC_BSW * bs, MODE_CONS mode_cons, int ctx);
+#endif
 int evce_eco_split_mode(EVC_BSW *bs, EVCE_CTX *c, EVCE_CORE *core, int cud, int cup, int cuw, int cuh, int lcu_s
                         , const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int* curr_split_allow, int qt_depth, int btt_depth, int x, int y);
 int evce_eco_suco_flag(EVC_BSW *bs, EVCE_CTX *c, EVCE_CORE *core, int cud, int cup, int cuw, int cuh, int lcu_s, s8 split_mode, int boundary, u8 log2_max_cuwh);
@@ -90,7 +107,11 @@ int evce_eco_mvp_idx(EVC_BSW *bs, int mvp_idx, int sps_amis_flag);
 int evce_eco_affine_mvp_idx(EVC_BSW *bs, int mvp_idx);
 int evce_eco_mvd(EVC_BSW *bs, s16 mvd[MV_D]);
 int evce_eco_refi(EVC_BSW * bs, int num_refp, int refi);
-void evce_eco_inter_dir(EVC_BSW * bs, s8 refi[REFP_NUM]);
+void evce_eco_inter_dir(EVC_BSW * bs, s8 refi[REFP_NUM]
+#if REMOVE_BI_INTERDIR
+    , int slice_type, int cuw, int cuh
+#endif
+);
 void evce_eco_inter_t_direct(EVC_BSW *bs, int t_direct_flag);
 //! \todo Change list of arguments
 void evce_eco_xcoef(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num_sig, int ch_type
@@ -119,6 +140,9 @@ void evc_alfGolombEncode(EVC_BSW * bs, int coeff, int kMinTab);
 int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS * aps);
 #endif
 int evce_eco_alf_sh_param(EVC_BSW * bs, EVC_SH * sh);
+#endif
+#if IBC && M50761_BUGFIX_ENCSIDE_IBC
+void evce_eco_ibc_flag(EVC_BSW * bs, int flag, int ctx);
 #endif
 #ifdef __cplusplus
 }

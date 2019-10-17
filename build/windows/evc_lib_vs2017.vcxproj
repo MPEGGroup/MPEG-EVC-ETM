@@ -13,6 +13,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\evc.c" />
     <ClCompile Include="..\..\src\evc_alf.c" />
+    <ClCompile Include="..\..\src\evc_debug.c" />
     <ClCompile Include="..\..\src\evc_df.c" />
     <ClCompile Include="..\..\src\evc_img.c" />
     <ClCompile Include="..\..\src\evc_picman.c" />
@@ -26,6 +27,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\inc\evc.h" />
     <ClInclude Include="..\..\src\evc_alf.h" />
+    <ClInclude Include="..\..\src\evc_debug.h" />
     <ClInclude Include="..\..\src\evc_img.h" />
     <ClInclude Include="..\..\src\evc_picman.h" />
     <ClInclude Include="..\..\src\evc_def.h" />

@@ -57,6 +57,10 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
 #if ADCC
                       , int tool_adcc
 #endif
+#if M50761_CHROMA_NOT_SPLIT
+                      , TREE_CONS tree_cons
+#endif
+
 );
 void evce_init_err_scale();
 

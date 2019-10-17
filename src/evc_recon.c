@@ -133,11 +133,18 @@ void evc_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pe
 #if ATS_INTER_PROCESS
                    , u8 ats_inter_info
 #endif
+#if M50761_CHROMA_NOT_SPLIT
+    , TREE_CONS tree_cons
+#endif
 )
 {
     pel * rec;
     int s_rec, off;
 
+#if M50761_CHROMA_NOT_SPLIT
+    if (evc_check_luma(tree_cons))
+    {
+#endif
     /* Y */
     s_rec = pic->s_l;
     rec = pic->y + (y * s_rec) + x;
@@ -146,7 +153,11 @@ void evc_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pe
               , ats_inter_info
 #endif
     );
-
+#if M50761_CHROMA_NOT_SPLIT
+    }
+    if (evc_check_chroma(tree_cons))
+    {
+#endif
     /* chroma */
     cuw >>= 1;
     cuh >>= 1;
@@ -161,6 +172,10 @@ void evc_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pe
               , ats_inter_info
 #endif
     );
+#if M50761_CHROMA_NOT_SPLIT
+    }
+#endif
+
 }
 
 #if HTDF
@@ -288,8 +303,13 @@ BOOL evc_htdf_skip_condition(int width, int height, int IntraBlockFlag, int *qp)
     if(*qp <= 17)
         return TRUE;
 
+#if M50761_HTDF_BLOCK_SIZE_64
+    if (width*height < 64)
+        return TRUE;
+#else
     if((width == 4) && (height == 4))
         return TRUE;
+#endif
 
     int min_size = min(width, height);
     int max_size = max(width, height);

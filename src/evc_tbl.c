@@ -518,6 +518,20 @@ const s16 init_pred_mode[2][NUM_PRED_MODE_CTX][1] = {
         { 368 }
     }
 };
+#if M50761_CHROMA_NOT_SPLIT
+const s16 init_mode_cons[2][NUM_MODE_CONS_CTX][1] = {
+    {
+        { 64 },
+        { 0 },
+        { 0 }
+    },
+    {
+        { 481 },
+        { 16 },
+        { 368 }
+    }
+};
+#endif
 const s16 init_refi[2][NUM_REFI_CTX][1] = {
     {
         { 0 },

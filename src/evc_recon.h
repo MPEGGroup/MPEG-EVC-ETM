@@ -44,6 +44,9 @@ void evc_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pe
 #if ATS_INTER_PROCESS
                    , u8 ats_inter_info
 #endif
+#if M50761_CHROMA_NOT_SPLIT
+    , TREE_CONS tree_cons
+#endif
 );
 
 #if HTDF
