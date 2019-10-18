@@ -75,6 +75,9 @@ extern int* evc_tbl_qp_chroma_ajudst;
 extern const s16 init_cbf[2][NUM_QT_CBF_CTX][1];
 extern const s16 init_all_cbf[2][NUM_QT_ROOT_CBF_CTX][1];
 extern const s16 init_pred_mode[2][NUM_PRED_MODE_CTX][1];
+#if M50761_CHROMA_NOT_SPLIT
+extern const s16 init_mode_cons[2][NUM_MODE_CONS_CTX][1];
+#endif
 extern const s16 init_inter_dir[2][NUM_INTER_DIR_CTX][1];
 extern const s16 init_intra_dir[2][NUM_INTRA_DIR_CTX][1];
 extern const s16 init_mmvd_flag[2][NUM_SBAC_CTX_MMVD_FLAG][1];
@@ -134,6 +137,9 @@ extern const s16 init_ats_inter_info[2][NUM_SBAC_CTX_ATS_INTER_INFO][1];
 extern const s16 init_cbf[2][NUM_QT_CBF_CTX][2];
 extern const s16 init_all_cbf[2][NUM_QT_ROOT_CBF_CTX][2];
 extern const s16 init_pred_mode[2][NUM_PRED_MODE_CTX][2];
+#if M50761_CHROMA_NOT_SPLIT
+extern const s16 init_mode_cons[2][NUM_MODE_CONS_CTX][2];
+#endif
 extern const s16 init_inter_dir[2][NUM_INTER_DIR_CTX][2];
 extern const s16 init_intra_dir[2][NUM_INTRA_DIR_CTX][2];
 extern const s16 init_mmvd_flag[2][NUM_SBAC_CTX_MMVD_FLAG][2];

@@ -153,6 +153,17 @@ void evc_set_affine_mvf(EVCE_CTX * ctx, EVCE_CORE * core, int w, int h, s8 refi[
         map_refi += w_scu;
     }
 
+#if M50761_AFFINE_ADAPT_SUB_SIZE
+    // derive sub-block size
+    int sub_w = 4, sub_h = 4;
+    derive_affine_subblock_size_bi( mv, refi, core->cuw, core->cuh, &sub_w, &sub_h, vertex_num );
+
+    int   sub_w_in_scu = PEL2SCU( sub_w );
+    int   sub_h_in_scu = PEL2SCU( sub_h );
+    int   half_w = sub_w >> 1;
+    int   half_h = sub_h >> 1;
+#endif
+
     for (lidx = 0; lidx < REFP_NUM; lidx++)
     {
         if (refi[lidx] >= 0)
@@ -181,6 +192,7 @@ void evc_set_affine_mvf(EVCE_CTX * ctx, EVCE_CORE * core, int w, int h, s8 refi[
                 dmv_ver_y = dmv_hor_x;
             }
 
+#if !M50761_AFFINE_ADAPT_SUB_SIZE
             // derive sub-block size
             int sub_w = 4, sub_h = 4;
             derive_affine_subblock_size( mv[lidx], core->cuw, core->cuh, &sub_w, &sub_h, vertex_num );
@@ -188,6 +200,7 @@ void evc_set_affine_mvf(EVCE_CTX * ctx, EVCE_CORE * core, int w, int h, s8 refi[
             int   sub_h_in_scu = PEL2SCU( sub_h );
             int   half_w = sub_w >> 1;
             int   half_h = sub_h >> 1;
+#endif
 
             for ( int h = 0; h < h_cu; h += sub_h_in_scu )
             {
@@ -307,3 +320,43 @@ void evce_split_tbl_init(EVCE_CTX *ctx)
     evc_split_tbl[5][0] = ctx->cdsc.framework_tris_max;
     evc_split_tbl[5][1] = ctx->cdsc.framework_tris_min;
 }
+
+#if M50761_CHROMA_NOT_SPLIT
+u8 evce_check_luma(EVCE_CTX *ctx)
+{
+    return evc_check_luma(ctx->tree_cons);
+}
+
+u8 evce_check_chroma(EVCE_CTX *ctx)
+{
+    return evc_check_chroma(ctx->tree_cons);
+}
+u8 evce_check_all(EVCE_CTX *ctx)
+{
+    return evc_check_all(ctx->tree_cons);
+}
+
+u8 evce_check_only_intra(EVCE_CTX *ctx)
+{
+    return evc_check_only_intra(ctx->tree_cons);
+}
+
+u8 evce_check_only_inter(EVCE_CTX *ctx)
+{
+    return evc_check_only_inter(ctx->tree_cons);
+}
+
+u8 evce_check_all_preds(EVCE_CTX *ctx)
+{
+    return evc_check_all_preds(ctx->tree_cons);
+}
+
+MODE_CONS evce_derive_mode_cons(EVCE_CTX *ctx, int lcu_num, int cup)
+{
+        return ((ctx->map_cu_data[lcu_num].pred_mode[cup] == MODE_INTRA)
+#if IBC
+            || (ctx->map_cu_data[lcu_num].pred_mode[cup] == MODE_IBC)
+#endif
+            ) ? eOnlyIntra : eOnlyInter;
+}
+#endif

@@ -158,11 +158,29 @@ void evce_rdo_bit_cnt_cu_intra_luma(EVCE_CTX *ctx, EVCE_CORE *core, s32 slice_ty
     int log2_cuh = core->log2_cuh;
     int* nnz = core->nnz;
 
-    if(slice_type != SLICE_I && (ctx->sps.tool_amis == 0 || !(core->log2_cuw <= MIN_CU_LOG2 && core->log2_cuh <= MIN_CU_LOG2)))
+    if(slice_type != SLICE_I && (ctx->sps.tool_amis == 0 || !(core->log2_cuw <= MIN_CU_LOG2 && core->log2_cuh <= MIN_CU_LOG2))
+#if M50761_CHROMA_NOT_SPLIT
+        && evce_check_all_preds(ctx)
+#endif
+        )
     {
         evce_sbac_encode_bin(0, sbac, core->s_temp_run.ctx.skip_flag + ctx->ctx_flags[CNID_SKIP_FLAG], &core->bs_temp); /* skip_flag */
         evce_eco_pred_mode(&core->bs_temp, MODE_INTRA, ctx->ctx_flags[CNID_PRED_MODE]);
     }
+#if IBC && M50761_BUGFIX_ENCSIDE_IBC
+    if (((slice_type == SLICE_I)
+#if M50761_CHROMA_NOT_SPLIT
+        || evce_check_only_intra(ctx)
+#endif
+        ) 
+#if M50761_CHROMA_NOT_SPLIT
+        && evce_check_luma(ctx)
+#endif
+        && ctx->param.use_ibc_flag && core->log2_cuw <= ctx->sps.ibc_log_max_size && core->log2_cuh <= ctx->sps.ibc_log_max_size)
+    {
+        evce_eco_ibc_flag(&core->bs_temp, 0, ctx->ctx_flags[CNID_IBC_FLAG]);
+    }
+#endif
 
     if (ctx->sps.tool_eipd)
     {
@@ -188,6 +206,9 @@ void evce_rdo_bit_cnt_cu_intra_luma(EVCE_CTX *ctx, EVCE_CORE *core, s32 slice_ty
 #endif
 #if DQP
                   , core, 0, 0
+#endif
+#if M50761_CHROMA_NOT_SPLIT
+        , ctx->tree_cons
 #endif
     );
 }
@@ -220,6 +241,9 @@ void evce_rdo_bit_cnt_cu_intra_chroma(EVCE_CTX *ctx, EVCE_CORE *core, s32 slice_
 #if DQP
                   , core, 0, 0
 #endif
+#if M50761_CHROMA_NOT_SPLIT
+        , ctx->tree_cons
+#endif
     );
 }
 
@@ -233,16 +257,55 @@ void evce_rdo_bit_cnt_cu_intra(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
     assert(core->ats_inter_info == 0);
 #endif
 
-    if(slice_type != SLICE_I && (ctx->sps.tool_amis == 0 || !(core->log2_cuw <= MIN_CU_LOG2 && core->log2_cuh <= MIN_CU_LOG2)))
+    if(slice_type != SLICE_I && (ctx->sps.tool_amis == 0 || !(core->log2_cuw <= MIN_CU_LOG2 && core->log2_cuh <= MIN_CU_LOG2))
+#if M50761_CHROMA_NOT_SPLIT
+        && evce_check_all_preds(ctx)
+#endif
+        )
     {
         evce_sbac_encode_bin(0, sbac, core->s_temp_run.ctx.skip_flag + ctx->ctx_flags[CNID_SKIP_FLAG], &core->bs_temp); /* skip_flag */
         evce_eco_pred_mode(&core->bs_temp, MODE_INTRA, ctx->ctx_flags[CNID_PRED_MODE]);
     }
+#if IBC && M50761_BUGFIX_ENCSIDE_IBC
+    if ( ((slice_type == SLICE_I)
+#if M50761_CHROMA_NOT_SPLIT
+        || evce_check_only_intra(ctx) 
+#endif
+        ) 
+#if M50761_CHROMA_NOT_SPLIT
+        && evce_check_luma(ctx)
+#endif
+        && ctx->param.use_ibc_flag && core->log2_cuw <= ctx->sps.ibc_log_max_size && core->log2_cuh <= ctx->sps.ibc_log_max_size)
+    {
+        evce_eco_ibc_flag(&core->bs_temp, 0, ctx->ctx_flags[CNID_IBC_FLAG]);
+    }
+#endif
 
     if (ctx->sps.tool_eipd)
     {
+#if M50761_CHROMA_NOT_SPLIT
+        if (evce_check_luma(ctx))
+        {
+#endif
         evce_eco_intra_dir(&core->bs_temp, core->ipm[0], core->mpm, core->mpm_ext, core->pims);
+#if M50761_CHROMA_NOT_SPLIT
+        }
+        else
+        {
+            evc_assert(nnz[Y_C] == 0);
+        }
+        if (evce_check_chroma(ctx))
+        {
+#endif
         evce_eco_intra_dir_c(&core->bs_temp, core->ipm[1], core->ipm[0]);
+#if M50761_CHROMA_NOT_SPLIT
+        }
+        else
+        {
+            evc_assert(nnz[U_C] == 0);
+            evc_assert(nnz[V_C] == 0);
+        }
+#endif
     }
     else
     {
@@ -265,12 +328,18 @@ void evce_rdo_bit_cnt_cu_intra(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
 #if DQP
                   , core, 0, 0
 #endif
+#if M50761_CHROMA_NOT_SPLIT
+            , ctx->tree_cons
+#endif
     );
 }
 
 void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM], int ch_type, int pidx
 #if ATS_INTRA_PROCESS || ADCC
                                     , EVCE_CTX * ctx
+#endif
+#if M50761_CHROMA_NOT_SPLIT
+    , TREE_CONS tree_cons
 #endif
 )
 {
@@ -299,6 +368,9 @@ void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM],
             , core, 0, 0
 #endif
 
+#if M50761_CHROMA_NOT_SPLIT
+            , tree_cons
+#endif
         );
     }
        
@@ -319,6 +391,9 @@ void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM],
 #endif
 #if DQP
             , core, 0, 0
+#endif
+#if M50761_CHROMA_NOT_SPLIT
+            , tree_cons
 #endif
         );
     }
@@ -341,6 +416,9 @@ void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM],
 #if DQP
             , core, 0, 0
 #endif
+#if M50761_CHROMA_NOT_SPLIT
+            , tree_cons
+#endif
         );
     }
 }
@@ -349,8 +427,27 @@ void evce_rdo_bit_cnt_cu_ibc(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s
   s16 coef[N_C][MAX_CU_DIM], u8 mvp_idx, u8 ibc_flag)
 {
   int b_no_cbf = 0;
+#if M50761_BUGFIX_ENCSIDE_IBC
+  if (slice_type != SLICE_I 
+#if M50761_CHROMA_NOT_SPLIT
+      && evce_check_all_preds(ctx)
+#endif
+    )
+  {
+      evce_sbac_encode_bin(0, &core->s_temp_run, core->s_temp_run.ctx.skip_flag + ctx->ctx_flags[CNID_SKIP_FLAG], &core->bs_temp); /* skip_flag */
+      evce_eco_pred_mode(&core->bs_temp, MODE_INTER, ctx->ctx_flags[CNID_PRED_MODE]);
+  }
+#endif
 
-  if (!(core->skip_flag == 1 && slice_type == SLICE_I))
+  if ((!(core->skip_flag == 1 && slice_type == SLICE_I)
+#if M50761_CHROMA_NOT_SPLIT
+      || evce_check_only_intra(ctx)
+#endif
+      )
+#if M50761_CHROMA_NOT_SPLIT
+      && evce_check_luma(ctx)
+#endif
+      )
   {
     evce_eco_ibc(&core->bs_temp, ibc_flag, ctx->ctx_flags[CNID_IBC_FLAG]);
   }
@@ -373,6 +470,9 @@ void evce_rdo_bit_cnt_cu_ibc(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s
 #endif   
 #if DQP
     , core, 0, 0
+#endif
+#if M50761_CHROMA_NOT_SPLIT
+    , ctx->tree_cons
 #endif
   );
 }
@@ -405,8 +505,31 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
 
     if(slice_type != SLICE_I)
     {
+#if FIX_IBC_PRED_MODE_4x4
+        if (ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2)
+        {
+            evc_assert(0);
+        }
+#endif
         evce_sbac_encode_bin(0, &core->s_temp_run, core->s_temp_run.ctx.skip_flag + ctx->ctx_flags[CNID_SKIP_FLAG], &core->bs_temp); /* skip_flag */
+#if M50761_CHROMA_NOT_SPLIT
+        if (evce_check_all_preds(ctx))
+#endif
         evce_eco_pred_mode(&core->bs_temp, MODE_INTER, ctx->ctx_flags[CNID_PRED_MODE]);
+#if IBC && M50761_BUGFIX_ENCSIDE_IBC
+        if (
+#if M50761_CHROMA_NOT_SPLIT
+            !evce_check_only_inter(ctx) &&
+#endif
+#if M50761_CHROMA_NOT_SPLIT
+            evce_check_luma(ctx) &&
+#endif
+             ctx->param.use_ibc_flag && core->log2_cuw <= ctx->sps.ibc_log_max_size && core->log2_cuh <= ctx->sps.ibc_log_max_size)
+        {
+
+            evce_eco_ibc_flag(&core->bs_temp, 0, ctx->ctx_flags[CNID_IBC_FLAG]);
+        }
+#endif
 
         if(ctx->sps.tool_amvr)
         {
@@ -491,7 +614,11 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
 #endif
            )
         {
-            evce_eco_inter_dir(&core->bs_temp, refi);
+            evce_eco_inter_dir(&core->bs_temp, refi
+#if REMOVE_BI_INTERDIR
+                , slice_type, 1 << core->log2_cuw, 1 << core->log2_cuh
+#endif
+            );
 
 #if AFFINE // affine inter in rdo
             if (core->cuw >= 16 && core->cuh >= 16 && ctx->sps.tool_affine && mvr_idx == 0)
@@ -640,6 +767,9 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
 #endif
 #if DQP
         , core, 0, 0
+#endif
+#if M50761_CHROMA_NOT_SPLIT
+        , ctx->tree_cons
 #endif
     );
 }
@@ -842,7 +972,11 @@ static int init_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh, int q
     return EVC_OK;
 }
 
-static int copy_cu_data(EVCE_CU_DATA *dst, EVCE_CU_DATA *src, int x, int y, int log2_cuw, int log2_cuh, int log2_cus, int cud)
+static int copy_cu_data(EVCE_CU_DATA *dst, EVCE_CU_DATA *src, int x, int y, int log2_cuw, int log2_cuh, int log2_cus, int cud
+#if M50761_CHROMA_NOT_SPLIT
+    , TREE_CONS tree_cons
+#endif
+)
 {
     int i, j, k;
     int cuw, cuh, cus;
@@ -862,6 +996,10 @@ static int copy_cu_data(EVCE_CU_DATA *dst, EVCE_CU_DATA *src, int x, int y, int 
 
     // only copy src's first row of 4x4 CUs to dis's all 4x4 CUs
 
+#if M50761_CHROMA_NOT_SPLIT
+    if (evc_check_luma(tree_cons))
+    {
+#endif
     for(j = 0; j < cuh_scu; j++)
     {
         idx_dst = (cy + j) * cus_scu + cx;
@@ -886,13 +1024,17 @@ static int copy_cu_data(EVCE_CU_DATA *dst, EVCE_CU_DATA *src, int x, int y, int 
         evc_mcpy(dst->ats_inter_info + idx_dst, src->ats_inter_info + idx_src, size);
 #endif
         evc_mcpy(dst->qp_y + idx_dst, src->qp_y + idx_src, size);
+#if !M50761_CHROMA_NOT_SPLIT
         evc_mcpy(dst->qp_u + idx_dst, src->qp_u + idx_src, size);
         evc_mcpy(dst->qp_v + idx_dst, src->qp_v + idx_src, size);
+#endif
         evc_mcpy(dst->pred_mode + idx_dst, src->pred_mode + idx_src, size);
         evc_mcpy(dst->mpm[0] + idx_dst, src->mpm[0] + idx_src, size);
         evc_mcpy(dst->mpm[1] + idx_dst, src->mpm[1] + idx_src, size);
         evc_mcpy(dst->ipm[0] + idx_dst, src->ipm[0] + idx_src, size);
+#if !M50761_CHROMA_NOT_SPLIT
         evc_mcpy(dst->ipm[1] + idx_dst, src->ipm[1] + idx_src, size);
+#endif
         for(i = 0; i < 8; i++)
         {
             evc_mcpy(dst->mpm_ext[i] + idx_dst, src->mpm_ext[i] + idx_src, size);
@@ -936,19 +1078,27 @@ static int copy_cu_data(EVCE_CU_DATA *dst, EVCE_CU_DATA *src, int x, int y, int 
         evc_mcpy(dst->mvd + idx_dst, src->mvd + idx_src, size);
 
         size = cuw_scu * sizeof(int);
+#if M50761_CHROMA_NOT_SPLIT
+        k = Y_C;
+#else
         for(k = 0; k < N_C; k++)
+#endif
         {
             evc_mcpy(dst->nnz[k] + idx_dst, src->nnz[k] + idx_src, size);
+#if !M50761_CHROMA_NOT_SPLIT
         }
         for (k = 0; k < N_C; k++)
         {
+#endif
             for (i = 0; i < MAX_SUB_TB_NUM; i++)
             {
                 evc_mcpy(dst->nnz_sub[k][i] + idx_dst, src->nnz_sub[k][i] + idx_src, size);
             }
         }
+#if !M50761_REMOVE_BLOCK_SIZE_MAP
         size = cuw_scu * sizeof(s16) * 2;
         evc_mcpy(*(dst->block_size + idx_dst), *(src->block_size + idx_src), size);
+#endif
 
 #if TRACE_ENC_CU_DATA
         size = cuw_scu * sizeof(dst->trace_idx[0]);
@@ -976,6 +1126,11 @@ static int copy_cu_data(EVCE_CU_DATA *dst, EVCE_CU_DATA *src, int x, int y, int 
         evc_mcpy(dst->reco[Y_C] + idx_dst, src->reco[Y_C] + idx_src, size);
     }
 
+#if M50761_CHROMA_NOT_SPLIT
+    }
+    if (evc_check_chroma(tree_cons))
+    {
+#endif
     for(j = 0; j < cuh >> 1; j++)
     {
         idx_dst = ((y >> 1) + j) * (cus >> 1) + (x >> 1);
@@ -988,6 +1143,31 @@ static int copy_cu_data(EVCE_CU_DATA *dst, EVCE_CU_DATA *src, int x, int y, int 
         evc_mcpy(dst->reco[U_C] + idx_dst, src->reco[U_C] + idx_src, size);
         evc_mcpy(dst->reco[V_C] + idx_dst, src->reco[V_C] + idx_src, size);
     }
+#if M50761_CHROMA_NOT_SPLIT
+    for (j = 0; j < cuh_scu; j++)
+    {
+        idx_dst = (cy + j) * cus_scu + cx;
+        idx_src = j * cuw_scu;
+
+        size = cuw_scu * sizeof(s8);
+        evc_mcpy(dst->qp_u + idx_dst, src->qp_u + idx_src, size);
+        evc_mcpy(dst->qp_v + idx_dst, src->qp_v + idx_src, size);
+        evc_mcpy(dst->ipm[1] + idx_dst, src->ipm[1] + idx_src, size);
+        evc_mcpy(dst->pred_mode_chroma + idx_dst, src->pred_mode_chroma + idx_src, size);
+
+        size = cuw_scu * sizeof(int);
+        for (k = U_C; k < N_C; k++)
+        {
+            evc_mcpy(dst->nnz[k] + idx_dst, src->nnz[k] + idx_src, size);
+
+            for (i = 0; i < MAX_SUB_TB_NUM; i++)
+            {
+                evc_mcpy(dst->nnz_sub[k][i] + idx_dst, src->nnz_sub[k][i] + idx_src, size);
+            }
+        }
+    }
+    }
+#endif
 
     return EVC_OK;
 }
@@ -1218,7 +1398,11 @@ static int mode_cu_init(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int log2
     return EVC_OK;
 }
 
-static void mode_cpy_rec_to_ref(EVCE_CORE *core, int x, int y, int w, int h, EVC_PIC *pic)
+static void mode_cpy_rec_to_ref(EVCE_CORE *core, int x, int y, int w, int h, EVC_PIC *pic
+#if M50761_CHROMA_NOT_SPLIT
+    , TREE_CONS tree_cons
+#endif
+)
 {
     EVCE_CU_DATA *cu_data;
     pel           *src, *dst;
@@ -1245,6 +1429,10 @@ static void mode_cpy_rec_to_ref(EVCE_CORE *core, int x, int y, int w, int h, EVC
         h = pic->h_l - y;
     }
 
+#if M50761_CHROMA_NOT_SPLIT
+    if (evc_check_luma(tree_cons))
+    {
+#endif
     /* luma */
     src = cu_data->reco[Y_C];
     dst = pic->y + x + y * s_pic;
@@ -1256,7 +1444,11 @@ static void mode_cpy_rec_to_ref(EVCE_CORE *core, int x, int y, int w, int h, EVC
         src += stride;
         dst += s_pic;
     }
-
+#if M50761_CHROMA_NOT_SPLIT
+    }
+    if (evc_check_chroma(tree_cons))
+    {
+#endif    
     /* chroma */
     s_pic = pic->s_c;
     off = (x >> 1) + (y >> 1) * s_pic;
@@ -1279,6 +1471,9 @@ static void mode_cpy_rec_to_ref(EVCE_CORE *core, int x, int y, int w, int h, EVC
         src += (stride >> 1);
         dst += s_pic;
     }
+#if M50761_CHROMA_NOT_SPLIT
+    }
+#endif
 }
 
 #if AFFINE
@@ -1310,6 +1505,17 @@ void evce_set_affine_mvf(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi)
     aff_scup[2] = (h_cu - 1) * w_cu;
     aff_scup[3] = (w_cu - 1) + (h_cu - 1) * w_cu;
 
+#if M50761_AFFINE_ADAPT_SUB_SIZE
+    // derive sub-block size
+    int sub_w = 4, sub_h = 4;
+    derive_affine_subblock_size_bi( mi->affine_mv, mi->refi, core->cuw, core->cuh, &sub_w, &sub_h, vertex_num );
+
+    int   sub_w_in_scu = PEL2SCU( sub_w );
+    int   sub_h_in_scu = PEL2SCU( sub_h );
+    int   half_w = sub_w >> 1;
+    int   half_h = sub_h >> 1;
+#endif
+
     for(lidx = 0; lidx < REFP_NUM; lidx++)
     {
         if(mi->refi[lidx] >= 0)
@@ -1335,6 +1541,7 @@ void evce_set_affine_mvf(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi)
                 dmv_ver_y = dmv_hor_x;
             }
 
+#if !M50761_AFFINE_ADAPT_SUB_SIZE
             // derive sub-block size
             int sub_w = 4, sub_h = 4;
             derive_affine_subblock_size( mi->affine_mv[lidx], core->cuw, core->cuh, &sub_w, &sub_h, vertex_num );
@@ -1342,6 +1549,7 @@ void evce_set_affine_mvf(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi)
             int   sub_h_in_scu = PEL2SCU( sub_h );
             int   half_w = sub_w >> 1;
             int   half_h = sub_h >> 1;
+#endif
 
             idx = 0;
             for ( int h = 0; h < h_cu; h += sub_h_in_scu )
@@ -1467,21 +1675,28 @@ static void copy_to_cu_data(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi, s16 c
 
     cu_data = &core->cu_data_temp[log2_cuw - 2][log2_cuh - 2];
 
+#if M50761_CHROMA_NOT_SPLIT
+    if (evce_check_luma(ctx))
+    {
+#endif
     /* copy coef */
     size = core->cuw * core->cuh * sizeof(s16);
     evc_mcpy(cu_data->coef[Y_C], coef_src[Y_C], size);
-
+#if !M50761_CHROMA_NOT_SPLIT
     size = (core->cuw * core->cuh * sizeof(s16)) >> 2;
     evc_mcpy(cu_data->coef[U_C], coef_src[U_C], size);
     evc_mcpy(cu_data->coef[V_C], coef_src[V_C], size);
+#endif
 
     /* copy reco */
     size = core->cuw * core->cuh * sizeof(pel);
     evc_mcpy(cu_data->reco[Y_C], mi->rec[Y_C], size);
-
+#if !M50761_CHROMA_NOT_SPLIT
     size = (core->cuw * core->cuh * sizeof(pel)) >> 2;
     evc_mcpy(cu_data->reco[U_C], mi->rec[U_C], size);
     evc_mcpy(cu_data->reco[V_C], mi->rec[V_C], size);
+#endif
+
 #if TRACE_ENC_CU_DATA_CHECK
     evc_assert(core->trace_idx == mi->trace_cu_idx);
     evc_assert(core->trace_idx != 0);
@@ -1497,6 +1712,27 @@ static void copy_to_cu_data(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi, s16 c
             cu_data->skip_flag[idx + i] = ((core->cu_mode == MODE_SKIP) || (core->cu_mode == MODE_SKIP_MMVD)) ? 1 : 0;
             cu_data->mmvd_flag[idx + i] = core->cu_mode == MODE_SKIP_MMVD ? 1 : 0;
             cu_data->nnz[Y_C][idx + i] = core->nnz[Y_C];
+#if M50761_CHROMA_NOT_SPLIT
+            for (int sb = 0; sb < MAX_SUB_TB_NUM; sb++)
+            {
+               cu_data->nnz_sub[Y_C][sb][idx + i] = core->nnz_sub[Y_C][sb];
+            }
+#if DQP
+            cu_data->qp_y[idx + i] = core->qp_y;
+            MCU_RESET_QP(cu_data->map_scu[idx + i]);
+            if (ctx->pps.cu_qp_delta_enabled_flag)
+            {
+                MCU_SET_IF_COD_SN_QP(cu_data->map_scu[idx + i], core->cu_mode == MODE_INTRA, ctx->slice_num, core->qp);
+            }
+            else
+            {
+                MCU_SET_IF_COD_SN_QP(cu_data->map_scu[idx + i], core->cu_mode == MODE_INTRA, ctx->slice_num, ctx->sh.qp);
+            }
+#else
+            cu_data->qp_y[idx + i] = core->qp_y;
+            MCU_SET_IF_COD_SN_QP(cu_data->map_scu[idx + i], core->cu_mode == MODE_INTRA, ctx->slice_num, ctx->sh.qp);
+#endif
+#else
             cu_data->nnz[U_C][idx + i] = core->nnz[U_C];
             cu_data->nnz[V_C][idx + i] = core->nnz[V_C];
             for(int c = 0; c < N_C; c++)
@@ -1524,10 +1760,11 @@ static void copy_to_cu_data(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi, s16 c
                 MCU_SET_IF_COD_SN_QP(cu_data->map_scu[idx + i], core->cu_mode == MODE_INTRA, ctx->slice_num, ctx->sh.qp);
             }
 #else
-            cu_data->qp_y[idx + i] = core->qp_y;
             cu_data->qp_u[idx + i] = core->qp_u;
             cu_data->qp_v[idx + i] = core->qp_v;
+            cu_data->qp_y[idx + i] = core->qp_y;
             MCU_SET_IF_COD_SN_QP(cu_data->map_scu[idx + i], core->cu_mode == MODE_INTRA, ctx->slice_num, ctx->sh.qp);
+#endif
 #endif
             if(cu_data->skip_flag[idx + i])
             {
@@ -1548,8 +1785,10 @@ static void copy_to_cu_data(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi, s16 c
                 }
             }
 #endif
+#if !M50761_REMOVE_BLOCK_SIZE_MAP
             cu_data->block_size[idx + i][0] = core->cuw;
             cu_data->block_size[idx + i][1] = core->cuh;
+#endif
             cu_data->depth[idx + i] = core->cud;
 
 #if ATS_INTRA_PROCESS
@@ -1606,7 +1845,9 @@ static void copy_to_cu_data(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi, s16 c
             if(core->cu_mode == MODE_INTRA)
             {
                 cu_data->ipm[0][idx + i] = core->ipm[0];
+#if !M50761_CHROMA_NOT_SPLIT
                 cu_data->ipm[1][idx + i] = core->ipm[1];
+#endif
                 cu_data->mv[idx + i][REFP_0][MV_X] = 0;
                 cu_data->mv[idx + i][REFP_0][MV_Y] = 0;
                 cu_data->mv[idx + i][REFP_1][MV_X] = 0;
@@ -1695,6 +1936,49 @@ static void copy_to_cu_data(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi, s16 c
         for (i = 0; i < w; ++i)
         {
             evc_assert(cu_data->trace_idx[idx + i] == core->trace_idx);
+        }
+    }
+#endif
+#if M50761_CHROMA_NOT_SPLIT
+    }
+    if (evce_check_chroma(ctx))
+    {
+        /* copy coef */
+        size = (core->cuw * core->cuh * sizeof(s16)) >> 2;
+        evc_mcpy(cu_data->coef[U_C], coef_src[U_C], size);
+        evc_mcpy(cu_data->coef[V_C], coef_src[V_C], size);
+
+        /* copy reco */
+        size = (core->cuw * core->cuh * sizeof(pel)) >> 2;
+        evc_mcpy(cu_data->reco[U_C], mi->rec[U_C], size);
+        evc_mcpy(cu_data->reco[V_C], mi->rec[V_C], size);
+
+        /* copy mode info */
+        idx = 0;
+        for (j = 0; j < core->cuh >> MIN_CU_LOG2; j++)
+        {
+            for (i = 0; i < core->cuw >> MIN_CU_LOG2; i++)
+            {
+                cu_data->pred_mode_chroma[idx + i] = core->cu_mode;
+                cu_data->nnz[U_C][idx + i] = core->nnz[U_C];
+                cu_data->nnz[V_C][idx + i] = core->nnz[V_C];
+                for (int c = U_C; c < N_C; c++)
+                {
+                    for (int sb = 0; sb < MAX_SUB_TB_NUM; sb++)
+                    {
+                        cu_data->nnz_sub[c][sb][idx + i] = core->nnz_sub[c][sb];
+                    }
+                }
+
+                cu_data->qp_u[idx + i] = core->qp_u;
+                cu_data->qp_v[idx + i] = core->qp_v;
+
+                if (core->cu_mode == MODE_INTRA)
+                {
+                    cu_data->ipm[1][idx + i] = core->ipm[1];
+                }
+            }
+            idx += core->cuw >> MIN_CU_LOG2;
         }
     }
 #endif
@@ -1804,9 +2088,11 @@ static void update_map_scu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int src
 #endif
     s8 (*map_refi)[REFP_NUM] = 0;
     s8 **src_map_refi = NULL;
+#if !M50761_REMOVE_BLOCK_SIZE_MAP
     s16(*map_block_size)[2] = 0;
     s16 **src_block_size = NULL;
     int   size_block_size;
+#endif
     s8   *map_depth = 0, *src_depth = 0;
     int   size_depth;
     int   w, h, i, size, size_ipm, size_mv, size_refi;
@@ -1841,10 +2127,10 @@ static void update_map_scu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int src
 
     map_refi = ctx->map_refi + scu_y * ctx->w_scu + scu_x;
     src_map_refi = core->cu_data_best[log2_src_cuw - 2][log2_src_cuh - 2].refi;
-
+#if !M50761_REMOVE_BLOCK_SIZE_MAP
     map_block_size = ctx->map_block_size + scu_y * ctx->w_scu + scu_x;
     src_block_size = core->cu_data_best[log2_src_cuw - 2][log2_src_cuh - 2].block_size;
-
+#endif
     map_depth = ctx->map_depth + scu_y * ctx->w_scu + scu_x;
     src_depth = core->cu_data_best[log2_src_cuw - 2][log2_src_cuh - 2].depth;
 #if DMVR_LAG
@@ -1889,7 +2175,9 @@ static void update_map_scu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int src
     size_ipm = sizeof(u8) * w;
     size_mv = sizeof(s16) * w * REFP_NUM * MV_D;
     size_refi = sizeof(s8) * w * REFP_NUM;
+#if !M50761_REMOVE_BLOCK_SIZE_MAP
     size_block_size = sizeof(s16) * w * 2;
+#endif
     size_depth = sizeof(s8) * w;
 #if DQP
     size_qp = sizeof(s8) * w;
@@ -1901,12 +2189,14 @@ static void update_map_scu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int src
         evc_mcpy(map_ipm, src_map_ipm, size_ipm);
 
         evc_mcpy(map_mv, src_map_mv, size_mv);
+#if !M50761_REMOVE_BLOCK_SIZE_MAP
         evc_mcpy(map_block_size, *(src_block_size), size_block_size);
+#endif
         evc_mcpy(map_refi, *(src_map_refi), size_refi);
-
+#if !M50761_REMOVE_BLOCK_SIZE_MAP
         map_block_size += ctx->w_scu;
         src_block_size += (src_cuw >> MIN_CU_LOG2);
-
+#endif
 #if DMVR_LAG
         evc_mcpy(map_unrefined_mv, src_map_unrefined_mv, size_mv);
 #endif
@@ -2058,9 +2348,52 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
     pel    *rec[N_C];
     double  cost_best, cost;
     int     i, s_rec[N_C];
+#if M50761_CHROMA_NOT_SPLIT
+    int start_comp = evce_check_luma(ctx) ? Y_C : U_C;
+    int end_comp = evce_check_chroma(ctx) ? N_C : U_C;
+#endif
+#if AQS
+    u16 avail_cu_rec;
+#endif
+
+#if M50761_BOUNDARY_FORCE_CLEANUP
+    evc_assert(abs(log2_cuw - log2_cuh) <= 2);
+#endif
 
     mode_cu_init(ctx, core, x, y, log2_cuw, log2_cuh, cud);
-
+#if M50761_CHROMA_NOT_SPLIT
+    if (log2_cuw == 2 && log2_cuh == 2 && ctx->sps.tool_amis
+#if CHROMA_NOT_SPLIT_EXCLUDE_IBC
+        && !ctx->sps.ibc_flag
+#endif
+        )
+    {
+        // Check only in main profile
+        evc_assert(!evce_check_all(ctx));
+        evc_assert(evce_check_only_intra(ctx));
+    }
+    if (((log2_cuw + log2_cuh) == 5 && ctx->sps.tool_amis) 
+#if CHROMA_NOT_SPLIT_EXCLUDE_IBC
+        && !ctx->sps.ibc_flag
+#endif
+        )
+    {
+        evc_assert(!evce_check_all_preds(ctx));
+        if (evce_check_only_intra(ctx))
+        {
+            evc_assert(!evce_check_all(ctx));
+        }
+    }
+    if (!ctx->sps.tool_amis
+#if CHROMA_NOT_SPLIT_EXCLUDE_IBC
+        || (ctx->sps.tool_amis && ctx->sps.ibc_flag)
+#endif
+        )
+    {
+        evc_assert(evce_check_all(ctx));
+        evc_assert(evce_check_all_preds(ctx));
+    }
+#endif
     core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, (1 << log2_cuw), (1 << log2_cuh), ctx->w_scu, ctx->h_scu, ctx->map_scu);
 
     evc_get_ctx_some_flags(core->x_scu, core->y_scu, 1 << log2_cuw, 1 << log2_cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
@@ -2073,7 +2406,11 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
     cost_best = MAX_COST;
     core->cost_best = MAX_COST;
 
-    if(ctx->slice_type != SLICE_I && (ctx->sps.tool_amis == 0 || !(log2_cuw <= MIN_CU_LOG2 && log2_cuh <= MIN_CU_LOG2)))
+    if(ctx->slice_type != SLICE_I && (ctx->sps.tool_amis == 0 || !(log2_cuw <= MIN_CU_LOG2 && log2_cuh <= MIN_CU_LOG2))
+#if M50761_CHROMA_NOT_SPLIT
+        && (!evce_check_only_intra(ctx))
+#endif
+        )
     {
         core->avail_cu = evc_get_avail_inter(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, core->cuw, core->cuh, ctx->map_scu);
         cost = ctx->fn_pinter_analyze_cu(ctx, core, x, y, log2_cuw, log2_cuh, mi, coef, rec, s_rec);
@@ -2091,7 +2428,11 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
             evc_assert(core->trace_idx != 0);
 #endif
 
+#if M50761_CHROMA_NOT_SPLIT
+            for (i = start_comp; i < end_comp; i++)
+#else
             for(i = 0; i < N_C; i++)
+#endif
             {
                 mi->rec[i] = rec[i];
                 mi->s_rec[i] = s_rec[i];
@@ -2101,7 +2442,11 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
     }
 #if IBC
     {
-      if (ctx->param.use_ibc_flag == 1 && (core->nnz[Y_C] != 0 || core->nnz[U_C] != 0 || core->nnz[V_C] != 0 || cost_best == MAX_COST))
+      if (ctx->param.use_ibc_flag == 1 && (core->nnz[Y_C] != 0 || core->nnz[U_C] != 0 || core->nnz[V_C] != 0 || cost_best == MAX_COST)
+#if M50761_CHROMA_NOT_SPLIT
+          && (!evce_check_only_inter(ctx)) && evce_check_luma(ctx)
+#endif
+          )
       {
         if (log2_cuw <= ctx->sps.ibc_log_max_size && log2_cuh <= ctx->sps.ibc_log_max_size)
         {
@@ -2128,7 +2473,11 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
             mi->mvd[0][MV_X] = ctx->pibc.mvd[MV_X];
             mi->mvd[0][MV_Y] = ctx->pibc.mvd[MV_Y];
 
+#if M50761_CHROMA_NOT_SPLIT
+            for (i = start_comp; i < end_comp; i++)
+#else
             for (i = 0; i < N_C; i++)
+#endif
             {
               mi->rec[i] = rec[i];
               mi->s_rec[i] = s_rec[i];
@@ -2151,7 +2500,11 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
     }
 #endif
     /* intra *************************************************************/
-    if(ctx->slice_type == SLICE_I || core->nnz[Y_C] != 0 || core->nnz[U_C] != 0 || core->nnz[V_C] != 0 || cost_best == MAX_COST)
+    if( (ctx->slice_type == SLICE_I || core->nnz[Y_C] != 0 || core->nnz[U_C] != 0 || core->nnz[V_C] != 0 || cost_best == MAX_COST)
+#if M50761_CHROMA_NOT_SPLIT
+        && (!evce_check_only_inter(ctx))
+#endif
+        )
     {
         core->cost_best = cost_best;
         core->dist_cu_best = EVC_INT32_MAX;
@@ -2192,7 +2545,11 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
             SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best);
             core->dist_cu_best = core->dist_cu;
 
+#if M50761_CHROMA_NOT_SPLIT
+            for (i = start_comp; i < end_comp; i++)
+#else
             for(i = 0; i < N_C; i++)
+#endif
             {
                 mi->rec[i] = rec[i];
                 mi->s_rec[i] = s_rec[i];
@@ -2273,6 +2630,9 @@ static int check_nev_block(EVCE_CTX *ctx, int x0, int y0, int log2_cuw, int log2
 #if FAST_RECURSE_OPT
     int nbr_map_skipcnt = 0;
     int nbr_map_cnt = 0;
+#endif
+#if M50761_CHROMA_NOT_SPLIT
+    evc_assert(evce_check_luma(ctx));
 #endif
 
     x_scu = (x0 >> MIN_CU_LOG2);
@@ -2415,7 +2775,11 @@ static int check_nev_block(EVCE_CTX *ctx, int x0, int y0, int log2_cuw, int log2
 #endif
 }
 
-static void check_run_split(EVCE_CORE *core, int log2_cuw, int log2_cuh, int cup, int next_split, int do_curr, int do_split, u16 avail_lr, int* split_allow, int boundary)
+static void check_run_split(EVCE_CORE *core, int log2_cuw, int log2_cuh, int cup, int next_split, int do_curr, int do_split, u16 avail_lr, int* split_allow, int boundary
+#if M50761_CHROMA_NOT_SPLIT
+    , TREE_CONS tree_cons
+#endif
+)
 {
     int i;
     double min_cost = MAX_COST;
@@ -2735,6 +3099,10 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
             for(i = 0; i < w_scu; i++)
             {
                 k = ind + i;
+#if M50761_CHROMA_NOT_SPLIT
+                if (evce_check_luma(ctx))
+                {
+#endif
                 if(intra_flag)
                     MCU_SET_IF(ctx->map_scu[k]);
                 else
@@ -2743,6 +3111,9 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
                     MCU_SET_CBFL(ctx->map_scu[k]);
                 else
                     MCU_CLR_CBFL(ctx->map_scu[k]);
+#if M50761_CHROMA_NOT_SPLIT
+                }
+#endif
                 if(refi != NULL && !is_mv_from_mvf)
                 {
                     ctx->map_refi[k][REFP_0] = refi[REFP_0];
@@ -2751,6 +3122,12 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
                     ctx->map_mv[k][REFP_0][MV_Y] = mv[REFP_0][MV_Y];
                     ctx->map_mv[k][REFP_1][MV_X] = mv[REFP_1][MV_X];
                     ctx->map_mv[k][REFP_1][MV_Y] = mv[REFP_1][MV_Y];
+#if M50761_DMVR_SIMP_DEBLOCK
+                    ctx->map_unrefined_mv[k][REFP_0][MV_X] = mv[REFP_0][MV_X];
+                    ctx->map_unrefined_mv[k][REFP_0][MV_Y] = mv[REFP_0][MV_Y];
+                    ctx->map_unrefined_mv[k][REFP_1][MV_X] = mv[REFP_1][MV_X];
+                    ctx->map_unrefined_mv[k][REFP_1][MV_Y] = mv[REFP_1][MV_Y];
+#endif
                 }
 #if DQP
                 if(ctx->pps.cu_qp_delta_enabled_flag)
@@ -2783,6 +3160,9 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
 #if M49023_DBF_IMPROVE
             , 0
 #endif
+#if M50761_CHROMA_NOT_SPLIT
+            , ctx->tree_cons
+#endif
         );
 
         //clean coded flag in between two directional filtering (not necessary here)
@@ -2805,6 +3185,9 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
 #if M49023_DBF_IMPROVE
             , 0
 #endif
+#if M50761_CHROMA_NOT_SPLIT
+            , ctx->tree_cons
+#endif
         );
 
         //recover best cu info
@@ -2814,6 +3197,10 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
             for(i = 0; i < w_scu; i++)
             {
                 k = ind + i;
+#if M50761_CHROMA_NOT_SPLIT
+                if (evce_check_luma(ctx))
+                {
+#endif
                 if(intra_flag_save)
                     MCU_SET_IF(ctx->map_scu[k]);
                 else
@@ -2822,6 +3209,9 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
                     MCU_SET_CBFL(ctx->map_scu[k]);
                 else
                     MCU_CLR_CBFL(ctx->map_scu[k]);
+#if M50761_CHROMA_NOT_SPLIT
+                }
+#endif
 
                 MCU_CLR_COD(ctx->map_scu[k]);
             }
@@ -3021,7 +3411,11 @@ static int lossycheck_tthor(EVCE_CU_DATA *cu_data, int eval_parent_node_first, d
 #endif
 
 static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, int cup, int log2_cuw, int log2_cuh, int cud, EVCE_MODE *mi, int next_split
-                               , int parent_suco, const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth)
+                               , int parent_suco, const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth
+#if M50761_CHROMA_NOT_SPLIT
+    , TREE_CONS tree_cons
+#endif
+)
 {
     // x0 = CU's left up corner horizontal index in entrie frame
     // y0 = CU's left up corner vertical index in entire frame
@@ -3060,6 +3454,20 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
     int cud_max = cud;
     int cud_avg = cud;
 #endif
+#if M50761_CHROMA_NOT_SPLIT
+    ctx->tree_cons = tree_cons;
+
+    if (log2_cuw == 2 && log2_cuh == 2 && (evce_check_luma(ctx) || evce_check_all(ctx)) && ctx->sps.tool_amis
+#if CHROMA_NOT_SPLIT_EXCLUDE_IBC
+        && !ctx->sps.ibc_flag
+#endif
+        )
+    {
+        // Check only for main profile
+        evc_assert(evce_check_only_intra(ctx));
+    }
+#endif
+
 #if ADMVP
     // stroe the previous stored history MV list to m_pSplitTempMotLUTs, backup
     EVC_HISTORY_BUFFER OrigMotLUT, TempSubMotLUT;
@@ -3082,7 +3490,11 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
         evc_check_split_mode(split_allow, log2_cuw, log2_cuh, boundary, boundary_b, boundary_r, ctx->log2_max_cuwh
                              , parent_split, same_layer_split, node_idx, parent_split_allow, qt_depth, btt_depth
                              , x0, y0, ctx->w, ctx->h
-                             , &remaining_split, ctx->sps.sps_btt_flag);
+                             , &remaining_split, ctx->sps.sps_btt_flag
+#if M50761_CHROMA_NOT_SPLIT
+            , ctx->tree_cons
+#endif
+        );
         //save normatively allowed split modes, as it will be used in in child nodes for entropy coding of split mode
         memcpy(curr_split_allow, split_allow, sizeof(int)*MAX_SPLIT_NUM);
         for(int i = 1; i < MAX_SPLIT_NUM; i++)
@@ -3100,7 +3512,11 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
             do_split = do_curr = 1;
         }
 
-        check_run_split(core, log2_cuw, log2_cuh, cup, next_split, do_curr, do_split, avail_lr, split_allow, boundary);
+        check_run_split(core, log2_cuw, log2_cuh, cup, next_split, do_curr, do_split, avail_lr, split_allow, boundary
+#if M50761_CHROMA_NOT_SPLIT
+            , tree_cons
+#endif
+        );
     }
     else
     {
@@ -3150,7 +3566,11 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
         split_mode = NO_SPLIT;
         if(split_allow[split_mode])
         {
-            if(cuw > MIN_CU_SIZE || cuh > MIN_CU_SIZE)
+            if( (cuw > MIN_CU_SIZE || cuh > MIN_CU_SIZE) 
+#if M50761_CHROMA_NOT_SPLIT
+                && evce_check_luma(ctx)
+#endif
+                )
             {
                 /* consider CU split mode */
                 SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
@@ -3173,6 +3593,22 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
 
             clear_map_scu(ctx, core, x0, y0, cuw, cuh);
             cost_temp += mode_coding_unit(ctx, core, x0, y0, log2_cuw, log2_cuh, cud, mi);
+#if TRACE_COSTS
+            EVC_TRACE_COUNTER;
+            EVC_TRACE_STR("Block [");
+            EVC_TRACE_INT(x0);
+            EVC_TRACE_STR(", ");
+            EVC_TRACE_INT(y0);
+            EVC_TRACE_STR("]x(");
+            EVC_TRACE_INT(cuw);
+            EVC_TRACE_STR("x");
+            EVC_TRACE_INT(cuh);
+            EVC_TRACE_STR(") split_type ");
+            EVC_TRACE_INT(NO_SPLIT);
+            EVC_TRACE_STR(" cost is ");
+            EVC_TRACE_DOUBLE(cost_temp);
+            EVC_TRACE_STR("\n");
+#endif
         }
         else
         {
@@ -3192,12 +3628,24 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
         if(cost_best > cost_temp)
         {
             /* backup the current best data */
-            copy_cu_data(&core->cu_data_best[log2_cuw - 2][log2_cuh - 2], &core->cu_data_temp[log2_cuw - 2][log2_cuh - 2], 0, 0, log2_cuw, log2_cuh, log2_cuw, cud);
+            copy_cu_data(&core->cu_data_best[log2_cuw - 2][log2_cuh - 2], &core->cu_data_temp[log2_cuw - 2][log2_cuh - 2], 0, 0, log2_cuw, log2_cuh, log2_cuw, cud
+#if M50761_CHROMA_NOT_SPLIT
+                , ctx->tree_cons
+#endif
+            );
             cost_best = cost_temp;
             best_split_mode = NO_SPLIT;
             SBAC_STORE(s_temp_depth, core->s_next_best[log2_cuw - 2][log2_cuh - 2]);
-            mode_cpy_rec_to_ref(core, x0, y0, cuw, cuh, PIC_MODE(ctx));
+            mode_cpy_rec_to_ref(core, x0, y0, cuw, cuh, PIC_MODE(ctx)
+#if M50761_CHROMA_NOT_SPLIT
+                , ctx->tree_cons
+#endif    
+            );
 
+#if M50761_CHROMA_NOT_SPLIT
+            if (evce_check_luma(ctx))
+            {
+#endif 
 #if ADMVP
             // update history MV list
             // in mode_coding_unit, ctx->fn_pinter_analyze_cu will store the best MV in mi
@@ -3234,6 +3682,9 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
 
             copy_history_buffer(&core->m_pBestMotLUTs[log2_cuw - 2][log2_cuh - 2], &core->history_buffer);
 #endif        // #if HISTORY
+#if M50761_CHROMA_NOT_SPLIT
+            }
+#endif 
         }
 
         if(split_allow[split_mode] != 0)
@@ -3277,7 +3728,9 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
     {
         SPLIT_MODE split_mode_order[MAX_SPLIT_NUM];
         int split_mode_num = 0;
-
+#if M50761_CHROMA_NOT_SPLIT
+        ctx->tree_cons = tree_cons;
+#endif
         evc_split_get_split_rdo_order(cuw, cuh, split_mode_order);
 
 #if FAST_RECURSE_OPT
@@ -3332,10 +3785,34 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                         }
                     }
                 }
-                evc_split_get_part_structure(split_mode, x0, y0, cuw, cuh, cup, cud, ctx->log2_culine, &split_struct);
+                evc_split_get_part_structure(split_mode, x0, y0, cuw, cuh, cup, cud, ctx->log2_culine, &split_struct
+#if M50761_CHROMA_NOT_SPLIT
+                    ,  tree_cons
+#endif
+                );
 
                 if(split_allow[split_mode])
                 {
+#if M50761_CHROMA_NOT_SPLIT
+                    if (split_mode == SPLIT_QUAD)
+                    {
+                        // No processing of small chroma blocks in base line
+                        split_struct.tree_cons = evc_get_default_tree_cons();
+                    }
+
+                    BOOL mode_cons_changed = evc_signal_mode_cons(&ctx->tree_cons, &split_struct.tree_cons)
+#if CHROMA_NOT_SPLIT_EXCLUDE_IBC
+                        && !ctx->sps.ibc_flag
+#endif
+                        ;
+                    BOOL mode_cons_signal = mode_cons_changed && (ctx->sh.slice_type != SLICE_I) && (evc_get_mode_cons_by_split(split_mode, cuw, cuh) == eAll);
+                    for (int mode_num = 0; mode_num < (mode_cons_signal ? 2 : 1); ++mode_num)
+                    {
+                        if (mode_cons_changed)
+                        {
+                            evc_set_tree_mode(&split_struct.tree_cons, mode_num == 0 ? eOnlyIntra : eOnlyInter);
+                        }
+#endif
                     for(suco_flag = 0; suco_flag < num_suco; ++suco_flag)
                     {
                         int suco_order[SPLIT_MAX_PART_COUNT];
@@ -3391,7 +3868,13 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                             {
                                 evc_set_suco_flag(suco_flag, cud, 0, cuw, cuh, cuw, core->cu_data_temp[log2_cuw - 2][log2_cuh - 2].suco_flag);
                             }
-
+#if M50761_CHROMA_NOT_SPLIT
+                            if (split_mode != SPLIT_QUAD)       // Only for main profile
+                            {
+                                if (mode_cons_signal)
+                                    evce_eco_mode_constr(&core->bs_temp, split_struct.tree_cons.mode_cons, ctx->ctx_flags[CNID_MODE_CONS]);
+                            }
+#endif
                             bit_cnt = evce_get_bit_number(&core->s_temp_run);
                             cost_temp += RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);
                             SBAC_STORE(core->s_curr_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_run);
@@ -3430,8 +3913,16 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
 
                                 cost_temp += mode_coding_tree(ctx, core, x_pos, y_pos, split_struct.cup[cur_part_num], log2_sub_cuw, log2_sub_cuh, split_struct.cud[cur_part_num], mi, 1
                                                               , (num_suco == 2) ? suco_flag : parent_suco, split_mode, split_mode_child
-                                                              , part_num, curr_split_allow, INC_QT_DEPTH(qt_depth, split_mode), INC_BTT_DEPTH(btt_depth, split_mode, boundary));
-                                copy_cu_data(&core->cu_data_temp[log2_cuw - 2][log2_cuh - 2], &core->cu_data_best[log2_sub_cuw - 2][log2_sub_cuh - 2], x_pos - split_struct.x_pos[0], y_pos - split_struct.y_pos[0], log2_sub_cuw, log2_sub_cuh, log2_cuw, cud);
+                                                              , part_num, curr_split_allow, INC_QT_DEPTH(qt_depth, split_mode), INC_BTT_DEPTH(btt_depth, split_mode, boundary)
+#if M50761_CHROMA_NOT_SPLIT
+                                                          , split_struct.tree_cons
+#endif
+                                                          );
+                                copy_cu_data(&core->cu_data_temp[log2_cuw - 2][log2_cuh - 2], &core->cu_data_best[log2_sub_cuw - 2][log2_sub_cuh - 2], x_pos - split_struct.x_pos[0], y_pos - split_struct.y_pos[0], log2_sub_cuw, log2_sub_cuh, log2_cuw, cud
+#if M50761_CHROMA_NOT_SPLIT
+                                    , split_struct.tree_cons
+#endif
+                                );
                                 update_map_scu(ctx, core, x_pos, y_pos, cur_cuw, cur_cuh);
                                 prev_log2_sub_cuw = log2_sub_cuw;
                                 prev_log2_sub_cuh = log2_sub_cuh;
@@ -3440,7 +3931,46 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                                 copy_history_buffer(&TempSubMotLUT, &core->m_pBestMotLUTs[log2_sub_cuw - 2][log2_sub_cuh - 2]);
 #endif
                             }
+#if M50761_CHROMA_NOT_SPLIT
+                            ctx->tree_cons = tree_cons;
+#endif
                         }
+#if M50761_CHROMA_NOT_SPLIT
+                        if (mode_cons_changed && !evc_check_all(split_struct.tree_cons))
+                        {
+                            evc_assert(evc_check_only_intra(split_struct.tree_cons));
+                            ctx->tree_cons = split_struct.tree_cons;
+                            ctx->tree_cons.tree_type = TREE_C;
+                            EVC_TRACE_COUNTER;
+                            EVC_TRACE_STR("Cost luma: ");
+                            EVC_TRACE_DOUBLE(cost_temp);
+                            EVC_TRACE_STR("\n");
+                            double cost_node = mode_coding_unit(ctx, core, x0, y0, log2_cuw, log2_cuh, cud, mi)
+                                ;
+                            cost_temp += cost_node;
+                            EVC_TRACE_STR("Cost chroma: ");
+                            EVC_TRACE_DOUBLE(cost_node);
+                            EVC_TRACE_STR("\n");
+                            update_map_scu(ctx, core, x0, y0, cuw, cuh);
+                            ctx->tree_cons = tree_cons;
+                        }
+#endif
+#if TRACE_COSTS
+                        EVC_TRACE_COUNTER;
+                        EVC_TRACE_STR("Block [");
+                        EVC_TRACE_INT(x0);
+                        EVC_TRACE_STR(", ");
+                        EVC_TRACE_INT(y0);
+                        EVC_TRACE_STR("]x(");
+                        EVC_TRACE_INT(cuw);
+                        EVC_TRACE_STR("x");
+                        EVC_TRACE_INT(cuh);
+                        EVC_TRACE_STR(") split_type ");
+                        EVC_TRACE_INT(split_mode);
+                        EVC_TRACE_STR(" cost is ");
+                        EVC_TRACE_DOUBLE(cost_temp);
+                        EVC_TRACE_STR("\n");
+#endif
 #if TRACE_ENC_CU_DATA_CHECK
                         static int counter_out = 0;
                         counter_out++;
@@ -3468,7 +3998,11 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                         if(cost_best - 0.0001 > cost_temp)
                         {
                             /* backup the current best data */
-                            copy_cu_data(&core->cu_data_best[log2_cuw - 2][log2_cuh - 2], &core->cu_data_temp[log2_cuw - 2][log2_cuh - 2], 0, 0, log2_cuw, log2_cuh, log2_cuw, cud);
+                            copy_cu_data(&core->cu_data_best[log2_cuw - 2][log2_cuh - 2], &core->cu_data_temp[log2_cuw - 2][log2_cuh - 2], 0, 0, log2_cuw, log2_cuh, log2_cuw, cud
+#if M50761_CHROMA_NOT_SPLIT
+                                     , ctx->tree_cons
+#endif
+                                  );
                             cost_best = cost_temp;
                             SBAC_STORE(s_temp_depth, core->s_next_best[prev_log2_sub_cuw - 2][prev_log2_sub_cuh - 2]);
                             best_split_mode = split_mode;
@@ -3485,6 +4019,9 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                         }
 #endif
                     }
+#if M50761_CHROMA_NOT_SPLIT
+                    }
+#endif
                 }
 
                 if(num_suco == 2)
@@ -3613,11 +4150,19 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
         if(cost_best > cost_temp)
         {
             /* backup the current best data */
-            copy_cu_data(&core->cu_data_best[log2_cuw - 2][log2_cuh - 2], &core->cu_data_temp[log2_cuw - 2][log2_cuh - 2], 0, 0, log2_cuw, log2_cuh, log2_cuw, cud);
+            copy_cu_data(&core->cu_data_best[log2_cuw - 2][log2_cuh - 2], &core->cu_data_temp[log2_cuw - 2][log2_cuh - 2], 0, 0, log2_cuw, log2_cuh, log2_cuw, cud
+#if M50761_CHROMA_NOT_SPLIT
+                , ctx->tree_cons
+#endif
+            );
             cost_best = cost_temp;
             best_split_mode = NO_SPLIT;
             SBAC_STORE(s_temp_depth, core->s_next_best[log2_cuw - 2][log2_cuh - 2]);
-            mode_cpy_rec_to_ref(core, x0, y0, cuw, cuh, PIC_MODE(ctx));
+            mode_cpy_rec_to_ref(core, x0, y0, cuw, cuh, PIC_MODE(ctx)
+#if M50761_CHROMA_NOT_SPLIT
+                , ctx->tree_cons
+#endif
+            );
 
 #if ADMVP
             // update history MV list
@@ -3663,7 +4208,11 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
     }
 #endif
 
-    mode_cpy_rec_to_ref(core, x0, y0, cuw, cuh, PIC_MODE(ctx));
+    mode_cpy_rec_to_ref(core, x0, y0, cuw, cuh, PIC_MODE(ctx)
+#if M50761_CHROMA_NOT_SPLIT
+        , ctx->tree_cons
+#endif
+    );
 
     /* restore best data */
     evc_set_split_mode(best_split_mode, cud, 0, cuw, cuh, cuw, core->cu_data_best[log2_cuw - 2][log2_cuh - 2].split_mode);
@@ -3711,7 +4260,9 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
         }
     }
 #endif
-
+#if M50761_CHROMA_NOT_SPLIT
+    ctx->tree_cons = tree_cons;
+#endif
     return (cost_best > MAX_COST) ? MAX_COST : cost_best;
 }
 
@@ -3887,21 +4438,27 @@ static void update_to_ctx_map(EVCE_CTX *ctx, EVCE_CORE *core)
                 map_mv[ctx_idx + j][REFP_1][MV_X] = cu_data->mv[core_idx + j][REFP_1][MV_X];
                 map_mv[ctx_idx + j][REFP_1][MV_Y] = cu_data->mv[core_idx + j][REFP_1][MV_Y];
 
-#if DMVR_LAG
+#if DMVR_LAG //SEMIH: copy the map_mv to map_unrefined_mv in the else condition. --> use this in DBF.
                 if (cu_data->dmvr_flag[core_idx + j])
                 {
                   map_unrefined_mv[ctx_idx + j][REFP_0][MV_X] = cu_data->unrefined_mv[core_idx + j][REFP_0][MV_X];
                   map_unrefined_mv[ctx_idx + j][REFP_0][MV_Y] = cu_data->unrefined_mv[core_idx + j][REFP_0][MV_Y];
                   map_unrefined_mv[ctx_idx + j][REFP_1][MV_X] = cu_data->unrefined_mv[core_idx + j][REFP_1][MV_X];
                   map_unrefined_mv[ctx_idx + j][REFP_1][MV_Y] = cu_data->unrefined_mv[core_idx + j][REFP_1][MV_Y];
-
                 }
                 else
                 {
-                    map_unrefined_mv[ctx_idx + j][REFP_0][MV_X] = SHRT_MAX;
-                    map_unrefined_mv[ctx_idx + j][REFP_0][MV_Y] = SHRT_MAX;
-                    map_unrefined_mv[ctx_idx + j][REFP_1][MV_X] = SHRT_MAX;
-                    map_unrefined_mv[ctx_idx + j][REFP_1][MV_Y] = SHRT_MAX;
+#if M50761_DMVR_SIMP_SPATIAL_MV
+                  map_unrefined_mv[ctx_idx + j][REFP_0][MV_X] = cu_data->mv[core_idx + j][REFP_0][MV_X];
+                  map_unrefined_mv[ctx_idx + j][REFP_0][MV_Y] = cu_data->mv[core_idx + j][REFP_0][MV_Y];
+                  map_unrefined_mv[ctx_idx + j][REFP_1][MV_X] = cu_data->mv[core_idx + j][REFP_1][MV_X];
+                  map_unrefined_mv[ctx_idx + j][REFP_1][MV_Y] = cu_data->mv[core_idx + j][REFP_1][MV_Y];
+#else
+                  map_unrefined_mv[ctx_idx + j][REFP_0][MV_X] = SHRT_MAX;
+                  map_unrefined_mv[ctx_idx + j][REFP_0][MV_Y] = SHRT_MAX;
+                  map_unrefined_mv[ctx_idx + j][REFP_1][MV_X] = SHRT_MAX;
+                  map_unrefined_mv[ctx_idx + j][REFP_1][MV_Y] = SHRT_MAX;
+#endif
                 }
 #endif
             }
@@ -3943,7 +4500,11 @@ static int mode_analyze_lcu(EVCE_CTX *ctx, EVCE_CORE *core)
 
     /* decide mode */
     mode_coding_tree(ctx, core, core->x_pel, core->y_pel, 0, ctx->log2_max_cuwh, ctx->log2_max_cuwh, 0, mi, 1
-                     , 0, NO_SPLIT, split_mode_child, 0, parent_split_allow, 0, 0);
+                     , 0, NO_SPLIT, split_mode_child, 0, parent_split_allow, 0, 0
+#if M50761_CHROMA_NOT_SPLIT
+        , evc_get_default_tree_cons()
+#endif
+    );
 
 #if TRACE_ENC_CU_DATA_CHECK
     h = w = 1 << (ctx->log2_max_cuwh - MIN_CU_LOG2);
@@ -3961,7 +4522,11 @@ static int mode_analyze_lcu(EVCE_CTX *ctx, EVCE_CORE *core)
 
     update_to_ctx_map(ctx, core);
     copy_cu_data(&ctx->map_cu_data[core->lcu_num], &core->cu_data_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2],
-                 0, 0, ctx->log2_max_cuwh, ctx->log2_max_cuwh, ctx->log2_max_cuwh, 0);
+                 0, 0, ctx->log2_max_cuwh, ctx->log2_max_cuwh, ctx->log2_max_cuwh, 0
+#if M50761_CHROMA_NOT_SPLIT
+        , evc_get_default_tree_cons()
+#endif
+    );
 #if TRACE_ENC_CU_DATA_CHECK
     h = w = 1 << (ctx->log2_max_cuwh - MIN_CU_LOG2);
     for(j = 0; j < h; ++j)

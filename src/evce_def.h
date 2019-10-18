@@ -540,6 +540,9 @@ typedef struct _EVCE_CU_DATA
     u8  *qp_u;
     u8  *qp_v;
     u8  *pred_mode;
+#if M50761_CHROMA_NOT_SPLIT
+    u8  *pred_mode_chroma;
+#endif
     u8  **mpm;
     u8  **mpm_ext;
     s8  **ipm;
@@ -556,6 +559,9 @@ typedef struct _EVCE_CU_DATA
     u8  *bi_idx;
     s16 *mmvd_idx;
     u8  *mmvd_flag;
+#if M50761_CHROMA_NOT_SPLIT
+    s16 bv_chroma[MAX_CU_CNT_IN_LCU][MV_D];
+#endif
     s16 mv[MAX_CU_CNT_IN_LCU][REFP_NUM][MV_D];
 #if DMVR_LAG
     s16 unrefined_mv[MAX_CU_CNT_IN_LCU][REFP_NUM][MV_D];
@@ -577,7 +583,9 @@ typedef struct _EVCE_CU_DATA
     u8  *ats_inter_info;
 #endif
     u32 *map_cu_mode;
+#if !M50761_REMOVE_BLOCK_SIZE_MAP
     s16 **block_size;
+#endif
     s8  *depth;
 
     s16 *coef[N_C]; 
@@ -924,7 +932,9 @@ struct _EVCE_CTX
     s8                   (*map_refi)[REFP_NUM];
     /* map for intra pred mode */
     s8                    *map_ipm;
+#if !M50761_REMOVE_BLOCK_SIZE_MAP
     s16                  (*map_block_size)[2];
+#endif
     s8                    *map_depth;
     /*map of dqp*/
 #if DQP
@@ -1027,6 +1037,9 @@ struct _EVCE_CTX
 #endif
     /* platform specific data, if needed */
     void                  * pf;
+#if M50761_CHROMA_NOT_SPLIT
+    TREE_CONS            tree_cons;                //!< Tree status
+#endif
 };
 
 int evce_platform_init(EVCE_CTX * ctx);

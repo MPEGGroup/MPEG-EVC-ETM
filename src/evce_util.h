@@ -60,4 +60,15 @@ int evce_delete_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh);
 
 void evce_split_tbl_init(EVCE_CTX *ctx);
 
+#if M50761_CHROMA_NOT_SPLIT
+u8 evce_check_luma(EVCE_CTX *ctx);
+u8 evce_check_chroma(EVCE_CTX *ctx);
+u8 evce_check_all(EVCE_CTX *ctx);
+u8 evce_check_only_intra(EVCE_CTX *ctx);
+u8 evce_check_only_inter(EVCE_CTX *ctx);
+u8 evce_check_all_preds(EVCE_CTX *ctx);
+MODE_CONS evce_derive_mode_cons(EVCE_CTX *ctx, int luc_num, int cup);
+#endif
+
+
 #endif /* _EVCE_UTIL_H_ */

@@ -90,6 +90,10 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 #if ATS_INTER_PROCESS
     core->ats_inter_info = 0;
 #endif
+#if M50761_CHROMA_NOT_SPLIT
+    int start_c = evce_check_luma(ctx) ? Y_C : U_C;
+    int end_c = evce_check_chroma(ctx) ? N_C : U_C;
+#endif
     rec = pi->unfiltered_rec_buf;
     nnz = core->nnz;
     cuw = 1 << log2_cuw;
@@ -106,7 +110,11 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
     org[U_C] = pi->o[U_C] + ((y >> 1) * pi->s_o[U_C]) + (x >> 1);
     org[V_C] = pi->o[V_C] + ((y >> 1) * pi->s_o[V_C]) + (x >> 1);
 
-    evc_IBC_mc(x, y, log2_cuw, log2_cuh, match_pos, pi->pic_m, pred[0]);
+    evc_IBC_mc(x, y, log2_cuw, log2_cuh, match_pos, pi->pic_m, pred[0]
+#if M50761_CHROMA_NOT_SPLIT
+      , ctx->tree_cons
+#endif
+    );
 
     /* get residual */
     evce_diff_pred(x, y, log2_cuw, log2_cuh, pi->pic_o, pred[0], coef);
@@ -123,11 +131,18 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 #if ADCC
       , ctx->sps.tool_adcc
 #endif
+#if M50761_CHROMA_NOT_SPLIT
+      , ctx->tree_cons
+#endif
     );
     if (tnnz)
     {
 
+#if M50761_CHROMA_NOT_SPLIT
+        for (i = start_c; i < end_c; i++)
+#else
         for (i = 0; i < N_C; i++)
+#endif
         {
             int size = (cuw * cuh) >> (i == 0 ? 0 : 2);
 
@@ -146,7 +161,11 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 #endif
         );
 
+#if M50761_CHROMA_NOT_SPLIT
+        for (i = start_c; i < end_c; i++)
+#else
         for (i = 0; i < N_C; i++)
+#endif
         {
             evc_recon(pi->inv_coef[i], pred[0][i], nnz[i], w[i], h[i], w[i], rec[i]
 #if ATS_INTER_PROCESS
@@ -164,17 +183,32 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
           , 0
 #endif
         );
+#if M50761_CHROMA_NOT_SPLIT
+        for (i = start_c; i < end_c; i++)
+#else
         for (i = 0; i < N_C; i++)
+#endif
         {
             dist[i] += ctx->delta_dist[i];
+#if M50761_CHROMA_NOT_SPLIT
+            nnz[i] = nnz_store[i];
+#endif
         }
 #endif
 
+#if !M50761_CHROMA_NOT_SPLIT
         nnz[Y_C] = nnz_store[Y_C];
         nnz[U_C] = nnz_store[U_C];
         nnz[V_C] = nnz_store[V_C];
 
         cost = (double)dist[Y_C] + (((double)dist[U_C] * ctx->dist_chroma_weight[0]) + ((double)dist[V_C] * ctx->dist_chroma_weight[1]));
+#else
+        cost = 0.0;
+        if (evce_check_luma(ctx))
+            cost += (double)dist[Y_C];
+        if (evce_check_chroma(ctx))
+            cost += (((double)dist[U_C] * ctx->dist_chroma_weight[0]) + ((double)dist[V_C] * ctx->dist_chroma_weight[1]));
+#endif
 
 
         SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
@@ -193,7 +227,11 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 
         SBAC_LOAD(core->s_temp_prev_comp_best, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
 
+#if M50761_CHROMA_NOT_SPLIT
+        for (i = start_c; i < end_c; i++)
+#else
         for (i = 0; i < N_C; i++)
+#endif
         {
             nnz[i] = nnz_store[i];
             if (nnz[i] == 0 && nnz_store[i] != 0)
@@ -204,12 +242,20 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
     }
     else
     {
+#if M50761_CHROMA_NOT_SPLIT
+        for (i = start_c; i < end_c; i++)
+#else
         for (i = 0; i < N_C; i++)
+#endif
         {
             nnz[i] = 0;
         }
 
+#if M50761_CHROMA_NOT_SPLIT
+        for (i = start_c; i < end_c; i++)
+#else
         for (i = 0; i < N_C; i++)
+#endif
         {
             evc_recon(coef[i], pred[0][i], nnz[i], w[i], h[i], w[i], rec[i]
 #if ATS_INTER_PROCESS
@@ -220,18 +266,30 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
             dist[i] = evce_ssd_16b(log2_w[i], log2_h[i], rec[i], org[i], w[i], pi->s_o[i]);
 
         }
-
+#if RDO_DBK
         calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, rec, cuw, x, y, core->avail_lr, 0, 0, NULL, pi->mv, is_from_mv_field
 #if ATS_INTER_PROCESS
           , 0
 #endif
         );
+#if M50761_CHROMA_NOT_SPLIT
+        for (i = start_c; i < end_c; i++)
+#else
         for (i = 0; i < N_C; i++)
+#endif
         {
             dist[i] += ctx->delta_dist[i];
         }
-
+#endif
+#if M50761_CHROMA_NOT_SPLIT
+        cost_best = 0.0;
+        if (evce_check_luma(ctx))
+            cost_best += (double)dist[Y_C];
+        if (evce_check_chroma(ctx))
+            cost_best += (((double)dist[U_C] * ctx->dist_chroma_weight[0]) + ((double)dist[V_C] * ctx->dist_chroma_weight[1]));
+#else
         cost_best = (double)dist[Y_C] + (ctx->dist_chroma_weight[0] * (double)dist[U_C]) + (ctx->dist_chroma_weight[1] * (double)dist[V_C]);
+#endif
 
 
         SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
@@ -787,7 +845,11 @@ static u32 pibc_me_search(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_PIBC *pi, int x, 
     u32 cost = 0;
     s16 mv_temp[MV_D] = { 0, 0 };
 
-    if (ctx->param.ibc_hash_search_flag)
+    if (ctx->param.ibc_hash_search_flag
+#if M50761_CHROMA_NOT_SPLIT
+        && evce_check_luma(ctx)
+#endif
+        )
     {
         cost = search_ibc_hash_match(ctx, ctx->ibc_hash_handle, x, y, log2_cuw, log2_cuh, mvp, mv_temp);
     }
@@ -823,6 +885,11 @@ static double pibc_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int 
 #if ATS_INTER_PROCESS
   core->ats_inter_info = 0;
 #endif
+#if M50761_CHROMA_NOT_SPLIT
+  int start_c = evce_check_luma(ctx) ? Y_C : U_C;
+  int end_c = evce_check_chroma(ctx) ? N_C : U_C;
+#endif
+
   pi = &ctx->pibc;
   cuw = (1 << log2_cuw);
   cuh = (1 << log2_cuh);
@@ -876,7 +943,11 @@ static double pibc_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int 
       pi->mvp_idx = mvp_idx;
       cost_ibc = cost_best = cost;
 
+#if M50761_CHROMA_NOT_SPLIT
+      for (j = start_c; j < end_c; j++)
+#else
       for (j = 0; j < N_C; j++)
+#endif
       {
         int size_tmp = (cuw * cuh) >> (j == 0 ? 0 : 2);
         pi->nnz_best[j] = core->nnz[j];
@@ -887,14 +958,22 @@ static double pibc_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int 
   if (found_available_ibc)
   {
     /* reconstruct */
+#if M50761_CHROMA_NOT_SPLIT
+    for (j = start_c; j < end_c; j++)
+#else
     for (j = 0; j < N_C; j++)
+#endif
     {
       int size_tmp = (cuw * cuh) >> (j == 0 ? 0 : 2);
       evc_mcpy(coef[j], pi->coef[j], sizeof(s16) * size_tmp);
     }
 
 
+#if M50761_CHROMA_NOT_SPLIT
+    for (i = start_c; i < end_c; i++)
+#else
     for (i = 0; i < N_C; i++)
+#endif
     {
       rec[i] = pi->unfiltered_rec_buf[i];
       s_rec[i] = (i == 0 ? cuw : cuw >> 1);

@@ -64,5 +64,15 @@ s8 evcd_eco_suco_flag(EVC_BSR *bs, EVCD_SBAC *sbac, EVCD_CTX *c, EVCD_CORE *core
 #if AFFINE
 int evcd_eco_affine_mrg_idx(EVC_BSR * bs, EVCD_SBAC * sbac);
 #endif
+#if M50761_CHROMA_NOT_SPLIT
+MODE_CONS evcd_eco_mode_constr(EVCD_CTX * ctx);
+#endif
 
+#if GRAB_STAT
+void encd_stat_cu(int x, int y, int cuw, int cuh, int cup, void *ctx, void *core
+#if M50761_CHROMA_NOT_SPLIT
+    , TREE_CONS tree_cons
+#endif
+);
+#endif
 #endif /* _EVCD_ECO_H_ */

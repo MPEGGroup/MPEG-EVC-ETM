@@ -106,6 +106,9 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 #if M49023_ADMVP_IMPROVE 
     , EVC_SH* sh
 #endif
+#if M50761_TMVP_8X8_GRID
+    , int log2_max_cuwh
+#endif
 );
 
 #if ADMVP
@@ -162,6 +165,9 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
     , EVC_REFP(*refplx)[REFP_NUM]
     , EVC_SH* sh
 #endif
+#if M50761_TMVP_8X8_GRID
+    , int log2_max_cuwh
+#endif
 );
 
 void evc_get_motion_skip_baseline(int slice_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],
@@ -215,6 +221,9 @@ typedef struct _EVC_SPLIT_STRUCT
     int       x_pos[SPLIT_MAX_PART_COUNT];
     int       y_pos[SPLIT_MAX_PART_COUNT];
     int       cup[SPLIT_MAX_PART_COUNT];
+#if M50761_CHROMA_NOT_SPLIT
+    TREE_CONS tree_cons;
+#endif
 } EVC_SPLIT_STRUCT;
 
 //! Count of partitions, correspond to split_mode
@@ -224,7 +233,11 @@ int evc_split_get_part_size(int split_mode, int part_num, int length);
 //! Get partition size log
 int evc_split_get_part_size_idx(int split_mode, int part_num, int length_idx);
 //! Get partition split structure
-void evc_split_get_part_structure(int split_mode, int x0, int y0, int cuw, int cuh, int cup, int cud, int log2_culine, EVC_SPLIT_STRUCT* split_struct);
+void evc_split_get_part_structure(int split_mode, int x0, int y0, int cuw, int cuh, int cup, int cud, int log2_culine, EVC_SPLIT_STRUCT* split_struct
+#if M50761_CHROMA_NOT_SPLIT
+    , TREE_CONS tree_cons /*, u8 slice_type */
+#endif
+);
 //! Get array of split modes tried sequentially in RDO
 void evc_split_get_split_rdo_order(int cuw, int cuh, SPLIT_MODE splits[MAX_SPLIT_NUM]);
 //! Get split direction. Quad will return vertical direction.
@@ -275,7 +288,15 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
 
 #if M48933_AFFINE
 void evc_mv_rounding_s32( s32 hor, int ver, s32 * rounded_hor, s32 * rounded_ver, s32 right_shift, int left_shift );
+#if M50761_AFFINE_ADAPT_SUB_SIZE
+void derive_affine_subblock_size_bi( s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi[REFP_NUM], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num );
+#endif
 void derive_affine_subblock_size( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num );
+#endif
+
+#if M50761_EIF_RESTRICTIONS
+BOOL check_eif_applicability_bi( s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi[REFP_NUM], int cuw, int cuh, int vertex_num );
+BOOL check_eif_applicability_uni( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int vertex_num );
 #endif
 
 #if AFFINE
@@ -302,8 +323,15 @@ int evc_get_affine_merge_candidate(int ptr, int slice_type, int scup, s8(*map_re
 #if M48879_IMPROVEMENT_SUCO
     , u16 avail_lr
 #endif
+#if M50761_TMVP_ALIGN_SPEC
+    , EVC_SH * sh
+#endif
 );
+
+#if !EIF_MEMORY_BANDWIDTH_RESTRICTION
 int evc_get_affine_memory_access(s16 mv[VER_NUM][MV_D], int cuw, int cuh);
+#endif
+
 #endif
 
 /* MD5 structure */
@@ -331,7 +359,12 @@ int evc_atomic_dec(volatile int * pcnt);
 void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boundary, int boundary_b, int boundary_r, int log2_max_cuwh
                           , const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth
                           , int x, int y, int im_w, int im_h
-                          , u8* remaining_split, int sps_btt_flag);
+                          , u8* remaining_split, int sps_btt_flag
+#if M50761_CHROMA_NOT_SPLIT
+                          , TREE_CONS tree_cons
+#endif
+);
+
 #if DQP
 u8  *evc_get_dqp_used(int x_scu, int y_scu, int w_scu, u8 * map_dqp_input, int dqp_depth);
 #endif
@@ -374,4 +407,37 @@ BOOL check_bi_applicability(int slice_type, int cuw, int cuh);
 #endif
 
 void evc_block_copy(s16 * src, int src_stride, s16 * dst, int dst_stride, int log2_copy_w, int log2_copy_h);
+
+#if M50761_REMOVE_BIBLOCKS_8x4
+char allowed_block_size(int cuw, int cuh);
+char process_bi_mv(s16 *mv0, s8* refi);
+BOOL check_bi_applicability_rdo(int tile_group_type, int cuw, int cuh);
+#endif
+
+
+#if M50761_CHROMA_NOT_SPLIT
+u8 evc_check_chroma_split_allowed(int luma_width, int luma_height);
+u8 evc_tree_split_allowed(int w, int h, SPLIT_MODE split);
+int evc_get_luma_cup(int x_scu, int y_scu, int cu_w_scu, int cu_h_scu, int w_scu);
+enum TQC_RUN evc_get_run(enum TQC_RUN run_list, TREE_CONS tree_cons);
+u8 evc_check_luma(TREE_CONS tree_cons);
+u8 evc_check_chroma(TREE_CONS tree_cons);
+u8 evc_check_all(TREE_CONS tree_cons);
+u8 evc_check_only_intra(TREE_CONS tree_cons);
+u8 evc_check_only_inter(TREE_CONS tree_cons);
+u8 evc_check_all_preds(TREE_CONS tree_cons);
+//u8 evc_get_cur_tree(TREE_CONS tree_cons);       // Return current tree type: 0 - luma (or dual) and 1 - chroma.
+TREE_CONS evc_get_default_tree_cons();
+void evc_set_tree_mode(TREE_CONS* dest, MODE_CONS mode);
+BOOL evc_signal_mode_cons(TREE_CONS* parent, TREE_CONS* cur_split);
+MODE_CONS evc_get_mode_cons_by_split(SPLIT_MODE split_mode, int cuw, int cuh);
+#endif
+
+
+
+
+#if GRAB_STAT
+void enc_stat_header(int pic_w, int pic_h);
+#endif
+
 #endif /* _EVC_UTIL_H_ */

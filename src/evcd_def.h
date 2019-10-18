@@ -347,6 +347,9 @@ struct _EVCD_CTX
     void (* fn_picbuf_expand)(EVCD_CTX * ctx, EVC_PIC * pic);
     /* platform specific data, if needed */
     void                  * pf;
+#if M50761_CHROMA_NOT_SPLIT
+    TREE_CONS           tree_cons;
+#endif
 };
 
 /* prototypes of internal functions */

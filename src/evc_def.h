@@ -37,6 +37,47 @@
 #include "evc.h"
 #include "evc_port.h"
 
+#define M50761                                     1
+#if M50761
+//chroma no split for avoiding 2x2, 2x4 and 4x2 chroma blocks
+#define M50761_CHROMA_NOT_SPLIT                    0
+#if M50761_CHROMA_NOT_SPLIT
+#define CHROMA_NOT_SPLIT_EXCLUDE_IBC               1    // Remove CC in the case of allowing IBC
+#endif
+
+#define M50761_REMOVE_BLOCK_SIZE_MAP               1
+#define M50761_BUGFIX_ENCSIDE_IBC                  1
+#define M50761_BUGFIX_UV_SIZE                      1
+
+#define M50761_HTDF_BLOCK_SIZE_64                  1
+#define M50761_TMVP_8X8_GRID                       1
+#define M50761_BOUNDARY_FORCE_CLEANUP              1
+
+#define M50761_DMVR_SIMP_SPATIAL_MV                1 //unrefined MVs are used for spatial prediction
+#define M50761_DMVR_BUGFIX_REFINED_MV_RESTRICTION  1 
+#define M50761_DMVR_SIMP_DEBLOCK                   1 //unrefined MVs are used for DBF
+#define M50761_DMVR_SIMP_SUBPUPAD                  1 //sub PU padding 
+#define M50761_DMVR_RESTRICT_SMALL_BLOCKS          1 //apply DMVR for blocks with w >=8 && h >= 8
+
+#define M50761_REMOVE_BIBLOCKS_8x4                 1
+#if M50761_REMOVE_BIBLOCKS_8x4
+#define REMOVE_BI_INTERDIR                         1   // Remove signalling part of Inter dir flag
+#define FIX_IBC_PRED_MODE_4x4                      1   // Remove signalling of pred.mode flag for blocks 4x4 if IBC is on
+#endif
+
+#define M50761_TMVP_ALIGN_SPEC                     1
+#define M50761_AFFINE_ADAPT_SUB_SIZE               1
+#define M50761_AFFINE_SUB_SIZE_LUT                 1
+                                                   
+#define M50761_EIF_RESTRICTIONS                    1
+#if M50761_EIF_RESTRICTIONS  
+#define EIF_NEW_BILINEAR                           1
+#define EIF_MEMORY_BANDWIDTH_RESTRICTION           1
+#define EIF_NUM_FETCHED_LINES_BASIC_RESTRICTION    1
+#define EIF_FORBID_NON_CONTINUOUS_MEMORY_ACCESS    1
+#endif
+#endif
+
 #define M49023_IMPROVEMENT                 1
 #if M49023_IMPROVEMENT
 #define PROFILE_SANITY_CHECK_FIX           1 
@@ -283,7 +324,11 @@
 #define DMVR_SUBCU_SIZE                    16
 #endif
 #define DMVR_PADDING                       1
+#if M50761_DMVR_SIMP_SPATIAL_MV
+#define DMVR_LAG                           1 /* 0 - refined MV used only for MC, 1- refined MV used for deblocking and TMVP, 2 -  refined MV used for spatial neighbors as per lag2 CTB pipeline*/
+#else
 #define DMVR_LAG                           2 /* 0 - refined MV used only for MC, 1- refined MV used for deblocking and TMVP, 2 -  refined MV used for spatial neighbors as per lag2 CTB pipeline*/
+#endif
 #if DMVR_LAG
 #define DMVR_FLAG                          1
 #endif
@@ -358,9 +403,6 @@ enum SAD_POINT_INDEX
 #define AFF_MAX_CAND                       5 // maximum affine merge candidates
 #define AFF_MODEL_CAND                     5 // maximum affine model based candidates
 
-#define MAX_MEMORY_ACCESS_BI             ((8 + 7) * (8 + 7) / 64)
-#define MAX_MEMORY_ACCESS_UNI            ((8 + 7) * (4 + 7) / 32)
-
 // AFFINE ME configuration (non-normative)
 #define AF_ITER_UNI                        7 // uni search iteration time
 #define AF_ITER_BI                         5 // bi search iteration time
@@ -373,9 +415,32 @@ enum SAD_POINT_INDEX
 
 /* EIF (START) */
 #if EIF
-#define AFFINE_ADAPT_EIF_SIZE              8
+
+#define AFFINE_ADAPT_EIF_SIZE                                   8
+
+#if M50761_EIF_RESTRICTIONS
+#define EIF_HW_SUBBLOCK_SIZE                                    4
+
+#if EIF_NUM_FETCHED_LINES_BASIC_RESTRICTION
+#define EIF_NUM_ALLOWED_FETCHED_LINES_FOR_THE_FIRST_LINE        3
+#endif
+
+#if EIF_NEW_BILINEAR
+#define EIF_MV_PRECISION_BILINEAR                               5
+#endif
+
+#endif
+
 #endif
 /* EIF (END) */
+
+#if EIF_MEMORY_BANDWIDTH_RESTRICTION
+#define MAX_MEMORY_ACCESS_BI             ( (4 + 5) * (4 + 5) )
+#else
+#define MAX_MEMORY_ACCESS_BI             ((8 + 7) * (8 + 7) / 64)
+#define MAX_MEMORY_ACCESS_UNI            ((8 + 7) * (4 + 7) / 32)
+#endif
+
 #endif
 /* AFFINE (END) */
 
@@ -479,19 +544,30 @@ typedef int BOOL;
 /* For debugging (START) */
 #define USE_DRAW_PARTITION_DEC             0
 #define ENC_DEC_TRACE                      0
+#ifndef GRAB_STAT
+#define GRAB_STAT                          0
+#endif
 #if ENC_DEC_TRACE
-#define TRACE_ENC_CU_DATA                  1 ///< Trace CU index on encoder
-#define TRACE_ENC_CU_DATA_CHECK            1 ///< Trace CU index on encoder
+#define TRACE_ENC_CU_DATA                  0 ///< Trace CU index on encoder
+#define TRACE_ENC_CU_DATA_CHECK            0 ///< Trace CU index on encoder
 #define MVF_TRACE                          1 ///< use for tracing MVF
 #define TRACE_ENC_HISTORIC                 1
+#define TRACE_COEFFS                       0 ///< Trace coefficients
 #define TRACE_RDO                          0 //!< Trace only encode stream (0), only RDO (1) or all of them (2)
-#define TRACE_BIN                          0 //!< trace each bin
+#define TRACE_BIN                          1 //!< trace each bin
+#define TRACE_START_POC                    0 //!< POC of frame from which we start to write output tracing information 
+#define TRACE_COSTS                        0 //!< Trace cost information
+#define TRACE_REMOVE_COUNTER               0 //!< Remove trace counter
+#define TRACE_ADDITIONAL_FLAGS             1 
 #if TRACE_RDO
 #define TRACE_RDO_EXCLUDE_I                0 //!< Exclude I frames
 #endif
 extern FILE *fp_trace;
 extern int fp_trace_print;
 extern int fp_trace_counter;
+#if TRACE_START_POC
+extern int fp_trace_started;
+#endif
 #if TRACE_RDO == 1
 #define EVC_TRACE_SET(A) fp_trace_print=!A
 #elif TRACE_RDO == 2
@@ -500,17 +576,22 @@ extern int fp_trace_counter;
 #define EVC_TRACE_SET(A) fp_trace_print=A
 #endif
 #define EVC_TRACE_STR(STR) if(fp_trace_print) { fprintf(fp_trace, STR); fflush(fp_trace); }
+#define EVC_TRACE_DOUBLE(DOU) if(fp_trace_print) { fprintf(fp_trace, "%g", DOU); fflush(fp_trace); }
 #define EVC_TRACE_INT(INT) if(fp_trace_print) { fprintf(fp_trace, "%d ", INT); fflush(fp_trace); }
+#define EVC_TRACE_INT_HEX(INT) if(fp_trace_print) { fprintf(fp_trace, "0x%08lx ", INT); fflush(fp_trace); }
+#if TRACE_REMOVE_COUNTER
+#define EVC_TRACE_COUNTER 
+#else
 #define EVC_TRACE_COUNTER  EVC_TRACE_INT(fp_trace_counter++); EVC_TRACE_STR("\t")
+#endif
 #define EVC_TRACE_MV(X, Y) if(fp_trace_print) { fprintf(fp_trace, "(%d, %d) ", X, Y); fflush(fp_trace); }
 #define EVC_TRACE_FLUSH    if(fp_trace_print) fflush(fp_trace)
-#if TRACE_BIN
-#define EVC_TRACE_DOUBLE(D) if(fp_trace_print) { fprintf(fp_trace, "%e ", D); fflush(fp_trace); }
-#endif
 #else
 #define EVC_TRACE_SET(A)
 #define EVC_TRACE_STR(str)
+#define EVC_TRACE_DOUBLE(DOU)
 #define EVC_TRACE_INT(INT)
+#define EVC_TRACE_INT_HEX(INT)
 #define EVC_TRACE_COUNTER 
 #define EVC_TRACE_MV(X, Y)
 #define EVC_TRACE_FLUSH
@@ -962,6 +1043,9 @@ typedef u32 SBAC_CTX_MODEL;
 #define NUM_QT_CBF_CTX                     3       /* number of context models for QT CBF */
 #define NUM_QT_ROOT_CBF_CTX                1       /* number of context models for QT ROOT CBF */
 #define NUM_PRED_MODE_CTX                  3
+#if M50761_CHROMA_NOT_SPLIT
+#define NUM_MODE_CONS_CTX                  3
+#endif
 #define NUM_INTER_DIR_CTX                  3       /* number of context models for inter prediction direction */
 #define NUM_REFI_CTX                       2
 #define NUM_MVP_IDX_CTX                    5
@@ -1025,6 +1109,9 @@ typedef struct _EVC_SBAC_CTX
     SBAC_CTX_MODEL   inter_dir       [NUM_INTER_DIR_CTX];
     SBAC_CTX_MODEL   intra_dir       [NUM_INTRA_DIR_CTX];
     SBAC_CTX_MODEL   pred_mode       [NUM_PRED_MODE_CTX];
+#if M50761_CHROMA_NOT_SPLIT
+    SBAC_CTX_MODEL   mode_cons       [NUM_MODE_CONS_CTX];
+#endif
     SBAC_CTX_MODEL   refi            [NUM_REFI_CTX];
     SBAC_CTX_MODEL   mvp_idx         [NUM_MVP_IDX_CTX];
 #if AFFINE
@@ -1549,6 +1636,26 @@ typedef struct _EVC_SH
 #define EVC_UD_PIC_SIGNATURE              0x10
 #define EVC_UD_END                        0xFF
 
+#if M50761_CHROMA_NOT_SPLIT
+typedef enum _TREE_TYPE
+{
+    TREE_LC = 0,
+    TREE_L = 1,
+    TREE_C = 2,
+} TREE_TYPE;
+
+typedef enum _MODE_CONS {
+    eOnlyIntra,
+    eOnlyInter,
+    eAll
+} MODE_CONS;
+
+typedef struct _TREE_CONS {
+    BOOL            changed;
+    TREE_TYPE       tree_type;
+    MODE_CONS       mode_cons;
+} TREE_CONS;
+#endif
 /*****************************************************************************
  * for binary and triple tree structure
  *****************************************************************************/
@@ -1598,6 +1705,9 @@ typedef enum _CTX_NEV_IDX
 {
     CNID_SKIP_FLAG,
     CNID_PRED_MODE,
+#if M50761_CHROMA_NOT_SPLIT
+    CNID_MODE_CONS,
+#endif
 #if AFFINE
     CNID_AFFN_FLAG,
 #endif
@@ -1628,11 +1738,22 @@ static const int NTAPS_CHROMA = 4; ///< Number of taps for chroma
 #endif
 
 #if EIF
-#define EIF_MV_PRECISION                                       (2 + MAX_CU_LOG2 + 0) //2 + MAX_CU_LOG2 is MV precision in regular affine
+#define EIF_MV_PRECISION_INTERNAL                                       (2 + MAX_CU_LOG2 + 0) //2 + MAX_CU_LOG2 is MV precision in regular affine
 
-#if EIF_MV_PRECISION > 14 || EIF_MV_PRECISION < 9
-#error "Invalid EIF_MV_PRECISION"
+#if EIF_MV_PRECISION_INTERNAL > 14 || EIF_MV_PRECISION_INTERNAL < 9
+#error "Invalid EIF_MV_PRECISION_INTERNAL"
 #endif
+
+#if EIF_NEW_BILINEAR
+#if EIF_MV_PRECISION_BILINEAR > EIF_MV_PRECISION_INTERNAL
+#error "EIF_MV_PRECISION_BILINEAR should be less than EIF_MV_PRECISION_INTERNAL"
+#endif
+
+#if EIF_MV_PRECISION_BILINEAR < 3 
+#error "EIF_MV_PRECISION_BILINEAR is to small"
+#endif
+#endif
+
 #endif
 
 #define MAX_SUB_TB_NUM 4
