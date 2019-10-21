@@ -1709,11 +1709,19 @@ int evce_alf_aps(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh, EVC_APS* aps)
         if (aps->alf_aps_param.temporalAlfFlag)
         {
             aps->aps_id = sh->alf_sh_param.prevIdx;
+#if M50662_LUMA_CHROMA_SEPARATE_APS
+            sh->aps_id_y = sh->alf_sh_param.prevIdxComp[0];
+            sh->aps_id_ch = sh->alf_sh_param.prevIdxComp[1];
+#endif
             sh->aps_signaled = aps->aps_id;
         }
         else
         {
             aps->aps_id = alf_aps_get_current_alf_idx();
+#if M50662_LUMA_CHROMA_SEPARATE_APS
+            sh->aps_id_y = aps->aps_id;
+            sh->aps_id_ch = aps->aps_id;
+#endif
             sh->aps_signaled = aps->aps_id;
         }
     }
@@ -2506,7 +2514,10 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     core->qp_y = ctx->sh.qp + 6 * (BIT_DEPTH - 8);
     core->qp_u = evc_tbl_qp_chroma_ajudst[sh->qp_u] + 6 * (BIT_DEPTH - 8);
     core->qp_v = evc_tbl_qp_chroma_ajudst[sh->qp_v] + 6 * (BIT_DEPTH - 8);
-
+#if M50662_HISTORY_CTU_ROW_RESET
+    ret = evce_hmvp_init(&(core->history_buffer));
+    evc_assert_rv(ret == EVC_OK, ret);
+#else
 #if ADMVP
     evc_mset(core->history_buffer.history_mv_table, 0, ALLOWED_CHECKED_NUM * REFP_NUM * MV_D * sizeof(s16));
     
@@ -2520,7 +2531,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     core->history_buffer.currCnt = 0;
     core->history_buffer.m_maxCnt = ALLOWED_CHECKED_NUM;
 #endif
-
+#endif
     /* initialize entropy coder */
     evce_sbac_reset(GET_SBAC_ENC(bs), ctx->sh.slice_type, ctx->sh.qp, ctx->sps.tool_cm_init);
     evce_sbac_reset(&core->s_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], ctx->sh.slice_type, ctx->sh.qp, ctx->sps.tool_cm_init);
@@ -2565,7 +2576,13 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         /* initialize structures *****************************************/
         ret = ctx->fn_mode_init_lcu(ctx, core);
         evc_assert_rv(ret == EVC_OK, ret);
-
+#if M50662_HISTORY_CTU_ROW_RESET
+        if (core->x_pel == 0)
+        {
+            ret = evce_hmvp_init(&(core->history_buffer));
+            evc_assert_rv(ret == EVC_OK, ret);
+        }
+#endif
         /* mode decision *************************************************/
         SBAC_LOAD(core->s_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], *GET_SBAC_ENC(bs));
         core->s_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2].is_bitcount = 1;

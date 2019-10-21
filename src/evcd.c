@@ -289,7 +289,9 @@ static int slice_init(EVCD_CTX * ctx, EVCD_CORE * core, EVC_SH * sh)
     {
         ctx->last_intra_ptr = ctx->ptr;
     }
-
+#if M50662_HISTORY_CTU_ROW_RESET
+    evcd_hmvp_init(core);
+#else
 #if ADMVP
     evc_mset(core->history_buffer.history_mv_table, 0, ALLOWED_CHECKED_NUM * REFP_NUM * MV_D * sizeof(s16));
 #if TRACE_ENC_CU_DATA
@@ -306,10 +308,25 @@ static int slice_init(EVCD_CTX * ctx, EVCD_CORE * core, EVC_SH * sh)
     core->history_buffer.currCnt = 0;
     core->history_buffer.m_maxCnt = ALLOWED_CHECKED_NUM;
 #endif
-
+#endif
     return EVC_OK;
 }
+#if M50662_HISTORY_CTU_ROW_RESET
+static int evcd_hmvp_init(EVCD_CORE * core)
+{
+    evc_mset(core->history_buffer.history_mv_table, 0, ALLOWED_CHECKED_NUM * REFP_NUM * MV_D * sizeof(s16));
 
+    for (int i = 0; i < ALLOWED_CHECKED_NUM; i++)
+    {
+        core->history_buffer.history_refi_table[i][REFP_0] = REFI_INVALID;
+        core->history_buffer.history_refi_table[i][REFP_1] = REFI_INVALID;
+    }
+
+    core->history_buffer.currCnt = 0;
+    core->history_buffer.m_maxCnt = ALLOWED_CHECKED_NUM;
+    return core->history_buffer.currCnt;
+}
+#endif
 #if HLS_M47668
 int is_ref_pic(EVCD_CTX * ctx, EVC_SH * sh)
 {
@@ -553,9 +570,62 @@ static void update_history_buffer_parse_affine(EVCD_CORE *core, int slice_type)
             core->history_buffer.history_cu_table[i - 1] = core->history_buffer.history_cu_table[i];
 #endif
         }
-#if !M49023_ADMVP_IMPROVE
+#if !M49023_ADMVP_IMPROVE || M50662_AFFINE_MV_HISTORY_TABLE
         if(core->affine_flag)
         {
+            core->mv_sp[REFP_0][MV_X] = 0;
+            core->mv_sp[REFP_0][MV_Y] = 0;
+            core->refi_sp[REFP_0] = REFI_INVALID;
+            core->mv_sp[REFP_1][MV_X] = 0;
+            core->mv_sp[REFP_1][MV_Y] = 0;
+            core->refi_sp[REFP_1] = REFI_INVALID;
+            for (int lidx = 0; lidx < REFP_NUM; lidx++)
+            {
+                if (core->refi[lidx] >= 0)
+                {
+                    s16(*ac_mv)[MV_D] = core->affine_mv[lidx];
+                    int dmv_hor_x, dmv_ver_x, dmv_hor_y, dmv_ver_y;
+                    int mv_scale_hor = ac_mv[0][MV_X] << 7;
+                    int mv_scale_ver = ac_mv[0][MV_Y] << 7;
+                    int mv_y_hor = mv_scale_hor;
+                    int mv_y_ver = mv_scale_ver;
+                    int mv_scale_tmp_hor, mv_scale_tmp_ver;
+
+
+                    dmv_hor_x = (ac_mv[1][MV_X] - ac_mv[0][MV_X]) << (7 - core->log2_cuw);
+                    dmv_hor_y = (ac_mv[1][MV_Y] - ac_mv[0][MV_Y]) << (7 - core->log2_cuw);
+
+                    if (core->affine_flag == 2)
+                    {
+                        dmv_ver_x = (ac_mv[2][MV_X] - ac_mv[0][MV_X]) << (7 - core->log2_cuh);
+                        dmv_ver_y = (ac_mv[2][MV_Y] - ac_mv[0][MV_Y]) << (7 - core->log2_cuh);
+                    }
+                    else
+                    {
+                        dmv_ver_x = -dmv_hor_y;
+                        dmv_ver_y = dmv_hor_x;
+                    }
+                    int pos_x = 1 << (core->log2_cuw - 1);
+                    int pos_y = 1 << (core->log2_cuh - 1);
+
+                    mv_scale_tmp_hor = mv_scale_hor + dmv_hor_x * pos_x + dmv_ver_x * pos_y;
+                    mv_scale_tmp_ver = mv_scale_ver + dmv_hor_y * pos_x + dmv_ver_y * pos_y;
+
+
+                    evc_mv_rounding_s32(mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, 5, 0);
+                    mv_scale_tmp_hor = EVC_CLIP3(-(2 << 17), (2 << 17) - 1, mv_scale_tmp_hor);
+                    mv_scale_tmp_ver = EVC_CLIP3(-(2 << 17), (2 << 17) - 1, mv_scale_tmp_ver);
+
+
+                    mv_scale_tmp_hor >>= 2;
+                    mv_scale_tmp_ver >>= 2;
+
+                    core->mv_sp[lidx][MV_X] = mv_scale_tmp_hor;
+                    core->mv_sp[lidx][MV_Y] = mv_scale_tmp_ver;
+                    core->refi_sp[lidx] = core->refi[lidx];
+
+                }
+            }
             // some spatial neighbor may be unavailable
             if((slice_type == SLICE_P && REFI_IS_VALID(core->refi_sp[REFP_0])) ||
                 (slice_type == SLICE_B && (REFI_IS_VALID(core->refi_sp[REFP_0]) || REFI_IS_VALID(core->refi_sp[REFP_1]))))
@@ -579,9 +649,61 @@ static void update_history_buffer_parse_affine(EVCD_CORE *core, int slice_type)
     }
     else
     {
-#if !M49023_ADMVP_IMPROVE
+#if !M49023_ADMVP_IMPROVE || M50662_AFFINE_MV_HISTORY_TABLE
         if(core->affine_flag)
         {
+            core->mv_sp[REFP_0][MV_X] = 0;
+            core->mv_sp[REFP_0][MV_Y] = 0;
+            core->refi_sp[REFP_0] = REFI_INVALID;
+            core->mv_sp[REFP_1][MV_X] = 0;
+            core->mv_sp[REFP_1][MV_Y] = 0;
+            core->refi_sp[REFP_1] = REFI_INVALID;
+            for (int lidx = 0; lidx < REFP_NUM; lidx++)
+            {
+                if (core->refi[lidx] >= 0)
+                {
+                    s16(*ac_mv)[MV_D] = core->affine_mv[lidx];
+                    int dmv_hor_x, dmv_ver_x, dmv_hor_y, dmv_ver_y;
+                    int mv_scale_hor = ac_mv[0][MV_X] << 7;
+                    int mv_scale_ver = ac_mv[0][MV_Y] << 7;
+                    int mv_y_hor = mv_scale_hor;
+                    int mv_y_ver = mv_scale_ver;
+                    int mv_scale_tmp_hor, mv_scale_tmp_ver;
+
+
+                    dmv_hor_x = (ac_mv[1][MV_X] - ac_mv[0][MV_X]) << (7 - core->log2_cuw);
+                    dmv_hor_y = (ac_mv[1][MV_Y] - ac_mv[0][MV_Y]) << (7 - core->log2_cuw);
+
+                    if (core->affine_flag == 2)
+                    {
+                        dmv_ver_x = (ac_mv[2][MV_X] - ac_mv[0][MV_X]) << (7 - core->log2_cuh);
+                        dmv_ver_y = (ac_mv[2][MV_Y] - ac_mv[0][MV_Y]) << (7 - core->log2_cuh);
+                    }
+                    else
+                    {
+                        dmv_ver_x = -dmv_hor_y;
+                        dmv_ver_y = dmv_hor_x;
+                    }
+                    int pos_x = 1 << (core->log2_cuw - 1);
+                    int pos_y = 1 << (core->log2_cuh - 1);
+
+                    mv_scale_tmp_hor = mv_scale_hor + dmv_hor_x * pos_x + dmv_ver_x * pos_y;
+                    mv_scale_tmp_ver = mv_scale_ver + dmv_hor_y * pos_x + dmv_ver_y * pos_y;
+
+
+                    evc_mv_rounding_s32(mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, 5, 0);
+                    mv_scale_tmp_hor = EVC_CLIP3(-(2 << 17), (2 << 17) - 1, mv_scale_tmp_hor);
+                    mv_scale_tmp_ver = EVC_CLIP3(-(2 << 17), (2 << 17) - 1, mv_scale_tmp_ver);
+
+                    mv_scale_tmp_hor >>= 2;
+                    mv_scale_tmp_ver >>= 2;
+
+                    core->mv_sp[lidx][MV_X] = mv_scale_tmp_hor;
+                    core->mv_sp[lidx][MV_Y] = mv_scale_tmp_ver;
+                    core->refi_sp[lidx] = core->refi[lidx];
+
+                }
+            }
             if((slice_type == SLICE_P && REFI_IS_VALID(core->refi_sp[REFP_0])) ||
                 (slice_type == SLICE_B && (REFI_IS_VALID(core->refi_sp[REFP_0]) || REFI_IS_VALID(core->refi_sp[REFP_1]))))
             {
@@ -811,7 +933,7 @@ void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #if M48879_IMPROVEMENT_SUCO
             , core->avail_lr
 #endif
-#if M50761_TMVP_ALIGN_SPEC
+#if M50761_TMVP_ALIGN_SPEC || M50662_AFFINE_IBC_TMVP_SUCO_FIX
             , &ctx->sh
 #endif
         );
@@ -1170,7 +1292,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
         );
 #endif
 #if AFFINE && ADMVP && AFFINE_UPDATE 
-#if M49023_ADMVP_IMPROVE
+#if M49023_ADMVP_IMPROVE && !M50662_AFFINE_MV_HISTORY_TABLE
         if (core->pred_mode != MODE_INTRA && !core->affine_flag
 #if IBC
             && core->pred_mode != MODE_IBC
@@ -1949,7 +2071,13 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
         int same_layer_split[4];
         int split_allow[6] = {0, 0, 0, 0, 0, 1};
         evc_assert_rv(core->lcu_num < ctx->f_lcu, EVC_ERR_UNEXPECTED);
-
+#if M50662_HISTORY_CTU_ROW_RESET
+        if (core->x_pel == 0)
+        {
+            ret = evcd_hmvp_init(core);
+            evc_assert_rv(ret == EVC_OK, ret);
+        }
+#endif
         /* invoke coding_tree() recursion */
         evc_mset(core->split_mode, 0, sizeof(s8) * MAX_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
 #if APS_ALF_CTU_FLAG
@@ -2126,6 +2254,10 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         ret = evcd_eco_aps(bs, aps);
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
         aps->alf_aps_param.prevIdx = aps->aps_id;
+#if M50662_LUMA_CHROMA_SEPARATE_APS
+        aps->alf_aps_param.prevIdxComp[0] = aps->aps_id_y;
+        aps->alf_aps_param.prevIdxComp[1] = aps->aps_id_ch;
+#endif
         store_dec_aps_to_buffer(ctx);
         ctx->aps_temp = 0;
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);

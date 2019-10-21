@@ -5411,7 +5411,7 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
 #if M48879_IMPROVEMENT_SUCO
                                              , core->avail_lr
 #endif
-#if M50761_TMVP_ALIGN_SPEC
+#if M50761_TMVP_ALIGN_SPEC || M50662_AFFINE_IBC_TMVP_SUCO_FIX
                                              , &ctx->sh
 #endif
     );

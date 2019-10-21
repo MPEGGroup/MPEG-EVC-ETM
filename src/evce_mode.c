@@ -1173,6 +1173,26 @@ static int copy_cu_data(EVCE_CU_DATA *dst, EVCE_CU_DATA *src, int x, int y, int 
 }
 
 #if ADMVP
+#if M50662_HISTORY_CTU_ROW_RESET
+int evce_hmvp_init(EVC_HISTORY_BUFFER *history_buffer)
+{
+    evc_mset(history_buffer->history_mv_table, 0, ALLOWED_CHECKED_NUM * REFP_NUM * MV_D * sizeof(s16));
+#if TRACE_ENC_CU_DATA
+    evc_mset(history_buffer->history_cu_table, 0, sizeof(history_buffer->history_cu_table[0])* ALLOWED_CHECKED_NUM);
+#endif
+
+    for (int i = 0; i < ALLOWED_CHECKED_NUM; i++)
+    {
+        history_buffer->history_refi_table[i][REFP_0] = REFI_INVALID;
+        history_buffer->history_refi_table[i][REFP_1] = REFI_INVALID;
+    }
+
+    history_buffer->currCnt = 0;
+    history_buffer->m_maxCnt = ALLOWED_CHECKED_NUM;
+
+    return EVC_OK;
+}
+#endif
 static int init_history_buffer(EVC_HISTORY_BUFFER *history_buffer)
 {
     evc_mset(history_buffer->history_mv_table,   0, ALLOWED_CHECKED_NUM * REFP_NUM * MV_D * sizeof(s16));
@@ -1209,7 +1229,7 @@ static int copy_history_buffer(EVC_HISTORY_BUFFER *dst, EVC_HISTORY_BUFFER *src)
 }
 
 static int get_cu_pred_data(EVCE_CU_DATA *src, int x, int y, int log2_cuw, int log2_cuh, int log2_cus, int cud, EVCE_MODE *mi
-#if !M49023_ADMVP_IMPROVE
+#if !M49023_ADMVP_IMPROVE || M50662_AFFINE_MV_HISTORY_TABLE
 #if AFFINE_UPDATE && AFFINE
                             , EVCE_CTX *ctx, EVCE_CORE *core
 #endif
@@ -2009,7 +2029,11 @@ static void update_history_buffer(EVC_HISTORY_BUFFER *history_buffer, EVCE_MODE 
 }
 
 #if AFFINE_UPDATE && AFFINE
-static void update_history_buffer_affine(EVC_HISTORY_BUFFER *history_buffer, EVCE_MODE *mi, int slice_type)
+static void update_history_buffer_affine(EVC_HISTORY_BUFFER *history_buffer, EVCE_MODE *mi, int slice_type
+#if M50662_AFFINE_MV_HISTORY_TABLE
+    , EVCE_CORE *core
+#endif
+)
 {
     int i;
     if(history_buffer->currCnt == history_buffer->m_maxCnt)
@@ -2022,9 +2046,60 @@ static void update_history_buffer_affine(EVC_HISTORY_BUFFER *history_buffer, EVC
             history_buffer->history_cu_table[i - 1] = history_buffer->history_cu_table[i];
 #endif
         }
-#if !M49023_ADMVP_IMPROVE
+#if !M49023_ADMVP_IMPROVE || M50662_AFFINE_MV_HISTORY_TABLE
         if(mi->affine_flag)
         {
+            mi->mv_sp[REFP_0][MV_X] = 0;
+            mi->mv_sp[REFP_0][MV_Y] = 0;
+            mi->refi_sp[REFP_0] = REFI_INVALID;
+            mi->mv_sp[REFP_1][MV_X] = 0;
+            mi->mv_sp[REFP_1][MV_Y] = 0;
+            mi->refi_sp[REFP_1] = REFI_INVALID;
+            for (int lidx = 0; lidx < REFP_NUM; lidx++)
+            {
+                if (mi->refi[lidx] >= 0)
+                {
+                    s16(*ac_mv)[MV_D] = mi->affine_mv[lidx];
+                    int dmv_hor_x, dmv_ver_x, dmv_hor_y, dmv_ver_y;
+                    int mv_scale_hor = ac_mv[0][MV_X] << 7;
+                    int mv_scale_ver = ac_mv[0][MV_Y] << 7;
+                    int mv_y_hor = mv_scale_hor;
+                    int mv_y_ver = mv_scale_ver;
+                    int mv_scale_tmp_hor, mv_scale_tmp_ver;
+
+
+                    dmv_hor_x = (ac_mv[1][MV_X] - ac_mv[0][MV_X]) << (7 - core->log2_cuw);
+                    dmv_hor_y = (ac_mv[1][MV_Y] - ac_mv[0][MV_Y]) << (7 - core->log2_cuw);
+
+                    if (core->affine_flag == 2)
+                    {
+                        dmv_ver_x = (ac_mv[2][MV_X] - ac_mv[0][MV_X]) << (7 - core->log2_cuh);
+                        dmv_ver_y = (ac_mv[2][MV_Y] - ac_mv[0][MV_Y]) << (7 - core->log2_cuh);
+                    }
+                    else
+                    {
+                        dmv_ver_x = -dmv_hor_y;
+                        dmv_ver_y = dmv_hor_x;
+                    }
+                    int pos_x = 1 << (core->log2_cuw - 1);
+                    int pos_y = 1 << (core->log2_cuh - 1);
+
+                    mv_scale_tmp_hor = mv_scale_hor + dmv_hor_x * pos_x + dmv_ver_x * pos_y;
+                    mv_scale_tmp_ver = mv_scale_ver + dmv_hor_y * pos_x + dmv_ver_y * pos_y;
+
+                    evc_mv_rounding_s32(mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, 5, 0);
+                    mv_scale_tmp_hor = EVC_CLIP3(-(2 << 17), (2 << 17) - 1, mv_scale_tmp_hor);
+                    mv_scale_tmp_ver = EVC_CLIP3(-(2 << 17), (2 << 17) - 1, mv_scale_tmp_ver);
+
+                    mv_scale_tmp_hor >>= 2;
+                    mv_scale_tmp_ver >>= 2;
+
+                    mi->mv_sp[lidx][MV_X] = mv_scale_tmp_hor;
+                    mi->mv_sp[lidx][MV_Y] = mv_scale_tmp_ver;
+                    mi->refi_sp[lidx] = mi->refi[lidx];
+
+                }
+            }
             // some spatial neighbor may be unavailable
             if((slice_type == SLICE_P && REFI_IS_VALID(mi->refi_sp[REFP_0])) ||
                 (slice_type == SLICE_B && (REFI_IS_VALID(mi->refi_sp[REFP_0]) || REFI_IS_VALID(mi->refi_sp[REFP_1]))))
@@ -2048,9 +2123,60 @@ static void update_history_buffer_affine(EVC_HISTORY_BUFFER *history_buffer, EVC
     }
     else
     {
-#if !M49023_ADMVP_IMPROVE
+#if !M49023_ADMVP_IMPROVE || M50662_AFFINE_MV_HISTORY_TABLE
         if(mi->affine_flag)
         {
+            mi->mv_sp[REFP_0][MV_X] = 0;
+            mi->mv_sp[REFP_0][MV_Y] = 0;
+            mi->refi_sp[REFP_0] = REFI_INVALID;
+            mi->mv_sp[REFP_1][MV_X] = 0;
+            mi->mv_sp[REFP_1][MV_Y] = 0;
+            mi->refi_sp[REFP_1] = REFI_INVALID;
+            for (int lidx = 0; lidx < REFP_NUM; lidx++)
+            {
+                if (mi->refi[lidx] >= 0)
+                {
+                    s16(*ac_mv)[MV_D] = mi->affine_mv[lidx];
+                    int dmv_hor_x, dmv_ver_x, dmv_hor_y, dmv_ver_y;
+                    int mv_scale_hor = ac_mv[0][MV_X] << 7;
+                    int mv_scale_ver = ac_mv[0][MV_Y] << 7;
+                    int mv_y_hor = mv_scale_hor;
+                    int mv_y_ver = mv_scale_ver;
+                    int mv_scale_tmp_hor, mv_scale_tmp_ver;
+
+                    dmv_hor_x = (ac_mv[1][MV_X] - ac_mv[0][MV_X]) << (7 - core->log2_cuw);
+                    dmv_hor_y = (ac_mv[1][MV_Y] - ac_mv[0][MV_Y]) << (7 - core->log2_cuw);
+
+                    if (core->affine_flag == 2)
+                    {
+                        dmv_ver_x = (ac_mv[2][MV_X] - ac_mv[0][MV_X]) << (7 - core->log2_cuh);
+                        dmv_ver_y = (ac_mv[2][MV_Y] - ac_mv[0][MV_Y]) << (7 - core->log2_cuh);
+                    }
+                    else
+                    {
+                        dmv_ver_x = -dmv_hor_y;
+                        dmv_ver_y = dmv_hor_x;
+                    }
+                    int pos_x = 1 << (core->log2_cuw - 1);
+                    int pos_y = 1 << (core->log2_cuh - 1);
+
+                    mv_scale_tmp_hor = mv_scale_hor + dmv_hor_x * pos_x + dmv_ver_x * pos_y;
+                    mv_scale_tmp_ver = mv_scale_ver + dmv_hor_y * pos_x + dmv_ver_y * pos_y;
+
+                    evc_mv_rounding_s32(mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, 5, 0);
+                    mv_scale_tmp_hor = EVC_CLIP3(-(2 << 17), (2 << 17) - 1, mv_scale_tmp_hor);
+                    mv_scale_tmp_ver = EVC_CLIP3(-(2 << 17), (2 << 17) - 1, mv_scale_tmp_ver);
+
+
+                    mv_scale_tmp_hor >>= 2;
+                    mv_scale_tmp_ver >>= 2;
+
+                    mi->mv_sp[lidx][MV_X] = mv_scale_tmp_hor;
+                    mi->mv_sp[lidx][MV_Y] = mv_scale_tmp_ver;
+                    mi->refi_sp[lidx] = mi->refi[lidx];
+
+                }
+            }
             // some spatial neighbor may be unavailable
             if((slice_type == SLICE_P && REFI_IS_VALID(mi->refi_sp[REFP_0])) ||
                 (slice_type == SLICE_B && (REFI_IS_VALID(mi->refi_sp[REFP_0]) || REFI_IS_VALID(mi->refi_sp[REFP_1]))))
@@ -3652,7 +3778,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
             // if the cost_temp has been update above, the best MV is in mi
 
             get_cu_pred_data(&core->cu_data_best[log2_cuw - 2][log2_cuh - 2], 0, 0, log2_cuw, log2_cuh, log2_cuw, cud, mi
-#if !M49023_ADMVP_IMPROVE
+#if !M49023_ADMVP_IMPROVE || M50662_AFFINE_MV_HISTORY_TABLE
 #if AFFINE_UPDATE && AFFINE
                 , ctx, core
 #endif
@@ -3660,7 +3786,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
             );
 
 #if AFFINE_UPDATE && AFFINE
-#if M49023_ADMVP_IMPROVE
+#if M49023_ADMVP_IMPROVE && !M50662_AFFINE_MV_HISTORY_TABLE
             if (mi->cu_mode != MODE_INTRA && !mi->affine_flag
 #if IBC
                 && mi->cu_mode != MODE_IBC
@@ -3675,6 +3801,9 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
 #endif
             {
                 update_history_buffer_affine(&core->history_buffer, mi, ctx->slice_type
+#if M50662_AFFINE_MV_HISTORY_TABLE
+                    , core
+#endif
                 );
             }
 
@@ -4485,9 +4614,14 @@ static int mode_analyze_lcu(EVCE_CTX *ctx, EVCE_CORE *core)
     init_cu_data(&core->cu_data_temp[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], ctx->log2_max_cuwh, ctx->log2_max_cuwh, ctx->qp, ctx->qp, ctx->qp);
 
 #if ADMVP
+#if M50662_HISTORY_CTU_ROW_RESET
+    evce_hmvp_init(&core->m_pTempMotLUTs[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2]);
+    evce_hmvp_init(&core->m_pBestMotLUTs[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2]);
+#else
     // initialize history-based prediction buffer
     init_history_buffer(&core->m_pTempMotLUTs[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2]);
     init_history_buffer(&core->m_pBestMotLUTs[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2]);
+#endif 
     
     // core->m_pTempMotLUTs stores original ctx->history_buffer
     // core->m_pBestMotLUTs stores updated ctx->history_buffer

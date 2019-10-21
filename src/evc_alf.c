@@ -141,6 +141,10 @@ void store_dec_aps_to_buffer(EVCD_CTX * ctx)
     }
 
     alfSliceParam.prevIdx = iAlfSliceParam.prevIdx;
+#if M50662_LUMA_CHROMA_SEPARATE_APS
+    alfSliceParam.prevIdxComp[0] = iAlfSliceParam.prevIdxComp[0];
+    alfSliceParam.prevIdxComp[1] = iAlfSliceParam.prevIdxComp[1];
+#endif
     alfSliceParam.tLayer = iAlfSliceParam.tLayer;
     alfSliceParam.temporalAlfFlag = (iAlfSliceParam.temporalAlfFlag);
     const unsigned tidx = ctx->sh.layer_id;
@@ -166,8 +170,12 @@ void call_dec_alf_process_aps(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * p
     memset(alfSliceParam.alfCtuEnableFlag, 0, N_C * ctx->f_lcu * sizeof(u8));
 #endif
     // load filter from buffer
+#if M50662_LUMA_CHROMA_SEPARATE_APS
+    load_alf_paramline_from_aps_buffer2(&(alfSliceParam), ctx->sh.aps_id_y, ctx->sh.aps_id_ch);
+#else
     u8 idx = ctx->sh.aps_signaled;
     load_alf_paramline_from_aps_buffer(&(alfSliceParam), idx);
+#endif
 
     // load filter map buffer
     alfSliceParam.isCtbAlfOn = ctx->sh.alf_sh_param.isCtbAlfOn;
@@ -1139,7 +1147,16 @@ void filterBlk_5(AlfClassifier** classifier, pel * recDst, const int dstStride, 
     pImgYPad4 += srcStride2;
   }
 }
+#if M50662_LUMA_CHROMA_SEPARATE_APS
+void copyAlfParamChroma(AlfSliceParam* dst, AlfSliceParam* src)
+{
+    memcpy(dst->chromaCoeff, src->chromaCoeff, sizeof(short)*MAX_NUM_ALF_CHROMA_COEFF);
+    dst->chromaCtbPresentFlag = src->chromaCtbPresentFlag;
+    dst->enabledFlag[1] = src->enabledFlag[1];
+    dst->enabledFlag[2] = src->enabledFlag[2];
 
+}
+#endif
 void copyAlfParam(AlfSliceParam* dst, AlfSliceParam* src)
 {
   memcpy(dst->enabledFlag, src->enabledFlag, sizeof(BOOL)*MAX_NUM_COMPONENT);
@@ -1158,6 +1175,10 @@ void copyAlfParam(AlfSliceParam* dst, AlfSliceParam* src)
   dst->fixedFilterPattern = src->fixedFilterPattern;
   dst->temporalAlfFlag = src->temporalAlfFlag;
   dst->prevIdx = src->prevIdx;
+#if M50662_LUMA_CHROMA_SEPARATE_APS
+  dst->prevIdxComp[0] = src->prevIdxComp[0];
+  dst->prevIdxComp[1] = src->prevIdxComp[1];
+#endif
   dst->tLayer = src->tLayer;
 #if APS_ALF_SEQ_FIX
   // variables are not used at the decoder side. TODO: Modify the strcuture
@@ -1204,6 +1225,10 @@ void resetAlfParam(AlfSliceParam* dst)
     memset(dst->fixedFilterIdx, 0, sizeof(dst->fixedFilterIdx));
     dst->temporalAlfFlag = FALSE;
     dst->prevIdx = 0;
+#if M50662_LUMA_CHROMA_SEPARATE_APS
+    dst->prevIdxComp[0] = 0;
+    dst->prevIdxComp[1] = 0;
+#endif
     dst->tLayer = 0;
     dst->resetALFBufferFlag = FALSE;
     dst->store2ALFBufferFlag = FALSE;
@@ -1329,7 +1354,13 @@ void store_alf_paramline_from_aps(AlfSliceParam* pAlfParam, u8 idx)
     m_acAlfLineBufferCurrentSize++;
     m_acAlfLineBufferCurrentSize = m_acAlfLineBufferCurrentSize > APS_MAX_NUM ? APS_MAX_NUM : m_acAlfLineBufferCurrentSize;  // Increment used ALF circular buffer size 
 }
-
+#if M50662_LUMA_CHROMA_SEPARATE_APS
+void load_alf_paramline_from_aps_buffer2(AlfSliceParam* pAlfParam, u8 idxY, u8 idxUV)
+{
+    copyAlfParam(pAlfParam, &(m_acAlfLineBuffer[idxY]));
+    copyAlfParamChroma(pAlfParam, &(m_acAlfLineBuffer[idxUV]));
+}
+#endif
 void load_alf_paramline_from_aps_buffer(AlfSliceParam* pAlfParam, u8 idx)
 {
     copyAlfParam(pAlfParam, &(m_acAlfLineBuffer[idx]) );
