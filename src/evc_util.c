@@ -5481,8 +5481,11 @@ void evc_get_ctx_last_pos_xy_para(int ch_type, int width, int height, int *resul
         }
     }
 }
-
+#if M50631_IMPROVEMENT_ADCC_CTXGT12
+int evc_get_ctx_gt0_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type)
+#else
 int evc_get_ctx_gt0_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y)
+#endif
 {
     const s16 *pdata = pcoeff + blkpos;
     const int width_m1 = width - 1;
@@ -5535,8 +5538,11 @@ int evc_get_ctx_gt0_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_t
 
     return ctx_ofs + ctx_idx;
 }
-
+#if M50631_IMPROVEMENT_ADCC_CTXGT12
+int evc_get_ctx_gtA_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type)
+#else
 int evc_get_ctx_gtA_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y)
+#endif
 {
     const s16 *pdata = pcoeff + blkpos;
     const int width_m1 = width - 1;
@@ -5545,7 +5551,9 @@ int evc_get_ctx_gtA_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_t
     const int pos_y = blkpos >> log2_w;
     const int pos_x = blkpos - (pos_y << log2_w);
     int num_gtA = 0;
-
+#if M50631_IMPROVEMENT_ADCC_CTXGT12
+    int diag = pos_x + pos_y;
+#endif
     if(pos_x < width_m1)
     {
         num_gtA += EVC_ABS16(pdata[1]) > 1;
@@ -5571,12 +5579,19 @@ int evc_get_ctx_gtA_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_t
     num_gtA = EVC_MIN(num_gtA, 3) + 1;
     if(ch_type == Y_C)
     {
+#if M50631_IMPROVEMENT_ADCC_CTXGT12
+        num_gtA += (diag < 3) ? 0 : ((diag < 10) ? 4 : 8);
+#else
         num_gtA += (pos_x == 0 && pos_y == 0) ? 0 : ((pos_x <= sr_x / 2 && pos_y <= sr_y / 2) ? 4 : 8);
+#endif
     }
     return num_gtA;
 }
-
+#if M50631_IMPROVEMENT_ADCC_CTXGT12
+int evc_get_ctx_gtB_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type)
+#else
 int evc_get_ctx_gtB_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y)
+#endif
 {
     const s16 *pdata = pcoeff + blkpos;
     const int width_m1 = width - 1;
@@ -5612,7 +5627,11 @@ int evc_get_ctx_gtB_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_t
     num_gtB = EVC_MIN(num_gtB, 3) + 1;
     if(ch_type == Y_C)
     {
+#if M50631_IMPROVEMENT_ADCC_CTXGT12
+        num_gtB += (diag < 3) ? 0 : ((diag < 10) ? 4 : 8);
+#else
         num_gtB += (pos_x == 0 && pos_y == 0) ? 0 : ((pos_x <= sr_x / 2 && pos_y <= sr_y / 2) ? 4 : 8);
+#endif
     }
     return num_gtB;
 }

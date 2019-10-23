@@ -951,8 +951,13 @@ void evce_sbac_reset(EVCE_SBAC *sbac, u8 slice_type, u8 slice_qp, int sps_cm_ini
         evc_eco_sbac_ctx_initialize(sbac_ctx->all_cbf, (s16*)init_all_cbf, NUM_QT_ROOT_CBF_CTX, slice_type, slice_qp);
 #if ADCC 
 #if COEFF_CODE_ADCC2
+#if M50631_IMPROVEMENT_ADCC_CTXINIT
+        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gt0, (s16*)init_cc_gt0_4, NUM_CTX_GT0, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gtA, (s16*)init_cc_gtA_4, NUM_CTX_GTA, slice_type, slice_qp);
+#else
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gt0, (s16*)init_cc_gt0_3, NUM_CTX_GT0, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gtA, (s16*)init_cc_gtA_3, NUM_CTX_GTA, slice_type, slice_qp);
+#endif
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_x, (s16*)init_cc_scanr_x_3, NUM_CTX_SCANR, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_y, (s16*)init_cc_scanr_y_3, NUM_CTX_SCANR, slice_type, slice_qp);
 #else
@@ -1537,7 +1542,11 @@ static void evce_eco_ccA(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num
                     }
                     else
                     {
+#if M50631_IMPROVEMENT_ADCC_CTXGT12
+                        ctx_gt0 = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gt0_inc(coef, blkpos, width, height, ch_type) : 0;
+#else
                         ctx_gt0 = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gt0_inc(coef, blkpos, width, height, ch_type, sr_x, sr_y) : 0;
+#endif
                     }
 
                     if (!(ipos == last_pos_in_scan)) 
@@ -1577,7 +1586,11 @@ static void evce_eco_ccA(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num
                         u32 symbol = abs_coef[idx] > 1 ? 1 : 0;
                         if (pos[idx] != pos_last)  
                         {
+#if M50631_IMPROVEMENT_ADCC_CTXGT12
+                            ctx_gtA = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gtA_inc(coef, pos[idx], width, height, ch_type) : 0;
+#else
                             ctx_gtA = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gtA_inc(coef, pos[idx], width, height, ch_type, sr_x, sr_y) : 0;
+#endif
                         }
                         evce_sbac_encode_bin(symbol, sbac, &cm_gtx[ctx_gtA], bs);
                         if (symbol)
@@ -1597,7 +1610,11 @@ static void evce_eco_ccA(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num
                         u32 symbol2 = abs_coef[firstC2FlagIdx] > 2 ? 1 : 0;
                         if (pos[firstC2FlagIdx] != pos_last)  
                         {
+#if M50631_IMPROVEMENT_ADCC_CTXGT12
+                            ctx_gtB = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gtB_inc(coef, pos[firstC2FlagIdx], width, height, ch_type) : 0;
+#else
                             ctx_gtB = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gtB_inc(coef, pos[firstC2FlagIdx], width, height, ch_type, sr_x, sr_y) : 0;
+#endif
                         }
                         evce_sbac_encode_bin(symbol2, sbac, &cm_gtx[ctx_gtB], bs);
 

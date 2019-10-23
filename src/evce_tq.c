@@ -36,7 +36,7 @@
 
 
 #define QUANT(c, scale, offset, shift) ((s16)((((c)*(scale)) + (offset)) >> (shift)))
-#if USE_RDOQ
+#if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
 static s64 err_scale_tbl[6][MAX_CU_DEPTH];
 #else
 static double err_scale_tbl[6][MAX_CU_DEPTH];
@@ -1166,7 +1166,7 @@ void evce_trans(s16 * coef, int log2_cuw, int log2_cuh, int iqt_flag)
     }
 }
 
-#if USE_RDOQ
+#if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
 void evce_init_err_scale()
 {
     double err_scale;
@@ -1218,7 +1218,7 @@ void evce_init_err_scale()
 #define GET_IEP_RATE             (32768)
 
 #if ADCC
-#if USE_RDOQ
+#if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
 __inline static s64 get_rate_positionLastXY(int pos_x, int pos_y, int width, int height, int ch_type, s64 lambda, int sps_cm_init_flag)
 #else
 __inline static double get_rate_positionLastXY(int pos_x, int pos_y, int width, int height, int ch_type, double lambda, int sps_cm_init_flag)
@@ -1286,7 +1286,7 @@ __inline static double get_rate_positionLastXY(int pos_x, int pos_y, int width, 
 
     return GET_I_COST(rate, lambda);
 }
-#if USE_RDOQ
+#if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
 __inline static s64 get_rate_gt0(int significance, int ctx_gt0, s64 lambda)
 {
     s64 rate = rdoq_est_gt0[ctx_gt0][significance];
@@ -1352,7 +1352,7 @@ __inline static int get_ic_rate(int abs_level, int ctx_gtA, int ctx_gtB, int rpa
 }
 
 __inline static int get_coded_level(
-#if USE_RDOQ
+#if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
     s64*    rd_coded_cost,          //< reference to coded cost
     s64*    rd_coded_cost0,         //< reference to cost when coefficient is 0
     s64*    rd_coded_cost_sig,       //< rd_coded_cost_sig reference to cost of significant coefficient
@@ -1372,19 +1372,22 @@ __inline static int get_coded_level(
     int     num_gtA,
     int     num_gtB,
     int     qbits,                 //< quantization step size
-#if USE_RDOQ
+#if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
     s64     error_scale,             //< 
     s64     lambda,
 #else
     double  error_scale,             //< 
     double  lambda,
 #endif
-    int     bypass_sigmap,
+    int     bypass_sigmap
+#if !M50631_IMPROVEMENT_ADCC_RDOQFIX
+    ,
     int*    rate_inc_up,
     int*    rate_inc_down
+#endif
 )
 {
-#if USE_RDOQ
+#if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
     s64 curr_cost_sig = 0;
     s64 curr_cost;
 #else
@@ -1405,14 +1408,16 @@ __inline static int get_coded_level(
 
         if (max_abs_level == 0)
         {
+#if !M50631_IMPROVEMENT_ADCC_RDOQFIX
             *rate_inc_up = rdoq_est_gtA[ctx_gtA][0];
             *rate_inc_down = 0;
+#endif
             return best_abs_level;
         }
     }
     else
     {
-#if USE_RDOQ
+#if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
         *rd_coded_cost = EVC_INT64_MAX;
 #else
         *rd_coded_cost = 1.7e+308;
@@ -1427,7 +1432,7 @@ __inline static int get_coded_level(
     min_abs_level = (max_abs_level > 1 ? max_abs_level - 1 : 1);
     for (abs_level = max_abs_level; abs_level >= min_abs_level; abs_level--)
     {
-#if USE_RDOQ
+#if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
         s64 err = (s64)(level_double - ((s64)abs_level << qbits));
         rate = get_ic_rate(abs_level, ctx_gtA, ctx_gtB, rparam, c1_idx, c2_idx, num_gtA, num_gtB);
         err = (err * error_scale) >> ERR_SCALE_PRECISION_BITS;
@@ -1451,7 +1456,7 @@ __inline static int get_coded_level(
             rate_max = rate;
         }
     }
-
+#if !M50631_IMPROVEMENT_ADCC_RDOQFIX
     if (best_abs_level > 0)
     {
         if (best_abs_level == max_abs_level)
@@ -1477,10 +1482,14 @@ __inline static int get_coded_level(
         *rate_inc_up = rdoq_est_gtA[ctx_gtA][0];
         *rate_inc_down = 0;
     }
+#endif
     return best_abs_level;
 }
-
+#if M50631_IMPROVEMENT_ADCC_CTXGT12
+__inline static int get_ctx_gt012_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int *num1, int *num2)
+#else
 __inline static int get_ctx_gt012_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int *num1, int *num2, int sr_x, int sr_y)
+#endif
 {
     const s16 *pdata = pcoeff + blkpos;
     const int width_m1 = width - 1;
@@ -1558,21 +1567,26 @@ __inline static int get_ctx_gt012_inc(s16 *pcoeff, int blkpos, int width, int he
     *num2 = EVC_MIN(num_gtB, 3) + 1;
     if (ch_type == Y_C)
     {
+#if M50631_IMPROVEMENT_ADCC_CTXGT12
+        *num1 += (diag < 3) ? 0 : ((diag < 10) ? 4 : 8);
+        *num2 += (diag < 3) ? 0 : ((diag < 10) ? 4 : 8);
+#else
         *num1 += (pos_x + pos_y == 0) ? 0 : ((pos_x <= sr_x / 2 && pos_y <= sr_y / 2) ? 4 : 8);
         *num2 += (pos_x + pos_y == 0) ? 0 : ((pos_x <= sr_x / 2 && pos_y <= sr_y / 2) ? 4 : 8);
+#endif
     }
 #endif
 
     return ctx_ofs + ctx_idx;
 }
 #endif
-#if USE_RDOQ
+#if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
 static __inline s64 get_ic_rate_cost_rl(u32 abs_level, u32 run, s32 ctx_run, u32 ctx_level, s64 lambda)
 #else
 static __inline double get_ic_rate_cost_rl(u32 abs_level, u32 run, s32 ctx_run, u32 ctx_level, double lambda)
 #endif
 {
-#if USE_RDOQ
+#if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
     s32 rate;
 #else
     double rate;
@@ -1612,14 +1626,14 @@ static __inline double get_ic_rate_cost_rl(u32 abs_level, u32 run, s32 ctx_run, 
             rate += rdoq_est_level[ctx_level + 1][0];
         }
     }
-#if USE_RDOQ
+#if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
     return (s64)GET_I_COST(rate, lambda);
 #else
     return GET_I_COST(rate, lambda);
 #endif
 }
 
-#if USE_RDOQ
+#if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
 static __inline u32 get_coded_level_rl(s64* rd64_uncoded_cost, s64* rd64_coded_cost, s64 level_double, u32 max_abs_level,
                                        u32 run, u16 ctx_run, u16 ctx_level, s32 q_bits, s64 err_scale, s64 lambda)
 #else
@@ -1628,7 +1642,7 @@ static __inline u32 get_coded_level_rl(double* rd64_uncoded_cost, double* rd64_c
 #endif
 {
     u32 best_abs_level = 0;
-#if USE_RDOQ
+#if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
     s64 err1 = (level_double * err_scale) >> ERR_SCALE_PRECISION_BITS;
 #else
     double err1 = (double)level_double;
@@ -1636,7 +1650,7 @@ static __inline u32 get_coded_level_rl(double* rd64_uncoded_cost, double* rd64_c
     u32 min_abs_level;
     u32 abs_level;
 
-#if USE_RDOQ
+#if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
     *rd64_uncoded_cost = err1 * err1;
 #else
     *rd64_uncoded_cost = err1 * err1 * err_scale;
@@ -1646,7 +1660,7 @@ static __inline u32 get_coded_level_rl(double* rd64_uncoded_cost, double* rd64_c
     min_abs_level = (max_abs_level > 1 ? max_abs_level - 1 : 1);
     for(abs_level = max_abs_level; abs_level >= min_abs_level; abs_level--)
     {
-#if USE_RDOQ
+#if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
         s64 i64Delta = level_double - ((s64)abs_level << q_bits);
         s64 err = (i64Delta * err_scale) >> ERR_SCALE_PRECISION_BITS;
         s64 dCurrCost = err * err + get_ic_rate_cost_rl(abs_level, run, ctx_run, ctx_level, lambda);
@@ -1665,7 +1679,7 @@ static __inline u32 get_coded_level_rl(double* rd64_uncoded_cost, double* rd64_c
     return best_abs_level;
 }
 
-#if USE_RDOQ
+#if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
 int evce_rdoq_run_length_cc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s16 *dst_tmp, int log2_cuw, int log2_cuh, int ch_type, int sps_cm_init_flag)
 #else
 int evce_rdoq_run_length_cc(u8 qp, double lambda, u8 is_intra, s16 *src_coef, s16 *dst_tmp, int log2_cuw, int log2_cuh, int ch_type, int sps_cm_init_flag)
@@ -1693,7 +1707,7 @@ int evce_rdoq_run_length_cc(u8 qp, double lambda, u8 is_intra, s16 *src_coef, s1
     s16 tmp_coef[MAX_TR_DIM];
     s64 tmp_level_double[MAX_TR_DIM];
     s16 tmp_dst_coef[MAX_TR_DIM];
-#if USE_RDOQ
+#if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
     const s64 lambda = (s64)(d_lambda * (double)(1 << SCALE_BITS) + 0.5);
     s64 err_scale = err_scale_tbl[qp_rem][log2_size - 1];
     s64 d64_best_cost = 0;
@@ -1733,7 +1747,7 @@ int evce_rdoq_run_length_cc(u8 qp, double lambda, u8 is_intra, s16 *src_coef, s1
             max_abs_level++;
         }
 
-#if USE_RDOQ
+#if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
         err = (level_double * err_scale) >> ERR_SCALE_PRECISION_BITS;
         d64_block_uncoded_cost += err * err;
 #else
@@ -1786,7 +1800,7 @@ int evce_rdoq_run_length_cc(u8 qp, double lambda, u8 is_intra, s16 *src_coef, s1
         if (level)
         {
             /* ----- check for last flag ----- */
-#if USE_RDOQ
+#if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
             s64 d64_cost_last_zero = GET_I_COST(rdoq_est_last[ctx_last][0], lambda);
             s64 d64_cost_last_one = GET_I_COST(rdoq_est_last[ctx_last][1], lambda);
             s64 d64_cur_is_last_cost = d64_base_cost + d64_cost_last_one;
@@ -1852,12 +1866,18 @@ int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
     const int max_num_coef = width * height;
     int scan_type = COEF_SCAN_ZIGZAG;
     int log2_block_size = min(log2_cuw, log2_cuh);
+#if M50631_IMPROVEMENT_ADCC_RDOQFIX
+    u16 *scan;
+#else
     int *scan = evc_scan_sr;
+#endif
     int scan_pos_last = -1;
+#if !M50631_IMPROVEMENT_ADCC_RDOQFIX
     int sr_x = 0, sr_y = 0;
     int sr_x_tmp = 0, sr_y_tmp = 0;
     int sr_width, sr_height;
     int num_coef;
+#endif
     int ipos;
     int cg_log2_size = LOG2_CG_SIZE;
     int cg_size = 1 << cg_log2_size;
@@ -1870,52 +1890,82 @@ int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
     int c2_idx = 0;
     s64 cost_base = 0;
     s64 cost_best = 0;
+#if M50631_IMPROVEMENT_ADCC_RDOQFIX
+    int best_last_idx_p1 = 0;
+    int found_last = 0;
+#endif
     s64 cbf_cost = 0;
+#if !M50631_IMPROVEMENT_ADCC_RDOQFIX
     int abs_sum;
+#endif
     int nnz = 0;
     int rice_param = 0;
     s64 dcost_block_uncoded = 0;
     s64 pdcost_coeff[MAX_TR_DIM];
     s64 pdcost_sig[MAX_TR_DIM];
     s64 pdcost_coeff0[MAX_TR_DIM];
+#if !M50631_IMPROVEMENT_ADCC_RDOQFIX
     static int rate_inc_up[MAX_TR_DIM];
     static int rate_inc_down[MAX_TR_DIM];
+#endif
     static int sig_rate_delta[MAX_TR_DIM];
     static int delta_u[MAX_TR_DIM];
     static s16 coef_dst[MAX_TR_DIM];
+#if !M50631_IMPROVEMENT_ADCC_RDOQFIX
     static int rate_inc_up0[MAX_TR_DIM];
     static int rate_inc_down0[MAX_TR_DIM];
+#endif
     int sum_all = 0;
+#if M50631_IMPROVEMENT_ADCC_RDOQFIX
+    int blk_pos;
+#else
     int blk_pos, sx, sy;
+#endif
     static s64 tmp_level_double[MAX_TR_DIM];
     int num_nz = 0;
+#if !M50631_IMPROVEMENT_ADCC_RDOQFIX
     int j, i;
+#endif
     int is_last_x = 0;
     int is_last_y = 0;
     int is_last_nz = 0;
     int num_gtA, num_gtB;
+#if !M50631_IMPROVEMENT_ADCC_RDOQFIX
     static int row[MAX_TR_SIZE];
     static int col[MAX_TR_SIZE];
     static int row_tmp[MAX_TR_SIZE];
     static int col_tmp[MAX_TR_SIZE];
-
+#endif
     s64 sig_last_cost[MAX_TR_DIM];
     s64 sig_last_cost0[MAX_TR_DIM];
     s64 sig_cost_delta[MAX_TR_DIM];
-
+#if M50631_IMPROVEMENT_ADCC_RDOQFIX
+    int last_pos_in_scan = -1;
+    int numNonZeroCoefs = 0;
+    int last_pos_in_raster_from_scan = -1;
+    int scan_pos = 0;
+#endif
+#if !M50631_IMPROVEMENT_ADCC_RDOQFIX
     evc_mset(row, 0, sizeof(int) * height);
     evc_mset(col, 0, sizeof(int) * width);
     evc_mset(rate_inc_up0, 0, sizeof(int) * max_num_coef);
     evc_mset(rate_inc_down0, 0, sizeof(int) * max_num_coef);
+#endif
     q_bits = QUANT_SHIFT + tr_shift + (qp / 6);
-
+#if M50631_IMPROVEMENT_ADCC_RDOQFIX
+    scan = evc_scan_tbl[scan_type][log2_cuw - 1][log2_cuh - 1];
+    for (scan_pos = 0; scan_pos < max_num_coef; scan_pos++)
+#else
     for(blk_pos = 0; blk_pos < max_num_coef; blk_pos++)
+#endif
     {
         int max_abs_level;
         s64 err;
         s64 temp_level;
         int level_double;
-
+#if M50631_IMPROVEMENT_ADCC_RDOQFIX
+        blk_pos = scan[scan_pos];
+#endif
         temp_level = ((s64)EVC_ABS(src_coef[blk_pos]) * (s64)q_value);
         level_double = (int)EVC_MIN(((s64)temp_level), (s64)EVC_INT32_MAX - (s64)(1 << (q_bits - 1)));
         tmp_level_double[blk_pos] = (s64)level_double;
@@ -1929,6 +1979,11 @@ int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
 
         if(max_abs_level != 0)
         {
+#if M50631_IMPROVEMENT_ADCC_RDOQFIX
+            num_nz++;
+            last_pos_in_scan = scan_pos;
+            last_pos_in_raster_from_scan = blk_pos;
+#else
             i = blk_pos & (width - 1);
             j = blk_pos >> log2_cuw;            
 
@@ -1939,6 +1994,7 @@ int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
 
             row[j]++;
             col[i]++;
+#endif
         }
     }
     if(sum_all == 0)
@@ -1946,7 +2002,12 @@ int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
         evc_mset(dst_tmp, 0, sizeof(s16) * max_num_coef);
         return 0;
     }
-
+#if M50631_IMPROVEMENT_ADCC_RDOQFIX
+    last_scan_set = last_pos_in_scan >> cg_log2_size;
+    scan_pos_last = last_pos_in_raster_from_scan;
+    num_gtA = CAFLAG_NUMBER;
+    num_gtB = CBFLAG_NUMBER;
+#else
     sr_width = sr_x + 1;
     sr_height = sr_y + 1;
     num_coef = sr_width * sr_height;
@@ -1955,14 +2016,22 @@ int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
     num_gtB = max(num_coef >> LOG2_RATIO_GTB, 1);
     last_scan_set = (num_coef - 1) >> cg_log2_size;
     scan_pos_last = sr_y * width + sr_x;
+#endif
     rice_param = 0;
+#if M50631_IMPROVEMENT_ADCC_RDOQFIX
+    ipos = last_pos_in_scan;
+#else
     ipos = num_coef - 1;
+#endif
     cost_base = dcost_block_uncoded;
 
     for(sub_set = last_scan_set; sub_set >= 0; sub_set--)
     {
         int sub_pos = sub_set << cg_log2_size;
-
+#if M50631_IMPROVEMENT_ADCC_RDOQFIX
+        c1_idx = 0;
+        c2_idx = 0;
+#endif
         for(; ipos >= sub_pos; ipos--)
         {
             //===== coefficient level estimation =====
@@ -1972,24 +2041,35 @@ int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
             int  ctx_gtB = 0;
 
             blk_pos = scan[ipos];
+#if !M50631_IMPROVEMENT_ADCC_RDOQFIX
             sx = blk_pos & (width - 1);
             sy = blk_pos >> log2_cuw;            
 
             if (sx <= sr_x && sy <= sr_y)
+#endif
             {
                 s64 level_double = tmp_level_double[blk_pos];
                 int max_abs_level = coef_dst[blk_pos];
+#if M50631_IMPROVEMENT_ADCC_RDOQFIX
+                int bypass_sigmap = blk_pos == scan_pos_last ? 1 : 0;
+#else
                 int bypass_sigmap = (max_abs_level) && ((sx == 0 && sy == sr_y && row[sr_y] == 1) || (sy == 0 && sx == sr_x && col[sr_x] == 1)) ? 1 : 0;
-
+#endif
                 int base_level = (c1_idx < num_gtA) ? (2 + (c2_idx < num_gtB ? 1 : 0)) : 1;
                 if (sps_cm_init_flag == 1)
                 {
+#if M50631_IMPROVEMENT_ADCC_CTXGT12
+                    ctx_gt0 = get_ctx_gt012_inc(coef_dst, blk_pos, width, height, ch_type, &ctx_gtA, &ctx_gtB);
+#else
                     ctx_gt0 = get_ctx_gt012_inc(coef_dst, blk_pos, width, height, ch_type, &ctx_gtA, &ctx_gtB, sr_x, sr_y);
+#endif
                 }
+#if !M50631_IMPROVEMENT_ADCC_RDOQFIX
                 if (blk_pos == scan_pos_last)
                 {
                     ctx_gt0 = 0;
                 }
+#endif
                 ctx_gt0 += offset0;
                 if (max_abs_level != 0 && is_last_nz == 0)
                 {
@@ -2000,7 +2080,11 @@ int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
                 ctx_gtB += offset1;
                 rice_param = get_rice_para(coef_dst, blk_pos, width, height, base_level);
                 level = get_coded_level(&pdcost_coeff[blk_pos], &pdcost_coeff0[blk_pos], &pdcost_sig[blk_pos], level_double, max_abs_level, ctx_gt0, ctx_gtA, ctx_gtB, rice_param,
-                                        c1_idx, c2_idx, num_gtA, num_gtB, q_bits, err_scale, lambda, bypass_sigmap, &rate_inc_up[blk_pos], &rate_inc_down[blk_pos]);
+                                        c1_idx, c2_idx, num_gtA, num_gtB, q_bits, err_scale, lambda, bypass_sigmap
+#if !M50631_IMPROVEMENT_ADCC_RDOQFIX
+                    , &rate_inc_up[blk_pos], &rate_inc_down[blk_pos]
+#endif
+                );
 
                 sig_rate_delta[blk_pos] = rdoq_est_gt0[ctx_gt0][1] - rdoq_est_gt0[ctx_gt0][0];
                 delta_u[blk_pos] = (int)((level_double - (((s64)level) << q_bits)) >> (q_bits - 8));
@@ -2011,17 +2095,18 @@ int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
 
                 if(level > 0)
                 {
+#if !M50631_IMPROVEMENT_ADCC_RDOQFIX
                     rate_inc_up0[blk_pos] = rdoq_est_gtA[ctx_gtA][0];
                     rate_inc_down0[blk_pos] = 0;
-
+#endif
                     if (is_last_nz == 0)
                     {
                         is_last_nz = 1;
                     }
-
+#if !M50631_IMPROVEMENT_ADCC_RDOQFIX
                     sr_x_tmp = sx > sr_x_tmp ? sx : sr_x_tmp;
                     sr_y_tmp = sy > sr_y_tmp ? sy : sr_y_tmp;
-
+#endif
                     c1_idx++;
                     if(level > 1)
                     {
@@ -2036,7 +2121,7 @@ int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
                         evc_mset(dst_tmp, 0, sizeof(s16) * max_num_coef);
                         return 0;
                     }
-
+#if !M50631_IMPROVEMENT_ADCC_RDOQFIX
                     row[sy]--;
                     col[sx]--;
 
@@ -2060,6 +2145,7 @@ int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
                     num_gtA = max(num_coef >> LOG2_RATIO_GTA, 8);
                     num_gtB = max(num_coef >> LOG2_RATIO_GTB, 1);
                     scan_pos_last = sr_y * width + sr_x;
+#endif
                 }
             }
         }
@@ -2070,7 +2156,23 @@ int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
         evc_mset(dst_tmp, 0, sizeof(s16) * max_num_coef);
         return 0;
     }
+#if M50631_IMPROVEMENT_ADCC_RDOQFIX
+    {
+        s64 in_sr_cost0 = 0;
+        s64 in_sr_cost = 0;
 
+        cost_base = 0;
+
+        for (ipos = last_pos_in_scan; ipos >= 0; ipos--)
+        {
+            blk_pos = scan[ipos];
+            in_sr_cost += pdcost_coeff[blk_pos];
+            in_sr_cost0 += pdcost_coeff0[blk_pos];
+        }
+
+        cost_base = dcost_block_uncoded - in_sr_cost0 + in_sr_cost;
+    }
+#else
     {
         s64 in_sr_cost0 = 0;
         s64 in_sr_cost = 0;
@@ -2094,7 +2196,7 @@ int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
 
         cost_base = dcost_block_uncoded - in_sr_cost0 + in_sr_cost;
     }
-
+#endif
     cost_best = 0;
 
     if(is_intra == 0 && ch_type == Y_C)
@@ -2110,7 +2212,62 @@ int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
         cbf_cost = GET_I_COST(rdoq_est_cbf[ctx_qt_cbf][1], lambda);
         cost_base += cbf_cost;
     }
+#if M50631_IMPROVEMENT_ADCC_RDOQFIX
+    {
+        best_last_idx_p1 = 0;
+        found_last = 0;
+        for (ipos = last_pos_in_scan; ipos >= 0; ipos--)
+        {
+            blk_pos = scan[ipos];
+            if (coef_dst[blk_pos] > 0)
+            {
+                u32 pos_y = blk_pos >> log2_cuw;
+                u32 pos_x = blk_pos - (pos_y << log2_cuw);
 
+                s64 cost_last = get_rate_positionLastXY(pos_x, pos_y, width, height, ch_type, lambda, sps_cm_init_flag);
+                s64 total_cost = cost_base + cost_last - pdcost_sig[blk_pos];
+
+                if (total_cost < cost_best)
+                {
+                    best_last_idx_p1 = ipos + 1;
+                    cost_best = total_cost;
+                }
+                if (coef_dst[blk_pos] > 1)
+                {
+                    found_last = 1;
+                    break;
+                }
+                cost_base -= pdcost_coeff[blk_pos];
+                cost_base += pdcost_coeff0[blk_pos];
+            }
+            else
+            {
+                cost_base -= pdcost_sig[blk_pos];
+            }
+
+            if (found_last > 0)
+            {
+                break;
+            }
+        }
+    }
+
+    nnz = 0;
+    for (ipos = 0; ipos < best_last_idx_p1; ipos++)
+    {
+        u32 blk_pos = scan[ipos];
+        s16 level = coef_dst[blk_pos];
+        dst_tmp[blk_pos] = (src_coef[blk_pos] < 0) ? -level : level;
+        nnz += !!(level);
+    }
+
+    //===== clean uncoded coefficients =====
+    for (ipos = best_last_idx_p1; ipos < max_num_coef; ipos++)
+    {
+        dst_tmp[scan[ipos]] = 0;
+    }
+    return nnz;
+#else
     sr_x_tmp = sr_x;
     sr_y_tmp = sr_y;
 
@@ -2463,6 +2620,7 @@ int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
         nnz += !!(coef_dst[j]);
     }
     return nnz;
+#endif
 }
 #endif
 
