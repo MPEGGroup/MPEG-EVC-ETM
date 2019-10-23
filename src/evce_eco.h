@@ -56,7 +56,6 @@ int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps);
 int evce_eco_aps(EVC_BSW * bs, EVC_APS * aps);
 #endif
 int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh);
-int evce_eco_udata(EVCE_CTX * ctx, EVC_BSW * bs);
 int evce_eco_pred_mode(EVC_BSW * bs, u8 pred_mode, int ctx);
 #if IBC
 int evce_eco_ibc(EVC_BSW * bs, u8 pred_mode_ibc_flag, int ctx);

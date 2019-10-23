@@ -121,7 +121,11 @@ static void print_usage(void)
 
 static int read_nalu(FILE * fp, int * pos, unsigned char * bs_buf)
 {
+#if HLS_M47668
+    int read_size, bs_size;
+#else
     int read_size, bs_size, tmp;
+#endif
     unsigned char b = 0;
 
     bs_size = 0;
@@ -130,13 +134,17 @@ static int read_nalu(FILE * fp, int * pos, unsigned char * bs_buf)
     if (!fseek(fp, *pos, SEEK_SET))
     {
         /* read size first */
+#if HLS_M47668
+        if (4 == fread(&bs_size, 1, 4, fp))
+        {
+#else
         if (4 == fread(&tmp, 1, 4, fp))
         {
             bs_size |= (0xff000000 & tmp) >> 24;
             bs_size |= (0x00ff0000 & tmp) >> 8;
             bs_size |= (0x0000ff00 & tmp) << 8;
             bs_size |= (0x000000ff & tmp) << 24;
-
+#endif
             if (bs_size <= 0)
             {
                 v0print("Invalid bitstream size![%d]\n", bs_size);
@@ -267,11 +275,29 @@ static int set_extra_config(EVCD id)
     (ctx) = (EVCD_CTX *)id; \
     evc_assert_rv((ctx)->magic == EVCD_MAGIC_CODE, (ret));
 
+void make_ue_code(u32 val, u32 * code, int * len_c)
+{
+    int   len_i, info, nn; 
+
+    nn = ((val + 1) >> 1);
+    for (len_i = 0; len_i < 16 && nn != 0; len_i++)
+    {
+        nn >>= 1;
+    }
+
+    info = val + 1 - (1 << len_i);
+    *code = (1 << len_i) | ((info)& ((1 << len_i) - 1));
+
+    *len_c = (len_i << 1) + 1;    
+}
+
 void write_tmp_bs(EVC_SH * sh, int add_dtr, FILE * merge_fp)
 {
     int i, idx;
     u8 tmp_bs;
     u16 dtr = sh->dtr + add_dtr;
+    u32 code;
+    int len_c;
 
     tmp_bs = 0;
     idx = 7;
@@ -295,18 +321,37 @@ void write_tmp_bs(EVC_SH * sh, int add_dtr, FILE * merge_fp)
 
     for (i = 0; i < 3; i++)
     {
-        tmp_bs |= (((sh->slice_type >> (2 - i)) & 1) << idx);
+        tmp_bs |= (((sh->layer_id >> (2 - i)) & 1) << idx);
         idx--;
     }
 
-    tmp_bs |= ((sh->keyframe  & 1) << idx);
+    tmp_bs |= ((sh->temporal_mvp_asigned_flag & 1) << idx);
     idx--;
 
-    tmp_bs |= ((sh->deblocking_filter_on  & 1) << idx);
-    idx--;
+    if (sh->temporal_mvp_asigned_flag)
+    {
+        tmp_bs |= ((sh->collocated_from_list_idx & 1) << idx);
+        idx--;
 
-    tmp_bs |= ((sh->udata_exist & 1) << idx);
-    idx--;
+        tmp_bs |= ((sh->collocated_from_ref_idx & 1) << idx);
+        idx--;
+    }
+
+    make_ue_code(sh->slice_pic_parameter_set_id, &code, &len_c);
+
+    for (int i = 0; i < len_c && idx >= 0; i++)
+    {
+        tmp_bs |= (((code >> (len_c - 1 - i)) & 1) << idx);
+        idx--;
+    }
+    //tmp_bs |= ((sh->slice_pic_parameter_set_id & 1) << idx);
+    //idx--;
+
+    if (idx >= 0)
+    {
+        tmp_bs |= ((sh->single_tile_in_slice_flag & 1) << idx);
+        idx--;
+    }
 
     fwrite(&tmp_bs, 1, 1, merge_fp);
 }
@@ -330,6 +375,7 @@ int main(int argc, const char **argv)
     int                intra_dist_idx = 0;
     EVC_BSR         * bs;
     EVC_SPS         * sps;
+    EVC_PPS         * pps;
     EVC_SH          * sh;
     EVC_NALU        * nalu;
     EVCD_CTX        * ctx;
@@ -381,11 +427,17 @@ int main(int argc, const char **argv)
         while (1)
         {           
             bs_size = read_nalu(fp_bs, &bs_read_pos, bs_buf);
-
+#if HLS_M47668
+            tmp_size[0] = (bs_size & 0x000000ff) >> 0;
+            tmp_size[1] = (bs_size & 0x0000ff00) >> 8;
+            tmp_size[2] = (bs_size & 0x00ff0000) >> 16;
+            tmp_size[3] = (bs_size & 0xff000000) >> 24;
+#else
             tmp_size[0] = (bs_size & 0xff000000) >> 24;
             tmp_size[1] = (bs_size & 0x00ff0000) >> 16;
             tmp_size[2] = (bs_size & 0x0000ff00) >> 8;
             tmp_size[3] = (bs_size & 0x000000ff) >> 0;
+#endif
                                           
             if (bs_size <= 0)
             {
@@ -402,6 +454,7 @@ int main(int argc, const char **argv)
 
             bs = &ctx->bs;
             sps = &ctx->sps;
+            pps = &ctx->pps;
             sh = &ctx->sh;
             nalu = &ctx->nalu;
 #if ALF_PARAMETER_APS
@@ -438,20 +491,11 @@ int main(int argc, const char **argv)
             {
                 /* decode slice header */
 #if ALF
-                ctx->w = sps->pic_width_in_luma_samples;
-                ctx->h = sps->pic_height_in_luma_samples;
-                ctx->max_cuwh = 1 << (sps->log2_ctu_size_minus2 + 2);
-
-                int size = ctx->max_cuwh;
-                ctx->w_lcu = (ctx->w + (size - 1)) / size;
-                ctx->h_lcu = (ctx->h + (size - 1)) / size;
-
-                ctx->f_lcu = ctx->w_lcu * ctx->h_lcu;
                 sh->num_ctb = ctx->f_lcu;
 #endif
-#if ALF_PARAMETER_APS
-                ret = evcd_eco_aps(bs, aps);
-                evc_assert_rv(EVC_SUCCEEDED(ret), ret);
+#if ALF_CTU_MAP_DYNAMIC
+                sh->alf_sh_param.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
+                memset(sh->alf_sh_param.alfCtuEnableFlag, 1, N_C * ctx->f_lcu * sizeof(u8));
 #endif
                 ret = evcd_eco_sh(bs, &ctx->sps, &ctx->pps, sh);
                 evc_assert_rv(EVC_SUCCEEDED(ret), ret);
@@ -477,16 +521,31 @@ int main(int argc, const char **argv)
                     {
                         /* chnk size    */
                         fwrite(tmp_size, 1, 4, fp_bs_write);
-                        /* chnk header  */
-                        fwrite(bs_buf, 1, 1, fp_bs_write);
+                        /* write nalu  */
+                        fwrite(bs_buf, 1, 2, fp_bs_write);
                         /* re-write dtr */
                         write_tmp_bs(sh, intra_dist[0], fp_bs_write);
                         /* other stream */
-                        fwrite(bs_buf + 3, 1, bs_size - 3, fp_bs_write);
+                        fwrite(bs_buf + 4, 1, bs_size - 4, fp_bs_write);
                     }
                 }
             }
+            else if (nalu->nal_unit_type_plus1 - 1 == EVC_PPS_NUT)
+            {
+                if (!bs_num)
+                {
+                    fwrite(tmp_size, 1, 4, fp_bs_write);
+                    fwrite(bs_buf, 1, bs_size, fp_bs_write);
+                }
+            }
+#if ALF_PARAMETER_APS
+            else if (nalu->nal_unit_type_plus1 - 1 == EVC_APS_NUT)
+            {
+                fwrite(tmp_size, 1, 4, fp_bs_write);
+                fwrite(bs_buf, 1, bs_size, fp_bs_write);
 
+            }
+#endif
             if (bs_read_pos == bs_end_pos)
             {
                 break;

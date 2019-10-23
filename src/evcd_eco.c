@@ -3504,8 +3504,6 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
 #if !HLS_M47668
     sh->dtr = evc_bsr_read(bs, DTR_BIT_CNT);
 #endif
-    sh->keyframe = evc_bsr_read1(bs);
-    sh->udata_exist = evc_bsr_read1(bs);
 
     if(sh->slice_type!= SLICE_I)
     {
@@ -3604,37 +3602,6 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
     while(!EVC_BSR_IS_BYTE_ALIGN(bs))
     {
         evc_assert_rv(0 == evc_bsr_read1(bs), EVC_ERR_MALFORMED_BITSTREAM);
-    }
-    return EVC_OK;
-}
-
-int evcd_eco_udata(EVCD_CTX * ctx, EVC_BSR * bs)
-{
-    int    i;
-    u32 code;
-
-    /* should be aligned before adding user data */
-    evc_assert_rv(EVC_BSR_IS_BYTE_ALIGN(bs), EVC_ERR_UNKNOWN);
-
-    code = evc_bsr_read(bs, 8);
-
-    while(code != EVC_UD_END)
-    {
-        switch(code)
-        {
-            case EVC_UD_PIC_SIGNATURE:
-                /* read signature (HASH) from bitstream */
-                for(i = 0; i < 16; i++)
-                {
-                    ctx->pic_sign[i] = evc_bsr_read(bs, 8);
-                }
-                ctx->pic_sign_exist = 1;
-                break;
-
-            default:
-                evc_assert_rv(0, EVC_ERR_UNEXPECTED);
-        }
-        code = evc_bsr_read(bs, 8);
     }
     return EVC_OK;
 }

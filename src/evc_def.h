@@ -1657,9 +1657,6 @@ typedef struct _EVC_SH
     /* decoding temporal reference */
     u32              dtr;
     u8               layer_id;
-    u8               keyframe;
-    /* flag to indicate existing user data */
-    u8               udata_exist;
 
 #if ALF
     u8               alf_on;

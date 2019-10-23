@@ -52,7 +52,6 @@ int evcd_eco_alf_aps_param(EVC_BSR * bs, EVC_APS * aps);
 #endif
 int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh);
 
-int evcd_eco_udata(EVCD_CTX * ctx, EVC_BSR * bs);
 void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_init_flag);
 int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core);
 

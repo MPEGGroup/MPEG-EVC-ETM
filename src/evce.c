@@ -841,13 +841,11 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
 
     sh->dtr = ctx->dtr & DTR_BIT_MSK;
     sh->slice_type = ctx->slice_type;
-    sh->keyframe = (sh->slice_type == SLICE_I) ? 1 : 0;
     sh->deblocking_filter_on = (ctx->param.use_deblock) ? 1 : 0;
 #if M49023_DBF_IMPROVE
     sh->sh_deblock_alpha_offset = ctx->param.deblock_alpha_offset;
     sh->sh_deblock_beta_offset = ctx->param.deblock_beta_offset;
 #endif
-    sh->udata_exist = (ctx->param.use_pic_sign) ? 1 : 0;
     sh->dptr = ctx->ptr - ctx->dtr;
     sh->layer_id = ctx->layer_id;
     sh->single_tile_in_slice_flag = 1;
@@ -2305,26 +2303,6 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     int        i, j;
 
     evc_mset(stat, 0, sizeof(EVCE_STAT));
-
-    /* adding user data */
-    if(ctx->sh.udata_exist)
-    {
-        EVC_BSW  *bs = &ctx->bs;
-        EVC_NALU sei_nalu;
-        set_nalu(ctx, &sei_nalu, EVC_SEI_NUT);
-        
-        int* size_field = (int*)(*(&bs->cur));
-        u8* cur_tmp = bs->cur;
-
-        evce_eco_nalu(bs, sei_nalu);
-        
-        ret = evce_eco_udata(ctx, bs);
-        evc_assert_rv(ret == EVC_OK, ret);
-       
-        evc_bsw_deinit(bs);
-        stat->sei_size = (int)(bs->cur - cur_tmp);
-        *size_field = stat->sei_size - 4;
-    }  
 
     /* expand current encoding picture, if needs */
     ctx->fn_picbuf_expand(ctx, PIC_CURR(ctx));
