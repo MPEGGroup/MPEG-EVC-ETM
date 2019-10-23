@@ -886,7 +886,9 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
         REF_SET[1][k] = ctx->refp[k][1].ptr;
     }
     REF_SET[2][0] = ctx->ptr;
-
+#if M50632_IMPROVEMENT_MMVD
+    REF_SET[2][1] = ctx->dpm.cur_num_ref_pics;
+#endif
     cuw = (1 << core->log2_cuw);
     cuh = (1 << core->log2_cuh);
 

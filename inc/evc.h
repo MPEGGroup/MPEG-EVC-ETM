@@ -40,7 +40,7 @@
 extern "C"
 {
 #endif
-
+       
 #define USE_TILE_GROUP_DQP              1
 #define DQP_CFG                         1
 

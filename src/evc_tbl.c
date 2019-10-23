@@ -963,45 +963,61 @@ const s16 init_ctb_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG][1] = {
 const s16 init_ats_intra_cu[2][NUM_ATS_INTRA_CU_FLAG_CTX][1] = {
     {
         { 999  },
-        { 514  },
+#if !M50632_SIMPLIFICATION_ATS
+		{ 514  },
         { 452  },
         { 546  },
         { 1001 },
         { 992  },
         { 960  },
         { 960  }
+#endif
         },
     {
         { 1003 },
-        { 292  },
+#if !M50632_SIMPLIFICATION_ATS
+		{ 292  },
         { 354  },
         { 544  },
         { 999  },
         { 960  },
         { 928  },
         { 960  }
+#endif
     }
 };
+#if M50632_SIMPLIFICATION_ATS
+const s16 init_ats_tu[2][NUM_ATS_INTRA_TU_FLAG_CTX][1] = {
+	{
+		{ 512  },
+	},
+	{
+		{ 673 },
+	}
+};
+#else
 const s16 init_ats_tu_h[2][NUM_ATS_INTRA_TU_FLAG_CTX][1] = {
     {
         { 512  },
-        { 993  }
+		{ 993  }
     },
     {
         { 673 },
-        { 993 }
+		{ 993 }
     }
 };
 const s16 init_ats_tu_v[2][NUM_ATS_INTRA_TU_FLAG_CTX][1] = {
-    {
-        { 512 },
-        { 993 }
-    },
-    {
-        { 641 },
-        { 929 }
-    }
+	{
+		{ 512 },
+		{ 993 }
+	},
+	{
+		{ 641 },
+		{ 929 }
+	}
 };
+#endif
+
 #endif
 #if ATS_INTER_PROCESS
 const s16 init_ats_inter_info[2][NUM_SBAC_CTX_ATS_INTER_INFO][1] = {

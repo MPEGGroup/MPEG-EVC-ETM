@@ -2563,6 +2563,12 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     {
         sh->mmvd_group_enable_flag = !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr);
     }
+#if M50632_IMPROVEMENT_MMVD
+    else if (ctx->sps.tool_mmvd && (ctx->slice_type == SLICE_P))
+    {
+        sh->mmvd_group_enable_flag = 0;
+    }
+#endif
     else
     {
         sh->mmvd_group_enable_flag = 0;
