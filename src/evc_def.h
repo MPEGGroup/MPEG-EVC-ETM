@@ -37,17 +37,19 @@
 #include "evc.h"
 #include "evc_port.h"
 
+#define FIX_AFFINE_CLIP                              1
+
 #define M50662                                       1
 #if M50662
-#define M50662_AFFINE_IBC_TMVP_SUCO_FIX               1
-#define M50662_IBC_MAX_BLOCK_SIZE_FIX               1
-#define M50662_AFFINE_ALTERNATIVE_SCANNING_ORDER   1
+#define M50662_AFFINE_IBC_TMVP_SUCO_FIX              1
+#define M50662_IBC_MAX_BLOCK_SIZE_FIX                1
+#define M50662_AFFINE_ALTERNATIVE_SCANNING_ORDER     1
 #define M50662_AFFINE_MV_HISTORY_TABLE               1
-#define M50662_LUMA_CHROMA_SEPARATE_APS               1
-#define M50662_HISTORY_CTU_ROW_RESET               1
+#define M50662_LUMA_CHROMA_SEPARATE_APS              1
+#define M50662_HISTORY_CTU_ROW_RESET                 1
 
 #define M50662_AFFINE_BANDWIDTH_CLIPMV               1  // MV clipping of m50662
-#define M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV  1  // Harmonized MV clipping of m50662 and m50761
+#define M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV    1  // Harmonized MV clipping of m50662 and m50761
 
 #if M50662_AFFINE_BANDWIDTH_CLIPMV
 #define BOUNDING_BLOCK_MARGIN                       7  

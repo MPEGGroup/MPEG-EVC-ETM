@@ -7357,6 +7357,13 @@ void evc_derive_mv_clip_range(int cuw, int cuh, int mv_scale_hor, int mv_scale_v
     mv_hor_max = affine_center_mv_hor + g_aff_mvDevBB2_125[evc_tbl_log2[cuw] - 3];
     mv_ver_max = affine_center_mv_ver + g_aff_mvDevBB2_125[evc_tbl_log2[cuh] - 3];
 
+#if FIX_AFFINE_CLIP
+    mv_hor_max = max(mv_hor_max, *hor_min);
+    mv_ver_max = max(mv_ver_max, *ver_min);
+    mv_hor_min = min(mv_hor_min, *hor_max);
+    mv_ver_min = min(mv_ver_min, *ver_max);
+#endif
+
     *hor_max = min(*hor_max, mv_hor_max);
     *ver_max = min(*ver_max, mv_ver_max);
     *hor_min = max(*hor_min, mv_hor_min);
@@ -7449,6 +7456,12 @@ void evc_derive_mv_clip_range_2D(int cuw, int cuh, int mv_scale_hor, int mv_scal
         mv_ver_max = *ver_max;
     }
 
+#if FIX_AFFINE_CLIP
+    mv_hor_max = max(mv_hor_max, *hor_min);
+    mv_ver_max = max(mv_ver_max, *ver_min);
+    mv_hor_min = min(mv_hor_min, *hor_max);
+    mv_ver_min = min(mv_ver_min, *ver_max);
+#endif
 
     *hor_max = min(*hor_max, mv_hor_max);
     *ver_max = min(*ver_max, mv_ver_max);
