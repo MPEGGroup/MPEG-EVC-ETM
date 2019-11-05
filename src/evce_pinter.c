@@ -5914,7 +5914,9 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
             REF_SET[1][k] = ctx->refp[k][1].ptr;
         }
         REF_SET[2][0] = ctx->ptr;
-
+#if M50632_IMPROVEMENT_MMVD
+        REF_SET[2][1] = ctx->rpm.cur_num_ref_pics;
+#endif
         evc_get_mmvd_mvp_list(ctx->map_refi, ctx->refp[0], ctx->map_mv, ctx->w_scu, ctx->h_scu, core->scup, core->avail_cu, log2_cuw, log2_cuh, ctx->slice_type, real_mv, ctx->map_scu, REF_SET, core->avail_lr
 #if ADMVP
                               , core->history_buffer, ctx->sps.tool_admvp

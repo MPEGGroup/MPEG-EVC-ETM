@@ -98,6 +98,22 @@
 #endif
 #endif
 
+#define M50631_IMPROVEMENT_ADCC            1
+#if M50631_IMPROVEMENT_ADCC
+#define M50631_IMPROVEMENT_ADCC_CTXINIT    1
+#define M50631_IMPROVEMENT_ADCC_CTXGT12    1
+#define M50631_IMPROVEMENT_ADCC_RDOQFIX    1
+#endif
+
+#define M50632_IMPROVEMENT                 1
+#if M50632_IMPROVEMENT
+#define M50632_SIMPLIFICATION_TT           1
+#define M50632_SIMPLIFICATION_ATS          1
+#define M50632_IMPROVEMENT_MMVD            1
+#define M50632_IMPROVEMENT_SPS             1
+#define M50632_IMPROVEMENT_BASELINE        1
+#endif
+
 #define M49023_IMPROVEMENT                 1
 #if M49023_IMPROVEMENT
 #define PROFILE_SANITY_CHECK_FIX           1 
@@ -128,7 +144,11 @@
 
 #define ALF_PARAMETER_APS                  1
 #define TU_ZONAL_CODING                    1
+#if M50632_IMPROVEMENT_BASELINE
+#define CTX_MODEL_FOR_RESIDUAL_IN_BASE     0
+#else
 #define CTX_MODEL_FOR_RESIDUAL_IN_BASE     1
+#endif
 #define USE_SLICE_DQP                 1
 
 /* Profiles definitions */
@@ -1109,8 +1129,13 @@ typedef u32 SBAC_CTX_MODEL;
 #endif
 
 #if ATS_INTRA_PROCESS 
+#if M50632_SIMPLIFICATION_ATS
+#define NUM_ATS_INTRA_CU_FLAG_CTX                1
+#define NUM_ATS_INTRA_TU_FLAG_CTX                1
+#else
 #define NUM_ATS_INTRA_CU_FLAG_CTX                8
 #define NUM_ATS_INTRA_TU_FLAG_CTX                2
+#endif
 #endif
 #if ATS_INTER_PROCESS
 #define NUM_SBAC_CTX_ATS_INTER_INFO        7
@@ -1176,8 +1201,12 @@ typedef struct _EVC_SBAC_CTX
     int              sps_cm_init_flag;
 #if ATS_INTRA_PROCESS   
     SBAC_CTX_MODEL   ats_intra_cu          [NUM_ATS_INTRA_CU_FLAG_CTX];
+#if M50632_SIMPLIFICATION_ATS
+	SBAC_CTX_MODEL   ats_tu[NUM_ATS_INTRA_TU_FLAG_CTX];
+#else
     SBAC_CTX_MODEL   ats_tu_h        [NUM_ATS_INTRA_TU_FLAG_CTX];
     SBAC_CTX_MODEL   ats_tu_v        [NUM_ATS_INTRA_TU_FLAG_CTX];
+#endif
 #endif
 #if ATS_INTER_PROCESS
     SBAC_CTX_MODEL   ats_inter_info  [NUM_SBAC_CTX_ATS_INTER_INFO];
@@ -1630,9 +1659,6 @@ typedef struct _EVC_SH
     /* decoding temporal reference */
     u32              dtr;
     u8               layer_id;
-    u8               keyframe;
-    /* flag to indicate existing user data */
-    u8               udata_exist;
 
 #if ALF
     u8               alf_on;

@@ -297,6 +297,9 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
     int list0_weight;
     int list1_weight;
     int ref_sign = 0;
+#if M50632_IMPROVEMENT_MMVD
+    int ref_sign1 = 0;
+#endif
     int ref_mvd_cands[8] = {1, 2, 4, 8, 16, 32, 64, 128};
     int hor0var[MMVD_MAX_REFINE_NUM] = {0};
     int ver0var[MMVD_MAX_REFINE_NUM] = {0};
@@ -330,6 +333,9 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
     int list1_r;
     int poc0, poc1, poc_c;
     int poc0_t, poc1_t;
+#if M50632_IMPROVEMENT_MMVD
+    int base_mv_p[25][3][3];
+#endif
 #if M48879_IMPROVEMENT_INTER
     int small_cu = 0;
     if (cuw*cuh <= NUM_SAMPLES_BLOCK)
@@ -439,15 +445,19 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
     {
         base_skip[k] = 1;
     }
-
+#if !M50632_IMPROVEMENT_MMVD
     ref_sign = 1;
-
+#endif
 #if INCREASE_MVP_NUM
     for (k = 0; k < ORG_MAX_NUM_MVP; k++)
 #else
     for (k = 0; k < MAX_NUM_MVP; k++)
 #endif
     {
+#if M50632_IMPROVEMENT_MMVD
+        ref_sign = 1;
+        ref_sign1 = 1;
+#endif
         base_mv_t[k][0][0] = base_mv[k][0][0];
         base_mv_t[k][0][1] = base_mv[k][0][1];
         base_mv_t[k][0][2] = base_mv[k][0][2];
@@ -467,6 +477,111 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
         }
         else if ((base_mv_t[k][0][2] >= 0) && !(base_mv_t[k][1][2] >= 0))
         {
+#if M50632_IMPROVEMENT_MMVD
+            if (slice_t == SLICE_P)
+            {
+                int cur_ref_num = REF_SET[2][1];
+
+                base_type[0][k] = 1;
+                base_type[1][k] = 1;
+                base_type[2][k] = 1;
+
+                if (cur_ref_num == 1)
+                {
+                    base_mv_p[k][0][2] = base_mv_t[k][0][2];
+                    base_mv_p[k][1][2] = base_mv_t[k][0][2];
+                    base_mv_p[k][2][2] = base_mv_t[k][0][2];
+                }
+                else
+                {
+                    int app_idx = 0;
+                    int prior_ref[2] = { -1,-1 };
+                    int v;
+                    for (v = 0; v < min(cur_ref_num, MAX_NUM_ACTIVE_REF_FRAME); v++)
+                    {
+                        if (v != base_mv_t[k][0][2])
+                        {
+                            prior_ref[app_idx] = v;
+                            app_idx++;
+                        }
+                        if (app_idx == cur_ref_num)
+                            break;
+                    }
+                    if (cur_ref_num == 2)
+                    {
+                        app_idx = 0;
+
+                        base_mv_p[k][0][2] = base_mv_t[k][0][2];
+                        base_mv_p[k][1][2] = prior_ref[app_idx];
+                        base_mv_p[k][2][2] = base_mv_t[k][0][2];
+                    }
+                    else
+                    {
+                        app_idx = 0;
+
+                        base_mv_p[k][0][2] = base_mv_t[k][0][2];
+                        base_mv_p[k][1][2] = prior_ref[app_idx];
+                        app_idx++;
+                        base_mv_p[k][2][2] = prior_ref[app_idx];
+                    }
+                }
+
+                if (cur_ref_num == 1)
+                {
+                    base_mv_p[k][0][0] = base_mv_t[k][0][0];
+                    base_mv_p[k][0][1] = base_mv_t[k][0][1];
+
+                    base_mv_p[k][1][0] = base_mv_t[k][0][0] + 3;
+                    base_mv_p[k][1][1] = base_mv_t[k][0][1];
+
+                    base_mv_p[k][2][0] = base_mv_t[k][0][0] - 3;
+                    base_mv_p[k][2][1] = base_mv_t[k][0][1];
+                }
+                else if (cur_ref_num == 2)
+                {
+                    base_mv_p[k][0][0] = base_mv_t[k][0][0];
+                    base_mv_p[k][0][1] = base_mv_t[k][0][1];
+
+                    poc0 = REF_SET[0][base_mv_p[k][0][2]];
+                    poc_c = REF_SET[2][0];
+                    poc1 = REF_SET[0][base_mv_p[k][1][2]];
+
+                    list0_weight = ((poc_c - poc0) << MVP_SCALING_PRECISION) / ((poc_c - poc1));
+                    ref_sign = 1;
+                    base_mv_p[k][1][0] = EVC_CLIP3(-32768, 32767, ref_sign * ((EVC_ABS(list0_weight * base_mv_t[k][0][0]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
+                    base_mv_p[k][1][1] = EVC_CLIP3(-32768, 32767, ref_sign1 * ((EVC_ABS(list0_weight * base_mv_t[k][0][1]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
+
+                    base_mv_p[k][2][0] = base_mv_t[k][0][0] + 3;
+                    base_mv_p[k][2][1] = base_mv_t[k][0][1];
+                }
+                else if (cur_ref_num >= 3)
+                {
+                    base_mv_p[k][0][0] = base_mv_t[k][0][0];
+                    base_mv_p[k][0][1] = base_mv_t[k][0][1];
+                    base_mv_p[k][0][2] = base_mv_p[k][0][2];
+
+                    poc0 = REF_SET[0][base_mv_p[k][0][2]];
+                    poc_c = REF_SET[2][0];
+                    poc1 = REF_SET[0][base_mv_p[k][1][2]];
+
+                    list0_weight = ((poc_c - poc0) << MVP_SCALING_PRECISION) / ((poc_c - poc1));
+                    ref_sign = 1;
+                    base_mv_p[k][1][0] = EVC_CLIP3(-32768, 32767, ref_sign * ((EVC_ABS(list0_weight * base_mv_t[k][0][0]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
+                    base_mv_p[k][1][1] = EVC_CLIP3(-32768, 32767, ref_sign1 * ((EVC_ABS(list0_weight * base_mv_t[k][0][1]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
+
+                    poc0 = REF_SET[0][base_mv_p[k][0][2]];
+                    poc_c = REF_SET[2][0];
+                    poc1 = REF_SET[0][base_mv_p[k][2][2]];
+
+                    list0_weight = ((poc_c - poc0) << MVP_SCALING_PRECISION) / ((poc_c - poc1));
+                    ref_sign = 1;
+                    base_mv_p[k][2][0] = EVC_CLIP3(-32768, 32767, ref_sign * ((EVC_ABS(list0_weight * base_mv_t[k][0][0]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
+                    base_mv_p[k][2][1] = EVC_CLIP3(-32768, 32767, ref_sign1 * ((EVC_ABS(list0_weight * base_mv_t[k][0][1]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
+                }
+            }
+            else
+            {
+#endif
             base_type[0][k] = 1;
             base_type[1][k] = 0;
             base_type[2][k] = 2;
@@ -494,6 +609,23 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                 base_mv_t[k][1][2] = 0;
                 poc1 = REF_SET[1][base_mv_t[k][1][2]];
             }
+#if M50632_IMPROVEMENT_MMVD
+            list1_weight = ((poc_c - poc1) << MVP_SCALING_PRECISION) / ((poc_c - poc0));
+            if ((list1_weight * base_mv_t[k][0][0]) < 0)
+            {
+                ref_sign = -1;
+            }
+
+            base_mv_t[k][1][0] = EVC_CLIP3(-32768, 32767, ref_sign * ((EVC_ABS(list1_weight * base_mv_t[k][0][0]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
+
+            list1_weight = ((poc_c - poc1) << MVP_SCALING_PRECISION) / ((poc_c - poc0));
+            if ((list1_weight * base_mv_t[k][0][1]) < 0)
+            {
+                ref_sign1 = -1;
+            }
+
+            base_mv_t[k][1][1] = EVC_CLIP3(-32768, 32767, ref_sign1 * ((EVC_ABS(list1_weight * base_mv_t[k][0][1]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
+#else
             list1_weight = (EVC_ABS(poc1 - poc_c) << MVP_SCALING_PRECISION) / (EVC_ABS(poc0 - poc_c));
             if ((poc0 - poc_c) * (poc_c - poc1) > 0)
             {
@@ -502,7 +634,11 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 
             base_mv_t[k][1][0] = ref_sign*(list1_weight * (base_mv_t[k][0][0]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION;
             base_mv_t[k][1][1] = ref_sign*(list1_weight * (base_mv_t[k][0][1]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION;
-        }
+#endif
+#if M50632_IMPROVEMENT_MMVD
+            }
+#endif        
+}
         else if (!(base_mv_t[k][0][2] >= 0) && (base_mv_t[k][1][2] >= 0))
         {
             base_type[0][k] = 2;
@@ -531,6 +667,21 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                 base_mv_t[k][0][2] = 0;
                 poc0 = REF_SET[0][base_mv_t[k][0][2]];
             }
+#if M50632_IMPROVEMENT_MMVD
+            list0_weight = ((poc_c - poc0) << MVP_SCALING_PRECISION) / ((poc_c - poc1));
+            if ((list0_weight * base_mv_t[k][1][0]) < 0)
+            {
+                ref_sign = -1;
+            }
+            base_mv_t[k][0][0] = EVC_CLIP3(-32768, 32767, ref_sign * ((EVC_ABS(list0_weight * base_mv_t[k][1][0]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
+
+            list0_weight = ((poc_c - poc0) << MVP_SCALING_PRECISION) / ((poc_c - poc1));
+            if ((list0_weight * base_mv_t[k][1][1]) < 0)
+            {
+                ref_sign1 = -1;
+            }
+            base_mv_t[k][0][1] = EVC_CLIP3(-32768, 32767, ref_sign1 * ((EVC_ABS(list0_weight * base_mv_t[k][1][1]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
+#else
             list0_weight = (EVC_ABS(poc0 - poc_c) << MVP_SCALING_PRECISION) / (EVC_ABS(poc1 - poc_c));
             if ((poc0 - poc_c) * (poc_c - poc1) > 0)
             {
@@ -539,6 +690,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 
             base_mv_t[k][0][0] = ref_sign *(list0_weight * (base_mv_t[k][1][0]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION;
             base_mv_t[k][0][1] = ref_sign *(list0_weight * (base_mv_t[k][1][1]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION;
+#endif
         }
         else
         {
@@ -636,11 +788,30 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
             }
             else if (base_type[cur_set][base_mv_idx] == 1)
             {
+#if M50632_IMPROVEMENT_MMVD
+                if (slice_t == SLICE_P)
+                {
+                    base_mv[base_mv_idx][0][2] = base_mv_p[base_mv_idx][cur_set][2];
+                    base_mv[base_mv_idx][1][2] = -1;
+
+                    base_mv[base_mv_idx][0][0] = base_mv_p[base_mv_idx][cur_set][0];
+                    base_mv[base_mv_idx][0][1] = base_mv_p[base_mv_idx][cur_set][1];
+                }
+                else
+                {
+                    base_mv[base_mv_idx][0][2] = base_mv_t[base_mv_idx][0][2];
+                    base_mv[base_mv_idx][1][2] = -1;
+
+                    base_mv[base_mv_idx][0][0] = base_mv_t[base_mv_idx][0][0];
+                    base_mv[base_mv_idx][0][1] = base_mv_t[base_mv_idx][0][1];
+                }
+#else
                 base_mv[base_mv_idx][0][2] = base_mv_t[base_mv_idx][0][2];
                 base_mv[base_mv_idx][1][2] = -1;
 
                 base_mv[base_mv_idx][0][0] = base_mv_t[base_mv_idx][0][0];
                 base_mv[base_mv_idx][0][1] = base_mv_t[base_mv_idx][0][1];
+#endif
             }
             else if (base_type[cur_set][base_mv_idx] == 2)
             {
@@ -691,14 +862,21 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                 if (EVC_ABS(poc1 - poc_c) >= EVC_ABS(poc0 - poc_c))
                 {
                     list0_weight = (EVC_ABS(poc0 - poc_c) << MVP_SCALING_PRECISION) / (EVC_ABS(poc1 - poc_c));
+#if M50632_IMPROVEMENT_MMVD
+                    ref_mvd = EVC_CLIP3(-32768, 32767, (list0_weight * ref_mvd_cands[(int)(k / 4)] + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION);
+#endif
                 }
                 else
                 {
                     list1_weight = (EVC_ABS(poc1 - poc_c) << MVP_SCALING_PRECISION) / (EVC_ABS(poc0 - poc_c));
+#if M50632_IMPROVEMENT_MMVD
+                    ref_mvd1 = EVC_CLIP3(-32768, 32767, (list1_weight * ref_mvd_cands[(int)(k / 4)] + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION);
+#endif
                 }
+#if !M50632_IMPROVEMENT_MMVD
                 ref_mvd = (list0_weight * (ref_mvd_cands[(int)(k / 4)]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION;
                 ref_mvd1 = (list1_weight * (ref_mvd_cands[(int)(k / 4)]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION;
-
+#endif
                 ref_mvd = EVC_CLIP3(-(1 << 15), (1 << 15) - 1, ref_mvd);
                 ref_mvd1 = EVC_CLIP3(-(1 << 15), (1 << 15) - 1, ref_mvd1);
             }
@@ -3243,8 +3421,13 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
             {
                 split_allow[SPLIT_BI_HOR] = ALLOW_SPLIT_RATIO(log2_cuw, 1);
                 split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(log2_cuw, 1);
+#if M50632_SIMPLIFICATION_TT
+                split_allow[SPLIT_TRI_VER] = (log2_cuw >= log2_cuh) & ALLOW_SPLIT_TRI(log2_cuw);
+                split_allow[SPLIT_TRI_HOR] = (log2_cuh >= log2_cuw) & ALLOW_SPLIT_TRI(log2_cuh);
+#else                
                 split_allow[SPLIT_TRI_VER] = ALLOW_SPLIT_RATIO(log2_cuw, 2) & ALLOW_SPLIT_TRI(log2_cuw);
                 split_allow[SPLIT_TRI_HOR] = split_allow[SPLIT_TRI_VER];
+#endif
             }
         }
         else
@@ -3291,18 +3474,22 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                     split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(long_side, ratio);
                     if(from_boundary_b && (ratio == 3 || ratio == 4))
                         split_allow[SPLIT_BI_VER] = 1;
-
+#if M50632_SIMPLIFICATION_TT
+                    split_allow[SPLIT_TRI_VER] = (log2_cuw >= log2_cuh) & ALLOW_SPLIT_TRI(log2_cuw);
+                    split_allow[SPLIT_TRI_HOR] = (log2_cuh >= log2_cuw) & ALLOW_SPLIT_TRI(log2_cuh);
+#else
                     log2_sub_cuw = log2_cuw - 2;
                     log2_sub_cuh = log2_cuh;
                     long_side = log2_sub_cuw > log2_sub_cuh ? log2_sub_cuw : log2_sub_cuh;
                     ratio = EVC_ABS(log2_sub_cuw - log2_sub_cuh);
 
                     split_allow[SPLIT_TRI_VER] = ALLOW_SPLIT_RATIO(long_side, ratio) & ALLOW_SPLIT_TRI(log2_cuw);
-                    if(from_boundary_b && (log2_cuw == 7 || ratio == 3))
+                    split_allow[SPLIT_TRI_HOR] = 0;
+#endif
+                    if (from_boundary_b && (log2_cuw == 7 || ratio == 3))
                     {
                         split_allow[SPLIT_TRI_VER] = 1;
                     }
-                    split_allow[SPLIT_TRI_HOR] = 0;
                 }
             }
             else
@@ -3345,8 +3532,12 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                     split_allow[SPLIT_BI_HOR] = ALLOW_SPLIT_RATIO(long_side, ratio);
                     if(from_boundary_r && (ratio == 3 || ratio == 4))
                         split_allow[SPLIT_BI_HOR] = 1;
-                    split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(log2_cuh, log2_cuh - log2_cuw + 1);
 
+                    split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(log2_cuh, log2_cuh - log2_cuw + 1);
+#if M50632_SIMPLIFICATION_TT
+                    split_allow[SPLIT_TRI_VER] = (log2_cuw >= log2_cuh) & ALLOW_SPLIT_TRI(log2_cuw);
+                    split_allow[SPLIT_TRI_HOR] = (log2_cuh >= log2_cuw) & ALLOW_SPLIT_TRI(log2_cuh);
+#else
                     split_allow[SPLIT_TRI_VER] = 0;
 
                     log2_sub_cuh = log2_cuh - 2;
@@ -3355,7 +3546,8 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                     ratio = EVC_ABS(log2_sub_cuw - log2_sub_cuh);
 
                     split_allow[SPLIT_TRI_HOR] = ALLOW_SPLIT_RATIO(long_side, ratio) & ALLOW_SPLIT_TRI(log2_cuh);
-                    if(from_boundary_r && (log2_cuh == 7 || ratio == 3))
+#endif
+                    if (from_boundary_r && (log2_cuh == 7 || ratio == 3))
                     {
                         split_allow[SPLIT_TRI_HOR] = 1;
                     }
@@ -5289,8 +5481,11 @@ void evc_get_ctx_last_pos_xy_para(int ch_type, int width, int height, int *resul
         }
     }
 }
-
+#if M50631_IMPROVEMENT_ADCC_CTXGT12
+int evc_get_ctx_gt0_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type)
+#else
 int evc_get_ctx_gt0_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y)
+#endif
 {
     const s16 *pdata = pcoeff + blkpos;
     const int width_m1 = width - 1;
@@ -5343,8 +5538,11 @@ int evc_get_ctx_gt0_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_t
 
     return ctx_ofs + ctx_idx;
 }
-
+#if M50631_IMPROVEMENT_ADCC_CTXGT12
+int evc_get_ctx_gtA_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type)
+#else
 int evc_get_ctx_gtA_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y)
+#endif
 {
     const s16 *pdata = pcoeff + blkpos;
     const int width_m1 = width - 1;
@@ -5353,7 +5551,9 @@ int evc_get_ctx_gtA_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_t
     const int pos_y = blkpos >> log2_w;
     const int pos_x = blkpos - (pos_y << log2_w);
     int num_gtA = 0;
-
+#if M50631_IMPROVEMENT_ADCC_CTXGT12
+    int diag = pos_x + pos_y;
+#endif
     if(pos_x < width_m1)
     {
         num_gtA += EVC_ABS16(pdata[1]) > 1;
@@ -5379,12 +5579,19 @@ int evc_get_ctx_gtA_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_t
     num_gtA = EVC_MIN(num_gtA, 3) + 1;
     if(ch_type == Y_C)
     {
+#if M50631_IMPROVEMENT_ADCC_CTXGT12
+        num_gtA += (diag < 3) ? 0 : ((diag < 10) ? 4 : 8);
+#else
         num_gtA += (pos_x == 0 && pos_y == 0) ? 0 : ((pos_x <= sr_x / 2 && pos_y <= sr_y / 2) ? 4 : 8);
+#endif
     }
     return num_gtA;
 }
-
+#if M50631_IMPROVEMENT_ADCC_CTXGT12
+int evc_get_ctx_gtB_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type)
+#else
 int evc_get_ctx_gtB_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y)
+#endif
 {
     const s16 *pdata = pcoeff + blkpos;
     const int width_m1 = width - 1;
@@ -5420,7 +5627,11 @@ int evc_get_ctx_gtB_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_t
     num_gtB = EVC_MIN(num_gtB, 3) + 1;
     if(ch_type == Y_C)
     {
+#if M50631_IMPROVEMENT_ADCC_CTXGT12
+        num_gtB += (diag < 3) ? 0 : ((diag < 10) ? 4 : 8);
+#else
         num_gtB += (pos_x == 0 && pos_y == 0) ? 0 : ((pos_x <= sr_x / 2 && pos_y <= sr_y / 2) ? 4 : 8);
+#endif
     }
     return num_gtB;
 }

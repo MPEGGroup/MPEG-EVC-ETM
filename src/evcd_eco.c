@@ -500,8 +500,11 @@ static int evcd_eco_run_length_cc(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int l
 static int evcd_eco_ats_intra_cu(EVC_BSR* bs, EVCD_SBAC* sbac, u8 ctx)
 {
     u32 t0;
-
+#if M50632_SIMPLIFICATION_ATS
+    t0 = sbac_decode_bin_ep(bs, sbac);
+#else
     t0 = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ats_intra_cu + ctx);
+#endif
     EVC_TRACE_COUNTER;
     EVC_TRACE_STR("ats intra CU ");
     EVC_TRACE_INT(t0);
@@ -514,7 +517,11 @@ static int evcd_eco_ats_tu_h(EVC_BSR * bs, EVCD_SBAC * sbac, u8 ctx)
 {
     u32 t0;
 
+#if M50632_SIMPLIFICATION_ATS
+	t0 = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ats_tu + ctx);
+#else
     t0 = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ats_tu_h + ctx);
+#endif
     EVC_TRACE_COUNTER;
     EVC_TRACE_STR("ats intra tuH ");
     EVC_TRACE_INT(t0);
@@ -527,7 +534,11 @@ static int evcd_eco_ats_tu_v(EVC_BSR * bs, EVCD_SBAC * sbac, u8 ctx)
 {
     u32 t0;
 
+#if M50632_SIMPLIFICATION_ATS
+	t0 = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ats_tu + ctx);
+#else
     t0 = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ats_tu_v + ctx);
+#endif
     EVC_TRACE_COUNTER;
     EVC_TRACE_STR("ats intra tuV ");
     EVC_TRACE_INT(t0);
@@ -726,7 +737,11 @@ static int evcd_eco_ccA(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int log2_w, int
                 }
                 else
                 {
+#if M50631_IMPROVEMENT_ADCC_CTXGT12
+                    ctx_gt0 = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gt0_inc(coef, blkpos, width, height, ch_type) : 0;
+#else
                     ctx_gt0 = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gt0_inc(coef, blkpos, width, height, ch_type, sr_x, sr_y) : 0;
+#endif
                 }
 
                 if (!(ipos == scan_pos_last)) // skipping signaling flag for last, we know it is non-zero
@@ -777,7 +792,11 @@ static int evcd_eco_ccA(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int log2_w, int
                 {
                     if (pos[idx] != pos_last)
                     {
+#if M50631_IMPROVEMENT_ADCC_CTXGT12
+                        ctx_gtA = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gtA_inc(coef, pos[idx], width, height, ch_type) : 0;
+#else
                         ctx_gtA = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gtA_inc(coef, pos[idx], width, height, ch_type, sr_x, sr_y) : 0;
+#endif
                     }
                     bin = evcd_sbac_decode_bin(bs, sbac, cm_gtx + ctx_gtA);
                     coef[pos[idx]] += bin;
@@ -798,7 +817,11 @@ static int evcd_eco_ccA(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int log2_w, int
                 {
                     if (pos[firstC2FlagIdx] != pos_last)
                     {
+#if M50631_IMPROVEMENT_ADCC_CTXGT12
+                        ctx_gtB = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gtB_inc(coef, pos[firstC2FlagIdx], width, height, ch_type) : 0;
+#else
                         ctx_gtB = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gtB_inc(coef, pos[firstC2FlagIdx], width, height, ch_type, sr_x, sr_y) : 0;
+#endif
                     }
                     bin = evcd_sbac_decode_bin(bs, sbac, cm_gtx + ctx_gtB);
                     coef[pos[firstC2FlagIdx]] += bin;
@@ -1271,12 +1294,22 @@ int evcd_eco_coef(EVCD_CTX * ctx, EVCD_CORE * core)
 #if M50761_CHROMA_NOT_SPLIT
                     evc_assert(!evcd_check_only_inter(ctx));
 #endif
+                  
+#if M50632_SIMPLIFICATION_ATS 
+                    ats_intra_cu_on = evcd_eco_ats_intra_cu(bs, sbac, 0);
+#else
                     ats_intra_cu_on = evcd_eco_ats_intra_cu(bs, sbac, sbac->ctx.sps_cm_init_flag == 1 ? ((core->log2_cuw > core->log2_cuh) ? core->log2_cuw : core->log2_cuh) - MIN_CU_LOG2 : 0);
+#endif
                     ats_tu_mode = 0;
                     if (ats_intra_cu_on)
                     {
+#if M50632_SIMPLIFICATION_ATS
+						u8 ats_intra_tu_h = evcd_eco_ats_tu_h(bs, sbac, 0);
+						u8 ats_intra_tu_v = evcd_eco_ats_tu_v(bs, sbac, 0);
+#else
                         u8 ats_intra_tu_h = evcd_eco_ats_tu_h(bs, sbac, is_intra);
                         u8 ats_intra_tu_v = evcd_eco_ats_tu_v(bs, sbac, is_intra);
+#endif
                         ats_tu_mode = ((ats_intra_tu_h << 1) | ats_intra_tu_v);
                     }
                 }
@@ -1396,8 +1429,13 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_in
         evc_eco_sbac_ctx_initialize(sbac_ctx->all_cbf, (s16*)init_all_cbf, NUM_QT_ROOT_CBF_CTX, slice_type, slice_qp);
 #if ADCC 
 #if COEFF_CODE_ADCC2
+#if M50631_IMPROVEMENT_ADCC_CTXINIT
+        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gt0, (s16*)init_cc_gt0_4, NUM_CTX_GT0, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gtA, (s16*)init_cc_gtA_4, NUM_CTX_GTA, slice_type, slice_qp);
+#else
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gt0, (s16*)init_cc_gt0_3, NUM_CTX_GT0, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gtA, (s16*)init_cc_gtA_3, NUM_CTX_GTA, slice_type, slice_qp);
+#endif
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_x, (s16*)init_cc_scanr_x_3, NUM_CTX_SCANR, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_y, (s16*)init_cc_scanr_y_3, NUM_CTX_SCANR, slice_type, slice_qp);
 #else
@@ -1452,8 +1490,12 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_in
 #endif
 #if ATS_INTRA_PROCESS
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_intra_cu, (s16*)init_ats_intra_cu, NUM_ATS_INTRA_CU_FLAG_CTX, slice_type, slice_qp);
+#if M50632_SIMPLIFICATION_ATS
+		evc_eco_sbac_ctx_initialize(sbac_ctx->ats_tu, (s16*)init_ats_tu, NUM_ATS_INTRA_TU_FLAG_CTX, slice_type, slice_qp);
+#else
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_tu_h, (s16*)init_ats_tu_h, NUM_ATS_INTRA_TU_FLAG_CTX, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_tu_v, (s16*)init_ats_tu_v, NUM_ATS_INTRA_TU_FLAG_CTX, slice_type, slice_qp);
+#endif
 #endif
 #if ATS_INTER_PROCESS
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_inter_info, (s16*)init_ats_inter_info, NUM_SBAC_CTX_ATS_INTER_INFO, slice_type, slice_qp);
@@ -1517,8 +1559,12 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_in
 #endif
 #if ATS_INTRA_PROCESS
         for (i = 0; i < NUM_ATS_INTRA_CU_FLAG_CTX; i++) sbac_ctx->ats_intra_cu[i] = PROB_INIT;
+#if M50632_SIMPLIFICATION_ATS
+		for (i = 0; i < NUM_ATS_INTRA_TU_FLAG_CTX; i++) sbac_ctx->ats_tu[i] = PROB_INIT;
+#else
         for (i = 0; i < NUM_ATS_INTRA_TU_FLAG_CTX; i++) sbac_ctx->ats_tu_h[i] = PROB_INIT;
         for (i = 0; i < NUM_ATS_INTRA_TU_FLAG_CTX; i++) sbac_ctx->ats_tu_v[i] = PROB_INIT;
+#endif
 #endif
 #if ATS_INTER_PROCESS
         for (i = 0; i < NUM_SBAC_CTX_ATS_INTER_INFO; i++) sbac_ctx->ats_inter_info[i] = PROB_INIT;
@@ -2597,7 +2643,56 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
         sps->log2_diff_ctu_size_max_suco_cb_size = (u32)evc_bsr_read_ue(bs);
         sps->log2_diff_max_suco_min_suco_cb_size = (u32)evc_bsr_read_ue(bs);
     }
+#if M50632_IMPROVEMENT_SPS
+    sps->tool_amis = evc_bsr_read1(bs);
+    if(sps->tool_amis)
+    {
+#if ADMVP
+        sps->tool_admvp = evc_bsr_read1(bs);
+#endif
+#if AFFINE
+        sps->tool_affine = evc_bsr_read1(bs);
+#endif
+        sps->tool_amvr = evc_bsr_read1(bs);
+#if DMVR
+        sps->tool_dmvr = evc_bsr_read1(bs);
+#endif
+        sps->tool_mmvd = evc_bsr_read1(bs);
+    }
 
+    sps->tool_eipd = evc_bsr_read1(bs);
+    if(sps->tool_eipd)
+    {
+#if IBC
+        sps->ibc_flag = evc_bsr_read1(bs);
+        if(sps->ibc_flag)
+           sps->ibc_log_max_size = (u32)evc_bsr_read_ue(bs) + 2;
+#endif
+    }
+
+    sps->tool_cm_init = evc_bsr_read1(bs);
+    if(sps->tool_cm_init)
+    {
+#if ADCC
+        sps->tool_adcc = evc_bsr_read1(bs);
+#endif
+    }
+
+    sps->tool_iqt = evc_bsr_read1(bs);
+    if(sps->tool_iqt)
+    {
+#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+    sps->tool_ats = evc_bsr_read1(bs);
+#endif
+    }
+    
+#if ALF
+    sps->tool_alf = evc_bsr_read1(bs);
+#endif
+#if HTDF
+    sps->tool_htdf = evc_bsr_read1(bs);
+#endif
+#else
     sps->tool_amvr = evc_bsr_read1(bs);
     sps->tool_mmvd = evc_bsr_read1(bs);
 #if AFFINE
@@ -2624,13 +2719,13 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
     sps->tool_cm_init = evc_bsr_read1(bs);
 #if IBC
     sps->ibc_flag = evc_bsr_read1(bs);
-    if(sps->ibc_flag)
-       sps->ibc_log_max_size = (u32)evc_bsr_read_ue(bs) + 2;
+    if (sps->ibc_flag)
+        sps->ibc_log_max_size = (u32)evc_bsr_read_ue(bs) + 2;
 #endif
 #if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
     sps->tool_ats = evc_bsr_read1(bs);
 #endif
-
+#endif
 #if HLS_M47668
     sps->tool_rpl = evc_bsr_read1(bs);
     sps->tool_pocs = evc_bsr_read1(bs);
@@ -3281,7 +3376,11 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
 
     sh->slice_type = evc_bsr_read_ue(bs);
 #if M48879_IMPROVEMENT_INTER
+  #if M50632_IMPROVEMENT_MMVD
+    if (sps->tool_mmvd && ((sh->slice_type == SLICE_B)||(sh->slice_type == SLICE_P)) )
+#else
     if (sps->tool_mmvd && (sh->slice_type == SLICE_B))
+#endif
     {
         sh->mmvd_group_enable_flag = evc_bsr_read1(bs);
     }
@@ -3405,8 +3504,6 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
 #if !HLS_M47668
     sh->dtr = evc_bsr_read(bs, DTR_BIT_CNT);
 #endif
-    sh->keyframe = evc_bsr_read1(bs);
-    sh->udata_exist = evc_bsr_read1(bs);
 
     if(sh->slice_type!= SLICE_I)
     {
@@ -3505,37 +3602,6 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
     while(!EVC_BSR_IS_BYTE_ALIGN(bs))
     {
         evc_assert_rv(0 == evc_bsr_read1(bs), EVC_ERR_MALFORMED_BITSTREAM);
-    }
-    return EVC_OK;
-}
-
-int evcd_eco_udata(EVCD_CTX * ctx, EVC_BSR * bs)
-{
-    int    i;
-    u32 code;
-
-    /* should be aligned before adding user data */
-    evc_assert_rv(EVC_BSR_IS_BYTE_ALIGN(bs), EVC_ERR_UNKNOWN);
-
-    code = evc_bsr_read(bs, 8);
-
-    while(code != EVC_UD_END)
-    {
-        switch(code)
-        {
-            case EVC_UD_PIC_SIGNATURE:
-                /* read signature (HASH) from bitstream */
-                for(i = 0; i < 16; i++)
-                {
-                    ctx->pic_sign[i] = evc_bsr_read(bs, 8);
-                }
-                ctx->pic_sign_exist = 1;
-                break;
-
-            default:
-                evc_assert_rv(0, EVC_ERR_UNEXPECTED);
-        }
-        code = evc_bsr_read(bs, 8);
     }
     return EVC_OK;
 }

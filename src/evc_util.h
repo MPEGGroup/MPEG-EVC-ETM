@@ -373,9 +373,15 @@ u8  *evc_get_dqp_used(int x_scu, int y_scu, int w_scu, u8 * map_dqp_input, int d
 void evc_init_scan_sr(int *scan, int size_x, int size_y, int width, int height, int scan_type);
 void evc_init_inverse_scan_sr(u16 *scan_inv, u16 *scan_orig, int width, int height, int scan_type);
 void evc_get_ctx_last_pos_xy_para(int ch_type, int width, int height, int *result_offset_x, int *result_offset_y, int *result_shift_x, int *result_shift_y);
+#if M50631_IMPROVEMENT_ADCC_CTXGT12
+int evc_get_ctx_gt0_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type);
+int evc_get_ctx_gtA_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type);
+int evc_get_ctx_gtB_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type);
+#else
 int evc_get_ctx_gt0_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y);
 int evc_get_ctx_gtA_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y);
 int evc_get_ctx_gtB_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y);
+#endif
 int evc_get_ctx_remain_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y);
 int get_rice_para(s16 *pcoeff, int blkpos, int width, int height, int base_level);
 #endif

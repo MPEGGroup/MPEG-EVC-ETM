@@ -2407,11 +2407,6 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     }
     else if (nalu->nal_unit_type_plus1 - 1 == EVC_SEI_NUT)
     {
-        if(ctx->sh.udata_exist)
-        {
-            ret = evcd_eco_udata(ctx, bs);
-        }
-
         if (ctx->use_pic_sign && ctx->pic_sign_exist)
         {
             ret = evcd_picbuf_check_signature(ctx->pic, ctx->pic_sign);
