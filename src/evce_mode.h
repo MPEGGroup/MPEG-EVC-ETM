@@ -85,7 +85,9 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
 #endif
 );
 #endif
-
+#if M50662_HISTORY_CTU_ROW_RESET
+int evce_hmvp_init(EVC_HISTORY_BUFFER *history_buffer);
+#endif
 
 #ifdef __cplusplus
 }

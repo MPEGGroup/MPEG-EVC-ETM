@@ -374,7 +374,13 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
 #if ALF_PARAMETER_APS
         if (sh->alf_on)
         {
+#if M50662_LUMA_CHROMA_SEPARATE_APS
+            evc_bsw_write(bs, sh->aps_id_y, APS_MAX_NUM_IN_BITS);
+            evc_bsw_write(bs, sh->aps_id_ch, APS_MAX_NUM_IN_BITS);
+
+#else
             evc_bsw_write(bs, sh->aps_signaled, APS_MAX_NUM_IN_BITS); //encode tile group aps id
+#endif
             evce_eco_alf_sh_param(bs, sh); // signaling ALF map
         }
 #else

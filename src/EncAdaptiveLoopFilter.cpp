@@ -153,6 +153,10 @@ void call_enc_ALFProcess(EncAdaptiveLoopFilter* p, const double* lambdas, EVCE_C
     }
 
     iAlfSliceParam->prevIdx = alfSliceParam.prevIdx;
+#if M50662_LUMA_CHROMA_SEPARATE_APS
+    iAlfSliceParam->prevIdxComp[0] = alfSliceParam.prevIdxComp[0];
+    iAlfSliceParam->prevIdxComp[1] = alfSliceParam.prevIdxComp[1];
+#endif
     iAlfSliceParam->tLayer = alfSliceParam.tLayer;
     iAlfSliceParam->temporalAlfFlag = BOOL( alfSliceParam.temporalAlfFlag );
     iAlfSliceParam->resetALFBufferFlag = BOOL( alfSliceParam.resetALFBufferFlag );
@@ -265,6 +269,10 @@ void alf_aps_enc_opt_process(EncAdaptiveLoopFilter* p, const double* lambdas, EV
     }
 
     iAlfSliceParam->prevIdx = alfSliceParam.prevIdx;
+#if M50662_LUMA_CHROMA_SEPARATE_APS
+    iAlfSliceParam->prevIdxComp[0] = alfSliceParam.prevIdxComp[0];
+    iAlfSliceParam->prevIdxComp[1] = alfSliceParam.prevIdxComp[1];
+#endif
     iAlfSliceParam->tLayer = alfSliceParam.tLayer;
     iAlfSliceParam->temporalAlfFlag = BOOL(alfSliceParam.temporalAlfFlag);
     iAlfSliceParam->resetALFBufferFlag = BOOL(alfSliceParam.resetALFBufferFlag);
@@ -305,6 +313,10 @@ void AlfSliceParam_reset(AlfSliceParam* p)
   memset(p->fixedFilterIdx, 0, sizeof(p->fixedFilterIdx));
   p->temporalAlfFlag = false;
   p->prevIdx = 0;
+#if M50662_LUMA_CHROMA_SEPARATE_APS
+  p->prevIdxComp[0] = 0;
+  p->prevIdxComp[1] = 0;
+#endif
   p->tLayer = 0;
   p->resetALFBufferFlag = false;
   p->store2ALFBufferFlag = false;
@@ -358,6 +370,10 @@ void EncAdaptiveLoopFilter::create(const int picWidth, const int picHeight, cons
 #if ALF_CTU_MAP_DYNAMIC
   m_alfSliceParamTemp.alfCtuEnableFlag = (u8 *)malloc(N_C * m_numCTUsInPic * sizeof(u8));
   memset(m_alfSliceParamTemp.alfCtuEnableFlag, 0, N_C * m_numCTUsInPic * sizeof(u8));
+#if M50662_LUMA_CHROMA_SEPARATE_APS
+  m_ctuEnableFlagTmpLuma = (u8 *)malloc(N_C * m_numCTUsInPic * sizeof(u8));
+  memset(m_ctuEnableFlagTmpLuma, 0, N_C * m_numCTUsInPic * sizeof(u8));
+#endif
 #endif
 
   for (int compIdx = 0; compIdx < MAX_NUM_COMPONENT; compIdx++)
@@ -427,6 +443,10 @@ void EncAdaptiveLoopFilter::destroy()
   }
 #if ALF_CTU_MAP_DYNAMIC
   free(m_alfSliceParamTemp.alfCtuEnableFlag);
+#if M50662_LUMA_CHROMA_SEPARATE_APS
+  free(m_ctuEnableFlagTmpLuma);
+  m_ctuEnableFlagTmpLuma = nullptr;
+#endif
 #endif
   for (int compIdx = 0; compIdx < MAX_NUM_COMPONENT; compIdx++)
   {
@@ -595,7 +615,11 @@ void EncAdaptiveLoopFilter::Enc_ALFProcess(CodingStructure& cs, const double *la
   {
     deriveStatsForFiltering(&orgYuv, &recLuma);
 #if APS_ALF_SEQ_FIX
+#if M50662_LUMA_CHROMA_SEPARATE_APS
+    alfTemporalEncoderAPSComponent(cs, alfSliceParam);
+#else
     alfTemporalEncoderAPS(cs, alfSliceParam);
+#endif
 #else
     alfTemporalEncoder(cs, alfSliceParam);
 #endif
@@ -865,7 +889,179 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
     }
   }
 }
+#if M50662_LUMA_CHROMA_SEPARATE_APS
+void EncAdaptiveLoopFilter::alfTemporalEncoderAPSComponent(CodingStructure& cs, AlfSliceParam* alfSliceParam)
 
+{
+    EVCE_CTX* ctx = (EVCE_CTX*)cs.pCtx;
+    const int tempLayerId = ctx->layer_id;
+    int prevIdxComp[MAX_NUM_CHANNEL_TYPE] = { -1, -1 };
+    int talfCompEnable[MAX_NUM_CHANNEL_TYPE] = { 0, 0 };
+
+    AlfSliceParam *pcStoredAlfPara = ctx->slice_type == SLICE_I ? NULL : m_acAlfLineBuffer;
+
+    copyAlfParam(&m_alfSliceParamTemp, alfSliceParam);
+
+    copyCtuEnableFlag(m_ctuEnableFlagTmp, m_ctuEnableFlag, CHANNEL_TYPE_LUMA);
+    copyCtuEnableFlag(m_ctuEnableFlagTmp, m_ctuEnableFlag, CHANNEL_TYPE_CHROMA);
+
+    ChannelType channel;
+    if (pcStoredAlfPara != NULL && m_acAlfLineBufferCurrentSize > 0)
+    {
+        double costBest[MAX_NUM_CHANNEL_TYPE] = { DBL_MAX, DBL_MAX };
+        for (int bufIdx2 = 0; bufIdx2 < m_acAlfLineBufferCurrentSize && bufIdx2 < APS_MAX_NUM; bufIdx2++)
+        {
+            double cost[MAX_NUM_CHANNEL_TYPE] = { DBL_MAX, DBL_MAX };
+            int bufIdx = bufIdx2;
+            bufIdx = m_alfIndxInScanOrder[bufIdx2];
+            {
+                if ((pcStoredAlfPara[bufIdx].tLayer > tempLayerId) && (ctx->param.i_period != 0))
+                {
+                    continue;
+                }
+                if ((m_currentPoc > pcStoredAlfPara[bufIdx].m_maxIdrPoc + ctx->param.i_period) && (ctx->param.i_period != 0))
+                {
+                    continue;
+                }
+
+                if ((m_currentPoc > m_lastIdrPoc)
+                    && (pcStoredAlfPara[bufIdx].m_filterPoc < m_lastIdrPoc)
+                    )
+
+                {
+                    continue;
+                }
+
+                if ((m_currentPoc > pcStoredAlfPara[bufIdx].m_maxIdrPoc)
+                    && (pcStoredAlfPara[bufIdx].m_filterPoc < pcStoredAlfPara[bufIdx].m_maxIdrPoc)
+                    )
+
+                {
+                    continue;
+                }
+            }
+
+            copyAlfParam(&m_alfSliceParamTemp, &(pcStoredAlfPara[bufIdx]));
+            for (int ch = 0; ch < MAX_NUM_CHANNEL_TYPE; ch++)
+            {
+                channel = (ChannelType)ch;
+                {
+                    int isFilterAvailable = (ch == CHANNEL_TYPE_LUMA) ? m_alfSliceParamTemp.enabledFlag[COMPONENT_Y] : (m_alfSliceParamTemp.enabledFlag[COMPONENT_Cb] || m_alfSliceParamTemp.enabledFlag[COMPONENT_Cr]);
+                    if (isFilterAvailable)
+                    {
+                        int iShapeIdx = isLuma(channel) ? ALF_FILTER_7 : ALF_FILTER_5;
+                        if (channel == CHANNEL_TYPE_LUMA)
+                        {
+                            double distUnfilter;
+                            cost[channel] = deriveCtbAlfEnableFlags(cs, iShapeIdx, channel, isLuma(channel) ? MAX_NUM_ALF_CLASSES : 1, m_filterShapes[channel][iShapeIdx].numCoeff, distUnfilter, true);
+                            cost[channel] += m_lambda[channel] * APS_MAX_NUM_IN_BITS;
+                            for (int i = 0; i < ctx->f_lcu; i++)
+                            {
+                                if (m_ctuEnableFlag[CHANNEL_TYPE_LUMA][i] == 0)
+                                {
+                                    m_alfSliceParamTemp.isCtbAlfOn = true;
+                                    break;
+                                }
+                                else
+                                    m_alfSliceParamTemp.isCtbAlfOn = false;
+                            }
+                            if (m_alfSliceParamTemp.isCtbAlfOn)
+                                cost[channel] += m_lambda[channel] * (ctx->f_lcu);
+                        }
+                        else
+                        {
+                            double costCtbEnable = DBL_MAX;
+                            setCtuEnableFlag(m_ctuEnableFlag, channel, true);
+                            getFrameStats(CHANNEL_TYPE_CHROMA, 0);
+                            costCtbEnable = getUnfilteredDistortion(m_alfCovarianceFrame[CHANNEL_TYPE_CHROMA][0], CHANNEL_TYPE_CHROMA);
+
+                            reconstructCoeff(&m_alfSliceParamTemp, channel, true, isLuma(channel));
+                            for (int classIdx = 0; classIdx < (isLuma(channel) ? MAX_NUM_ALF_CLASSES : 1); classIdx++)
+                            {
+                                for (int i = 0; i < (isLuma(channel) ? MAX_NUM_ALF_LUMA_COEFF : MAX_NUM_ALF_CHROMA_COEFF); i++)
+                                {
+                                    m_filterCoeffSet[classIdx][i] = isLuma(channel) ? m_coeffFinal[classIdx* MAX_NUM_ALF_LUMA_COEFF + i] : m_alfSliceParamTemp.chromaCoeff[i];
+                                }
+                            }
+                            costCtbEnable += getFilteredDistortion(m_alfCovarianceFrame[CHANNEL_TYPE_CHROMA][0], 1, 0, MAX_NUM_ALF_CHROMA_COEFF);
+                            cost[channel] = costCtbEnable;
+                            cost[channel] += m_lambda[channel] * APS_MAX_NUM_IN_BITS;
+                        }
+                    }
+                    else {
+                        if (channel == CHANNEL_TYPE_CHROMA)
+                        {
+                            setCtuEnableFlag(m_ctuEnableFlag, channel, true);
+                            getFrameStats(CHANNEL_TYPE_CHROMA, 0);
+                            cost[channel] = getUnfilteredDistortion(m_alfCovarianceFrame[CHANNEL_TYPE_CHROMA][0], CHANNEL_TYPE_CHROMA);
+                        }
+                        else
+                        {
+                            printf("Error: temporal ALF checked, but enableFlag for luma is OFF\n");
+                        }
+                    }
+                }
+                bool isCurrentBetterLocal = cost[channel]  < costBest[channel];
+                if (isCurrentBetterLocal)
+                {
+                    talfCompEnable[channel] = 1;
+                    costBest[channel] = cost[channel];
+                    prevIdxComp[channel] = bufIdx;
+                    if (channel == CHANNEL_TYPE_LUMA)
+                    {
+                        copyCtuEnableFlag(&m_ctuEnableFlagTmpLuma, m_ctuEnableFlag, CHANNEL_TYPE_LUMA);
+                    }
+                }
+            }
+        }
+
+        bool isCurrentBetterGlobal = (costBest[CHANNEL_TYPE_LUMA] + costBest[CHANNEL_TYPE_CHROMA]) < (m_costAlfEncoder[CHANNEL_TYPE_LUMA] + m_costAlfEncoder[CHANNEL_TYPE_CHROMA]);
+
+        if (isCurrentBetterGlobal)
+        {
+            if (talfCompEnable[CHANNEL_TYPE_LUMA])
+            {
+                m_costAlfEncoder[CHANNEL_TYPE_LUMA] = costBest[CHANNEL_TYPE_LUMA];
+                copyAlfParam(alfSliceParam, &(pcStoredAlfPara[prevIdxComp[CHANNEL_TYPE_LUMA]]));
+                alfSliceParam->prevIdx = prevIdxComp[CHANNEL_TYPE_LUMA];
+                alfSliceParam->prevIdxComp[CHANNEL_TYPE_LUMA] = prevIdxComp[CHANNEL_TYPE_LUMA];
+                copyCtuEnableFlag(m_ctuEnableFlagTmp, &m_ctuEnableFlagTmpLuma, CHANNEL_TYPE_LUMA);
+                alfSliceParam->enabledFlag[0] = 1;
+            }
+            else
+            {
+                alfSliceParam->enabledFlag[0] = 0;
+                alfSliceParam->prevIdxComp[0] = -1;
+            }
+            if (talfCompEnable[CHANNEL_TYPE_CHROMA])
+            {
+                m_costAlfEncoder[CHANNEL_TYPE_CHROMA] = costBest[CHANNEL_TYPE_CHROMA];
+                copyAlfParamChroma(alfSliceParam, &(pcStoredAlfPara[prevIdxComp[CHANNEL_TYPE_CHROMA]]));
+                alfSliceParam->prevIdxComp[CHANNEL_TYPE_CHROMA] = prevIdxComp[CHANNEL_TYPE_CHROMA];
+                setCtuEnableFlag(m_ctuEnableFlagTmp, CHANNEL_TYPE_CHROMA, true);
+                alfSliceParam->enabledFlag[1] = (pcStoredAlfPara[prevIdxComp[CHANNEL_TYPE_CHROMA]].enabledFlag[1]);
+                alfSliceParam->enabledFlag[2] = (pcStoredAlfPara[prevIdxComp[CHANNEL_TYPE_CHROMA]].enabledFlag[2]);
+            }
+            else
+            {
+                alfSliceParam->enabledFlag[1] = 0;
+                alfSliceParam->enabledFlag[2] = 0;
+                alfSliceParam->prevIdxComp[1] = -1;
+            }
+            alfSliceParam->temporalAlfFlag = true;
+            alfSliceParam->chromaCtbPresentFlag = false;
+        }
+        else {
+            alfSliceParam->temporalAlfFlag = false;
+            alfSliceParam->prevIdxComp[0] = -1;
+            alfSliceParam->prevIdxComp[1] = -1;
+        }
+
+    }
+    copyCtuEnableFlag(m_ctuEnableFlag, m_ctuEnableFlagTmp, CHANNEL_TYPE_LUMA);
+    copyCtuEnableFlag(m_ctuEnableFlag, m_ctuEnableFlagTmp, CHANNEL_TYPE_CHROMA);
+}
+#endif
 #if APS_ALF_SEQ_FIX
 void EncAdaptiveLoopFilter::alfTemporalEncoderAPS(CodingStructure& cs, AlfSliceParam* alfSliceParam)
 {

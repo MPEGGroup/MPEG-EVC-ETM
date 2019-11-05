@@ -37,6 +37,26 @@
 #include "evc.h"
 #include "evc_port.h"
 
+#define FIX_AFFINE_CLIP                              1
+
+#define M50662                                       1
+#if M50662
+#define M50662_AFFINE_IBC_TMVP_SUCO_FIX              1
+#define M50662_IBC_MAX_BLOCK_SIZE_FIX                1
+#define M50662_AFFINE_ALTERNATIVE_SCANNING_ORDER     1
+#define M50662_AFFINE_MV_HISTORY_TABLE               1
+#define M50662_LUMA_CHROMA_SEPARATE_APS              1
+#define M50662_HISTORY_CTU_ROW_RESET                 1
+
+#define M50662_AFFINE_BANDWIDTH_CLIPMV               1  // MV clipping of m50662
+#define M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV    1  // Harmonized MV clipping of m50662 and m50761
+
+#if M50662_AFFINE_BANDWIDTH_CLIPMV
+#define BOUNDING_BLOCK_MARGIN                       7  
+#define MEMORY_BANDWIDTH_THRESHOLD                   (8+2+BOUNDING_BLOCK_MARGIN)/8
+#endif
+#endif
+
 #define M50761                                     1
 #if M50761
 //chroma no split for avoiding 2x2, 2x4 and 4x2 chroma blocks
@@ -861,7 +881,11 @@ extern int fp_trace_started;
 #define INTRA_PIMS_NUM                     8
 
 #if IBC
+#if M50662_IBC_MAX_BLOCK_SIZE_FIX
+#define IBC_MAX_CU_LOG2                      6 /* max block size for ibc search in unit of log2 */
+#else
 #define IBC_MAX_CU_LOG2                      4 /* max block size for ibc search in unit of log2 */
+#endif
 //#define IBC_MAX_CAND_SIZE                    (1 << IBC_MAX_CU_LOG2)
 #endif
 
@@ -1537,6 +1561,9 @@ typedef struct _evc_AlfSliceParam
     int tLayer;
     BOOL temporalAlfFlag;
     int prevIdx;
+#if M50662_LUMA_CHROMA_SEPARATE_APS
+    int prevIdxComp[2];
+#endif
     BOOL resetALFBufferFlag;
     BOOL store2ALFBufferFlag;
 
@@ -1546,6 +1573,10 @@ typedef struct _evc_AlfSliceParam
 typedef struct _EVC_APS
 {
     int                               aps_id;                    // adaptation_parameter_set_id
+#if M50662_LUMA_CHROMA_SEPARATE_APS
+    int aps_id_y;
+    int aps_id_ch;
+#endif
     evc_AlfSliceParam          alf_aps_param;              // alf data
 } EVC_APS;
 
@@ -1612,6 +1643,10 @@ typedef struct _EVC_SH
     u16              num_ctb;
 #if ALF_PARAMETER_APS
     int                 aps_signaled;
+#if M50662_LUMA_CHROMA_SEPARATE_APS
+    int aps_id_y;
+    int aps_id_ch;
+#endif
     EVC_APS*         aps;
 #endif
     evc_AlfSliceParam    alf_sh_param;
