@@ -89,7 +89,6 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
 {
     evc_bsw_write_ue(bs, (u32)sps->sps_seq_parameter_set_id);
     evc_bsw_write(bs, (u32)sps->profile_idc, 7);
-    evc_bsw_write1(bs, sps->tier_flag);
     evc_bsw_write(bs, (u32)sps->level_idc, 8);
     evc_bsw_write_ue(bs, (u32)sps->chroma_format_idc);
     evc_bsw_write_ue(bs, (u32)sps->pic_width_in_luma_samples);

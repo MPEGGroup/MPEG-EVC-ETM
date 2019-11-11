@@ -2617,7 +2617,6 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
 {
     sps->sps_seq_parameter_set_id = (u32)evc_bsr_read_ue(bs);
     sps->profile_idc = evc_bsr_read(bs, 7);
-    sps->tier_flag = evc_bsr_read1(bs);
     sps->level_idc = evc_bsr_read(bs, 8);
     sps->chroma_format_idc = (u32)evc_bsr_read_ue(bs);
     sps->pic_width_in_luma_samples = (u32)evc_bsr_read_ue(bs);

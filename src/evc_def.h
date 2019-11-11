@@ -116,6 +116,8 @@
 #define M50632_IMPROVEMENT_BASELINE        1
 #endif
 
+// OLD
+
 #define M49023_IMPROVEMENT                 1
 #if M49023_IMPROVEMENT
 #define PROFILE_SANITY_CHECK_FIX           1 
@@ -1403,7 +1405,6 @@ typedef struct _EVC_SPS
 {
     int              sps_seq_parameter_set_id;
     int              profile_idc;
-    int              tier_flag;
     int              level_idc;
     int              chroma_format_idc;
     u16              pic_width_in_luma_samples;  
