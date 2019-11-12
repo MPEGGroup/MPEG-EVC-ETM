@@ -925,9 +925,7 @@ void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #if DMVR_LAG
             , ctx->map_unrefined_mv
 #endif
-#if M48879_IMPROVEMENT_SUCO
             , core->avail_lr
-#endif
 #if M50761_TMVP_ALIGN_SPEC || M50662_AFFINE_IBC_TMVP_SUCO_FIX
             , &ctx->sh
 #endif

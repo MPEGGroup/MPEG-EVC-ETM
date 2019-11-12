@@ -130,7 +130,6 @@
 #define M48879_IMPROVEMENT_ENC_OPT         1
 #define M48879_IMPROVEMENT_INTRA           1
 #define M48879_IMPROVEMENT_INTER           1
-#define M48879_IMPROVEMENT_SUCO            1
 #endif
 
 #define ADCC                               1   /* MPEG126 CE1.1: Advanced coefficient coding */
@@ -415,19 +414,11 @@ enum SAD_POINT_INDEX
 #if AFFINE
  // AFFINE Constant
 #define VER_NUM                            4
-#if M48879_IMPROVEMENT_SUCO
 #define AFFINE_MAX_NUM_LT                  3 ///< max number of motion candidates in top-left corner
 #define AFFINE_MAX_NUM_RT                  3 ///< max number of motion candidates in top-right corner
 #define AFFINE_MAX_NUM_LB                  2 ///< max number of motion candidates in left-bottom corner
 #define AFFINE_MAX_NUM_RB                  2 ///< max number of motion candidates in right-bottom corner
-#else
-#define AFFINE_MAX_NUM_LT                  3 ///< max number of motion candidates in top-left corner
-#define AFFINE_MAX_NUM_RT                  2 ///< max number of motion candidates in top-right corner
-#define AFFINE_MAX_NUM_LB                  2 ///< max number of motion candidates in left-bottom corner
-#define AFFINE_MAX_NUM_RB                  1 ///< max number of motion candidates in right-bottom corner
-#endif
 #define AFFINE_MIN_BLOCK_SIZE              4 ///< Minimum affine MC block size
-
 #define AFF_MAX_NUM_MVP                    2 // maximum affine inter candidates
 #define NUM_AFFINE_MVP_IDX_CTX             AFF_MAX_NUM_MVP - 1
 #define AFF_MAX_CAND                       5 // maximum affine merge candidates
