@@ -377,7 +377,6 @@ static u32 me_raster(EVCE_PINTER * pi, int x, int y, int log2_cuw, int log2_cuh,
     return cost_best;
 }
 
-#if M48879_IMPROVEMENT_ENC_OPT
 static u32 me_ipel_refinement(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2_cuh, s8 refi, int lidx, s16 range[MV_RANGE_DIM][MV_D], s16 gmvp[MV_D], s16 mvi[MV_D], s16 mv[MV_D], int bi, int *beststep, int faststep)
 {
     EVC_PIC      *ref_pic;
@@ -478,7 +477,6 @@ static u32 me_ipel_refinement(EVCE_PINTER *pi, int x, int y, int log2_cuw, int l
 
     return cost_best;
 }
-#endif
 
 static u32 me_ipel_diamond(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2_cuh, s8 refi, int lidx, s16 range[MV_RANGE_DIM][MV_D], s16 gmvp[MV_D], s16 mvi[MV_D], s16 mv[MV_D], int bi, int *beststep, int faststep)
 {
@@ -494,9 +492,7 @@ static u32 me_ipel_diamond(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2
     int            min_cmv_x, min_cmv_y, max_cmv_x, max_cmv_y;
     s16            imv_x, imv_y;
     int            mvsize = 1;
-#if M48879_IMPROVEMENT_ENC_OPT
     int not_found_best = 0;
-#endif
 
     org = pi->o[Y_C] + y * pi->s_o[Y_C] + x;
     ref_pic = pi->refp[refi][lidx].pic;
@@ -520,9 +516,8 @@ static u32 me_ipel_diamond(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2
 
     while(1)
     {
-#if M48879_IMPROVEMENT_ENC_OPT
         not_found_best++;
-#endif
+
         if(step <= 2)
         {
             if(pi->curr_mvr > 2)
@@ -595,9 +590,7 @@ static u32 me_ipel_diamond(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2
                             mv_best_x = mv_x;
                             mv_best_y = mv_y;
                             *beststep = 2;
-#if M48879_IMPROVEMENT_ENC_OPT
                             not_found_best = 0;
-#endif
                             cost_best = cost;
                             best_mv_bits = mv_bits;
                         }
@@ -680,18 +673,13 @@ static u32 me_ipel_diamond(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2
                         *beststep = step;
                         cost_best = cost;
                         best_mv_bits = mv_bits;
-#if M48879_IMPROVEMENT_ENC_OPT
                         not_found_best = 0;
-#endif
                     }
                 }
             }
         }
-#if M48879_IMPROVEMENT_ENC_OPT
+
         if (not_found_best == faststep)
-#else
-        if(step >= faststep)
-#endif
         {
             break;
         }
@@ -702,12 +690,11 @@ static u32 me_ipel_diamond(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2
         }
 
         step <<= 1;
-#if M48879_IMPROVEMENT_ENC_OPT
+
         if (step > pi->max_search_range || (step << (pi->curr_mvr - 2)) > pi->max_search_range)
         {
             break;
         }
-#endif
     }
 
     /* set best MV */
@@ -922,11 +909,7 @@ static u32 pinter_me_epzs(EVCE_PINTER * pi, int x, int y, int log2_cuw, int log2
         }
     }
 
-#if M48879_IMPROVEMENT_ENC_OPT
     while (bi != BI_NORMAL && beststep > REFINE_SEARCH_THD)
-#else
-    if(bi != BI_NORMAL && beststep > REFINE_SEARCH_THD)
-#endif
     {
         mvc[MV_X] = x + (mv[MV_X] >> 2);
         mvc[MV_Y] = y + (mv[MV_Y] >> 2);
@@ -936,10 +919,7 @@ static u32 pinter_me_epzs(EVCE_PINTER * pi, int x, int y, int log2_cuw, int log2
         mvi[MV_X] = mv[MV_X] + (x << 2);
         mvi[MV_Y] = mv[MV_Y] + (y << 2);
 
-#if M48879_IMPROVEMENT_ENC_OPT
         beststep = 0;
-#endif
-
         cost = me_ipel_diamond(pi, x, y, log2_cuw, log2_cuh, ri, lidx, range, gmvp, mvi, mvt, bi, &tmpstep, MAX_REFINE_SEARCH_STEP);
         if(cost < cost_best)
         {
@@ -947,7 +927,7 @@ static u32 pinter_me_epzs(EVCE_PINTER * pi, int x, int y, int log2_cuw, int log2
 
             mv[MV_X] = mvt[MV_X];
             mv[MV_Y] = mvt[MV_Y];
-#if M48879_IMPROVEMENT_ENC_OPT
+
             if (abs(mvp[MV_X] - mv[MV_X]) < 2 && abs(mvp[MV_Y] - mv[MV_Y]) < 2)
             {
                 beststep = 0;
@@ -956,7 +936,7 @@ static u32 pinter_me_epzs(EVCE_PINTER * pi, int x, int y, int log2_cuw, int log2
             {
                 beststep = tmpstep;
             }
-#endif
+
         }
     }
 
@@ -973,7 +953,6 @@ static u32 pinter_me_epzs(EVCE_PINTER * pi, int x, int y, int log2_cuw, int log2
             mv[MV_Y] = mvt[MV_Y];
         }
     }
-#if M48879_IMPROVEMENT_ENC_OPT
     else
     {
         mvc[MV_X] = x + (mv[MV_X] >> 2);
@@ -992,7 +971,6 @@ static u32 pinter_me_epzs(EVCE_PINTER * pi, int x, int y, int log2_cuw, int log2
             mv[MV_Y] = mvt[MV_Y];
         }
     }
-#endif
 
     return cost_best;
 }
@@ -5903,12 +5881,6 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 
                 for(pi->curr_bi = 0; pi->curr_bi < max_num_bi; pi->curr_bi++)
                 {
-#if !M48879_IMPROVEMENT_ENC_OPT
-                    if(pi->curr_bi >= SKIP_BI_IDX && ((core->cu_mode == MODE_SKIP) || (core->cu_mode == MODE_SKIP_MMVD) || (core->cu_mode == MODE_DIR_MMVD)))
-                    {
-                        continue;
-                    }
-#endif
                     if(pi->curr_bi > 0 && cost_inter[PRED_BI] > (1.17) * cost_inter[PRED_L0] && cost_inter[PRED_BI] > (1.17) * cost_inter[PRED_L1])
                     {
                         continue;

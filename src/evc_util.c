@@ -3449,11 +3449,7 @@ int evc_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lcu
 u8 evc_check_suco_cond(int cuw, int cuh, s8 split_mode, int boundary, u8 log2_max_cuwh, u8 suco_max_depth, u8 suco_depth)
 {
     int suco_minsize = 1 << max((log2_max_cuwh - suco_max_depth - suco_depth), MIN_CU_LOG2);
-#if M48879_IMPROVEMENT_ENC_OPT
     int suco_maxsize = 1 << min((log2_max_cuwh - suco_max_depth), 6);
-#else
-    int suco_maxsize = 1 << (log2_max_cuwh - suco_max_depth);
-#endif
 
     if(EVC_MIN(cuw, cuh) < suco_minsize || EVC_MAX(cuw, cuh) > suco_maxsize)
     {

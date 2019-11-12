@@ -122,13 +122,8 @@ static int  op_framework_cu14_max = 6;
 static int  op_framework_cu14_min = 4;
 static int  op_framework_tris_max = 6;
 static int  op_framework_tris_min = 4;
-#if M48879_IMPROVEMENT_ENC_OPT
 static int  op_framework_suco_max = 6;
 static int  op_framework_suco_min = 4;
-#else
-static int  op_framework_suco_max = 7;
-static int  op_framework_suco_min = 4;
-#endif
 static int  op_tool_amvr          = 1; /* default on */
 static int  op_tool_mmvd          = 1; /* default on */
 static int  op_tool_affine        = 1; /* default on */
