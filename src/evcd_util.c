@@ -68,17 +68,10 @@ int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16])
 #if AFFINE
 void evcd_set_affine_mvf(EVCD_CTX * ctx, EVCD_CORE * core)
 {
-#if !M48933_AFFINE
-    s16(*map_mv)[REFP_NUM][MV_D];
-#endif
-
     int   w_cu;
     int   h_cu;
     int   scup;
     int   w_scu;
-#if !M48933_AFFINE
-    int   i, j;
-#endif
     int   lidx;
     int   vertex_num = core->affine_flag + 1;
     int   aff_scup[VER_NUM];
@@ -112,7 +105,6 @@ void evcd_set_affine_mvf(EVCD_CTX * ctx, EVCD_CORE * core)
     {
         if(core->refi[lidx] >= 0)
         {
-#if M48933_AFFINE
             s16( *ac_mv )[MV_D] = core->affine_mv[lidx];
             int dmv_hor_x, dmv_ver_x, dmv_hor_y, dmv_ver_y;
             int mv_scale_hor = ac_mv[0][MV_X] << 7;
@@ -194,61 +186,6 @@ void evcd_set_affine_mvf(EVCD_CTX * ctx, EVCD_CORE * core)
                     }
                 }
             }
-#else
-            s16(*ac_mv)[MV_D] = core->affine_mv[lidx];
-            int dmv_hor_x, dmv_ver_x, dmv_hor_y, dmv_ver_y;
-            int mv_scale_hor = ac_mv[0][MV_X] << 7;
-            int mv_scale_ver = ac_mv[0][MV_Y] << 7;
-            int mv_y_hor = mv_scale_hor;
-            int mv_y_ver = mv_scale_ver;
-            int mv_scale_tmp_hor, mv_scale_tmp_ver;
-
-            // convert to 2^(storeBit + iBit) precision
-            dmv_hor_x = (ac_mv[1][MV_X] - ac_mv[0][MV_X]) << (7 - core->log2_cuw);     // deltaMvHor
-            dmv_hor_y = (ac_mv[1][MV_Y] - ac_mv[0][MV_Y]) << (7 - core->log2_cuw);
-            if ( vertex_num == 3 )
-            {
-                dmv_ver_x = (ac_mv[2][MV_X] - ac_mv[0][MV_X]) << (7 - core->log2_cuh); // deltaMvVer
-                dmv_ver_y = (ac_mv[2][MV_Y] - ac_mv[0][MV_Y]) << (7 - core->log2_cuh);
-            }
-            else
-            {
-                dmv_ver_x = -dmv_hor_y;                                                // deltaMvVer
-                dmv_ver_y = dmv_hor_x;
-            }
-
-            map_mv = ctx->map_mv + scup;
-            for(i = 0; i < h_cu; i++)
-            {
-                for(j = 0; j < w_cu; j++)
-                {
-                    int pos_x = (j << MIN_CU_LOG2) + 2;
-                    int pos_y = (i << MIN_CU_LOG2) + 2;
-
-                    mv_scale_tmp_hor = mv_scale_hor + dmv_hor_x * pos_x + dmv_ver_x * pos_y;
-                    mv_scale_tmp_ver = mv_scale_ver + dmv_hor_y * pos_x + dmv_ver_y * pos_y;
-
-                    map_mv[j][lidx][MV_X] = mv_scale_tmp_hor >> 7;
-                    map_mv[j][lidx][MV_Y] = mv_scale_tmp_ver >> 7;
-                }
-                map_mv += w_scu;
-            }
-
-            // reset vertex mv
-            map_mv = ctx->map_mv + scup;
-            for(i = 0; i < vertex_num; i++)
-            {
-                map_mv[aff_scup[i]][lidx][MV_X] = ac_mv[i][MV_X];
-                map_mv[aff_scup[i]][lidx][MV_Y] = ac_mv[i][MV_Y];
-            }
-            if(vertex_num == 2) // reset lt vertex mv
-            {
-                s16 vx2 = ac_mv[0][MV_X] - (ac_mv[1][MV_Y] - ac_mv[0][MV_Y]) * h_cu / w_cu;
-                s16 vy2 = ac_mv[0][MV_Y] + (ac_mv[1][MV_X] - ac_mv[0][MV_X]) * h_cu / w_cu;
-                map_mv[aff_scup[2]][lidx][MV_X] = vx2;
-                map_mv[aff_scup[2]][lidx][MV_Y] = vy2;
-            }
-#endif
         }
     }
 }

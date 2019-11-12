@@ -5402,9 +5402,7 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
     v_org = pi->o[V_C] + (x >> 1) + ((y >> 1) * pi->s_o[V_C]);
 
     mrg_cnt = evc_get_affine_merge_candidate(ctx->ptr, ctx->slice_type, core->scup, ctx->map_refi, ctx->map_mv, pi->refp, cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, mrg_list_refi, mrg_list_cp_mv, mrg_list_cp_num, ctx->map_scu, ctx->map_affine
-#if M48933_AFFINE
                                              , ctx->log2_max_cuwh
-#endif
 #if DMVR_LAG
                                              , ctx->map_unrefined_mv
 #endif
@@ -6364,9 +6362,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                             evc_get_affine_motion_scaling(ctx->ptr, core->scup, lidx, refi_cur, pi->num_refp, ctx->map_mv, ctx->map_refi, pi->refp,
                                                           core->cuw, core->cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, affine_mvp, pi->refi_pred[lidx],
                                                           ctx->map_scu, ctx->map_affine, vertex_num, core->avail_lr
-#if M48933_AFFINE
                                                           , ctx->log2_max_cuwh
-#endif
 #if DMVR_LAG
                                                           , ctx->map_unrefined_mv
 #endif
@@ -6600,9 +6596,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                                 evc_get_affine_motion_scaling(ctx->ptr, core->scup, lidx, refi_cur, pi->num_refp, ctx->map_mv, ctx->map_refi, pi->refp,
                                                               core->cuw, core->cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, affine_mvp, pi->refi_pred[lidx],
                                                               ctx->map_scu, ctx->map_affine, vertex_num, core->avail_lr
-#if M48933_AFFINE
                                                               , ctx->log2_max_cuwh
-#endif
 #if DMVR_LAG
                                                               , ctx->map_unrefined_mv
 #endif

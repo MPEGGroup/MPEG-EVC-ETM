@@ -136,7 +136,6 @@
 #define M48933_IMPROVEMENT                 1
 #if M48933_IMPROVEMENT
 #define M48933_INTRA_PRED_NO_DIV           1
-#define M48933_AFFINE                      1
 #endif
 
 #define ADCC                               1   /* MPEG126 CE1.1: Advanced coefficient coding */
