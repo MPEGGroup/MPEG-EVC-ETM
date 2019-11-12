@@ -2226,9 +2226,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         //TDB: check if should be here
         sh->alf_on = sps->tool_alf;
 #endif
-#if M48879_IMPROVEMENT_INTER
         sh->mmvd_group_enable_flag = sps->tool_mmvd;
-#endif
     }
     else if (nalu->nal_unit_type_plus1 - 1 == EVC_PPS_NUT)
     {

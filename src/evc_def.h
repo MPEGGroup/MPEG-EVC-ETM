@@ -129,7 +129,6 @@
 #if M48879_IMPROVEMENT
 #define M48879_IMPROVEMENT_ENC_OPT         1
 #define M48879_IMPROVEMENT_INTRA           1
-#define M48879_IMPROVEMENT_INTER           1
 #endif
 
 #define ADCC                               1   /* MPEG126 CE1.1: Advanced coefficient coding */
@@ -1588,9 +1587,7 @@ typedef struct _EVC_SH
 
 #if ALF
     u8               alf_on;
-#if M48879_IMPROVEMENT_INTER
     u8               mmvd_group_enable_flag;
-#endif
     u8               ctb_alf_on;
     u16              num_ctb;
 #if ALF_PARAMETER_APS

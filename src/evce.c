@@ -2190,7 +2190,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #if TRACE_RDO_EXCLUDE_I
     }
 #endif
-#if M48879_IMPROVEMENT_INTER
     if (ctx->sps.tool_mmvd && (ctx->slice_type == SLICE_B))
     {
         sh->mmvd_group_enable_flag = !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr);
@@ -2205,7 +2204,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     {
         sh->mmvd_group_enable_flag = 0;
     }
-#endif
 #if DQP
     ctx->sh.qp_prev = ctx->sh.qp;
 #endif

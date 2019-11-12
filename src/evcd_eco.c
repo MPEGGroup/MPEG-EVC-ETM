@@ -1001,11 +1001,7 @@ void evcd_eco_mmvd_data(EVCD_CTX * ctx, EVCD_CORE * core)
 {
     EVCD_SBAC *sbac;
     EVC_BSR   *bs;
-#if M48879_IMPROVEMENT_INTER
     int        type = ctx->sh.mmvd_group_enable_flag && !(1 << (core->log2_cuw + core->log2_cuh) <= NUM_SAMPLES_BLOCK);
-#else
-    int        type = !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr);
-#endif
     int        parse_idx = 0;
     int        temp = 0;
     int        temp_t;
@@ -3366,7 +3362,6 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
     }
 
     sh->slice_type = evc_bsr_read_ue(bs);
-#if M48879_IMPROVEMENT_INTER
   #if M50632_IMPROVEMENT_MMVD
     if (sps->tool_mmvd && ((sh->slice_type == SLICE_B)||(sh->slice_type == SLICE_P)) )
 #else
@@ -3379,7 +3374,6 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
     {
         sh->mmvd_group_enable_flag = 0;
     }
-#endif
 #if ALF
     if (sps->tool_alf)
     {

@@ -403,7 +403,6 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
     }
 
     evc_bsw_write_ue(bs, sh->slice_type);
-#if M48879_IMPROVEMENT_INTER
     if (sps->tool_mmvd && (sh->slice_type == SLICE_B))
     {
         evc_bsw_write1(bs, sh->mmvd_group_enable_flag);
@@ -413,7 +412,6 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
     {
         evc_bsw_write1(bs, sh->mmvd_group_enable_flag);
     }
-#endif
 #endif
 #if ALF
     if (sps->tool_alf)
@@ -3048,11 +3046,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 
             if(core->mmvd_flag)
             {
-#if M48879_IMPROVEMENT_INTER
                 evce_eco_mmvd_info(bs, cu_data->mmvd_idx[cup], ctx->sh.mmvd_group_enable_flag && !(cuw*cuh <= NUM_SAMPLES_BLOCK));
-#else
-                evce_eco_mmvd_info(bs, cu_data->mmvd_idx[cup], !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr));
-#endif
             }
             else
             {
@@ -3167,11 +3161,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 
                         if((cu_data->pred_mode[cup] == MODE_DIR_MMVD))
                         {
-#if M48879_IMPROVEMENT_INTER
                             evce_eco_mmvd_info(bs, cu_data->mmvd_idx[cup], ctx->sh.mmvd_group_enable_flag && !(cuw*cuh <= NUM_SAMPLES_BLOCK));
-#else
-                            evce_eco_mmvd_info(bs, cu_data->mmvd_idx[cup], !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr));
-#endif
                         }
                     }
 

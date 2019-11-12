@@ -459,9 +459,7 @@ int main(int argc, const char **argv)
 #if ALF
                 sh->alf_on = sps->tool_alf;
 #endif
-#if M48879_IMPROVEMENT_INTER
                 sh->mmvd_group_enable_flag = sps->tool_mmvd;
-#endif
                 if (!bs_num)
                 {
                     fwrite(tmp_size, 1, 4, fp_bs_write);
