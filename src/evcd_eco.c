@@ -3325,15 +3325,15 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
     int NumTilesInSlice = 0;    //TBD according to the spec
     sh->dtr = evc_bsr_read(bs, DTR_BIT_CNT);
     sh->layer_id = evc_bsr_read(bs, 3);
-#if M49023_ADMVP_IMPROVE
     sh->temporal_mvp_asigned_flag = evc_bsr_read1(bs);
+    
     if (sh->temporal_mvp_asigned_flag)
     {
         sh->collocated_from_list_idx = evc_bsr_read1(bs);
         sh->collocated_from_ref_idx = evc_bsr_read1(bs);
         sh->collocated_mvp_source_list_idx = evc_bsr_read1(bs);
     }
-#endif
+
     sh->slice_pic_parameter_set_id = evc_bsr_read_ue(bs);
     sh->single_tile_in_slice_flag = evc_bsr_read1(bs);
     sh->first_tile_id = evc_bsr_read(bs, pps->tile_id_len_minus1 + 1);

@@ -694,11 +694,9 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
     sh->dptr = ctx->ptr - ctx->dtr;
     sh->layer_id = ctx->layer_id;
     sh->single_tile_in_slice_flag = 1;
-#if M49023_ADMVP_IMPROVE
     sh->collocated_from_list_idx = (sh->slice_type == SLICE_P) ? REFP_0 : REFP_1;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
     sh->collocated_from_ref_idx = 0;        // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
     sh->collocated_mvp_source_list_idx = REFP_0;  // Specifies source (List ID) in collocated pic that provides MV information (Applicability is function of NoBackwardPredFlag)
-#endif 
 
     /* set lambda */
 #if USE_SLICE_DQP
@@ -2108,7 +2106,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
         /* reference picture lists construction */
         ret = evc_picman_refp_rpl_based_init(&ctx->rpm, sh, ctx->refp);
-#if M49023_ADMVP_IMPROVE
         if (sh->slice_type != SLICE_I)
         {
             int dptr0 = (int)(ctx->ptr) - (int)(ctx->refp[0][REFP_0].ptr);
@@ -2116,7 +2113,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             sh->temporal_mvp_asigned_flag = !(((dptr0 > 0) && (dptr1 > 0)) || ((dptr0 < 0) && (dptr1 < 0)));
             //            printf("tmvp: %d %d %d %d\n", ctx->ptr, ctx->refp[0][REFP_0].ptr, ctx->refp[0][REFP_1].ptr, sh->temporal_mvp_asigned_flag);
         }
-#endif
     }
     evc_assert_rv(ret == EVC_OK, ret);
 

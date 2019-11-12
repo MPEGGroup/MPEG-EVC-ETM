@@ -283,9 +283,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 #if ADMVP
                            , EVC_HISTORY_BUFFER history_buffer, int admvp_flag
 #endif
-#if M49023_ADMVP_IMPROVE 
     , EVC_SH* sh
-#endif
 #if M50761_TMVP_8X8_GRID
     , int log2_max_cuwh
 #endif
@@ -361,13 +359,10 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
         }
     }
 #if ADMVP
-#if M49023_ADMVP_IMPROVE
     if (admvp_flag == 0)
         evc_get_motion_skip_baseline(slice_t, scup, map_refi, map_mv, refp, cuw, cuh, w_scu, srefi, smvp, avail);
     else
 #endif
-#endif
-#if M49023_ADMVP_IMPROVE
         evc_get_motion_merge_main(REF_SET[2][0], slice_t, scup, map_refi, map_mv, refp, cuw, cuh, w_scu, h_scu, srefi, smvp, map_scu, avail_lr
 #if DMVR_LAG
             , NULL
@@ -378,15 +373,12 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 #if IBC
             , 0
 #endif
-#if M49023_ADMVP_IMPROVE
             , (EVC_REFP(*)[2])refp
             , sh
-#endif
 #if M50761_TMVP_8X8_GRID
             , log2_max_cuwh
 #endif
         );
-#endif
 
     for (z = 0; z < MAX_NUM_MVP; z++)
     {
@@ -1977,7 +1969,6 @@ __inline static void check_redundancy(int slice_type, s16 mvp[REFP_NUM][MAX_NUM_
     }
 }
 
-#if M49023_ADMVP_IMPROVE
 void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],
     EVC_REFP refp[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, s8 refi[REFP_NUM][MAX_NUM_MVP], s16 mvp[REFP_NUM][MAX_NUM_MVP][MV_D], u32 *map_scu, u16 avail_lr
 #if DMVR_LAG
@@ -1988,9 +1979,7 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
     , u8 ibc_flag
 #endif
     , EVC_REFP(*refplx)[REFP_NUM]
-#if M49023_ADMVP_IMPROVE 
     , EVC_SH* sh
-#endif
 #if M50761_TMVP_8X8_GRID
     , int log2_max_cuwh
 #endif
@@ -2004,16 +1993,8 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
     int neb_addr[MAX_NUM_POSSIBLE_SCAND], valid_flag[MAX_NUM_POSSIBLE_SCAND];
     s16 tmvp[REFP_NUM][MV_D];
     int scup_tmp;
-#if M49023_ADMVP_IMPROVE
     int cur_num, i, idx0, idx1;
-#else
-    int cur_num, i, idx0, idx1, s, z;
-#endif
     int c_win = 0;
-#if !M49023_ADMVP_IMPROVE
-    int priority_list0[MAX_NUM_MVP*MAX_NUM_MVP];
-    int priority_list1[MAX_NUM_MVP*MAX_NUM_MVP];
-#endif
     evc_mset(mvp, 0, MAX_NUM_MVP * REFP_NUM * MV_D * sizeof(s16));
     evc_mset(refi, REFI_INVALID, MAX_NUM_MVP * REFP_NUM * sizeof(s8));
 
@@ -2087,7 +2068,6 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
     int tmvp_cnt_pos0 = 0, tmvp_cnt_pos1 = 0;
     int tmvp_added = 0;
 
-#if M49023_ADMVP_IMPROVE
     if (!tmvp_added)
     {// TMVP-central
         s8 availablePredIdx = 0;
@@ -2097,18 +2077,12 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
         int scu_col = ((x_scu + (cuw >> 1 >> MIN_CU_LOG2)) >> 1 << 1) + ((y_scu + (cuh >> 1 >> MIN_CU_LOG2)) >> 1 << 1) * w_scu; // 8x8 grid
         evc_get_mv_collocated(
             refplx,
-            ptr, scu_col, scup, w_scu, h_scu, tmvp, &availablePredIdx
-#if M49023_ADMVP_IMPROVE 
-            , sh
-#endif
-        );
+            ptr, scu_col, scup, w_scu, h_scu, tmvp, &availablePredIdx, sh);
 #else
         evc_get_mv_collocated(
             refplx,
             ptr, scup + ((cuw >> 1) >> MIN_CU_LOG2) + ((cuh >> 1) >> MIN_CU_LOG2) * w_scu, scup, w_scu, h_scu, tmvp, &availablePredIdx
-#if M49023_ADMVP_IMPROVE 
             , sh
-#endif
         );
 #endif
         if ((availablePredIdx == 1) || (availablePredIdx == 3))
@@ -2168,13 +2142,8 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
             );
         if (scup_tmp != -1)  // if available, add it to candidate list
         {
-            evc_get_mv_collocated(
-                refplx,
-                ptr, scup_tmp, scup, w_scu, h_scu, tmvp, &availablePredIdx
-#if M49023_ADMVP_IMPROVE 
-                , sh
-#endif
-            );
+            evc_get_mv_collocated(refplx,ptr, scup_tmp, scup, w_scu, h_scu, tmvp, &availablePredIdx, sh);
+
             if ((availablePredIdx == 1) || (availablePredIdx == 3))
             {
                 refi[REFP_0][cnt] = 0;
@@ -2232,13 +2201,8 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
             );
         if (scup_tmp != -1)  // if available, add it to candidate list
         {
-            evc_get_mv_collocated(
-                refplx,
-                ptr, scup_tmp, scup, w_scu, h_scu, tmvp, &availablePredIdx
-#if M49023_ADMVP_IMPROVE 
-                , sh
-#endif
-            );
+            evc_get_mv_collocated(refplx,ptr, scup_tmp, scup, w_scu, h_scu, tmvp, &availablePredIdx, sh);
+
             if ((availablePredIdx == 1) || (availablePredIdx == 3))
             {
                 refi[REFP_0][cnt] = 0;
@@ -2279,19 +2243,11 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
             }
         }
     }
-#endif
-#if M49023_ADMVP_IMPROVE
+    
     if (cnt < (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
-#else
-    if (cnt < (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP - 1))
-#endif
     {
         // take the MV from last to first
-#if M49023_ADMVP_IMPROVE
         for (k = 3; k <= min(history_buffer.currCnt, ALLOWED_CHECKED_NUM); k += 4)
-#else
-        for (k = 3; k <= min(history_buffer.currCnt, small_cu ? ALLOWED_CHECKED_NUM - (MAX_NUM_MVP - MAX_NUM_MVP_SMALL_CU) * 4 : ALLOWED_CHECKED_NUM); k += 4)
-#endif
             //        small size: for (k = 3; k <= min(history_buffer.currCnt, ALLOWED_CHECKED_NUM - 2 * 4 ); k += 4)
             //        large size: for (k = 3; k <= min(history_buffer.currCnt, ALLOWED_CHECKED_NUM); k += 4)
         {
@@ -2341,29 +2297,8 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
     // B slice mv combination
     if (check_bi_applicability(slice_type, cuw, cuh))
     {
-#if !M49023_ADMVP_IMPROVE
-        for (z = 1; z <= 2 * (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP) - 3; z++)
-        {
-            for (s = z / 2; s >= 0; s--)
-            {
-                if ((s == z - s) || (s >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP)) || ((z - s) >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP)))
-
-                {
-                    continue;
-                }
-                priority_list0[c_win] = s;
-                priority_list1[c_win] = z - s;
-                c_win++;
-                priority_list0[c_win] = z - s;
-                priority_list1[c_win] = s;
-                c_win++;
-            }
-        }
-#endif
-#if M49023_ADMVP_IMPROVE
         int priority_list0[MAX_NUM_MVP*MAX_NUM_MVP] = { 0, 1, 0, 2, 1, 2, 0, 3, 1, 3, 2, 3, 0, 4, 1, 4, 2, 4, 3, 4 };
         int priority_list1[MAX_NUM_MVP*MAX_NUM_MVP] = { 1, 0, 2, 0, 2, 1, 3, 0, 3, 1, 3, 2, 4, 0, 4, 1, 4, 2, 4, 3 };
-#endif
         cur_num = cnt;
         for (i = 0; i < cur_num*(cur_num - 1) && cnt != (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP); i++)
         {
@@ -2409,6 +2344,7 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
         }
     }
 }
+
 void evc_get_motion_skip_baseline(int slice_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], EVC_REFP refp[REFP_NUM], int cuw, int cuh, int w_scu, s8 refi[REFP_NUM][MAX_NUM_MVP], s16 mvp[REFP_NUM][MAX_NUM_MVP][MV_D], u16 avail_lr)
 {
 #if ADMVP
@@ -2421,7 +2357,6 @@ void evc_get_motion_skip_baseline(int slice_type, int scup, s8(*map_refi)[REFP_N
     }
 #endif
 }
-#endif
 
 #if ADMVP        
 void evc_clip_mv_pic(int x, int y, int maxX, int maxY, s16 mvp[REFP_NUM][MV_D])
@@ -5053,13 +4988,8 @@ int evc_get_affine_merge_candidate(int ptr, int slice_type, int scup, s8(*map_re
 #if M50662_AFFINE_IBC_TMVP_SUCO_FIX
             if (valid_flag_lb[0])
             {
-                evc_get_mv_collocated(
-                    refp,
-                    ptr, neb_addr_lb[0], scup, w_scu, h_scu, tmvp, &availablePredIdx
-#if M49023_ADMVP_IMPROVE 
-                    , sh
-#endif
-                );
+                evc_get_mv_collocated(refp,ptr, neb_addr_lb[0], scup, w_scu, h_scu, tmvp, &availablePredIdx, sh);
+
                 if ((availablePredIdx == 1) || (availablePredIdx == 3))
                 {
                     cp_refi[REFP_0][2] = 0;
@@ -6169,38 +6099,25 @@ char is_inter_applicable(int cuw, int cuh)
 }
 #endif
 
-
-#if M49023_ADMVP_IMPROVE
-void evc_get_mv_collocated(
-    EVC_REFP(*refp)[REFP_NUM]
-    , u32 ptr, int scup, int c_scu, u16 w_scu, u16 h_scu, s16 mvp[REFP_NUM][MV_D]
-    , s8 *availablePredIdx
-#if M49023_ADMVP_IMPROVE 
-    , EVC_SH* sh
-#endif
-)
+void evc_get_mv_collocated(EVC_REFP(*refp)[REFP_NUM], u32 ptr, int scup, int c_scu, u16 w_scu, u16 h_scu, s16 mvp[REFP_NUM][MV_D], s8 *availablePredIdx, EVC_SH* sh)
 {
     *availablePredIdx = 0;
-#if M49023_ADMVP_IMPROVE
+
     int temporal_mvp_asigned_flag = sh->temporal_mvp_asigned_flag;
     int collocated_from_list_idx = (sh->slice_type == SLICE_P) ? REFP_0 : REFP_1;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
     int collocated_from_ref_idx = 0;        // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
     int collocated_mvp_source_list_idx = REFP_0;  // Specifies source (List ID) in collocated pic that provides MV information (Applicability is function of NoBackwardPredFlag)
+    
     if (sh->temporal_mvp_asigned_flag)
     {
         collocated_from_list_idx = sh->collocated_from_list_idx;
         collocated_from_ref_idx = sh->collocated_from_ref_idx;
         collocated_mvp_source_list_idx = sh->collocated_mvp_source_list_idx;
     }
-#else
-    int collocated_from_list_idx = REFP_1;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
-    int collocated_from_ref_idx = 0;        // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
-    int collocated_mvp_source_list_idx = REFP_0;  // Specifies source (List ID) in collocated pic that provides MV information (Applicability is function of NoBackwardPredFlag)
-#endif
+    
     EVC_REFP colPic = (refp[collocated_from_ref_idx][collocated_from_list_idx]);  // col picture is ref idx 0 and list 1
 
     int neb_addr_coll = scup;     // Col 
-
     int dptr_co[REFP_NUM] = { 0, 0 };
     int dptr[REFP_NUM] = { 0, 0 };
     int ver_refi[REFP_NUM] = { -1, -1 };
@@ -6210,9 +6127,8 @@ void evc_get_mv_collocated(
     s8(*map_refi_co)[REFP_NUM] = colPic.map_refi;
     dptr[REFP_0] = ptr - refp[0][REFP_0].ptr;
     dptr[REFP_1] = ptr - refp[0][REFP_1].ptr;
-#if M49023_ADMVP_IMPROVE
+
     if (!temporal_mvp_asigned_flag)
-#endif
     {
         dptr_co[REFP_0] = colPic.ptr - colPic.list_ptr[map_refi_co[neb_addr_coll][REFP_0]]; //POC1
         dptr_co[REFP_1] = colPic.ptr - colPic.list_ptr[map_refi_co[neb_addr_coll][REFP_1]]; //POC2
@@ -6273,7 +6189,6 @@ void evc_get_mv_collocated(
     int flag = REFI_IS_VALID(ver_refi[REFP_0]) + (REFI_IS_VALID(ver_refi[REFP_1]) << 1);
     *availablePredIdx = flag; // combines flag and indication on what type of prediction is ( 0 - not available, 1 = uniL0, 2 = uniL1, 3 = Bi)
 }
-#endif
 
 #if M50761_REMOVE_BIBLOCKS_8x4
 char process_bi_mv(s16 *mv, s8* refi)

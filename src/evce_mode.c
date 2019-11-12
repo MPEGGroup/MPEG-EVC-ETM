@@ -1217,7 +1217,7 @@ static int copy_history_buffer(EVC_HISTORY_BUFFER *dst, EVC_HISTORY_BUFFER *src)
 }
 
 static int get_cu_pred_data(EVCE_CU_DATA *src, int x, int y, int log2_cuw, int log2_cuh, int log2_cus, int cud, EVCE_MODE *mi
-#if !M49023_ADMVP_IMPROVE || M50662_AFFINE_MV_HISTORY_TABLE
+#if M50662_AFFINE_MV_HISTORY_TABLE
 #if AFFINE_UPDATE && AFFINE
                             , EVCE_CTX *ctx, EVCE_CORE *core
 #endif
@@ -1265,59 +1265,6 @@ static int get_cu_pred_data(EVCE_CU_DATA *src, int x, int y, int log2_cuw, int l
 
 #if TRACE_ENC_CU_DATA_CHECK
     evc_assert(mi->trace_cu_idx != 0);
-#endif
-#if !M49023_ADMVP_IMPROVE
-#if AFFINE_UPDATE && AFFINE
-    mi->refi_sp[REFP_0] = REFI_INVALID;
-    mi->refi_sp[REFP_1] = REFI_INVALID;
-
-    mi->mv_sp[REFP_0][MV_X] = 0;
-    mi->mv_sp[REFP_0][MV_Y] = 0;
-    mi->mv_sp[REFP_1][MV_X] = 0;
-    mi->mv_sp[REFP_1][MV_Y] = 0;
-
-    if (mi->affine_flag)
-    {
-        int neb_addr[MAX_NUM_POSSIBLE_SCAND], valid_flag[MAX_NUM_POSSIBLE_SCAND], k;
-
-        for (k = 0; k < MAX_NUM_POSSIBLE_SCAND; k++)
-        {
-            valid_flag[k] = 0;
-        }
-#if ADMVP
-        evc_check_motion_availability2(core->scup, cuw, cuh, ctx->w_scu, ctx->h_scu, neb_addr, valid_flag, ctx->map_scu, core->avail_lr, 1
-#if IBC
-          , 0
-#endif    
-        );
-#else
-        evc_check_motion_availability(core->scup, cuw, cuh, ctx->w_scu, ctx->h_scu, neb_addr, valid_flag, ctx->map_scu, core->avail_lr, 1
-#if IBC
-          , 0
-#endif
-        );
-#endif
-
-        for (k = 0; k < 5; k++)
-        {
-            if (valid_flag[k])
-            {
-                mi->refi_sp[REFP_0] = REFI_IS_VALID(ctx->map_refi[neb_addr[k]][REFP_0]) ? ctx->map_refi[neb_addr[k]][REFP_0] : REFI_INVALID;
-                mi->mv_sp[REFP_0][MV_X] = ctx->map_mv[neb_addr[k]][REFP_0][MV_X];
-                mi->mv_sp[REFP_0][MV_Y] = ctx->map_mv[neb_addr[k]][REFP_0][MV_Y];
-
-                if (ctx->slice_type == SLICE_B)
-                {
-                    mi->refi_sp[REFP_1] = REFI_IS_VALID(ctx->map_refi[neb_addr[k]][REFP_1]) ? ctx->map_refi[neb_addr[k]][REFP_1] : REFI_INVALID;
-                    mi->mv_sp[REFP_1][MV_X] = ctx->map_mv[neb_addr[k]][REFP_1][MV_X];
-                    mi->mv_sp[REFP_1][MV_Y] = ctx->map_mv[neb_addr[k]][REFP_1][MV_Y];
-                }
-
-                break;
-            }
-        }
-    }
-#endif
 #endif
     return EVC_OK;
 }
@@ -1981,7 +1928,7 @@ static void update_history_buffer_affine(EVC_HISTORY_BUFFER *history_buffer, EVC
             history_buffer->history_cu_table[i - 1] = history_buffer->history_cu_table[i];
 #endif
         }
-#if !M49023_ADMVP_IMPROVE || M50662_AFFINE_MV_HISTORY_TABLE
+#if M50662_AFFINE_MV_HISTORY_TABLE
         if(mi->affine_flag)
         {
             mi->mv_sp[REFP_0][MV_X] = 0;
@@ -2058,7 +2005,7 @@ static void update_history_buffer_affine(EVC_HISTORY_BUFFER *history_buffer, EVC
     }
     else
     {
-#if !M49023_ADMVP_IMPROVE || M50662_AFFINE_MV_HISTORY_TABLE
+#if M50662_AFFINE_MV_HISTORY_TABLE
         if(mi->affine_flag)
         {
             mi->mv_sp[REFP_0][MV_X] = 0;
@@ -3713,7 +3660,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
             // if the cost_temp has been update above, the best MV is in mi
 
             get_cu_pred_data(&core->cu_data_best[log2_cuw - 2][log2_cuh - 2], 0, 0, log2_cuw, log2_cuh, log2_cuw, cud, mi
-#if !M49023_ADMVP_IMPROVE || M50662_AFFINE_MV_HISTORY_TABLE
+#if M50662_AFFINE_MV_HISTORY_TABLE
 #if AFFINE_UPDATE && AFFINE
                 , ctx, core
 #endif
@@ -3721,7 +3668,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
             );
 
 #if AFFINE_UPDATE && AFFINE
-#if M49023_ADMVP_IMPROVE && !M50662_AFFINE_MV_HISTORY_TABLE
+#if !M50662_AFFINE_MV_HISTORY_TABLE
             if (mi->cu_mode != MODE_INTRA && !mi->affine_flag
 #if IBC
                 && mi->cu_mode != MODE_IBC
@@ -4234,27 +4181,14 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
             // if the cost_temp has been update above, the best MV is in mi
 
             get_cu_pred_data(&core->cu_data_best[log2_cuw - 2][log2_cuh - 2], 0, 0, log2_cuw, log2_cuh, log2_cuw, cud, mi
-#if !M49023_ADMVP_IMPROVE
-#if AFFINE_UPDATE && AFFINE
-                             , ctx, core
-#endif
-#endif
             );
 
 #if AFFINE_UPDATE && AFFINE
-#if M49023_ADMVP_IMPROVE
             if (mi->cu_mode != MODE_INTRA && !mi->affine_flag
 #if IBC
                 && mi->cu_mode != MODE_IBC
 #endif                
                 )
-#else
-            if (mi->cu_mode != MODE_INTRA
-#if IBC
-                && mi->cu_mode != MODE_IBC
-#endif
-                )
-#endif
             {
                 update_history_buffer_affine(&core->history_buffer, mi, ctx->slice_type);
             }

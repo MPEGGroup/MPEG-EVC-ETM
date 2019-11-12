@@ -122,7 +122,6 @@
 #if M49023_IMPROVEMENT
 #define PROFILE_SANITY_CHECK_FIX           1 
 #define M49023_DBF_IMPROVE                 1
-#define M49023_ADMVP_IMPROVE               1
 #endif
 
 #define ADCC                               1   /* MPEG126 CE1.1: Advanced coefficient coding */
@@ -1530,12 +1529,10 @@ typedef struct _EVC_SH
     int              delta_tile_id_minus1[MAX_NUM_TILES_ROW * MAX_NUM_TILES_COL];
     int              slice_type;
     int              slice_alf_enabled_flag;
-#if M49023_ADMVP_IMPROVE
     int              temporal_mvp_asigned_flag;
-    int                 collocated_from_list_idx;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
-    int                 collocated_from_ref_idx;   // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
-    int                 collocated_mvp_source_list_idx;  // Specifies source (List ID) in collocated pic that provides MV information 
-#endif
+    int              collocated_from_list_idx;        // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
+    int              collocated_from_ref_idx;         // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
+    int              collocated_mvp_source_list_idx;  // Specifies source (List ID) in collocated pic that provides MV information 
     s32              poc;
 
      /*   HLS_RPL */

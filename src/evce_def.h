@@ -127,7 +127,7 @@ typedef struct _EVCE_MODE
     int   cu_mode;
     u8    affine_flag;
 #endif
-#if !M49023_ADMVP_IMPROVE || M50662_AFFINE_MV_HISTORY_TABLE
+#if M50662_AFFINE_MV_HISTORY_TABLE
 #if AFFINE_UPDATE && AFFINE
     // spatial neighboring MV of affine block
     s8    refi_sp[REFP_NUM];

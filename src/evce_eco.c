@@ -366,7 +366,6 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
     evc_bsw_write(bs, sh->dtr, DTR_BIT_CNT);
     evc_bsw_write(bs, sh->layer_id, 3);
 
-#if M49023_ADMVP_IMPROVE
     evc_bsw_write1(bs, sh->temporal_mvp_asigned_flag);
     if (sh->temporal_mvp_asigned_flag)
     {
@@ -374,7 +373,7 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
         evc_bsw_write1(bs, sh->collocated_from_ref_idx);
         evc_bsw_write1(bs, sh->collocated_mvp_source_list_idx);
     }
-#endif
+
     evc_bsw_write_ue(bs, sh->slice_pic_parameter_set_id);
     evc_bsw_write1(bs, sh->single_tile_in_slice_flag);
     evc_bsw_write(bs, sh->first_tile_id, pps->tile_id_len_minus1 + 1);

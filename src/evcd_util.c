@@ -837,9 +837,7 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #if ADMVP
         , core->history_buffer, ctx->sps.tool_admvp
 #endif
-#if M49023_ADMVP_IMPROVE 
         , &ctx->sh
-#endif
 #if M50761_TMVP_8X8_GRID
         , ctx->log2_max_cuwh
 #endif

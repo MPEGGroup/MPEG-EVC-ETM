@@ -539,7 +539,7 @@ static void update_history_buffer_parse_affine(EVCD_CORE *core, int slice_type)
             core->history_buffer.history_cu_table[i - 1] = core->history_buffer.history_cu_table[i];
 #endif
         }
-#if !M49023_ADMVP_IMPROVE || M50662_AFFINE_MV_HISTORY_TABLE
+#if M50662_AFFINE_MV_HISTORY_TABLE
         if(core->affine_flag)
         {
             core->mv_sp[REFP_0][MV_X] = 0;
@@ -618,7 +618,7 @@ static void update_history_buffer_parse_affine(EVCD_CORE *core, int slice_type)
     }
     else
     {
-#if !M49023_ADMVP_IMPROVE || M50662_AFFINE_MV_HISTORY_TABLE
+#if M50662_AFFINE_MV_HISTORY_TABLE
         if(core->affine_flag)
         {
             core->mv_sp[REFP_0][MV_X] = 0;
@@ -705,7 +705,6 @@ void evcd_get_direct_motion(EVCD_CTX * ctx, EVCD_CORE * core)
     cuw = (1 << core->log2_cuw);
     cuh = (1 << core->log2_cuh);
 #if ADMVP
-#if M49023_ADMVP_IMPROVE
     if (ctx->sps.tool_admvp == 0)
     {
         evc_get_motion_skip_baseline(ctx->sh.slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, srefi, smvp, core->avail_cu
@@ -714,8 +713,6 @@ void evcd_get_direct_motion(EVCD_CTX * ctx, EVCD_CORE * core)
     else
     {
 #endif
-#endif
-#if M49023_ADMVP_IMPROVE
         evc_get_motion_merge_main(ctx->ptr, ctx->sh.slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, srefi, smvp, ctx->map_scu, core->avail_lr
 #if DMVR_LAG
             , ctx->map_unrefined_mv
@@ -726,16 +723,13 @@ void evcd_get_direct_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #if IBC
             , core->ibc_flag
 #endif
-#if M49023_ADMVP_IMPROVE
             , (EVC_REFP(*)[2])ctx->refp[0]
             , &ctx->sh
-#endif
 #if M50761_TMVP_8X8_GRID
             , ctx->log2_max_cuwh
 #endif
         );
     }
-#endif
 
     core->refi[REFP_0] = srefi[REFP_0][core->mvp_idx[REFP_0]];
     core->refi[REFP_1] = srefi[REFP_1][core->mvp_idx[REFP_1]];
@@ -873,11 +867,7 @@ void evcd_get_inter_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #if AFFINE
 void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 {
-#if M49023_ADMVP_IMPROVE
     int          cuw, cuh;
-#else
-    int          cuw, cuh, k;
-#endif
     s16          affine_mvp[MAX_NUM_MVP][VER_NUM][MV_D];
     s8           refi[MAX_NUM_MVP];
     
@@ -972,53 +962,6 @@ void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
             }
         }
     }
-#if !M49023_ADMVP_IMPROVE
-#if AFFINE_UPDATE
-    core->refi_sp[REFP_0] = REFI_INVALID;
-    core->refi_sp[REFP_1] = REFI_INVALID;
-
-    core->mv_sp[REFP_0][MV_X] = 0;
-    core->mv_sp[REFP_0][MV_Y] = 0;
-    core->mv_sp[REFP_1][MV_X] = 0;
-    core->mv_sp[REFP_1][MV_Y] = 0;
-
-
-    int neb_addr[MAX_NUM_POSSIBLE_SCAND], valid_flag[MAX_NUM_POSSIBLE_SCAND];
-
-    for (k = 0; k < MAX_NUM_POSSIBLE_SCAND; k++)
-    {
-        valid_flag[k] = 0;
-    }
-#if ADMVP
-    evc_check_motion_availability2(core->scup, cuw, cuh, ctx->w_scu, ctx->h_scu, neb_addr, valid_flag, ctx->map_scu, core->avail_lr, 1
-#if IBC
-        , 0
-#endif  
-    );
-#else
-    evc_check_motion_availability(core->scup, cuw, cuh, ctx->w_scu, ctx->h_scu, neb_addr, valid_flag, ctx->map_scu, core->avail_lr, 1);
-#endif
-
-    for (k = 0; k < 5; k++)
-    {
-        if (valid_flag[k])
-        {
-            core->refi_sp[REFP_0] = REFI_IS_VALID(ctx->map_refi[neb_addr[k]][REFP_0]) ? ctx->map_refi[neb_addr[k]][REFP_0] : REFI_INVALID;
-            core->mv_sp[REFP_0][MV_X] = ctx->map_mv[neb_addr[k]][REFP_0][MV_X];
-            core->mv_sp[REFP_0][MV_Y] = ctx->map_mv[neb_addr[k]][REFP_0][MV_Y];
-
-            if (ctx->sh.slice_type == SLICE_B)
-            {
-                core->refi_sp[REFP_1] = REFI_IS_VALID(ctx->map_refi[neb_addr[k]][REFP_1]) ? ctx->map_refi[neb_addr[k]][REFP_1] : REFI_INVALID;
-                core->mv_sp[REFP_1][MV_X] = ctx->map_mv[neb_addr[k]][REFP_1][MV_X];
-                core->mv_sp[REFP_1][MV_Y] = ctx->map_mv[neb_addr[k]][REFP_1][MV_Y];
-            }
-
-            break;
-        }
-    }
-#endif
-#endif
 }
 #endif
 
@@ -1251,7 +1194,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
         );
 #endif
 #if AFFINE && ADMVP && AFFINE_UPDATE 
-#if M49023_ADMVP_IMPROVE && !M50662_AFFINE_MV_HISTORY_TABLE
+#if !M50662_AFFINE_MV_HISTORY_TABLE
         if (core->pred_mode != MODE_INTRA && !core->affine_flag
 #if IBC
             && core->pred_mode != MODE_IBC
