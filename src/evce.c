@@ -234,10 +234,8 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
     param->i_period       = cdsc->iperiod;
     param->f_ifrm         = 0;
     param->use_deblock    = 1;
-#if M49023_DBF_IMPROVE
     param->deblock_alpha_offset = cdsc->deblock_aplha_offset;
     param->deblock_beta_offset = cdsc->deblock_beta_offset;
-#endif
     param->qp_max         = MAX_QUANT;
     param->qp_min         = MIN_QUANT;
     param->use_pic_sign   = 0;
@@ -687,10 +685,8 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
     sh->dtr = ctx->dtr & DTR_BIT_MSK;
     sh->slice_type = ctx->slice_type;
     sh->deblocking_filter_on = (ctx->param.use_deblock) ? 1 : 0;
-#if M49023_DBF_IMPROVE
     sh->sh_deblock_alpha_offset = ctx->param.deblock_alpha_offset;
     sh->sh_deblock_beta_offset = ctx->param.deblock_beta_offset;
-#endif
     sh->dptr = ctx->ptr - ctx->dtr;
     sh->layer_id = ctx->layer_id;
     sh->single_tile_in_slice_flag = 1;
@@ -728,10 +724,8 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
     sh->qp = (u8)EVC_CLIP3(-(6 * (BIT_DEPTH - 8)), MAX_QUANT, qp);
     sh->qp_u = (u8)(sh->qp + ctx->cdsc.cb_qp_offset); 
     sh->qp_v = (u8)(sh->qp + ctx->cdsc.cr_qp_offset);
-#if M49023_DBF_IMPROVE
     sh->sh_deblock_alpha_offset = ctx->cdsc.deblock_aplha_offset;
     sh->sh_deblock_beta_offset = ctx->cdsc.deblock_beta_offset;
-#endif
 
     qp_l_i = sh->qp;
     ctx->lambda[0] = 0.57 * pow(2.0, (qp_l_i - 12.0) / 3.0);
@@ -1129,10 +1123,9 @@ int evce_ready(EVCE_CTX * ctx)
     ctx->pico_max_cnt = 1 + (ctx->param.max_b_frames << 1) ;
     ctx->frm_rnum = ctx->param.max_b_frames;
     ctx->qp = ctx->param.qp;
-#if M49023_DBF_IMPROVE
     ctx->deblock_alpha_offset = ctx->param.deblock_alpha_offset;
     ctx->deblock_beta_offset = ctx->param.deblock_beta_offset;
-#endif
+
     for(i = 0; i < ctx->pico_max_cnt; i++)
     {
         ctx->pico_buf[i] = (EVCE_PICO*)evc_malloc(sizeof(EVCE_PICO));
@@ -1246,10 +1239,9 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
     ctx->tree_cons = tree_cons;
 #endif
 
-#if M49023_DBF_IMPROVE
     pic->pic_deblock_alpha_offset = ctx->sh.sh_deblock_alpha_offset;
     pic->pic_deblock_beta_offset = ctx->sh.sh_deblock_beta_offset;
-#endif
+
     lcu_num = (x >> ctx->log2_max_cuwh) + (y >> ctx->log2_max_cuwh) * ctx->w_lcu;
     evc_get_split_mode(&split_mode, cud, cup, cuw, cuh, ctx->max_cuwh, ctx->map_cu_data[lcu_num].split_mode);
     evc_get_suco_flag(&suco_flag, cud, cup, cuw, cuh, ctx->max_cuwh, ctx->map_cu_data[lcu_num].suco_flag);
@@ -1337,12 +1329,9 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #else
                   ctx->map_mv
 #endif
-                  , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp
-#if M49023_DBF_IMPROVE
-                    , 0
-#endif
+                  , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
-                    , ctx->tree_cons
+                  , ctx->tree_cons
 #endif
                 );
                 evc_deblock_cu_hor(pic, x, y + MAX_TR_SIZE, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, 
@@ -1351,10 +1340,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #else
                   ctx->map_mv
 #endif
-                  , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp
-#if M49023_DBF_IMPROVE
-                    , 0
-#endif
+                  , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
                     , ctx->tree_cons
 #endif
@@ -1368,10 +1354,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #else
                   ctx->map_mv
 #endif
-                  , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp
-#if M49023_DBF_IMPROVE
-                    , 0
-#endif
+                  , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
                     , ctx->tree_cons
 #endif
@@ -1392,10 +1375,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if FIX_PARALLEL_DBF
                     , ctx->map_cu_mode
 #endif
-                    , ctx->refp
-#if M49023_DBF_IMPROVE
-                    , 0
-#endif
+                    , ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
                     , ctx->tree_cons
 #endif
@@ -1410,10 +1390,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if FIX_PARALLEL_DBF
                     , ctx->map_cu_mode
 #endif                            
-                    , ctx->refp
-#if M49023_DBF_IMPROVE
-                    , 0
-#endif
+                    , ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
                     , ctx->tree_cons
 #endif
@@ -1431,10 +1408,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if FIX_PARALLEL_DBF
                                    , ctx->map_cu_mode
 #endif
-                                   , ctx->refp
-#if M49023_DBF_IMPROVE
-                    , 0
-#endif
+                                   , ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
                     , ctx->tree_cons
 #endif
@@ -2908,7 +2882,6 @@ int evce_config(EVCE id, int cfg, void * buf, int * size)
             t0 = *((int *)buf);
             ctx->param.use_deblock = t0;
             break;
-#if M49023_DBF_IMPROVE
         case EVCE_CFG_SET_DEBLOCK_A_OFFSET:
             evc_assert_rv(*size == sizeof(int), EVC_ERR_INVALID_ARGUMENT);
             t0 = *((int *)buf);
@@ -2919,7 +2892,6 @@ int evce_config(EVCE id, int cfg, void * buf, int * size)
             t0 = *((int *)buf);
             ctx->param.deblock_beta_offset = t0;
             break;
-#endif
         case EVCE_CFG_SET_USE_PIC_SIGNATURE:
             ctx->param.use_pic_sign = (*((int *)buf)) ? 1 : 0;
             break;
@@ -2963,7 +2935,6 @@ int evce_config(EVCE id, int cfg, void * buf, int * size)
             evc_assert_rv(*size == sizeof(int), EVC_ERR_INVALID_ARGUMENT);
             *((int *)buf) = ctx->param.use_hgop;
             break;
-#if M49023_DBF_IMPROVE
         case EVCE_CFG_GET_DEBLOCK_A_OFFSET:
             evc_assert_rv(*size == sizeof(int), EVC_ERR_INVALID_ARGUMENT);
             *((int *)buf) = ctx->param.deblock_alpha_offset;
@@ -2972,7 +2943,6 @@ int evce_config(EVCE id, int cfg, void * buf, int * size)
             evc_assert_rv(*size == sizeof(int), EVC_ERR_INVALID_ARGUMENT);
             *((int *)buf) = ctx->param.deblock_beta_offset;
             break;
-#endif
         default:
             evc_trace("unknown config value (%d)\n", cfg);
             evc_assert_rv(0, EVC_ERR_UNSUPPORTED);

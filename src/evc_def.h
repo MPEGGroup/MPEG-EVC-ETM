@@ -121,7 +121,6 @@
 #define M49023_IMPROVEMENT                 1
 #if M49023_IMPROVEMENT
 #define PROFILE_SANITY_CHECK_FIX           1 
-#define M49023_DBF_IMPROVE                 1
 #endif
 
 #define ADCC                               1   /* MPEG126 CE1.1: Advanced coefficient coding */
@@ -152,11 +151,7 @@
 //loop filter
 #define DBF_LONGF                          0
 #define DBF_IMPROVE                        1
-#if M49023_DBF_IMPROVE
-#define DBF                                2  // Deblocking filter: 0 - without DBF, 1 - h.263, 2 - AVC, 3 - HEVC
-#else
-#define DBF                                1  // Deblocking filter: 0 - without DBF, 1 - h.263, 2 - AVC, 3 - HEVC
-#endif
+#define DBF                                2  // Deblocking filter: 0 - without DBF, 1 - h.263, 2 - AVC, 3 - HEVC   NOTE: THE SWITCH IS LIKELY BROKEN
 #define ALF                                1  // Adaptive Loop Filter 
 
 //fast algorithm
@@ -1265,10 +1260,8 @@ typedef struct _EVC_PIC
 #if ALF
     u8               m_alfCtuEnableFlag[3][510]; //510 = 30*17 -> class A1 resolution with CU ~ 128
 #endif
-#if M49023_DBF_IMPROVE
-    int pic_deblock_alpha_offset;
-    int pic_deblock_beta_offset;
-#endif
+    int              pic_deblock_alpha_offset;
+    int              pic_deblock_beta_offset;
 } EVC_PIC;
 
 /*****************************************************************************
@@ -1544,12 +1537,9 @@ typedef struct _EVC_SH
     EVC_RPL         rpl_l1;
 
     u8               num_ref_idx_active_override_flag;
-
     int              deblocking_filter_on;
-#if M49023_DBF_IMPROVE
     int              sh_deblock_alpha_offset;
     int              sh_deblock_beta_offset;
-#endif
     u8               qp;
     u8               qp_u;
     u8               qp_v;

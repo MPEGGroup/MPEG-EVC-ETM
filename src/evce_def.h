@@ -463,10 +463,8 @@ typedef struct _EVCE_PARAM
        - 1: Enable deblocking filter
     */
     int                 use_deblock;
-#if M49023_DBF_IMPROVE
     int                    deblock_alpha_offset;
     int                    deblock_beta_offset;
-#endif
 #if ALF
     int                 use_alf;
 #endif
@@ -803,11 +801,9 @@ struct _EVCE_CTX
     EVCE_CDSC             cdsc;
     /* quantization value of current encoding slice */
     u8                     qp;
-#if M49023_DBF_IMPROVE
     /* offset value of alpha and beta for deblocking filter */
     u8                       deblock_alpha_offset;
     u8                       deblock_beta_offset;
-#endif
     /* encoding picture width */
     u16                    w;
     /* encoding picture height */

@@ -144,10 +144,8 @@ static int  op_cr_qp_offset       = 0;
 static int op_tool_ats            = 1; /* default on */
 #endif
 static int  op_constrained_intra_pred = 0;
-#if M49023_DBF_IMPROVE
 static int  op_deblock_alpha_offset = 0; /* default offset 0*/
 static int  op_deblock_beta_offset = 0;  /* default offset 0*/
-#endif
 static char  op_rpl0[MAX_NUM_RPLS][256];
 static char  op_rpl1[MAX_NUM_RPLS][256];
 
@@ -227,9 +225,7 @@ typedef enum _OP_FLAGS
     OP_TOOL_ATS,
 #endif
     OP_CONSTRAINED_INTRA_PRED,
-#if M49023_DBF_IMPROVE
     OP_TOOL_DBFOFFSET,
-#endif
     OP_FLAG_RPL0_0,
     OP_FLAG_RPL0_1,
     OP_FLAG_RPL0_2,
@@ -606,7 +602,6 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_CONSTRAINED_INTRA_PRED], &op_constrained_intra_pred,
         "constrained intra pred"
     },
-#if M49023_DBF_IMPROVE
     {
         EVC_ARGS_NO_KEY,  "dbfoffsetA", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_TOOL_DBFOFFSET], &op_deblock_alpha_offset,
@@ -617,7 +612,6 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_TOOL_DBFOFFSET], &op_deblock_beta_offset,
         "AVC Deblocking filter offset for beta"
     },
-#endif
     {
         EVC_ARGS_NO_KEY,  "RPL0_0", EVC_ARGS_VAL_TYPE_STRING,
         &op_flag[OP_FLAG_RPL0_0], &op_rpl0[0],
@@ -961,10 +955,8 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->tool_ats           = op_tool_ats;
 #endif
     cdsc->constrained_intra_pred = op_constrained_intra_pred;
-#if M49023_DBF_IMPROVE
     cdsc->deblock_aplha_offset = op_deblock_alpha_offset;
     cdsc->deblock_beta_offset = op_deblock_beta_offset;
-#endif
     for (int i = 0; i < MAX_NUM_RPLS && op_rpl0[i][0] != 0; ++i)
     {
         cdsc->rpls_l0[i].pic_type = get_pic_type(strtok(op_rpl0[i], " "));
@@ -1036,10 +1028,8 @@ static int print_enc_conf(EVCE_CDSC * cdsc)
     printf("ATS: %d ",    cdsc->tool_ats);
 #endif
     printf("CONSTRAINED_INTRA_PRED: %d ", cdsc->constrained_intra_pred);
-#if M49023_DBF_IMPROVE
     printf("DBFOffsetA: %d ", cdsc->deblock_aplha_offset);
     printf("DBFOffsetB: %d ", cdsc->deblock_beta_offset);
-#endif
     printf("\n");
     return 0;
 }

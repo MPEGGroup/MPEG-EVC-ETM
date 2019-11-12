@@ -3090,10 +3090,8 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
     /********************************* filter the pred/rec **************************************/
     if(do_filter)
     {
-#if M49023_DBF_IMPROVE
         pic_dbk->pic_deblock_alpha_offset = ctx->deblock_alpha_offset;
         pic_dbk->pic_deblock_beta_offset = ctx->deblock_beta_offset;
-#endif
         int w_scu = cuw >> MIN_CU_LOG2;
         int h_scu = cuh >> MIN_CU_LOG2;
         int ind, k;
@@ -3164,10 +3162,7 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
 #endif
 
         //first, horizontal filtering
-        evc_deblock_cu_hor(pic_dbk, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp
-#if M49023_DBF_IMPROVE
-            , 0
-#endif
+        evc_deblock_cu_hor(pic_dbk, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
             , ctx->tree_cons
 #endif
@@ -3189,10 +3184,7 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
 #if FIX_PARALLEL_DBF
                            , ctx->map_cu_mode
 #endif
-                           , ctx->refp
-#if M49023_DBF_IMPROVE
-            , 0
-#endif
+                           , ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
             , ctx->tree_cons
 #endif

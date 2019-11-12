@@ -1734,10 +1734,7 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #else
                   ctx->map_mv
 #endif
-                  , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp
-#if M49023_DBF_IMPROVE
-                    , 0
-#endif
+                  , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
                     , ctx->tree_cons
 #endif
@@ -1748,12 +1745,9 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #else
                   ctx->map_mv
 #endif
-                  , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp
-#if M49023_DBF_IMPROVE
-                    , 0
-#endif                
+                  , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0            
 #if M50761_CHROMA_NOT_SPLIT
-                    , ctx->tree_cons
+                  , ctx->tree_cons
 #endif
                 );
             }
@@ -1765,10 +1759,7 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #else
                   ctx->map_mv
 #endif
-                  , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp
-#if M49023_DBF_IMPROVE
-                    , 0
-#endif
+                  , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
                     , ctx->tree_cons
 #endif
@@ -1789,10 +1780,7 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if FIX_PARALLEL_DBF
                     , ctx->map_cu_mode
 #endif
-                    , ctx->refp
-#if M49023_DBF_IMPROVE
-                    , 0
-#endif
+                    , ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
                     , ctx->tree_cons
 #endif
@@ -1807,10 +1795,7 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if FIX_PARALLEL_DBF
                     , ctx->map_cu_mode
 #endif
-                    , ctx->refp
-#if M49023_DBF_IMPROVE
-                    , 0
-#endif
+                    , ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
                     , ctx->tree_cons
 #endif
@@ -1828,10 +1813,7 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if FIX_PARALLEL_DBF
                                    , ctx->map_cu_mode
 #endif
-                                   , ctx->refp
-#if M49023_DBF_IMPROVE
-                    , 0
-#endif
+                                   , ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
                     , ctx->tree_cons
 #endif
@@ -1848,10 +1830,10 @@ int evcd_deblock_h263(EVCD_CTX * ctx)
 {
     int i, j;
     u32 k;
-#if M49023_DBF_IMPROVE
+
     ctx->pic->pic_deblock_alpha_offset = ctx->sh.sh_deblock_alpha_offset;
     ctx->pic->pic_deblock_beta_offset = ctx->sh.sh_deblock_beta_offset;
-#endif
+
     for(k = 0; k < ctx->f_scu; k++)
     {
         MCU_CLR_COD(ctx->map_scu[k]);
