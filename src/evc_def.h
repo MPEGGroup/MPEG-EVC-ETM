@@ -37,7 +37,8 @@
 #include "evc.h"
 #include "evc_port.h"
 
-#define FIX_AFFINE_CLIP                              1
+
+//MPEG 128 adoptions
 
 #define M50662                                       1
 #if M50662
@@ -52,6 +53,7 @@
 
 #define M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV    1  // Harmonized MV clipping of m50662 and m50761
 #define M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW 1
+#define FIX_AFFINE_CLIP                              1
 
 #if M50662_AFFINE_BANDWIDTH_CLIPMV
 #define BOUNDING_BLOCK_MARGIN                        7
@@ -116,10 +118,6 @@
 #define M50632_IMPROVEMENT_BASELINE        1
 #endif
 
-#define ADCC                               1   /* MPEG126 CE1.1: Advanced coefficient coding */
-#define ATS                                1   /* MPEG126 CE1.2: Adaptive transform selection */
-#define IBC                                1   /* MPEG126 CE1.3: Intra Block Copy */
-
 #define ALF_PARAMETER_APS                  1
 #define TU_ZONAL_CODING                    1
 #if M50632_IMPROVEMENT_BASELINE
@@ -127,11 +125,15 @@
 #else
 #define CTX_MODEL_FOR_RESIDUAL_IN_BASE     1
 #endif
-#define USE_SLICE_DQP                 1
+#define USE_SLICE_DQP                      1
 
 /* Profiles definitions */
 #define PROFILE_BASELINE                   0
 #define PROFILE_MAIN                       1
+
+#define ADCC                               1   
+#define ATS                                1   
+#define IBC                                1   
 
 //partitioning
 #define SUCO                               1
@@ -144,7 +146,7 @@
 //loop filter
 #define DBF_LONGF                          0
 #define DBF_IMPROVE                        1
-#define DBF                                2  // Deblocking filter: 0 - without DBF, 1 - h.263, 2 - AVC, 3 - HEVC   NOTE: THE SWITCH IS LIKELY BROKEN
+#define DBF                                2  // Deblocking filter: 0 - without DBF, 1 - h.263, 2 - AVC, 3 - HEVC   !!! NOTE: THE SWITCH MAY BE BROKEN !!!
 #define ALF                                1  // Adaptive Loop Filter 
 
 //fast algorithm
@@ -177,6 +179,7 @@
 #if AFFINE 
 #define EIF                                1 // Enhanced bilinear Interpolation Filter
 #endif
+
 #define USE_RDOQ                           1 // Use RDOQ
 #define RDO_DBK                            1 // include DBK changes into distortion
 #define HTDF                               1 // enable Hadamard transform domain filter
@@ -254,8 +257,6 @@
 #define MAX_RANGE                          (1<<RANGE_BITS)
 #define HALF_RANGE                         (1<<(RANGE_BITS-1))
 #endif
-
-#define PROB_INIT_FIX                      1
 
 #define CTX_REPRESENTATION_IMPROVEMENT     1 /* Init state stored in 10 bits per context model */
 /* MCABAC (END) */

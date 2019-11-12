@@ -5579,17 +5579,19 @@ void evc_eco_sbac_ctx_initialize(SBAC_CTX_MODEL *ctx, s16 *ctx_init_model, u16 n
         offset = *(ctx_init_model + 1);
 #endif
 
-#if PROB_INIT_FIX
         int p = slope * qp + offset;
         int shift = MCABAC_PROB_BITS - 13;
         if (shift < 0)
-          p >>= (-shift);
+        {
+            p >>= (-shift);
+        }
         else
-          p <<= shift;
+        {
+            p <<= shift;
+        }
+
         p0 = (u16)EVC_CLIP3(1, MAX_PROB - 1, p);
-#else
-        p0 = (u16)EVC_CLIP3(1, MAX_PROB - 1, slope * qp + offset);
-#endif
+
         p1 = p0;
         cmps = 1;
         if(p0 + p1 > MAX_PROB)
