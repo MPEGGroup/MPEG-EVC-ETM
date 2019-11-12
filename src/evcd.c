@@ -232,9 +232,7 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
     ctx->pa.h = ctx->h;
     ctx->pa.pad_l = PIC_PAD_SIZE_L;
     ctx->pa.pad_c = PIC_PAD_SIZE_C;
-#if HLS_M47668
     ctx->ref_pic_gap_length = (int)pow(2.0, sps->log2_ref_pic_gap_length);
-#endif
 
     ret = evc_picman_init(&ctx->dpm, MAX_PB_SIZE, MAX_NUM_REF_PICS, &ctx->pa);
     evc_assert_g(EVC_SUCCEEDED(ret), ERR);
@@ -327,7 +325,7 @@ static int evcd_hmvp_init(EVCD_CORE * core)
     return core->history_buffer.currCnt;
 }
 #endif
-#if HLS_M47668
+
 int is_ref_pic(EVCD_CTX * ctx, EVC_SH * sh)
 {
     return (sh->layer_id == 0 || sh->layer_id < ctx->sps.log2_sub_gop_length);
@@ -382,7 +380,6 @@ int poc_derivation(EVCD_CTX * ctx, EVC_SH * sh)
 
     return EVC_OK;
 }
-#endif
 
 static void make_stat(EVCD_CTX * ctx, int btype, EVCD_STAT * stat)
 {
@@ -2297,7 +2294,6 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
         ret = slice_init(ctx, ctx->core, sh);
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
-#if HLS_M47668
         if(!sps->tool_pocs)
         {
             if (ctx->dtr == 0) // TBD: Check instead if picture is IDR
@@ -2317,7 +2313,6 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         {
             ctx->slice_ref_flag = 1;
         }
-#endif
 #if TRACE_START_POC
         if (ctx->ptr == TRACE_START_POC)
         {
@@ -2345,16 +2340,6 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         }
         evc_assert_rv(ret == EVC_OK, ret);
 
-#if !HLS_M47668
-        if (!sps->tool_rpl)
-        {
-            if ((sh->rmpni_on && ctx->sh.slice_type != SLICE_I))
-            {
-                ret = evc_picman_refp_reorder(&ctx->dpm, ctx->sps.max_num_ref_pics, sh->slice_type, ctx->ptr, ctx->refp, ctx->last_intra_ptr, sh->rmpni);
-                evc_assert_rv(ret == EVC_OK, ret);
-            }
-        }
-#endif
         /* get available frame buffer for decoded image */
         ctx->pic = evc_picman_get_empty_pic(&ctx->dpm, &ret);
         evc_assert_rv(ctx->pic, ret);
@@ -2396,11 +2381,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 #endif
 
         /* put decoded picture to DPB */
-#if HLS_M47668
         ret = evc_picman_put_pic(&ctx->dpm, ctx->pic, ctx->nalu.nal_unit_type_plus1 - 1 == EVC_IDR_NUT, ctx->ptr, ctx->dtr, ctx->sh.layer_id, 1, ctx->refp, ctx->slice_ref_flag, sps->tool_rpl, ctx->ref_pic_gap_length);
-#else
-        ret = evc_picman_put_pic(&ctx->dpm, ctx->pic, ctx->nalu.nal_unit_type_plus1 - 1 == EVC_IDR_NUT, ctx->ptr, ctx->dtr, ctx->sh.layer_id, 1, ctx->refp, (ctx->sh.mmco_on ? &ctx->sh.mmco : NULL), sps->tool_rpl);
-#endif
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
 
         slice_deinit(ctx);

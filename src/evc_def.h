@@ -140,8 +140,6 @@
 #define M48933_CQP_MAPPING_TABLE_UPDATE    1
 #endif
 
-#define HLS_M47668                         1
-
 #define ADCC                               1   /* MPEG126 CE1.1: Advanced coefficient coding */
 #define ATS                                1   /* MPEG126 CE1.2: Adaptive transform selection */
 #define IBC                                1   /* MPEG126 CE1.3: Intra Block Copy */
@@ -724,11 +722,7 @@ extern int fp_trace_started;
 /* for GOP 16 test, increase to 32 */
 
 /* DPB Extra size */
-#if HLS_M47668
 #define EXTRA_FRAME                        MAX_NUM_ACTIVE_REF_FRAME
-#else
-#define EXTRA_FRAME                        MAX_NUM_REF_PICS
-#endif
 
 /* maximum picture buffer size */
 #define MAX_PB_SIZE                       (MAX_NUM_REF_PICS + EXTRA_FRAME)
@@ -1448,12 +1442,12 @@ typedef struct _EVC_SPS
 #if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
     int              tool_ats;
 #endif
-#if HLS_M47668
+
     int              tool_rpl;
     int              tool_pocs;
     int              log2_sub_gop_length;
     int              log2_ref_pic_gap_length;
-#endif
+
 #if ADCC  
     int              tool_adcc;
 #endif
@@ -1513,56 +1507,6 @@ typedef struct _EVC_PPS
     int cu_qp_delta_area;
 #endif
 } EVC_PPS;
-
-#if !HLS_M47668
-/*****************************************************************************
- * MMCO syntax
- *****************************************************************************/
-#define MAX_NUM_MMCO                       16
-#define MMCO_END                           1
-#define MMCO_UNUSED                        2
-
-typedef struct _EVC_MMCO
-{
-    /* count of mmco command. zero means disabled */
-    u8               cnt;
-    /* mmco command */
-    u8               type[MAX_NUM_MMCO];
-    /* value for each mmco command */
-    u8               data[MAX_NUM_MMCO];
-} EVC_MMCO;
-
-/*****************************************************************************
- * RMPNI syntax
- *****************************************************************************/
-#define MAX_NUM_RMPNI                      16
-#define RMPNI_END                          0
-/* ADPN positve negative number */
-#define RMPNI_ADPN_NEG                     1
-/* ADPN positve positive number */
-#define RMPNI_ADPN_POS                     2
-/* long term picture index for re-mapping */
-#define RMPNI_LPIR                         3
-
-/* picture coding structure unit */
-typedef struct _EVC_REORDER_ARG
-{
-    int              poc;
-    u8               laye_id;
-    u8               num_ref_pics_l0;
-    s8               ref_pic_l0[MAX_NUM_RMPNI];
-    u8               num_ref_pics_l1;
-    s8               ref_pic_l1[MAX_NUM_RMPNI];
-} EVC_REORDER_ARG;
-
-typedef struct _EVC_RMPNI
-{
-    /* Count of mmco command. zero means disabled */
-    u8               cnt;
-    /* ADPN: Absolute Difference of Picture Numbers (delta poc) */
-    s8               delta_poc[MAX_NUM_RMPNI];
-} EVC_RMPNI;
-#endif
 
 /*****************************************************************************
  * slice header
@@ -1683,15 +1627,6 @@ typedef struct _EVC_SH
 
     /* delta of presentation temporal reference */
     s32              dptr;
-#if !HLS_M47668
-    /* flag of MMCO */
-    u8               mmco_on;
-    EVC_MMCO        mmco;
-    /* flag of RMPNI*/
-    u8               rmpni_on;
-    EVC_RMPNI       rmpni[REFP_NUM];
-#endif
-
 } EVC_SH;
 
 /*****************************************************************************

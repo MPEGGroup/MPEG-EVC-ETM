@@ -295,20 +295,16 @@ struct _EVCD_CTX
     u32                     dtr_prev_high;
     /* current picture's presentation temporal reference */
     u32                     ptr;
-#if HLS_M47668
     /* the picture order count of the previous Tid0 picture */
     u32                     prev_pic_order_cnt_val;
     /* the decoding order count of the previous picture */
     u32                     prev_doc_offset;
-#endif
     /* the number of currently decoded pictures */
     u32                     pic_cnt;
-#if HLS_M47668
     /* flag whether current picture is refecened picture or not */
     u8                     slice_ref_flag;
     /* distance between ref pics in addition to closest ref ref pic in LD*/
     int                    ref_pic_gap_length;
-#endif
     /* picture buffer allocator */
     PICBUF_ALLOCATOR        pa;
     /* bitstream has an error? */
