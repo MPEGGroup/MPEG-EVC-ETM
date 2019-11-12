@@ -128,7 +128,6 @@
 #define M48879_IMPROVEMENT                 1
 #if M48879_IMPROVEMENT
 #define M48879_IMPROVEMENT_ENC_OPT         1
-#define M48879_IMPROVEMENT_INTRA           1
 #endif
 
 #define ADCC                               1   /* MPEG126 CE1.1: Advanced coefficient coding */
@@ -1477,9 +1476,7 @@ typedef struct _EVC_PPS
     int explicit_tile_id_flag;
     int tile_id_val[MAX_NUM_TILES_ROW][MAX_NUM_TILES_COL];
     int arbitrary_slice_present_flag;
-#if M48879_IMPROVEMENT_INTRA
     int constrained_intra_pred_flag;
-#endif
 #if DQP
     int cu_qp_delta_enabled_flag;
     int cu_qp_delta_area;

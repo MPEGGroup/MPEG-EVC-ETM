@@ -408,9 +408,7 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
 static void set_pps(EVCE_CTX * ctx, EVC_PPS * pps)
 {
     pps->single_tile_in_pic_flag = 1;
-#if M48879_IMPROVEMENT_INTRA
     pps->constrained_intra_pred_flag = ctx->cdsc.constrained_intra_pred;
-#endif
 #if DQP
     pps->cu_qp_delta_enabled_flag = ctx->cdsc.use_dqp;
     pps->cu_qp_delta_area         = ctx->cdsc.cu_qp_delta_area;

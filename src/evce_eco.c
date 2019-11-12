@@ -311,10 +311,7 @@ int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps)
     }
 
     evc_bsw_write1(bs, pps->arbitrary_slice_present_flag);
-
-#if M48879_IMPROVEMENT_INTRA
-    evc_bsw_write1(bs, pps->constrained_intra_pred_flag); /* constrained_intra_pred_flag */
-#endif
+    evc_bsw_write1(bs, pps->constrained_intra_pred_flag); 
 
 #if DQP
     evc_bsw_write1(bs, pps->cu_qp_delta_enabled_flag);

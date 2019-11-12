@@ -2840,10 +2840,7 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps)
     }
 
     pps->arbitrary_slice_present_flag = evc_bsr_read1(bs);
-
-#if M48879_IMPROVEMENT_INTRA
-    pps->constrained_intra_pred_flag = evc_bsr_read1(bs);  /* constrained_intra_pred_flag */
-#endif
+    pps->constrained_intra_pred_flag = evc_bsr_read1(bs);  
 
 #if DQP
     pps->cu_qp_delta_enabled_flag = evc_bsr_read1(bs);

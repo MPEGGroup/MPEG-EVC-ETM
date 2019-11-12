@@ -435,13 +435,8 @@ static void evcd_itdq(EVCD_CTX * ctx, EVCD_CORE * core)
     );
 }
 
-#if M48879_IMPROVEMENT_INTRA
 static void get_nbr_yuv(int x, int y, int cuw, int cuh, EVCD_CTX * ctx, EVCD_CORE * core)
-#else
-static void get_nbr_yuv(int x, int y, int cuw, int cuh, u16 avail_cu, EVC_PIC *pic_rec, pel nb[N_C][N_REF][MAX_CU_SIZE * 3], int scup, u32 *map_scu, int w_scu, int h_scu)
-#endif
 {
-#if M48879_IMPROVEMENT_INTRA
     int  s_rec;
     pel *rec;
     int constrained_intra_flag = core->pred_mode == MODE_INTRA && ctx->pps.constrained_intra_pred_flag;
@@ -494,29 +489,6 @@ static void get_nbr_yuv(int x, int y, int cuw, int cuh, u16 avail_cu, EVC_PIC *p
     }
 #if M50761_CHROMA_NOT_SPLIT
     }
-#endif
-#else
-    int  s_rec;
-    pel *rec;
-
-    /* Y */
-    s_rec = pic_rec->s_l;
-    rec = pic_rec->y + (y * s_rec) + x;
-    evc_get_nbr(x, y, cuw, cuh, rec, s_rec, avail_cu, nb, scup, map_scu, w_scu, h_scu, Y_C);
-
-    cuw >>= 1;
-    cuh >>= 1;
-    x >>= 1;
-    y >>= 1;
-    s_rec = pic_rec->s_c;
-
-    /* U */
-    rec = pic_rec->u + (y * s_rec) + x;
-    evc_get_nbr(x, y, cuw, cuh, rec, s_rec, avail_cu, nb, scup, map_scu, w_scu, h_scu, U_C);
-
-    /* V */
-    rec = pic_rec->v + (y * s_rec) + x;
-    evc_get_nbr(x, y, cuw, cuh, rec, s_rec, avail_cu, nb, scup, map_scu, w_scu, h_scu, V_C);
 #endif
 }
 
@@ -1164,11 +1136,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
             , ctx->tree_cons
 #endif
         );
-#if M48879_IMPROVEMENT_INTRA 
         get_nbr_yuv(x, y, cuw, cuh, ctx, core);
-#else
-        get_nbr_yuv(x, y, cuw, cuh, core->avail_cu, ctx->pic, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu);
-#endif
     }
     else
 #endif
@@ -1319,12 +1287,8 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
     else
     {
         core->avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, core->log2_cuw, core->log2_cuh, ctx->map_scu);
-     
-#if M48879_IMPROVEMENT_INTRA
+ 
         get_nbr_yuv(x, y, cuw, cuh, ctx, core);
-#else
-        get_nbr_yuv(x, y, cuw, cuh, core->avail_cu, ctx->pic, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu);
-#endif
       
         if (ctx->sps.tool_eipd)
         {
@@ -1332,26 +1296,15 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
             if (evcd_check_luma(ctx))
             {
 #endif
-            evc_ipred(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh, core->avail_cu
-#if M48879_IMPROVEMENT_INTRA
-                , ctx->sps.sps_suco_flag
-#endif
+            evc_ipred(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh, core->avail_cu, ctx->sps.sps_suco_flag
             );
 #if M50761_CHROMA_NOT_SPLIT
             }
             if (evcd_check_chroma(ctx))
             {
 #endif
-            evc_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu
-#if M48879_IMPROVEMENT_INTRA
-                , ctx->sps.sps_suco_flag
-#endif
-            );
-            evc_ipred_uv(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu
-#if M48879_IMPROVEMENT_INTRA
-                , ctx->sps.sps_suco_flag
-#endif
-            );
+            evc_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu, ctx->sps.sps_suco_flag);
+            evc_ipred_uv(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu, ctx->sps.sps_suco_flag);
 #if M50761_CHROMA_NOT_SPLIT
             }
 #endif

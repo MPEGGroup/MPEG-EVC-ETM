@@ -148,9 +148,7 @@ static int  op_cr_qp_offset       = 0;
 #if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
 static int op_tool_ats            = 1; /* default on */
 #endif
-#if M48879_IMPROVEMENT_INTRA
 static int  op_constrained_intra_pred = 0;
-#endif
 #if M49023_DBF_IMPROVE
 static int  op_deblock_alpha_offset = 0; /* default offset 0*/
 static int  op_deblock_beta_offset = 0;  /* default offset 0*/
@@ -233,9 +231,7 @@ typedef enum _OP_FLAGS
 #if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
     OP_TOOL_ATS,
 #endif
-#if M48879_IMPROVEMENT_INTRA
     OP_CONSTRAINED_INTRA_PRED,
-#endif
 #if M49023_DBF_IMPROVE
     OP_TOOL_DBFOFFSET,
 #endif
@@ -610,7 +606,6 @@ static EVC_ARGS_OPTION options[] = \
          "ats on/off flag"
     },
 #endif
-#if M48879_IMPROVEMENT_INTRA
     {
         EVC_ARGS_NO_KEY,  "constrained_intra_pred", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_CONSTRAINED_INTRA_PRED], &op_constrained_intra_pred,
@@ -627,7 +622,6 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_TOOL_DBFOFFSET], &op_deblock_beta_offset,
         "AVC Deblocking filter offset for beta"
     },
-#endif
 #endif
     {
         EVC_ARGS_NO_KEY,  "RPL0_0", EVC_ARGS_VAL_TYPE_STRING,
@@ -971,9 +965,7 @@ static int get_conf(EVCE_CDSC * cdsc)
 #if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
     cdsc->tool_ats           = op_tool_ats;
 #endif
-#if M48879_IMPROVEMENT_INTRA
     cdsc->constrained_intra_pred = op_constrained_intra_pred;
-#endif
 #if M49023_DBF_IMPROVE
     cdsc->deblock_aplha_offset = op_deblock_alpha_offset;
     cdsc->deblock_beta_offset = op_deblock_beta_offset;
@@ -1048,9 +1040,7 @@ static int print_enc_conf(EVCE_CDSC * cdsc)
 #if ATS_INTRA_PROCESS
     printf("ATS: %d ",    cdsc->tool_ats);
 #endif
-#if M48879_IMPROVEMENT_INTRA
     printf("CONSTRAINED_INTRA_PRED: %d ", cdsc->constrained_intra_pred);
-#endif
 #if M49023_DBF_IMPROVE
     printf("DBFOffsetA: %d ", cdsc->deblock_aplha_offset);
     printf("DBFOffsetB: %d ", cdsc->deblock_beta_offset);
