@@ -133,11 +133,6 @@
 #define M48879_IMPROVEMENT_SUCO            1
 #endif
 
-#define M48933_IMPROVEMENT                 1
-#if M48933_IMPROVEMENT
-#define M48933_INTRA_PRED_NO_DIV           1
-#endif
-
 #define ADCC                               1   /* MPEG126 CE1.1: Advanced coefficient coding */
 #define ATS                                1   /* MPEG126 CE1.2: Adaptive transform selection */
 #define IBC                                1   /* MPEG126 CE1.3: Intra Block Copy */
@@ -206,11 +201,6 @@
 #define USE_RDOQ                           1 // Use RDOQ
 #define RDO_DBK                            1 // include DBK changes into distortion
 #define HTDF                               1 // enable Hadamard transform domain filter
-
-#if M48933_INTRA_PRED_NO_DIV
-#define M48933_INTRA_PRED_NO_DIV_IN_HOR_MODE   1
-#define M48933_INTRA_PRED_NO_DIV_IN_DC_MODE    1
-#endif //M48933_INTRA_PRED_NO_DIV
 
 //fast algorithm
 #define ENC_ECU_DEPTH                      8 // for early CU termination
