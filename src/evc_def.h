@@ -116,13 +116,6 @@
 #define M50632_IMPROVEMENT_BASELINE        1
 #endif
 
-// OLD
-
-#define M49023_IMPROVEMENT                 1
-#if M49023_IMPROVEMENT
-#define PROFILE_SANITY_CHECK_FIX           1 
-#endif
-
 #define ADCC                               1   /* MPEG126 CE1.1: Advanced coefficient coding */
 #define ATS                                1   /* MPEG126 CE1.2: Adaptive transform selection */
 #define IBC                                1   /* MPEG126 CE1.3: Intra Block Copy */

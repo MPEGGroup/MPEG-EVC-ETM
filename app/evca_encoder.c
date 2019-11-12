@@ -1053,11 +1053,9 @@ int check_conf(EVCE_CDSC* cdsc)
         if (cdsc->tool_eipd    == 1) { v0print("EIPD cannot be on in base profile\n"); success = 0; }
         if (cdsc->tool_iqt     == 1) { v0print("IQT cannot be on in base profile\n"); success = 0; }
         if (cdsc->tool_cm_init == 1) { v0print("CM_INIT cannot be on in base profile\n"); success = 0; }
-#if PROFILE_SANITY_CHECK_FIX
         if (cdsc->tool_adcc    == 1) { v0print("ADCC cannot be on in base profile\n"); success = 0; }
-        if (cdsc->tool_ats == 1) { v0print("ATS_INTRA cannot be on in base profile\n"); success = 0; }
-        if (cdsc->ibc_flag     == 1)   { v0print("IBC cannot be on in base profile\n"); success = 0; }
-#endif
+        if (cdsc->tool_ats     == 1) { v0print("ATS_INTRA cannot be on in base profile\n"); success = 0; }
+        if (cdsc->ibc_flag     == 1) { v0print("IBC cannot be on in base profile\n"); success = 0; }
     }
     else
     {
