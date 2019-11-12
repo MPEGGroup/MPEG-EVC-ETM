@@ -149,6 +149,9 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
 #if EIF
                       , pel* tmp_buffer
 #endif
+#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
+                      , BOOL mem_band_conditions_for_eif_are_satisfied
+#endif
 );
 
 #if EIF

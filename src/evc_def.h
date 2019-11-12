@@ -49,10 +49,12 @@
 #define M50662_HISTORY_CTU_ROW_RESET                 1
 
 #define M50662_AFFINE_BANDWIDTH_CLIPMV               1  // MV clipping of m50662
+
 #define M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV    1  // Harmonized MV clipping of m50662 and m50761
+#define M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW 1
 
 #if M50662_AFFINE_BANDWIDTH_CLIPMV
-#define BOUNDING_BLOCK_MARGIN                       7  
+#define BOUNDING_BLOCK_MARGIN                        7
 #define MEMORY_BANDWIDTH_THRESHOLD                   (8+2+BOUNDING_BLOCK_MARGIN)/8
 #endif
 #endif
