@@ -65,10 +65,9 @@ typedef struct _IMGB_LIST
     EVC_MTIME     ts;
 } IMGB_LIST;
 
-#define CALC_SSIM           1    //calculate Multi-scale SSIM (ms_ssim)
-#if CALC_SSIM
-#define     MAX_SCALE       5    //number of scales
-#define     WIN_SIZE        11   //window size for SSIM calculation
+#define     MAX_SCALE       5    //number of MS-SSIM scales
+#define     WIN_SIZE        11   //window size for MS-SSIM calculation
+
 static double exponent[MAX_SCALE] = { 0.0448, 0.2856, 0.3001, 0.2363, 0.1333 };  //weights for different scales
 
 enum STRUCTURE
@@ -77,7 +76,6 @@ enum STRUCTURE
     SIMILARITY_COMPONENT,
     SSIM,
 };
-#endif
 
 static char op_fname_cfg[256]     = "\0"; /* config file path name */
 static char op_fname_inp[256]     = "\0"; /* input original video */
@@ -1101,9 +1099,7 @@ static void print_stat_init(void)
     }
     print("---------------------------------------------------------------------------------------\n");
     print("POC   Tid   Ftype   QP   PSNR-Y    PSNR-U    PSNR-V    Bits      EncT(ms)  ");
-#if CALC_SSIM
     print("MS-SSIM     ");
-#endif
     print("Ref. List\n");
 
     print("---------------------------------------------------------------------------------------\n");
@@ -1200,7 +1196,6 @@ static void find_psnr_8bit(EVC_IMGB * org, EVC_IMGB * rec, double psnr[3])
     }
 }
 
-#if CALC_SSIM
 const double gaussian_filter[11][11] =
 {
     {0.000001,0.000008,0.000037,0.000112,0.000219,0.000274,0.000219,0.000112,0.000037,0.000008,0.000001},
@@ -1410,7 +1405,7 @@ static void find_ms_ssim(EVC_IMGB *org, EVC_IMGB *rec, double* ms_ssim, int bit_
         }
     }
 
-    for ( i=1; i<=MAX_SCALE; i++ )
+    for (i = 1; i <= MAX_SCALE; i++)
     {
         double tmp_ms_ssim;
         calc_ssim_scale( &tmp_ms_ssim, i, width, height, org_last_scale, rec_last_scale, bit_depth );
@@ -1422,7 +1417,6 @@ static void find_ms_ssim(EVC_IMGB *org, EVC_IMGB *rec, double* ms_ssim, int bit_
     if(rec_last_scale)
         free(rec_last_scale);
 }
-#endif
 
 static int imgb_list_alloc(IMGB_LIST *list, int w, int h, int bit_depth)
 {
@@ -1501,12 +1495,7 @@ static void imgb_list_make_used(IMGB_LIST *list, EVC_MTIME ts)
     list->ts = list->imgb->ts[0] = ts;
 }
 
-static int cal_psnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec,
-                    EVC_MTIME ts, double psnr[3]
-#if CALC_SSIM
-                    , double* ms_ssim
-#endif
-)
+static int cal_psnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts, double psnr[3], double* ms_ssim)
 {
     int            i;
     EVC_IMGB     *imgb_t = NULL;
@@ -1523,16 +1512,12 @@ static int cal_psnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec,
                 if(op_out_bit_depth == 10)
                 {
                     find_psnr_10bit(imgblist_inp[i].imgb, imgb_rec, psnr);
-#if CALC_SSIM
                     find_ms_ssim(imgblist_inp[i].imgb, imgb_rec, ms_ssim, 10);
-#endif
                 }
                 else /* if(op_out_bit_depth == 8) */
                 {
                     find_psnr_8bit(imgblist_inp[i].imgb, imgb_rec, psnr);
-#if CALC_SSIM
                     find_ms_ssim(imgblist_inp[i].imgb, imgb_rec, ms_ssim, 8);
-#endif
                 }
             }
             else if(op_out_bit_depth == 10)
@@ -1542,10 +1527,7 @@ static int cal_psnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec,
                 imgb_cpy(imgb_t, imgblist_inp[i].imgb);
 
                 find_psnr_10bit(imgb_t, imgb_rec, psnr);
-#if CALC_SSIM
                 find_ms_ssim(imgb_t, imgb_rec, ms_ssim, 10);
-#endif
-
                 imgb_free(imgb_t);
             }
             else /* if(op_out_bit_depth == 8) */
@@ -1553,12 +1535,8 @@ static int cal_psnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec,
                 imgb_t = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
                     EVC_COLORSPACE_YUV420);
                 imgb_cpy(imgb_t, imgblist_inp[i].imgb);
-
                 find_psnr_8bit(imgb_t, imgb_rec, psnr);
-#if CALC_SSIM
                 find_ms_ssim(imgb_t, imgb_rec, ms_ssim, 8);
-#endif
-
                 imgb_free(imgb_t);
             }
             imgblist_inp[i].used = 0;
@@ -1592,11 +1570,7 @@ static int write_rec(IMGB_LIST *list, EVC_MTIME *ts)
     return 0;
 }
 
-#if CALC_SSIM
 void print_psnr(EVCE_STAT * stat, double * psnr, double ms_ssim, int bitrate, EVC_CLK clk_end)
-#else
-void print_psnr(EVCE_STAT * stat, double * psnr, int bitrate, EVC_CLK clk_end)
-#endif
 {
     char  stype;
     int i, j;
@@ -1620,15 +1594,9 @@ void print_psnr(EVCE_STAT * stat, double * psnr, int bitrate, EVC_CLK clk_end)
         break;
     }
 
-#if CALC_SSIM
     v1print("%-7d%-5d(%c)     %-5d%-10.4f%-10.4f%-10.4f%-10d%-10d%-12.7f", \
         stat->poc, stat->tid, stype, stat->qp, psnr[0], psnr[1], psnr[2], \
         bitrate, evc_clk_msec(clk_end), ms_ssim);
-#else
-    v1print("%-7d(%c) %-5d%-10.4f%-10.4f%-10.4f%-10d%-10d", \
-        stat->poc, stype, stat->qp, psnr[0], psnr[1], psnr[2], \
-        bitrate, evc_clk_msec(clk_end));
-#endif
     for(i=0; i < 2; i++)
     {
         v1print("[L%d ", i);
@@ -1671,17 +1639,12 @@ int main(int argc, const char **argv)
     double              bitrate;
     double              psnr[3] = {0,};
     double              psnr_avg[3] = {0,};
-#if CALC_SSIM
     double              ms_ssim = 0;
     double              ms_ssim_avg = 0;
-#endif
     IMGB_LIST           ilist_org[MAX_BUMP_FRM_CNT];
     IMGB_LIST           ilist_rec[MAX_BUMP_FRM_CNT];
     IMGB_LIST          *ilist_t = NULL;
     static int          is_first_enc = 1;
-#if !CALC_SSIM
-    double              seq_header_bit = 0;
-#endif
 
     /* parse options */
     ret = evc_args_parse_all(argc, argv, options);
@@ -1822,9 +1785,6 @@ int main(int argc, const char **argv)
     }
 
     bitrate += stat.write;
-#if !CALC_SSIM
-    seq_header_bit = stat.write;
-#endif
 
     if(op_flag[OP_FLAG_SKIP_FRAMES] && op_skip_frames > 0)
     {
@@ -1952,11 +1912,7 @@ int main(int argc, const char **argv)
             }
 
             /* calculate PSNR */
-#if CALC_SSIM
             if(cal_psnr(ilist_org, ilist_t->imgb, ilist_t->ts, psnr, &ms_ssim))
-#else
-            if(cal_psnr(ilist_org, ilist_t->imgb, ilist_t->ts, psnr))
-#endif
             {
                 v0print("cannot calculate PSNR\n");
                 return -1;
@@ -1970,29 +1926,24 @@ int main(int argc, const char **argv)
 
             if(is_first_enc)
             {
-#if CALC_SSIM
                 print_psnr(&stat, psnr, ms_ssim, (stat.write - stat.sei_size + (int)bitrate) << 3, clk_end);
-#else
-                print_psnr(&stat, psnr, (stat.write - udata_size + (int)seq_header_bit) << 3, clk_end);
-#endif
                 is_first_enc = 0;
             }
             else
             {
-#if CALC_SSIM
                 print_psnr(&stat, psnr, ms_ssim, (stat.write - stat.sei_size) << 3, clk_end);
-#else
-                print_psnr(&stat, psnr, (stat.write - udata_size) << 3, clk_end);
-#endif
             }
 
             bitrate += (stat.write - stat.sei_size);
             for(i=0; i<3; i++) psnr_avg[i] += psnr[i];
-#if CALC_SSIM
-            ms_ssim_avg += ms_ssim;
-#endif
+            {
+                ms_ssim_avg += ms_ssim;
+            }
             /* release recon buffer */
-            if(imgb_rec) imgb_rec->release(imgb_rec);
+            if (imgb_rec)
+            {
+                imgb_rec->release(imgb_rec);
+            }
         }
         else if (ret == EVC_OK_NO_MORE_FRM)
         {
@@ -2027,16 +1978,12 @@ int main(int argc, const char **argv)
     psnr_avg[0] /= pic_ocnt;
     psnr_avg[1] /= pic_ocnt;
     psnr_avg[2] /= pic_ocnt;
-#if CALC_SSIM
     ms_ssim_avg  /= pic_ocnt;
-#endif
 
     v1print("  PSNR Y(dB)       : %-5.4f\n", psnr_avg[0]);
     v1print("  PSNR U(dB)       : %-5.4f\n", psnr_avg[1]);
     v1print("  PSNR V(dB)       : %-5.4f\n", psnr_avg[2]);
-#if CALC_SSIM
     v1print("  MsSSIM_Y         : %-8.7f\n", ms_ssim_avg);
-#endif
     v1print("  Total bits(bits) : %-.0f\n", bitrate*8);
     bitrate *= (cdsc.fps * 8);
     bitrate /= pic_ocnt;

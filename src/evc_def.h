@@ -37,7 +37,6 @@
 #include "evc.h"
 #include "evc_port.h"
 
-
 //MPEG 128 adoptions
 
 #define M50662                                       1
