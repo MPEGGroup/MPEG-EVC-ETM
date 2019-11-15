@@ -159,7 +159,7 @@ static char  op_rpl0[MAX_NUM_RPLS][256];
 static char  op_rpl1[MAX_NUM_RPLS][256];
 
 #if DQP_CFG
-static int  op_use_dqp             = 0;  /* default cu_delta_qp is off* /
+static int  op_use_dqp             = 0;  /* default cu_delta_qp is off */
 static int  op_cu_qp_delta_area    = 10; /* default cu_delta_qp_area is 10 */
 #endif
 
