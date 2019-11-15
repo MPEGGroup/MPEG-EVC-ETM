@@ -89,7 +89,6 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
 {
     evc_bsw_write_ue(bs, (u32)sps->sps_seq_parameter_set_id);
     evc_bsw_write(bs, (u32)sps->profile_idc, 7);
-    evc_bsw_write1(bs, sps->tier_flag);
     evc_bsw_write(bs, (u32)sps->level_idc, 8);
     evc_bsw_write_ue(bs, (u32)sps->chroma_format_idc);
     evc_bsw_write_ue(bs, (u32)sps->pic_width_in_luma_samples);
@@ -199,14 +198,11 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
     evc_bsw_write1(bs, sps->tool_ats);
 #endif
 #endif
-#if HLS_M47668
     evc_bsw_write1(bs, sps->tool_rpl);
     evc_bsw_write1(bs, sps->tool_pocs);
-#endif
 #if DQP
     evc_bsw_write1(bs, sps->dquant_flag);
 #endif
-#if HLS_M47668
     if (sps->tool_pocs)
     {
         evc_bsw_write_ue(bs, (u32)sps->log2_max_pic_order_cnt_lsb_minus4);
@@ -219,9 +215,6 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
             evc_bsw_write_ue(bs, sps->log2_ref_pic_gap_length);
         }
     }
-#else
-    evc_bsw_write_ue(bs, (u32)sps->log2_max_pic_order_cnt_lsb_minus4);
-#endif
     evc_bsw_write_ue(bs, (u32)sps->sps_max_dec_pic_buffering_minus1);
     if (!sps->tool_rpl)
     {
@@ -318,10 +311,7 @@ int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps)
     }
 
     evc_bsw_write1(bs, pps->arbitrary_slice_present_flag);
-
-#if M48879_IMPROVEMENT_INTRA
-    evc_bsw_write1(bs, pps->constrained_intra_pred_flag); /* constrained_intra_pred_flag */
-#endif
+    evc_bsw_write1(bs, pps->constrained_intra_pred_flag); 
 
 #if DQP
     evc_bsw_write1(bs, pps->cu_qp_delta_enabled_flag);
@@ -373,11 +363,9 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
 {
     int NumTilesInSlice = 0; //TBD according to the spec
 
-#if HLS_M47668
     evc_bsw_write(bs, sh->dtr, DTR_BIT_CNT);
     evc_bsw_write(bs, sh->layer_id, 3);
-#endif
-#if M49023_ADMVP_IMPROVE
+
     evc_bsw_write1(bs, sh->temporal_mvp_asigned_flag);
     if (sh->temporal_mvp_asigned_flag)
     {
@@ -385,7 +373,7 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
         evc_bsw_write1(bs, sh->collocated_from_ref_idx);
         evc_bsw_write1(bs, sh->collocated_mvp_source_list_idx);
     }
-#endif
+
     evc_bsw_write_ue(bs, sh->slice_pic_parameter_set_id);
     evc_bsw_write1(bs, sh->single_tile_in_slice_flag);
     evc_bsw_write(bs, sh->first_tile_id, pps->tile_id_len_minus1 + 1);
@@ -411,7 +399,6 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
     }
 
     evc_bsw_write_ue(bs, sh->slice_type);
-#if M48879_IMPROVEMENT_INTER
     if (sps->tool_mmvd && (sh->slice_type == SLICE_B))
     {
         evc_bsw_write1(bs, sh->mmvd_group_enable_flag);
@@ -421,7 +408,6 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
     {
         evc_bsw_write1(bs, sh->mmvd_group_enable_flag);
     }
-#endif
 #endif
 #if ALF
     if (sps->tool_alf)
@@ -450,14 +436,10 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
 
     // if (NalUnitType != IDR_NUT)  TBD: NALU types to be implemented
     {
-#if HLS_M47668
         if (sps->tool_pocs)
         {
             evc_bsw_write(bs, sh->poc, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
         }
-#else
-        evc_bsw_write(bs, sh->poc, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
-#endif
     }
     // else
     {
@@ -513,10 +495,8 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
     }
 
     evc_bsw_write1(bs, sh->deblocking_filter_on);
-#if M49023_DBF_IMPROVE
     evc_bsw_write_se(bs, sh->sh_deblock_alpha_offset);
     evc_bsw_write_se(bs, sh->sh_deblock_beta_offset);
-#endif
     evc_bsw_write(bs, sh->qp, 6);
     evc_bsw_write_se(bs, (int)sh->qp - (int)sh->qp_u);
     evc_bsw_write_se(bs, (int)sh->qp - (int)sh->qp_v);
@@ -528,68 +508,11 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
             evc_bsw_write(bs, sh->entry_point_offset_minus1[i], pps->tile_offset_lens_minus1 + 1);
         }
     }
-#if !HLS_M47668
-    evc_bsw_write(bs, sh->dtr, DTR_BIT_CNT);
-#endif
 
     if(sh->slice_type != SLICE_I)
     {
         evc_bsw_write_se(bs, sh->dptr);
     }
-
-#if !HLS_M47668
-    evc_bsw_write(bs, sh->layer_id, 3);
-
-    /* write MMCO */
-    evc_bsw_write1(bs, sh->mmco_on);
-
-    if(sh->mmco_on)
-    {
-        int cnt = sh->mmco.cnt;
-        while(cnt-- > 0)
-        {
-            evc_bsw_write_ue(bs, sh->mmco.type[cnt]);
-            evc_bsw_write_ue(bs, sh->mmco.data[cnt]);
-        }
-        evc_bsw_write_ue(bs, MMCO_END);
-    }
-
-    /* write RMPNI */
-    evc_bsw_write1(bs, sh->rmpni_on);
-    if(sh->rmpni_on)
-    {
-        int i;
-        for(i = 0; i < sh->rmpni[REFP_0].cnt; i++)
-        {
-            if(sh->rmpni[REFP_0].delta_poc[i] < 0)
-            {
-                evc_bsw_write_ue(bs, RMPNI_ADPN_NEG);
-                evc_bsw_write_ue(bs, -(sh->rmpni[REFP_0].delta_poc[i] + 1));
-            }
-            else
-            {
-                evc_bsw_write_ue(bs, RMPNI_ADPN_POS);
-                evc_bsw_write_ue(bs, sh->rmpni[REFP_0].delta_poc[i] - 1);
-            }
-        }
-        evc_bsw_write_ue(bs, RMPNI_END);
-
-        for(i = 0; i < sh->rmpni[REFP_1].cnt; i++)
-        {
-            if(sh->rmpni[REFP_1].delta_poc[i] < 0)
-            {
-                evc_bsw_write_ue(bs, RMPNI_ADPN_NEG);
-                evc_bsw_write_ue(bs, -(sh->rmpni[REFP_1].delta_poc[i] + 1));
-            }
-            else
-            {
-                evc_bsw_write_ue(bs, RMPNI_ADPN_POS);
-                evc_bsw_write_ue(bs, sh->rmpni[REFP_1].delta_poc[i] - 1);
-            }
-        }
-        evc_bsw_write_ue(bs, RMPNI_END);
-    }
-#endif
 
     /* byte align */
     while(!EVC_BSW_IS_BYTE_ALIGN(bs))
@@ -3117,11 +3040,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 
             if(core->mmvd_flag)
             {
-#if M48879_IMPROVEMENT_INTER
                 evce_eco_mmvd_info(bs, cu_data->mmvd_idx[cup], ctx->sh.mmvd_group_enable_flag && !(cuw*cuh <= NUM_SAMPLES_BLOCK));
-#else
-                evce_eco_mmvd_info(bs, cu_data->mmvd_idx[cup], !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr));
-#endif
             }
             else
             {
@@ -3236,11 +3155,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 
                         if((cu_data->pred_mode[cup] == MODE_DIR_MMVD))
                         {
-#if M48879_IMPROVEMENT_INTER
                             evce_eco_mmvd_info(bs, cu_data->mmvd_idx[cup], ctx->sh.mmvd_group_enable_flag && !(cuw*cuh <= NUM_SAMPLES_BLOCK));
-#else
-                            evce_eco_mmvd_info(bs, cu_data->mmvd_idx[cup], !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr));
-#endif
                         }
                     }
 

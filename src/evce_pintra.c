@@ -169,16 +169,8 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 #endif
         if (ctx->sps.tool_eipd)
         {
-            evc_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, pi->pred[U_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu
-#if M48879_IMPROVEMENT_INTRA
-                , ctx->sps.sps_suco_flag
-#endif
-            );
-            evc_ipred_uv(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, pi->pred[V_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu
-#if M48879_IMPROVEMENT_INTRA
-                , ctx->sps.sps_suco_flag
-#endif
-            );
+            evc_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, pi->pred[U_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu, ctx->sps.sps_suco_flag);
+            evc_ipred_uv(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, pi->pred[V_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu, ctx->sps.sps_suco_flag);
         }
         else
         {
@@ -314,11 +306,7 @@ static int make_ipred_list(EVCE_CTX * ctx, EVCE_CORE * core, int log2_cuw, int l
 
         if (ctx->sps.tool_eipd)
         {
-            evc_ipred(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, pred_buf, i, cuw, cuh, core->avail_cu
-#if M48879_IMPROVEMENT_INTRA
-                , ctx->sps.sps_suco_flag
-#endif
-            );
+            evc_ipred(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, pred_buf, i, cuw, cuh, core->avail_cu, ctx->sps.sps_suco_flag);
         }
         else
         {
@@ -434,7 +422,6 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
     org_cb = pi->o[U_C] + ((y >> 1) * s_org_c) + (x >> 1);
     org_cr = pi->o[V_C] + ((y >> 1) * s_org_c) + (x >> 1);
 
-#if M48879_IMPROVEMENT_INTRA
     if (ctx->sps.tool_eipd)
     {
         evc_get_nbr(x, y, cuw, cuh, mod, s_mod, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C, ctx->pps.constrained_intra_pred_flag);
@@ -449,33 +436,6 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
         evc_get_nbr_b(x >> 1, y >> 1, cuw >> 1, cuh >> 1, mod_cr, s_mod_c, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, V_C, ctx->pps.constrained_intra_pred_flag);
         evc_get_mpm_b(core->x_scu, core->y_scu, cuw, cuh, ctx->map_scu, ctx->map_ipm, core->scup, ctx->w_scu,&core->mpm_b_list, core->avail_lr, core->mpm_ext, core->pims);
     }
-#else
-    evc_get_nbr(x, y, cuw, cuh, mod, s_mod, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C
-#if M48879_IMPROVEMENT_INTRA
-        , ctx->pps.constrained_intra_pred_flag
-#endif
-    );
-    evc_get_nbr(x >> 1, y >> 1, cuw >> 1, cuh >> 1, mod_cb, s_mod_c, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, U_C
-#if M48879_IMPROVEMENT_INTRA
-        , ctx->pps.constrained_intra_pred_flag
-#endif
-    );
-    evc_get_nbr(x >> 1, y >> 1, cuw >> 1, cuh >> 1, mod_cr, s_mod_c, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, V_C
-#if M48879_IMPROVEMENT_INTRA
-        , ctx->pps.constrained_intra_pred_flag
-#endif
-    );
-    if (ctx->sps.tool_eipd)
-    {
-        evc_get_mpm(core->x_scu, core->y_scu, cuw, cuh, ctx->map_scu, ctx->map_ipm, core->scup, ctx->w_scu,
-            core->mpm, core->avail_lr, core->mpm_ext, core->pims);
-    }
-    else
-    {
-        evc_get_mpm_b(core->x_scu, core->y_scu, cuw, cuh, ctx->map_scu, ctx->map_ipm, core->scup, ctx->w_scu,
-            &core->mpm_b_list, core->avail_lr, core->mpm_ext, core->pims);
-    }
-#endif
 
 #if M50761_CHROMA_NOT_SPLIT 
     if (evc_check_luma(ctx->tree_cons))

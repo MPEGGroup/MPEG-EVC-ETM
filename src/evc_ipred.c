@@ -33,7 +33,6 @@
 
 #include "evcd_def.h"
 
-#if M48879_IMPROVEMENT_INTRA
 void evc_get_nbr_b(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_cu, pel nb[N_C][N_REF][MAX_CU_SIZE * 3], int scup, u32 * map_scu, int w_scu, int h_scu, int ch_type, int constrained_intra_pred)
 {
     int  i, j;
@@ -88,12 +87,9 @@ void evc_get_nbr_b(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avai
     }
     left[-1] = up[-1];
 }
-#endif
 
 void evc_get_nbr(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_cu, pel nb[N_C][N_REF][MAX_CU_SIZE * 3], int scup, u32 * map_scu, int w_scu, int h_scu, int ch_type
-#if M48879_IMPROVEMENT_INTRA
                  , int constrained_intra_pred
-#endif
 )
 {
     int  i, j;
@@ -107,7 +103,6 @@ void evc_get_nbr(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_
     pel *up = nb[ch_type][1] + cuh;
     pel *right = nb[ch_type][2] + 2;
 
-#if M48879_IMPROVEMENT_INTRA
     if (IS_AVAIL(avail_cu, AVAIL_UP_LE) && (!constrained_intra_pred || MCU_GET_IF(map_scu[scup - w_scu - 1])))
     {
         evc_mcpy(up - 1, src - s_src - 1, cuw * sizeof(pel));
@@ -197,137 +192,9 @@ void evc_get_nbr(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_
     }
 
     right[-2] = right[-1];
-#else
-    if(IS_AVAIL(avail_cu, AVAIL_UP))
-    {
-        evc_mcpy(up, src - s_src, cuw * sizeof(pel));
-
-        for(i = 0; i < scuh; i++)
-        {
-            if(x_scu + scuw + i < w_scu && MCU_GET_COD(map_scu[scup - w_scu + scuw + i]))
-            {
-                evc_mcpy(up + cuw + i * unit_size, src - s_src + cuw + i * unit_size, unit_size * sizeof(pel));
-            }
-            else
-            {
-                evc_mset_16b(up + cuw + i * unit_size, up[cuw + i * unit_size - 1], unit_size);
-            }
-        }
-
-        if(x_scu > 0)
-        {
-            for(i = 0; i < scuh; i++)
-            {
-                if(x_scu - 1 - i >= 0 && MCU_GET_COD(map_scu[scup - w_scu - 1 - i]))
-                {
-                    evc_mcpy(up - (i + 1) * unit_size, src - s_src - (i + 1) * unit_size, unit_size * sizeof(pel));
-                }
-                else
-                {
-                    evc_mset_16b(up - (i + 1) * unit_size, up[-i * unit_size], unit_size);
-                }
-            }
-        }
-        else
-        {
-            evc_mset_16b(up - cuh, up[0], cuh);
-        }
-    }
-    else
-    {
-        evc_mset_16b(up - cuh, 1 << (BIT_DEPTH - 1), (cuw + cuh * 2));
-    }
-
-    if(IS_AVAIL(avail_cu, AVAIL_LE))
-    {
-        src--;
-        for(i = 0; i < cuh; ++i)
-        {
-            left[i] = *src;
-            src += s_src;
-        }
-
-        for(i = 0; i < scuw; i++)
-        {
-            if(y_scu + scuh + i < h_scu && MCU_GET_COD(map_scu[scup - 1 + (scuh + i) *w_scu]))
-            {
-                int j;
-                for(j = 0; j < unit_size; ++j)
-                {
-                    left[cuh + i * unit_size + j] = *src;
-                    src += s_src;
-                }
-            }
-            else
-            {
-                evc_mset_16b(left + cuh + i * unit_size, left[cuh + i * unit_size - 1], unit_size);
-                src += (s_src * unit_size);
-            }
-        }
-
-        left[-1] = up[-1];
-        left[-2] = up[-1];
-    }
-    else
-    {
-        if(x_scu > 0 && y_scu > 0 && MCU_GET_COD(map_scu[scup - w_scu - 1]))
-        {
-            evc_mset_16b(left - 2, up[-1], cuh + cuw + 2);
-        }
-        else
-        {
-            evc_mset_16b(left - 2, 1 << (BIT_DEPTH - 1), cuh + cuw + 2);
-        }
-    }
-
-    src = tmp;
-
-    if(IS_AVAIL(avail_cu, AVAIL_RI))
-    {
-        src += cuw;
-        for(i = 0; i < cuh; i++)
-        {
-            right[i] = *src;
-            src += s_src;
-        }
-
-        for(i = 0; i < scuw; i++)
-        {
-            if(y_scu + scuh + i < h_scu && MCU_GET_COD(map_scu[scup + scuw + (scuh + i) * w_scu]))
-            {
-                for(j = 0; j < unit_size; ++j)
-                {
-                    right[cuh + i * unit_size + j] = *src;
-                    src += s_src;
-                }
-            }
-            else
-            {
-                evc_mset_16b(right + cuh + i * unit_size, right[cuh + i * unit_size - 1], unit_size);
-                src += (s_src * unit_size);
-            }
-        }
-
-        right[-1] = up[cuw];
-        right[-2] = up[cuw];
-    }
-    else
-    {
-        if(x_scu + scuw < w_scu  && y_scu > 0 && MCU_GET_COD(map_scu[scup - w_scu + scuw]))
-        {
-            evc_mset_16b(right - 2, up[cuw], cuh + cuw + 2);
-        }
-        else
-        {
-            evc_mset_16b(right - 2, 1 << (BIT_DEPTH - 1), cuh + cuw + 2);
-        }
-    }
-#endif
 }
 
-#if M48933_INTRA_PRED_NO_DIV_IN_HOR_MODE || M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
 static const int lut_size_plus1[MAX_CU_LOG2 + 1] = { 2048, 1365, 819, 455, 241, 124, 63, 32 }; // 1/(w+1) = k >> 12
-#endif //M48933_INTRA_PRED_NO_DIV_IN_HOR_MODE || M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
 
 void ipred_hor(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h)
 {
@@ -335,10 +202,8 @@ void ipred_hor(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, in
 
     if(avail_lr == LR_11)
     {
-#if M48933_INTRA_PRED_NO_DIV_IN_HOR_MODE
         const int multi_w = lut_size_plus1[evc_tbl_log2[w]];
         const int shift_w = 12;
-#endif //M48933_INTRA_PRED_NO_DIV_IN_HOR_MODE
         for(i = 0; i < h; i++)
         {
             for(j = 0; j < w; j++)
@@ -347,11 +212,7 @@ void ipred_hor(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, in
 
                 vle = src_le[0];
                 vri = src_ri[0];
-#if M48933_INTRA_PRED_NO_DIV_IN_HOR_MODE
                 dst[j] = ((vle * (w - j) + vri * (j + 1) + (w >> 1)) * multi_w) >> shift_w;
-#else //!M48933_INTRA_PRED_NO_DIV_IN_HOR_MODE
-                dst[j] = divide_tbl((vle * (w - j) + vri * (j + 1) + (w >> 1)), (w + 1));
-#endif //M48933_INTRA_PRED_NO_DIV_IN_HOR_MODE
             }
             dst += w; src_le++; src_ri++;
         }
@@ -394,7 +255,6 @@ void ipred_vert(pel *src_le, pel *src_up, pel * src_ri, u16 avail_lr, pel *dst, 
     }
 }
 
-#if M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
 static int evc_get_dc(const int numerator, const int w, const int h)
 {
     const int log2_w = evc_tbl_log2[w];
@@ -416,93 +276,16 @@ static int evc_get_dc(const int numerator, const int w, const int h)
 
   return (numerator * lut_size_plus1[log2_asp_ratio]) >> (basic_shift + shift_w);
 }
-#endif //M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
 
 void ipred_dc_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h, u16 avail_cu)
 {
     int dc = 0;
     int wh, i, j;
 
-#if M48879_IMPROVEMENT_INTRA
     for (i = 0; i < h; i++) dc += src_le[i];
     for (j = 0; j < w; j++) dc += src_up[j];
     dc = (dc + w) >> (evc_tbl_log2[w] + 1);
-#else
 
-    if(avail_lr == LR_11)
-    {
-        for(i = 0; i < h; i++) dc += src_le[i];
-        for(i = 0; i < h; i++) dc += src_ri[i];
-        if(IS_AVAIL(avail_cu, AVAIL_UP))
-        {
-            for(j = 0; j < w; j++) dc += src_up[j];
-#if M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
-            dc = evc_get_dc(dc + ((w + h + h) >> 1), w, h << 1);
-#else //!M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
-            dc = divide_tbl((dc + ((w + h + h) >> 1)), (w + h + h));
-#endif //M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
-        }
-        else
-        {
-#if M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
-            dc = (dc + h) >> (evc_tbl_log2[h] + 1);
-#else //!M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
-            dc = divide_tbl((dc + h), (h + h));
-#endif //M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
-        }
-    }
-    else if(avail_lr == LR_01)
-    {
-        for(i = 0; i < h; i++) dc += src_ri[i];
-        if(IS_AVAIL(avail_cu, AVAIL_UP))
-        {
-            for(j = 0; j < w; j++) dc += src_up[j];
-#if M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
-            dc = evc_get_dc(dc + ((w + h) >> 1), w, h);
-#else //!M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
-            dc = divide_tbl((dc + ((w + h) >> 1)), (w + h));
-#endif //M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
-        }
-        else
-        {
-#if M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
-            dc = (dc + (h >> 1)) >> evc_tbl_log2[h];
-#else //!M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
-            dc = divide_tbl((dc + ((h) >> 1)), (h));
-#endif //M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
-        }
-    }
-    else if(avail_lr == LR_10)
-    {
-        for(i = 0; i < h; i++) dc += src_le[i];
-        if(IS_AVAIL(avail_cu, AVAIL_UP))
-        {
-            for(j = 0; j < w; j++) dc += src_up[j];
-#if M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
-            dc = evc_get_dc(dc + ((w + h) >> 1), w, h);
-#else //!M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
-            dc = (dc + ((w + h) >> 1)) / (w + h);
-#endif //M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
-        }
-        else
-        {
-#if M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
-            dc = (dc + (h >> 1)) >> evc_tbl_log2[h];
-#else //!M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
-            dc = (dc + (h >> 1)) / h;
-#endif //M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
-        }
-    }
-    else
-    {
-        for(j = 0; j < w; j++) dc += src_up[j];
-#if M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
-        dc = (dc + (w >> 1)) >> evc_tbl_log2[w];
-#else //!M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
-        dc = (dc + w / 2) / w;
-#endif //M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
-    }
-#endif
     wh = w * h;
 
     for(i = 0; i < wh; i++)
@@ -526,31 +309,19 @@ void ipred_dc(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int
         for (i = 0; i < h; i++) dc += src_le[i];
         for (i = 0; i < h; i++) dc += src_ri[i];
         for (j = 0; j < w; j++) dc += src_up[j];
-#if M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
         dc = evc_get_dc(dc + ((w + h + h) >> 1), w, h << 1);
-#else //!M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
-        dc = divide_tbl((dc + ((w + h + h) >> 1)), (w + h + h));
-#endif //M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
     }
     else if (avail_lr == LR_01)
     {
         for (i = 0; i < h; i++) dc += src_ri[i];
         for (j = 0; j < w; j++) dc += src_up[j];
-#if M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
         dc = evc_get_dc(dc + ((w + h) >> 1), w, h);
-#else //!M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
-        dc = divide_tbl((dc + ((w + h) >> 1)), (w + h));
-#endif //M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
     }
     else if (avail_lr == LR_10)
     {
         for (i = 0; i < h; i++) dc += src_le[i];
         for (j = 0; j < w; j++) dc += src_up[j];
-#if M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
         dc = evc_get_dc(dc + ((w + h) >> 1), w, h);
-#else //!M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
-        dc = divide_tbl((dc + ((w + h) >> 1)), (w + h));
-#endif //M48933_INTRA_PRED_NO_DIV_IN_DC_MODE
     }
     else
     {
@@ -647,10 +418,6 @@ void ipred_plane(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, 
         }
     }
 }
-
-#if !(M48933_INTRA_PRED_NO_DIV_IN_HOR_MODE || M48933_INTRA_PRED_NO_DIV_IN_DC_MODE)
-int lut_size_plus1[MAX_CU_LOG2 + 1] = {2048, 1365, 819, 455, 241, 124, 63, 32};// 1/(w+1) = k >> 12
-#endif //!(M48933_INTRA_PRED_NO_DIV_IN_HOR_MODE || M48933_INTRA_PRED_NO_DIV_IN_DC_MODE)
 
 void ipred_bi(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h)
 {
@@ -970,11 +737,7 @@ void ipred_ang(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, in
 {
     int i, j;
     const int pos_max = w + h - 1;
-#if M48879_IMPROVEMENT_INTRA
     const int pos_min = - 1;
-#else
-    const int pos_min = -h;
-#endif
 
     for(j = 0; j < h; j++)
     {
@@ -1045,20 +808,12 @@ void evc_ipred_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, 
             ipred_ur(src_le, src_up, src_ri, avail_lr, dst, w, h);
             break;
         default:
-#if M48879_IMPROVEMENT_INTRA
             printf("\n illegal intra prediction mode\n");
-#else
-            ipred_ang(src_le, src_up, src_ri, avail_lr, dst, w, h, ipm);
-#endif
             break;
     }
 }
 
-void evc_ipred(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm, int w, int h, u16 avail_cu
-#if M48879_IMPROVEMENT_INTRA
-    , int sps_suco_flag
-#endif
-)
+void evc_ipred(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm, int w, int h, u16 avail_cu, int sps_suco_flag)
 {
     switch(ipm)
     {
@@ -1069,11 +824,7 @@ void evc_ipred(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, in
             ipred_hor(src_le, src_up, src_ri, avail_lr, dst, w, h);
             break;
         case IPD_DC:
-            ipred_dc(src_le, src_up, src_ri, avail_lr, dst, w, h, avail_cu
-#if M48879_IMPROVEMENT_INTRA
-                , sps_suco_flag
-#endif
-            );
+            ipred_dc(src_le, src_up, src_ri, avail_lr, dst, w, h, avail_cu, sps_suco_flag);
             break;
         case IPD_PLN:
             ipred_plane(src_le, src_up, src_ri, avail_lr, dst, w, h);
@@ -1115,11 +866,7 @@ void evc_ipred_uv_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *ds
     }
 }
 
-void evc_ipred_uv(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm_c, int ipm, int w, int h, u16 avail_cu
-#if M48879_IMPROVEMENT_INTRA
-    , int sps_suco_flag
-#endif
-)
+void evc_ipred_uv(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm_c, int ipm, int w, int h, u16 avail_cu, int sps_suco_flag)
 {
     if(ipm_c == IPD_DM_C && EVC_IPRED_CHK_CONV(ipm))
     {
@@ -1141,11 +888,7 @@ void evc_ipred_uv(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst,
             break;
 
         case IPD_DC_C:
-            ipred_dc(src_le, src_up, src_ri, avail_lr, dst, w, h, avail_cu
-#if M48879_IMPROVEMENT_INTRA
-                , sps_suco_flag
-#endif
-            );
+            ipred_dc(src_le, src_up, src_ri, avail_lr, dst, w, h, avail_cu, sps_suco_flag);
             break;
         case IPD_HOR_C:
             ipred_hor(src_le, src_up, src_ri, avail_lr, dst, w, h);
@@ -1163,7 +906,6 @@ void evc_ipred_uv(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst,
     }
 }
 
-#if M48879_IMPROVEMENT_INTRA
 int intra_mode_list[IPD_CNT] = {
     IPD_DC, IPD_BI, IPD_VER, IPD_PLN, IPD_HOR,
     IPD_VER - 1, IPD_VER + 1, IPD_VER - 2, IPD_VER + 2, IPD_VER - 3, IPD_VER + 3,
@@ -1176,59 +918,6 @@ int intra_mode_list[IPD_CNT] = {
     IPD_VER - 5, IPD_VER - 4,
     IPD_HOR + 5, IPD_HOR + 4,
 };
-#else
-int intra_mode_list[4][IPD_CNT] = {
-    {
-        IPD_DC, IPD_BI, IPD_VER, IPD_PLN, IPD_HOR,
-        IPD_VER - 1, IPD_VER + 1, IPD_VER - 2, IPD_VER + 2, IPD_VER - 3, IPD_VER + 3,
-        IPD_HOR - 1,IPD_HOR + 1, IPD_HOR - 2, IPD_HOR + 2, IPD_HOR - 3, IPD_HOR + 3,
-        IPD_VER + 5, IPD_VER + 4,
-        IPD_VER - 5, IPD_VER - 4,
-        IPD_DIA_R, 
-        IPD_DIA_L, IPD_DIA_L - 3, IPD_DIA_L - 2, IPD_DIA_L - 1,
-        IPD_DIA_U, IPD_DIA_U + 1, IPD_DIA_U + 2, 
-        IPD_HOR - 4, IPD_HOR - 5,
-        IPD_HOR + 5, IPD_HOR + 4,
-    },
-    {
-        IPD_DC, IPD_BI, IPD_VER, IPD_PLN, IPD_HOR,
-        IPD_VER - 1, IPD_VER + 1, IPD_VER - 2, IPD_VER + 2, IPD_VER - 3, IPD_VER + 3,
-        IPD_HOR - 1,IPD_HOR + 1, IPD_HOR - 2, IPD_HOR + 2, IPD_HOR - 3, IPD_HOR + 3,
-        IPD_DIA_R, 
-        IPD_VER + 5, IPD_VER + 4,
-        IPD_HOR - 4, IPD_HOR - 5,
-        IPD_DIA_L, IPD_DIA_L - 3, IPD_DIA_L - 2, IPD_DIA_L - 1,
-        IPD_DIA_U, IPD_DIA_U + 1, IPD_DIA_U + 2,
-        IPD_VER - 5, IPD_VER - 4,
-        IPD_HOR + 5, IPD_HOR + 4,
-    },
-    {
-        IPD_DC, IPD_BI, IPD_VER, IPD_PLN, IPD_HOR,
-        IPD_VER - 1, IPD_VER + 1, IPD_VER - 2, IPD_VER + 2, IPD_VER - 3, IPD_VER + 3,
-        IPD_HOR - 1,IPD_HOR + 1, IPD_HOR - 2, IPD_HOR + 2, IPD_HOR - 3, IPD_HOR + 3,
-        IPD_DIA_L, IPD_DIA_L - 3, IPD_DIA_L - 2, IPD_DIA_L - 1,
-        IPD_DIA_U, IPD_DIA_U + 1, IPD_DIA_U + 2,
-        IPD_VER - 5, IPD_VER - 4,
-        IPD_HOR + 5, IPD_HOR + 4,
-        IPD_VER + 5, IPD_VER + 4,
-        IPD_HOR - 4, IPD_HOR - 5,
-        IPD_DIA_R 
-
-    },
-    {
-        IPD_DC, IPD_BI, IPD_VER, IPD_PLN, IPD_HOR,
-        IPD_VER - 1, IPD_VER + 1, IPD_VER - 2, IPD_VER + 2, IPD_VER - 3, IPD_VER + 3,
-        IPD_HOR - 1,IPD_HOR + 1, IPD_HOR - 2, IPD_HOR + 2, IPD_HOR - 3, IPD_HOR + 3,
-        IPD_DIA_R, 
-        IPD_DIA_L, IPD_DIA_L - 3, IPD_DIA_L - 2, IPD_DIA_L - 1,
-        IPD_DIA_U, IPD_DIA_U + 1, IPD_DIA_U + 2,
-        IPD_VER + 5, IPD_VER + 4,
-        IPD_HOR - 4, IPD_HOR - 5,
-        IPD_VER - 5, IPD_VER - 4,
-        IPD_HOR + 5, IPD_HOR + 4,
-    },
-};
-#endif
 
 void evc_get_mpm_b(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_ipm, int scup, int w_scu,
                    u8 ** mpm, u16 avail_lr, u8 mpm_ext[8], u8 pms[IPD_CNT] /* 10 third MPM */)
@@ -1259,11 +948,7 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
     int mode_idx = 0;
     int check = 8;
     int included_mode[IPD_CNT];
-#if M48879_IMPROVEMENT_INTRA
     int *default_mode_list = intra_mode_list;
-#else
-    int *default_mode_list = intra_mode_list[avail_lr];
-#endif
 
     evc_mset(included_mode, 0, sizeof(included_mode));
 

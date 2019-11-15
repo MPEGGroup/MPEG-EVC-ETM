@@ -37,13 +37,8 @@
 #include "evce_def.h"
 
 #define BI_ITER                            4
-#if M48879_IMPROVEMENT_ENC_OPT
 #define MAX_FIRST_SEARCH_STEP              3
 #define MAX_REFINE_SEARCH_STEP             2
-#else
-#define MAX_FIRST_SEARCH_STEP              16
-#define MAX_REFINE_SEARCH_STEP             4
-#endif
 #define RASTER_SEARCH_STEP                 5
 #define RASTER_SEARCH_THD                  5
 #define REFINE_SEARCH_THD                  0

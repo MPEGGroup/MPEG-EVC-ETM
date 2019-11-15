@@ -1001,11 +1001,7 @@ void evcd_eco_mmvd_data(EVCD_CTX * ctx, EVCD_CORE * core)
 {
     EVCD_SBAC *sbac;
     EVC_BSR   *bs;
-#if M48879_IMPROVEMENT_INTER
     int        type = ctx->sh.mmvd_group_enable_flag && !(1 << (core->log2_cuw + core->log2_cuh) <= NUM_SAMPLES_BLOCK);
-#else
-    int        type = !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr);
-#endif
     int        parse_idx = 0;
     int        temp = 0;
     int        temp_t;
@@ -2617,7 +2613,6 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
 {
     sps->sps_seq_parameter_set_id = (u32)evc_bsr_read_ue(bs);
     sps->profile_idc = evc_bsr_read(bs, 7);
-    sps->tier_flag = evc_bsr_read1(bs);
     sps->level_idc = evc_bsr_read(bs, 8);
     sps->chroma_format_idc = (u32)evc_bsr_read_ue(bs);
     sps->pic_width_in_luma_samples = (u32)evc_bsr_read_ue(bs);
@@ -2726,14 +2721,11 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
     sps->tool_ats = evc_bsr_read1(bs);
 #endif
 #endif
-#if HLS_M47668
     sps->tool_rpl = evc_bsr_read1(bs);
     sps->tool_pocs = evc_bsr_read1(bs);
-#endif
 #if DQP
     sps->dquant_flag = evc_bsr_read1(bs);
 #endif
-#if HLS_M47668
     if (sps->tool_pocs)
     {
         sps->log2_max_pic_order_cnt_lsb_minus4 = (u32)evc_bsr_read_ue(bs);
@@ -2747,9 +2739,6 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
         }
 
     }
-#else
-    sps->log2_max_pic_order_cnt_lsb_minus4 = (u32)evc_bsr_read_ue(bs);
-#endif
     sps->sps_max_dec_pic_buffering_minus1 = (u32)evc_bsr_read_ue(bs);
     if (!sps->tool_rpl)
     {
@@ -2851,10 +2840,7 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps)
     }
 
     pps->arbitrary_slice_present_flag = evc_bsr_read1(bs);
-
-#if M48879_IMPROVEMENT_INTRA
-    pps->constrained_intra_pred_flag = evc_bsr_read1(bs);  /* constrained_intra_pred_flag */
-#endif
+    pps->constrained_intra_pred_flag = evc_bsr_read1(bs);  
 
 #if DQP
     pps->cu_qp_delta_enabled_flag = evc_bsr_read1(bs);
@@ -3337,19 +3323,17 @@ int evcd_eco_alf_sh_param(EVC_BSR * bs, EVC_SH * sh)
 int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
 {
     int NumTilesInSlice = 0;    //TBD according to the spec
-#if HLS_M47668
     sh->dtr = evc_bsr_read(bs, DTR_BIT_CNT);
     sh->layer_id = evc_bsr_read(bs, 3);
-#endif
-#if M49023_ADMVP_IMPROVE
     sh->temporal_mvp_asigned_flag = evc_bsr_read1(bs);
+    
     if (sh->temporal_mvp_asigned_flag)
     {
         sh->collocated_from_list_idx = evc_bsr_read1(bs);
         sh->collocated_from_ref_idx = evc_bsr_read1(bs);
         sh->collocated_mvp_source_list_idx = evc_bsr_read1(bs);
     }
-#endif
+
     sh->slice_pic_parameter_set_id = evc_bsr_read_ue(bs);
     sh->single_tile_in_slice_flag = evc_bsr_read1(bs);
     sh->first_tile_id = evc_bsr_read(bs, pps->tile_id_len_minus1 + 1);
@@ -3375,7 +3359,6 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
     }
 
     sh->slice_type = evc_bsr_read_ue(bs);
-#if M48879_IMPROVEMENT_INTER
   #if M50632_IMPROVEMENT_MMVD
     if (sps->tool_mmvd && ((sh->slice_type == SLICE_B)||(sh->slice_type == SLICE_P)) )
 #else
@@ -3388,7 +3371,6 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
     {
         sh->mmvd_group_enable_flag = 0;
     }
-#endif
 #if ALF
     if (sps->tool_alf)
     {
@@ -3415,14 +3397,10 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
 
     // if (NalUnitType != IDR_NUT)  TBD: NALU types to be implemented
     {
-#if HLS_M47668
         if (sps->tool_pocs)
         {
             sh->poc = evc_bsr_read(bs, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
         }
-#else
-        sh->poc = evc_bsr_read(bs, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
-#endif
     }
     // else 
     {
@@ -3485,10 +3463,8 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
     }
 
     sh->deblocking_filter_on = evc_bsr_read1(bs);
-#if M49023_DBF_IMPROVE
     sh->sh_deblock_alpha_offset = evc_bsr_read_se(bs);
     sh->sh_deblock_beta_offset = evc_bsr_read_se(bs);
-#endif
     sh->qp = evc_bsr_read(bs, 6);
     sh->qp_u = sh->qp - evc_bsr_read_se(bs);
     sh->qp_v = sh->qp - evc_bsr_read_se(bs);
@@ -3501,10 +3477,6 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
         }
     }
 
-#if !HLS_M47668
-    sh->dtr = evc_bsr_read(bs, DTR_BIT_CNT);
-#endif
-
     if(sh->slice_type!= SLICE_I)
     {
         /* dptr: delta of presentation temporal reference */
@@ -3512,91 +3484,6 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
     }
 
     sh->poc = sh->dtr + sh->dptr;
-#if !HLS_M47668
-    sh->layer_id = evc_bsr_read(bs, 3);
-
-    /* parse MMCO */
-    sh->mmco_on = evc_bsr_read1(bs);
-    if(sh->mmco_on)
-    {
-        sh->mmco.cnt = 0;
-        while(sh->mmco.cnt < MAX_NUM_MMCO)
-        {
-            evc_assert_rv(sh->mmco.cnt < MAX_NUM_MMCO, EVC_ERR_MALFORMED_BITSTREAM);
-
-            sh->mmco.type[sh->mmco.cnt] = evc_bsr_read_ue(bs);
-            if(sh->mmco.type[sh->mmco.cnt] == MMCO_END) break; /* END of MMCO */
-
-            sh->mmco.data[sh->mmco.cnt] = evc_bsr_read_ue(bs);
-            sh->mmco.cnt++;
-        }
-    }
-
-    /* parse RMPNI*/
-    sh->rmpni_on = evc_bsr_read1(bs);
-    if(sh->rmpni_on)
-    {
-        static int aa =0;
-        int t0, t1;
-        aa++;
-        sh->rmpni[REFP_0].cnt = 0;
-        while(sh->rmpni[REFP_0].cnt < MAX_NUM_RMPNI)
-        {
-            evc_assert_rv(sh->rmpni[REFP_0].cnt < MAX_NUM_RMPNI, EVC_ERR_MALFORMED_BITSTREAM);
-
-            t0 = evc_bsr_read_ue(bs);
-            if(t0 == RMPNI_END) 
-            {
-                break; 
-            }
-            else if(t0 == RMPNI_ADPN_NEG)
-            {
-                t1 = evc_bsr_read_ue(bs);
-                sh->rmpni[REFP_0].delta_poc[sh->rmpni[REFP_0].cnt] = -(t1+1);
-                sh->rmpni[REFP_0].cnt++;
-            }
-            else if(t0 == RMPNI_ADPN_POS)
-            {
-                t1 = evc_bsr_read_ue(bs);
-                sh->rmpni[REFP_0].delta_poc[sh->rmpni[REFP_0].cnt] = t1 +1;
-                sh->rmpni[REFP_0].cnt++;
-            }
-            else
-            {
-                /* not support */
-            }
-        }
-
-        sh->rmpni[REFP_1].cnt = 0;
-        while(sh->rmpni[REFP_1].cnt < MAX_NUM_RMPNI)
-        {
-            evc_assert_rv(sh->rmpni[REFP_1].cnt < MAX_NUM_RMPNI,
-                EVC_ERR_MALFORMED_BITSTREAM);
-
-            t0 = evc_bsr_read_ue(bs);
-            if(t0 == RMPNI_END) 
-            {
-                break; 
-            }
-            else if(t0 == RMPNI_ADPN_NEG)
-            {
-                t1 = evc_bsr_read_ue(bs);
-                sh->rmpni[REFP_1].delta_poc[sh->rmpni[REFP_1].cnt] = -(t1+1);
-                sh->rmpni[REFP_1].cnt++;
-            }
-            else if(t0 == RMPNI_ADPN_POS)
-            {
-                t1 = evc_bsr_read_ue(bs);
-                sh->rmpni[REFP_1].delta_poc[sh->rmpni[REFP_1].cnt] = t1 +1;
-                sh->rmpni[REFP_1].cnt++;
-            }
-            else
-            {
-                /* not support */
-            }
-        }
-    }
-#endif
 
     /* byte align */
     while(!EVC_BSR_IS_BYTE_ALIGN(bs))

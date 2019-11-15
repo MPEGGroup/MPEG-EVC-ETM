@@ -37,7 +37,7 @@
 #include "evc.h"
 #include "evc_port.h"
 
-#define FIX_AFFINE_CLIP                              1
+//MPEG 128 adoptions
 
 #define M50662                                       1
 #if M50662
@@ -52,6 +52,7 @@
 
 #define M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV    1  // Harmonized MV clipping of m50662 and m50761
 #define M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW 1
+#define FIX_AFFINE_CLIP                              1
 
 #if M50662_AFFINE_BANDWIDTH_CLIPMV
 #define BOUNDING_BLOCK_MARGIN                        7
@@ -116,34 +117,6 @@
 #define M50632_IMPROVEMENT_BASELINE        1
 #endif
 
-#define M49023_IMPROVEMENT                 1
-#if M49023_IMPROVEMENT
-#define PROFILE_SANITY_CHECK_FIX           1 
-#define M49023_DBF_IMPROVE                 1
-#define M49023_ADMVP_IMPROVE               1
-#endif
-
-#define M48879_IMPROVEMENT                 1
-#if M48879_IMPROVEMENT
-#define M48879_IMPROVEMENT_ENC_OPT         1
-#define M48879_IMPROVEMENT_INTRA           1
-#define M48879_IMPROVEMENT_INTER           1
-#define M48879_IMPROVEMENT_SUCO            1
-#endif
-
-#define M48933_IMPROVEMENT                 1
-#if M48933_IMPROVEMENT
-#define M48933_INTRA_PRED_NO_DIV           1
-#define M48933_AFFINE                      1
-#define M48933_CQP_MAPPING_TABLE_UPDATE    1
-#endif
-
-#define HLS_M47668                         1
-
-#define ADCC                               1   /* MPEG126 CE1.1: Advanced coefficient coding */
-#define ATS                                1   /* MPEG126 CE1.2: Adaptive transform selection */
-#define IBC                                1   /* MPEG126 CE1.3: Intra Block Copy */
-
 #define ALF_PARAMETER_APS                  1
 #define TU_ZONAL_CODING                    1
 #if M50632_IMPROVEMENT_BASELINE
@@ -151,11 +124,15 @@
 #else
 #define CTX_MODEL_FOR_RESIDUAL_IN_BASE     1
 #endif
-#define USE_SLICE_DQP                 1
+#define USE_SLICE_DQP                      1
 
 /* Profiles definitions */
 #define PROFILE_BASELINE                   0
 #define PROFILE_MAIN                       1
+
+#define ADCC                               1   
+#define ATS                                1   
+#define IBC                                1   
 
 //partitioning
 #define SUCO                               1
@@ -168,11 +145,7 @@
 //loop filter
 #define DBF_LONGF                          0
 #define DBF_IMPROVE                        1
-#if M49023_DBF_IMPROVE
-#define DBF                                2  // Deblocking filter: 0 - without DBF, 1 - h.263, 2 - AVC, 3 - HEVC
-#else
-#define DBF                                1  // Deblocking filter: 0 - without DBF, 1 - h.263, 2 - AVC, 3 - HEVC
-#endif
+#define DBF                                2  // Deblocking filter: 0 - without DBF, 1 - h.263, 2 - AVC, 3 - HEVC   !!! NOTE: THE SWITCH MAY BE BROKEN !!!
 #define ALF                                1  // Adaptive Loop Filter 
 
 //fast algorithm
@@ -205,14 +178,10 @@
 #if AFFINE 
 #define EIF                                1 // Enhanced bilinear Interpolation Filter
 #endif
+
 #define USE_RDOQ                           1 // Use RDOQ
 #define RDO_DBK                            1 // include DBK changes into distortion
 #define HTDF                               1 // enable Hadamard transform domain filter
-
-#if M48933_INTRA_PRED_NO_DIV
-#define M48933_INTRA_PRED_NO_DIV_IN_HOR_MODE   1
-#define M48933_INTRA_PRED_NO_DIV_IN_DC_MODE    1
-#endif //M48933_INTRA_PRED_NO_DIV
 
 //fast algorithm
 #define ENC_ECU_DEPTH                      8 // for early CU termination
@@ -220,11 +189,7 @@
 #define ENC_ECU_DEPTH_B                    8 // for early CU termination
 #define MULTI_REF_ME_STEP                  1 // for ME speed-up
 #if MERGE
-#if M48879_IMPROVEMENT_ENC_OPT
 #define FAST_MERGE_THR                     1.3
-#else
-#define FAST_MERGE_THR                     1.1
-#endif
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -292,8 +257,6 @@
 #define HALF_RANGE                         (1<<(RANGE_BITS-1))
 #endif
 
-#define PROB_INIT_FIX                      1
-
 #define CTX_REPRESENTATION_IMPROVEMENT     1 /* Init state stored in 10 bits per context model */
 /* MCABAC (END) */
 
@@ -316,14 +279,7 @@
 #define MAX_NUM_MVR                        5
 #define FAST_MVR_IDX                       2
 #define SKIP_MVR_IDX                       1
-#if M48879_IMPROVEMENT_ENC_OPT
 #define MAX_NUM_BI                         3
-#else
-#define MAX_NUM_BI                         4
-#endif
-#if !M48879_IMPROVEMENT_ENC_OPT
-#define SKIP_BI_IDX                        1
-#endif
 /* AMVR (END)  */
 
 /* DBF (START) */
@@ -427,19 +383,11 @@ enum SAD_POINT_INDEX
 #if AFFINE
  // AFFINE Constant
 #define VER_NUM                            4
-#if M48879_IMPROVEMENT_SUCO
 #define AFFINE_MAX_NUM_LT                  3 ///< max number of motion candidates in top-left corner
 #define AFFINE_MAX_NUM_RT                  3 ///< max number of motion candidates in top-right corner
 #define AFFINE_MAX_NUM_LB                  2 ///< max number of motion candidates in left-bottom corner
 #define AFFINE_MAX_NUM_RB                  2 ///< max number of motion candidates in right-bottom corner
-#else
-#define AFFINE_MAX_NUM_LT                  3 ///< max number of motion candidates in top-left corner
-#define AFFINE_MAX_NUM_RT                  2 ///< max number of motion candidates in top-right corner
-#define AFFINE_MAX_NUM_LB                  2 ///< max number of motion candidates in left-bottom corner
-#define AFFINE_MAX_NUM_RB                  1 ///< max number of motion candidates in right-bottom corner
-#endif
 #define AFFINE_MIN_BLOCK_SIZE              4 ///< Minimum affine MC block size
-
 #define AFF_MAX_NUM_MVP                    2 // maximum affine inter candidates
 #define NUM_AFFINE_MVP_IDX_CTX             AFF_MAX_NUM_MVP - 1
 #define AFF_MAX_CAND                       5 // maximum affine merge candidates
@@ -722,11 +670,7 @@ extern int fp_trace_started;
 /* for GOP 16 test, increase to 32 */
 
 /* DPB Extra size */
-#if HLS_M47668
 #define EXTRA_FRAME                        MAX_NUM_ACTIVE_REF_FRAME
-#else
-#define EXTRA_FRAME                        MAX_NUM_REF_PICS
-#endif
 
 /* maximum picture buffer size */
 #define MAX_PB_SIZE                       (MAX_NUM_REF_PICS + EXTRA_FRAME)
@@ -1309,10 +1253,8 @@ typedef struct _EVC_PIC
 #if ALF
     u8               m_alfCtuEnableFlag[3][510]; //510 = 30*17 -> class A1 resolution with CU ~ 128
 #endif
-#if M49023_DBF_IMPROVE
-    int pic_deblock_alpha_offset;
-    int pic_deblock_beta_offset;
-#endif
+    int              pic_deblock_alpha_offset;
+    int              pic_deblock_beta_offset;
 } EVC_PIC;
 
 /*****************************************************************************
@@ -1403,7 +1345,6 @@ typedef struct _EVC_SPS
 {
     int              sps_seq_parameter_set_id;
     int              profile_idc;
-    int              tier_flag;
     int              level_idc;
     int              chroma_format_idc;
     u16              pic_width_in_luma_samples;  
@@ -1447,12 +1388,12 @@ typedef struct _EVC_SPS
 #if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
     int              tool_ats;
 #endif
-#if HLS_M47668
+
     int              tool_rpl;
     int              tool_pocs;
     int              log2_sub_gop_length;
     int              log2_ref_pic_gap_length;
-#endif
+
 #if ADCC  
     int              tool_adcc;
 #endif
@@ -1504,64 +1445,12 @@ typedef struct _EVC_PPS
     int explicit_tile_id_flag;
     int tile_id_val[MAX_NUM_TILES_ROW][MAX_NUM_TILES_COL];
     int arbitrary_slice_present_flag;
-#if M48879_IMPROVEMENT_INTRA
     int constrained_intra_pred_flag;
-#endif
 #if DQP
     int cu_qp_delta_enabled_flag;
     int cu_qp_delta_area;
 #endif
 } EVC_PPS;
-
-#if !HLS_M47668
-/*****************************************************************************
- * MMCO syntax
- *****************************************************************************/
-#define MAX_NUM_MMCO                       16
-#define MMCO_END                           1
-#define MMCO_UNUSED                        2
-
-typedef struct _EVC_MMCO
-{
-    /* count of mmco command. zero means disabled */
-    u8               cnt;
-    /* mmco command */
-    u8               type[MAX_NUM_MMCO];
-    /* value for each mmco command */
-    u8               data[MAX_NUM_MMCO];
-} EVC_MMCO;
-
-/*****************************************************************************
- * RMPNI syntax
- *****************************************************************************/
-#define MAX_NUM_RMPNI                      16
-#define RMPNI_END                          0
-/* ADPN positve negative number */
-#define RMPNI_ADPN_NEG                     1
-/* ADPN positve positive number */
-#define RMPNI_ADPN_POS                     2
-/* long term picture index for re-mapping */
-#define RMPNI_LPIR                         3
-
-/* picture coding structure unit */
-typedef struct _EVC_REORDER_ARG
-{
-    int              poc;
-    u8               laye_id;
-    u8               num_ref_pics_l0;
-    s8               ref_pic_l0[MAX_NUM_RMPNI];
-    u8               num_ref_pics_l1;
-    s8               ref_pic_l1[MAX_NUM_RMPNI];
-} EVC_REORDER_ARG;
-
-typedef struct _EVC_RMPNI
-{
-    /* Count of mmco command. zero means disabled */
-    u8               cnt;
-    /* ADPN: Absolute Difference of Picture Numbers (delta poc) */
-    s8               delta_poc[MAX_NUM_RMPNI];
-} EVC_RMPNI;
-#endif
 
 /*****************************************************************************
  * slice header
@@ -1626,12 +1515,10 @@ typedef struct _EVC_SH
     int              delta_tile_id_minus1[MAX_NUM_TILES_ROW * MAX_NUM_TILES_COL];
     int              slice_type;
     int              slice_alf_enabled_flag;
-#if M49023_ADMVP_IMPROVE
     int              temporal_mvp_asigned_flag;
-    int                 collocated_from_list_idx;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
-    int                 collocated_from_ref_idx;   // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
-    int                 collocated_mvp_source_list_idx;  // Specifies source (List ID) in collocated pic that provides MV information 
-#endif
+    int              collocated_from_list_idx;        // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
+    int              collocated_from_ref_idx;         // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
+    int              collocated_mvp_source_list_idx;  // Specifies source (List ID) in collocated pic that provides MV information 
     s32              poc;
 
      /*   HLS_RPL */
@@ -1643,12 +1530,9 @@ typedef struct _EVC_SH
     EVC_RPL         rpl_l1;
 
     u8               num_ref_idx_active_override_flag;
-
     int              deblocking_filter_on;
-#if M49023_DBF_IMPROVE
     int              sh_deblock_alpha_offset;
     int              sh_deblock_beta_offset;
-#endif
     u8               qp;
     u8               qp_u;
     u8               qp_v;
@@ -1664,9 +1548,7 @@ typedef struct _EVC_SH
 
 #if ALF
     u8               alf_on;
-#if M48879_IMPROVEMENT_INTER
     u8               mmvd_group_enable_flag;
-#endif
     u8               ctb_alf_on;
     u16              num_ctb;
 #if ALF_PARAMETER_APS
@@ -1682,15 +1564,6 @@ typedef struct _EVC_SH
 
     /* delta of presentation temporal reference */
     s32              dptr;
-#if !HLS_M47668
-    /* flag of MMCO */
-    u8               mmco_on;
-    EVC_MMCO        mmco;
-    /* flag of RMPNI*/
-    u8               rmpni_on;
-    EVC_RMPNI       rmpni[REFP_NUM];
-#endif
-
 } EVC_SH;
 
 /*****************************************************************************

@@ -7274,51 +7274,6 @@ void evc_IBC_mc(int x, int y, int log2_cuw, int log2_cuh, s16 mv[MV_D], EVC_PIC 
 }
 #endif
 #if AFFINE
-#if !M48933_AFFINE
-static void derive_affine_subblock_size(s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num)
-{
-    int w = cuw;
-    int h = cuh;
-#if MC_PRECISION_ADD
-    int mc_prec_add = MC_PRECISION_ADD;
-#else
-    int mc_prec_add = 0;
-#endif
-    int mv_wx, mv_wy;
-
-    mv_wx = max(abs(ac_mv[1][MV_X] - ac_mv[0][MV_X]), abs(ac_mv[1][MV_Y] - ac_mv[0][MV_Y]));
-    if (mv_wx)
-    {
-        w = max((int)((cuw >> mc_prec_add) / mv_wx), 1);
-        while (cuw % w)
-        {
-            w--;
-        }
-        w = max(AFFINE_MIN_BLOCK_SIZE, w);
-    }
-
-    if (vertex_num == 2)
-    {
-        h = min(w, cuh);
-    }
-    else
-    {
-        mv_wy = max(abs(ac_mv[2][MV_X] - ac_mv[0][MV_X]), abs(ac_mv[2][MV_Y] - ac_mv[0][MV_Y]));
-        if (mv_wy)
-        {
-            h = max((int)((cuh >> mc_prec_add) / mv_wy), 1);
-            while (cuh % h)
-            {
-                h--;
-            }
-            h = max(AFFINE_MIN_BLOCK_SIZE, h);
-        }
-    }
-
-    *sub_w = w;
-    *sub_h = h;
-}
-#endif
 #if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV && !M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
 BOOL check_eif_clipMV_flag(s16 ac_mv[VER_NUM][MV_D], int d_hor[MV_D], int d_ver[MV_D], int mv_precision)
 {
@@ -7612,16 +7567,11 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
     {
         for(w = 0; w < cuw; w += sub_w)
         {
-#if M48933_AFFINE
             mv_scale_tmp_hor = (mv_scale_hor + dmv_hor_x * half_w + dmv_ver_x * half_h);
             mv_scale_tmp_ver = (mv_scale_ver + dmv_hor_y * half_w + dmv_ver_y * half_h);
             evc_mv_rounding_s32( mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, shift, 0 );
             mv_scale_tmp_hor = EVC_CLIP3( -(2 << 17), (2 << 17) - 1, mv_scale_tmp_hor );
             mv_scale_tmp_ver = EVC_CLIP3( -(2 << 17), (2 << 17) - 1, mv_scale_tmp_ver );
-#else
-            mv_scale_tmp_hor = (mv_scale_hor + dmv_hor_x * half_w + dmv_ver_x * half_h) >> shift;
-            mv_scale_tmp_ver = (mv_scale_ver + dmv_hor_y * half_w + dmv_ver_y * half_h) >> shift;
-#endif
             mv_scale_tmp_ver_ori = mv_scale_tmp_ver;
             mv_scale_tmp_hor_ori = mv_scale_tmp_hor;
             // clip
@@ -7794,16 +7744,11 @@ void evc_affine_mc_lc( int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16
     {
         for(w = 0; w < cuw; w += sub_w)
         {
-#if M48933_AFFINE
             mv_scale_tmp_hor = (mv_scale_hor + dmv_hor_x * half_w + dmv_ver_x * half_h);
             mv_scale_tmp_ver = (mv_scale_ver + dmv_hor_y * half_w + dmv_ver_y * half_h);
             evc_mv_rounding_s32( mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, shift, 0 );
             mv_scale_tmp_hor = EVC_CLIP3( -(2 << 17), (2 << 17) - 1, mv_scale_tmp_hor );
             mv_scale_tmp_ver = EVC_CLIP3( -(2 << 17), (2 << 17) - 1, mv_scale_tmp_ver );
-#else
-            mv_scale_tmp_hor = (mv_scale_hor + dmv_hor_x * half_w + dmv_ver_x * half_h) >> shift;
-            mv_scale_tmp_ver = (mv_scale_ver + dmv_hor_y * half_w + dmv_ver_y * half_h) >> shift;
-#endif
             mv_scale_tmp_ver_ori = mv_scale_tmp_ver;
             mv_scale_tmp_hor_ori = mv_scale_tmp_hor;
             // clip

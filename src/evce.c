@@ -66,100 +66,6 @@ BOOL aps_counter_reset = FALSE;
     (ctx) = (EVCE_CTX *)id; \
     evc_assert_rv((ctx)->magic == EVCE_MAGIC_CODE, (ret));
 
-#if !HLS_M47668
-#define RMPNI_GOP_NUM                   16
-static const EVC_REORDER_ARG reorder_arg[RMPNI_GOP_NUM] =
-{
-/* poc, layer_id, #of refpic, {refpics..} */
-    {
-        16, 1, 3, { -16, -24, -32,},
-               3, { -16, -24, -32,}
-    },
-    {
-        8, 2, 3, { -8, -16, 8,},
-              3, {8, -8, -16, },
-    },
-    {
-        4, 3, 4, { -4, -12, 4, 12,},
-              4, { 4, 12, -4, -12,}
-    },
-    {
-        2, 4, 5, { -2, -10, 2, 6, 14, },
-              5, { 2, 6, 14, -2, -10, }
-    },
-    {
-        1, 5, 5, { -1, 1, 3, 7, 15, },
-              5, { 1, 3, 7, 15, -1 },
-    },
-    {
-        3, 5, 5, { -1, -3, 1, 5, 13, },
-              5, {  1, 5, 13, -1, -3,}
-    },
-    {
-        6, 4, 4, { -2, -6, 2, 10,   },
-              4, { 2, 10, -2, -6,   },
-    },
-    {
-        5, 5, 5, { -1, -5, 1, 3, 11, },
-              5, { 1, 3, 11, -1, -5,  },
-    },
-    {
-        7, 5, 5, { -1, -3, -7, 1, 9, },
-              5, { 1, 9, -1, -3, -7, },
-    },
-    {
-        12, 3, 3, { -4, -12, 4, },
-               3, { 4, -4, -12, },
-    },
-    {
-        10, 4, 4, { -2, -10, 2, 6, },
-                  4, { 2, 6, -2, -10, },
-    },
-    {
-        9, 5, 5, { -1, -9, 1, 3, 7, },
-                5, { 1, 3, 7, -1, -9, },
-    },
-    {
-        11, 5, 5, { -1, -3, -11, 1, 5, },
-               5, { 1, 5, -1, -3, -11, },
-    },
-    {
-        14, 4, 4, { -2, -6, -14, 2, },
-               4, { 2, -2, -6, -14, },
-    },
-    {
-        13, 5, 5, { -1, -5, -13, 1, 3, },
-               5, {  1, 3, -1, -5, -13, },
-    },
-    {
-        15, 5, 5, { -1, -3, -7, -15, 1, },
-               5, { 1, -1, -3, -7, -15, },
-    }
-};
-
-#define RMPNI_GOP_NUM_LDB                  4 
-static const EVC_REORDER_ARG reorder_arg_ldb[RMPNI_GOP_NUM_LDB] =
-{
-    /* poc, layer_id, #of refpic, {refpics..} */
-    {
-        1, 3, 4,{-1,-5,-9,-13},
-        4,{-1,-5,-9,-13}
-    },
-    {
-        2, 2, 4,{-1,-2,-6,-10},
-        4,{-1,-2,-6,-10}
-    },
-    {
-        3, 3, 4,{-1,-3,-7,-11},
-        4,{-1,-3,-7,-11}
-    },
-    {
-        4, 1, 4,{-1,-4,-8,-12},
-        4,{-1,-4,-8,-12}
-    }
-};
-#endif
-
 static const s8 tbl_poc_gop_offset[5][15] =
 {
     { -1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},  /* gop_size = 2 */
@@ -169,7 +75,6 @@ static const s8 tbl_poc_gop_offset[5][15] =
     { -8,   -12, -14,  -15,  -13,  -10,  -11,   -9,   -4,   -6,   -7,   -5,   -2,   -3,   -1}   /* gop_size = 16 */
 };
 
-#if HLS_M47668
 static const s8 tbl_slice_depth_P_orig[GOP_P] = { FRM_DEPTH_3,  FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_1 };
 
 static const s8 tbl_slice_depth_P[5][16] =
@@ -225,57 +130,6 @@ static const s8 tbl_slice_depth_orig[5][15] =
     { FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5, \
       FRM_DEPTH_3,  FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5 }
 };
-#else
-static const s8 tbl_ref_depth[5][15] =
-{
-    /* gop_size = 2 */
-    { FRM_DEPTH_1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-    /* gop_size = 4 */
-    { FRM_DEPTH_1, FRM_DEPTH_2, FRM_DEPTH_2, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-    /* gop_size = 8 */
-    { FRM_DEPTH_1, FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_3, FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_3, \
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-    /* gop_size = 12 */
-    {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},  /* gop_size = 12 */
-    /* gop_size = 16 */
-    { FRM_DEPTH_1, FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_4, FRM_DEPTH_3, FRM_DEPTH_4, \
-     FRM_DEPTH_4,  FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_4, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_4}
-};
-
-static const s8 tbl_slice_ref[5][15] =
-{
-    /* gop_size = 2 */
-    { 1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-    /* gop_size = 4 */
-    { 1, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-    /* gop_size = 8 */
-    { 1, 1, 0, 0, 1, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-    /* gop_size = 12 */
-    {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-    /* gop_size = 16 */
-    {1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0}
-};
-
-static const s8 tbl_slice_depth_P[GOP_P] = { FRM_DEPTH_3,  FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_1 };
-
-static const s8 tbl_slice_depth[5][15] =
-{
-    /* gop_size = 2 */
-    { FRM_DEPTH_2, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, \
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-    /* gop_size = 4 */
-    { FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_3, 0xFF, 0xFF, 0xFF, 0xFF, \
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-    /* gop_size = 8 */
-    { FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_4, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_4,\
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-    /* gop_size = 12 */
-    {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-    /* gop_size = 16 */
-    { FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, \
-      FRM_DEPTH_5, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5}
-};
-#endif
 
 static EVCE_CTX * ctx_alloc(void)
 {
@@ -353,7 +207,7 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
             }
         }
     }
-#if HLS_M47668
+
     if (cdsc->ref_pic_gap_length != 0)
     {
         evc_assert_rv(cdsc->max_b_frames == 0, EVC_ERR_INVALID_ARGUMENT);
@@ -370,7 +224,6 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
                       cdsc->ref_pic_gap_length == 4 || cdsc->ref_pic_gap_length == 8 || \
                       cdsc->ref_pic_gap_length == 16, EVC_ERR_INVALID_ARGUMENT);
     }
-#endif
 
     /* set default encoding parameter */
     param->w              = cdsc->w;
@@ -381,17 +234,13 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
     param->i_period       = cdsc->iperiod;
     param->f_ifrm         = 0;
     param->use_deblock    = 1;
-#if M49023_DBF_IMPROVE
     param->deblock_alpha_offset = cdsc->deblock_aplha_offset;
     param->deblock_beta_offset = cdsc->deblock_beta_offset;
-#endif
     param->qp_max         = MAX_QUANT;
     param->qp_min         = MIN_QUANT;
     param->use_pic_sign   = 0;
     param->max_b_frames   = cdsc->max_b_frames;
-#if HLS_M47668
     param->ref_pic_gap_length = cdsc->ref_pic_gap_length;
-#endif
     param->gop_size       = param->max_b_frames +1;
     param->use_closed_gop = (cdsc->closed_gop)? 1: 0;
 #if IBC
@@ -517,20 +366,16 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     if(sps->profile_idc == PROFILE_MAIN)
     {
         sps->log2_ctu_size_minus2 = ctx->log2_max_cuwh - 2;
-#if HLS_M47668
         sps->tool_rpl = 1;
         sps->tool_pocs = 1;
-#endif
     }
     else
     {
-#if HLS_M47668
         sps->tool_rpl = 0;
         sps->tool_pocs = 0;
         sps->log2_sub_gop_length = (int)(log2(ctx->param.gop_size) + .5);
         ctx->ref_pic_gap_length = ctx->param.ref_pic_gap_length;
         sps->log2_ref_pic_gap_length = (int)(log2(ctx->param.ref_pic_gap_length) + .5);
-#endif
     }
 
     sps->long_term_ref_pics_flag = 0;
@@ -561,9 +406,7 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
 static void set_pps(EVCE_CTX * ctx, EVC_PPS * pps)
 {
     pps->single_tile_in_pic_flag = 1;
-#if M48879_IMPROVEMENT_INTRA
     pps->constrained_intra_pred_flag = ctx->cdsc.constrained_intra_pred;
-#endif
 #if DQP
     pps->cu_qp_delta_enabled_flag = ctx->cdsc.use_dqp;
     pps->cu_qp_delta_area         = ctx->cdsc.cu_qp_delta_area;
@@ -842,18 +685,14 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
     sh->dtr = ctx->dtr & DTR_BIT_MSK;
     sh->slice_type = ctx->slice_type;
     sh->deblocking_filter_on = (ctx->param.use_deblock) ? 1 : 0;
-#if M49023_DBF_IMPROVE
     sh->sh_deblock_alpha_offset = ctx->param.deblock_alpha_offset;
     sh->sh_deblock_beta_offset = ctx->param.deblock_beta_offset;
-#endif
     sh->dptr = ctx->ptr - ctx->dtr;
     sh->layer_id = ctx->layer_id;
     sh->single_tile_in_slice_flag = 1;
-#if M49023_ADMVP_IMPROVE
     sh->collocated_from_list_idx = (sh->slice_type == SLICE_P) ? REFP_0 : REFP_1;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
     sh->collocated_from_ref_idx = 0;        // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
     sh->collocated_mvp_source_list_idx = REFP_0;  // Specifies source (List ID) in collocated pic that provides MV information (Applicability is function of NoBackwardPredFlag)
-#endif 
 
     /* set lambda */
 #if USE_SLICE_DQP
@@ -866,7 +705,7 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
     {
         double dqp_offset;
         int qp_offset;
-#if HLS_M47668
+
         if (ctx->sps.tool_rpl)
         {
             qp += qp_adapt_param[ctx->layer_id].qp_offset_layer;
@@ -877,10 +716,7 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
             qp += qp_adapt_param[ctx->slice_depth].qp_offset_layer;
             dqp_offset = qp * qp_adapt_param[ctx->slice_depth].qp_offset_model_scale + qp_adapt_param[ctx->slice_depth].qp_offset_model_offset + 0.5;
         }
-#else
-        qp += qp_adapt_param[ctx->layer_id].qp_offset_layer;
-        dqp_offset = qp * qp_adapt_param[ctx->layer_id].qp_offset_model_scale + qp_adapt_param[ctx->layer_id].qp_offset_model_offset + 0.5;
-#endif
+
         qp_offset = (int)floor(EVC_CLIP3(0.0, 3.0, dqp_offset));
         qp += qp_offset;
     }
@@ -888,10 +724,8 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
     sh->qp = (u8)EVC_CLIP3(-(6 * (BIT_DEPTH - 8)), MAX_QUANT, qp);
     sh->qp_u = (u8)(sh->qp + ctx->cdsc.cb_qp_offset); 
     sh->qp_v = (u8)(sh->qp + ctx->cdsc.cr_qp_offset);
-#if M49023_DBF_IMPROVE
     sh->sh_deblock_alpha_offset = ctx->cdsc.deblock_aplha_offset;
     sh->sh_deblock_beta_offset = ctx->cdsc.deblock_beta_offset;
-#endif
 
     qp_l_i = sh->qp;
     ctx->lambda[0] = 0.57 * pow(2.0, (qp_l_i - 12.0) / 3.0);
@@ -904,24 +738,6 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
     ctx->sqrt_lambda[0] = sqrt(ctx->lambda[0]);
     ctx->sqrt_lambda[1] = sqrt(ctx->lambda[1]);
     ctx->sqrt_lambda[2] = sqrt(ctx->lambda[2]);
-
-#if !HLS_M47668
-    if (!ctx->sps.tool_rpl)
-    {
-        /* set MMCO command */
-        if (ctx->slice_ref_flag == 0)
-        {
-            sh->mmco_on = 1;
-            sh->mmco.cnt = 1;
-            sh->mmco.type[0] = MMCO_UNUSED;
-            sh->mmco.data[0] = 0; /* current picture */
-        } else
-        {
-            sh->mmco_on = 0;
-            sh->mmco.cnt = 0;
-        }
-    }
-#endif
 }
 static int evce_eco_tree(EVCE_CTX * ctx, EVCE_CORE * core, int x0, int y0, int cup, int cuw, int cuh, int cud, int next_split, const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth
 #if DQP
@@ -1307,10 +1123,9 @@ int evce_ready(EVCE_CTX * ctx)
     ctx->pico_max_cnt = 1 + (ctx->param.max_b_frames << 1) ;
     ctx->frm_rnum = ctx->param.max_b_frames;
     ctx->qp = ctx->param.qp;
-#if M49023_DBF_IMPROVE
     ctx->deblock_alpha_offset = ctx->param.deblock_alpha_offset;
     ctx->deblock_beta_offset = ctx->param.deblock_beta_offset;
-#endif
+
     for(i = 0; i < ctx->pico_max_cnt; i++)
     {
         ctx->pico_buf[i] = (EVCE_PICO*)evc_malloc(sizeof(EVCE_PICO));
@@ -1424,10 +1239,9 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
     ctx->tree_cons = tree_cons;
 #endif
 
-#if M49023_DBF_IMPROVE
     pic->pic_deblock_alpha_offset = ctx->sh.sh_deblock_alpha_offset;
     pic->pic_deblock_beta_offset = ctx->sh.sh_deblock_beta_offset;
-#endif
+
     lcu_num = (x >> ctx->log2_max_cuwh) + (y >> ctx->log2_max_cuwh) * ctx->w_lcu;
     evc_get_split_mode(&split_mode, cud, cup, cuw, cuh, ctx->max_cuwh, ctx->map_cu_data[lcu_num].split_mode);
     evc_get_suco_flag(&suco_flag, cud, cup, cuw, cuh, ctx->max_cuwh, ctx->map_cu_data[lcu_num].suco_flag);
@@ -1515,12 +1329,9 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #else
                   ctx->map_mv
 #endif
-                  , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp
-#if M49023_DBF_IMPROVE
-                    , 0
-#endif
+                  , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
-                    , ctx->tree_cons
+                  , ctx->tree_cons
 #endif
                 );
                 evc_deblock_cu_hor(pic, x, y + MAX_TR_SIZE, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, 
@@ -1529,10 +1340,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #else
                   ctx->map_mv
 #endif
-                  , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp
-#if M49023_DBF_IMPROVE
-                    , 0
-#endif
+                  , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
                     , ctx->tree_cons
 #endif
@@ -1546,10 +1354,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #else
                   ctx->map_mv
 #endif
-                  , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp
-#if M49023_DBF_IMPROVE
-                    , 0
-#endif
+                  , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
                     , ctx->tree_cons
 #endif
@@ -1570,10 +1375,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if FIX_PARALLEL_DBF
                     , ctx->map_cu_mode
 #endif
-                    , ctx->refp
-#if M49023_DBF_IMPROVE
-                    , 0
-#endif
+                    , ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
                     , ctx->tree_cons
 #endif
@@ -1588,10 +1390,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if FIX_PARALLEL_DBF
                     , ctx->map_cu_mode
 #endif                            
-                    , ctx->refp
-#if M49023_DBF_IMPROVE
-                    , 0
-#endif
+                    , ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
                     , ctx->tree_cons
 #endif
@@ -1609,10 +1408,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if FIX_PARALLEL_DBF
                                    , ctx->map_cu_mode
 #endif
-                                   , ctx->refp
-#if M49023_DBF_IMPROVE
-                    , 0
-#endif
+                                   , ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
                     , ctx->tree_cons
 #endif
@@ -1864,8 +1660,6 @@ int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     return EVC_OK;
 }
 
-#if HLS_M47668
-
 static const s8 poc_offset_from_doc_offset[5][16] =
 {
     { 0,  -1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},  /* gop_size = 2 */
@@ -1913,7 +1707,6 @@ int poc_derivation(EVCE_CTX * ctx, int layer_id)
 
     return EVC_OK;
 }
-#endif
 
 static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
 {
@@ -1928,10 +1721,8 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
         ctx->slice_type = SLICE_I;
         ctx->slice_depth = FRM_DEPTH_0;
         ctx->poc = pic_imcnt;
-#if HLS_M47668
         ctx->prev_doc_offset = 0;
         ctx->prev_pic_order_cnt_val = ctx->poc;
-#endif
         ctx->slice_ref_flag = 1;
     }
     else if((i_period != 0) && pic_imcnt % i_period == 0)
@@ -1939,10 +1730,8 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
         ctx->slice_type = SLICE_I;
         ctx->slice_depth = FRM_DEPTH_0;
         ctx->poc = pic_imcnt;
-#if HLS_M47668
         ctx->prev_doc_offset = 0;
         ctx->prev_pic_order_cnt_val = ctx->poc;
-#endif
         ctx->slice_ref_flag = 1;
     }
     else if(pic_imcnt % gop_size == 0)
@@ -1951,10 +1740,8 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
         ctx->slice_ref_flag = 1;
         ctx->slice_depth = FRM_DEPTH_1;
         ctx->poc = pic_imcnt;
-#if HLS_M47668
         ctx->prev_doc_offset = 0;
         ctx->prev_pic_order_cnt_val = ctx->poc;
-#endif
         ctx->slice_ref_flag = 1;
     }
     else
@@ -1963,7 +1750,7 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
         if(ctx->param.use_hgop)
         {
             pos = (pic_imcnt % gop_size) - 1;
-#if HLS_M47668
+
             if (ctx->sps.tool_pocs)
             {
                 ctx->slice_depth = tbl_slice_depth_orig[gop_size >> 2][pos];
@@ -1984,21 +1771,11 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
             {
                 ctx->slice_ref_flag = 1;
             }
-#else
-            ctx->slice_depth = tbl_slice_depth[gop_size >> 2][pos];
-            ctx->ref_depth = tbl_ref_depth[gop_size >> 2][pos];
-            ctx->poc = ((pic_imcnt / gop_size) * gop_size) +
-                tbl_poc_gop_offset[gop_size >> 2][pos];
-            ctx->slice_ref_flag = tbl_slice_ref[gop_size >> 2][pos];
-#endif
         }
         else
         {
             pos = (pic_imcnt % gop_size) - 1;
             ctx->slice_depth = FRM_DEPTH_2;
-#if !HLS_M47668
-            ctx->ref_depth = FRM_DEPTH_1;
-#endif
             ctx->poc = ((pic_imcnt / gop_size) * gop_size) - gop_size + pos + 1;
             ctx->slice_ref_flag = 0;
         }
@@ -2044,7 +1821,6 @@ static void decide_slice_type(EVCE_CTX * ctx)
             
             if(ctx->param.use_hgop)
             {
-#if HLS_M47668
                 if (ctx->sps.tool_rpl)
                 {
                     ctx->slice_depth = tbl_slice_depth_P_orig[(pic_imcnt - 1) % GOP_P];
@@ -2053,9 +1829,6 @@ static void decide_slice_type(EVCE_CTX * ctx)
                 {
                     ctx->slice_depth = tbl_slice_depth_P[ctx->param.ref_pic_gap_length >> 2][(pic_imcnt - 1) % ctx->param.ref_pic_gap_length];
                 }
-#else
-                ctx->slice_depth = tbl_slice_depth_P[(pic_imcnt - 1) % GOP_P];
-#endif
             }
             else
             {
@@ -2072,10 +1845,8 @@ static void decide_slice_type(EVCE_CTX * ctx)
             ctx->slice_type = SLICE_I;
             ctx->slice_depth = FRM_DEPTH_0;
             ctx->poc = 0;
-#if HLS_M47668
             ctx->prev_doc_offset = 0;
             ctx->prev_pic_order_cnt_val = ctx->poc;
-#endif
             ctx->slice_ref_flag = 1;
 
             /* flush the first IDR picture */
@@ -2103,7 +1874,6 @@ static void decide_slice_type(EVCE_CTX * ctx)
             decide_normal_gop(ctx, pic_imcnt);
         }
     }
-#if HLS_M47668
     if (ctx->param.use_hgop && (gop_size > 1 || ctx->sps.tool_rpl))
     {
         if (ctx->sps.tool_rpl)
@@ -2114,12 +1884,6 @@ static void decide_slice_type(EVCE_CTX * ctx)
             ctx->layer_id = ctx->slice_depth - (ctx->slice_depth > 0);
         }
     }
-#else
-    if (ctx->param.use_hgop)
-    {
-        ctx->layer_id = ctx->slice_depth;
-    }
-#endif
     else
     {
         ctx->layer_id = 0;
@@ -2127,113 +1891,6 @@ static void decide_slice_type(EVCE_CTX * ctx)
     ctx->ptr = ctx->poc;
     ctx->dtr = ctx->ptr;
 }
-
-#if !HLS_M47668
-int check_reorder(EVCE_PARAM * param, EVC_PM * pm, u8 max_num_ref_pics, u8 slice_type, u32 ptr, EVC_REFP(*refp)[REFP_NUM],
-                  const EVC_REORDER_ARG * reorder, u32 last_intra, EVC_RMPNI * rmpni)
-{
-    int i, j, pos, poc, idx;
-    const EVC_REORDER_ARG * cur_reorder = NULL;
-    u8 rmpni_on[REFP_NUM] = {0, 0};
-    int gop_num;
-    int refp_idx, reorder_num_refpic;
-    const s8 *reorder_refpic;
-
-    rmpni[REFP_0].cnt = 0;
-    rmpni[REFP_1].cnt = 0;
-
-    if(param->max_b_frames + 1 == RMPNI_GOP_NUM)
-    {
-        gop_num = RMPNI_GOP_NUM;/*ptr(0~3), pos(1~4)*/
-    }
-    else if(param->max_b_frames == 0)
-    {
-        gop_num = RMPNI_GOP_NUM_LDB; /*ptr(0~15), pos(1~16)*/
-    }
-    else
-    {
-        return EVC_OK;
-    }
-
-    /* SLICE_P: current reordering argument is setup for SLICE_B only, SLICE_P case are not considered*/
-    if(slice_type == SLICE_I || slice_type == SLICE_P)
-    {
-        return EVC_OK;
-    }
-
-    /* find current test set */
-    pos = ((ptr - 1) % gop_num) + 1;
-    for(i = 0; i < gop_num; i++)
-    {
-        if(reorder[i].poc == pos)
-        {
-            cur_reorder = &reorder[i];
-            break;
-        }
-    }
-
-    for(refp_idx = 0; refp_idx < REFP_NUM; refp_idx++)
-    {
-        if(refp_idx == REFP_0)
-        {
-            reorder_num_refpic = cur_reorder->num_ref_pics_l0;
-            reorder_refpic = (s8 *)cur_reorder->ref_pic_l0;
-        }
-        else
-        {
-            reorder_num_refpic = cur_reorder->num_ref_pics_l1;
-            reorder_refpic = (s8 *)cur_reorder->ref_pic_l1;
-        }
-
-        /* check whether use reordering or not */
-        for(i = 0, idx = 0; i < reorder_num_refpic; i++)
-        {
-            poc = reorder_refpic[i] + ptr;
-            for(j = 0; j < pm->cur_num_ref_pics && idx < max_num_ref_pics; j++)
-            {
-                if(ptr >= last_intra && pm->pic_ref[j]->ptr < last_intra)
-                {
-                    continue;
-                }
-
-                if(pm->pic_ref[j]->ptr == poc)
-                {
-                    if(refp[idx][refp_idx].ptr != poc)
-                    {
-                        rmpni_on[refp_idx] = 1;
-                        break;
-                    }
-                    idx++;
-                }
-            }
-        }
-
-        /* if rmpni_on, reorder all reference picutres in list */
-        if(rmpni_on[refp_idx])
-        {
-            for(i = 0, idx = 0; i < reorder_num_refpic && idx < max_num_ref_pics; i++)
-            {
-                poc = reorder_refpic[i] + ptr;
-                for(j = 0; j < pm->cur_num_ref_pics; j++)
-                {
-                    if(ptr >= last_intra && pm->pic_ref[j]->ptr < last_intra)
-                    {
-                        continue;
-                    }
-                    if(pm->pic_ref[j]->ptr == poc)
-                    {
-                        rmpni[refp_idx].delta_poc[idx] = reorder_refpic[i];
-                        rmpni[refp_idx].cnt++;
-                        idx++;
-                    }
-                }
-            }
-        }
-    }
-
-    return (rmpni_on[REFP_0] || rmpni_on[REFP_1]);
-}
-#endif
 
 int evce_enc_pic_prepare(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 {
@@ -2308,15 +1965,9 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     ctx->fn_picbuf_expand(ctx, PIC_CURR(ctx));
 
     /* picture buffer management */
-#if HLS_M47668
     ret = evc_picman_put_pic(&ctx->rpm, PIC_CURR(ctx), ctx->nalu.nal_unit_type_plus1 - 1 == EVC_IDR_NUT,
                               ctx->ptr, ctx->dtr, ctx->layer_id, 0, ctx->refp,
                               ctx->slice_ref_flag, ctx->sps.tool_rpl, ctx->ref_pic_gap_length);
-#else
-    ret = evc_picman_put_pic(&ctx->rpm, PIC_CURR(ctx), ctx->nalu.nal_unit_type_plus1 - 1 == EVC_IDR_NUT,
-                             ctx->ptr, ctx->dtr, ctx->layer_id, 0, ctx->refp,
-                             (ctx->sh.mmco_on ? &ctx->sh.mmco : NULL), ctx->sps.tool_rpl);
-#endif
 
     evc_assert_rv(ret == EVC_OK, ret);
 
@@ -2333,13 +1984,8 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     stat->fnum = ctx->pic_cnt;
     stat->qp = ctx->sh.qp;
     stat->poc = ctx->ptr;
-#if HLS_M47668
     stat->tid = ctx->sh.layer_id;
-#else
-#if ALF
-    stat->tid = ctx->sh.layer_id;
-#endif
-#endif
+
     for(i = 0; i < 2; i++)
     {
         stat->refpic_num[i] = ctx->rpm.num_refp[i];
@@ -2434,7 +2080,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
         /* reference picture lists construction */
         ret = evc_picman_refp_rpl_based_init(&ctx->rpm, sh, ctx->refp);
-#if M49023_ADMVP_IMPROVE
         if (sh->slice_type != SLICE_I)
         {
             int dptr0 = (int)(ctx->ptr) - (int)(ctx->refp[0][REFP_0].ptr);
@@ -2442,32 +2087,9 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             sh->temporal_mvp_asigned_flag = !(((dptr0 > 0) && (dptr1 > 0)) || ((dptr0 < 0) && (dptr1 < 0)));
             //            printf("tmvp: %d %d %d %d\n", ctx->ptr, ctx->refp[0][REFP_0].ptr, ctx->refp[0][REFP_1].ptr, sh->temporal_mvp_asigned_flag);
         }
-#endif
     }
     evc_assert_rv(ret == EVC_OK, ret);
 
-#if !HLS_M47668
-    if (!ctx->sps.tool_rpl)
-    {
-        if (ctx->slice_type != SLICE_I)
-        {
-            if (ctx->param.max_b_frames == 0)
-            {
-                sh->rmpni_on = check_reorder(&ctx->param, &ctx->rpm, ctx->sps.max_num_ref_pics, ctx->slice_type, ctx->ptr, ctx->refp, reorder_arg_ldb, ctx->last_intra_ptr, sh->rmpni);
-            } else
-            {
-                sh->rmpni_on = check_reorder(&ctx->param, &ctx->rpm, ctx->sps.max_num_ref_pics, ctx->slice_type, ctx->ptr, ctx->refp, reorder_arg, ctx->last_intra_ptr, sh->rmpni);
-            }
-        }
-
-        if (sh->rmpni_on && ctx->slice_type != SLICE_I)
-        {
-            ret = evc_picman_refp_reorder(&ctx->rpm, ctx->sps.max_num_ref_pics, sh->slice_type, ctx->ptr, ctx->refp, ctx->last_intra_ptr, sh->rmpni);
-            evc_assert_rv(ret == EVC_OK, ret);
-        }
-    }
-
-#endif
     /* initialize mode decision for frame encoding */
     ret = ctx->fn_mode_init_frame(ctx);
     evc_assert_rv(ret == EVC_OK, ret);
@@ -2536,7 +2158,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #if TRACE_RDO_EXCLUDE_I
     }
 #endif
-#if M48879_IMPROVEMENT_INTER
     if (ctx->sps.tool_mmvd && (ctx->slice_type == SLICE_B))
     {
         sh->mmvd_group_enable_flag = !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr);
@@ -2551,7 +2172,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     {
         sh->mmvd_group_enable_flag = 0;
     }
-#endif
 #if DQP
     ctx->sh.qp_prev = ctx->sh.qp;
 #endif
@@ -3262,7 +2882,6 @@ int evce_config(EVCE id, int cfg, void * buf, int * size)
             t0 = *((int *)buf);
             ctx->param.use_deblock = t0;
             break;
-#if M49023_DBF_IMPROVE
         case EVCE_CFG_SET_DEBLOCK_A_OFFSET:
             evc_assert_rv(*size == sizeof(int), EVC_ERR_INVALID_ARGUMENT);
             t0 = *((int *)buf);
@@ -3273,7 +2892,6 @@ int evce_config(EVCE id, int cfg, void * buf, int * size)
             t0 = *((int *)buf);
             ctx->param.deblock_beta_offset = t0;
             break;
-#endif
         case EVCE_CFG_SET_USE_PIC_SIGNATURE:
             ctx->param.use_pic_sign = (*((int *)buf)) ? 1 : 0;
             break;
@@ -3317,7 +2935,6 @@ int evce_config(EVCE id, int cfg, void * buf, int * size)
             evc_assert_rv(*size == sizeof(int), EVC_ERR_INVALID_ARGUMENT);
             *((int *)buf) = ctx->param.use_hgop;
             break;
-#if M49023_DBF_IMPROVE
         case EVCE_CFG_GET_DEBLOCK_A_OFFSET:
             evc_assert_rv(*size == sizeof(int), EVC_ERR_INVALID_ARGUMENT);
             *((int *)buf) = ctx->param.deblock_alpha_offset;
@@ -3326,7 +2943,6 @@ int evce_config(EVCE id, int cfg, void * buf, int * size)
             evc_assert_rv(*size == sizeof(int), EVC_ERR_INVALID_ARGUMENT);
             *((int *)buf) = ctx->param.deblock_beta_offset;
             break;
-#endif
         default:
             evc_trace("unknown config value (%d)\n", cfg);
             evc_assert_rv(0, EVC_ERR_UNSUPPORTED);
