@@ -74,6 +74,9 @@ extern int* evc_tbl_qp_chroma_ajudst;
 #if CTX_REPRESENTATION_IMPROVEMENT
 extern const s16 init_cbf[2][NUM_QT_CBF_CTX][1];
 extern const s16 init_all_cbf[2][NUM_QT_ROOT_CBF_CTX][1];
+#if DQP
+extern const s16 init_dqp[2][NUM_DELTA_QP_CTX][1];
+#endif
 extern const s16 init_pred_mode[2][NUM_PRED_MODE_CTX][1];
 #if M50761_CHROMA_NOT_SPLIT
 extern const s16 init_mode_cons[2][NUM_MODE_CONS_CTX][1];

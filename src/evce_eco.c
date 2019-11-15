@@ -326,7 +326,7 @@ int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps)
     evc_bsw_write1(bs, pps->constrained_intra_pred_flag); 
 
 #if DQP
-    evc_bsw_write1(bs, pps->cu_qp_delta_enabled_flag);
+    evc_bsw_write1(bs, pps->cu_qp_delta_enabled_flag != 0 ? 1 : 0);
     if (pps->cu_qp_delta_enabled_flag)
     {
         evc_bsw_write_ue(bs, pps->cu_qp_delta_area - 6);
@@ -854,6 +854,9 @@ void evce_sbac_reset(EVCE_SBAC *sbac, u8 slice_type, u8 slice_qp, int sps_cm_ini
 
         evc_eco_sbac_ctx_initialize(sbac_ctx->cbf, (s16*)init_cbf, NUM_QT_CBF_CTX, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->all_cbf, (s16*)init_all_cbf, NUM_QT_ROOT_CBF_CTX, slice_type, slice_qp);
+#if DQP
+        evc_eco_sbac_ctx_initialize(sbac_ctx->delta_qp, (s16*)init_dqp, NUM_DELTA_QP_CTX, slice_type, slice_qp);
+#endif
 #if ADCC 
 #if COEFF_CODE_ADCC2
 #if M50631_IMPROVEMENT_ADCC_CTXINIT
@@ -1829,7 +1832,7 @@ int evce_eco_dqp(EVC_BSW * bs, int ref_qp, int cur_qp)
     sbac = GET_SBAC_ENC(bs);
     sbac_ctx = &sbac->ctx;
 
-    dqp = cur_qp - ref_qp - 6 * (BIT_DEPTH - 8);
+    dqp = cur_qp - ref_qp;
     abs_dqp = EVC_ABS(dqp);
     t0 = abs_dqp;
 
@@ -1934,22 +1937,21 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
 #endif
 );
 #if DQP
-            if(enc_dqp)
+            if(ctx->pps.cu_qp_delta_enabled_flag)
             {
-                int cbf_for_dqp = (!!nnz_sub[Y_C][(j << 1) | i]) || (!!nnz_sub[U_C][(j << 1) | i]) || (!!nnz_sub[V_C][(j << 1) | i]);
-
-                if (ctx->pps.cu_qp_delta_enabled_flag && (((!(ctx->sps.dquant_flag) || (core->cu_qp_delta_code == 1 && !core->cu_qp_delta_is_coded)) && (cbf_for_dqp))
-                    || (core->cu_qp_delta_code == 2 && !core->cu_qp_delta_is_coded)))
+                if(enc_dqp == 1)
                 {
-                    u8 * dqp_used;
-                    dqp_used = evc_get_dqp_used(core->x_scu, core->y_scu, ctx->w_scu, ctx->map_dqp_used, ctx->pps.cu_qp_delta_area);
-                    if((*dqp_used == DQP_UNUSED))
+                    int cbf_for_dqp = (!!nnz_sub[Y_C][(j << 1) | i]) || (!!nnz_sub[U_C][(j << 1) | i]) || (!!nnz_sub[V_C][(j << 1) | i]);
+                    if((((!(ctx->sps.dquant_flag) || (core->cu_qp_delta_code == 1 && !core->cu_qp_delta_is_coded)) && (cbf_for_dqp))
+                        || (core->cu_qp_delta_code == 2 && !core->cu_qp_delta_is_coded)))
                     {
-                        evce_eco_dqp(bs, ctx->sh.qp_prev, cur_qp);
-                        *dqp_used = cur_qp;
+                        evce_eco_dqp(bs, ctx->sh.qp_prev_eco, cur_qp);
+
+                        //evce_eco_dqp(bs, ctx->sh.qp, cur_qp - 6 * (BIT_DEPTH - 8));
+                        //printf("eco (%4d,%4d) [%4d %4d] qp=(%d,%d)\n", core->x_scu * 4, core->y_scu*4, 1 << log2_cuw, 1 << log2_cuh, cur_qp, ctx->sh.qp_prev_eco);
+                            core->cu_qp_delta_is_coded = 1;
+                        ctx->sh.qp_prev_eco = cur_qp;
                     }
-                    core->cu_qp_delta_is_coded = 1;
-                    ctx->sh.qp_prev = cur_qp - 6 * (BIT_DEPTH - 8);
                 }
             }
 #endif
@@ -3523,7 +3525,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
             , ctx
 #endif
 #if DQP
-            , core, enc_dqp, cu_data->qp_y[cup]
+            , core, enc_dqp, cu_data->qp_y[cup] - 6 * (BIT_DEPTH - 8)
 #endif
 #if M50761_CHROMA_NOT_SPLIT
             , ctx->tree_cons
@@ -3570,7 +3572,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
             if(ctx->pps.cu_qp_delta_enabled_flag)
             {
                 MCU_RESET_QP(map_scu[j]);
-                MCU_SET_QP(map_scu[j], ctx->sh.qp_prev);
+                MCU_SET_QP(map_scu[j], ctx->sh.qp_prev_eco);
             }
 #endif
 

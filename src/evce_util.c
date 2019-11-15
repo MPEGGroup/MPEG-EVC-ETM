@@ -247,6 +247,18 @@ void evc_set_affine_mvf(EVCE_CTX * ctx, EVCE_CORE * core, int w, int h, s8 refi[
 }
 #endif
 
+#if DQP_RDO
+void evce_set_qp(EVCE_CTX *ctx, EVCE_CORE *core, u8 qp)
+{
+    u8 qp_i_cb, qp_i_cr;
+    core->qp = qp;
+    core->qp_y = GET_LUMA_QP(core->qp);
+    qp_i_cb = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_u));
+    qp_i_cr = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_v));
+    core->qp_u = evc_tbl_qp_chroma_ajudst[qp_i_cb] + 6 * (BIT_DEPTH - 8);
+    core->qp_v = evc_tbl_qp_chroma_ajudst[qp_i_cr] + 6 * (BIT_DEPTH - 8);
+}
+#endif
 void evce_split_tbl_init(EVCE_CTX *ctx)
 {
     evc_split_tbl[0][0] = ctx->cdsc.framework_cu11_max;

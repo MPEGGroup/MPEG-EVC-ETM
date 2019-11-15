@@ -518,7 +518,17 @@ typedef struct _EVCE_SBAC
     u32            bitcounter;
     u8             is_bitcount;
 } EVCE_SBAC;
-
+#if DQP
+#if DQP_RDO
+typedef struct _EVCE_DQP
+{
+    s8            prev_QP;
+    s8            curr_QP;
+    s8            cu_qp_delta_is_coded;
+    s8            cu_qp_delta_code;
+} EVCE_DQP;
+#endif
+#endif
 typedef struct _EVCE_CU_DATA
 {
     s8  split_mode[MAX_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
@@ -620,6 +630,9 @@ typedef struct _EVCE_CORE
     /* CU data for RDO */
     EVCE_CU_DATA  cu_data_best[MAX_CU_DEPTH][MAX_CU_DEPTH];
     EVCE_CU_DATA  cu_data_temp[MAX_CU_DEPTH][MAX_CU_DEPTH];
+#if DQP
+    EVCE_DQP      dqp_data[MAX_CU_DEPTH][MAX_CU_DEPTH];
+#endif
     /* temporary coefficient buffer */
     s16            ctmp[N_C][MAX_CU_DIM];
     /* pred buffer of current CU. [1][x][x] is used for bi-pred */
@@ -632,10 +645,15 @@ typedef struct _EVCE_CORE
     /*QP for current encoding CU. Used to derive Luma and chroma qp*/
     u8             qp;
     u8             cu_qp_delta_code;
-    u16            x_dqp;
-    u16            y_dqp;
     u8             cu_qp_delta_is_coded;
     u8             cu_qp_delta_code_mode;
+#if DQP_RDO
+    EVCE_DQP       dqp_curr_best[MAX_CU_DEPTH][MAX_CU_DEPTH];
+    EVCE_DQP       dqp_next_best[MAX_CU_DEPTH][MAX_CU_DEPTH];
+    EVCE_DQP       dqp_temp_best;
+    EVCE_DQP       dqp_temp_best_merge;
+    EVCE_DQP       dqp_temp_run;
+#endif
 #endif
     /* QP for luma of current encoding CU */
     u8             qp_y;
@@ -664,6 +682,7 @@ typedef struct _EVCE_CORE
     u16            avail_cu;
     /* Left, right availability of current CU */
     u16            avail_lr; 
+    u16            bef_data_idx;
     /* CU mode */
     int            cu_mode;
     /* intra prediction mode */
@@ -724,7 +743,11 @@ typedef struct _EVCE_CORE
     EVCE_SBAC     s_temp_prev_comp_best;
     EVCE_SBAC     s_temp_prev_comp_run;
     EVCE_SBAC     s_curr_before_split[MAX_CU_DEPTH][MAX_CU_DEPTH];
+#if DQP_RDO 
+    EVCE_BEF_DATA bef_data[MAX_CU_DEPTH][MAX_CU_DEPTH][MAX_CU_CNT_IN_LCU][MAX_BEF_DATA_NUM];
+#else
     EVCE_BEF_DATA bef_data[MAX_CU_DEPTH][MAX_CU_DEPTH][MAX_CU_CNT_IN_LCU][NUM_NEIB];
+#endif
 
     double         cost_best;
     u32            inter_satd;
@@ -909,11 +932,7 @@ struct _EVCE_CTX
     s16                  (*map_block_size)[2];
 #endif
     s8                    *map_depth;
-    /*map of dqp*/
-#if DQP
-    s8                    *map_input_dqp;
-    u8                    *map_dqp_used;
-#endif
+
 #if RDO_DBK
     EVC_PIC              *pic_dbk;          //one picture that arranges cu pixels and neighboring pixels for deblocking (just to match the interface of deblocking functions)
     s64                    delta_dist[N_C];  //delta distortion from filtering (negative values mean distortion reduced)

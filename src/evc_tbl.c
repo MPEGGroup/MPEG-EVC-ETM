@@ -631,7 +631,16 @@ const s16 init_cbf[2][NUM_QT_CBF_CTX][1] = {
         { 288 }
     }
 };
-
+#if DQP
+const s16 init_dqp[2][NUM_DELTA_QP_CTX][1] = {
+    {
+        { 1028 }
+    },
+    {
+        { 1028 }
+    }
+};
+#endif
 #if ADCC   // tables below to be optimized for the final design
 #define initA 0
 #define initB 128

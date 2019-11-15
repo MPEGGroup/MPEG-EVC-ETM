@@ -1611,9 +1611,18 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         //prepare tu residual
         copy_tu_from_cu(coef, pi->resi, log2_cuw, log2_cuh, core->ats_inter_info);
 #endif
-
+#if DQP_RDO
+        if(ctx->pps.cu_qp_delta_enabled_flag)
+        {
+            evce_set_qp(ctx, core, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2].curr_QP);
+        }
+#endif
     /* transform and quantization */
+#if DQP_RDO
+        tnnz = evce_sub_block_tq(coef, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, pi->slice_type, nnz
+#else
     tnnz = evce_sub_block_tq(coef, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, pi->slice_type, nnz
+#endif
                              , core->nnz_sub, 0, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt
 #if ATS_INTRA_PROCESS
                              , 0, 0
@@ -1761,6 +1770,9 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
             cost = (double)dist[idx_y][Y_C] + (((double)dist[idx_u][U_C] * ctx->dist_chroma_weight[0]) + ((double)dist[idx_v][V_C] * ctx->dist_chroma_weight[1]));
 
             SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
+#if DQP_RDO
+            DQP_LOAD(core->dqp_temp_run, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2]);
+#endif
             evce_sbac_bit_reset(&core->s_temp_run);
 
             if(IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
@@ -1801,6 +1813,9 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
                 cbf_idx[U_C] = idx_u;
                 cbf_idx[V_C] = idx_v;
                 SBAC_STORE(core->s_temp_best, core->s_temp_run);
+#if DQP_RDO
+                DQP_STORE(core->dqp_temp_best, core->dqp_temp_run);
+#endif
 #if ATS_INTER_PROCESS
                 ats_inter_info_best = core->ats_inter_info;
                 core->cost_best = cost < core->cost_best ? cost : core->cost_best;
@@ -1826,6 +1841,9 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         cost = (double)dist[idx_y][Y_C] + (((double)dist[idx_u][U_C] * ctx->dist_chroma_weight[0]) + ((double)dist[idx_v][V_C] * ctx->dist_chroma_weight[1]));
 
         SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
+#if DQP_RDO
+        DQP_LOAD(core->dqp_temp_run, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2]);
+#endif
         evce_sbac_bit_reset(&core->s_temp_run);
 
         if(IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
@@ -1866,6 +1884,9 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
             cbf_idx[U_C] = idx_u;
             cbf_idx[V_C] = idx_v;
             SBAC_STORE(core->s_temp_best, core->s_temp_run);
+#if DQP_RDO
+            DQP_STORE(core->dqp_temp_best, core->dqp_temp_run);
+#endif
 #if ATS_INTER_PROCESS
             ats_inter_info_best = core->ats_inter_info;
             core->cost_best = cost < core->cost_best ? cost : core->cost_best;
@@ -1952,6 +1973,9 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
             cost = (double)dist[idx_y][Y_C] + (((double)dist[idx_u][U_C] * ctx->dist_chroma_weight[0]) + ((double)dist[idx_v][V_C] * ctx->dist_chroma_weight[1]));
 
             SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
+#if DQP_RDO
+            DQP_LOAD(core->dqp_temp_run, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2]);
+#endif
             evce_sbac_bit_reset(&core->s_temp_run);
 
             if(IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
@@ -1992,6 +2016,9 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
                 cbf_idx[U_C] = idx_u;
                 cbf_idx[V_C] = idx_v;
                 SBAC_STORE(core->s_temp_best, core->s_temp_run);
+#if DQP_RDO
+                DQP_STORE(core->dqp_temp_best, core->dqp_temp_run);
+#endif
 #if ATS_INTER_PROCESS
                 ats_inter_info_best = core->ats_inter_info;
                 core->cost_best = cost < core->cost_best ? cost : core->cost_best;
@@ -2039,6 +2066,15 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
     }
     else
     {
+#if DQP_RDO
+        if(ctx->pps.cu_qp_delta_enabled_flag)
+        {
+            if(core->cu_qp_delta_code_mode != 2)
+            {
+                evce_set_qp(ctx, core, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2].prev_QP);
+            }
+        }
+#endif
         if(ctx->sps.tool_amis == 1 && (0
 #if AFFINE
            || pidx == AFF_DIR
@@ -2094,6 +2130,9 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         cost_best = (double)dist[0][Y_C] + (ctx->dist_chroma_weight[0] * (double)dist[0][U_C]) + (ctx->dist_chroma_weight[1] * (double)dist[0][V_C]);
 
         SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
+#if DQP_RDO
+        DQP_LOAD(core->dqp_temp_run, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2]);
+#endif
 
         evce_sbac_bit_reset(&core->s_temp_run);
 
@@ -2128,6 +2167,9 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         bit_cnt = evce_get_bit_number(&core->s_temp_run);
         cost_best += RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);
         SBAC_STORE(core->s_temp_best, core->s_temp_run);
+#if DQP_RDO
+        DQP_STORE(core->dqp_temp_best, core->dqp_temp_run);
+#endif
 #if ATS_INTER_PROCESS
         assert(core->ats_inter_info == 0);
         ats_inter_info_best = core->ats_inter_info;
@@ -2221,6 +2263,15 @@ static double analyze_skip_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y
 #if ATS_INTER_PROCESS
     core->ats_inter_info = 0;
 #endif
+#if DQP_RDO
+    if(ctx->pps.cu_qp_delta_enabled_flag)
+    {
+        if(core->cu_qp_delta_code_mode != 2)
+        {
+            evce_set_qp(ctx, core, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2].prev_QP);
+        }
+    }
+#endif
     cuw = (1 << log2_cuw);
     cuh = (1 << log2_cuh);
     y_org = pi->o[Y_C] + x + y * pi->s_o[Y_C];
@@ -2285,6 +2336,9 @@ static double analyze_skip_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y
             cost = (double)cy + (ctx->dist_chroma_weight[0] * (double)cu) + (ctx->dist_chroma_weight[1] * (double)cv);
 
             SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
+#if DQP_RDO
+            DQP_LOAD(core->dqp_temp_run, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2]);
+#endif
 
             evce_sbac_bit_reset(&core->s_temp_run);
             evce_rdo_bit_cnt_cu_skip(ctx, core, ctx->sh.slice_type, core->scup, idx0, idx1, 0, ctx->sps.tool_mmvd);
@@ -2319,6 +2373,9 @@ static double analyze_skip_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y
                 }
 
                 SBAC_STORE(core->s_temp_best, core->s_temp_run);
+#if DQP_RDO
+                DQP_STORE(core->dqp_temp_best, core->dqp_temp_run);
+#endif
 #if ATS_INTER_PROCESS
                 pi->ats_inter_info_mode[PRED_SKIP] = 0;
 #endif
@@ -2389,6 +2446,15 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
             , ctx->log2_max_cuwh
 #endif
         );
+#if DQP_RDO
+    if(ctx->pps.cu_qp_delta_enabled_flag)
+    {
+        if(core->cu_qp_delta_code_mode != 2)
+        {
+            evce_set_qp(ctx, core, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2].prev_QP);
+        }
+    }
+#endif
     pi->mvp_idx[PRED_SKIP][REFP_0] = 0;
     pi->mvp_idx[PRED_SKIP][REFP_1] = 0;
 #if ADMVP
@@ -2463,6 +2529,9 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
             cost = (double)cy + (ctx->dist_chroma_weight[0] * (double)cu) + (ctx->dist_chroma_weight[1] * (double)cv);
 
             SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
+#if DQP_RDO
+            DQP_LOAD(core->dqp_temp_run, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2]);
+#endif
 
             evce_sbac_bit_reset(&core->s_temp_run);
             evce_rdo_bit_cnt_cu_skip(ctx, core, ctx->sh.slice_type, core->scup, idx0, idx1, 0, ctx->sps.tool_mmvd);
@@ -2518,6 +2587,9 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
                 }
 
                 SBAC_STORE(core->s_temp_best, core->s_temp_run);
+#if DQP_RDO
+                DQP_STORE(core->dqp_temp_best, core->dqp_temp_run);
+#endif
 #if ATS_INTER_PROCESS
                 pi->ats_inter_info_mode[PRED_SKIP] = 0;
 #endif
@@ -2746,6 +2818,9 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
                 evc_mcpy(pi->coef[pidx1][j], pi->coef[pidx][j], size_tmp * sizeof(s16));
             }
             SBAC_STORE(core->s_temp_best_merge, core->s_temp_best);
+#if DQP_RDO
+            DQP_STORE(core->dqp_temp_best_merge, core->dqp_temp_best);
+#endif
 #if ATS_INTER_PROCESS
             pi->ats_inter_info_mode[pidx] = core->ats_inter_info;
 #endif
@@ -2841,7 +2916,15 @@ static double analyze_skip_mmvd(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, 
 #if ATS_INTER_PROCESS
     core->ats_inter_info = 0;
 #endif
-
+#if DQP_RDO
+    if(ctx->pps.cu_qp_delta_enabled_flag)
+    {
+        if(core->cu_qp_delta_code_mode != 2)
+        {
+            evce_set_qp(ctx, core, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2].prev_QP);
+        }
+    }
+#endif
     core->mmvd_flag = 1;
 
     cuw = (1 << log2_cuw);
@@ -2935,6 +3018,9 @@ static double analyze_skip_mmvd(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, 
         cost = (double)cy + (ctx->dist_chroma_weight[0] * (double)cu) + (ctx->dist_chroma_weight[1] * (double)cv);
 
         SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
+#if DQP_RDO
+        DQP_LOAD(core->dqp_temp_run, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2]);
+#endif
 
         evce_sbac_bit_reset(&core->s_temp_run);
         evce_rdo_bit_cnt_cu_skip(ctx, core, ctx->sh.slice_type, core->scup, 0, 0, c_num, ctx->sps.tool_mmvd);
@@ -2964,6 +3050,9 @@ static double analyze_skip_mmvd(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, 
                 evc_mcpy(pi->pred[PRED_SKIP_MMVD][0][j], pi->pred[PRED_NUM][0][j], size_tmp * sizeof(pel));
             }
             SBAC_STORE(core->s_temp_best, core->s_temp_run);
+#if DQP_RDO
+            DQP_STORE(core->dqp_temp_best, core->dqp_temp_run);
+#endif
 #if ATS_INTER_PROCESS
             pi->ats_inter_info_mode[PRED_SKIP_MMVD] = 0;
 #endif
@@ -5056,7 +5145,15 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
 #if ATS_INTER_PROCESS
     core->ats_inter_info = 0;
 #endif
-
+#if DQP_RDO
+    if(ctx->pps.cu_qp_delta_enabled_flag)
+    {
+        if(core->cu_qp_delta_code_mode != 2)
+        {
+            evce_set_qp(ctx, core, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2].prev_QP);
+        }
+    }
+#endif
     cuw = (1 << log2_cuw);
     cuh = (1 << log2_cuh);
     y_org = pi->o[Y_C] + x + y * pi->s_o[Y_C];
@@ -5184,6 +5281,9 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
             cost = (double)cy + (ctx->dist_chroma_weight[0] * (double)cu) + (ctx->dist_chroma_weight[1] * (double)cv);
 
             SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
+#if DQP_RDO
+            DQP_LOAD(core->dqp_temp_run, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2]);
+#endif
 
             evce_sbac_bit_reset(&core->s_temp_run);
             evce_rdo_bit_cnt_cu_skip(ctx, core, ctx->sh.slice_type, core->scup, idx, 0, 0, ctx->sps.tool_mmvd);
@@ -5215,6 +5315,9 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
             }
 
             SBAC_STORE(core->s_temp_best, core->s_temp_run);
+#if DQP_RDO
+            DQP_STORE(core->dqp_temp_best, core->dqp_temp_run);
+#endif
         }
     }
 
@@ -5287,6 +5390,9 @@ static double pinter_analyze_cu_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, 
         best_idx = PRED_SKIP;
         cost_inter[best_idx] = cost_best = cost;
         SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best);
+#if DQP_RDO
+        DQP_STORE(core->dqp_next_best[log2_cuw - 2][log2_cuh - 2], core->dqp_temp_best);
+#endif
         evc_mset(pi->nnz_best[PRED_SKIP], 0, sizeof(int) * N_C);
         evc_mcpy(pi->nnz_sub_best[PRED_SKIP], core->nnz_sub, sizeof(int) * N_C * MAX_SUB_TB_NUM);
     }
@@ -5301,6 +5407,9 @@ static double pinter_analyze_cu_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, 
             cost_inter[best_idx] = cost_best = cost;
 
             SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best);
+#if DQP_RDO
+            DQP_STORE(core->dqp_next_best[log2_cuw - 2][log2_cuh - 2], core->dqp_temp_best);
+#endif
             evc_mcpy(pi->nnz_sub_best[PRED_DIR], core->nnz_sub, sizeof(int) * N_C * MAX_SUB_TB_NUM);
         }
     }
@@ -5373,6 +5482,9 @@ static double pinter_analyze_cu_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, 
             pi->mvp_idx[best_idx][lidx] = mvp_idx[lidx];
             cost_inter[best_idx] = cost_best = cost;
             SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best);
+#if DQP_RDO
+            DQP_STORE(core->dqp_next_best[log2_cuw - 2][log2_cuh - 2], core->dqp_temp_best);
+#endif
 
             for(j = 0; j < N_C; j++)
             {
@@ -5399,6 +5511,9 @@ static double pinter_analyze_cu_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, 
             best_idx = pidx;
             cost_inter[best_idx] = cost_best = cost;
             SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best);
+#if DQP_RDO
+            DQP_STORE(core->dqp_next_best[log2_cuw - 2][log2_cuh - 2], core->dqp_temp_best);
+#endif
             evc_mcpy(pi->nnz_sub_best[best_idx], core->nnz_sub, sizeof(int) * N_C * MAX_SUB_TB_NUM);
         }
     }
@@ -5513,9 +5628,9 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 
     if(ctx->sps.tool_amvr)
     {
-        if(core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][evc_get_lr(core->avail_lr)].visit)
+        if(core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][core->bef_data_idx].visit)
         {
-            num_amvr = core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][evc_get_lr(core->avail_lr)].mvr_idx + 1;
+            num_amvr = core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][core->bef_data_idx].mvr_idx + 1;
 
             if(num_amvr > MAX_NUM_MVR)
             {
@@ -5534,9 +5649,9 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 
 #if AFFINE
     core->affine_flag = 0;
-    if(core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][evc_get_lr(core->avail_lr)].visit)
+    if(core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][core->bef_data_idx].visit)
     {
-        if(core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][evc_get_lr(core->avail_lr)].affine_flag == 0)
+        if(core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][core->bef_data_idx].affine_flag == 0)
         {
             allow_affine = 0;
         }
@@ -5599,6 +5714,9 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
         best_idx = PRED_SKIP;
         cost_inter[best_idx] = cost_best = cost;
         SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best);
+#if DQP_RDO
+        DQP_STORE(core->dqp_next_best[log2_cuw - 2][log2_cuh - 2], core->dqp_temp_best);
+#endif
         evc_mset(pi->nnz_best[PRED_SKIP], 0, sizeof(int) * N_C);
         evc_mcpy(pi->nnz_sub_best[PRED_SKIP], core->nnz_sub, sizeof(int) * N_C * MAX_SUB_TB_NUM);
     }
@@ -5623,6 +5741,9 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                 evc_mcpy(pi->coef[best_idx][i], pi->coef[PRED_NUM][i], size_tmp * sizeof(s16));
             }
             SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best_merge);
+#if DQP_RDO
+            DQP_STORE(core->dqp_next_best[log2_cuw - 2][log2_cuh - 2], core->dqp_temp_best_merge);
+#endif
         }
 #else
         cost = cost_inter[PRED_DIR] = analyze_t_direct(ctx, core, x, y, log2_cuw, log2_cuh);
@@ -5651,6 +5772,9 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 #endif
             cost_best = cost;
             SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best);
+#if DQP_RDO
+            DQP_STORE(core->dqp_next_best[log2_cuw - 2][log2_cuh - 2], core->dqp_temp_best);
+#endif
         }
 
         /* MMVD mode for skip */
@@ -5664,6 +5788,9 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 #endif
             cost_inter[best_idx] = cost_best = cost;
             SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best);
+#if DQP_RDO
+            DQP_STORE(core->dqp_next_best[log2_cuw - 2][log2_cuh - 2], core->dqp_temp_best);
+#endif
             evc_mset(pi->nnz_best[PRED_SKIP_MMVD], 0, sizeof(int) * N_C);
             evc_mcpy(pi->nnz_sub_best[PRED_SKIP_MMVD], core->nnz_sub, sizeof(int) * N_C * MAX_SUB_TB_NUM);
         }
@@ -5828,6 +5955,9 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                     pi->mvp_idx[best_idx][lidx] = mvp_idx[lidx];
                     cost_inter[best_idx] = cost_best = cost;
                     SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best);
+#if DQP_RDO
+                    DQP_STORE(core->dqp_next_best[log2_cuw - 2][log2_cuh - 2], core->dqp_temp_best);
+#endif
 #if DMVR_FLAG
                     best_dmvr = 0;
 #endif
@@ -5858,10 +5988,10 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                 int max_num_bi = MAX_NUM_BI;
                 int pred_mode = 0;
 
-                if(core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][evc_get_lr(core->avail_lr)].visit)
+                if(core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][core->bef_data_idx].visit)
                 {
-                    max_num_bi = (core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][evc_get_lr(core->avail_lr)].bi_idx == 2 || 
-                                  core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][evc_get_lr(core->avail_lr)].bi_idx == 3) ? MAX_NUM_BI : 1;
+                    max_num_bi = (core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][core->bef_data_idx].bi_idx == 2 || 
+                                  core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][core->bef_data_idx].bi_idx == 3) ? MAX_NUM_BI : 1;
                 }
 
                 for(pi->curr_bi = 0; pi->curr_bi < max_num_bi; pi->curr_bi++)
@@ -5885,6 +6015,9 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                         best_dmvr = 0;
 #endif
                         SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best);
+#if DQP_RDO
+                        DQP_STORE(core->dqp_next_best[log2_cuw - 2][log2_cuh - 2], core->dqp_temp_best);
+#endif
                     }
                 }
             }
@@ -5966,6 +6099,9 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 #endif
                 cost_inter[best_idx] = cost_best = cost;
                 SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best);
+#if DQP_RDO
+                DQP_STORE(core->dqp_next_best[log2_cuw - 2][log2_cuh - 2], core->dqp_temp_best);
+#endif
                 evc_mset(pi->nnz_best[AFF_SKIP], 0, sizeof(int) * N_C);
                 evc_mset(pi->nnz_sub_best[AFF_SKIP], 0, sizeof(int) * N_C * MAX_SUB_TB_NUM);
             }
@@ -5983,6 +6119,9 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                 best_idx = AFF_DIR;
                 cost_inter[best_idx] = cost_best = cost;
                 SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best);
+#if DQP_RDO
+                DQP_STORE(core->dqp_next_best[log2_cuw - 2][log2_cuh - 2], core->dqp_temp_best);
+#endif
             }
 
             if(affine_applicable && cuw >= 16 && cuh >= 16)
@@ -6187,6 +6326,9 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                                 pi->bi_idx[best_idx] = BI_NON;
 
                                 SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best);
+#if DQP_RDO
+                                DQP_STORE(core->dqp_next_best[log2_cuw - 2][log2_cuh - 2], core->dqp_temp_best);
+#endif
 
                                 for(j = 0; j < N_C; j++)
                                 {
@@ -6220,6 +6362,9 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                             pi->bi_idx[best_idx] = BI_NORMAL;
 
                             SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best);
+#if DQP_RDO
+                            DQP_STORE(core->dqp_next_best[log2_cuw - 2][log2_cuh - 2], core->dqp_temp_best);
+#endif
                         }
                     }
 
@@ -6421,6 +6566,9 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                                     pi->bi_idx[best_idx] = BI_NON;
 
                                     SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best);
+#if DQP_RDO
+                                    DQP_STORE(core->dqp_next_best[log2_cuw - 2][log2_cuh - 2], core->dqp_temp_best);
+#endif
 
                                     for(j = 0; j < N_C; j++)
                                     {
@@ -6453,6 +6601,9 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                                 pi->bi_idx[best_idx] = BI_NORMAL;
 
                                 SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best);
+#if DQP_RDO
+                                DQP_STORE(core->dqp_next_best[log2_cuw - 2][log2_cuh - 2], core->dqp_temp_best);
+#endif
                             }
                         }
                     }
@@ -6579,16 +6730,16 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
     mi->mvr_idx = pi->mvr_idx[best_idx];
     mi->bi_idx = pi->bi_idx[best_idx];
 
-    if(!core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][evc_get_lr(core->avail_lr)].visit)
+    if(!core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][core->bef_data_idx].visit)
     {
-        core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][evc_get_lr(core->avail_lr)].mvr_idx = mi->mvr_idx;
-        core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][evc_get_lr(core->avail_lr)].bi_idx = mi->bi_idx;
+        core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][core->bef_data_idx].mvr_idx = mi->mvr_idx;
+        core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][core->bef_data_idx].bi_idx = mi->bi_idx;
     }
 
 #if AFFINE
-    if(!core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][evc_get_lr(core->avail_lr)].visit)
+    if(!core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][core->bef_data_idx].visit)
     {
-        core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][evc_get_lr(core->avail_lr)].affine_flag = best_affine_mode;
+        core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][core->bef_data_idx].affine_flag = best_affine_mode;
     }
 #endif
 #if TRACE_ADDITIONAL_FLAGS

@@ -3334,20 +3334,6 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
 #endif
 }
 
-#if DQP
-u8 * evc_get_dqp_used(int x_scu, int y_scu, int w_scu, u8 * map_dqp_used, int dqp_depth)
-{
-    u8 * dqp;
-    int x_scu_pos, y_scu_pos, scup_pos;
-
-    x_scu_pos = x_scu;
-    y_scu_pos = y_scu;
-    scup_pos = x_scu_pos + y_scu_pos * w_scu;
-    dqp = &map_dqp_used[scup_pos];
-    return  dqp;
-}
-#endif
-
 int evc_get_suco_flag(s8* suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU])
 {
     int ret = EVC_OK;

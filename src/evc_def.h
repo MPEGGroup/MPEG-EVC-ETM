@@ -162,10 +162,7 @@
 #define DQP_EVC                            1
 #if DQP_EVC
 #define DQP                                1
-#define DQP_UNUSED                         (0)
-#define RANDOM_DQP_GENERATION              1 /* test for dqp */
-
-#define DQP_IN_RANGE(x)                    (x >= -26 && x <= 25)
+#define DQP_RDO                            1
 #define GET_QP(qp,dqp)                     ((qp + dqp + 52) % 52)
 #define GET_LUMA_QP(qp)                    (qp + 6 * (BIT_DEPTH - 8))
 #endif
@@ -637,6 +634,8 @@ extern int fp_trace_started;
 #define MIN_TR_SIZE                       (1 << MIN_TR_LOG2)
 #define MAX_TR_DIM                        (MAX_TR_SIZE * MAX_TR_SIZE)
 #define MIN_TR_DIM                        (MIN_TR_SIZE * MIN_TR_SIZE)
+
+#define MAX_BEF_DATA_NUM                  (NUM_NEIB << 1)
 
 /* maximum CB count in a LCB */
 #define MAX_CU_CNT_IN_LCU                  (MAX_CU_DIM/MIN_CU_DIM)
@@ -1541,7 +1540,9 @@ typedef struct _EVC_SH
     int              entry_point_offset_minus1[MAX_NUM_TILES_ROW * MAX_NUM_TILES_COL];
 #if DQP
     /*QP of previous cu in decoding order (used for dqp)*/
-    u8               qp_prev;
+    u8               qp_prev_eco;
+    u8               dqp;
+    u8               qp_prev_mode;
 #endif
 
     /* decoding temporal reference */

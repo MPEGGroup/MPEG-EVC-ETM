@@ -106,9 +106,6 @@ static void sequence_deinit(EVCD_CTX * ctx)
 #if ATS_INTER_PROCESS
     evc_mfree(ctx->map_ats_inter);
 #endif
-#if DQP
-    evc_mfree(ctx->map_dqp_used);
-#endif
     evc_picman_deinit(&ctx->dpm);
 }
 
@@ -214,16 +211,6 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
         evc_assert_gv(ctx->map_ipm, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
         evc_mset_x64a(ctx->map_ipm, -1, size);
     }
-
-#if DQP
-    if (ctx->map_dqp_used == NULL)
-    {
-        size = sizeof(s8) * ctx->f_scu;
-        ctx->map_dqp_used = (u8 *)evc_malloc(size);
-        evc_assert_gv(ctx->map_dqp_used, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
-        evc_mset_x64a(ctx->map_dqp_used, DQP_UNUSED, size);
-    }
-#endif
 
     /* initialize reference picture manager */
     ctx->pa.fn_alloc = evcd_picbuf_alloc;
@@ -1497,28 +1484,25 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
     }
 
 #if DQP
-    if(ctx->sps.sps_btt_flag)
+    if(ctx->pps.cu_qp_delta_enabled_flag && ctx->sps.dquant_flag)
     {
-        if(ctx->pps.cu_qp_delta_enabled_flag && ctx->sps.dquant_flag)
+        if (split_mode == NO_SPLIT && (log2_cuh + log2_cuw >= ctx->pps.cu_qp_delta_area) && cu_qp_delta_code != 2)
         {
-            if (split_mode == NO_SPLIT && (log2_cuh + log2_cuw >= ctx->pps.cu_qp_delta_area) && cu_qp_delta_code != 2)
-            {
-                if (log2_cuh == 7 || log2_cuw == 7)
-                {
-                    cu_qp_delta_code = 2;
-                }
-                else
-                {
-                    cu_qp_delta_code = 1;
-                }
-                core->cu_qp_delta_is_coded = 0;
-            }
-            else if ((((split_mode == SPLIT_TRI_VER || split_mode == SPLIT_TRI_HOR) && (log2_cuh + log2_cuw == ctx->pps.cu_qp_delta_area + 1)) ||
-                (log2_cuh + log2_cuw == ctx->pps.cu_qp_delta_area && cu_qp_delta_code != 2)))
+            if (log2_cuh == 7 || log2_cuw == 7)
             {
                 cu_qp_delta_code = 2;
-                core->cu_qp_delta_is_coded = 0;
             }
+            else
+            {
+                cu_qp_delta_code = 1;
+            }
+            core->cu_qp_delta_is_coded = 0;
+        }
+        else if ((((split_mode == SPLIT_TRI_VER || split_mode == SPLIT_TRI_HOR) && (log2_cuh + log2_cuw == ctx->pps.cu_qp_delta_area + 1)) ||
+            (log2_cuh + log2_cuw == ctx->pps.cu_qp_delta_area && cu_qp_delta_code != 2)))
+        {
+            cu_qp_delta_code = 2;
+            core->cu_qp_delta_is_coded = 0;
         }
     }
 #endif
@@ -1920,15 +1904,7 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
     evcd_eco_sbac_reset(bs, ctx->sh.slice_type, ctx->sh.qp, ctx->sps.tool_cm_init);
 
 #if DQP
-    /* reset dqp used map data */
-    {
-        int size;
-        size = sizeof(s8) * ctx->f_scu;
-        evc_mset_x64a(ctx->map_dqp_used, DQP_UNUSED, size);
-    }
-#endif
-#if DQP
-    ctx->sh.qp_prev = ctx->sh.qp;
+    ctx->sh.qp_prev_eco = ctx->sh.qp;
 #endif
 
 #if GRAB_STAT

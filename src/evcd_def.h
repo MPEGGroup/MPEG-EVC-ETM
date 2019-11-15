@@ -317,10 +317,6 @@ struct _EVCD_CTX
     u8                      pic_sign[16];
     /* flag to indicate picture signature existing or not */
     u8                      pic_sign_exist;
-#if DQP
-    /*map of dqp values used*/
-    u8                     *map_dqp_used;
-#endif
     /* address of ready function */
     int  (* fn_ready)(EVCD_CTX * ctx);
     /* address of flush function */

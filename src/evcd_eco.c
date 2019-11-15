@@ -1236,52 +1236,27 @@ int evcd_eco_coef(EVCD_CTX * ctx, EVCD_CORE * core)
                 {
                     int dqp;
                     int qp_i_cb, qp_i_cr;
-                    u8 * dqp_used;
-                    dqp_used = evc_get_dqp_used(core->x_scu, core->y_scu, ctx->w_scu, ctx->map_dqp_used, ctx->pps.cu_qp_delta_area);
-                    if(*dqp_used == DQP_UNUSED)
+                    if(ctx->pps.cu_qp_delta_enabled_flag && (((!(ctx->sps.dquant_flag) || (core->cu_qp_delta_code == 1 && !core->cu_qp_delta_is_coded))
+                        && (cbf[Y_C] || cbf[U_C] || cbf[V_C])) || (core->cu_qp_delta_code == 2 && !core->cu_qp_delta_is_coded)))
                     {
-                        if (ctx->pps.cu_qp_delta_enabled_flag && (((!(ctx->sps.dquant_flag) || (core->cu_qp_delta_code == 1 && !core->cu_qp_delta_is_coded)) 
-                            && (cbf[Y_C] || cbf[U_C] || cbf[V_C])) || (core->cu_qp_delta_code == 2 && !core->cu_qp_delta_is_coded)))
-                        {
-                            dqp = evcd_eco_dqp(bs);
-                            core->qp = GET_QP(ctx->sh.qp_prev, dqp);
-                            core->qp_y = GET_LUMA_QP(core->qp);
-                            *dqp_used = core->qp;
-                            core->cu_qp_delta_is_coded = 1;
-                            ctx->sh.qp_prev = core->qp;
-                        }
-                        else
-                        {
-                            dqp = 0;
-                            core->qp = GET_QP(ctx->sh.qp_prev, dqp);
-                            core->qp_y = GET_LUMA_QP(core->qp);
-                        }
-    
-                        qp_i_cb = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_u));
-                        qp_i_cr = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_v));
-    
-                        core->qp_u = evc_tbl_qp_chroma_ajudst[qp_i_cb] + 6 * (BIT_DEPTH - 8);
-                        core->qp_v = evc_tbl_qp_chroma_ajudst[qp_i_cr] + 6 * (BIT_DEPTH - 8);
+                        dqp = evcd_eco_dqp(bs);
+                        core->qp = GET_QP(ctx->sh.qp_prev_eco, dqp);
+                        core->qp_y = GET_LUMA_QP(core->qp);
+                        core->cu_qp_delta_is_coded = 1;
+                        ctx->sh.qp_prev_eco = core->qp;
                     }
                     else
                     {
-                        if(cbf[Y_C] || cbf[U_C] || cbf[V_C])
-                        {
-                            core->qp = *dqp_used;
-                            core->qp_y = GET_LUMA_QP(core->qp);
-                        }
-                        else
-                        {
-                            dqp = 0;
-                            core->qp = GET_QP(ctx->sh.qp_prev, dqp);
-                            core->qp_y = GET_LUMA_QP(core->qp);
-                        }
-                        qp_i_cb = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_u));
-                        qp_i_cr = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_v));
-    
-                        core->qp_u = evc_tbl_qp_chroma_ajudst[qp_i_cb] + 6 * (BIT_DEPTH - 8);
-                        core->qp_v = evc_tbl_qp_chroma_ajudst[qp_i_cr] + 6 * (BIT_DEPTH - 8);
+                        dqp = 0;
+                        core->qp = GET_QP(ctx->sh.qp_prev_eco, dqp);
+                        core->qp_y = GET_LUMA_QP(core->qp);
                     }
+
+                    qp_i_cb = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_u));
+                    qp_i_cr = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_v));
+
+                    core->qp_u = evc_tbl_qp_chroma_ajudst[qp_i_cb] + 6 * (BIT_DEPTH - 8);
+                    core->qp_v = evc_tbl_qp_chroma_ajudst[qp_i_cr] + 6 * (BIT_DEPTH - 8);
                 }
 #endif
 #if ATS_INTRA_PROCESS
@@ -1423,6 +1398,9 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_in
     {
         evc_eco_sbac_ctx_initialize(sbac_ctx->cbf, (s16*)init_cbf, NUM_QT_CBF_CTX, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->all_cbf, (s16*)init_all_cbf, NUM_QT_ROOT_CBF_CTX, slice_type, slice_qp);
+#if DQP
+        evc_eco_sbac_ctx_initialize(sbac_ctx->delta_qp, (s16*)init_dqp, NUM_DELTA_QP_CTX, slice_type, slice_qp);
+#endif
 #if ADCC 
 #if COEFF_CODE_ADCC2
 #if M50631_IMPROVEMENT_ADCC_CTXINIT
@@ -2277,7 +2255,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
         if(ctx->pps.cu_qp_delta_enabled_flag)
         {
             int qp_i_cb, qp_i_cr;
-            core->qp = ctx->sh.qp_prev;
+            core->qp = ctx->sh.qp_prev_eco;
             core->qp_y = GET_LUMA_QP(core->qp);
 
             qp_i_cb = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_u));

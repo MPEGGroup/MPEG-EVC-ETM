@@ -148,8 +148,8 @@ static char  op_rpl0[MAX_NUM_RPLS][256];
 static char  op_rpl1[MAX_NUM_RPLS][256];
 
 #if DQP_CFG
-static int  op_use_dqp             = 0; /*default cu_delta_qp is off*/
-static int  op_cu_qp_delta_area    = 6; /*default cu_delta_qp_area is 6 (i.e. 64)*/
+static int  op_use_dqp             = 0;  /* default cu_delta_qp is off* /
+static int  op_cu_qp_delta_area    = 10; /* default cu_delta_qp_area is 10 */
 #endif
 
 typedef enum _OP_FLAGS
@@ -318,7 +318,7 @@ static EVC_ARGS_OPTION options[] = \
     {
      EVC_ARGS_NO_KEY,  "use_dqp", EVC_ARGS_VAL_TYPE_INTEGER,
      &op_flag[OP_FLAG_USE_DQP], &op_use_dqp,
-     "use_dqp (0, 1)(default: 0) "
+     "use_dqp ({0,..,25})(default: 0) "
     },
     {
         EVC_ARGS_NO_KEY,  "cu_qp_delta_area", EVC_ARGS_VAL_TYPE_INTEGER,

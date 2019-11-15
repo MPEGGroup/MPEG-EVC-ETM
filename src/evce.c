@@ -37,9 +37,6 @@
 #include "evc_df.h"
 #include "evce_mode.h"
 #include "evc_util.h"
-#if DQP && RANDOM_DQP_GENERATION
-#include <stdlib.h>
-#endif
 #if ALF
 #include "enc_alf_wrapper.h"
 #endif
@@ -410,7 +407,7 @@ static void set_pps(EVCE_CTX * ctx, EVC_PPS * pps)
     pps->single_tile_in_pic_flag = 1;
     pps->constrained_intra_pred_flag = ctx->cdsc.constrained_intra_pred;
 #if DQP
-    pps->cu_qp_delta_enabled_flag = ctx->cdsc.use_dqp;
+    pps->cu_qp_delta_enabled_flag = EVC_ABS(ctx->cdsc.use_dqp);
     pps->cu_qp_delta_area         = ctx->cdsc.cu_qp_delta_area;
 #endif
 }
@@ -703,6 +700,9 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
 #else
     qp = ctx->qp;
 #endif
+#if DQP
+    sh->dqp = EVC_ABS(ctx->param.use_dqp);
+#endif
 
     if(ctx->param.use_hgop)
     {
@@ -770,28 +770,25 @@ static int evce_eco_tree(EVCE_CTX * ctx, EVCE_CORE * core, int x0, int y0, int c
     bs = &ctx->bs;
 
 #if DQP
-    if(ctx->sps.sps_btt_flag)
+    if(ctx->pps.cu_qp_delta_enabled_flag && ctx->sps.dquant_flag)
     {
-        if(ctx->pps.cu_qp_delta_enabled_flag && ctx->sps.dquant_flag)
+        if (split_mode == NO_SPLIT && (CONV_LOG2(cuw) + CONV_LOG2(cuh) >= ctx->pps.cu_qp_delta_area) && cu_qp_delta_code != 2)
         {
-            if (split_mode == NO_SPLIT && (CONV_LOG2(cuw) + CONV_LOG2(cuh) >= ctx->pps.cu_qp_delta_area) && cu_qp_delta_code != 2)
-            {
-                if (CONV_LOG2(cuw) == 7 || CONV_LOG2(cuh) == 7)
-                {
-                    cu_qp_delta_code = 2;
-                }
-                else
-                {
-                    cu_qp_delta_code = 1;
-                }
-                core->cu_qp_delta_is_coded = 0;
-            }
-            else if ((((CONV_LOG2(cuw) + CONV_LOG2(cuh) == ctx->pps.cu_qp_delta_area + 1) && (split_mode == SPLIT_TRI_VER || split_mode == SPLIT_TRI_HOR)) ||
-                (CONV_LOG2(cuh) + CONV_LOG2(cuw) == ctx->pps.cu_qp_delta_area && cu_qp_delta_code != 2)))
+            if (CONV_LOG2(cuw) == 7 || CONV_LOG2(cuh) == 7)
             {
                 cu_qp_delta_code = 2;
-                core->cu_qp_delta_is_coded = 0;
             }
+            else
+            {
+                cu_qp_delta_code = 1;
+            }
+            core->cu_qp_delta_is_coded = 0;
+        }
+        else if ((((CONV_LOG2(cuw) + CONV_LOG2(cuh) == ctx->pps.cu_qp_delta_area + 1) && (split_mode == SPLIT_TRI_VER || split_mode == SPLIT_TRI_HOR)) ||
+            (CONV_LOG2(cuh) + CONV_LOG2(cuw) == ctx->pps.cu_qp_delta_area && cu_qp_delta_code != 2)))
+        {
+            cu_qp_delta_code = 2;
+            core->cu_qp_delta_is_coded = 0;
         }
     }
 #endif
@@ -1003,16 +1000,6 @@ int evce_ready(EVCE_CTX * ctx)
         evc_mset_x64a(ctx->map_scu, 0, size);
     }
 
-#if DQP
-    if (ctx->map_input_dqp == NULL)
-    {
-        size = sizeof(s8) * ctx->f_scu;
-        ctx->map_input_dqp = evc_malloc_fast(size);
-        evc_assert_gv(ctx->map_input_dqp, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
-        evc_mset(ctx->map_input_dqp, 0, size);
-    }
-#endif
-
     if(ctx->map_ipm == NULL)
     {
         size = sizeof(s8) * ctx->f_scu;
@@ -1097,16 +1084,6 @@ int evce_ready(EVCE_CTX * ctx)
         evc_assert_gv(ctx->ats_inter_num_pred, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
     }
 #endif
-#if DQP
-    if (ctx->map_dqp_used == NULL)
-    {
-        /* max cu size - dqp_unit_size - scu_unit_size*/
-        size = sizeof(s8) * ctx->f_scu;
-        ctx->map_dqp_used = (u8 *)evc_malloc(size);
-        evc_assert_gv(ctx->map_dqp_used, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
-        evc_mset_x64a(ctx->map_dqp_used, DQP_UNUSED, size);
-    }
-#endif
 
     /* initialize reference picture manager */
     ctx->pa.fn_alloc = evce_pic_alloc;
@@ -1163,10 +1140,7 @@ ERR:
     evc_mfree_fast(ctx->ats_inter_num_pred);
 #endif
     evc_mfree_fast(ctx->map_cu_mode);
-#if DQP
-    evc_mfree_fast(ctx->map_dqp_used);
-    evc_mfree_fast(ctx->map_input_dqp);
-#endif
+
     for(i = 0; i < ctx->pico_max_cnt; i++)
     {
         evc_mfree_fast(ctx->pico_buf[i]);
@@ -1210,10 +1184,7 @@ void evce_flush(EVCE_CTX * ctx)
     evc_mfree_fast(ctx->ats_inter_num_pred);
 #endif
     evc_mfree_fast(ctx->map_cu_mode);
-#if DQP
-    evc_mfree_fast(ctx->map_input_dqp);
-    evc_mfree_fast(ctx->map_dqp_used);
-#endif
+
 #if RDO_DBK
     evc_picbuf_free(ctx->pic_dbk);
 #endif
@@ -2140,17 +2111,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     evce_sbac_reset(&core->s_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], ctx->sh.slice_type, ctx->sh.qp, ctx->sps.tool_cm_init);
 
     core->bs_temp.pdata[1] = &core->s_temp_run;
-#if DQP
-#if RANDOM_DQP_GENERATION
-    srand(0);
-#endif
-    /* generate random input dqp map */
-    /* A table can be created here based on image characterstic or cost calculations*/
-    for(i = 0; i < ctx->f_scu; i++)
-    {
-        ctx->map_input_dqp[i] = (rand() % 25) - 12;
-    }
-#endif
 
     /* LCU encoding */
 #if TRACE_RDO_EXCLUDE_I
@@ -2176,7 +2136,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         sh->mmvd_group_enable_flag = 0;
     }
 #if DQP
-    ctx->sh.qp_prev = ctx->sh.qp;
+    ctx->sh.qp_prev_eco = ctx->sh.qp;
+    ctx->sh.qp_prev_mode = ctx->sh.qp;
+    core->dqp_data[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2].prev_QP = ctx->sh.qp_prev_mode;
+    core->dqp_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2].curr_QP = ctx->sh.qp;
+    core->dqp_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2].prev_QP = ctx->sh.qp;
 #endif
     while(1)
     {
@@ -2194,6 +2158,16 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         SBAC_LOAD(core->s_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], *GET_SBAC_ENC(bs));
         core->s_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2].is_bitcount = 1;
         evce_init_bef_data(core, ctx);
+
+#if DQP_RDO
+        if(ctx->pps.cu_qp_delta_enabled_flag)
+        {
+            core->dqp_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2].prev_QP = ctx->sh.qp_prev_eco;
+            core->dqp_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2].cu_qp_delta_is_coded = 0;
+            core->dqp_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2].cu_qp_delta_code = 0;
+        }
+#endif
+      
 #if GRAB_STAT
         evc_stat_set_enc_state(TRUE);
 #endif
@@ -2206,7 +2180,12 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         }
 #endif
         /* entropy coding ************************************************/
-
+#if DQP_RDO
+        if(ctx->pps.cu_qp_delta_enabled_flag)
+        {
+            ctx->sh.qp_prev_eco = core->dqp_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2].prev_QP;
+        }
+#endif
         ret = evce_eco_tree(ctx, core, core->x_pel, core->y_pel, 0, ctx->max_cuwh, ctx->max_cuwh, 0, 1
                              , NO_SPLIT, split_mode_child, 0, split_allow, 0, 0
 #if DQP
@@ -2343,15 +2322,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
     evce_sbac_reset(GET_SBAC_ENC(bs), ctx->sh.slice_type, ctx->sh.qp, ctx->sps.tool_cm_init);
 #if DQP
-    ctx->sh.qp_prev = ctx->sh.qp;
-#endif
-#if DQP
-    {
-        int size;
-        //reset dqp used map data
-        size = sizeof(s8) * ctx->f_scu;
-        evc_mset_x64a(ctx->map_dqp_used, DQP_UNUSED, size);
-    }
+    ctx->sh.qp_prev_eco = ctx->sh.qp;
 #endif
 
 #if GRAB_STAT
