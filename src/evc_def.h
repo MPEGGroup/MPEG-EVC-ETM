@@ -1421,6 +1421,7 @@ typedef struct _EVC_SPS
     u8               ibc_flag;                   /* 1 bit : flag of enabling IBC or not */
     int              ibc_log_max_size;           /* log2 max ibc size */
 #endif
+    int              vui_parameters_present_flag;
 } EVC_SPS;
 
 /*****************************************************************************
@@ -1514,6 +1515,7 @@ typedef struct _EVC_SH
     int              num_remaining_tiles_in_slice_minus1;
     int              delta_tile_id_minus1[MAX_NUM_TILES_ROW * MAX_NUM_TILES_COL];
     int              slice_type;
+    int              no_output_of_prior_pics_flag;
     int              slice_alf_enabled_flag;
     int              temporal_mvp_asigned_flag;
     int              collocated_from_list_idx;        // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
@@ -1526,8 +1528,8 @@ typedef struct _EVC_SH
     int              rpl_l0_idx;                            //-1 means this slice does not use RPL candidate in SPS for RPL0
     int              rpl_l1_idx;                            //-1 means this slice does not use RPL candidate in SPS for RPL1
 
-    EVC_RPL         rpl_l0;
-    EVC_RPL         rpl_l1;
+    EVC_RPL          rpl_l0;
+    EVC_RPL          rpl_l1;
 
     u8               num_ref_idx_active_override_flag;
     int              deblocking_filter_on;
@@ -1552,16 +1554,15 @@ typedef struct _EVC_SH
     u8               ctb_alf_on;
     u16              num_ctb;
 #if ALF_PARAMETER_APS
-    int                 aps_signaled;
+    int              aps_signaled;
 #if M50662_LUMA_CHROMA_SEPARATE_APS
     int aps_id_y;
     int aps_id_ch;
 #endif
     EVC_APS*         aps;
 #endif
-    evc_AlfSliceParam    alf_sh_param;
+    evc_AlfSliceParam alf_sh_param;
 #endif
-
     /* delta of presentation temporal reference */
     s32              dptr;
 } EVC_SH;

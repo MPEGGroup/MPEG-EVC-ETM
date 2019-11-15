@@ -398,6 +398,8 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     memcpy(sps->rpls_l0, ctx->cdsc.rpls_l0, ctx->cdsc.rpls_l0_cfg_num * sizeof(sps->rpls_l0[0]));
     memcpy(sps->rpls_l1, ctx->cdsc.rpls_l1, ctx->cdsc.rpls_l1_cfg_num * sizeof(sps->rpls_l1[0]));
 
+    sps->vui_parameters_present_flag = 0;
+
 #if DQP
     sps->dquant_flag = ctx->cdsc.profile == 0 ? 0 : 1;                 /*Baseline : Active SPSs shall have sps_dquant_flag equal to 0 only*/
 #endif
@@ -684,6 +686,7 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
 
     sh->dtr = ctx->dtr & DTR_BIT_MSK;
     sh->slice_type = ctx->slice_type;
+    sh->no_output_of_prior_pics_flag = 0;
     sh->deblocking_filter_on = (ctx->param.use_deblock) ? 1 : 0;
     sh->sh_deblock_alpha_offset = ctx->param.deblock_alpha_offset;
     sh->sh_deblock_beta_offset = ctx->param.deblock_beta_offset;
@@ -2326,7 +2329,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #if ALF
     sh->num_ctb = ctx->f_lcu;
 #endif
-    ret = evce_eco_sh(bs, &ctx->sps, &ctx->pps, sh);
+    ret = evce_eco_sh(bs, &ctx->sps, &ctx->pps, sh, ctx->nalu.nal_unit_type_plus1 - 1);
     evc_assert_rv(ret == EVC_OK, ret);
 
     core->x_lcu = core->y_lcu = 0;

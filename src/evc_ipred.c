@@ -294,15 +294,10 @@ void ipred_dc_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, i
     }
 }
 
-void ipred_dc(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h, u16 avail_cu, int sps_suco_flag)
+void ipred_dc(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h, u16 avail_cu)
 {
     int dc = 0;
     int wh, i, j;
-
-    if (!sps_suco_flag)
-    {
-        avail_lr = LR_10;
-    }
 
     if (avail_lr == LR_11)
     {
@@ -317,16 +312,11 @@ void ipred_dc(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int
         for (j = 0; j < w; j++) dc += src_up[j];
         dc = evc_get_dc(dc + ((w + h) >> 1), w, h);
     }
-    else if (avail_lr == LR_10)
+    else
     {
         for (i = 0; i < h; i++) dc += src_le[i];
         for (j = 0; j < w; j++) dc += src_up[j];
         dc = evc_get_dc(dc + ((w + h) >> 1), w, h);
-    }
-    else
-    {
-        for (j = 0; j < w; j++) dc += src_up[j];
-        dc = (dc + (w >> 1)) >> evc_tbl_log2[w];
     }
 
     wh = w * h;
@@ -813,7 +803,7 @@ void evc_ipred_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, 
     }
 }
 
-void evc_ipred(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm, int w, int h, u16 avail_cu, int sps_suco_flag)
+void evc_ipred(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm, int w, int h, u16 avail_cu)
 {
     switch(ipm)
     {
@@ -824,7 +814,7 @@ void evc_ipred(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, in
             ipred_hor(src_le, src_up, src_ri, avail_lr, dst, w, h);
             break;
         case IPD_DC:
-            ipred_dc(src_le, src_up, src_ri, avail_lr, dst, w, h, avail_cu, sps_suco_flag);
+            ipred_dc(src_le, src_up, src_ri, avail_lr, dst, w, h, avail_cu);
             break;
         case IPD_PLN:
             ipred_plane(src_le, src_up, src_ri, avail_lr, dst, w, h);
@@ -866,7 +856,7 @@ void evc_ipred_uv_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *ds
     }
 }
 
-void evc_ipred_uv(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm_c, int ipm, int w, int h, u16 avail_cu, int sps_suco_flag)
+void evc_ipred_uv(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm_c, int ipm, int w, int h, u16 avail_cu)
 {
     if(ipm_c == IPD_DM_C && EVC_IPRED_CHK_CONV(ipm))
     {
@@ -888,7 +878,7 @@ void evc_ipred_uv(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst,
             break;
 
         case IPD_DC_C:
-            ipred_dc(src_le, src_up, src_ri, avail_lr, dst, w, h, avail_cu, sps_suco_flag);
+            ipred_dc(src_le, src_up, src_ri, avail_lr, dst, w, h, avail_cu);
             break;
         case IPD_HOR_C:
             ipred_hor(src_le, src_up, src_ri, avail_lr, dst, w, h);

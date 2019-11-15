@@ -2609,6 +2609,11 @@ int evcd_eco_rlp(EVC_BSR * bs, EVC_RPL * rpl)
     return EVC_OK;
 }
 
+int evcd_eco_vui(EVC_BSR * bs)
+{
+    return EVC_OK;
+}
+
 int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
 {
     sps->sps_seq_parameter_set_id = (u32)evc_bsr_read_ue(bs);
@@ -2780,6 +2785,10 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
         sps->picture_crop_bottom_offset = (u32)evc_bsr_read_ue(bs);
     }
 
+    sps->vui_parameters_present_flag = evc_bsr_read1(bs);
+    if (sps->vui_parameters_present_flag)
+        evcd_eco_vui(bs); //To be implemented
+    
     while (!EVC_BSR_IS_BYTE_ALIGN(bs))
     {
         evc_bsr_read1(bs);
@@ -2795,16 +2804,19 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps)
     pps->num_ref_idx_default_active_minus1[0] = evc_bsr_read_ue(bs);
     pps->num_ref_idx_default_active_minus1[1] = evc_bsr_read_ue(bs);
 
-    if(sps->long_term_ref_pics_flag)
+    if (sps->tool_rpl)
     {
-        pps->additional_lt_poc_lsb_len = evc_bsr_read_ue(bs);
-    }
+        if(sps->long_term_ref_pics_flag)
+        {
+            pps->additional_lt_poc_lsb_len = evc_bsr_read_ue(bs);
+        }
 
-    if(sps->rpl_candidates_present_flag)
-    {
-        pps->rpl1_idx_present_flag = evc_bsr_read1(bs);
+        if(sps->rpl_candidates_present_flag)
+        {
+            pps->rpl1_idx_present_flag = evc_bsr_read1(bs);
+        }
     }
-
+    
     pps->single_tile_in_pic_flag = evc_bsr_read1(bs);
     if(!pps->single_tile_in_pic_flag)
     {
@@ -3320,7 +3332,7 @@ int evcd_eco_alf_sh_param(EVC_BSR * bs, EVC_SH * sh)
 #endif
 #endif
 
-int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
+int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut)
 {
     int NumTilesInSlice = 0;    //TBD according to the spec
     sh->dtr = evc_bsr_read(bs, DTR_BIT_CNT);
@@ -3359,6 +3371,12 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
     }
 
     sh->slice_type = evc_bsr_read_ue(bs);
+
+    if (nut == EVC_IDR_NUT)
+    {
+        sh->no_output_of_prior_pics_flag = evc_bsr_read1(bs);
+    }
+
   #if M50632_IMPROVEMENT_MMVD
     if (sps->tool_mmvd && ((sh->slice_type == SLICE_B)||(sh->slice_type == SLICE_P)) )
 #else
@@ -3395,7 +3413,7 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
     }
 #endif
 
-    // if (NalUnitType != IDR_NUT)  TBD: NALU types to be implemented
+    if (nut != EVC_IDR_NUT)
     {
         if (sps->tool_pocs)
         {

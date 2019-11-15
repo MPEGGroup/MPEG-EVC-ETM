@@ -3432,7 +3432,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
     int boundary = !(x0 + cuw <= ctx->w && y0 + cuh <= ctx->h);
     int split_allow[SPLIT_QUAD + 1]; //allowed split by normative and non-normative selection
     s8 best_suco_flag = 0;
-    u16 avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu);
+    u16 avail_lr = evc_check_nev_avail(PEL2SCU(x0), PEL2SCU(y0), cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu);
     SPLIT_MODE split_mode = NO_SPLIT;
     int do_split, do_curr;
     double best_split_cost = MAX_COST;

@@ -85,6 +85,11 @@ int evce_eco_ref_pic_list_mod(EVC_BSW * bs)
     return EVC_OK;
 }
 
+int evce_eco_vui(EVC_BSW * bs)
+{
+    return EVC_OK;
+}
+
 int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
 {
     evc_bsw_write_ue(bs, (u32)sps->sps_seq_parameter_set_id);
@@ -251,6 +256,10 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
         evc_bsw_write_ue(bs, (u32)sps->picture_crop_bottom_offset);
     }
 
+    evc_bsw_write1(bs, sps->vui_parameters_present_flag);
+    if (sps->vui_parameters_present_flag)
+        evce_eco_vui(bs); //To be implemented
+
     while(!EVC_BSW_IS_BYTE_ALIGN(bs))
     {
         evc_bsw_write1(bs, 0);
@@ -266,16 +275,19 @@ int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps)
     evc_bsw_write_ue(bs, (u32)pps->num_ref_idx_default_active_minus1[0]);
     evc_bsw_write_ue(bs, (u32)pps->num_ref_idx_default_active_minus1[1]);
 
-    if (sps->long_term_ref_pics_flag)
+    if (sps->tool_rpl)
     {
-        evc_bsw_write_ue(bs, (u32)pps->additional_lt_poc_lsb_len);
-    }
+        if (sps->long_term_ref_pics_flag)
+        {
+            evc_bsw_write_ue(bs, (u32)pps->additional_lt_poc_lsb_len);
+        }
 
-    if (sps->rpl_candidates_present_flag)
-    {
-        evc_bsw_write1(bs, pps->rpl1_idx_present_flag);
+        if (sps->rpl_candidates_present_flag)
+        {
+            evc_bsw_write1(bs, pps->rpl1_idx_present_flag);
+        }
     }
-
+    
     evc_bsw_write1(bs, pps->single_tile_in_pic_flag);
     if (!pps->single_tile_in_pic_flag)
     {
@@ -359,7 +371,7 @@ int evce_eco_aps(EVC_BSW * bs, EVC_APS * aps)
 }
 #endif
 
-int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
+int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut)
 {
     int NumTilesInSlice = 0; //TBD according to the spec
 
@@ -399,6 +411,12 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
     }
 
     evc_bsw_write_ue(bs, sh->slice_type);
+
+    if (nut == EVC_IDR_NUT)
+    {
+        evc_bsw_write1(bs, sh->no_output_of_prior_pics_flag);
+    }
+
     if (sps->tool_mmvd && (sh->slice_type == SLICE_B))
     {
         evc_bsw_write1(bs, sh->mmvd_group_enable_flag);
@@ -434,7 +452,7 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh)
     }
 #endif
 
-    // if (NalUnitType != IDR_NUT)  TBD: NALU types to be implemented
+    if (nut != EVC_IDR_NUT)
     {
         if (sps->tool_pocs)
         {
