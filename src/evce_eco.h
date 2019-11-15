@@ -103,6 +103,9 @@ int evce_eco_suco_flag(EVC_BSW *bs, EVCE_CTX *c, EVCE_CORE *core, int cud, int c
 void evce_eco_mmvd_flag(EVC_BSW * bs, int flag);
 int evce_eco_mmvd_info(EVC_BSW *bs, int mvp_idx, int type);
 void evce_eco_slice_end_flag(EVC_BSW * bs, int flag);
+#if EVC_TILE_SUPPORT
+void evce_eco_tile_end_flag(EVC_BSW * bs, int flag);
+#endif
 int evce_eco_mvp_idx(EVC_BSW *bs, int mvp_idx, int sps_amis_flag);
 int evce_eco_affine_mvp_idx(EVC_BSW *bs, int mvp_idx);
 int evce_eco_mvd(EVC_BSW *bs, s16 mvd[MV_D]);

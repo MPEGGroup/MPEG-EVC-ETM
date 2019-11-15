@@ -1695,7 +1695,11 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
                 if(ctx->sps.tool_htdf == 1 && i == Y_C)
                 {
                     const int s_mod = pi->s_m[Y_C];
-                    u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu);
+                    u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu
+#if EVC_TILE_SUPPORT
+                        , ctx->map_tidx
+#endif
+                    );
                     evc_htdf(rec[i], ctx->sh.qp, cuw, cuh, cuw, FALSE, pi->m[Y_C] + (y * s_mod) + x, s_mod, avail_cu);
                 }
 #endif
@@ -6659,7 +6663,11 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
         if (ctx->sps.tool_htdf == 1 && i == Y_C && pi->nnz_best[best_idx][i])
         {
             const int s_mod = pi->s_m[Y_C];
-            u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu);
+            u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu
+#if EVC_TILE_SUPPORT
+                , ctx->map_tidx
+#endif
+            );
             evc_htdf(rec[i], ctx->sh.qp, cuw, cuh, cuw, FALSE, pi->m[Y_C] + (y * s_mod) + x, s_mod, avail_cu);
         }
 #endif

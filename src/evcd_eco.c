@@ -518,7 +518,7 @@ static int evcd_eco_ats_tu_h(EVC_BSR * bs, EVCD_SBAC * sbac, u8 ctx)
     u32 t0;
 
 #if M50632_SIMPLIFICATION_ATS
-	t0 = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ats_tu + ctx);
+    t0 = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ats_tu + ctx);
 #else
     t0 = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ats_tu_h + ctx);
 #endif
@@ -535,7 +535,7 @@ static int evcd_eco_ats_tu_v(EVC_BSR * bs, EVCD_SBAC * sbac, u8 ctx)
     u32 t0;
 
 #if M50632_SIMPLIFICATION_ATS
-	t0 = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ats_tu + ctx);
+    t0 = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ats_tu + ctx);
 #else
     t0 = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ats_tu_v + ctx);
 #endif
@@ -1275,8 +1275,8 @@ int evcd_eco_coef(EVCD_CTX * ctx, EVCD_CORE * core)
                     if (ats_intra_cu_on)
                     {
 #if M50632_SIMPLIFICATION_ATS
-						u8 ats_intra_tu_h = evcd_eco_ats_tu_h(bs, sbac, 0);
-						u8 ats_intra_tu_v = evcd_eco_ats_tu_v(bs, sbac, 0);
+                        u8 ats_intra_tu_h = evcd_eco_ats_tu_h(bs, sbac, 0);
+                        u8 ats_intra_tu_v = evcd_eco_ats_tu_v(bs, sbac, 0);
 #else
                         u8 ats_intra_tu_h = evcd_eco_ats_tu_h(bs, sbac, is_intra);
                         u8 ats_intra_tu_v = evcd_eco_ats_tu_v(bs, sbac, is_intra);
@@ -1465,7 +1465,7 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_in
 #if ATS_INTRA_PROCESS
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_intra_cu, (s16*)init_ats_intra_cu, NUM_ATS_INTRA_CU_FLAG_CTX, slice_type, slice_qp);
 #if M50632_SIMPLIFICATION_ATS
-		evc_eco_sbac_ctx_initialize(sbac_ctx->ats_tu, (s16*)init_ats_tu, NUM_ATS_INTRA_TU_FLAG_CTX, slice_type, slice_qp);
+        evc_eco_sbac_ctx_initialize(sbac_ctx->ats_tu, (s16*)init_ats_tu, NUM_ATS_INTRA_TU_FLAG_CTX, slice_type, slice_qp);
 #else
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_tu_h, (s16*)init_ats_tu_h, NUM_ATS_INTRA_TU_FLAG_CTX, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_tu_v, (s16*)init_ats_tu_v, NUM_ATS_INTRA_TU_FLAG_CTX, slice_type, slice_qp);
@@ -1534,7 +1534,7 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_in
 #if ATS_INTRA_PROCESS
         for (i = 0; i < NUM_ATS_INTRA_CU_FLAG_CTX; i++) sbac_ctx->ats_intra_cu[i] = PROB_INIT;
 #if M50632_SIMPLIFICATION_ATS
-		for (i = 0; i < NUM_ATS_INTRA_TU_FLAG_CTX; i++) sbac_ctx->ats_tu[i] = PROB_INIT;
+        for (i = 0; i < NUM_ATS_INTRA_TU_FLAG_CTX; i++) sbac_ctx->ats_tu[i] = PROB_INIT;
 #else
         for (i = 0; i < NUM_ATS_INTRA_TU_FLAG_CTX; i++) sbac_ctx->ats_tu_h[i] = PROB_INIT;
         for (i = 0; i < NUM_ATS_INTRA_TU_FLAG_CTX; i++) sbac_ctx->ats_tu_v[i] = PROB_INIT;
@@ -2186,7 +2186,11 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
     sbac = GET_SBAC_DEC(bs);
     cuw = (1 << core->log2_cuw);
     cuh = (1 << core->log2_cuh);
-    core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu);
+    core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu
+#if EVC_TILE_SUPPORT
+        , ctx->map_tidx
+#endif
+    );
   
 #if M50761_CHROMA_NOT_SPLIT
     if (!evcd_check_all(ctx))
@@ -2813,7 +2817,8 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps)
             }
         }
         pps->loop_filter_across_tiles_enabled_flag = evc_bsr_read1(bs);
-        pps->tile_offset_lens_minus1 = evc_bsr_read1(bs);
+        //pps->tile_offset_lens_minus1 = evc_bsr_read1(bs); //Bug in the decoder
+        pps->tile_offset_lens_minus1 = evc_bsr_read_ue(bs); 
     }
 
     pps->tile_id_len_minus1 = evc_bsr_read_ue(bs);
@@ -3312,7 +3317,11 @@ int evcd_eco_alf_sh_param(EVC_BSR * bs, EVC_SH * sh)
 
 int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut)
 {
-    int NumTilesInSlice = 0;    //TBD according to the spec
+#if EVC_TILE_SUPPORT 
+    int NumTilesInSlice = (pps->num_tile_columns_minus1 + 1) * (pps->num_tile_rows_minus1 + 1);    //TBD according to the spec
+#else
+    int NumTilesInSlice = 0;
+#endif
     sh->dtr = evc_bsr_read(bs, DTR_BIT_CNT);
     sh->layer_id = evc_bsr_read(bs, 3);
     sh->temporal_mvp_asigned_flag = evc_bsr_read1(bs);

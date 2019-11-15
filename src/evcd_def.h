@@ -317,6 +317,19 @@ struct _EVCD_CTX
     u8                      pic_sign[16];
     /* flag to indicate picture signature existing or not */
     u8                      pic_sign_exist;
+#if EVC_TILE_SUPPORT     
+    /* tile index map (width in SCU x height in SCU) of
+    raster scan order in a frame */
+    u8                 * map_tidx;
+    /* Number of tils in the picture*/
+    u32                 tile_cnt;
+    /* Tile information for each index */
+    EVC_TILE               *tile;
+    /* number of tile columns */
+    u16                  w_tile;
+    /* number of tile rows */
+    u16                  h_tile;
+#endif
     /* address of ready function */
     int  (* fn_ready)(EVCD_CTX * ctx);
     /* address of flush function */
@@ -328,7 +341,11 @@ struct _EVCD_CTX
     /* function address of pulling decoded picture */
     int  (* fn_pull)(EVCD_CTX * ctx, EVC_IMGB ** img);
     /* function address of deblocking filter */
-    int  (* fn_deblock)(EVCD_CTX * ctx);
+    int  (* fn_deblock)(EVCD_CTX * ctx
+#if EVC_TILE_SUPPORT
+        , int    tile_idx
+#endif
+        );
 
 #if ALF
     /* function address of ALF */
@@ -349,7 +366,11 @@ int evcd_platform_init(EVCD_CTX * ctx);
 void evcd_platform_deinit(EVCD_CTX * ctx);
 int evcd_ready(EVCD_CTX * ctx);
 void evcd_flush(EVCD_CTX * ctx);
-int evcd_deblock_h263(EVCD_CTX * ctx);
+int evcd_deblock_h263(EVCD_CTX * ctx
+#if EVC_TILE_SUPPORT
+    , int tile_idx
+#endif
+);
 int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core);
 
 #include "evcd_util.h"

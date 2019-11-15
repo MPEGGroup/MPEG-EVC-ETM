@@ -973,7 +973,7 @@ const s16 init_ats_intra_cu[2][NUM_ATS_INTRA_CU_FLAG_CTX][1] = {
     {
         { 999  },
 #if !M50632_SIMPLIFICATION_ATS
-		{ 514  },
+        { 514  },
         { 452  },
         { 546  },
         { 1001 },
@@ -985,7 +985,7 @@ const s16 init_ats_intra_cu[2][NUM_ATS_INTRA_CU_FLAG_CTX][1] = {
     {
         { 1003 },
 #if !M50632_SIMPLIFICATION_ATS
-		{ 292  },
+        { 292  },
         { 354  },
         { 544  },
         { 999  },
@@ -997,33 +997,33 @@ const s16 init_ats_intra_cu[2][NUM_ATS_INTRA_CU_FLAG_CTX][1] = {
 };
 #if M50632_SIMPLIFICATION_ATS
 const s16 init_ats_tu[2][NUM_ATS_INTRA_TU_FLAG_CTX][1] = {
-	{
-		{ 512  },
-	},
-	{
-		{ 673 },
-	}
+    {
+        { 512  },
+    },
+    {
+        { 673 },
+    }
 };
 #else
 const s16 init_ats_tu_h[2][NUM_ATS_INTRA_TU_FLAG_CTX][1] = {
     {
         { 512  },
-		{ 993  }
+        { 993  }
     },
     {
         { 673 },
-		{ 993 }
+        { 993 }
     }
 };
 const s16 init_ats_tu_v[2][NUM_ATS_INTRA_TU_FLAG_CTX][1] = {
-	{
-		{ 512 },
-		{ 993 }
-	},
-	{
-		{ 641 },
-		{ 929 }
-	}
+    {
+        { 512 },
+        { 993 }
+    },
+    {
+        { 641 },
+        { 929 }
+    }
 };
 #endif
 

@@ -270,6 +270,9 @@ static void deblock_h263_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
 #if M50761_CHROMA_NOT_SPLIT
     , TREE_CONS tree_cons
 #endif
+#if EVC_TILE_SUPPORT
+    , u8* map_tidx
+#endif
 )
 {
     pel       * y, *u, *v;
@@ -279,8 +282,14 @@ static void deblock_h263_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
     int h = cuh >> MIN_CU_LOG2;
     u32 *map_scu_tmp;
     int j;
-
+#if EVC_TILE_SUPPORT
+    int  t1, t_copy; // Next row scu number
+#endif
     t = (x_pel >> MIN_CU_LOG2) + (y_pel >> MIN_CU_LOG2) * w_scu;
+#if EVC_TILE_SUPPORT
+    t_copy = t;
+    t1 = (x_pel >> MIN_CU_LOG2) + ((y_pel - (1 << MIN_CU_LOG2)) >> MIN_CU_LOG2) * w_scu;
+#endif
     map_scu += t;
     map_refi += t;
     map_mv += t;
@@ -293,7 +302,11 @@ static void deblock_h263_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
     v = pic->v + t;
 
     /* horizontal filtering */
-    if(y_pel > 0)
+    if(y_pel > 0
+#if EVC_TILE_SUPPORT
+        && (map_tidx[t_copy] == map_tidx[t1])
+#endif      
+        )
     {
         for(i = 0; i < (cuw >> MIN_CU_LOG2); i++)
         {
@@ -337,6 +350,9 @@ static void deblock_h263_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
 #if M50761_CHROMA_NOT_SPLIT
                               , TREE_CONS tree_cons
 #endif
+#if EVC_TILE_SUPPORT
+    , u8* map_tidx
+#endif
                               )
 {
     pel       * y, *u, *v;
@@ -348,8 +364,15 @@ static void deblock_h263_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
     u32 *map_scu_tmp;
     s8 (*map_refi_tmp)[REFP_NUM];
     s16(*map_mv_tmp)[REFP_NUM][MV_D];
-
+#if EVC_TILE_SUPPORT
+    int  t1, t2, t_copy; // Next row scu number
+#endif
     t = (x_pel >> MIN_CU_LOG2) + (y_pel >> MIN_CU_LOG2) * w_scu;
+#if EVC_TILE_SUPPORT
+    t_copy = t;
+    t1 = ((x_pel - (1 << MIN_CU_LOG2)) >> MIN_CU_LOG2) + (y_pel >> MIN_CU_LOG2) * w_scu;
+    t2 = ((x_pel + (w << MIN_CU_LOG2)) >> MIN_CU_LOG2) + (y_pel >> MIN_CU_LOG2) * w_scu;
+#endif
     map_scu += t;
     map_refi += t;
     map_mv += t;
@@ -366,7 +389,11 @@ static void deblock_h263_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
     map_mv_tmp = map_mv;
 
     /* vertical filtering */
-    if(x_pel > 0 && MCU_GET_COD(map_scu[-1]))
+    if(x_pel > 0 && MCU_GET_COD(map_scu[-1])
+#if EVC_TILE_SUPPORT
+            && (map_tidx[t_copy] == map_tidx[t1])
+#endif
+            )
     {
         for(i = 0; i < (cuh >> MIN_CU_LOG2); i++)
         {
@@ -401,7 +428,11 @@ static void deblock_h263_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
     map_scu = map_scu_tmp;
     map_refi = map_refi_tmp;
     map_mv = map_mv_tmp;
-    if(x_pel + cuw < pic->w_l && MCU_GET_COD(map_scu[w]))
+    if(x_pel + cuw < pic->w_l && MCU_GET_COD(map_scu[w])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[t_copy] == map_tidx[t2])
+#endif
+        )
     {
         y = pic->y + x_pel + y_pel * s_l;
         u = pic->u + t;
@@ -1347,6 +1378,9 @@ static void deblock_avc_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int 
 #if M50761_CHROMA_NOT_SPLIT
     , TREE_CONS tree_cons 
 #endif
+#if EVC_TILE_SUPPORT
+    , u8* map_tidx
+#endif
 )
 {
     pel       * y, *u, *v;
@@ -1367,8 +1401,15 @@ static void deblock_avc_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int 
         align_8_8_grid = 1;
     }
 #endif
-
+#if EVC_TILE_SUPPORT
+    int  t1, t_copy; // Next row scu number
+#endif
     t = (x_pel >> MIN_CU_LOG2) + (y_pel >> MIN_CU_LOG2) * w_scu;
+#if EVC_TILE_SUPPORT
+    t_copy = t;
+    t1 = (x_pel >> MIN_CU_LOG2) + ((y_pel - (1 << MIN_CU_LOG2)) >> MIN_CU_LOG2) * w_scu;
+#endif
+   
     map_scu += t;
     map_refi += t;
     map_mv += t;
@@ -1381,12 +1422,24 @@ static void deblock_avc_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int 
     v = pic->v + t;
 
 #if DBF_8_8_GRID
-    if (align_8_8_grid  && y_pel > 0)
+    if (align_8_8_grid  && y_pel > 0
+#if EVC_TILE_SUPPORT
+        && (map_tidx[t_copy] == map_tidx[t1])
+#endif
+        )
 #else
 #if DBF_DISABLE_SCU
-    if (cuh >= 8 && y_pel > 0)
+    if (cuh >= 8 && y_pel > 0
+#if EVC_TILE_SUPPORT
+        && (map_tidx[t_copy] == map_tidx[t1])
+#endif
+        )
 #else
-    if (y_pel > 0)
+    if (y_pel > 0
+#if EVC_TILE_SUPPORT
+        && (map_tidx[t_copy] == map_tidx[t1])
+#endif
+        )
 #endif
 #endif
     {
@@ -1574,6 +1627,9 @@ static void deblock_avc_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int 
 #if M50761_CHROMA_NOT_SPLIT
     , TREE_CONS tree_cons
 #endif
+#if EVC_TILE_SUPPORT
+    , u8* map_tidx
+#endif
 )
 {
     pel       * y, *u, *v;
@@ -1598,8 +1654,16 @@ static void deblock_avc_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int 
         align_8_8_grid = 1;
     }
 #endif
-
+#if EVC_TILE_SUPPORT
+    int  t1, t2, t_copy; // Next row scu number
+#endif
     t = (x_pel >> MIN_CU_LOG2) + (y_pel >> MIN_CU_LOG2) * w_scu;
+#if EVC_TILE_SUPPORT
+    t_copy = t;
+    t1 = ((x_pel - (1 << MIN_CU_LOG2)) >> MIN_CU_LOG2) + (y_pel >> MIN_CU_LOG2) * w_scu;
+    t2 = ((x_pel + (w << MIN_CU_LOG2)) >> MIN_CU_LOG2) + (y_pel >> MIN_CU_LOG2) * w_scu;
+#endif
+          
     map_scu += t;
     map_refi += t;
     map_mv += t;
@@ -1625,12 +1689,24 @@ static void deblock_avc_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int 
 
     /* vertical filtering */
 #if DBF_8_8_GRID
-    if (align_8_8_grid && x_pel > 0 && MCU_GET_COD(map_scu[-1]))
+    if (align_8_8_grid && x_pel > 0 && MCU_GET_COD(map_scu[-1])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[t_copy] == map_tidx[t1])
+#endif
+        )
 #else
 #if DBF_DISABLE_SCU
-    if (cuw >= 8 && x_pel > 0 && MCU_GET_COD(map_scu[-1]))
+    if (cuw >= 8 && x_pel > 0 && MCU_GET_COD(map_scu[-1])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[t_copy] == map_tidx[t1])
+#endif
+        )
 #else
-    if (x_pel > 0 && MCU_GET_COD(map_scu[-1]))
+    if (x_pel > 0 && MCU_GET_COD(map_scu[-1])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[t_copy] == map_tidx[t1])
+#endif
+        )
 #endif
 #endif
     {
@@ -1650,12 +1726,24 @@ static void deblock_avc_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int 
 #endif
 
 #if DBF_8_8_GRID
-    if (align_8_8_grid && x_pel + cuw < pic->w_l && MCU_GET_COD(map_scu[w]))
+    if (align_8_8_grid && x_pel + cuw < pic->w_l && MCU_GET_COD(map_scu[w])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[t_copy] == map_tidx[t2])
+#endif
+        )
 #else
 #if DBF_DISABLE_SCU
-    if (cuw >= 8 && x_pel + cuw < pic->w_l && MCU_GET_COD(map_scu[w]))
+    if (cuw >= 8 && x_pel + cuw < pic->w_l && MCU_GET_COD(map_scu[w])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[t_copy] == map_tidx[t2])
+#endif
+        )
 #else
-    if (x_pel + cuw < pic->w_l && MCU_GET_COD(map_scu[w]))
+    if (x_pel + cuw < pic->w_l && MCU_GET_COD(map_scu[w])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[t_copy] == map_tidx[t2])
+#endif
+        )
 #endif
 #endif
     {
@@ -1939,6 +2027,9 @@ void evc_deblock_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
 #if M50761_CHROMA_NOT_SPLIT
     , TREE_CONS tree_cons
 #endif
+#if EVC_TILE_SUPPORT
+    , u8* map_tidx
+#endif
 )
 {
 #if DBF == DBF_HEVC
@@ -1953,11 +2044,17 @@ void evc_deblock_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
 #if M50761_CHROMA_NOT_SPLIT
         , tree_cons
 #endif
+#if EVC_TILE_SUPPORT
+        , map_tidx
+#endif
     );
 #elif DBF == DBF_H263
     deblock_h263_cu_hor(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu
 #if M50761_CHROMA_NOT_SPLIT
         , tree_cons
+#endif
+#if EVC_TILE_SUPPORT
+        , map_tidx
 #endif
     );
 #endif
@@ -1971,6 +2068,9 @@ void evc_deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
     , int ats_inter_mode
 #if M50761_CHROMA_NOT_SPLIT
     , TREE_CONS tree_cons
+#endif
+#if EVC_TILE_SUPPORT
+    , u8* map_tidx
 #endif
 )
 {
@@ -1993,6 +2093,9 @@ void evc_deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
 #if M50761_CHROMA_NOT_SPLIT
         , tree_cons
 #endif
+#if EVC_TILE_SUPPORT
+        , map_tidx
+#endif
     );
 #elif DBF == DBF_H263
     deblock_h263_cu_ver(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu
@@ -2001,6 +2104,9 @@ void evc_deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
 #endif
 #if M50761_CHROMA_NOT_SPLIT
         , tree_cons
+#endif
+#if EVC_TILE_SUPPORT
+        , map_tidx
 #endif
     );
 #endif

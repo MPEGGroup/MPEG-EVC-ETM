@@ -148,6 +148,12 @@
 #define DBF                                2  // Deblocking filter: 0 - without DBF, 1 - h.263, 2 - AVC, 3 - HEVC   !!! NOTE: THE SWITCH MAY BE BROKEN !!!
 #define ALF                                1  // Adaptive Loop Filter 
 
+//TILE support
+#define TILE_SUPPORT                       1
+#if     TILE_SUPPORT
+#define EVC_TILE_SUPPORT                   1
+#endif
+
 //fast algorithm
 #define FAST_RECURSE_OPT                   1
 #define FAST_RECURSE_OPT_FIX               1 
@@ -1147,7 +1153,7 @@ typedef struct _EVC_SBAC_CTX
 #if ATS_INTRA_PROCESS   
     SBAC_CTX_MODEL   ats_intra_cu          [NUM_ATS_INTRA_CU_FLAG_CTX];
 #if M50632_SIMPLIFICATION_ATS
-	SBAC_CTX_MODEL   ats_tu[NUM_ATS_INTRA_TU_FLAG_CTX];
+    SBAC_CTX_MODEL   ats_tu[NUM_ATS_INTRA_TU_FLAG_CTX];
 #else
     SBAC_CTX_MODEL   ats_tu_h        [NUM_ATS_INTRA_TU_FLAG_CTX];
     SBAC_CTX_MODEL   ats_tu_v        [NUM_ATS_INTRA_TU_FLAG_CTX];
@@ -1567,6 +1573,24 @@ typedef struct _EVC_SH
     /* delta of presentation temporal reference */
     s32              dptr;
 } EVC_SH;
+
+#if EVC_TILE_SUPPORT
+/*****************************************************************************
+* Tiles
+*****************************************************************************/
+typedef struct _EVC_TILE {
+    /* tile width in CTB unit */
+    u16             w_ctb;
+    /* tile height in CTB unit */
+    u16             h_ctb;
+    /* tile size in CTB unit (= w_ctb * h_ctb) */
+    u32             f_ctb;
+    /* first ctb address in raster scan order */
+    u16             ctba_rs_first;
+} EVC_TILE;
+
+/*****************************************************************************/
+#endif
 
 /*****************************************************************************
  * user data types

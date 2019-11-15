@@ -502,7 +502,14 @@ typedef struct _EVCE_PARAM
 #if USE_SLICE_DQP
     int                 qp_incread_frame;           /* 10 bits*/
 #endif
-
+#if EVC_TILE_SUPPORT
+    /* number of tile' columns (1-20)*/
+    int                 tile_columns;
+    /* number of tile' rows (1-22) */
+    int                 tile_rows;
+    /* flag for uniform spacing tiles */
+    int                 uniform_spacing_tiles;
+#endif
 } EVCE_PARAM;
 
 typedef struct _EVCE_SBAC
@@ -767,6 +774,12 @@ typedef struct _EVCE_CORE
 #if TRACE_ENC_CU_DATA
     u64  trace_idx;
 #endif
+#if EVC_TILE_SUPPORT
+    /* address of tile info */
+    EVC_TILE       * tile;
+    /* current tile index */
+    int            tile_idx;
+#endif
 } EVCE_CORE;
 
 /******************************************************************************
@@ -961,7 +974,19 @@ struct _EVCE_CTX
     u8                    *ats_inter_info_pred;   //best-mode ats_inter info
     u8                    *ats_inter_num_pred;
 #endif
-
+#if EVC_TILE_SUPPORT
+    /* Tile information for each index */
+    EVC_TILE              *tile;
+    /* Total number of tiles in the picture*/
+    u32                    tile_cnt;
+    /* temporary tile bitstream store buffer if needed */
+    u8                    *bs_tbuf[MAX_NUM_TILES_ROW * MAX_NUM_TILES_COL];
+    /* bs_tbuf byte size for one tile */
+    int                    bs_tbuf_size;
+    /* tile index map (width in SCU x height in SCU) of
+    raster scan order in a frame */
+    u8                    *map_tidx;
+#endif
     int (*fn_ready)(EVCE_CTX * ctx);
     void (*fn_flush)(EVCE_CTX * ctx);
     int (*fn_enc)(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
@@ -972,7 +997,11 @@ struct _EVCE_CTX
     int (*fn_enc_pic_finish)(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
 
     int (*fn_push)(EVCE_CTX * ctx, EVC_IMGB * img);
-    int (*fn_deblock)(EVCE_CTX * ctx, EVC_PIC * pic);
+    int (*fn_deblock)(EVCE_CTX * ctx, EVC_PIC * pic
+#if EVC_TILE_SUPPORT
+        , int tile_idx
+#endif
+        );
 
 #if ALF
     void* enc_alf;
@@ -1039,7 +1068,11 @@ void evce_platform_deinit(EVCE_CTX * ctx);
 int evce_enc_pic_prepare(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
 int evce_enc_pic_finish(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
 int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
-int evce_deblock_h263(EVCE_CTX * ctx, EVC_PIC * pic);
+int evce_deblock_h263(EVCE_CTX * ctx, EVC_PIC * pic
+#if EVC_TILE_SUPPORT
+    , int tile_idx
+#endif
+);
 int evce_enc(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
 int evce_push_frm(EVCE_CTX * ctx, EVC_IMGB * img);
 int evce_ready(EVCE_CTX * ctx);

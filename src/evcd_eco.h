@@ -60,6 +60,11 @@ s8 evcd_eco_suco_flag(EVC_BSR *bs, EVCD_SBAC *sbac, EVCD_CTX *c, EVCD_CORE *core
 #define evcd_eco_slice_end_flag(bs, sbac) \
     ((int)evcd_sbac_decode_bin_trm((bs), (sbac)))
 
+#if EVC_TILE_SUPPORT
+#define evcd_eco_tile_end_flag(bs, sbac) \
+    ((int)evcd_sbac_decode_bin_trm((bs), (sbac)))
+#endif
+
 #if AFFINE
 int evcd_eco_affine_mrg_idx(EVC_BSR * bs, EVCD_SBAC * sbac);
 #endif

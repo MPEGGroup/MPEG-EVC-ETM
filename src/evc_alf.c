@@ -341,6 +341,50 @@ void init_AlfFilterShape(void* _th, int size) {
   }
 }
 
+#if EVC_TILE_SUPPORT 
+/*
+* tmpYuv -  destination, temporary buffer
+* pointer tmpYuv is assumed to point to interior point inside margins
+* s - its stride
+* recYuv - source, recovered buffer
+* s2 - its stride
+* w - width
+* h - height
+* m - margin size
+*/
+void copy_and_extend_tile(pel* tmpYuv, const int s, const pel* recYuv, const int s2, const int w, const int h, const int m)
+{
+
+    //copy
+    for (int j = 0; j < h; j++)
+        memcpy(tmpYuv + j * s, recYuv + j * s2, sizeof(pel) * w);
+
+    //extend
+    pel * p = tmpYuv;
+    // do left and right margins
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < m; x++) {
+            *(p - m + x) = p[0];
+            p[w + x] = p[w - 1];
+        }
+        p += s;
+    }
+
+    // p is now the (0,height) (bottom left of image within bigger picture
+    p -= (s + m);
+    // p is now the (-margin, height-1)
+    for (int y = 0; y < m; y++) {
+        memcpy(p + (y + 1) * s, p, sizeof(pel) * (w + (m << 1)));
+    }
+
+    // pi is still (-marginX, height-1)
+    p -= ((h - 1) * s);
+    // pi is now (-marginX, 0)
+    for (int y = 0; y < m; y++) {
+        memcpy(p - (y + 1) * s, p, sizeof(pel) * (w + (m << 1)));
+    }
+}
+#endif
 
 /*
  * tmpYuv -  destination, temporary buffer
@@ -513,7 +557,90 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
   reconstructCoeff(alfSliceParam, CHANNEL_TYPE_LUMA, FALSE, TRUE);
   if( alfSliceParam->enabledFlag[COMPONENT_Cb] || alfSliceParam->enabledFlag[COMPONENT_Cr] )
     reconstructCoeff(alfSliceParam, CHANNEL_TYPE_CHROMA, FALSE, FALSE);
+#if EVC_TILE_SUPPORT // Processing ALF Tile by Tile 
+  int ii, x_l, x_r, y_l, y_r, w_tile, h_tile;
+  const int h = cs->pPic->h_l;
+  const int w = cs->pPic->w_l;
+  const int m = MAX_ALF_FILTER_LENGTH >> 1;
+  const int s = w + m + m;
+  int col_bd2 = 0;
+  for (ii = ctx->sh.first_tile_id; ii <= ctx->sh.last_tile_id; ii++)
+  {
 
+      col_bd2 = (ii % (ctx->pps.num_tile_columns_minus1 + 1)) ? col_bd2 + ctx->tile[ii - 1].w_ctb : 0;
+      int x_loc = ((ctx->tile[ii].ctba_rs_first) % ctx->w_lcu);
+      int y_loc = ((ctx->tile[ii].ctba_rs_first) / ctx->w_lcu);
+      int ctuIdx = x_loc + y_loc * ctx->w_lcu;
+      x_l = x_loc << MAX_CU_LOG2; //entry point lcu's x location
+      y_l = y_loc << MAX_CU_LOG2; // entry point lcu's y location
+      x_r = x_l + ((int)(ctx->tile[ii].w_ctb) << MAX_CU_LOG2);
+      y_r = y_l + ((int)(ctx->tile[ii].h_ctb) << MAX_CU_LOG2);
+      w_tile = x_r > ((int)ctx->w_scu << MIN_CU_LOG2) ? ((int)ctx->w_scu << MIN_CU_LOG2) - x_l : x_r - x_l;
+      h_tile = y_r > ((int)ctx->h_scu << MIN_CU_LOG2) ? ((int)ctx->h_scu << MIN_CU_LOG2) - y_l : y_r - y_l;
+      x_r = x_r > ((int)ctx->w_scu << MIN_CU_LOG2) ? ((int)ctx->w_scu << MIN_CU_LOG2) : x_r;
+      y_r = y_r > ((int)ctx->h_scu << MIN_CU_LOG2) ? ((int)ctx->h_scu << MIN_CU_LOG2) : y_r;
+
+      pel * recYuv = cs->pPic->y;
+      pel * tmpYuv = m_tempBuf + s*m + m;
+      //chroma (for 4:2:0 only)
+      const int s1 = (w >> 1) + m + m;
+      pel * recYuv1 = cs->pPic->u;
+      pel * tmpYuv1 = m_tempBuf1 + s1*m + m; //m, not m-1, is left for unification with VVC
+      pel * recYuv2 = cs->pPic->v;
+      pel * tmpYuv2 = m_tempBuf2 + s1*m + m; //m, not m-1, is left for unification with VVC
+
+      Pel * recLuma0_tile = tmpYuv + x_l + y_l * s;
+      Pel * recLuma1_tile = tmpYuv1 + (x_l >> 1) + (y_l >> 1) * (s1);
+      Pel * recLuma2_tile = tmpYuv2 + (x_l >> 1) + (y_l >> 1) * (s1);
+
+      Pel * recoYuv0_tile = recYuv + x_l + y_l * cs->pPic->s_l;
+      Pel * recoYuv1_tile = recYuv1 + (x_l >> 1) + (y_l >> 1) * cs->pPic->s_c;
+      Pel * recoYuv2_tile = recYuv2 + (x_l >> 1) + (y_l >> 1) * cs->pPic->s_c;
+
+      copy_and_extend_tile(recLuma0_tile, s, recoYuv0_tile, cs->pPic->s_l, w_tile, h_tile, m);
+      copy_and_extend_tile(recLuma1_tile, s1, recoYuv1_tile, cs->pPic->s_c, (w_tile >> 1), (h_tile >> 1), m);
+      copy_and_extend_tile(recLuma2_tile, s1, recoYuv2_tile, cs->pPic->s_c, (w_tile >> 1), (h_tile >> 1), m);
+
+      for (int yPos = y_l; yPos < y_r; yPos += ctx->max_cuwh)
+      {
+          for (int xPos = x_l; xPos < x_r; xPos += ctx->max_cuwh)
+          {
+              const int width = (xPos + ctx->max_cuwh > cs->pPic->w_l) ? (cs->pPic->w_l - xPos) : ctx->max_cuwh;
+              const int height = (yPos + ctx->max_cuwh > cs->pPic->h_l) ? (cs->pPic->h_l - yPos) : ctx->max_cuwh;
+
+              if (m_ctuEnableFlag[COMPONENT_Y][ctuIdx])
+              {
+                  Area blk = { xPos, yPos, width, height };
+                  {
+                      deriveClassification(m_classifier, tmpYuv, s, &blk);
+                      p->m_filter7x7Blk(m_classifier, recYuv, cs->pPic->s_l, tmpYuv, s, &blk, COMPONENT_Y, m_coeffFinal, &(m_clpRngs.comp[COMPONENT_Y]));
+                  }
+              }
+
+              for (int compIdx = 1; compIdx < MAX_NUM_COMPONENT; compIdx++)
+              {
+                  ComponentID compID = (ComponentID)(compIdx);
+                  const int chromaScaleX = 1; //getComponentScaleX(compID, tmpYuv.chromaFormat);
+                  const int chromaScaleY = 1; //getComponentScaleY(compID, tmpYuv.chromaFormat);
+
+                  if (alfSliceParam->enabledFlag[compIdx] && m_ctuEnableFlag[compIdx][ctuIdx])
+                  {
+                      Area blk = { xPos >> chromaScaleX, yPos >> chromaScaleY, width >> chromaScaleX, height >> chromaScaleY };
+                      p->m_filter5x5Blk(m_classifier, recYuv1, cs->pPic->s_c, tmpYuv1, s1, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
+                      p->m_filter5x5Blk(m_classifier, recYuv2, cs->pPic->s_c, tmpYuv2, s1, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
+                  }
+              }
+              x_loc++;
+              if (x_loc >= ctx->tile[ii].w_ctb + col_bd2)
+              {
+                  x_loc = ((ctx->tile[ii].ctba_rs_first) % ctx->w_lcu);
+                  y_loc++;
+              }
+              ctuIdx = x_loc + y_loc * ctx->w_lcu;
+          }
+      }
+  }
+#else
   const int h = cs->pPic->h_l;
   const int w = cs->pPic->w_l;
   const int m = MAX_ALF_FILTER_LENGTH >> 1;
@@ -568,7 +695,7 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
       ctuIdx++;
     }
   }
-
+#endif
 }
 
 void reconstructCoeff(AlfSliceParam* alfSliceParam, ChannelType channel, const BOOL bRdo, const BOOL bRedo)

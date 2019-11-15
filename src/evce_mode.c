@@ -2478,7 +2478,11 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
         evc_assert(evce_check_all_preds(ctx));
     }
 #endif
-    core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, (1 << log2_cuw), (1 << log2_cuh), ctx->w_scu, ctx->h_scu, ctx->map_scu);
+    core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, (1 << log2_cuw), (1 << log2_cuh), ctx->w_scu, ctx->h_scu, ctx->map_scu
+#if EVC_TILE_SUPPORT
+        , ctx->map_tidx
+#endif
+    );
 
     evc_get_ctx_some_flags(core->x_scu, core->y_scu, 1 << log2_cuw, 1 << log2_cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
 #if IBC
@@ -2496,7 +2500,11 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 #endif
         )
     {
-        core->avail_cu = evc_get_avail_inter(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, core->cuw, core->cuh, ctx->map_scu);
+        core->avail_cu = evc_get_avail_inter(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, core->cuw, core->cuh, ctx->map_scu
+#if EVC_TILE_SUPPORT
+            , ctx->map_tidx
+#endif 
+        );
         cost = ctx->fn_pinter_analyze_cu(ctx, core, x, y, log2_cuw, log2_cuh, mi, coef, rec, s_rec);
 
         if(cost < cost_best)
@@ -2620,7 +2628,11 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
             evce_set_qp(ctx, core, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2].curr_QP);
         }
 #endif
-        core->avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu);
+        core->avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu
+#if EVC_TILE_SUPPORT
+            , ctx->map_tidx
+#endif
+        );
         cost = ctx->fn_pintra_analyze_cu(ctx, core, x, y, log2_cuw, log2_cuh, mi, coef, rec, s_rec);
 
         if(cost < cost_best)
@@ -3258,6 +3270,9 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
 #if M50761_CHROMA_NOT_SPLIT
             , ctx->tree_cons
 #endif
+#if EVC_TILE_SUPPORT
+            , ctx->map_tidx
+#endif
         );
 
         //clean coded flag in between two directional filtering (not necessary here)
@@ -3279,6 +3294,9 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
                            , ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
             , ctx->tree_cons
+#endif
+#if EVC_TILE_SUPPORT
+            , ctx->map_tidx
 #endif
         );
 
@@ -3527,7 +3545,11 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
     int boundary = !(x0 + cuw <= ctx->w && y0 + cuh <= ctx->h);
     int split_allow[SPLIT_QUAD + 1]; //allowed split by normative and non-normative selection
     s8 best_suco_flag = 0;
-    u16 avail_lr = evc_check_nev_avail(PEL2SCU(x0), PEL2SCU(y0), cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu);
+    u16 avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu
+#if EVC_TILE_SUPPORT
+        , ctx->map_tidx
+#endif
+    );
     SPLIT_MODE split_mode = NO_SPLIT;
     int do_split, do_curr;
     double best_split_cost = MAX_COST;
@@ -3802,7 +3824,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
             core->ibc_flag = ibc_flag_dqp;
             core->cu_mode = cu_mode_dqp;
             core->dist_cu_best = dist_cu_best_dqp;
-#else			
+#else            
             clear_map_scu(ctx, core, x0, y0, cuw, cuh);
             cost_temp += mode_coding_unit(ctx, core, x0, y0, log2_cuw, log2_cuh, cud, mi);
 #endif
