@@ -1935,6 +1935,26 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
 
     evc_mset(stat, 0, sizeof(EVCE_STAT));
 
+    /* adding picture sign */
+    if (ctx->param.use_pic_sign)
+    {
+        EVC_BSW  *bs = &ctx->bs;
+        EVC_NALU sei_nalu;
+        set_nalu(ctx, &sei_nalu, EVC_SEI_NUT);
+
+        int* size_field = (int*)(*(&bs->cur));
+        u8* cur_tmp = bs->cur;
+
+        evce_eco_nalu(bs, sei_nalu);
+
+        ret = evce_eco_udata(ctx, bs);
+        evc_assert_rv(ret == EVC_OK, ret);
+
+        evc_bsw_deinit(bs);
+        stat->sei_size = (int)(bs->cur - cur_tmp);
+        *size_field = stat->sei_size - 4;
+    }
+
     /* expand current encoding picture, if needs */
     ctx->fn_picbuf_expand(ctx, PIC_CURR(ctx));
 

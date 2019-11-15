@@ -3489,6 +3489,38 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
     return EVC_OK;
 }
 
+int evcd_eco_udata(EVCD_CTX * ctx, EVC_BSR * bs)
+{
+    int    i;
+    u32 code;
+
+    /* should be aligned before adding user data */
+    evc_assert_rv(EVC_BSR_IS_BYTE_ALIGN(bs), EVC_ERR_UNKNOWN);
+
+    code = evc_bsr_read(bs, 8);
+
+    while (code != EVC_UD_END)
+    {
+        switch (code)
+        {
+        case EVC_UD_PIC_SIGNATURE:
+            /* read signature (HASH) from bitstream */
+            for (i = 0; i < 16; i++)
+            {
+                ctx->pic_sign[i] = evc_bsr_read(bs, 8);
+            }
+            ctx->pic_sign_exist = 1;
+            break;
+
+        default:
+            evc_assert_rv(0, EVC_ERR_UNEXPECTED);
+        }
+        code = evc_bsr_read(bs, 8);
+    }
+    return EVC_OK;
+}
+
+
 #if AFFINE
 int evcd_eco_affine_mrg_idx(EVC_BSR * bs, EVCD_SBAC * sbac)
 {

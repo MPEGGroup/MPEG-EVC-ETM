@@ -541,6 +541,41 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
     return EVC_OK;
 }
 
+int evce_eco_udata(EVCE_CTX * ctx, EVC_BSW * bs)
+{
+    int ret, i;
+
+    /* should be aligned before adding user data */
+    evc_assert_rv(EVC_BSW_IS_BYTE_ALIGN(bs), EVC_ERR_UNKNOWN);
+
+    /* picture signature */
+    if (ctx->param.use_pic_sign)
+    {
+        u8 pic_sign[16];
+
+        /* should be aligned before adding user data */
+        evc_assert_rv(EVC_BSW_IS_BYTE_ALIGN(bs), EVC_ERR_UNKNOWN);
+
+        /* get picture signature */
+        ret = evc_picbuf_signature(PIC_CURR(ctx), pic_sign);
+        evc_assert_rv(ret == EVC_OK, ret);
+
+        /* write user data type */
+        evc_bsw_write(bs, EVC_UD_PIC_SIGNATURE, 8);
+
+        /* embed signature (HASH) to bitstream */
+        for (i = 0; i < 16; i++)
+        {
+            evc_bsw_write(bs, pic_sign[i], 8);
+        }
+    }
+    /* write end of user data syntax */
+    evc_bsw_write(bs, EVC_UD_END, 8);
+
+    return EVC_OK;
+}
+
+
 static void evc_bsw_write_est(EVCE_SBAC *sbac, u32 byte, int len)
 {
     sbac->bitcounter += len;
