@@ -601,22 +601,159 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
       copy_and_extend_tile(recLuma1_tile, s1, recoYuv1_tile, cs->pPic->s_c, (w_tile >> 1), (h_tile >> 1), m);
       copy_and_extend_tile(recLuma2_tile, s1, recoYuv2_tile, cs->pPic->s_c, (w_tile >> 1), (h_tile >> 1), m);
 
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+      int l_zero_offset = (MAX_CU_SIZE + m + m) * m + m;
+      int l_stride = MAX_CU_SIZE + 2 * (MAX_ALF_FILTER_LENGTH >> 1);
+      pel l_buffer[(MAX_CU_SIZE + 2 * (MAX_ALF_FILTER_LENGTH >> 1)) *(MAX_CU_SIZE + 2 * (MAX_ALF_FILTER_LENGTH >> 1))];
+      pel *p_buffer = l_buffer + l_zero_offset;
+      int l_zero_offset_chroma = ((MAX_CU_SIZE >> 1) + m + m) * m + m;
+      int l_stride_chroma = (MAX_CU_SIZE >> 1) + 2 * (MAX_ALF_FILTER_LENGTH >> 1);
+      pel l_buffer_cb[((MAX_CU_SIZE >> 1) + 2 * (MAX_ALF_FILTER_LENGTH >> 1)) *((MAX_CU_SIZE >> 1) + 2 * (MAX_ALF_FILTER_LENGTH >> 1))];
+      pel l_buffer_cr[((MAX_CU_SIZE >> 1) + 2 * (MAX_ALF_FILTER_LENGTH >> 1)) *((MAX_CU_SIZE >> 1) + 2 * (MAX_ALF_FILTER_LENGTH >> 1))];
+      pel *p_buffer_cr = l_buffer_cr + l_zero_offset_chroma;
+      pel *p_buffer_cb = l_buffer_cb + l_zero_offset_chroma;
+#endif
       for (int yPos = y_l; yPos < y_r; yPos += ctx->max_cuwh)
       {
           for (int xPos = x_l; xPos < x_r; xPos += ctx->max_cuwh)
           {
               const int width = (xPos + ctx->max_cuwh > cs->pPic->w_l) ? (cs->pPic->w_l - xPos) : ctx->max_cuwh;
               const int height = (yPos + ctx->max_cuwh > cs->pPic->h_l) ? (cs->pPic->h_l - yPos) : ctx->max_cuwh;
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+              int availableL, availableR, availableT, availableB;
+              availableL = availableR = availableT = availableB = 1;
+              if (xPos == x_l)
+                  availableL = 0;
+              else
+                  availableL = 1;
+              if (xPos + width == x_r)
+                  availableR = 0;
+              else
+                  availableR = 1;
+              if (yPos == y_l)
+                  availableT = 0;
+              else
+                  availableT = 1;
+              if (yPos + height == y_r)
+                  availableB = 0;
+              else
+                  availableB = 1;
 
-              if (m_ctuEnableFlag[COMPONENT_Y][ctuIdx])
-              {
-                  Area blk = { xPos, yPos, width, height };
+              for (int i = m; i < height + m; i++) {
+                  int dstPos = i * l_stride - l_zero_offset;
+                  int srcPos_offset = xPos + yPos * s;
+                  int stride = (width == ctx->max_cuwh ? l_stride : width + m + m);
+                  memcpy(p_buffer + dstPos + m, tmpYuv + srcPos_offset + (i - m) * s, sizeof(pel) * (stride - 2 * m));
+                  for (int j = 0; j < m; j++)
                   {
-                      deriveClassification(m_classifier, tmpYuv, s, &blk);
-                      p->m_filter7x7Blk(m_classifier, recYuv, cs->pPic->s_l, tmpYuv, s, &blk, COMPONENT_Y, m_coeffFinal, &(m_clpRngs.comp[COMPONENT_Y]));
+                      if (availableL)
+                          p_buffer[dstPos + j] = tmpYuv[srcPos_offset + (i - m) * s - m + j];
+                      else
+                          p_buffer[dstPos + j] = tmpYuv[srcPos_offset + (i - m) * s + m - j];
+                      if (availableR)
+                          p_buffer[dstPos + j + width + m] = tmpYuv[srcPos_offset + (i - m) * s + width + j];
+                      else
+                          p_buffer[dstPos + j + width + m] = tmpYuv[srcPos_offset + (i - m) * s + width - j - 2];
                   }
               }
 
+              for (int i = 0; i < m; i++) {
+                  int dstPos = i * l_stride - l_zero_offset;
+                  int srcPos_offset = xPos + yPos * s;
+                  int stride = (width == ctx->max_cuwh ? l_stride : width + m + m);
+                  if (availableT)
+                      memcpy(p_buffer + dstPos, tmpYuv + srcPos_offset - (m - i) * s - m, sizeof(pel) * stride);
+                  else
+                      memcpy(p_buffer + dstPos, p_buffer + dstPos + (2 * m - 2 * i) * l_stride, sizeof(pel) * stride);
+              }
+
+              for (int i = height + m; i < height + m + m; i++) {
+                  int dstPos = i * l_stride - l_zero_offset;
+                  int srcPos_offset = xPos + yPos * s;
+                  int stride = (width == ctx->max_cuwh ? l_stride : width + m + m);
+                  if (availableB)
+                      memcpy(p_buffer + dstPos, tmpYuv + srcPos_offset + (i - m) * s - m, sizeof(pel) * stride);
+                  else
+                      memcpy(p_buffer + dstPos, p_buffer + dstPos - (2 * (i - height - m) + 2) * l_stride, sizeof(pel) * stride);
+              }
+#endif
+              if (m_ctuEnableFlag[COMPONENT_Y][ctuIdx])
+              {
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+                  Area blk = { 0, 0, width, height };
+#else
+                  Area blk = { xPos, yPos, width, height };
+#endif
+                  {
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+                      deriveClassification(m_classifier, p_buffer, l_stride, &blk);
+                      p->m_filter7x7Blk(m_classifier, recYuv + xPos + yPos * (cs->pPic->s_l), cs->pPic->s_l, p_buffer, l_stride, &blk, COMPONENT_Y, m_coeffFinal, &(m_clpRngs.comp[COMPONENT_Y]));
+#else
+                      deriveClassification(m_classifier, tmpYuv, s, &blk);
+                      p->m_filter7x7Blk(m_classifier, recYuv, cs->pPic->s_l, tmpYuv, s, &blk, COMPONENT_Y, m_coeffFinal, &(m_clpRngs.comp[COMPONENT_Y]));
+#endif
+                  }
+              }
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+              for (int i = m; i < ((height >> 1) + m); i++) {
+                  int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
+                  int srcPos_offset = (xPos >> 1) + (yPos >> 1) * s1;
+                  int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> 1) + m + m);
+                  memcpy(p_buffer_cb + dstPos + m, tmpYuv1 + srcPos_offset + (i - m) * s1, sizeof(pel) * (stride - 2 * m));
+                  memcpy(p_buffer_cr + dstPos + m, tmpYuv2 + srcPos_offset + (i - m) * s1, sizeof(pel) * (stride - 2 * m));
+                  for (int j = 0; j < m; j++)
+                  {
+                      if (availableL)
+                      {
+                          p_buffer_cb[dstPos + j] = tmpYuv1[srcPos_offset + (i - m) * s1 - m + j];
+                          p_buffer_cr[dstPos + j] = tmpYuv2[srcPos_offset + (i - m) * s1 - m + j];
+                      }
+                      else
+                      {
+                          p_buffer_cb[dstPos + j] = tmpYuv1[srcPos_offset + (i - m) * s1 + m - j];
+                          p_buffer_cr[dstPos + j] = tmpYuv2[srcPos_offset + (i - m) * s1 + m - j];
+                      }
+                      if (availableR)
+                      {
+                          p_buffer_cb[dstPos + j + (width >> 1) + m] = tmpYuv1[srcPos_offset + (i - m) * s1 + (width >> 1) + j];
+                          p_buffer_cr[dstPos + j + (width >> 1) + m] = tmpYuv2[srcPos_offset + (i - m) * s1 + (width >> 1) + j];
+                      }
+                      else
+                      {
+                          p_buffer_cb[dstPos + j + (width >> 1) + m] = tmpYuv1[srcPos_offset + (i - m) * s1 + (width >> 1) - j - 2];
+                          p_buffer_cr[dstPos + j + (width >> 1) + m] = tmpYuv2[srcPos_offset + (i - m) * s1 + (width >> 1) - j - 2];
+                      }
+                  }
+              }
+
+              for (int i = 0; i < m; i++) {
+                  int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
+                  int srcPos_offset = (xPos >> 1) + (yPos >> 1) * s1;
+                  int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> 1) + m + m);
+                  if (availableT)
+                      memcpy(p_buffer_cb + dstPos, tmpYuv1 + srcPos_offset - (m - i) * s1 - m, sizeof(pel) * stride);
+                  else
+                      memcpy(p_buffer_cb + dstPos, p_buffer_cb + dstPos + (2 * m - 2 * i) * l_stride_chroma, sizeof(pel) * stride);
+                  if (availableT)
+                      memcpy(p_buffer_cr + dstPos, tmpYuv2 + srcPos_offset - (m - i) * s1 - m, sizeof(pel) * stride);
+                  else
+                      memcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos + (2 * m - 2 * i) * l_stride_chroma, sizeof(pel) * stride);
+              }
+
+              for (int i = ((height >> 1) + m); i < ((height >> 1) + m + m); i++) {
+                  int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
+                  int srcPos_offset = (xPos >> 1) + (yPos >> 1) * s1;
+                  int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> 1) + m + m);
+                  if (availableB)
+                      memcpy(p_buffer_cb + dstPos, tmpYuv1 + srcPos_offset + (i - m) * s1 - m, sizeof(pel) * stride);
+                  else
+                      memcpy(p_buffer_cb + dstPos, p_buffer_cb + dstPos - (2 * (i - (height >> 1) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
+                  if (availableB)
+                      memcpy(p_buffer_cr + dstPos, tmpYuv2 + srcPos_offset + (i - m) * s1 - m, sizeof(pel) * stride);
+                  else
+                      memcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos - (2 * (i - (height >> 1) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
+              }
+#endif
               for (int compIdx = 1; compIdx < MAX_NUM_COMPONENT; compIdx++)
               {
                   ComponentID compID = (ComponentID)(compIdx);
@@ -625,9 +762,15 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
 
                   if (alfSliceParam->enabledFlag[compIdx] && m_ctuEnableFlag[compIdx][ctuIdx])
                   {
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+                      Area blk = { 0, 0, width >> chromaScaleX, height >> chromaScaleY };
+                      p->m_filter5x5Blk(m_classifier, recYuv1 + (xPos >> 1) + (yPos >> 1) * (cs->pPic->s_c), cs->pPic->s_c, p_buffer_cb, l_stride_chroma, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
+                      p->m_filter5x5Blk(m_classifier, recYuv2 + (xPos >> 1) + (yPos >> 1) * (cs->pPic->s_c), cs->pPic->s_c, p_buffer_cr, l_stride_chroma, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
+#else
                       Area blk = { xPos >> chromaScaleX, yPos >> chromaScaleY, width >> chromaScaleX, height >> chromaScaleY };
                       p->m_filter5x5Blk(m_classifier, recYuv1, cs->pPic->s_c, tmpYuv1, s1, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
                       p->m_filter5x5Blk(m_classifier, recYuv2, cs->pPic->s_c, tmpYuv2, s1, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
+#endif
                   }
               }
               x_loc++;
@@ -1037,7 +1180,11 @@ void filterBlk_7(AlfClassifier** classifier, pel * recDst, const int dstStride, 
   const int endWidth = blk->x + blk->width;
 
   const Pel* src = recSrc;
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+  Pel* dst = recDst;
+#else
   Pel* dst = recDst + startHeight * dstStride;
+#endif
 
   const Pel *pImgYPad0, *pImgYPad1, *pImgYPad2, *pImgYPad3, *pImgYPad4, *pImgYPad5, *pImgYPad6;
   const Pel *pImg0, *pImg1, *pImg2, *pImg3, *pImg4, *pImg5, *pImg6;
@@ -1062,16 +1209,22 @@ void filterBlk_7(AlfClassifier** classifier, pel * recDst, const int dstStride, 
   int srcStride2 = srcStride * clsSizeY;
 
   Pel filterCoeff[MAX_NUM_ALF_LUMA_COEFF];
-
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+  pImgYPad0 = src;
+#else
   pImgYPad0 = src + startHeight * srcStride + startWidth;
+#endif
   pImgYPad1 = pImgYPad0 + srcStride;
   pImgYPad2 = pImgYPad0 - srcStride;
   pImgYPad3 = pImgYPad1 + srcStride;
   pImgYPad4 = pImgYPad2 - srcStride;
   pImgYPad5 = pImgYPad3 + srcStride;
   pImgYPad6 = pImgYPad4 - srcStride;
-
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+  Pel* pRec0 = dst;
+#else
   Pel* pRec0 = dst + startWidth;
+#endif
   Pel* pRec1 = pRec0 + dstStride;
 
   for (int i = 0; i < endHeight - startHeight; i += clsSizeY)
@@ -1166,7 +1319,11 @@ void filterBlk_5(AlfClassifier** classifier, pel * recDst, const int dstStride, 
   const int endWidth = blk->x + blk->width;
 
   const Pel* src = recSrc;
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+  Pel* dst = recDst;
+#else
   Pel* dst = recDst + startHeight * dstStride;
+#endif
 
   const Pel *pImgYPad0, *pImgYPad1, *pImgYPad2, *pImgYPad3, *pImgYPad4;
   const Pel *pImg0, *pImg1, *pImg2, *pImg3, *pImg4;
@@ -1191,14 +1348,20 @@ void filterBlk_5(AlfClassifier** classifier, pel * recDst, const int dstStride, 
   int srcStride2 = srcStride * clsSizeY;
 
   Pel filterCoeff[MAX_NUM_ALF_LUMA_COEFF];
-
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+  pImgYPad0 = src;
+#else
   pImgYPad0 = src + startHeight * srcStride + startWidth;
+#endif
   pImgYPad1 = pImgYPad0 + srcStride;
   pImgYPad2 = pImgYPad0 - srcStride;
   pImgYPad3 = pImgYPad1 + srcStride;
   pImgYPad4 = pImgYPad2 - srcStride;
-
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+  Pel* pRec0 = dst;
+#else
   Pel* pRec0 = dst + startWidth;
+#endif
   Pel* pRec1 = pRec0 + dstStride;
 
   for (int i = 0; i < endHeight - startHeight; i += clsSizeY)

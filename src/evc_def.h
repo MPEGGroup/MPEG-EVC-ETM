@@ -37,6 +37,8 @@
 #include "evc.h"
 #include "evc_port.h"
 
+#define ALF_CTU_MULTIPLE_TILE_SUPPORT             1
+
 //MPEG 128 adoptions
 
 #define M50662                                       1

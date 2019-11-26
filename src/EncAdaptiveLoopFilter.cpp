@@ -924,7 +924,6 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
   y_r = y_l + ((int)(ctx->tile[tile_idx].h_ctb) << MAX_CU_LOG2);
   x_r = x_r > ((int)ctx->w_scu << MIN_CU_LOG2) ? ((int)ctx->w_scu << MIN_CU_LOG2) : x_r;
   y_r = y_r > ((int)ctx->h_scu << MIN_CU_LOG2) ? ((int)ctx->h_scu << MIN_CU_LOG2) : y_r;
-
 #endif
   
   switch(compID)
@@ -941,6 +940,20 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
   default:
       assert(0);
   }
+
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+  const int m = MAX_ALF_FILTER_LENGTH >> 1;
+  int l_zero_offset = (MAX_CU_SIZE + m + m) * m + m;
+  int l_stride = MAX_CU_SIZE + 2 * m;
+  pel l_buffer[(MAX_CU_SIZE + 2 * m) * (MAX_CU_SIZE + 2 * m)];
+  pel *p_buffer = l_buffer + l_zero_offset;
+  int l_zero_offset_chroma = ((MAX_CU_SIZE >> 1) + m + m) * m + m;
+  int l_stride_chroma = (MAX_CU_SIZE >> 1) + m + m;
+  pel l_buffer_cb[((MAX_CU_SIZE >> 1) + 2 * m) *((MAX_CU_SIZE >> 1) + 2 * m)];
+  pel l_buffer_cr[((MAX_CU_SIZE >> 1) + 2 * m) *((MAX_CU_SIZE >> 1) + 2 * m)];
+  pel *p_buffer_cr = l_buffer_cr + l_zero_offset_chroma;
+  pel *p_buffer_cb = l_buffer_cb + l_zero_offset_chroma;
+#endif
 
   {
     if (alfSliceParam->enabledFlag[compID])
@@ -967,8 +980,150 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
 #endif
           const int width = (xPos + ctx->max_cuwh > recPic->w_l) ? (recPic->w_l - xPos) : ctx->max_cuwh;
           const int height = (yPos + ctx->max_cuwh > recPic->h_l) ? (recPic->h_l - yPos) : ctx->max_cuwh;
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+          int availableL, availableR, availableT, availableB;
+          availableL = availableR = availableT = availableB = 1;
+          if (xPos == x_l)
+              availableL = 0;
+          else
+              availableL = 1;
+          if (xPos + width == x_r)
+              availableR = 0;
+          else
+              availableR = 1;
+          if (yPos == y_l)
+              availableT = 0;
+          else
+              availableT = 1;
+          if (yPos + height == y_r)
+              availableB = 0;
+          else
+              availableB = 1;
 
+          if (compID == COMPONENT_Y)
+          {
+              for (int i = m; i < height + m; i++) {
+                  int dstPos = i * l_stride - l_zero_offset;
+                  int srcPos_offset = xPos + yPos * recStride;
+                  int stride = (width == ctx->max_cuwh ? l_stride : width + m + m);
+                  memcpy(p_buffer + dstPos + m, recExtBuf + srcPos_offset + (i - m) * recStride, sizeof(pel) * (stride - 2 * m));
+                  for (int j = 0; j < m; j++)
+                  {
+                      if (availableL)
+                          p_buffer[dstPos + j] = recExtBuf[srcPos_offset + (i - m) * recStride - m + j];
+                      else
+                          p_buffer[dstPos + j] = recExtBuf[srcPos_offset + (i - m) * recStride + m - j];
+                      if (availableR)
+                          p_buffer[dstPos + j + width + m] = recExtBuf[srcPos_offset + (i - m) * recStride + width + j];
+                      else
+                          p_buffer[dstPos + j + width + m] = recExtBuf[srcPos_offset + (i - m) * recStride + width - j - 2];
+                  }
+          }
+              for (int i = 0; i < m; i++) {
+                  int dstPos = i * l_stride - l_zero_offset;
+                  int srcPos_offset = xPos + yPos * recStride;
+                  int stride = (width == ctx->max_cuwh ? l_stride : width + m + m);
+                  if (availableT)
+                      memcpy(p_buffer + dstPos, recExtBuf + srcPos_offset - (m - i) * recStride - m, sizeof(pel) * stride);
+                  else
+                      memcpy(p_buffer + dstPos, p_buffer + dstPos + (2 * m - 2 * i) * l_stride, sizeof(pel) * stride);
+              }
+              for (int i = height + m; i < height + m + m; i++) {
+                  int dstPos = i * l_stride - l_zero_offset;
+                  int srcPos_offset = xPos + yPos * recStride;
+                  int stride = (width == ctx->max_cuwh ? l_stride : width + m + m);
+                  if (availableB)
+                      memcpy(p_buffer + dstPos, recExtBuf + srcPos_offset + (i - m) * recStride - m, sizeof(pel) * stride);
+                  else
+                      memcpy(p_buffer + dstPos, p_buffer + dstPos - (2 * (i - height - m) + 2) * l_stride, sizeof(pel) * stride);
+              }
+        }
+          else if (compID == COMPONENT_Cb)
+          {
+              for (int i = m; i < ((height >> 1) + m); i++) {
+                  int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
+                  int srcPos_offset = (xPos >> 1) + (yPos >> 1) * recStride;
+                  int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> 1) + m + m);
+                  memcpy(p_buffer_cb + dstPos + m, recExtBuf + srcPos_offset + (i - m) * recStride, sizeof(pel) * (stride - 2 * m));
+                  for (int j = 0; j < m; j++)
+                  {
+                      if (availableL)
+                          p_buffer_cb[dstPos + j] = recExtBuf[srcPos_offset + (i - m) * recStride - m + j];
+                      else
+                          p_buffer_cb[dstPos + j] = recExtBuf[srcPos_offset + (i - m) * recStride + m - j];
+                      if (availableR)
+                          p_buffer_cb[dstPos + j + (width >> 1) + m] = recExtBuf[srcPos_offset + (i - m) * recStride + (width >> 1) + j];
+                      else
+                          p_buffer_cb[dstPos + j + (width >> 1) + m] = recExtBuf[srcPos_offset + (i - m) * recStride + (width >> 1) - j - 2];
+                  }
+              }
+
+              for (int i = 0; i < m; i++) {
+                  int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
+                  int srcPos_offset = (xPos >> 1) + (yPos >> 1) * recStride;
+                  int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> 1) + m + m);
+                  if (availableT)
+                      memcpy(p_buffer_cb + dstPos, recExtBuf + srcPos_offset - (m - i) * recStride - m, sizeof(pel) * stride);
+                  else
+                      memcpy(p_buffer_cb + dstPos, p_buffer_cb + dstPos + (2 * m - 2 * i) * l_stride_chroma, sizeof(pel) * stride);
+              }
+
+              for (int i = ((height >> 1) + m); i < ((height >> 1) + m + m); i++) {
+                  int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
+                  int srcPos_offset = (xPos >> 1) + (yPos >> 1) * recStride;
+                  int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> 1) + m + m);
+                  if (availableB)
+                      memcpy(p_buffer_cb + dstPos, recExtBuf + srcPos_offset + (i - m) * recStride - m, sizeof(pel) * stride);
+                  else
+                      memcpy(p_buffer_cb + dstPos, p_buffer_cb + dstPos - (2 * (i - (height >> 1) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
+              }
+          }
+          else
+          {
+              for (int i = m; i < ((height >> 1) + m); i++) {
+                  int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
+                  int srcPos_offset = (xPos >> 1) + (yPos >> 1) * recStride;
+                  int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> 1) + m + m);
+                  memcpy(p_buffer_cr + dstPos + m, recExtBuf + srcPos_offset + (i - m) * recStride, sizeof(pel) * (stride - 2 * m));
+                  for (int j = 0; j < m; j++)
+                  {
+                      if (availableL)
+                          p_buffer_cr[dstPos + j] = recExtBuf[srcPos_offset + (i - m) * recStride - m + j];
+                      else
+                          p_buffer_cr[dstPos + j] = recExtBuf[srcPos_offset + (i - m) * recStride + m - j];
+                      if (availableR)
+                          p_buffer_cr[dstPos + j + (width >> 1) + m] = recExtBuf[srcPos_offset + (i - m) * recStride + (width >> 1) + j];
+                      else
+                          p_buffer_cr[dstPos + j + (width >> 1) + m] = recExtBuf[srcPos_offset + (i - m) * recStride + (width >> 1) - j - 2];
+                  }
+              }
+
+              for (int i = 0; i < m; i++) {
+                  int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
+                  int srcPos_offset = (xPos >> 1) + (yPos >> 1) * recStride;
+                  int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> 1) + m + m);
+                  if (availableT)
+                      memcpy(p_buffer_cr + dstPos, recExtBuf + srcPos_offset - (m - i) * recStride - m, sizeof(pel) * stride);
+                  else
+                      memcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos + (2 * m - 2 * i) * l_stride_chroma, sizeof(pel) * stride);
+              }
+
+              for (int i = ((height >> 1) + m); i < ((height >> 1) + m + m); i++) {
+                  int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
+                  int srcPos_offset = (xPos >> 1) + (yPos >> 1) * recStride;
+                  int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> 1) + m + m);
+                  if (availableB)
+                      memcpy(p_buffer_cr + dstPos, recExtBuf + srcPos_offset + (i - m) * recStride - m, sizeof(pel) * stride);
+                  else
+                      memcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos - (2 * (i - (height >> 1) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
+              }
+          }
+#endif
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+          Area blk = { 0, 0, width >> chromaScaleX, height >> chromaScaleY };
+#else
           Area blk = { xPos >> chromaScaleX, yPos >> chromaScaleY, width >> chromaScaleX, height >> chromaScaleY };
+#endif
 
           if (m_ctuEnableFlag[compID][ctuIdx])
           {
@@ -977,11 +1132,27 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
 
               if (filterType == ALF_FILTER_5)
               {
-                m_AdaptiveLoopFilter.m_filter5x5Blk(m_classifier, recBuf, stride, recExtBuf, recStride, &blk, compID, coeff, &(m_clpRngs.comp[(int)compID]));
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+                  if (compID == COMPONENT_Cb)
+                  {
+                      m_AdaptiveLoopFilter.m_filter5x5Blk(m_classifier, recBuf + (xPos >> 1) + (yPos >> 1) * recPic->s_c, recPic->s_c, p_buffer_cb, l_stride_chroma, &blk, compID, coeff, &(m_clpRngs.comp[(int)compID]));
+                  }
+                  else
+                  {
+                      m_AdaptiveLoopFilter.m_filter5x5Blk(m_classifier, recBuf + (xPos >> 1) + (yPos >> 1) * recPic->s_c, recPic->s_c, p_buffer_cr, l_stride_chroma, &blk, compID, coeff, &(m_clpRngs.comp[(int)compID]));
+                  }
+#else
+                  m_AdaptiveLoopFilter.m_filter5x5Blk(m_classifier, recBuf, stride, recExtBuf, recStride, &blk, compID, coeff, &(m_clpRngs.comp[(int)compID]));
+#endif
               }
               else if (filterType == ALF_FILTER_7)
               {
-                m_AdaptiveLoopFilter.m_filter7x7Blk(m_classifier, recBuf, stride, recExtBuf, recStride, &blk, compID, coeff, &(m_clpRngs.comp[(int)compID]));
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+                  deriveClassification(m_classifier, p_buffer, l_stride, &blk);
+                  m_AdaptiveLoopFilter.m_filter7x7Blk(m_classifier, recBuf + xPos + yPos * (recPic->s_l), recPic->s_l, p_buffer, l_stride, &blk, compID, coeff, &(m_clpRngs.comp[(int)compID]));
+#else
+                  m_AdaptiveLoopFilter.m_filter7x7Blk(m_classifier, recBuf, stride, recExtBuf, recStride, &blk, compID, coeff, &(m_clpRngs.comp[(int)compID]));
+#endif
               }
               else
               {
