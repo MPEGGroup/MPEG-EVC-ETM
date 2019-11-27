@@ -531,7 +531,27 @@ const int m_classToFilterMapping[MAX_NUM_ALF_CLASSES][ALF_FIXED_FILTER_NUM] =
   { 8,  13,  36,  42,  45,  46,  51,  53,  54,  57,  58,  59,  60,  61,  62,  63 },
   { 8,  13,  20,  27,  36,  38,  42,  46,  52,  53,  56,  57,  59,  61,  62,  63 },
 };
-
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+void tile_boundary_check(int* availableL, int* availableR, int* availableT, int* availableB, const int width, const int height, int xPos, int yPos, int x_l, int x_r, int y_l, int y_r)
+{
+    if (xPos == x_l)
+        *availableL = 0;
+    else
+        *availableL = 1;
+    if (xPos + width == x_r)
+        *availableR = 0;
+    else
+        *availableR = 1;
+    if (yPos == y_l)
+        *availableT = 0;
+    else
+        *availableT = 1;
+    if (yPos + height == y_r)
+        *availableB = 0;
+    else
+        *availableB = 1;
+}
+#endif
 void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSliceParam)
 {
   if (!alfSliceParam->enabledFlag[COMPONENT_Y] && !alfSliceParam->enabledFlag[COMPONENT_Cb] && !alfSliceParam->enabledFlag[COMPONENT_Cr])
@@ -622,23 +642,10 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
 #if ALF_CTU_MULTIPLE_TILE_SUPPORT
               int availableL, availableR, availableT, availableB;
               availableL = availableR = availableT = availableB = 1;
-              if (xPos == x_l)
-                  availableL = 0;
-              else
-                  availableL = 1;
-              if (xPos + width == x_r)
-                  availableR = 0;
-              else
-                  availableR = 1;
-              if (yPos == y_l)
-                  availableT = 0;
-              else
-                  availableT = 1;
-              if (yPos + height == y_r)
-                  availableB = 0;
-              else
-                  availableB = 1;
-
+              if (!(ctx->pps.loop_filter_across_tiles_enabled_flag))
+              {
+                  tile_boundary_check(&availableL, &availableR, &availableT, &availableB, width, height, xPos, yPos, x_l, x_r, y_l, y_r);
+              }
               for (int i = m; i < height + m; i++) {
                   int dstPos = i * l_stride - l_zero_offset;
                   int srcPos_offset = xPos + yPos * s;

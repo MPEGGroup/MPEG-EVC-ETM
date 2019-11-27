@@ -898,7 +898,27 @@ void EncAdaptiveLoopFilter::alfEncoder( CodingStructure& cs, AlfSliceParam* alfS
   
   copyCtuEnableFlag(m_ctuEnableFlag, m_ctuEnableFlagTmp, channel);
 }
-
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+void EncAdaptiveLoopFilter::tile_boundary_check(int* availableL, int* availableR, int* availableT, int* availableB, const int width, const int height, int xPos, int yPos, int x_l, int x_r, int y_l, int y_r)
+{
+    if (xPos == x_l)
+        *availableL = 0;
+    else
+        *availableL = 1;
+    if (xPos + width == x_r)
+        *availableR = 0;
+    else
+        *availableR = 1;
+    if (yPos == y_l)
+        *availableT = 0;
+    else
+        *availableT = 1;
+    if (yPos + height == y_r)
+        *availableB = 0;
+    else
+        *availableB = 1;
+}
+#endif
 void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam* alfSliceParam, const pel * orgUnitBuf, const int oStride, pel * recExtBuf, int recStride, const ComponentID compID
 #if EVC_TILE_SUPPORT
     , int tile_idx, int col_bd2
@@ -983,23 +1003,10 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
 #if ALF_CTU_MULTIPLE_TILE_SUPPORT
           int availableL, availableR, availableT, availableB;
           availableL = availableR = availableT = availableB = 1;
-          if (xPos == x_l)
-              availableL = 0;
-          else
-              availableL = 1;
-          if (xPos + width == x_r)
-              availableR = 0;
-          else
-              availableR = 1;
-          if (yPos == y_l)
-              availableT = 0;
-          else
-              availableT = 1;
-          if (yPos + height == y_r)
-              availableB = 0;
-          else
-              availableB = 1;
-
+          if (!(ctx->pps.loop_filter_across_tiles_enabled_flag))
+          {
+              tile_boundary_check(&availableL, &availableR, &availableT, &availableB, width, height, xPos, yPos, x_l, x_r, y_l, y_r);
+          }
           if (compID == COMPONENT_Y)
           {
               for (int i = m; i < height + m; i++) {
