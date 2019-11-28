@@ -2817,7 +2817,6 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps)
             }
         }
         pps->loop_filter_across_tiles_enabled_flag = evc_bsr_read1(bs);
-        //pps->tile_offset_lens_minus1 = evc_bsr_read1(bs); //Bug in the decoder
         pps->tile_offset_lens_minus1 = evc_bsr_read_ue(bs); 
     }
 
@@ -3406,9 +3405,7 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
         {
             sh->poc = evc_bsr_read(bs, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
         }
-    }
-    // else 
-    {
+
         if (sps->tool_rpl)
         {
             //L0 candidates signaling
@@ -3447,23 +3444,23 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
                 sh->rpl_l1.poc = sh->poc;
             }
         }
-    }
 
-    if (sh->slice_type != SLICE_I)
-    {
-        sh->num_ref_idx_active_override_flag = evc_bsr_read1(bs);
-        if (sh->num_ref_idx_active_override_flag)
+        if (sh->slice_type == SLICE_P || sh->slice_type == SLICE_B)
         {
-            sh->rpl_l0.ref_pic_active_num = (u32)evc_bsr_read_ue(bs) + 1;
-            if (sh->slice_type == SLICE_B)
+            sh->num_ref_idx_active_override_flag = evc_bsr_read1(bs);
+            if (sh->num_ref_idx_active_override_flag)
             {
-                sh->rpl_l1.ref_pic_active_num = (u32)evc_bsr_read_ue(bs) + 1;
+                sh->rpl_l0.ref_pic_active_num = (u32)evc_bsr_read_ue(bs) + 1;
+                if (sh->slice_type == SLICE_B)
+                {
+                    sh->rpl_l1.ref_pic_active_num = (u32)evc_bsr_read_ue(bs) + 1;
+                }
             }
-        }
-        else
-        {
-            sh->rpl_l0.ref_pic_active_num = 2;  //Temporarily i set it to 2. this should be set equal to the signalled num_ref_idx_default_active_minus1[0] + 1.
-            sh->rpl_l1.ref_pic_active_num = 2;  //Temporarily i set it to 2. this should be set equal to the signalled num_ref_idx_default_active_minus1[1] + 1.
+            else
+            {
+                sh->rpl_l0.ref_pic_active_num = 2;  //Temporarily i set it to 2. this should be set equal to the signalled num_ref_idx_default_active_minus1[0] + 1.
+                sh->rpl_l1.ref_pic_active_num = 2;  //Temporarily i set it to 2. this should be set equal to the signalled num_ref_idx_default_active_minus1[1] + 1.
+            }
         }
     }
 

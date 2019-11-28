@@ -462,9 +462,7 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
         {
             evc_bsw_write(bs, sh->poc, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
         }
-    }
-    // else
-    {
+
         if (sps->tool_rpl)
         {
             //L0 candidates signaling
@@ -501,17 +499,17 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
                 evce_eco_rlp(bs, &sh->rpl_l1);
             }
         }
-    }
 
-    if (sh->slice_type != SLICE_I)
-    {
-        evc_bsw_write1(bs, sh->num_ref_idx_active_override_flag);
-        if (sh->num_ref_idx_active_override_flag)
+        if (sh->slice_type == SLICE_P || sh->slice_type == SLICE_B)
         {
-            evc_bsw_write_ue(bs, (u32)(sh->rpl_l0).ref_pic_active_num - 1);
-            if (sh->slice_type == SLICE_B)
+            evc_bsw_write1(bs, sh->num_ref_idx_active_override_flag);
+            if (sh->num_ref_idx_active_override_flag)
             {
-                evc_bsw_write_ue(bs, (u32)(sh->rpl_l1).ref_pic_active_num - 1);
+                evc_bsw_write_ue(bs, (u32)(sh->rpl_l0).ref_pic_active_num - 1);
+                if (sh->slice_type == SLICE_B)
+                {
+                    evc_bsw_write_ue(bs, (u32)(sh->rpl_l1).ref_pic_active_num - 1);
+                }
             }
         }
     }
