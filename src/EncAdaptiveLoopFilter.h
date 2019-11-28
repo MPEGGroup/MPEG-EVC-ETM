@@ -222,7 +222,11 @@ private:
 
   void   calcCovariance(int *ELocal, const Pel *rec, const int stride, const int *filterPattern, const int halfFilterLength, const int transposeIdx);
   void   mergeClasses(AlfCovariance* cov, AlfCovariance* covMerged, const int numClasses, short filterIndices[MAX_NUM_ALF_CLASSES][MAX_NUM_ALF_CLASSES]);
-  void   alfReconstructor(CodingStructure& cs, AlfSliceParam* alfSliceParam, const pel * orgUnitBuf, const int oStride, pel * recExtBuf, const int recStride, const ComponentID compID);
+  void   alfReconstructor(CodingStructure& cs, AlfSliceParam* alfSliceParam, const pel * orgUnitBuf, const int oStride, pel * recExtBuf, const int recStride, const ComponentID compID
+#if EVC_TILE_SUPPORT
+      , int tile_idx, int col_bd2
+#endif
+  );
   void   alfTemporalEncoder(CodingStructure& cs, AlfSliceParam* alfSliceParam);
 #if APS_ALF_SEQ_FIX
   void   alfTemporalEncoderAPS(CodingStructure& cs, AlfSliceParam* alfSliceParam);
@@ -271,6 +275,9 @@ private:
   void setEnableFlag(AlfSliceParam* alfSlicePara, ChannelType channel, uint8_t** ctuFlags);
   void setCtuEnableFlag(uint8_t** ctuFlags, ChannelType channel, uint8_t val);
   void copyCtuEnableFlag(uint8_t** ctuFlagsDst, uint8_t** ctuFlagsSrc, ChannelType channel);
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+  void tile_boundary_check(int* availableL, int* availableR, int* availableT, int* availableB, const int width, const int height, int xPos, int yPos, int x_l, int x_r, int y_l, int y_r);
+#endif
 };
 #endif
 

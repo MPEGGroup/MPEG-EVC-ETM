@@ -106,8 +106,8 @@ static void sequence_deinit(EVCD_CTX * ctx)
 #if ATS_INTER_PROCESS
     evc_mfree(ctx->map_ats_inter);
 #endif
-#if DQP
-    evc_mfree(ctx->map_dqp_used);
+#if EVC_TILE_SUPPORT
+    evc_mfree_fast(ctx->map_tidx);
 #endif
     evc_picman_deinit(&ctx->dpm);
 }
@@ -215,13 +215,14 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
         evc_mset_x64a(ctx->map_ipm, -1, size);
     }
 
-#if DQP
-    if (ctx->map_dqp_used == NULL)
+#if EVC_TILE_SUPPORT   
+    /* alloc tile index map in SCU unit */
+    if (ctx->map_tidx == NULL)
     {
-        size = sizeof(s8) * ctx->f_scu;
-        ctx->map_dqp_used = (u8 *)evc_malloc(size);
-        evc_assert_gv(ctx->map_dqp_used, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
-        evc_mset_x64a(ctx->map_dqp_used, DQP_UNUSED, size);
+        size = sizeof(u8) * ctx->f_scu;
+        ctx->map_tidx = (u8 *)evc_malloc(size);
+        evc_assert_gv(ctx->map_tidx, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
+        evc_mset_x64a(ctx->map_tidx, 0, size);
     }
 #endif
 
@@ -1007,7 +1008,11 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
     core->ats_intra_cu = core->ats_intra_tu_h = core->ats_intra_tu_v = 0;
 #endif
 
-    core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu);
+    core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu
+#if EVC_TILE_SUPPORT
+        , ctx->map_tidx
+#endif
+    );
     evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
 #if IBC
         , ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size
@@ -1085,7 +1090,11 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 #endif
     if(core->pred_mode != MODE_INTRA)
     {    
-        core->avail_cu = evc_get_avail_inter(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, cuw, cuh, ctx->map_scu);
+        core->avail_cu = evc_get_avail_inter(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, cuw, cuh, ctx->map_scu
+#if EVC_TILE_SUPPORT
+            , ctx->map_tidx
+#endif
+        );
 #if DMVR
         if (ctx->sps.tool_dmvr)
         {
@@ -1229,8 +1238,11 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
     }
     else
     {
-        core->avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, core->log2_cuw, core->log2_cuh, ctx->map_scu);
- 
+        core->avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, core->log2_cuw, core->log2_cuh, ctx->map_scu
+#if EVC_TILE_SUPPORT
+            , ctx->map_tidx
+#endif
+        );
         get_nbr_yuv(x, y, cuw, cuh, ctx, core);
       
         if (ctx->sps.tool_eipd)
@@ -1239,15 +1251,14 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
             if (evcd_check_luma(ctx))
             {
 #endif
-            evc_ipred(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh, core->avail_cu, ctx->sps.sps_suco_flag
-            );
+            evc_ipred(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh, core->avail_cu);
 #if M50761_CHROMA_NOT_SPLIT
             }
             if (evcd_check_chroma(ctx))
             {
 #endif
-            evc_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu, ctx->sps.sps_suco_flag);
-            evc_ipred_uv(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu, ctx->sps.sps_suco_flag);
+            evc_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu);
+            evc_ipred_uv(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu);
 #if M50761_CHROMA_NOT_SPLIT
             }
 #endif
@@ -1303,7 +1314,11 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 #endif
         )
     {
-        u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu);
+        u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu
+#if EVC_TILE_SUPPORT
+            , ctx->map_tidx
+#endif
+        );
         evc_htdf(ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->sh.qp, cuw, cuh, ctx->pic->s_l, core->pred_mode == MODE_INTRA
             , ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->pic->s_l, avail_cu);
     }
@@ -1498,28 +1513,25 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
     }
 
 #if DQP
-    if(ctx->sps.sps_btt_flag)
+    if(ctx->pps.cu_qp_delta_enabled_flag && ctx->sps.dquant_flag)
     {
-        if(ctx->pps.cu_qp_delta_enabled_flag && ctx->sps.dquant_flag)
+        if (split_mode == NO_SPLIT && (log2_cuh + log2_cuw >= ctx->pps.cu_qp_delta_area) && cu_qp_delta_code != 2)
         {
-            if (split_mode == NO_SPLIT && (log2_cuh + log2_cuw >= ctx->pps.cu_qp_delta_area) && cu_qp_delta_code != 2)
-            {
-                if (log2_cuh == 7 || log2_cuw == 7)
-                {
-                    cu_qp_delta_code = 2;
-                }
-                else
-                {
-                    cu_qp_delta_code = 1;
-                }
-                core->cu_qp_delta_is_coded = 0;
-            }
-            else if ((((split_mode == SPLIT_TRI_VER || split_mode == SPLIT_TRI_HOR) && (log2_cuh + log2_cuw == ctx->pps.cu_qp_delta_area + 1)) ||
-                (log2_cuh + log2_cuw == ctx->pps.cu_qp_delta_area && cu_qp_delta_code != 2)))
+            if (log2_cuh == 7 || log2_cuw == 7)
             {
                 cu_qp_delta_code = 2;
-                core->cu_qp_delta_is_coded = 0;
             }
+            else
+            {
+                cu_qp_delta_code = 1;
+            }
+            core->cu_qp_delta_is_coded = 0;
+        }
+        else if ((((split_mode == SPLIT_TRI_VER || split_mode == SPLIT_TRI_HOR) && (log2_cuh + log2_cuw == ctx->pps.cu_qp_delta_area + 1)) ||
+            (log2_cuh + log2_cuw == ctx->pps.cu_qp_delta_area && cu_qp_delta_code != 2)))
+        {
+            cu_qp_delta_code = 2;
+            core->cu_qp_delta_is_coded = 0;
         }
     }
 #endif
@@ -1736,7 +1748,10 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
                   , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
-                    , ctx->tree_cons
+                  , ctx->tree_cons
+#endif
+#if EVC_TILE_SUPPORT
+                  , ctx->map_tidx
 #endif
                 );
                 evc_deblock_cu_hor(pic, x, y + MAX_TR_SIZE, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi,
@@ -1748,6 +1763,9 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                   , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0            
 #if M50761_CHROMA_NOT_SPLIT
                   , ctx->tree_cons
+#endif
+#if EVC_TILE_SUPPORT
+                  , ctx->map_tidx
 #endif
                 );
             }
@@ -1761,7 +1779,10 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
                   , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
-                    , ctx->tree_cons
+                  , ctx->tree_cons
+#endif
+#if EVC_TILE_SUPPORT
+                  , ctx->map_tidx
 #endif
                 );
             }
@@ -1778,11 +1799,14 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
                   , ctx->w_scu, ctx->log2_max_cuwh
 #if FIX_PARALLEL_DBF
-                    , ctx->map_cu_mode
+                  , ctx->map_cu_mode
 #endif
-                    , ctx->refp, 0
+                  , ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
-                    , ctx->tree_cons
+                  , ctx->tree_cons
+#endif
+#if EVC_TILE_SUPPORT
+                  , ctx->map_tidx
 #endif
                 );
                 evc_deblock_cu_ver(pic, x + MAX_TR_SIZE, y, cuw >> 1, cuh, ctx->map_scu, ctx->map_refi,
@@ -1793,11 +1817,14 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
                   , ctx->w_scu, ctx->log2_max_cuwh
 #if FIX_PARALLEL_DBF
-                    , ctx->map_cu_mode
+                  , ctx->map_cu_mode
 #endif
-                    , ctx->refp, 0
+                  , ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
-                    , ctx->tree_cons
+                  , ctx->tree_cons
+#endif
+#if EVC_TILE_SUPPORT
+                  , ctx->map_tidx
 #endif
                 );
             }
@@ -1811,11 +1838,14 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
                   , ctx->w_scu, ctx->log2_max_cuwh
 #if FIX_PARALLEL_DBF
-                                   , ctx->map_cu_mode
+                  , ctx->map_cu_mode
 #endif
-                                   , ctx->refp, 0
+                  , ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
-                    , ctx->tree_cons
+                  , ctx->tree_cons
+#endif
+#if EVC_TILE_SUPPORT
+                  , ctx->map_tidx
 #endif
                 );
             }
@@ -1826,14 +1856,84 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
 }
 
-int evcd_deblock_h263(EVCD_CTX * ctx)
+int evcd_deblock_h263(EVCD_CTX * ctx
+#if  EVC_TILE_SUPPORT
+    , int tile_idx
+#endif
+)
 {
     int i, j;
-    u32 k;
-
+   
     ctx->pic->pic_deblock_alpha_offset = ctx->sh.sh_deblock_alpha_offset;
     ctx->pic->pic_deblock_beta_offset = ctx->sh.sh_deblock_beta_offset;
 
+#if EVC_TILE_SUPPORT
+    int x_l, x_r, y_l, y_r, l_scu, r_scu, t_scu, b_scu;
+    u32 k1;
+    int scu_in_lcu_wh = 1 << (MAX_CU_LOG2 - MIN_CU_LOG2);
+    
+    x_l = (ctx->tile[tile_idx].ctba_rs_first) % ctx->w_lcu; //entry point lcu's x location
+    y_l = (ctx->tile[tile_idx].ctba_rs_first) / ctx->w_lcu; // entry point lcu's y location
+    x_r = x_l + ctx->tile[tile_idx].w_ctb;
+    y_r = y_l + ctx->tile[tile_idx].h_ctb;
+    l_scu = x_l * scu_in_lcu_wh;
+    r_scu = EVC_CLIP3(0, ctx->w_scu, x_r*scu_in_lcu_wh);
+    t_scu = y_l * scu_in_lcu_wh;
+    b_scu = EVC_CLIP3(0, ctx->h_scu, y_r*scu_in_lcu_wh);
+
+    for (j = t_scu; j < b_scu; j++)
+    {
+        for (i = l_scu; i < r_scu; i++)
+        {
+            k1 = i + j * ctx->w_scu;
+            MCU_CLR_COD(ctx->map_scu[k1]);
+#if M50761_DMVR_SIMP_DEBLOCK
+            if (!MCU_GET_DMVRF(ctx->map_scu[k1]))
+            {
+                ctx->map_unrefined_mv[k1][REFP_0][MV_X] = ctx->map_mv[k1][REFP_0][MV_X];
+                ctx->map_unrefined_mv[k1][REFP_0][MV_Y] = ctx->map_mv[k1][REFP_0][MV_Y];
+                ctx->map_unrefined_mv[k1][REFP_1][MV_X] = ctx->map_mv[k1][REFP_1][MV_X];
+                ctx->map_unrefined_mv[k1][REFP_1][MV_Y] = ctx->map_mv[k1][REFP_1][MV_Y];
+            }
+#endif
+        }
+    }
+
+    /* horizontal filtering */
+    for (j = y_l; j < y_r; j++)
+    {
+        for (i = x_l; i < x_r; i++)
+        {
+            deblock_tree(ctx, ctx->pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 1
+#if M50761_CHROMA_NOT_SPLIT
+                , evc_get_default_tree_cons()
+#endif
+            );
+        }
+    }
+
+    for (j = t_scu; j < b_scu; j++)
+    {
+        for (i = l_scu; i < r_scu; i++)
+        {
+            MCU_CLR_COD(ctx->map_scu[i + j * ctx->w_scu]);
+        }
+    }
+
+    /* vertical filtering */
+    for (j = y_l; j < y_r; j++)
+    {
+        for (i = x_l; i < x_r; i++)
+        {
+            deblock_tree(ctx, ctx->pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 0
+#if M50761_CHROMA_NOT_SPLIT
+                , evc_get_default_tree_cons()
+#endif
+            );
+        }
+    }
+#else
+    u32 k;
     for(k = 0; k < ctx->f_scu; k++)
     {
         MCU_CLR_COD(ctx->map_scu[k]);
@@ -1877,7 +1977,7 @@ int evcd_deblock_h263(EVCD_CTX * ctx)
             );
         }
     }
-
+#endif
     return EVC_OK;
 }
 
@@ -1896,13 +1996,150 @@ int evcd_alf(EVCD_CTX * ctx, EVC_PIC * pic)
 }
 #endif
 
+#if EVC_TILE_SUPPORT
+void static derive_tile_boundary(EVCD_CTX * ctx, EVCD_CORE * core, int * col_bd, int * row_bd)
+{
+    col_bd[0] = 0; row_bd[0] = 0;
+    
+    for (int i = 1; i<ctx->w_tile; i++)
+        col_bd[i] = col_bd[i - 1] + ctx->tile[i - 1].w_ctb;
+    for (int j = 1; j<ctx->h_tile; j++)
+        row_bd[j] = row_bd[j - 1] + ctx->tile[j - 1].h_ctb;
+
+    return;
+}
+
+static void update_core_loc_param(EVCD_CTX * ctx, EVCD_CORE * core)
+{
+    core->x_pel = core->x_lcu << ctx->log2_max_cuwh;  // entry point's x location in pixel
+    core->y_pel = core->y_lcu << ctx->log2_max_cuwh;  // entry point's y location in pixel
+    core->x_scu = core->x_lcu << (MAX_CU_LOG2 - MIN_CU_LOG2); // set x_scu location 
+    core->y_scu = core->y_lcu << (MAX_CU_LOG2 - MIN_CU_LOG2); // set y_scu location 
+    core->lcu_num = core->x_lcu + core->y_lcu*ctx->w_lcu; // Init the first lcu_num in tile
+}
+
+
+static int set_tile_info(EVCD_CTX * ctx, EVCD_CORE *core, EVC_PPS *pps)
+{
+    EVC_TILE   * tile;
+    int          i, j, size, x, y, w, h, w_tile, h_tile, w_lcu, h_lcu, tidx, t0;
+    int          col_w[MAX_NUM_TILES_COL], row_h[MAX_NUM_TILES_ROW], f_tile;
+    u8         * map_tidx;
+
+    ctx->tile_cnt = (pps->num_tile_rows_minus1 + 1) * (pps->num_tile_columns_minus1 + 1);
+    ctx->w_tile = pps->num_tile_columns_minus1 + 1;
+    ctx->h_tile = pps->num_tile_rows_minus1 + 1;
+    w_tile = ctx->w_tile;
+    h_tile = ctx->h_tile;
+    f_tile = w_tile * h_tile;
+    w_lcu = ctx->w_lcu;
+    h_lcu = ctx->h_lcu;
+
+#if 0
+    /* alloc temporary bitstream buffer for tiles dependent on picture size  */
+    size = ctx->f / f_tile; /* !! CHECK-ME LATER !! */
+    ctx->bs_tbuf_size = size;
+    for (i = 0; i<f_tile; i++) {
+        ctx->bs_tbuf[i] = evc_malloc(size);
+        evc_assert_rv(ctx->bs_tbuf[i], EVC_ERR_OUT_OF_MEMORY);
+        evc_mset(ctx->bs_tbuf[i], 0, size);
+    }
+#endif
+    /* alloc tile information */
+    size = sizeof(EVC_TILE) * f_tile;
+    ctx->tile = evc_malloc(size);
+    evc_assert_rv(ctx->tile, EVC_ERR_OUT_OF_MEMORY);
+    evc_mset(ctx->tile, 0, size);
+
+    /* set tile information */
+    if (pps->uniform_tile_spacing_flag)
+    {
+        for (i = 0; i<w_tile; i++)
+        {
+            col_w[i] = ((i + 1) * w_lcu) / w_tile - (i * w_lcu) / w_tile;
+        }
+        for (j = 0; j<h_tile; j++)
+        {
+            row_h[j] = ((j + 1) * h_lcu) / h_tile - (j * h_lcu) / h_tile;
+        }
+    }
+    else
+    {
+        for (i = 0, t0 = 0; i<(w_tile - 1); i++)
+        {
+            col_w[i] = pps->tile_column_width_minus1[i] + 1;
+            t0 += col_w[i];
+        }
+        col_w[i] = w_lcu - t0;
+
+        for (i = 0, t0 = 0; i<(h_tile - 1); i++)
+        {
+            row_h[i] = pps->tile_row_height_minus1[i] + 1;
+            t0 += row_h[i];
+        }
+        row_h[i] = h_lcu - t0;
+    }
+
+    /* update tile information */
+    tidx = 0;
+    for (y = 0; y<h_tile; y++)
+    {
+        for (x = 0; x<w_tile; x++)
+        {
+            tile = &ctx->tile[tidx];
+            tile->w_ctb = col_w[x];
+            tile->h_ctb = row_h[y];
+            tile->f_ctb = tile->w_ctb * tile->h_ctb;
+            tile->ctba_rs_first = 0;
+            for (i = 0; i<x; i++)
+            {
+                tile->ctba_rs_first += col_w[i];
+            }
+            for (j = 0; j<y; j++)
+            {
+                tile->ctba_rs_first += w_lcu * row_h[j];
+            }
+            tidx++;
+        }
+    }
+
+    /* set tile indices */
+    for (tidx = 0; tidx<(w_tile * h_tile); tidx++)
+    {
+        tile = ctx->tile + tidx;
+        x = PEL2SCU((tile->ctba_rs_first % w_lcu) << ctx->log2_max_cuwh);
+        y = PEL2SCU((tile->ctba_rs_first / w_lcu) << ctx->log2_max_cuwh);
+        t0 = PEL2SCU(tile->w_ctb << ctx->log2_max_cuwh);
+        w = min((ctx->w_scu - x), t0);
+        t0 = PEL2SCU(tile->h_ctb << ctx->log2_max_cuwh);
+        h = min((ctx->h_scu - y), t0);
+
+        map_tidx = ctx->map_tidx + x + y * ctx->w_scu;
+        for (j = 0; j<h; j++)
+        {
+            for (i = 0; i<w; i++)
+            {
+                map_tidx[i] = tidx;
+            }
+            map_tidx += ctx->w_scu;
+        }
+    }
+
+    return EVC_OK;
+}
+#endif
+
 int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
 {
-    EVC_BSR   *bs;
-    EVCD_SBAC *sbac;
+    EVC_BSR   * bs;
+    EVCD_SBAC * sbac;
     int         ret;
     int         size;
-
+#if EVC_TILE_SUPPORT
+    EVC_TILE  * tile;
+    int         lcu_cnt_in_tile = 0;
+    int         col_bd = 0;
+#endif
     size = sizeof(s8) * ctx->f_scu * REFP_NUM;
     evc_mset_x64a(ctx->map_refi, -1, size);
 
@@ -1917,24 +2154,93 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
     bs = &ctx->bs;
     sbac = GET_SBAC_DEC(bs);
 
+#if !EVC_TILE_SUPPORT
     /* reset SBAC */
     evcd_eco_sbac_reset(bs, ctx->sh.slice_type, ctx->sh.qp, ctx->sps.tool_cm_init);
+#endif
 
 #if DQP
-    /* reset dqp used map data */
-    {
-        int size;
-        size = sizeof(s8) * ctx->f_scu;
-        evc_mset_x64a(ctx->map_dqp_used, DQP_UNUSED, size);
-    }
-#endif
-#if DQP
-    ctx->sh.qp_prev = ctx->sh.qp;
+    ctx->sh.qp_prev_eco = ctx->sh.qp;
 #endif
 
 #if GRAB_STAT
     evc_stat_set_enc_state(FALSE);
 #endif
+
+#if EVC_TILE_SUPPORT
+    for (int i = ctx->sh.first_tile_id; i <= ctx->sh.last_tile_id; i++) // Tile decoding loop
+    {
+        /* Initialize CABAC at each tile*/
+        col_bd = (i % ctx->w_tile) ? col_bd + ctx->tile[i - 1].w_ctb : 0;
+        evcd_eco_sbac_reset(bs, ctx->sh.slice_type, ctx->sh.qp, ctx->sps.tool_cm_init);
+        tile = &(ctx->tile[i]);
+        core->x_lcu = (ctx->tile[i].ctba_rs_first) % ctx->w_lcu; //entry point lcu's x location
+        core->y_lcu = (ctx->tile[i].ctba_rs_first) / ctx->w_lcu; // entry point lcu's y location
+        lcu_cnt_in_tile = ctx->tile[i].f_ctb; //Total LCUs in the current tile
+        update_core_loc_param(ctx, core);
+
+        while (1) //LCU decoding with in a tile
+        {
+            int same_layer_split[4];
+            int split_allow[6] = { 0, 0, 0, 0, 0, 1 };
+            evc_assert_rv(core->lcu_num < ctx->f_lcu, EVC_ERR_UNEXPECTED);
+#if M50662_HISTORY_CTU_ROW_RESET
+            if (core->x_pel == 0)
+            {
+                ret = evcd_hmvp_init(core);
+                evc_assert_rv(ret == EVC_OK, ret);
+            }
+#endif
+            /* invoke coding_tree() recursion */
+            evc_mset(core->split_mode, 0, sizeof(s8) * MAX_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
+#if APS_ALF_CTU_FLAG
+            evc_AlfSliceParam* alfSliceParam = &(ctx->sh.alf_sh_param);
+            if ((alfSliceParam->isCtbAlfOn) && (ctx->sh.alf_on))
+            {
+                EVC_TRACE_COUNTER;
+                EVC_TRACE_STR("Usage of ALF: ");
+#if ALF_CTU_MAP_DYNAMIC
+                *(alfSliceParam->alfCtuEnableFlag + core->lcu_num) = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ctb_alf_flag);
+                EVC_TRACE_INT((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)));
+#else
+                alfSliceParam->alfCtuEnableFlag[0][core->lcu_num] = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ctb_alf_flag);
+                EVC_TRACE_INT((int)(alfTileGroupParam->alfCtuEnableFlag[0][core->lcu_num]));
+#endif
+                EVC_TRACE_STR("\n");
+            }
+#endif
+            ret = evcd_eco_tree(ctx, core, core->x_pel, core->y_pel, ctx->log2_max_cuwh, ctx->log2_max_cuwh, 0, 0, bs, sbac, 1
+                , 0, NO_SPLIT, same_layer_split, 0, split_allow, 0, 0
+#if DQP
+                , 0
+#endif
+#if M50761_CHROMA_NOT_SPLIT
+                , evc_get_default_tree_cons()
+#endif
+            );
+            evc_assert_g(EVC_SUCCEEDED(ret), ERR);
+
+            /* set split flags to map */
+            evc_mcpy(ctx->map_split[core->lcu_num], core->split_mode, sizeof(s8) * MAX_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
+            evc_mcpy(ctx->map_suco[core->lcu_num], core->suco_flag, sizeof(s8) * MAX_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
+
+            lcu_cnt_in_tile--;
+
+            /* read end_of_picture_flag */
+            if (evcd_eco_tile_end_flag(bs, sbac))
+            {
+                break;
+            }
+            core->x_lcu++;
+            if (core->x_lcu >= ctx->tile[i].w_ctb + col_bd)
+            {
+                core->x_lcu = (tile->ctba_rs_first) % ctx->w_lcu;
+                core->y_lcu++;
+            }
+            update_core_loc_param(ctx, core);
+        }
+    }
+#else
     while(1)
     {
         int same_layer_split[4];
@@ -1999,7 +2305,7 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
         core->y_pel = core->y_lcu << ctx->log2_max_cuwh;
     }
 
-
+#endif
     return EVC_OK;
 
 ERR:
@@ -2142,8 +2448,12 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         sh->alf_sh_param.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
         memset(sh->alf_sh_param.alfCtuEnableFlag, 1, N_C * ctx->f_lcu * sizeof(u8));
 #endif
-        ret = evcd_eco_sh(bs, &ctx->sps, &ctx->pps, sh);
+        ret = evcd_eco_sh(bs, &ctx->sps, &ctx->pps, sh, ctx->nalu.nal_unit_type_plus1 - 1);
 
+#if EVC_TILE_SUPPORT  
+        ret = set_tile_info(ctx, ctx->core, pps);
+        evc_assert_rv(EVC_SUCCEEDED(ret), ret);
+#endif
         /* HLS_RPL Test printing the content of RPL0 and RPL1 for each slice*/
 /*
         printf("\nCurrent slice POC: %d RPL0 Index: %d RPL1 Index: %d\n", sh->poc, sh->rpl_l0_idx, sh->rpl_l1_idx);
@@ -2227,10 +2537,17 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         /* deblocking filter */
         if(ctx->sh.deblocking_filter_on)
         {
+#if EVC_TILE_SUPPORT
+            for (int i = sh->first_tile_id; i <= sh->last_tile_id; i++)
+            {
+                ret = ctx->fn_deblock(ctx, i);
+                evc_assert_rv(EVC_SUCCEEDED(ret), ret);
+            }
+#else
             ret = ctx->fn_deblock(ctx);
             evc_assert_rv(EVC_SUCCEEDED(ret), ret);
+#endif
         }
-
 
 #if ALF
         /* adaptive loop filter */
@@ -2258,6 +2575,9 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     }
     else if (nalu->nal_unit_type_plus1 - 1 == EVC_SEI_NUT)
     {
+
+        ret = evcd_eco_udata(ctx, bs);
+            
         if (ctx->use_pic_sign && ctx->pic_sign_exist)
         {
             ret = evcd_picbuf_check_signature(ctx->pic, ctx->pic_sign);

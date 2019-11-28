@@ -118,9 +118,18 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 
     /* get residual */
     evce_diff_pred(x, y, log2_cuw, log2_cuh, pi->pic_o, pred[0], coef);
-
+#if DQP_RDO
+    if(ctx->pps.cu_qp_delta_enabled_flag)
+    {
+        evce_set_qp(ctx, core, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2].curr_QP);
+    }
+#endif
 //    /* transform and quantization */
+#if DQP_RDO
+    tnnz = evce_sub_block_tq(coef, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, pi->slice_type, nnz
+#else
     tnnz = evce_sub_block_tq(coef, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, pi->slice_type, nnz
+#endif
       , core->nnz_sub, 0, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt
 #if ATS_INTRA_PROCESS
       , 0, 0
@@ -212,6 +221,9 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 
 
         SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
+#if DQP_RDO
+        DQP_LOAD(core->dqp_temp_run, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2]);
+#endif
         evce_sbac_bit_reset(&core->s_temp_run);
 
         evce_rdo_bit_cnt_cu_ibc(ctx, core, ctx->sh.slice_type, core->scup, pi->mvd, coef, mvp_idx, pi->ibc_flag);
@@ -223,6 +235,9 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
         {
             cost_best = cost;
             SBAC_STORE(core->s_temp_best, core->s_temp_run);
+#if DQP_RDO
+            DQP_STORE(core->dqp_temp_best, core->dqp_temp_run);
+#endif
         }
 
         SBAC_LOAD(core->s_temp_prev_comp_best, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
@@ -242,6 +257,17 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
     }
     else
     {
+
+#if DQP_RDO
+        if(ctx->pps.cu_qp_delta_enabled_flag)
+        {
+            if(core->cu_qp_delta_code_mode != 2)
+            {
+                evce_set_qp(ctx, core, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2].prev_QP);
+            }
+        }
+#endif
+
 #if M50761_CHROMA_NOT_SPLIT
         for (i = start_c; i < end_c; i++)
 #else
@@ -301,7 +327,9 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
         bit_cnt = evce_get_bit_number(&core->s_temp_run);
         cost_best += RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);
         SBAC_STORE(core->s_temp_best, core->s_temp_run);
-
+#if DQP_RDO
+        DQP_STORE(core->dqp_temp_best, core->dqp_temp_run);
+#endif
     }
 
     return cost_best;

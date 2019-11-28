@@ -578,13 +578,44 @@ void EncAdaptiveLoopFilter::Enc_ALFProcess(CodingStructure& cs, const double *la
   pel * orgYuv2 = picOrig->v;
   const int oStride1 = picOrig->s_c;
 
-  copy_and_extend( recLuma0,  s, recoYuv0,      rStride,        w,        h, m );
-  copy_and_extend( recLuma1, s1, recoYuv1, picReco->s_c, (w >> 1), (h >> 1), m );
-  copy_and_extend( recLuma2, s1, recoYuv2, picReco->s_c, (w >> 1), (h >> 1), m );
+#if EVC_TILE_SUPPORT
+  int ii, x_l, x_r, y_l, y_r, w_tile, h_tile;
+  int col_bd2 = 0;
+
+  for (ii = ctx->sh.first_tile_id; ii <= ctx->sh.last_tile_id; ii++)
+  {
+      int x_loc = ((ctx->tile[ii].ctba_rs_first) % ctx->w_lcu);
+      int y_loc = ((ctx->tile[ii].ctba_rs_first) / ctx->w_lcu);
+      x_l = x_loc << MAX_CU_LOG2; //entry point CTB's x location
+      y_l = y_loc << MAX_CU_LOG2; //entry point CTB's y location
+      x_r = x_l + ((int)(ctx->tile[ii].w_ctb) << MAX_CU_LOG2);
+      y_r = y_l + ((int)(ctx->tile[ii].h_ctb) << MAX_CU_LOG2);
+      w_tile = x_r > ((int)ctx->w_scu << MIN_CU_LOG2) ? ((int)ctx->w_scu << MIN_CU_LOG2) - x_l : x_r - x_l;
+      h_tile = y_r > ((int)ctx->h_scu << MIN_CU_LOG2) ? ((int)ctx->h_scu << MIN_CU_LOG2) - y_l : y_r - y_l;
+      Pel * recLuma0_tile = recLuma0 + x_l + y_l * s;
+      Pel * recoYuv0_tile = recoYuv0 + x_l + y_l * rStride;
+
+      copy_and_extend_tile(recLuma0_tile, s, recoYuv0_tile, rStride, w_tile, h_tile, m);
+
+      // derive classification
+      Area blk = { x_l, y_l, w_tile, h_tile };
+      deriveClassification(m_classifier, recLuma0, s, &blk);
+  }
+#else
+  copy_and_extend(recLuma0, s, recoYuv0, rStride, w, h, m);
+  copy_and_extend(recLuma1, s1, recoYuv1, picReco->s_c, (w >> 1), (h >> 1), m);
+  copy_and_extend(recLuma2, s1, recoYuv2, picReco->s_c, (w >> 1), (h >> 1), m);
 
   // derive classification
-  Area blk = {0, 0, w, h};
+  Area blk = { 0, 0, w, h };
   deriveClassification(m_classifier, recLuma0, s, &blk);
+#endif
+
+#if EVC_TILE_SUPPORT
+  copy_and_extend(recLuma0, s, recoYuv0, rStride, w, h, m);
+  copy_and_extend(recLuma1, s1, recoYuv1, picReco->s_c, (w >> 1), (h >> 1), m);
+  copy_and_extend(recLuma2, s1, recoYuv2, picReco->s_c, (w >> 1), (h >> 1), m);
+#endif
 
   YUV orgYuv, recLuma, recYuv;
   orgYuv.yuv[0] = orgYuv0;  orgYuv.s[0] = oStride;
@@ -642,11 +673,56 @@ void EncAdaptiveLoopFilter::Enc_ALFProcess(CodingStructure& cs, const double *la
       m_resetALFBufferFlag = true;
 
   }
+#if EVC_TILE_SUPPORT
+  for (ii = ctx->sh.first_tile_id; ii <= ctx->sh.last_tile_id; ii++)
+  {
+      int x_loc = ((ctx->tile[ii].ctba_rs_first) % ctx->w_lcu);
+      int y_loc = ((ctx->tile[ii].ctba_rs_first) / ctx->w_lcu);
 
+      col_bd2 = (ii % ctx->param.tile_columns) ? col_bd2 + ctx->tile[ii - 1].w_ctb : 0;
+
+      x_l = x_loc << MAX_CU_LOG2; //entry point CTB's x location
+      y_l = y_loc << MAX_CU_LOG2; //entry point CTB's y location
+      x_r = x_l + ((int)(ctx->tile[ii].w_ctb) << MAX_CU_LOG2);
+      y_r = y_l + ((int)(ctx->tile[ii].h_ctb) << MAX_CU_LOG2);
+      w_tile = x_r >((int)ctx->w_scu << MIN_CU_LOG2) ? ((int)ctx->w_scu << MIN_CU_LOG2) - x_l : x_r - x_l;
+      h_tile = y_r > ((int)ctx->h_scu << MIN_CU_LOG2) ? ((int)ctx->h_scu << MIN_CU_LOG2) - y_l : y_r - y_l;
+      //This is for YUV420 only 
+      Pel * recLuma0_tile = recLuma0 + x_l + y_l * s;
+      Pel * recLuma1_tile = recLuma1 + (x_l >> 1) + (y_l >> 1) * (s1);
+      Pel * recLuma2_tile = recLuma2 + (x_l >> 1) + (y_l >> 1) * (s1);
+      Pel * recoYuv0_tile = recoYuv0 + x_l + y_l * rStride;
+      Pel * recoYuv1_tile = recoYuv1 + (x_l >> 1) + (y_l >> 1) * picReco->s_c;
+      Pel * recoYuv2_tile = recoYuv2 + (x_l >> 1) + (y_l >> 1) * picReco->s_c;
+
+      copy_and_extend_tile(recLuma0_tile, s, recoYuv0_tile, rStride, w_tile, h_tile, m);
+      copy_and_extend_tile(recLuma1_tile, s1, recoYuv1_tile, picReco->s_c, (w_tile >> 1), (h_tile >> 1), m);
+      copy_and_extend_tile(recLuma2_tile, s1, recoYuv2_tile, picReco->s_c, (w_tile >> 1), (h_tile >> 1), m);
+
+      // reconstruct 
+      alfReconstructor(cs, alfSliceParam, orgYuv.yuv[0], orgYuv.s[0], recLuma.yuv[0], recLuma.s[0], COMPONENT_Y
+#if EVC_TILE_SUPPORT
+          , ii, col_bd2
+#endif
+      );
+      alfReconstructor(cs, alfSliceParam, orgYuv.yuv[1], orgYuv.s[1], recLuma.yuv[1], recLuma.s[1], COMPONENT_Cb
+#if EVC_TILE_SUPPORT
+          , ii, col_bd2
+#endif
+      );
+      alfReconstructor(cs, alfSliceParam, orgYuv.yuv[2], orgYuv.s[2], recLuma.yuv[2], recLuma.s[2], COMPONENT_Cr
+#if EVC_TILE_SUPPORT
+          , ii, col_bd2
+#endif
+      );
+  }
+
+#else
   // reconstruct 
   alfReconstructor(cs, alfSliceParam, orgYuv.yuv[0], orgYuv.s[0], recLuma.yuv[0], recLuma.s[0], COMPONENT_Y);
   alfReconstructor(cs, alfSliceParam, orgYuv.yuv[1],  orgYuv.s[1], recLuma.yuv[1], recLuma.s[1], COMPONENT_Cb);
   alfReconstructor(cs, alfSliceParam, orgYuv.yuv[2],  orgYuv.s[2], recLuma.yuv[2], recLuma.s[2], COMPONENT_Cr);
+#endif
 
   for( int i = 0; i < ctx->f_lcu; i++ )
   {
@@ -822,16 +898,54 @@ void EncAdaptiveLoopFilter::alfEncoder( CodingStructure& cs, AlfSliceParam* alfS
   
   copyCtuEnableFlag(m_ctuEnableFlag, m_ctuEnableFlagTmp, channel);
 }
-
-void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam* alfSliceParam, const pel * orgUnitBuf, const int oStride, pel * recExtBuf, int recStride, const ComponentID compID)
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+void EncAdaptiveLoopFilter::tile_boundary_check(int* availableL, int* availableR, int* availableT, int* availableB, const int width, const int height, int xPos, int yPos, int x_l, int x_r, int y_l, int y_r)
 {
-  const ChannelType channel = compID == COMPONENT_Y ? CHANNEL_TYPE_LUMA : CHANNEL_TYPE_CHROMA;
+    if (xPos == x_l)
+        *availableL = 0;
+    else
+        *availableL = 1;
+    if (xPos + width == x_r)
+        *availableR = 0;
+    else
+        *availableR = 1;
+    if (yPos == y_l)
+        *availableT = 0;
+    else
+        *availableT = 1;
+    if (yPos + height == y_r)
+        *availableB = 0;
+    else
+        *availableB = 1;
+}
+#endif
+void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam* alfSliceParam, const pel * orgUnitBuf, const int oStride, pel * recExtBuf, int recStride, const ComponentID compID
+#if EVC_TILE_SUPPORT
+    , int tile_idx, int col_bd2
+#endif
+)
+{
+#if EVC_TILE_SUPPORT  
+    int x_l, x_r, y_l, y_r;
+#endif  
+    const ChannelType channel = compID == COMPONENT_Y ? CHANNEL_TYPE_LUMA : CHANNEL_TYPE_CHROMA;
 
   reconstructCoeff(alfSliceParam, channel, false, isLuma(channel));
   EVCE_CTX* ctx = (EVCE_CTX*)(cs.pCtx);
   EVC_PIC* recPic = PIC_MODE(ctx);
-  
   pel * recBuf = NULL;
+
+#if EVC_TILE_SUPPORT
+  int x_loc = ((ctx->tile[tile_idx].ctba_rs_first) % ctx->w_lcu);
+  int y_loc = ((ctx->tile[tile_idx].ctba_rs_first) / ctx->w_lcu);
+  x_l = x_loc << MAX_CU_LOG2; //entry point lcu's x location
+  y_l = y_loc << MAX_CU_LOG2; // entry point lcu's y location
+  x_r = x_l + ((int)(ctx->tile[tile_idx].w_ctb) << MAX_CU_LOG2);
+  y_r = y_l + ((int)(ctx->tile[tile_idx].h_ctb) << MAX_CU_LOG2);
+  x_r = x_r > ((int)ctx->w_scu << MIN_CU_LOG2) ? ((int)ctx->w_scu << MIN_CU_LOG2) : x_r;
+  y_r = y_r > ((int)ctx->h_scu << MIN_CU_LOG2) ? ((int)ctx->h_scu << MIN_CU_LOG2) : y_r;
+#endif
+  
   switch(compID)
   {
   case COMPONENT_Y:
@@ -847,22 +961,176 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
       assert(0);
   }
 
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+  const int m = MAX_ALF_FILTER_LENGTH >> 1;
+  int l_zero_offset = (MAX_CU_SIZE + m + m) * m + m;
+  int l_stride = MAX_CU_SIZE + 2 * m;
+  pel l_buffer[(MAX_CU_SIZE + 2 * m) * (MAX_CU_SIZE + 2 * m)];
+  pel *p_buffer = l_buffer + l_zero_offset;
+  int l_zero_offset_chroma = ((MAX_CU_SIZE >> 1) + m + m) * m + m;
+  int l_stride_chroma = (MAX_CU_SIZE >> 1) + m + m;
+  pel l_buffer_cb[((MAX_CU_SIZE >> 1) + 2 * m) *((MAX_CU_SIZE >> 1) + 2 * m)];
+  pel l_buffer_cr[((MAX_CU_SIZE >> 1) + 2 * m) *((MAX_CU_SIZE >> 1) + 2 * m)];
+  pel *p_buffer_cr = l_buffer_cr + l_zero_offset_chroma;
+  pel *p_buffer_cb = l_buffer_cb + l_zero_offset_chroma;
+#endif
+
   {
     if (alfSliceParam->enabledFlag[compID])
     {
-      int ctuIdx = 0;
       const int chromaScaleX = isLuma(channel) ? 0 : 1;
       const int chromaScaleY = isLuma(channel) ? 0 : 1; //getComponentScaleY(compID, recBuf.chromaFormat);
+#if EVC_TILE_SUPPORT     
+      int ctuIdx = (x_loc)+(y_loc)* ctx->w_lcu;
+#else
+      int ctuIdx = 0;
+#endif
       AlfFilterType filterType = compID == COMPONENT_Y ? ALF_FILTER_7 : ALF_FILTER_5;
       short* coeff = compID == COMPONENT_Y ? m_coeffFinal : alfSliceParam->chromaCoeff;
+#if EVC_TILE_SUPPORT  
+      for (int yPos = y_l; yPos < y_r; yPos += ctx->max_cuwh)
+      {
+        for (int xPos = x_l; xPos < x_r; xPos += ctx->max_cuwh)
+        {
+#else
       for (int yPos = 0; yPos < recPic->h_l; yPos += ctx->max_cuwh)
       {
-        for (int xPos = 0; xPos < recPic->w_l; xPos += ctx->max_cuwh)
-        {
+          for (int xPos = 0; xPos < recPic->w_l; xPos += ctx->max_cuwh)
+          {
+#endif
           const int width = (xPos + ctx->max_cuwh > recPic->w_l) ? (recPic->w_l - xPos) : ctx->max_cuwh;
           const int height = (yPos + ctx->max_cuwh > recPic->h_l) ? (recPic->h_l - yPos) : ctx->max_cuwh;
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+          int availableL, availableR, availableT, availableB;
+          availableL = availableR = availableT = availableB = 1;
+          if (!(ctx->pps.loop_filter_across_tiles_enabled_flag))
+          {
+              tile_boundary_check(&availableL, &availableR, &availableT, &availableB, width, height, xPos, yPos, x_l, x_r, y_l, y_r);
+          }
+          if (compID == COMPONENT_Y)
+          {
+              for (int i = m; i < height + m; i++) {
+                  int dstPos = i * l_stride - l_zero_offset;
+                  int srcPos_offset = xPos + yPos * recStride;
+                  int stride = (width == ctx->max_cuwh ? l_stride : width + m + m);
+                  memcpy(p_buffer + dstPos + m, recExtBuf + srcPos_offset + (i - m) * recStride, sizeof(pel) * (stride - 2 * m));
+                  for (int j = 0; j < m; j++)
+                  {
+                      if (availableL)
+                          p_buffer[dstPos + j] = recExtBuf[srcPos_offset + (i - m) * recStride - m + j];
+                      else
+                          p_buffer[dstPos + j] = recExtBuf[srcPos_offset + (i - m) * recStride + m - j];
+                      if (availableR)
+                          p_buffer[dstPos + j + width + m] = recExtBuf[srcPos_offset + (i - m) * recStride + width + j];
+                      else
+                          p_buffer[dstPos + j + width + m] = recExtBuf[srcPos_offset + (i - m) * recStride + width - j - 2];
+                  }
+          }
+              for (int i = 0; i < m; i++) {
+                  int dstPos = i * l_stride - l_zero_offset;
+                  int srcPos_offset = xPos + yPos * recStride;
+                  int stride = (width == ctx->max_cuwh ? l_stride : width + m + m);
+                  if (availableT)
+                      memcpy(p_buffer + dstPos, recExtBuf + srcPos_offset - (m - i) * recStride - m, sizeof(pel) * stride);
+                  else
+                      memcpy(p_buffer + dstPos, p_buffer + dstPos + (2 * m - 2 * i) * l_stride, sizeof(pel) * stride);
+              }
+              for (int i = height + m; i < height + m + m; i++) {
+                  int dstPos = i * l_stride - l_zero_offset;
+                  int srcPos_offset = xPos + yPos * recStride;
+                  int stride = (width == ctx->max_cuwh ? l_stride : width + m + m);
+                  if (availableB)
+                      memcpy(p_buffer + dstPos, recExtBuf + srcPos_offset + (i - m) * recStride - m, sizeof(pel) * stride);
+                  else
+                      memcpy(p_buffer + dstPos, p_buffer + dstPos - (2 * (i - height - m) + 2) * l_stride, sizeof(pel) * stride);
+              }
+        }
+          else if (compID == COMPONENT_Cb)
+          {
+              for (int i = m; i < ((height >> 1) + m); i++) {
+                  int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
+                  int srcPos_offset = (xPos >> 1) + (yPos >> 1) * recStride;
+                  int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> 1) + m + m);
+                  memcpy(p_buffer_cb + dstPos + m, recExtBuf + srcPos_offset + (i - m) * recStride, sizeof(pel) * (stride - 2 * m));
+                  for (int j = 0; j < m; j++)
+                  {
+                      if (availableL)
+                          p_buffer_cb[dstPos + j] = recExtBuf[srcPos_offset + (i - m) * recStride - m + j];
+                      else
+                          p_buffer_cb[dstPos + j] = recExtBuf[srcPos_offset + (i - m) * recStride + m - j];
+                      if (availableR)
+                          p_buffer_cb[dstPos + j + (width >> 1) + m] = recExtBuf[srcPos_offset + (i - m) * recStride + (width >> 1) + j];
+                      else
+                          p_buffer_cb[dstPos + j + (width >> 1) + m] = recExtBuf[srcPos_offset + (i - m) * recStride + (width >> 1) - j - 2];
+                  }
+              }
 
+              for (int i = 0; i < m; i++) {
+                  int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
+                  int srcPos_offset = (xPos >> 1) + (yPos >> 1) * recStride;
+                  int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> 1) + m + m);
+                  if (availableT)
+                      memcpy(p_buffer_cb + dstPos, recExtBuf + srcPos_offset - (m - i) * recStride - m, sizeof(pel) * stride);
+                  else
+                      memcpy(p_buffer_cb + dstPos, p_buffer_cb + dstPos + (2 * m - 2 * i) * l_stride_chroma, sizeof(pel) * stride);
+              }
+
+              for (int i = ((height >> 1) + m); i < ((height >> 1) + m + m); i++) {
+                  int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
+                  int srcPos_offset = (xPos >> 1) + (yPos >> 1) * recStride;
+                  int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> 1) + m + m);
+                  if (availableB)
+                      memcpy(p_buffer_cb + dstPos, recExtBuf + srcPos_offset + (i - m) * recStride - m, sizeof(pel) * stride);
+                  else
+                      memcpy(p_buffer_cb + dstPos, p_buffer_cb + dstPos - (2 * (i - (height >> 1) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
+              }
+          }
+          else
+          {
+              for (int i = m; i < ((height >> 1) + m); i++) {
+                  int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
+                  int srcPos_offset = (xPos >> 1) + (yPos >> 1) * recStride;
+                  int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> 1) + m + m);
+                  memcpy(p_buffer_cr + dstPos + m, recExtBuf + srcPos_offset + (i - m) * recStride, sizeof(pel) * (stride - 2 * m));
+                  for (int j = 0; j < m; j++)
+                  {
+                      if (availableL)
+                          p_buffer_cr[dstPos + j] = recExtBuf[srcPos_offset + (i - m) * recStride - m + j];
+                      else
+                          p_buffer_cr[dstPos + j] = recExtBuf[srcPos_offset + (i - m) * recStride + m - j];
+                      if (availableR)
+                          p_buffer_cr[dstPos + j + (width >> 1) + m] = recExtBuf[srcPos_offset + (i - m) * recStride + (width >> 1) + j];
+                      else
+                          p_buffer_cr[dstPos + j + (width >> 1) + m] = recExtBuf[srcPos_offset + (i - m) * recStride + (width >> 1) - j - 2];
+                  }
+              }
+
+              for (int i = 0; i < m; i++) {
+                  int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
+                  int srcPos_offset = (xPos >> 1) + (yPos >> 1) * recStride;
+                  int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> 1) + m + m);
+                  if (availableT)
+                      memcpy(p_buffer_cr + dstPos, recExtBuf + srcPos_offset - (m - i) * recStride - m, sizeof(pel) * stride);
+                  else
+                      memcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos + (2 * m - 2 * i) * l_stride_chroma, sizeof(pel) * stride);
+              }
+
+              for (int i = ((height >> 1) + m); i < ((height >> 1) + m + m); i++) {
+                  int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
+                  int srcPos_offset = (xPos >> 1) + (yPos >> 1) * recStride;
+                  int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> 1) + m + m);
+                  if (availableB)
+                      memcpy(p_buffer_cr + dstPos, recExtBuf + srcPos_offset + (i - m) * recStride - m, sizeof(pel) * stride);
+                  else
+                      memcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos - (2 * (i - (height >> 1) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
+              }
+          }
+#endif
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+          Area blk = { 0, 0, width >> chromaScaleX, height >> chromaScaleY };
+#else
           Area blk = { xPos >> chromaScaleX, yPos >> chromaScaleY, width >> chromaScaleX, height >> chromaScaleY };
+#endif
 
           if (m_ctuEnableFlag[compID][ctuIdx])
           {
@@ -871,11 +1139,27 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
 
               if (filterType == ALF_FILTER_5)
               {
-                m_AdaptiveLoopFilter.m_filter5x5Blk(m_classifier, recBuf, stride, recExtBuf, recStride, &blk, compID, coeff, &(m_clpRngs.comp[(int)compID]));
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+                  if (compID == COMPONENT_Cb)
+                  {
+                      m_AdaptiveLoopFilter.m_filter5x5Blk(m_classifier, recBuf + (xPos >> 1) + (yPos >> 1) * recPic->s_c, recPic->s_c, p_buffer_cb, l_stride_chroma, &blk, compID, coeff, &(m_clpRngs.comp[(int)compID]));
+                  }
+                  else
+                  {
+                      m_AdaptiveLoopFilter.m_filter5x5Blk(m_classifier, recBuf + (xPos >> 1) + (yPos >> 1) * recPic->s_c, recPic->s_c, p_buffer_cr, l_stride_chroma, &blk, compID, coeff, &(m_clpRngs.comp[(int)compID]));
+                  }
+#else
+                  m_AdaptiveLoopFilter.m_filter5x5Blk(m_classifier, recBuf, stride, recExtBuf, recStride, &blk, compID, coeff, &(m_clpRngs.comp[(int)compID]));
+#endif
               }
               else if (filterType == ALF_FILTER_7)
               {
-                m_AdaptiveLoopFilter.m_filter7x7Blk(m_classifier, recBuf, stride, recExtBuf, recStride, &blk, compID, coeff, &(m_clpRngs.comp[(int)compID]));
+#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+                  deriveClassification(m_classifier, p_buffer, l_stride, &blk);
+                  m_AdaptiveLoopFilter.m_filter7x7Blk(m_classifier, recBuf + xPos + yPos * (recPic->s_l), recPic->s_l, p_buffer, l_stride, &blk, compID, coeff, &(m_clpRngs.comp[(int)compID]));
+#else
+                  m_AdaptiveLoopFilter.m_filter7x7Blk(m_classifier, recBuf, stride, recExtBuf, recStride, &blk, compID, coeff, &(m_clpRngs.comp[(int)compID]));
+#endif
               }
               else
               {
@@ -883,7 +1167,19 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
               }
             }
           }
+#if EVC_TILE_SUPPORT
+          x_loc++;
+
+          if (x_loc >= ctx->tile[tile_idx].w_ctb + col_bd2)
+          {
+              x_loc = ((ctx->tile[tile_idx].ctba_rs_first) % ctx->w_lcu);
+              y_loc++;
+
+          }
+          ctuIdx = x_loc + y_loc * ctx->w_lcu;
+#else
           ctuIdx++;
+#endif
         }
       }
     }

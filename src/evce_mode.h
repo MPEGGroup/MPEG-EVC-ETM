@@ -75,6 +75,7 @@ void evce_sbac_bit_reset(EVCE_SBAC * sbac);
 u32  evce_get_bit_number(EVCE_SBAC * sbac);
 void evce_init_bits_est();
 u16  evc_get_lr(u16 avail_lr);
+u16  evc_get_bef_data_idx(EVCE_CORE * core);
 void evce_init_bef_data(EVCE_CORE * core, EVCE_CTX * ctx);
 
 #if RDO_DBK

@@ -90,8 +90,16 @@ operation: if(sign == 0) return val, else if(sign == 1) return -val */
 
 BOOL is_ptr_aligned(void* ptr, int num_bytes);
 
-u16 evc_get_avail_inter(int x_scu, int y_scu, int w_scu, int h_scu, int scup, int cuw, int cuh, u32 *map_scu);
-u16 evc_get_avail_intra(int x_scu, int y_scu, int w_scu, int h_scu, int scup, int log2_cuw, int log2_cuh, u32 *map_scu);
+u16 evc_get_avail_inter(int x_scu, int y_scu, int w_scu, int h_scu, int scup, int cuw, int cuh, u32 *map_scu
+#if EVC_TILE_SUPPORT
+    , u8* map_tidx
+#endif 
+);
+u16 evc_get_avail_intra(int x_scu, int y_scu, int w_scu, int h_scu, int scup, int log2_cuw, int log2_cuh, u32 *map_scu
+#if EVC_TILE_SUPPORT
+    , u8* map_tidx
+#endif 
+);
 #if IBC
 u16 evc_get_avail_ibc(int x_scu, int y_scu, int w_scu, int h_scu, int scup, int cuw, int cuh, u32 * map_scu);
 #endif
@@ -264,7 +272,11 @@ int evc_get_suco_flag(s8* suco_flag, int cud, int cup, int cuw, int cuh, int lcu
 int evc_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]);
 
 u8  evc_check_suco_cond(int cuw, int cuh, s8 split_mode, int boundary, u8 log2_max_cuwh, u8 suco_max_depth, u8 suco_depth);
-u16 evc_check_nev_avail(int x_scu, int y_scu, int cuw, int cuh, int w_scu, int h_scu, u32 * map_scu);
+u16 evc_check_nev_avail(int x_scu, int y_scu, int cuw, int cuh, int w_scu, int h_scu, u32 * map_scu
+#if EVC_TILE_SUPPORT
+    , u8* map_tidx
+#endif
+);
 
 void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u32* map_scu, u32* map_cu_mode, u8* ctx, u8 slice_type, int sps_cm_init_flag
 #if IBC

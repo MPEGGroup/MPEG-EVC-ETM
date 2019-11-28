@@ -476,7 +476,7 @@ int main(int argc, const char **argv)
                 sh->alf_sh_param.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
                 memset(sh->alf_sh_param.alfCtuEnableFlag, 1, N_C * ctx->f_lcu * sizeof(u8));
 #endif
-                ret = evcd_eco_sh(bs, &ctx->sps, &ctx->pps, sh);
+                ret = evcd_eco_sh(bs, &ctx->sps, &ctx->pps, sh, ctx->nalu.nal_unit_type_plus1 - 1);
                 evc_assert_rv(EVC_SUCCEEDED(ret), ret);
 
                 if (bs_num == 0 && sh->slice_type == SLICE_I)

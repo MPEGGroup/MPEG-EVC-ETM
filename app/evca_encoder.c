@@ -144,12 +144,23 @@ static int op_tool_ats            = 1; /* default on */
 static int  op_constrained_intra_pred = 0;
 static int  op_deblock_alpha_offset = 0; /* default offset 0*/
 static int  op_deblock_beta_offset = 0;  /* default offset 0*/
+
+#if EVC_TILE_SUPPORT
+static int  op_tile_uniform_spacing = 1;
+static int  op_num_tile_columns_minus1 = 0;     //default 1
+static int  op_num_tile_rows_minus1 = 0;        //default 1
+static char op_tile_column_width_array[MAX_NUM_TILES_COL];
+static char op_tile_row_height_array[MAX_NUM_TILES_ROW];
+static int  op_num_slice_in_pic_minus1 = 0;     // default 1 
+static char op_slice_boundary_array[2 * 600];   // Max. slices can be 600 for the highest level 6.2
+#endif
+
 static char  op_rpl0[MAX_NUM_RPLS][256];
 static char  op_rpl1[MAX_NUM_RPLS][256];
 
 #if DQP_CFG
-static int  op_use_dqp             = 0; /*default cu_delta_qp is off*/
-static int  op_cu_qp_delta_area    = 6; /*default cu_delta_qp_area is 6 (i.e. 64)*/
+static int  op_use_dqp             = 0;  /* default cu_delta_qp is off */
+static int  op_cu_qp_delta_area    = 10; /* default cu_delta_qp_area is 10 */
 #endif
 
 typedef enum _OP_FLAGS
@@ -224,6 +235,15 @@ typedef enum _OP_FLAGS
 #endif
     OP_CONSTRAINED_INTRA_PRED,
     OP_TOOL_DBFOFFSET,
+#if EVC_TILE_SUPPORT
+    OP_TILE_UNIFORM_SPACING,
+    OP_NUM_TILE_COLUMNS_MINUS1,
+    OP_NUM_TILE_ROWS_MINUS1,
+    OP_TILE_COLUMN_WIDTH_ARRAY,
+    OP_TILE_ROW_HEIGHT_ARRAY,
+    OP_NUM_SLICE_IN_PIC_MINUS1,
+    OP_SLICE_BOUNDARY_ARRAY,
+#endif
     OP_FLAG_RPL0_0,
     OP_FLAG_RPL0_1,
     OP_FLAG_RPL0_2,
@@ -318,7 +338,7 @@ static EVC_ARGS_OPTION options[] = \
     {
      EVC_ARGS_NO_KEY,  "use_dqp", EVC_ARGS_VAL_TYPE_INTEGER,
      &op_flag[OP_FLAG_USE_DQP], &op_use_dqp,
-     "use_dqp (0, 1)(default: 0) "
+     "use_dqp ({0,..,25})(default: 0) "
     },
     {
         EVC_ARGS_NO_KEY,  "cu_qp_delta_area", EVC_ARGS_VAL_TYPE_INTEGER,
@@ -610,6 +630,43 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_TOOL_DBFOFFSET], &op_deblock_beta_offset,
         "AVC Deblocking filter offset for beta"
     },
+#if EVC_TILE_SUPPORT
+    {
+        EVC_ARGS_NO_KEY,  "tile_uniform_spacing", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_TILE_UNIFORM_SPACING], &op_tile_uniform_spacing,
+        "uniform or non-uniform tile spacing"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "num_tile_columns_minus1", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_NUM_TILE_COLUMNS_MINUS1], &op_num_tile_columns_minus1,
+        "Number of tile columns minus 1"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "num_tile_rows_minus1", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_NUM_TILE_ROWS_MINUS1], &op_num_tile_rows_minus1,
+        "Number of tile rows minus 1"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "tile_column_width_array", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_TILE_COLUMN_WIDTH_ARRAY], &op_tile_column_width_array,
+        "Array of Tile Column Width"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "tile_row_height_array", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_TILE_ROW_HEIGHT_ARRAY], &op_tile_row_height_array,
+        "Array of Tile Row Height"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "num_slices_in_pic_minus1", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_NUM_SLICE_IN_PIC_MINUS1], &op_num_slice_in_pic_minus1,
+        "Number of slices in the pic minus 1"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "slices_boundary_array", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_SLICE_BOUNDARY_ARRAY], &op_slice_boundary_array,
+        "Array of Slice Boundaries"
+    },
+#endif
     {
         EVC_ARGS_NO_KEY,  "RPL0_0", EVC_ARGS_VAL_TYPE_STRING,
         &op_flag[OP_FLAG_RPL0_0], &op_rpl0[0],
@@ -955,6 +1012,54 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->constrained_intra_pred = op_constrained_intra_pred;
     cdsc->deblock_aplha_offset = op_deblock_alpha_offset;
     cdsc->deblock_beta_offset = op_deblock_beta_offset;
+  
+#if EVC_TILE_SUPPORT
+    cdsc->tile_uniform_spacing_flag = op_tile_uniform_spacing;
+    cdsc->tile_columns = op_num_tile_columns_minus1 + 1;
+    cdsc->tile_rows = op_num_tile_rows_minus1 + 1;
+    cdsc->num_slice_in_pic = op_num_slice_in_pic_minus1 + 1;
+
+    if (!cdsc->tile_uniform_spacing_flag)
+    {
+        cdsc->tile_column_width_array[0] = atoi(strtok(op_tile_column_width_array, " "));
+        int j = 1;
+        do
+        {
+            char* val = strtok(NULL, " \r");
+            if (!val)
+                break;
+            cdsc->tile_column_width_array[j++] = atoi(val);
+        } while (1);
+
+        cdsc->tile_row_height_array[0] = atoi(strtok(op_tile_row_height_array, " "));
+        j = 1;
+        do
+        {
+            char* val = strtok(NULL, " \r");
+            if (!val)
+                break;
+            cdsc->tile_row_height_array[j++] = atoi(val);
+        } while (1);
+    }
+
+    if (cdsc->num_slice_in_pic == 1)
+    {
+        cdsc->slice_boundary_array[0] = 0;
+        cdsc->slice_boundary_array[1] = (cdsc->tile_columns * cdsc->tile_rows) - 1;
+    }
+    else // There are more than one slice in the picture
+    {
+        cdsc->slice_boundary_array[0] = atoi(strtok(op_slice_boundary_array, " "));
+        int j = 1;
+        do
+        {
+            char* val = strtok(NULL, " \r");
+            if (!val)
+                break;
+            cdsc->slice_boundary_array[j++] = atoi(val);
+        } while (1);
+    }
+#endif
     for (int i = 0; i < MAX_NUM_RPLS && op_rpl0[i][0] != 0; ++i)
     {
         cdsc->rpls_l0[i].pic_type = get_pic_type(strtok(op_rpl0[i], " "));
@@ -1017,17 +1122,22 @@ static int print_enc_conf(EVCE_CDSC * cdsc)
     printf("ADCC: %d ",    cdsc->tool_adcc);
 #endif
     // TODO: These are not tools, i suggest not report it here, instead as encoder parameters.
-    printf("CB_QP_OFFSET: %d ", cdsc->cb_qp_offset);
-    printf("CR_QP_OFFSET: %d ", cdsc->cr_qp_offset);
+    printf("CB_QP_OFFSET: %d, ", cdsc->cb_qp_offset);
+    printf("CR_QP_OFFSET: %d, ", cdsc->cr_qp_offset);
 #if IBC
-    printf("IBC: %d ", cdsc->ibc_flag);
+    printf("IBC: %d, ", cdsc->ibc_flag);
 #endif
 #if ATS_INTRA_PROCESS
-    printf("ATS: %d ",    cdsc->tool_ats);
+    printf("ATS: %d, ",    cdsc->tool_ats);
 #endif
-    printf("CONSTRAINED_INTRA_PRED: %d ", cdsc->constrained_intra_pred);
-    printf("DBFOffsetA: %d ", cdsc->deblock_aplha_offset);
-    printf("DBFOffsetB: %d ", cdsc->deblock_beta_offset);
+    printf("CONSTRAINED_INTRA_PRED: %d, ", cdsc->constrained_intra_pred);
+    printf("DBFOffsetA: %d, ", cdsc->deblock_aplha_offset);
+    printf("DBFOffsetB: %d, ", cdsc->deblock_beta_offset);
+#if EVC_TILE_SUPPORT
+    printf("Uniform Tile Spacing: %d, ", cdsc->tile_uniform_spacing_flag);
+    printf("Number of Tile Columns: %d, ", cdsc->tile_columns);
+    printf("Number of Tile  Rows: %d ", cdsc->tile_rows);
+#endif
     printf("\n");
     return 0;
 }

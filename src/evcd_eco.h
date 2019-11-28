@@ -50,8 +50,8 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps);
 int evcd_eco_aps(EVC_BSR * bs, EVC_APS * aps);
 int evcd_eco_alf_aps_param(EVC_BSR * bs, EVC_APS * aps);
 #endif
-int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh);
-
+int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut);
+int evcd_eco_udata(EVCD_CTX * ctx, EVC_BSR * bs);
 void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_init_flag);
 int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core);
 
@@ -59,6 +59,11 @@ s8 evcd_eco_split_mode(EVCD_CTX * ctx, EVC_BSR *bs, EVCD_SBAC *sbac, int cuw, in
 s8 evcd_eco_suco_flag(EVC_BSR *bs, EVCD_SBAC *sbac, EVCD_CTX *c, EVCD_CORE *core, int cuw, int cuh, s8 split_mode, int boundary, u8 log2_max_cuwh, int parent_suco);
 #define evcd_eco_slice_end_flag(bs, sbac) \
     ((int)evcd_sbac_decode_bin_trm((bs), (sbac)))
+
+#if EVC_TILE_SUPPORT
+#define evcd_eco_tile_end_flag(bs, sbac) \
+    ((int)evcd_sbac_decode_bin_trm((bs), (sbac)))
+#endif
 
 #if AFFINE
 int evcd_eco_affine_mrg_idx(EVC_BSR * bs, EVCD_SBAC * sbac);

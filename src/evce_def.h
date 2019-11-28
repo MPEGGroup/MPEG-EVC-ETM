@@ -502,7 +502,14 @@ typedef struct _EVCE_PARAM
 #if USE_SLICE_DQP
     int                 qp_incread_frame;           /* 10 bits*/
 #endif
-
+#if EVC_TILE_SUPPORT
+    /* number of tile' columns (1-20)*/
+    int                 tile_columns;
+    /* number of tile' rows (1-22) */
+    int                 tile_rows;
+    /* flag for uniform spacing tiles */
+    int                 uniform_spacing_tiles;
+#endif
 } EVCE_PARAM;
 
 typedef struct _EVCE_SBAC
@@ -518,7 +525,17 @@ typedef struct _EVCE_SBAC
     u32            bitcounter;
     u8             is_bitcount;
 } EVCE_SBAC;
-
+#if DQP
+#if DQP_RDO
+typedef struct _EVCE_DQP
+{
+    s8            prev_QP;
+    s8            curr_QP;
+    s8            cu_qp_delta_is_coded;
+    s8            cu_qp_delta_code;
+} EVCE_DQP;
+#endif
+#endif
 typedef struct _EVCE_CU_DATA
 {
     s8  split_mode[MAX_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
@@ -620,6 +637,9 @@ typedef struct _EVCE_CORE
     /* CU data for RDO */
     EVCE_CU_DATA  cu_data_best[MAX_CU_DEPTH][MAX_CU_DEPTH];
     EVCE_CU_DATA  cu_data_temp[MAX_CU_DEPTH][MAX_CU_DEPTH];
+#if DQP
+    EVCE_DQP      dqp_data[MAX_CU_DEPTH][MAX_CU_DEPTH];
+#endif
     /* temporary coefficient buffer */
     s16            ctmp[N_C][MAX_CU_DIM];
     /* pred buffer of current CU. [1][x][x] is used for bi-pred */
@@ -632,10 +652,15 @@ typedef struct _EVCE_CORE
     /*QP for current encoding CU. Used to derive Luma and chroma qp*/
     u8             qp;
     u8             cu_qp_delta_code;
-    u16            x_dqp;
-    u16            y_dqp;
     u8             cu_qp_delta_is_coded;
     u8             cu_qp_delta_code_mode;
+#if DQP_RDO
+    EVCE_DQP       dqp_curr_best[MAX_CU_DEPTH][MAX_CU_DEPTH];
+    EVCE_DQP       dqp_next_best[MAX_CU_DEPTH][MAX_CU_DEPTH];
+    EVCE_DQP       dqp_temp_best;
+    EVCE_DQP       dqp_temp_best_merge;
+    EVCE_DQP       dqp_temp_run;
+#endif
 #endif
     /* QP for luma of current encoding CU */
     u8             qp_y;
@@ -664,6 +689,7 @@ typedef struct _EVCE_CORE
     u16            avail_cu;
     /* Left, right availability of current CU */
     u16            avail_lr; 
+    u16            bef_data_idx;
     /* CU mode */
     int            cu_mode;
     /* intra prediction mode */
@@ -724,7 +750,11 @@ typedef struct _EVCE_CORE
     EVCE_SBAC     s_temp_prev_comp_best;
     EVCE_SBAC     s_temp_prev_comp_run;
     EVCE_SBAC     s_curr_before_split[MAX_CU_DEPTH][MAX_CU_DEPTH];
+#if DQP_RDO 
+    EVCE_BEF_DATA bef_data[MAX_CU_DEPTH][MAX_CU_DEPTH][MAX_CU_CNT_IN_LCU][MAX_BEF_DATA_NUM];
+#else
     EVCE_BEF_DATA bef_data[MAX_CU_DEPTH][MAX_CU_DEPTH][MAX_CU_CNT_IN_LCU][NUM_NEIB];
+#endif
 
     double         cost_best;
     u32            inter_satd;
@@ -743,6 +773,12 @@ typedef struct _EVCE_CORE
 #endif
 #if TRACE_ENC_CU_DATA
     u64  trace_idx;
+#endif
+#if EVC_TILE_SUPPORT
+    /* address of tile info */
+    EVC_TILE       * tile;
+    /* current tile index */
+    int            tile_idx;
 #endif
 } EVCE_CORE;
 
@@ -909,11 +945,7 @@ struct _EVCE_CTX
     s16                  (*map_block_size)[2];
 #endif
     s8                    *map_depth;
-    /*map of dqp*/
-#if DQP
-    s8                    *map_input_dqp;
-    u8                    *map_dqp_used;
-#endif
+
 #if RDO_DBK
     EVC_PIC              *pic_dbk;          //one picture that arranges cu pixels and neighboring pixels for deblocking (just to match the interface of deblocking functions)
     s64                    delta_dist[N_C];  //delta distortion from filtering (negative values mean distortion reduced)
@@ -942,7 +974,19 @@ struct _EVCE_CTX
     u8                    *ats_inter_info_pred;   //best-mode ats_inter info
     u8                    *ats_inter_num_pred;
 #endif
-
+#if EVC_TILE_SUPPORT
+    /* Tile information for each index */
+    EVC_TILE              *tile;
+    /* Total number of tiles in the picture*/
+    u32                    tile_cnt;
+    /* temporary tile bitstream store buffer if needed */
+    u8                    *bs_tbuf[MAX_NUM_TILES_ROW * MAX_NUM_TILES_COL];
+    /* bs_tbuf byte size for one tile */
+    int                    bs_tbuf_size;
+    /* tile index map (width in SCU x height in SCU) of
+    raster scan order in a frame */
+    u8                    *map_tidx;
+#endif
     int (*fn_ready)(EVCE_CTX * ctx);
     void (*fn_flush)(EVCE_CTX * ctx);
     int (*fn_enc)(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
@@ -953,7 +997,11 @@ struct _EVCE_CTX
     int (*fn_enc_pic_finish)(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
 
     int (*fn_push)(EVCE_CTX * ctx, EVC_IMGB * img);
-    int (*fn_deblock)(EVCE_CTX * ctx, EVC_PIC * pic);
+    int (*fn_deblock)(EVCE_CTX * ctx, EVC_PIC * pic
+#if EVC_TILE_SUPPORT
+        , int tile_idx
+#endif
+        );
 
 #if ALF
     void* enc_alf;
@@ -1020,7 +1068,11 @@ void evce_platform_deinit(EVCE_CTX * ctx);
 int evce_enc_pic_prepare(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
 int evce_enc_pic_finish(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
 int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
-int evce_deblock_h263(EVCE_CTX * ctx, EVC_PIC * pic);
+int evce_deblock_h263(EVCE_CTX * ctx, EVC_PIC * pic
+#if EVC_TILE_SUPPORT
+    , int tile_idx
+#endif
+);
 int evce_enc(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
 int evce_push_frm(EVCE_CTX * ctx, EVC_IMGB * img);
 int evce_ready(EVCE_CTX * ctx);

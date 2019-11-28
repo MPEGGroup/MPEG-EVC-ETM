@@ -37,6 +37,8 @@
 #include "evc.h"
 #include "evc_port.h"
 
+#define ALF_CTU_MULTIPLE_TILE_SUPPORT             1
+
 //MPEG 128 adoptions
 
 #define M50662                                       1
@@ -148,6 +150,12 @@
 #define DBF                                2  // Deblocking filter: 0 - without DBF, 1 - h.263, 2 - AVC, 3 - HEVC   !!! NOTE: THE SWITCH MAY BE BROKEN !!!
 #define ALF                                1  // Adaptive Loop Filter 
 
+//TILE support
+#define TILE_SUPPORT                       1
+#if     TILE_SUPPORT
+#define EVC_TILE_SUPPORT                   1
+#endif
+
 //fast algorithm
 #define FAST_RECURSE_OPT                   1
 #define FAST_RECURSE_OPT_FIX               1 
@@ -162,10 +170,7 @@
 #define DQP_EVC                            1
 #if DQP_EVC
 #define DQP                                1
-#define DQP_UNUSED                         (0)
-#define RANDOM_DQP_GENERATION              1 /* test for dqp */
-
-#define DQP_IN_RANGE(x)                    (x >= -26 && x <= 25)
+#define DQP_RDO                            1
 #define GET_QP(qp,dqp)                     ((qp + dqp + 52) % 52)
 #define GET_LUMA_QP(qp)                    (qp + 6 * (BIT_DEPTH - 8))
 #endif
@@ -637,6 +642,8 @@ extern int fp_trace_started;
 #define MIN_TR_SIZE                       (1 << MIN_TR_LOG2)
 #define MAX_TR_DIM                        (MAX_TR_SIZE * MAX_TR_SIZE)
 #define MIN_TR_DIM                        (MIN_TR_SIZE * MIN_TR_SIZE)
+
+#define MAX_BEF_DATA_NUM                  (NUM_NEIB << 1)
 
 /* maximum CB count in a LCB */
 #define MAX_CU_CNT_IN_LCU                  (MAX_CU_DIM/MIN_CU_DIM)
@@ -1148,7 +1155,7 @@ typedef struct _EVC_SBAC_CTX
 #if ATS_INTRA_PROCESS   
     SBAC_CTX_MODEL   ats_intra_cu          [NUM_ATS_INTRA_CU_FLAG_CTX];
 #if M50632_SIMPLIFICATION_ATS
-	SBAC_CTX_MODEL   ats_tu[NUM_ATS_INTRA_TU_FLAG_CTX];
+    SBAC_CTX_MODEL   ats_tu[NUM_ATS_INTRA_TU_FLAG_CTX];
 #else
     SBAC_CTX_MODEL   ats_tu_h        [NUM_ATS_INTRA_TU_FLAG_CTX];
     SBAC_CTX_MODEL   ats_tu_v        [NUM_ATS_INTRA_TU_FLAG_CTX];
@@ -1421,6 +1428,7 @@ typedef struct _EVC_SPS
     u8               ibc_flag;                   /* 1 bit : flag of enabling IBC or not */
     int              ibc_log_max_size;           /* log2 max ibc size */
 #endif
+    int              vui_parameters_present_flag;
 } EVC_SPS;
 
 /*****************************************************************************
@@ -1514,6 +1522,7 @@ typedef struct _EVC_SH
     int              num_remaining_tiles_in_slice_minus1;
     int              delta_tile_id_minus1[MAX_NUM_TILES_ROW * MAX_NUM_TILES_COL];
     int              slice_type;
+    int              no_output_of_prior_pics_flag;
     int              slice_alf_enabled_flag;
     int              temporal_mvp_asigned_flag;
     int              collocated_from_list_idx;        // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
@@ -1526,8 +1535,8 @@ typedef struct _EVC_SH
     int              rpl_l0_idx;                            //-1 means this slice does not use RPL candidate in SPS for RPL0
     int              rpl_l1_idx;                            //-1 means this slice does not use RPL candidate in SPS for RPL1
 
-    EVC_RPL         rpl_l0;
-    EVC_RPL         rpl_l1;
+    EVC_RPL          rpl_l0;
+    EVC_RPL          rpl_l1;
 
     u8               num_ref_idx_active_override_flag;
     int              deblocking_filter_on;
@@ -1539,7 +1548,9 @@ typedef struct _EVC_SH
     int              entry_point_offset_minus1[MAX_NUM_TILES_ROW * MAX_NUM_TILES_COL];
 #if DQP
     /*QP of previous cu in decoding order (used for dqp)*/
-    u8               qp_prev;
+    u8               qp_prev_eco;
+    u8               dqp;
+    u8               qp_prev_mode;
 #endif
 
     /* decoding temporal reference */
@@ -1552,19 +1563,36 @@ typedef struct _EVC_SH
     u8               ctb_alf_on;
     u16              num_ctb;
 #if ALF_PARAMETER_APS
-    int                 aps_signaled;
+    int              aps_signaled;
 #if M50662_LUMA_CHROMA_SEPARATE_APS
     int aps_id_y;
     int aps_id_ch;
 #endif
     EVC_APS*         aps;
 #endif
-    evc_AlfSliceParam    alf_sh_param;
+    evc_AlfSliceParam alf_sh_param;
 #endif
-
     /* delta of presentation temporal reference */
     s32              dptr;
 } EVC_SH;
+
+#if EVC_TILE_SUPPORT
+/*****************************************************************************
+* Tiles
+*****************************************************************************/
+typedef struct _EVC_TILE {
+    /* tile width in CTB unit */
+    u16             w_ctb;
+    /* tile height in CTB unit */
+    u16             h_ctb;
+    /* tile size in CTB unit (= w_ctb * h_ctb) */
+    u32             f_ctb;
+    /* first ctb address in raster scan order */
+    u16             ctba_rs_first;
+} EVC_TILE;
+
+/*****************************************************************************/
+#endif
 
 /*****************************************************************************
  * user data types

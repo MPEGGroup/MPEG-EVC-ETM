@@ -2526,13 +2526,23 @@ int evc_get_avail_cu(int neb_scua[MAX_NEB2], u32 * map_cu)
     return avail_cu;
 }
 
-u16 evc_get_avail_inter(int x_scu, int y_scu, int w_scu, int h_scu, int scup, int cuw, int cuh, u32 * map_scu)
+u16 evc_get_avail_inter(int x_scu, int y_scu, int w_scu, int h_scu, int scup, int cuw, int cuh, u32 * map_scu
+#if EVC_TILE_SUPPORT
+    , u8* map_tidx
+#endif 
+)
 {
     u16 avail = 0;
     int scuw = cuw >> MIN_CU_LOG2;
     int scuh = cuh >> MIN_CU_LOG2;
+#if EVC_TILE_SUPPORT
+    int curr_scup = x_scu + y_scu * w_scu;
+#endif
 
     if(x_scu > 0 && !MCU_GET_IF(map_scu[scup - 1]) && MCU_GET_COD(map_scu[scup - 1])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[curr_scup] == map_tidx[scup - 1])
+#endif
 #if IBC
       && !MCU_GET_IBC(map_scu[scup - 1])
 #endif
@@ -2541,6 +2551,9 @@ u16 evc_get_avail_inter(int x_scu, int y_scu, int w_scu, int h_scu, int scup, in
         SET_AVAIL(avail, AVAIL_LE);
 
         if(y_scu + scuh < h_scu  && MCU_GET_COD(map_scu[scup + (scuh * w_scu) - 1]) && !MCU_GET_IF(map_scu[scup + (scuh * w_scu) - 1])
+#if EVC_TILE_SUPPORT
+            && (map_tidx[curr_scup] == map_tidx[scup + (scuh * w_scu) - 1])
+#endif
 #if IBC
           && !MCU_GET_IBC(map_scu[scup + (scuh * w_scu) - 1])
 #endif
@@ -2553,6 +2566,9 @@ u16 evc_get_avail_inter(int x_scu, int y_scu, int w_scu, int h_scu, int scup, in
     if(y_scu > 0)
     {
         if(!MCU_GET_IF(map_scu[scup - w_scu])
+#if EVC_TILE_SUPPORT
+            && (map_tidx[curr_scup] == map_tidx[scup - w_scu])
+#endif
 #if IBC
           && !MCU_GET_IBC(map_scu[scup - w_scu])
 #endif
@@ -2562,6 +2578,9 @@ u16 evc_get_avail_inter(int x_scu, int y_scu, int w_scu, int h_scu, int scup, in
         }
 
         if(!MCU_GET_IF(map_scu[scup - w_scu + scuw - 1])
+#if EVC_TILE_SUPPORT
+            && (map_tidx[curr_scup] == map_tidx[scup - w_scu + scuw - 1])
+#endif
 #if IBC
           && !MCU_GET_IBC(map_scu[scup - w_scu + scuw - 1])
 #endif
@@ -2571,6 +2590,9 @@ u16 evc_get_avail_inter(int x_scu, int y_scu, int w_scu, int h_scu, int scup, in
         }
 
         if(x_scu > 0 && !MCU_GET_IF(map_scu[scup - w_scu - 1]) && MCU_GET_COD(map_scu[scup - w_scu - 1])
+#if EVC_TILE_SUPPORT
+            && (map_tidx[curr_scup] == map_tidx[scup - w_scu - 1])
+#endif
 #if IBC
           && !MCU_GET_IBC(map_scu[scup - w_scu - 1])
 #endif
@@ -2579,13 +2601,20 @@ u16 evc_get_avail_inter(int x_scu, int y_scu, int w_scu, int h_scu, int scup, in
             SET_AVAIL(avail, AVAIL_UP_LE);
         }
         // xxu check??
-        if(x_scu + scuw < w_scu  && MCU_IS_COD_NIF(map_scu[scup - w_scu + scuw]) && MCU_GET_COD(map_scu[scup - w_scu + scuw]))
+        if(x_scu + scuw < w_scu  && MCU_IS_COD_NIF(map_scu[scup - w_scu + scuw]) && MCU_GET_COD(map_scu[scup - w_scu + scuw])
+#if EVC_TILE_SUPPORT
+            && (map_tidx[curr_scup] == map_tidx[scup - w_scu + scuw])
+#endif
+        )
         {
             SET_AVAIL(avail, AVAIL_UP_RI);
         }
     }
 
     if(x_scu + scuw < w_scu && !MCU_GET_IF(map_scu[scup + scuw]) && MCU_GET_COD(map_scu[scup + scuw])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[curr_scup] == map_tidx[scup + scuw])
+#endif
 #if IBC
       && !MCU_GET_IBC(map_scu[scup + scuw])
 #endif
@@ -2594,6 +2623,9 @@ u16 evc_get_avail_inter(int x_scu, int y_scu, int w_scu, int h_scu, int scup, in
         SET_AVAIL(avail, AVAIL_RI);
 
         if(y_scu + scuh < h_scu  && MCU_GET_COD(map_scu[scup + (scuh * w_scu) + scuw]) && !MCU_GET_IF(map_scu[scup + (scuh * w_scu) + scuw])
+#if EVC_TILE_SUPPORT
+            && (map_tidx[curr_scup] == map_tidx[scup + (scuh * w_scu) + scuw])
+#endif
 #if IBC
           && !MCU_GET_IBC(map_scu[scup + (scuh * w_scu) + scuw])
 #endif
@@ -2606,7 +2638,11 @@ u16 evc_get_avail_inter(int x_scu, int y_scu, int w_scu, int h_scu, int scup, in
     return avail;
 }
 
-u16 evc_get_avail_intra(int x_scu, int y_scu, int w_scu, int h_scu, int scup, int log2_cuw, int log2_cuh, u32 * map_scu)
+u16 evc_get_avail_intra(int x_scu, int y_scu, int w_scu, int h_scu, int scup, int log2_cuw, int log2_cuh, u32 * map_scu
+#if EVC_TILE_SUPPORT
+    , u8* map_tidx
+#endif 
+)
 {
     u16 avail = 0;
     int log2_scuw, log2_scuh, scuw, scuh;
@@ -2615,12 +2651,23 @@ u16 evc_get_avail_intra(int x_scu, int y_scu, int w_scu, int h_scu, int scup, in
     log2_scuh = log2_cuh - MIN_CU_LOG2;
     scuw = 1 << log2_scuw;
     scuh = 1 << log2_scuh;
+#if EVC_TILE_SUPPORT
+    int curr_scup = x_scu + y_scu * w_scu;
+#endif
 
-    if(x_scu > 0 && MCU_GET_COD(map_scu[scup - 1]))
+    if(x_scu > 0 && MCU_GET_COD(map_scu[scup - 1])
+#if EVC_TILE_SUPPORT
+        && map_tidx[curr_scup] == map_tidx[scup - 1]
+#endif 
+        )
     {
         SET_AVAIL(avail, AVAIL_LE);
 
-        if(y_scu + scuh + scuw - 1 < h_scu  && MCU_GET_COD(map_scu[scup + (w_scu * (scuw + scuh)) - w_scu - 1]))
+        if(y_scu + scuh + scuw - 1 < h_scu  && MCU_GET_COD(map_scu[scup + (w_scu * (scuw + scuh)) - w_scu - 1])
+#if EVC_TILE_SUPPORT
+            && (map_tidx[curr_scup] == map_tidx[scup + (w_scu * (scuw + scuh)) - w_scu - 1])
+#endif
+            )
         {
             SET_AVAIL(avail, AVAIL_LO_LE);
         }
@@ -2631,22 +2678,38 @@ u16 evc_get_avail_intra(int x_scu, int y_scu, int w_scu, int h_scu, int scup, in
         SET_AVAIL(avail, AVAIL_UP);
         SET_AVAIL(avail, AVAIL_RI_UP);
 
-        if(x_scu > 0 && MCU_GET_COD(map_scu[scup - w_scu - 1]))
+        if(x_scu > 0 && MCU_GET_COD(map_scu[scup - w_scu - 1])
+#if EVC_TILE_SUPPORT
+            && (map_tidx[curr_scup] == map_tidx[scup - w_scu - 1])
+#endif
+            )
         {
             SET_AVAIL(avail, AVAIL_UP_LE);
         }
 
-        if(x_scu + scuw < w_scu  && MCU_GET_COD(map_scu[scup - w_scu + scuw]))
+        if(x_scu + scuw < w_scu  && MCU_GET_COD(map_scu[scup - w_scu + scuw])
+#if EVC_TILE_SUPPORT
+            && (map_tidx[curr_scup] == map_tidx[scup - w_scu + scuw])
+#endif
+            )
         {
             SET_AVAIL(avail, AVAIL_UP_RI);
         }
     }
 
-    if(x_scu + scuw < w_scu && MCU_GET_COD(map_scu[scup + scuw]))
+    if(x_scu + scuw < w_scu && MCU_GET_COD(map_scu[scup + scuw])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[curr_scup] == map_tidx[scup + scuw])
+#endif
+        )
     {
         SET_AVAIL(avail, AVAIL_RI);
 
-        if(y_scu + scuh + scuw - 1 < h_scu  && MCU_GET_COD(map_scu[scup + (w_scu * (scuw + scuh - 1)) + scuw]))
+        if(y_scu + scuh + scuw - 1 < h_scu  && MCU_GET_COD(map_scu[scup + (w_scu * (scuw + scuh - 1)) + scuw])
+#if EVC_TILE_SUPPORT
+            && (map_tidx[curr_scup] == map_tidx[scup + (w_scu * (scuw + scuh - 1)) + scuw])
+#endif
+            )
         {
             SET_AVAIL(avail, AVAIL_LO_RI);
         }
@@ -3334,20 +3397,6 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
 #endif
 }
 
-#if DQP
-u8 * evc_get_dqp_used(int x_scu, int y_scu, int w_scu, u8 * map_dqp_used, int dqp_depth)
-{
-    u8 * dqp;
-    int x_scu_pos, y_scu_pos, scup_pos;
-
-    x_scu_pos = x_scu;
-    y_scu_pos = y_scu;
-    scup_pos = x_scu_pos + y_scu_pos * w_scu;
-    dqp = &map_dqp_used[scup_pos];
-    return  dqp;
-}
-#endif
-
 int evc_get_suco_flag(s8* suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU])
 {
     int ret = EVC_OK;
@@ -3409,18 +3458,33 @@ u8 evc_check_suco_cond(int cuw, int cuh, s8 split_mode, int boundary, u8 log2_ma
     return 1;
 }
 
-u16 evc_check_nev_avail(int x_scu, int y_scu, int cuw, int cuh, int w_scu, int h_scu, u32 * map_scu)
+u16 evc_check_nev_avail(int x_scu, int y_scu, int cuw, int cuh, int w_scu, int h_scu, u32 * map_scu
+#if EVC_TILE_SUPPORT
+    , u8* map_tidx
+#endif
+)
 {
     int scup = y_scu *  w_scu + x_scu;
     int scuw = cuw >> MIN_CU_LOG2;
     u16 avail_lr = 0;
+#if EVC_TILE_SUPPORT
+    int curr_scup = x_scu + y_scu * w_scu;
+#endif
 
-    if(x_scu > 0 && MCU_GET_COD(map_scu[scup - 1]))
+    if(x_scu > 0 && MCU_GET_COD(map_scu[scup - 1])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[curr_scup] == map_tidx[scup - 1])
+#endif
+        )
     {
         avail_lr+=1;
     }
 
-    if(x_scu + scuw < w_scu && MCU_GET_COD(map_scu[scup+scuw]))
+    if(x_scu + scuw < w_scu && MCU_GET_COD(map_scu[scup+scuw])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[curr_scup] == map_tidx[scup + scuw])
+#endif
+        )
     {
         avail_lr+=2;
     }

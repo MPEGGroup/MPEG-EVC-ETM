@@ -43,7 +43,7 @@ extern "C"
        
 #define USE_TILE_GROUP_DQP              1
 #define DQP_CFG                         1
-
+#define EVC_TILE_SUPPORT                1
 /*****************************************************************************
  * return values and error code
  *****************************************************************************/
@@ -450,7 +450,15 @@ typedef struct _EVCE_CDSC
     int            constrained_intra_pred;
     int            deblock_aplha_offset;
     int            deblock_beta_offset;
-
+#if EVC_TILE_SUPPORT
+    int            tile_uniform_spacing_flag;
+    int            tile_columns;
+    int            tile_rows;
+    int            tile_column_width_array[20];
+    int            tile_row_height_array[22];
+    int            num_slice_in_pic;
+    int            slice_boundary_array[2 * 600];
+#endif
     EVC_RPL rpls_l0[MAX_NUM_RPLS];
     EVC_RPL rpls_l1[MAX_NUM_RPLS];
     int rpls_l0_cfg_num;

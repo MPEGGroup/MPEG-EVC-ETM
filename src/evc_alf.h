@@ -65,6 +65,9 @@ typedef u32 SizeType;
 #define m_CLASSIFICATION_BLK_SIZE 32  //non-normative, local buffer size
 #define m_fixedFilterNum 64
 
+#if EVC_TILE_SUPPORT
+void copy_and_extend_tile(pel* tmpYuv, const int s, const pel* recYuv, const int s2, const int w, const int h, const int m);
+#endif
 void copy_and_extend( pel* tmpYuv, const int s, const pel* recYuv, const int s2, const int w, const int h, const int m );
 
 typedef struct Area

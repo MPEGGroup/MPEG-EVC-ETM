@@ -54,6 +54,11 @@ void evc_set_affine_mvf(EVCE_CTX * ctx, EVCE_CORE * core, int w, int h, s8 refi[
 
 #define SBAC_STORE(dst, src) evc_mcpy(&dst, &src, sizeof(EVCE_SBAC))
 #define SBAC_LOAD(dst, src)  evc_mcpy(&dst, &src, sizeof(EVCE_SBAC))
+#if DQP_RDO
+#define DQP_STORE(dst, src) evc_mcpy(&dst, &src, sizeof(EVCE_DQP))
+#define DQP_LOAD(dst, src)  evc_mcpy(&dst, &src, sizeof(EVCE_DQP))
+void evce_set_qp(EVCE_CTX *ctx, EVCE_CORE *core, u8 qp);
+#endif
 
 int evce_create_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh);
 int evce_delete_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh);

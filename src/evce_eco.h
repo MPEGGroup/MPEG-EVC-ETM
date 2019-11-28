@@ -55,7 +55,8 @@ int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps);
 #if ALF_PARAMETER_APS
 int evce_eco_aps(EVC_BSW * bs, EVC_APS * aps);
 #endif
-int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh);
+int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut);
+int evce_eco_udata(EVCE_CTX * ctx, EVC_BSW * bs);
 int evce_eco_pred_mode(EVC_BSW * bs, u8 pred_mode, int ctx);
 #if IBC
 int evce_eco_ibc(EVC_BSW * bs, u8 pred_mode_ibc_flag, int ctx);
@@ -102,6 +103,9 @@ int evce_eco_suco_flag(EVC_BSW *bs, EVCE_CTX *c, EVCE_CORE *core, int cud, int c
 void evce_eco_mmvd_flag(EVC_BSW * bs, int flag);
 int evce_eco_mmvd_info(EVC_BSW *bs, int mvp_idx, int type);
 void evce_eco_slice_end_flag(EVC_BSW * bs, int flag);
+#if EVC_TILE_SUPPORT
+void evce_eco_tile_end_flag(EVC_BSW * bs, int flag);
+#endif
 int evce_eco_mvp_idx(EVC_BSW *bs, int mvp_idx, int sps_amis_flag);
 int evce_eco_affine_mvp_idx(EVC_BSW *bs, int mvp_idx);
 int evce_eco_mvd(EVC_BSW *bs, s16 mvd[MV_D]);
