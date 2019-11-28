@@ -58,7 +58,7 @@ extern "C"
 /* not matched CRC value */
 #define EVC_ERR_BAD_CRC                 (201) 
 /* CRC value presented but ignored at decoder*/
-#define EVC_ERR_CRC_IGNORED             (200) 
+#define EVC_WARN_CRC_IGNORED            (200) 
 
 #define EVC_OK                          (0)
 
@@ -72,7 +72,6 @@ extern "C"
 #define EVC_ERR_MALFORMED_BITSTREAM     (-202)
 
 #define EVC_ERR_UNKNOWN                 (-32767) /* unknown error */
-
 
 /* return value checking *****************************************************/
 #define EVC_SUCCEEDED(ret)              ((ret) >= EVC_OK)
@@ -177,7 +176,6 @@ extern "C"
 #define EVCE_CFG_GET_WIDTH              (701)
 #define EVCE_CFG_GET_HEIGHT             (702)
 #define EVCE_CFG_GET_RECON              (703)
-
 
 /*****************************************************************************
  * NALU types

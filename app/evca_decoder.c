@@ -264,7 +264,7 @@ static int print_stat(EVCD_STAT * stat, int ret)
         {
             v1print(" --> MD5 hash mismatch!\n");
         }
-        else if (ret == EVC_ERR_CRC_IGNORED)
+        else if (ret == EVC_WARN_CRC_IGNORED)
         {
             v1print(" --> MD5 hash check ignored!\n");
         }

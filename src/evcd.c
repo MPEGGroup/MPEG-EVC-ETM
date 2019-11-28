@@ -2587,7 +2587,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
             }
             else
             {
-                ret = EVC_ERR_CRC_IGNORED;
+                ret = EVC_WARN_CRC_IGNORED;
             }
         }
     }

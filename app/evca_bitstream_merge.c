@@ -44,7 +44,7 @@
 static char op_fname_inp[256] = "\0";
 static char op_fname_out[256] = "\0";
 static int  op_max_frm_num = 0;
-static int  op_use_pic_signature = 1;
+static int  op_use_pic_signature = 0;
 static int  op_out_bit_depth = 8;
 
 typedef enum _STATES
