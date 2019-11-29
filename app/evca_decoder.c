@@ -37,13 +37,6 @@
 #include "evca_util.h"
 #include "evca_args.h"
 
-#if LINUX
-#include <signal.h>
-#include <stdlib.h>
-#include <unistd.h>
-
-#endif
-
 #define VERBOSE_NONE               VERBOSE_0
 #define VERBOSE_FRAME              VERBOSE_1
 #define VERBOSE_ALL                VERBOSE_2

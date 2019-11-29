@@ -36,12 +36,6 @@
 #include "evca_args.h"
 #include <math.h>
 
-#if LINUX
-#include <signal.h>
-#include <stdlib.h>
-#include <unistd.h>
-#endif
-
 #define SCRIPT_REPORT              1
 #define MULT_CONFIG                1
 #define VERBOSE_NONE               VERBOSE_0

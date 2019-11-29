@@ -221,7 +221,7 @@
 #define OPT_SIMD_STR                       1
 #else
 #define OPT_SIMD_MC_L                      0
-#define OPT_SIMD_MC_C                      0
+#define OPT_SIMD_MC_C                      1 //Gives mismacth if disabled
 #define OPT_SIMD_MC_BL                     0
 #define OPT_SIMD_SAD                       0
 #define OPT_SIMD_MR_SAD                    0

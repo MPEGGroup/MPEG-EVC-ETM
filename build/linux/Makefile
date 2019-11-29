@@ -21,13 +21,13 @@ MV = mv
 MKDIR = mkdir -p
 RM = rm -rf
 
-CFLAGS  = -g -O3 -fomit-frame-pointer -Wall -Wno-unused-function -Wno-unused-but-set-variable -Wno-unused-variable -Wno-attributes -Werror -Wno-strict-overflow -Wno-unknown-pragmas -std=c99 
-CFLAGS += -DLINUX
+CFLAGS  = -g -O3 -fomit-frame-pointer -Wall -Wno-unused-function -Wno-unused-but-set-variable -Wno-unused-variable -Wno-attributes -Werror -Wno-strict-overflow -Wno-unknown-pragmas -std=c99
+CFLAGS += -msse4.2
 CFLAGS += -I$(DIR_INC) -DIFVC_TRACE=0 -DIFVC_ASSERT=1
 
 CXXFLAGS  = -g -O3 -fomit-frame-pointer -Wall -Werror -std=c++11
-CXXFLAGS += -Wno-unused-function -Wno-unused-but-set-variable -Wno-unused-variable -Wno-attributes -Wno-strict-overflow -Wno-sign-compare -Wno-unused-value -Wno-unknown-pragmas 
-CXXFLAGS += -DLINUX
+CXXFLAGS += -Wno-unused-function -Wno-unused-but-set-variable -Wno-unused-variable -Wno-attributes -Wno-strict-overflow -Wno-sign-compare -Wno-unused-value -Wno-unknown-pragmas
+CXXFLAGS += -msse4.2
 CXXFLAGS += -I$(DIR_INC)
 
 LDFLAGS = -L$(DIR_LIB) -levc -lm -lstdc++
