@@ -4294,7 +4294,7 @@ void evc_bl_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *
 #if OPT_SIMD_MC_C
 s16 tbl_mc_c_coeff[2][8 << MC_PRECISION_ADD][4] =
 #else
-static const s8 tbl_mc_c_coeff[8 << MC_PRECISION_ADD][4] =
+static const s8 tbl_mc_c_coeff[2][8 << MC_PRECISION_ADD][4] =
 #endif
 {
     {
@@ -7153,11 +7153,11 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
 #if OPT_SIMD_MC_L
         average_16b_no_clip_sse(pred[0][Y_C], pred[1][Y_C], pred[0][Y_C], w, w, w, w, h);
 #else    
-        p0 = pred[0][Y_C];
-        p1 = pred[1][Y_C];
-        for(j = 0; j < h; j++)
+        pel* p0 = pred[0][Y_C];
+        pel* p1 = pred[1][Y_C];
+        for(int j = 0; j < h; j++)
         {
-            for(i = 0; i < w; i++)
+            for(int i = 0; i < w; i++)
             {
                 p0[i] = (p0[i] + p1[i] + 1) >> 1;
             }
