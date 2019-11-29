@@ -53,7 +53,7 @@
 static char op_fname_inp[256] = "\0";
 static char op_fname_out[256] = "\0";
 static int  op_max_frm_num = 0;
-static int  op_use_pic_signature = 1;
+static int  op_use_pic_signature = 0;
 static int  op_out_bit_depth = 8;
 
 typedef enum _STATES
@@ -254,15 +254,23 @@ static int print_stat(EVCD_STAT * stat, int ret)
         }
         else if(ret == EVC_OK_FRM_DELAYED)
         {
-            v1print("->Frame delayed\n");
+            v1print("--> Frame delayed\n");
         }
         else if(ret == EVC_OK_DIM_CHANGED)
         {
-            v1print("->Resolution changed\n");
+            v1print("--> Resolution changed\n");
+        }
+        else if (ret == EVC_ERR_BAD_CRC)
+        {
+            v1print(" --> MD5 hash mismatch!\n");
+        }
+        else if (ret == EVC_WARN_CRC_IGNORED)
+        {
+            v1print(" --> MD5 hash check ignored!\n");
         }
         else
         {
-            v1print("->Unknown OK code = %d\n", ret);
+            v1print(" --> Unknown warning code = %d\n", ret);
         }
     }
     else
@@ -380,6 +388,8 @@ int main(int argc, const char **argv)
     bs_cnt  = 0;
     w = h   = 0;
 
+    int process_status = EVC_OK;
+
     while(1)
     {
         if(state == STATE_DECODING)
@@ -408,11 +418,17 @@ int main(int argc, const char **argv)
 #endif
             /* main decoding block */
             ret = evcd_decode(id, &bitb, &stat);
+
             if(EVC_FAILED(ret))
             {
                 v0print("failed to decode bitstream\n");
                 return -1;
             }
+            else if (ret > EVC_OK)
+            {
+                process_status = ret;
+            }
+
 #if !DECODING_TIME_TEST
             clk_tot += evc_clk_from(clk_beg);
 #endif
@@ -493,5 +509,5 @@ END:
     if(fp_bs) fclose(fp_bs);
     if(bs_buf) free(bs_buf);
 
-    return 0;
+    return process_status;
 }

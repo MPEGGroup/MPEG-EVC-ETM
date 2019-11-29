@@ -55,6 +55,11 @@ extern "C"
 #define EVC_OK_DIM_CHANGED              (203)
 /* decoding success, but output frame has been delayed */
 #define EVC_OK_FRM_DELAYED              (202)
+/* not matched CRC value */
+#define EVC_ERR_BAD_CRC                 (201) 
+/* CRC value presented but ignored at decoder*/
+#define EVC_WARN_CRC_IGNORED            (200) 
+
 #define EVC_OK                          (0)
 
 #define EVC_ERR                         (-1) /* generic error */
@@ -63,17 +68,14 @@ extern "C"
 #define EVC_ERR_REACHED_MAX             (-103)
 #define EVC_ERR_UNSUPPORTED             (-104)
 #define EVC_ERR_UNEXPECTED              (-105)
-#define EVC_ERR_BAD_CRC                 (-130) /* not matched CRC value */
-
 #define EVC_ERR_UNSUPPORTED_COLORSPACE  (-201)
 #define EVC_ERR_MALFORMED_BITSTREAM     (-202)
 
 #define EVC_ERR_UNKNOWN                 (-32767) /* unknown error */
 
-
 /* return value checking *****************************************************/
-#define EVC_SUCCEEDED(ret)              ((ret) >= 0)
-#define EVC_FAILED(ret)                 ((ret) < 0)
+#define EVC_SUCCEEDED(ret)              ((ret) >= EVC_OK)
+#define EVC_FAILED(ret)                 ((ret) < EVC_OK)
 
 /*****************************************************************************
  * color spaces
@@ -174,7 +176,6 @@ extern "C"
 #define EVCE_CFG_GET_WIDTH              (701)
 #define EVCE_CFG_GET_HEIGHT             (702)
 #define EVCE_CFG_GET_RECON              (703)
-
 
 /*****************************************************************************
  * NALU types

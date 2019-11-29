@@ -2577,13 +2577,18 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     {
 
         ret = evcd_eco_udata(ctx, bs);
-            
-        if (ctx->use_pic_sign && ctx->pic_sign_exist)
-        {
-            ret = evcd_picbuf_check_signature(ctx->pic, ctx->pic_sign);
-            evc_assert_rv(EVC_SUCCEEDED(ret), ret);
 
-            ctx->pic_sign_exist = 0;
+        if (ctx->pic_sign_exist)
+        {
+            if (ctx->use_pic_sign)
+            {
+                ret = evcd_picbuf_check_signature(ctx->pic, ctx->pic_sign);
+                ctx->pic_sign_exist = 0;
+            }
+            else
+            {
+                ret = EVC_WARN_CRC_IGNORED;
+            }
         }
     }
     else

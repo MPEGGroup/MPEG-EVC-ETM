@@ -59,7 +59,6 @@ int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16])
     evc_assert_rv(EVC_SUCCEEDED(ret), ret);
     if (memcmp(signature, pic_sign, 16) != 0)
     {
-        printf("md5 mismatch!\n");
         return EVC_ERR_BAD_CRC;
     }
     return EVC_OK;
