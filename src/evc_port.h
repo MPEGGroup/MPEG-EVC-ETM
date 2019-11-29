@@ -173,9 +173,9 @@ static __inline void evc_mset_16b(s16 * dst, s16 v, int cnt)
 #define evc_assert_gv(x,r,v,g) \
     {if(!(x)){assert(x); (r)=(v); goto g;}}
 
-#define X86_SSE                 1
+#define X86_SSE                 0
 
-#ifdef X86_SSE
+#if X86_SSE
 #if defined(WIN32) || defined(WIN64)
 #include <emmintrin.h>
 #include <xmmintrin.h>

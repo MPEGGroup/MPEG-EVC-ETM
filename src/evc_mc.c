@@ -175,7 +175,7 @@ static const s16 tbl_bl_eif_32_phases_mc_l_coeff[32][2] =
 };
 #endif
 
-#ifdef X86_SSE
+#if X86_SSE
 #define SSE_MC_FILTER_L_8PEL(src, s_src, dst, add, shift, coef, clip, min, max)\
 { \
     __m128i mac1, mac2, filt, mt1, mt2, mt3; \
@@ -3189,7 +3189,7 @@ void evc_mc_l_00(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pre
 
     ref += gmv_y * s_ref + gmv_x;
 
-#if defined(X86_SSE)
+#if X86_SSE
     if(((w & 0x7)==0) && ((h & 1)==0))
     {
         __m128i m00, m01;
@@ -3250,7 +3250,7 @@ void evc_mc_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pre
     ref += (gmv_y >> 2) * s_ref + (gmv_x >> 2) - 3;
 #endif
 
-#ifdef X86_SSE
+#if X86_SSE
 #if OPT_SIMD_MC_L
     if (1)
     {
@@ -3335,7 +3335,7 @@ void evc_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pre
     ref += ((gmv_y >> 2) - 3) * s_ref + (gmv_x >> 2);
 #endif
 
-#ifdef X86_SSE
+#if X86_SSE
 #if OPT_SIMD_MC_L
     if(1)
     {
@@ -3423,7 +3423,7 @@ void evc_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
     ref += ((gmv_y >> 2) - 3) * s_ref + (gmv_x >> 2) - 3;
 #endif
 
-#ifdef X86_SSE
+#if X86_SSE
 #if OPT_SIMD_MC_L
     if(1)
     {
@@ -3548,7 +3548,7 @@ void evc_mc_dmvr_l_00(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
 
   //ref += gmv_y * s_ref + gmv_x;
 
-#if defined(X86_SSE)
+#if X86_SSE
   if (((w & 0x7) == 0) && ((h & 1) == 0))
   {
     __m128i m00, m01;
@@ -3611,7 +3611,7 @@ void evc_mc_dmvr_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
   ref += (gmv_y >> 2) * s_ref + (gmv_x >> 2) - 3;
 #endif
 
-#ifdef X86_SSE
+#if X86_SSE
 #if OPT_SIMD_MC_L
   if (1)
   {
@@ -3702,7 +3702,7 @@ void evc_mc_dmvr_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
   ref += ((gmv_y >> 2) - 3) * s_ref + (gmv_x >> 2);
 #endif
 
-#ifdef X86_SSE
+#if X86_SSE
 #if OPT_SIMD_MC_L
   if (1)
   {
@@ -3796,7 +3796,7 @@ void evc_mc_dmvr_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
   ref += ((gmv_y >> 2) - 3) * s_ref + (gmv_x >> 2) - 3;
 #endif
 
-#ifdef X86_SSE
+#if X86_SSE
 #if OPT_SIMD_MC_L
   if (1)
   {
@@ -3927,7 +3927,7 @@ void evc_bl_mc_l_00(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *
 
     ref += gmv_y * s_ref + gmv_x;
 
-#ifdef X86_SSE
+#if X86_SSE
     if (((w & 0x7) == 0) && ((h & 1) == 0))
     {
         __m128i m00, m01;
@@ -3993,7 +3993,7 @@ void evc_bl_mc_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *
     ref += (gmv_y >> 2) * s_ref + (gmv_x >> 2);
 #endif
 
-#ifdef X86_SSE
+#if X86_SSE
 #if OPT_SIMD_MC_BL
     if (1)
     {
@@ -4080,7 +4080,7 @@ void evc_bl_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *
     ref += (gmv_y >> 2) * s_ref + (gmv_x >> 2);
 #endif
 
-#ifdef X86_SSE
+#if X86_SSE
 #if OPT_SIMD_MC_BL
     if (1)
     {
@@ -4172,7 +4172,7 @@ void evc_bl_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *
     ref += (gmv_y >> 2) * s_ref + (gmv_x >> 2);
 #endif
 
-#ifdef X86_SSE
+#if X86_SSE
 #if OPT_SIMD_MC_BL
     if (1)
     {
@@ -4410,7 +4410,7 @@ void evc_mc_c_00(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
 
     ref += gmv_y * s_ref + gmv_x;
 
-#ifdef X86_SSE
+#if X86_SSE
     if(((w & 0x7) == 0) && ((h & 1) == 0))
     {
         __m128i m00, m01;
@@ -4475,7 +4475,7 @@ void evc_mc_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
     ref += (gmv_y >> 3) * s_ref + (gmv_x >> 3) - 1;
 #endif
 
-#ifdef X86_SSE
+#if X86_SSE
 #if OPT_SIMD_MC_C
     if(1)
     {
@@ -4560,7 +4560,7 @@ void evc_mc_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
     ref += ((gmv_y >> 3) - 1) * s_ref + (gmv_x >> 3);
 #endif
 
-#ifdef X86_SSE
+#if X86_SSE
 #if OPT_SIMD_MC_C
     if(1)
     {
@@ -4650,7 +4650,7 @@ void evc_mc_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
     ref += ((gmv_y >> 3) - 1) * s_ref + (gmv_x >> 3) - 1;
 #endif
 
-#ifdef X86_SSE
+#if X86_SSE
 #if OPT_SIMD_MC_C
     if(1)
     {
@@ -4778,7 +4778,7 @@ void evc_mc_dmvr_c_00(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
   gmv_y >>= 3;
 #endif
 
-#ifdef X86_SSE
+#if X86_SSE
   if (((w & 0x7) == 0) && ((h & 1) == 0))
   {
     __m128i m00, m01;
@@ -4843,7 +4843,7 @@ void evc_mc_dmvr_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
   ref += (gmv_y >> 3) * s_ref + (gmv_x >> 3) - 1;
 #endif
 
-#ifdef X86_SSE
+#if X86_SSE
 #if OPT_SIMD_MC_C
   if (1)
   {
@@ -4933,7 +4933,7 @@ void evc_mc_dmvr_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
   ref += ((gmv_y >> 3) - 1) * s_ref + (gmv_x >> 3);
 #endif
 
-#ifdef X86_SSE
+#if X86_SSE
 #if OPT_SIMD_MC_C
   if (1)
   {
@@ -5028,7 +5028,7 @@ void evc_mc_dmvr_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
   ref += ((gmv_y >> 3) - 1) * s_ref + (gmv_x >> 3) - 1;
 #endif
 
-#ifdef X86_SSE
+#if X86_SSE
 #if OPT_SIMD_MC_C
   if (1)
   {

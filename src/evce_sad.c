@@ -60,7 +60,7 @@ static int sad_16b(int w, int h, void *src1, void *src2, int s_src1, int s_src2)
     return (sad >> (BIT_DEPTH - 8));
 }
 
-#ifdef X86_SSE
+#if X86_SSE
 #define SSE_SAD_16B_4PEL(src1, src2, s00, s01, sac0) \
     s00 = _mm_loadl_epi64((__m128i*)(src1)); \
     s01 = _mm_loadl_epi64((__m128i*)(src2));\
@@ -862,7 +862,7 @@ static int sad_16b_sse_16nx4n(int w, int h, void * src1, void * src2, int s_src1
 /* index: [log2 of width][log2 of height] */
 const EVCE_FN_SAD evce_tbl_sad_16b[8][8] =
 {
-#ifdef X86_SSE
+#if X86_SSE
     /* width == 1 */
     {
         sad_16b, /* height == 1 */
@@ -1102,7 +1102,7 @@ static void diff_16b(int w, int h, void *src1, void *src2, int s_src1, int s_src
     }
 }
 
-#ifdef X86_SSE
+#if X86_SSE
 #define SSE_DIFF_16B_4PEL(src1, src2, diff, m00, m01, m02) \
     m00 = _mm_loadl_epi64((__m128i*)(src1)); \
     m01 = _mm_loadl_epi64((__m128i*)(src2)); \
@@ -1264,7 +1264,7 @@ static void diff_16b_sse_32nx4n(int w, int h, void * src1, void * src2, int s_sr
 
 const EVCE_FN_DIFF evce_tbl_diff_16b[8][8] =
 {
-#ifdef X86_SSE
+#if X86_SSE
     /* width == 1 */
     {
         diff_16b, /* height == 1 */
@@ -1472,7 +1472,7 @@ static s64 ssd_16b(int w, int h, void *src1, void *src2, int s_src1, int s_src2)
     return ssd;
 }
 
-#ifdef X86_SSE
+#if X86_SSE
 #define SSE_SSD_16B_4PEL(src1, src2, shift, s00, s01, s00a) \
     s00 = _mm_loadl_epi64((__m128i*)(src1)); \
     s01 = _mm_loadl_epi64((__m128i*)(src2));\
@@ -1866,7 +1866,7 @@ static s64 ssd_16b_sse_8nx8n(int w, int h, void * src1, void * src2, int s_src1,
 
 const EVCE_FN_SSD evce_tbl_ssd_16b[8][8] =
 {
-#ifdef X86_SSE
+#if X86_SSE
     /* width == 1 */
     {
         ssd_16b, /* height == 1 */
@@ -2072,7 +2072,7 @@ int evc_had_2x2(pel *org, pel *cur, int s_org, int s_cur, int step)
 
 int evc_had_4x4(pel *org, pel *cur, int s_org, int s_cur, int step)
 {
-#if defined(X86_SSE) && (BIT_DEPTH <= 10)
+#if X86_SSE && (BIT_DEPTH <= 10)
     int satd = 0;
     __m128i r0 = (_mm_loadl_epi64((const __m128i*)&org[0]));
     __m128i r1 = (_mm_loadl_epi64((const __m128i*)&org[s_org]));
@@ -2251,7 +2251,7 @@ int evc_had_4x4(pel *org, pel *cur, int s_org, int s_cur, int step)
 
 int evc_had_8x8(pel *org, pel *cur, int s_org, int s_cur, int step)
 {
-#if defined(X86_SSE) && (BIT_DEPTH <= 10)
+#if X86_SSE && (BIT_DEPTH <= 10)
 #if OPT_SIMD_HAD_SAD
     {
         int sad = 0;
@@ -2984,7 +2984,7 @@ int evc_had_8x8(pel *org, pel *cur, int s_org, int s_cur, int step)
 
 int evc_had_16x8(pel *org, pel *cur, int s_org, int s_cur, int step)
 {
-#if defined(X86_SSE) && (BIT_DEPTH <= 10)
+#if X86_SSE && (BIT_DEPTH <= 10)
 #if OPT_SIMD_HAD_SAD
     {
         int sad = 0;
@@ -4353,7 +4353,7 @@ int evc_had_16x8(pel *org, pel *cur, int s_org, int s_cur, int step)
 
 int evc_had_8x16(pel *org, pel *cur, int s_org, int s_cur, int step)
 {
-#if defined(X86_SSE) && (BIT_DEPTH <= 10)
+#if X86_SSE && (BIT_DEPTH <= 10)
 #if OPT_SIMD_HAD_SAD
     {
         int sad = 0;
@@ -5704,7 +5704,7 @@ int evc_had_8x16(pel *org, pel *cur, int s_org, int s_cur, int step)
 
 int evc_had_8x4(pel *org, pel *cur, int s_org, int s_cur, int step)
 {
-#if defined(X86_SSE) && (BIT_DEPTH <= 10)
+#if X86_SSE && (BIT_DEPTH <= 10)
     int k, i;
     int satd = 0;
     __m128i m1[8], m2[8];
@@ -5883,7 +5883,7 @@ int evc_had_8x4(pel *org, pel *cur, int s_org, int s_cur, int step)
 
 int evc_had_4x8(pel *org, pel *cur, int s_org, int s_cur, int step)
 {
-#if defined(X86_SSE) && (BIT_DEPTH <= 10)
+#if X86_SSE && (BIT_DEPTH <= 10)
     int k, i;
     __m128i m1[8], m2[8];
     __m128i n1[4][2];

@@ -202,8 +202,8 @@
 //                              SIMD Optimizations                            //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
-#ifdef X86_SSE
-#define OPT_SIMD                           0 ///< Enable all SIMD related optimizations
+#if X86_SSE
+#define OPT_SIMD                           1 ///< Enable all SIMD related optimizations
 #else
 #define OPT_SIMD                           0 ///< Enable all SIMD related optimizations
 #endif

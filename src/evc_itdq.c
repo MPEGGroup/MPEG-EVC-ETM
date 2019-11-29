@@ -48,7 +48,7 @@
 #define MIN_TX_VAL_32                      (-2147483647-1)
 #define ITX_CLIP_32(x) \
     (s32)(((x)<=MIN_TX_VAL_32)? MIN_TX_VAL_32: (((x)>=MAX_TX_VAL_32)? MAX_TX_VAL_32: (x)))
-#ifdef X86_SSE
+#if X86_SSE
 #define MAC_8PEL_MEM(src1, src2, m01, m02, m03, m04, mac) \
     m01 = _mm_loadu_si128((__m128i*)(src1)); \
     m02 = _mm_loadu_si128((__m128i*)(src2)); \
@@ -702,7 +702,7 @@ void evc_itrans_ats_intra_DST7_B4(s16 *coef, s16 *block, int shift, int line, in
 
 void evc_itrans_ats_intra_DST7_B8(s16 *coef, s16 *block, int shift, int line, int skip_line, int skip_line_2)
 {
-#ifdef X86_SSE
+#if X86_SSE
     ITX_MATRIX(coef, block, 8, line, shift, evc_tbl_inv_tr8[DST7][0], skip_line);
 #else
     int i, j, k, sum;
@@ -735,7 +735,7 @@ void evc_itrans_ats_intra_DST7_B8(s16 *coef, s16 *block, int shift, int line, in
 
 void evc_itrans_ats_intra_DST7_B16(s16 *coef, s16 *block, int shift, int line, int skip_line, int skip_line_2)
 {
-#ifdef X86_SSE
+#if X86_SSE
     ITX_MATRIX(coef, block, 16, line, shift, evc_tbl_inv_tr16[DST7][0], skip_line);
 #else
     int i, j, k, sum;
@@ -768,7 +768,7 @@ void evc_itrans_ats_intra_DST7_B16(s16 *coef, s16 *block, int shift, int line, i
 
 void evc_itrans_ats_intra_DST7_B32(s16 *coef, s16 *block, int shift, int line, int skip_line, int skip_line_2)
 {
-#ifdef X86_SSE
+#if X86_SSE
     ITX_MATRIX(coef, block, 32, line, shift, evc_tbl_inv_tr32[DST7][0], skip_line);
 #else
     int i, j, k, sum;
@@ -832,7 +832,7 @@ void evc_itrans_ats_intra_DCT8_B4(s16 *coef, s16 *block, int shift, int line, in
 
 void evc_itrans_ats_intra_DCT8_B8(s16 *coef, s16 *block, int shift, int line, int skip_line, int skip_line_2)
 {
-#ifdef X86_SSE
+#if X86_SSE
     ITX_MATRIX(coef, block, 8, line, shift, evc_tbl_inv_tr8[DCT8][0], skip_line);
 #else
     int i, j, k, sum;
@@ -865,7 +865,7 @@ void evc_itrans_ats_intra_DCT8_B8(s16 *coef, s16 *block, int shift, int line, in
 
 void evc_itrans_ats_intra_DCT8_B16(s16 *coef, s16 *block, int shift, int line, int skip_line, int skip_line_2)
 {
-#ifdef X86_SSE
+#if X86_SSE
     ITX_MATRIX(coef, block, 16, line, shift, evc_tbl_inv_tr16[DCT8][0], skip_line);
 #else
     int i, j, k, sum;
@@ -898,7 +898,7 @@ void evc_itrans_ats_intra_DCT8_B16(s16 *coef, s16 *block, int shift, int line, i
 
 void evc_itrans_ats_intra_DCT8_B32(s16 *coef, s16 *block, int shift, int line, int skip_line, int skip_line_2)
 {
-#ifdef X86_SSE
+#if X86_SSE
     ITX_MATRIX(coef, block, 32, line, shift, evc_tbl_inv_tr32[DCT8][0], skip_line);
 #else
     int i, j, k, sum;
