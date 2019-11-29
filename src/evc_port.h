@@ -131,9 +131,9 @@ static __inline void evc_mset_16b(s16 * dst, s16 v, int cnt)
 #define evc_assert_gv(x,r,v,g) \
     {if(!(x)){assert(x); (r)=(v); goto g;}}
 
-#define X86_SSE                 1
+#define X86_SSE                 0
 
-//#if X86_SSE TBD(@Chernyak) uncomment when ...
+//#if X86_SSE TBD(@Chernyak) consider uncommenting when fix OPT_SIMD_MC_C
 #ifdef _WIN32
 #include <emmintrin.h>
 #include <xmmintrin.h>
