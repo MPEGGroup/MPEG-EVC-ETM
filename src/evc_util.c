@@ -1920,9 +1920,15 @@ BOOL check_bi_applicability_rdo(int tile_group_type, int cuw, int cuh)
 BOOL check_bi_applicability(int slice_type, int cuw, int cuh)
 {
     BOOL is_applicable = FALSE;
-    if((slice_type == SLICE_B) &&
-       !((max(cuw, cuh) < 8 && min(cuw, cuh) < 8))
-       )
+#if    QC_TEST3 || QC_ADMVP_CLEANUP
+    if ((slice_type == SLICE_B) &&
+        !(cuw + cuh == 12)
+        )
+#else
+    if ((slice_type == SLICE_B) &&
+        !((max(cuw, cuh) < 8 && min(cuw, cuh) < 8))
+        )
+#endif
     {
         is_applicable = TRUE;
     }
@@ -1969,6 +1975,7 @@ __inline static void check_redundancy(int slice_type, s16 mvp[REFP_NUM][MAX_NUM_
     }
 }
 
+#if !QC_ADMVP_CLEANUP
 void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],
     EVC_REFP refp[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, s8 refi[REFP_NUM][MAX_NUM_MVP], s16 mvp[REFP_NUM][MAX_NUM_MVP][MV_D], u32 *map_scu, u16 avail_lr
 #if DMVR_LAG
@@ -2027,7 +2034,11 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
                 refi[REFP_0][cnt] = REFI_IS_VALID(map_refi[neb_addr[k]][REFP_0]) ? map_refi[neb_addr[k]][REFP_0] : REFI_INVALID;
                 mvp[REFP_0][cnt][MV_X] = map_unrefined_mv[neb_addr[k]][REFP_0][MV_X];
                 mvp[REFP_0][cnt][MV_Y] = map_unrefined_mv[neb_addr[k]][REFP_0][MV_Y];
+#if QC_TEST7
+                if (!REFI_IS_VALID(refi[REFP_0][cnt]))
+#else
                 if (slice_type == SLICE_B)
+#endif
                 {
                     assert(map_unrefined_mv[neb_addr[k]][REFP_1][MV_X] != SHRT_MAX);
                     assert(map_unrefined_mv[neb_addr[k]][REFP_1][MV_Y] != SHRT_MAX);
@@ -2035,6 +2046,23 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
                     mvp[REFP_1][cnt][MV_X] = map_unrefined_mv[neb_addr[k]][REFP_1][MV_X];
                     mvp[REFP_1][cnt][MV_Y] = map_unrefined_mv[neb_addr[k]][REFP_1][MV_Y];
                 }
+#if QC_TEST7
+                else
+                if (!check_bi_applicability(slice_type, cuw, cuh))
+                {
+                    refi[REFP_1][cnt] = REFI_INVALID;
+                    mvp[REFP_1][cnt][MV_X] = 0;
+                    mvp[REFP_1][cnt][MV_Y] = 0;
+                }
+                else
+                {
+                    assert(map_unrefined_mv[neb_addr[k]][REFP_1][MV_X] != SHRT_MAX);
+                    assert(map_unrefined_mv[neb_addr[k]][REFP_1][MV_Y] != SHRT_MAX);
+                    refi[REFP_1][cnt] = REFI_IS_VALID(map_refi[neb_addr[k]][REFP_1]) ? map_refi[neb_addr[k]][REFP_1] : REFI_INVALID;
+                    mvp[REFP_1][cnt][MV_X] = map_unrefined_mv[neb_addr[k]][REFP_1][MV_X];
+                    mvp[REFP_1][cnt][MV_Y] = map_unrefined_mv[neb_addr[k]][REFP_1][MV_Y];
+                }
+#endif
             }
             else
 #endif
@@ -2042,6 +2070,15 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
                 refi[REFP_0][cnt] = REFI_IS_VALID(map_refi[neb_addr[k]][REFP_0]) ? map_refi[neb_addr[k]][REFP_0] : REFI_INVALID;
                 mvp[REFP_0][cnt][MV_X] = map_mv[neb_addr[k]][REFP_0][MV_X];
                 mvp[REFP_0][cnt][MV_Y] = map_mv[neb_addr[k]][REFP_0][MV_Y];
+#if QC_TEST4
+                if (!REFI_IS_VALID(refi[REFP_0][cnt]))
+                {
+                    refi[REFP_1][cnt] = REFI_IS_VALID(map_refi[neb_addr[k]][REFP_1]) ? map_refi[neb_addr[k]][REFP_1] : REFI_INVALID;
+                    mvp[REFP_1][cnt][MV_X] = map_mv[neb_addr[k]][REFP_1][MV_X];
+                    mvp[REFP_1][cnt][MV_Y] = map_mv[neb_addr[k]][REFP_1][MV_Y];
+                }
+                else
+#endif
                 if (!check_bi_applicability(slice_type, cuw, cuh))
                 {
                     refi[REFP_1][cnt] = REFI_INVALID;
@@ -2097,7 +2134,11 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
             mvp[REFP_0][cnt][MV_X] = 0;
             mvp[REFP_0][cnt][MV_Y] = 0;
         }
+#if QC_TEST4 
+        if ((availablePredIdx == 2) || ((availablePredIdx == 3) && check_bi_applicability(slice_type, cuw, cuh)))
+#else
         if (((availablePredIdx == 2) || (availablePredIdx == 3)) && check_bi_applicability(slice_type, cuw, cuh))
+#endif
         {
             refi[REFP_1][cnt] = 0;
             mvp[REFP_1][cnt][MV_X] = tmvp[REFP_1][MV_X];
@@ -2156,7 +2197,11 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
                 mvp[REFP_0][cnt][MV_X] = 0;
                 mvp[REFP_0][cnt][MV_Y] = 0;
             }
+#if QC_TEST4 
+            if ((availablePredIdx == 2) || ((availablePredIdx == 3) && check_bi_applicability(slice_type, cuw, cuh)))
+#else
             if (((availablePredIdx == 2) || (availablePredIdx == 3)) && check_bi_applicability(slice_type, cuw, cuh))
+#endif
             {
                 refi[REFP_1][cnt] = 0;
                 mvp[REFP_1][cnt][MV_X] = tmvp[REFP_1][MV_X];
@@ -2215,7 +2260,11 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
                 mvp[REFP_0][cnt][MV_X] = 0;
                 mvp[REFP_0][cnt][MV_Y] = 0;
             }
+#if QC_TEST4 
+            if ((availablePredIdx == 2) || ((availablePredIdx == 3) && check_bi_applicability(slice_type, cuw, cuh)))
+#else
             if (((availablePredIdx == 2) || (availablePredIdx == 3)) && check_bi_applicability(slice_type, cuw, cuh))
+#endif
             {
                 refi[REFP_1][cnt] = 0;
                 mvp[REFP_1][cnt][MV_X] = tmvp[REFP_1][MV_X];
@@ -2271,6 +2320,15 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
                 mvp[REFP_0][cnt][MV_X] = history_buffer.history_mv_table[history_buffer.currCnt - k][REFP_0][MV_X];
                 mvp[REFP_0][cnt][MV_Y] = history_buffer.history_mv_table[history_buffer.currCnt - k][REFP_0][MV_Y];
 
+#if QC_TEST4 
+                if (!REFI_IS_VALID(refi[REFP_0][cnt]))
+                {
+                    refi[REFP_1][cnt] = history_buffer.history_refi_table[history_buffer.currCnt - k][REFP_1];
+                    mvp[REFP_1][cnt][MV_X] = history_buffer.history_mv_table[history_buffer.currCnt - k][REFP_1][MV_X];
+                    mvp[REFP_1][cnt][MV_Y] = history_buffer.history_mv_table[history_buffer.currCnt - k][REFP_1][MV_Y];
+                }
+                else
+#endif
                 if (!check_bi_applicability(slice_type, cuw, cuh))
                 {
                     refi[REFP_1][cnt] = REFI_INVALID;
@@ -2314,8 +2372,294 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
                 refi[REFP_1][cnt] = refi[REFP_1][idx1];
                 mvp[REFP_1][cnt][MV_X] = mvp[REFP_1][idx1][MV_X];
                 mvp[REFP_1][cnt][MV_Y] = mvp[REFP_1][idx1][MV_Y];
+#if !QC_TEST2
+                check_redundancy(slice_type, mvp, refi, &cnt);
+#endif
+                cnt++;
+            }
+        }
+        if (cnt == (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
+        {
+            return;
+        }
+    }
+
+    for (k = cnt; k < (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP); k++)
+    {
+        refi[REFP_0][k] = 0;
+        mvp[REFP_0][k][MV_X] = 0;
+        mvp[REFP_0][k][MV_Y] = 0;
+        if (!check_bi_applicability(slice_type, cuw, cuh))
+        {
+            refi[REFP_1][k] = REFI_INVALID;
+            mvp[REFP_1][k][MV_X] = 0;
+            mvp[REFP_1][k][MV_Y] = 0;
+        }
+        else
+        {
+            refi[REFP_1][k] = 0;
+            mvp[REFP_1][k][MV_X] = 0;
+            mvp[REFP_1][k][MV_Y] = 0;
+        }
+    }
+}
+#else
+void evc_get_merge_insert_mv(s8* refi_dst, s16 *mvp_dst_L0, s16 *mvp_dst_L1, s8* map_refi_src, s16* map_mv_src, int slice_type, int cuw, int cuh)
+{
+    refi_dst[REFP_0 * MAX_NUM_MVP] = REFI_IS_VALID(map_refi_src[REFP_0]) ? map_refi_src[REFP_0] : REFI_INVALID;
+    mvp_dst_L0[MV_X] = map_mv_src[REFP_0 * REFP_NUM + MV_X];
+    mvp_dst_L0[MV_Y] = map_mv_src[REFP_0 * REFP_NUM + MV_Y];
+
+    if (slice_type == SLICE_B)
+    {
+        if (!REFI_IS_VALID(map_refi_src[REFP_0]))
+        {
+            refi_dst[REFP_1 * MAX_NUM_MVP] = REFI_IS_VALID(map_refi_src[REFP_1]) ? map_refi_src[REFP_1] : REFI_INVALID;
+            mvp_dst_L1[MV_X] = map_mv_src[REFP_1 * REFP_NUM + MV_X];
+            mvp_dst_L1[MV_Y] = map_mv_src[REFP_1 * REFP_NUM + MV_Y];
+        }
+        else if (!check_bi_applicability(slice_type, cuw, cuh))
+        {
+            refi_dst[REFP_1 * MAX_NUM_MVP] = REFI_INVALID;
+            mvp_dst_L1[MV_X] = 0;
+            mvp_dst_L1[MV_Y] = 0;
+        }
+        else
+        {
+            refi_dst[REFP_1 * MAX_NUM_MVP] = REFI_IS_VALID(map_refi_src[REFP_1]) ? map_refi_src[REFP_1] : REFI_INVALID;
+            mvp_dst_L1[MV_X] = map_mv_src[REFP_1 * REFP_NUM + MV_X];
+            mvp_dst_L1[MV_Y] = map_mv_src[REFP_1 * REFP_NUM + MV_Y];
+        }
+    }
+}
+
+void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],
+    EVC_REFP refp[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, s8 refi[REFP_NUM][MAX_NUM_MVP], s16 mvp[REFP_NUM][MAX_NUM_MVP][MV_D], u32 *map_scu, u16 avail_lr
+#if DMVR_LAG
+    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+#endif
+    , EVC_HISTORY_BUFFER history_buffer
+#if IBC
+    , u8 ibc_flag
+#endif
+    , EVC_REFP(*refplx)[REFP_NUM]
+    , EVC_SH* sh
+#if M50761_TMVP_8X8_GRID
+    , int log2_max_cuwh
+#endif
+)
+{
+    BOOL tmpvBottomRight = 0; // Bottom first
+    int small_cu = 0;
+    if (cuw*cuh <= NUM_SAMPLES_BLOCK)
+        small_cu = 1;
+    int k, cnt = 0;
+    int neb_addr[MAX_NUM_POSSIBLE_SCAND], valid_flag[MAX_NUM_POSSIBLE_SCAND];
+    s16 tmvp[REFP_NUM][MV_D];
+    int scup_tmp;
+    int cur_num, i, idx0, idx1;
+    int c_win = 0;
+    evc_mset(mvp, 0, MAX_NUM_MVP * REFP_NUM * MV_D * sizeof(s16));
+    evc_mset(refi, REFI_INVALID, MAX_NUM_MVP * REFP_NUM * sizeof(s8));
+    s8 refidx = REFI_INVALID;
+    s8  *p_ref_dst = NULL;
+    s16 *p_map_mv_dst_L0 = NULL;
+    s16 *p_map_mv_dst_L1 = NULL;
+    s8  *p_ref_src = NULL;
+    s16 *p_map_mv_src = NULL;
+
+
+    for (k = 0; k < MAX_NUM_POSSIBLE_SCAND; k++)
+    {
+        valid_flag[k] = 0;
+    }
+    evc_check_motion_availability2(scup, cuw, cuh, w_scu, h_scu, neb_addr, valid_flag, map_scu, avail_lr, 1
+#if IBC
+        , ibc_flag
+#endif
+    );
+
+    for (k = 0; k < 5; k++)
+    {
+        p_ref_dst = &(refi[0][cnt]);
+        p_map_mv_dst_L0 = mvp[REFP_0][cnt];
+        p_map_mv_dst_L1 = mvp[REFP_1][cnt];
+        p_ref_src = map_refi[neb_addr[k]];
+        p_map_mv_src = &(map_mv[neb_addr[k]][0][0]);
+
+        if (valid_flag[k])
+        {
+#if DMVR_LAG 
+            if ((NULL != map_unrefined_mv) && MCU_GET_DMVRF(map_scu[neb_addr[k]])
+#if (DMVR_LAG == 2)
+                && (!evc_use_refine_mv(scup, neb_addr[k], w_scu))
+#endif
+                )
+            {
+                p_ref_src = map_refi[neb_addr[k]];
+                p_map_mv_src = &(map_unrefined_mv[neb_addr[k]][0][0]);
+            }
+#endif
+            evc_get_merge_insert_mv(p_ref_dst, p_map_mv_dst_L0, p_map_mv_dst_L1, p_ref_src, p_map_mv_src, slice_type, cuw, cuh);
+            check_redundancy(slice_type, mvp, refi, &cnt);
+            cnt++;
+        }
+        if (cnt == (small_cu ? MAX_NUM_MVP_SMALL_CU - 1 : MAX_NUM_MVP - 1))
+        {
+            break;
+        }
+    }
+
+    int tmvp_cnt_pos0 = 0, tmvp_cnt_pos1 = 0;
+    int tmvp_added = 0;
+
+    if (!tmvp_added)
+    {// TMVP-central
+        s8 availablePredIdx = 0;
+
+        int x_scu = (scup % w_scu);
+        int y_scu = (scup / w_scu);
+        int scu_col = ((x_scu + (cuw >> 1 >> MIN_CU_LOG2)) >> 1 << 1) + ((y_scu + (cuh >> 1 >> MIN_CU_LOG2)) >> 1 << 1) * w_scu; // 8x8 grid
+        evc_get_mv_collocated(
+            refplx,
+            ptr, scu_col, scup, w_scu, h_scu, tmvp, &availablePredIdx, sh);
+
+        tmvp_cnt_pos0 = cnt;
+        if (availablePredIdx != 0)
+        {
+            p_ref_dst = &(refi[0][cnt]);
+            p_map_mv_dst_L0 = mvp[REFP_0][cnt];
+            p_map_mv_dst_L1 = mvp[REFP_1][cnt];
+            s8 refs[2] = { -1, -1 };
+            refs[0] = (availablePredIdx == 1 || availablePredIdx == 3) ? 0 : -1;
+            refs[1] = (availablePredIdx == 2 || availablePredIdx == 3) ? 0 : -1;
+            p_ref_src = refs;
+            p_map_mv_src = &(tmvp[0][0]);
+
+            evc_get_merge_insert_mv(p_ref_dst, p_map_mv_dst_L0, p_map_mv_dst_L1, p_ref_src, p_map_mv_src, slice_type, cuw, cuh);
+            check_redundancy(slice_type, mvp, refi, &cnt);
+            cnt++;
+            tmvp_cnt_pos1 = cnt;
+            if (tmvp_cnt_pos1 == tmvp_cnt_pos0 + 1)
+                tmvp_added = 1;
+            if (cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
+            {
+                return;
+            }
+        }
+    } // TMVP-central
+    if (!tmvp_added)
+    {// Bottom first
+        s8 availablePredIdx = 0;
+        tmpvBottomRight = 0;
+        if (avail_lr == LR_01)
+            scup_tmp = evc_get_right_below_scup_qc_merge_suco(scup, cuw, cuh, w_scu, h_scu, tmpvBottomRight, log2_max_cuwh);
+        else
+            scup_tmp = evc_get_right_below_scup_qc_merge(scup, cuw, cuh, w_scu, h_scu, tmpvBottomRight, log2_max_cuwh);
+        if (scup_tmp != -1)  // if available, add it to candidate list
+        {
+            evc_get_mv_collocated(refplx, ptr, scup_tmp, scup, w_scu, h_scu, tmvp, &availablePredIdx, sh);
+            tmvp_cnt_pos0 = cnt;
+            if (availablePredIdx != 0)
+            {
+                p_ref_dst = &(refi[0][cnt]);
+                p_map_mv_dst_L0 = mvp[REFP_0][cnt];
+                p_map_mv_dst_L1 = mvp[REFP_1][cnt];
+                s8 refs[2] = { -1, -1 };
+                refs[0] = (availablePredIdx == 1 || availablePredIdx == 3) ? 0 : -1;
+                refs[1] = (availablePredIdx == 2 || availablePredIdx == 3) ? 0 : -1;
+                p_ref_src = refs;
+                p_map_mv_src = &(tmvp[0][0]);
+                evc_get_merge_insert_mv(p_ref_dst, p_map_mv_dst_L0, p_map_mv_dst_L1, p_ref_src, p_map_mv_src, slice_type, cuw, cuh);
 
                 check_redundancy(slice_type, mvp, refi, &cnt);
+                cnt++;
+                tmvp_cnt_pos1 = cnt;
+                if (tmvp_cnt_pos1 == tmvp_cnt_pos0 + 1)
+                    tmvp_added = 1;
+                if (cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
+                {
+                    return;
+                }
+            }
+        }
+    }
+    if (!tmvp_added)
+    {
+        s8 availablePredIdx = 0;
+        if (avail_lr == LR_01)
+            scup_tmp = evc_get_right_below_scup_qc_merge_suco(scup, cuw, cuh, w_scu, h_scu, !tmpvBottomRight, log2_max_cuwh);
+        else
+            scup_tmp = evc_get_right_below_scup_qc_merge(scup, cuw, cuh, w_scu, h_scu, !tmpvBottomRight, log2_max_cuwh);
+        if (scup_tmp != -1)  // if available, add it to candidate list
+        {
+            evc_get_mv_collocated(refplx, ptr, scup_tmp, scup, w_scu, h_scu, tmvp, &availablePredIdx, sh);
+
+            tmvp_cnt_pos0 = cnt;
+            if (availablePredIdx != 0)
+            {
+                p_ref_dst = &(refi[0][cnt]);
+                p_map_mv_dst_L0 = mvp[REFP_0][cnt];
+                p_map_mv_dst_L1 = mvp[REFP_1][cnt];
+                s8 refs[2] = { -1, -1 };
+                refs[0] = (availablePredIdx == 1 || availablePredIdx == 3) ? 0 : -1;
+                refs[1] = (availablePredIdx == 2 || availablePredIdx == 3) ? 0 : -1;
+                p_ref_src = refs;
+                p_map_mv_src = &(tmvp[0][0]);
+                evc_get_merge_insert_mv(p_ref_dst, p_map_mv_dst_L0, p_map_mv_dst_L1, p_ref_src, p_map_mv_src, slice_type, cuw, cuh);
+
+                check_redundancy(slice_type, mvp, refi, &cnt);
+                cnt++;
+                tmvp_cnt_pos1 = cnt;
+                if (tmvp_cnt_pos1 == tmvp_cnt_pos0 + 1)
+                    tmvp_added = 1;
+                if (cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
+                {
+                    return;
+                }
+            }
+        }
+    }
+
+    if (cnt < (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
+    {
+        for (k = 3; k <= min(history_buffer.currCnt, ALLOWED_CHECKED_NUM); k += 4)
+        {
+            p_ref_dst = &(refi[0][cnt]);
+            p_map_mv_dst_L0 = mvp[REFP_0][cnt];
+            p_map_mv_dst_L1 = mvp[REFP_1][cnt];
+            p_ref_src = history_buffer.history_refi_table[history_buffer.currCnt - k];
+            p_map_mv_src = &(history_buffer.history_mv_table[history_buffer.currCnt - k][0][0]);
+
+            evc_get_merge_insert_mv(p_ref_dst, p_map_mv_dst_L0, p_map_mv_dst_L1, p_ref_src, p_map_mv_src, slice_type, cuw, cuh);
+            check_redundancy(slice_type, mvp, refi, &cnt);
+            cnt++;
+            if (cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
+            {
+                return;
+            }
+        }
+    }
+    // B slice mv combination
+    if (check_bi_applicability(slice_type, cuw, cuh))
+    {
+        int priority_list0[MAX_NUM_MVP*MAX_NUM_MVP] = { 0, 1, 0, 2, 1, 2, 0, 3, 1, 3, 2, 3, 0, 4, 1, 4, 2, 4, 3, 4 };
+        int priority_list1[MAX_NUM_MVP*MAX_NUM_MVP] = { 1, 0, 2, 0, 2, 1, 3, 0, 3, 1, 3, 2, 4, 0, 4, 1, 4, 2, 4, 3 };
+        cur_num = cnt;
+        for (i = 0; i < cur_num*(cur_num - 1) && cnt != (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP); i++)
+        {
+            idx0 = priority_list0[i];
+            idx1 = priority_list1[i];
+
+            if (REFI_IS_VALID(refi[REFP_0][idx0]) && REFI_IS_VALID(refi[REFP_1][idx1]))
+            {
+                refi[REFP_0][cnt] = refi[REFP_0][idx0];
+                mvp[REFP_0][cnt][MV_X] = mvp[REFP_0][idx0][MV_X];
+                mvp[REFP_0][cnt][MV_Y] = mvp[REFP_0][idx0][MV_Y];
+
+                refi[REFP_1][cnt] = refi[REFP_1][idx1];
+                mvp[REFP_1][cnt][MV_X] = mvp[REFP_1][idx1][MV_X];
+                mvp[REFP_1][cnt][MV_Y] = mvp[REFP_1][idx1][MV_Y];
                 cnt++;
             }
         }
@@ -2345,6 +2689,7 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
     }
 }
 
+#endif
 void evc_get_motion_skip_baseline(int slice_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], EVC_REFP refp[REFP_NUM], int cuw, int cuh, int w_scu, s8 refi[REFP_NUM][MAX_NUM_MVP], s16 mvp[REFP_NUM][MAX_NUM_MVP][MV_D], u16 avail_lr)
 {
 #if ADMVP
@@ -2374,33 +2719,18 @@ void evc_clip_mv_pic(int x, int y, int maxX, int maxY, s16 mvp[REFP_NUM][MV_D])
 }
 
 void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 ptr, int scup, int c_scu, u16 w_scu, u16 h_scu, s16 mvp[REFP_NUM][MV_D]
-#if ADMVP
-                    , s8 *refidx
-#endif
                     , int sps_admvp_flag
 )
 #else
 void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 ptr, int scup, u16 w_scu, s16 mvp[REFP_NUM][MV_D]
-#if ADMVP
-                    , s8 *refidx
-#endif
 )
 #endif
 {
-#if ADMVP                            
-    int maxX = PIC_PAD_SIZE_L + (w_scu << MIN_CU_LOG2) - 1;
-    int maxY = PIC_PAD_SIZE_L + (h_scu << MIN_CU_LOG2) - 1;
-    int x = (c_scu % w_scu) << MIN_CU_LOG2;
-    int y = (c_scu / w_scu) << MIN_CU_LOG2;
-#endif
     s16 mvc[MV_D];
     int dptr_co, dptr_L0, dptr_L1;
 
     mvc[MV_X] = refp[REFP_1].map_mv[scup][0][MV_X];
     mvc[MV_Y] = refp[REFP_1].map_mv[scup][0][MV_Y];
-#if ADMVP
-    *refidx = refp[REFP_1].map_refi[scup][0];
-#endif
 
     dptr_co = refp[REFP_1].ptr - refp[REFP_1].list_ptr[0];
     dptr_L0 = ptr - refp[REFP_0].ptr;
@@ -2414,51 +2744,12 @@ void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 ptr, int scup, u16 w_scu, s16 m
         mvp[REFP_1][MV_Y] = 0;
     }
     else
-#if ADMVP
-    {
-        if(sps_admvp_flag == 1)
-        {
-            if((dptr_L0 & (dptr_L0 - 1)) == 0 && (dptr_L1 & (dptr_L1 - 1)) == 0 && (dptr_co & (dptr_co - 1)) == 0)
-            {
-                mvp[REFP_0][MV_X] = dptr_L0 * mvc[MV_X] / dptr_co;
-                mvp[REFP_0][MV_Y] = dptr_L0 * mvc[MV_Y] / dptr_co;
-                mvp[REFP_1][MV_X] = -dptr_L1 * mvc[MV_X] / dptr_co;
-                mvp[REFP_1][MV_Y] = -dptr_L1 * mvc[MV_Y] / dptr_co;
-#if ADMVP
-                evc_clip_mv_pic(x, y, maxX, maxY, mvp);
-#endif
-            }
-            else
-            {
-                mvp[REFP_0][MV_X] = 0;
-                mvp[REFP_0][MV_Y] = 0;
-                mvp[REFP_1][MV_X] = 0;
-                mvp[REFP_1][MV_Y] = 0;
-                *refidx = REFI_INVALID;
-            }
-        }
-        else
-        {
-            mvp[REFP_0][MV_X] = dptr_L0 * mvc[MV_X] / dptr_co;
-            mvp[REFP_0][MV_Y] = dptr_L0 * mvc[MV_Y] / dptr_co;
-            mvp[REFP_1][MV_X] = -dptr_L1 * mvc[MV_X] / dptr_co;
-            mvp[REFP_1][MV_Y] = -dptr_L1 * mvc[MV_Y] / dptr_co;
-#if ADMVP && 0 // is this a fix?
-            evc_clip_mv_pic(x, y, maxX, maxY, mvp);
-#endif
-        }
-    }
-#else
     {
         mvp[REFP_0][MV_X] = dptr_L0 * mvc[MV_X] / dptr_co;
         mvp[REFP_0][MV_Y] = dptr_L0 * mvc[MV_Y] / dptr_co;
         mvp[REFP_1][MV_X] = -dptr_L1 * mvc[MV_X] / dptr_co;
         mvp[REFP_1][MV_Y] = -dptr_L1 * mvc[MV_Y] / dptr_co;
-#if ADMVP
-        evc_clip_mv_pic(x, y, maxX, maxY, mvp);
-#endif
     }
-#endif
 }
 
 int evc_get_avail_cu(int neb_scua[MAX_NEB2], u32 * map_cu)

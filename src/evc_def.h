@@ -37,6 +37,20 @@
 #include "evc.h"
 #include "evc_port.h"
 
+// ETM4.1_rcQC_admvp  - clean up and spec alignment with specification
+#define QC_ADMVP_SPEC_ALLIGHN                         1  // ADMVP signaling alligned to spec.
+#define QC_ADMVP_CLEANUP                              1  // ADMVP ADMVP implementation spec alignment and simplification
+#if !QC_ADMVP_CLEANUP                                //  Detailed changes are in disabled macro branch for information (to be cleaned)
+#define QC_TEST2                                     1 // disable HEVC combined-bi pruning (aligned with Spec)
+#define QC_TEST3                                     1 // Fix block size constrain when constructing merge list (aligned with Spec)
+#define QC_TEST4                                     1 // enable list one in case of uni-pred merge candidate (aligned with Spec)
+#define QC_TEST7                                     1 // introduce bi-uni conversion in DMVR branch of ADMVP  (aligned with Spec)
+#endif
+
+// Affine memory bandwith threhsold:
+#define QC_THRESHOLD                                 0
+
+// Implementation of tiles supports
 #define ALF_CTU_MULTIPLE_TILE_SUPPORT             1
 
 //MPEG 128 adoptions
@@ -430,7 +444,11 @@ enum SAD_POINT_INDEX
 /* EIF (END) */
 
 #if EIF_MEMORY_BANDWIDTH_RESTRICTION
-#define MAX_MEMORY_ACCESS_BI             ( (4 + 5) * (4 + 5) )
+#if QC_THRESHOLD
+#define MAX_MEMORY_ACCESS_BI             72  // Threshold fo affine bandwith flag triggering aligned to the effective MV clipping value
+#else
+#define MAX_MEMORY_ACCESS_BI           ( (4 + 5) * (4 + 5) )
+#endif
 #else
 #define MAX_MEMORY_ACCESS_BI             ((8 + 7) * (8 + 7) / 64)
 #define MAX_MEMORY_ACCESS_UNI            ((8 + 7) * (4 + 7) / 32)

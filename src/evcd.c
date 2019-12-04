@@ -1137,13 +1137,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
                     {
                         if (ctx->sps.tool_amis == 0)
                         {
-#if ADMVP
-                            s8 refidx;
-#endif
                             evc_get_mv_dir(ctx->refp[0], ctx->ptr, core->scup + ((1 << (core->log2_cuw - MIN_CU_LOG2)) - 1) + ((1 << (core->log2_cuh - MIN_CU_LOG2)) - 1) * ctx->w_scu, core->scup, ctx->w_scu, ctx->h_scu, core->mv
-#if ADMVP
-                                , &refidx
-#endif
                                 , ctx->sps.tool_admvp
                             );
                             core->refi[REFP_0] = 0;

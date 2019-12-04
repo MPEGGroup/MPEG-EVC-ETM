@@ -2351,15 +2351,9 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
 #endif
 #if ADMVP                            
                     evc_get_mv_dir(ctx->refp[0], ctx->ptr, core->scup + ((1 << (core->log2_cuw - MIN_CU_LOG2)) - 1) + ((1 << (core->log2_cuh - MIN_CU_LOG2)) - 1) * ctx->w_scu, core->scup, ctx->w_scu, ctx->h_scu, core->mv
-#if ADMVP
-                        , &refidx
-#endif
                     );
 #else
                     evc_get_mv_dir(ctx->refp[0], ctx->ptr, core->scup + ((1 << (core->log2_cuw - MIN_CU_LOG2)) - 1) + ((1 << (core->log2_cuh - MIN_CU_LOG2)) - 1) * ctx->w_scu, ctx->w_scu, core->mv
-#if ADMVP
-                        , &refidx
-#endif
                     );
 #endif
 #if ADMVP
@@ -3323,6 +3317,7 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
 #endif
     sh->dtr = evc_bsr_read(bs, DTR_BIT_CNT);
     sh->layer_id = evc_bsr_read(bs, 3);
+#if !QC_ADMVP_SPEC_ALLIGHN
     sh->temporal_mvp_asigned_flag = evc_bsr_read1(bs);
     
     if (sh->temporal_mvp_asigned_flag)
@@ -3331,6 +3326,7 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
         sh->collocated_from_ref_idx = evc_bsr_read1(bs);
         sh->collocated_mvp_source_list_idx = evc_bsr_read1(bs);
     }
+#endif
 
     sh->slice_pic_parameter_set_id = evc_bsr_read_ue(bs);
     sh->single_tile_in_slice_flag = evc_bsr_read1(bs);
@@ -3461,6 +3457,21 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
                 sh->rpl_l0.ref_pic_active_num = 2;  //Temporarily i set it to 2. this should be set equal to the signalled num_ref_idx_default_active_minus1[0] + 1.
                 sh->rpl_l1.ref_pic_active_num = 2;  //Temporarily i set it to 2. this should be set equal to the signalled num_ref_idx_default_active_minus1[1] + 1.
             }
+#if QC_ADMVP_SPEC_ALLIGHN
+            if (sps->tool_admvp)
+            {
+                sh->temporal_mvp_asigned_flag = evc_bsr_read1(bs);
+                if (sh->temporal_mvp_asigned_flag)
+                {
+                    if (sh->slice_type == SLICE_B)
+                    {
+                        sh->collocated_from_list_idx = evc_bsr_read1(bs);
+                        sh->collocated_mvp_source_list_idx = evc_bsr_read1(bs);
+                    }
+                    sh->collocated_from_ref_idx = evc_bsr_read1(bs);
+                }
+            }
+#endif
         }
     }
 
