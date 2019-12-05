@@ -19,6 +19,7 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "evca_bitstream_merge", "evca_bitstream_merge_vs2017.vcxproj", "{CE798DEA-57E4-4978-B07E-C39F3836A832}"
 	ProjectSection(ProjectDependencies) = postProject
 		{3F9C7116-C287-40D7-865C-D8C89CF4FF31} = {3F9C7116-C287-40D7-865C-D8C89CF4FF31}
+		{5E102638-BA4A-4523-A39C-75842E250291} = {5E102638-BA4A-4523-A39C-75842E250291}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "evc_decoder_lib", "evc_decoder_lib_vs2017.vcxproj", "{40B445E8-306A-4C77-9B19-FC76C2379F79}"

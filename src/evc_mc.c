@@ -6982,8 +6982,8 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
     mv_clip(x, y, pic_w, pic_h, w, h, refi, mv, mv_t);
 
 #if DMVR
-    int          poc0 = refp[refi[REFP_0]][REFP_0].ptr;
-    int          poc1 = refp[refi[REFP_1]][REFP_1].ptr;
+    int          poc0 = refp[refi[REFP_0]][REFP_0].poc;
+    int          poc1 = refp[refi[REFP_1]][REFP_1].poc;
     s16          mv_refine[REFP_NUM][MV_D] = {{mv[REFP_0][MV_X], mv[REFP_0][MV_Y]},
                                               {mv[REFP_1][MV_X], mv[REFP_1][MV_Y]}};
 
@@ -7000,7 +7000,7 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
     int iterations_count = DMVR_ITER_COUNT;
     apply_DMVR = apply_DMVR && dmvr_poc_condition;
     apply_DMVR = apply_DMVR && (REFI_IS_VALID(refi[REFP_0]) && REFI_IS_VALID(refi[REFP_1]));
-    apply_DMVR = apply_DMVR && !(refp[refi[REFP_0]][REFP_0].pic->ptr == refp[refi[REFP_1]][REFP_1].pic->ptr &&  mv_t[REFP_0][MV_X] == mv_t[REFP_1][MV_X] && mv_t[REFP_0][MV_Y] == mv_t[REFP_1][MV_Y]);
+    apply_DMVR = apply_DMVR && !(refp[refi[REFP_0]][REFP_0].pic->poc == refp[refi[REFP_1]][REFP_1].pic->poc &&  mv_t[REFP_0][MV_X] == mv_t[REFP_1][MV_X] && mv_t[REFP_0][MV_Y] == mv_t[REFP_1][MV_Y]);
     
 #if !M50761_DMVR_RESTRICT_SMALL_BLOCKS
     apply_DMVR = apply_DMVR && (!((w == 4 && h <= 8) || (w <= 8 && h == 4)));
@@ -7066,7 +7066,7 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
     /* check identical motion */
     if(REFI_IS_VALID(refi[REFP_0]) && REFI_IS_VALID(refi[REFP_1]))
     {
-        if(refp[refi[REFP_0]][REFP_0].pic->ptr == refp[refi[REFP_1]][REFP_1].pic->ptr &&  mv_t[REFP_0][MV_X] == mv_t[REFP_1][MV_X] && mv_t[REFP_0][MV_Y] == mv_t[REFP_1][MV_Y])
+        if(refp[refi[REFP_0]][REFP_0].pic->poc == refp[refi[REFP_1]][REFP_1].pic->poc &&  mv_t[REFP_0][MV_X] == mv_t[REFP_1][MV_X] && mv_t[REFP_0][MV_Y] == mv_t[REFP_1][MV_Y])
         {
             return;
         }

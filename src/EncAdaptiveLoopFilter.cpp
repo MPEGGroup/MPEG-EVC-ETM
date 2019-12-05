@@ -88,14 +88,14 @@ void call_enc_ALFProcess(EncAdaptiveLoopFilter* p, const double* lambdas, EVCE_C
 
 #if FIX_SEQUENTIAL_CODING
     m_pendingRasInit = FALSE;
-    if (ctx->ptr > m_lastRasPoc)
+    if (ctx->poc.poc_val > m_lastRasPoc)
     {
         m_lastRasPoc = INT_MAX;
         m_pendingRasInit = TRUE;
     }
     if (ctx->sh.slice_type == SLICE_I)
     {
-        m_lastRasPoc = ctx->ptr;
+        m_lastRasPoc = ctx->poc.poc_val;
     }
 
     if (m_pendingRasInit)
@@ -116,12 +116,11 @@ void call_enc_ALFProcess(EncAdaptiveLoopFilter* p, const double* lambdas, EVCE_C
     if( alfSliceParam.enabledFlag[0] && m_store2ALFBufferFlag )
     {
         const unsigned tidxMAX = MAX_NUM_TLAYER - 1u;
-        const unsigned tidx = ctx->sh.layer_id;
+        const unsigned tidx = ctx->nalu.nuh_temporal_id;
         assert(tidx <= tidxMAX);
         storeALFParamLine(&alfSliceParam, tidx);
         alfSliceParam.store2ALFBufferFlag = m_store2ALFBufferFlag;
     }
-
 
     iAlfSliceParam->isCtbAlfOn = BOOL(alfSliceParam.isCtbAlfOn ? 1 : 0);
 #if ALF_CTU_MAP_DYNAMIC
@@ -161,7 +160,6 @@ void call_enc_ALFProcess(EncAdaptiveLoopFilter* p, const double* lambdas, EVCE_C
     iAlfSliceParam->temporalAlfFlag = BOOL( alfSliceParam.temporalAlfFlag );
     iAlfSliceParam->resetALFBufferFlag = BOOL( alfSliceParam.resetALFBufferFlag );
     iAlfSliceParam->store2ALFBufferFlag = BOOL( alfSliceParam.store2ALFBufferFlag );
-
 }
 
 #if APS_ALF_SEQ_FIX
@@ -176,8 +174,8 @@ void alf_aps_enc_opt_process(EncAdaptiveLoopFilter* p, const double* lambdas, EV
         iAlfSliceParam->resetALFBufferFlag = true;
     }
     // Initialize ALF module for current POC
-    m_currentPoc = ctx->ptr;
-    m_currentTempLayer = ctx->sh.layer_id;
+    m_currentPoc = ctx->poc.poc_val;
+    m_currentTempLayer = ctx->nalu.nuh_temporal_id;
     if (m_resetALFBufferFlag)
     {
         // initialize firstIdrPoc
@@ -186,21 +184,21 @@ void alf_aps_enc_opt_process(EncAdaptiveLoopFilter* p, const double* lambdas, EV
             m_firstIdrPoc = m_lastIdrPoc;
         }
         else {
-            m_firstIdrPoc = ctx->ptr;
+            m_firstIdrPoc = ctx->poc.poc_val;
         }
-        m_lastIdrPoc = ctx->ptr;  // store current pointer of the reset poc
+        m_lastIdrPoc = ctx->poc.poc_val;  // store current pointer of the reset poc
         m_i_period = ctx->param.i_period; // store i-period for current pic.
     }
 
     m_pendingRasInit = FALSE;
-    if (ctx->ptr > m_lastRasPoc)
+    if (ctx->poc.poc_val > m_lastRasPoc)
     {
         m_lastRasPoc = INT_MAX;
         m_pendingRasInit = TRUE;
     }
     if (ctx->sh.slice_type == SLICE_I)
     {
-        m_lastRasPoc = ctx->ptr;
+        m_lastRasPoc = ctx->poc.poc_val;
     }
 
     if (m_pendingRasInit)
@@ -220,7 +218,7 @@ void alf_aps_enc_opt_process(EncAdaptiveLoopFilter* p, const double* lambdas, EV
     if (alfSliceParam.enabledFlag[0] && m_store2ALFBufferFlag)
     {
         const unsigned tidxMAX = MAX_NUM_TLAYER - 1u;
-        const unsigned tidx = ctx->sh.layer_id;
+        const unsigned tidx = ctx->nalu.nuh_temporal_id;
         assert(tidx <= tidxMAX);
         storeEncALFParamLineAPS(&alfSliceParam, tidx);
         alfSliceParam.store2ALFBufferFlag = m_store2ALFBufferFlag;
@@ -1190,7 +1188,7 @@ void EncAdaptiveLoopFilter::alfTemporalEncoderAPSComponent(CodingStructure& cs, 
 
 {
     EVCE_CTX* ctx = (EVCE_CTX*)cs.pCtx;
-    const int tempLayerId = ctx->layer_id;
+    const int tempLayerId = ctx->nalu.nuh_temporal_id;
     int prevIdxComp[MAX_NUM_CHANNEL_TYPE] = { -1, -1 };
     int talfCompEnable[MAX_NUM_CHANNEL_TYPE] = { 0, 0 };
 
@@ -1372,7 +1370,7 @@ void EncAdaptiveLoopFilter::alfTemporalEncoderAPS(CodingStructure& cs, AlfSliceP
     EVCE_CTX* ctx = (EVCE_CTX*)cs.pCtx;
 
     double cost[MAX_NUM_CHANNEL_TYPE] = { DBL_MAX, DBL_MAX };
-    const int tempLayerId = ctx->layer_id; //cs.slice->getTLayer();
+    const int tempLayerId = ctx->nalu.nuh_temporal_id; //cs.slice->getTLayer();
 
     AlfSliceParam *pcStoredAlfPara = ctx->slice_type == SLICE_I ? NULL : m_acAlfLineBuffer;
 
@@ -1522,7 +1520,7 @@ void EncAdaptiveLoopFilter::alfTemporalEncoder(CodingStructure& cs, AlfSlicePara
   EVCE_CTX* ctx = (EVCE_CTX*)cs.pCtx;
 
   double cost[MAX_NUM_CHANNEL_TYPE] = { DBL_MAX, DBL_MAX };
-  const int tempLayerId = ctx->layer_id; //cs.slice->getTLayer();
+  const int tempLayerId = ctx->nalu.nuh_temporal_id; //cs.slice->getTLayer();
 
   AlfSliceParam *pcStoredAlfPara = ctx->slice_type == SLICE_I ? NULL : m_acAlfLineBuffer;
 

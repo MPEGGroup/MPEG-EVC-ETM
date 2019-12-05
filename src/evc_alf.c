@@ -147,7 +147,7 @@ void store_dec_aps_to_buffer(EVCD_CTX * ctx)
 #endif
     alfSliceParam.tLayer = iAlfSliceParam.tLayer;
     alfSliceParam.temporalAlfFlag = (iAlfSliceParam.temporalAlfFlag);
-    const unsigned tidx = ctx->sh.layer_id;
+    const unsigned tidx = ctx->nalu.nuh_temporal_id;
 
 #if APS_ALF_SEQ_FIX
     // Initialize un-used variables at the decoder side  TODO: Modify structure
@@ -228,7 +228,7 @@ void call_ALFProcess(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic)
     alfSliceParam.prevIdx = iAlfSliceParam.prevIdx;
     alfSliceParam.tLayer  = iAlfSliceParam.tLayer;
     alfSliceParam.temporalAlfFlag = ( iAlfSliceParam.temporalAlfFlag );
-    const unsigned tidx = ctx->sh.layer_id;
+    const unsigned tidx = ctx->nalu.nuh_temporal_id;
 
 
     alfSliceParam.resetALFBufferFlag = ( iAlfSliceParam.resetALFBufferFlag );
@@ -240,13 +240,13 @@ void call_ALFProcess(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic)
     }
 #if FIX_SEQUENTIAL_CODING
     m_pendingRasInit = FALSE;
-    if( ctx->ptr > m_lastRasPoc )
+    if( ctx->poc.poc_val > m_lastRasPoc )
     {
         m_lastRasPoc = INT_MAX;
         m_pendingRasInit = TRUE;
     }
     if( ctx->sh.slice_type == SLICE_I )
-        m_lastRasPoc = ctx->ptr;
+        m_lastRasPoc = ctx->poc.poc_val;
 
     if( m_pendingRasInit )
         resetTemporalAlfBufferLine2First();
@@ -260,13 +260,13 @@ void call_ALFProcess(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic)
     alfSliceParam.store2ALFBufferFlag = ( iAlfSliceParam.store2ALFBufferFlag );
 #if !FIX_SEQUENTIAL_CODING
     m_pendingRasInit = FALSE;
-    if( ctx->ptr > m_lastRasPoc )
+    if( ctx->poc.poc_val > m_lastRasPoc )
     {
         m_lastRasPoc = INT_MAX;
         m_pendingRasInit = TRUE;
     }
     if( ctx->sh.slice_type == SLICE_I )
-        m_lastRasPoc = ctx->ptr;
+        m_lastRasPoc = ctx->poc.poc_val;
 
     if( m_pendingRasInit )
         resetTemporalAlfBufferLine2First();

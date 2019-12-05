@@ -3545,7 +3545,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
     int boundary = !(x0 + cuw <= ctx->w && y0 + cuh <= ctx->h);
     int split_allow[SPLIT_QUAD + 1]; //allowed split by normative and non-normative selection
     s8 best_suco_flag = 0;
-    u16 avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu
+    u16 avail_lr = evc_check_nev_avail(PEL2SCU(x0), PEL2SCU(y0), cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu
 #if EVC_TILE_SUPPORT
         , ctx->map_tidx
 #endif
@@ -3932,7 +3932,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
     }
 
 #if ENC_ECU_ADAPTIVE
-    if(cost_best != MAX_COST && cud >= (ctx->ptr % 2 ? (ctx->sps.sps_btt_flag ? ENC_ECU_DEPTH - 2 : ENC_ECU_DEPTH_B - 2) : (ctx->sps.sps_btt_flag ? ENC_ECU_DEPTH : ENC_ECU_DEPTH_B))
+    if(cost_best != MAX_COST && cud >= (ctx->poc.poc_val % 2 ? (ctx->sps.sps_btt_flag ? ENC_ECU_DEPTH - 2 : ENC_ECU_DEPTH_B - 2) : (ctx->sps.sps_btt_flag ? ENC_ECU_DEPTH : ENC_ECU_DEPTH_B))
 #else
     if(cost_best != MAX_COST && cud >= ENC_ECU_DEPTH
 #endif

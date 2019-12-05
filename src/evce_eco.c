@@ -220,7 +220,7 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
             evc_bsw_write_ue(bs, sps->log2_ref_pic_gap_length);
         }
     }
-    evc_bsw_write_ue(bs, (u32)sps->sps_max_dec_pic_buffering_minus1);
+    evc_bsw_write_ue(bs, (u32)sps->max_dec_pic_buffering_minus1);
     if (!sps->tool_rpl)
     {
         evc_bsw_write_ue(bs, (u32)sps->max_num_ref_pics);
@@ -379,9 +379,6 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
     int NumTilesInSlice = 0; //TBD according to the spec
 #endif
 
-    evc_bsw_write(bs, sh->dtr, DTR_BIT_CNT);
-    evc_bsw_write(bs, sh->layer_id, 3);
-
     evc_bsw_write1(bs, sh->temporal_mvp_asigned_flag);
     if (sh->temporal_mvp_asigned_flag)
     {
@@ -441,7 +438,6 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
 #if M50662_LUMA_CHROMA_SEPARATE_APS
             evc_bsw_write(bs, sh->aps_id_y, APS_MAX_NUM_IN_BITS);
             evc_bsw_write(bs, sh->aps_id_ch, APS_MAX_NUM_IN_BITS);
-
 #else
             evc_bsw_write(bs, sh->aps_signaled, APS_MAX_NUM_IN_BITS); //encode tile group aps id
 #endif
@@ -460,9 +456,8 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
     {
         if (sps->tool_pocs)
         {
-            evc_bsw_write(bs, sh->poc, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
+            evc_bsw_write(bs, sh->poc_lsb, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
         }
-
         if (sps->tool_rpl)
         {
             //L0 candidates signaling
@@ -499,17 +494,17 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
                 evce_eco_rlp(bs, &sh->rpl_l1);
             }
         }
+    }
 
-        if (sh->slice_type == SLICE_P || sh->slice_type == SLICE_B)
+    if (sh->slice_type != SLICE_I)
+    {
+        evc_bsw_write1(bs, sh->num_ref_idx_active_override_flag);
+        if (sh->num_ref_idx_active_override_flag)
         {
-            evc_bsw_write1(bs, sh->num_ref_idx_active_override_flag);
-            if (sh->num_ref_idx_active_override_flag)
+            evc_bsw_write_ue(bs, (u32)(sh->rpl_l0).ref_pic_active_num - 1);
+            if (sh->slice_type == SLICE_B)
             {
-                evc_bsw_write_ue(bs, (u32)(sh->rpl_l0).ref_pic_active_num - 1);
-                if (sh->slice_type == SLICE_B)
-                {
-                    evc_bsw_write_ue(bs, (u32)(sh->rpl_l1).ref_pic_active_num - 1);
-                }
+                evc_bsw_write_ue(bs, (u32)(sh->rpl_l1).ref_pic_active_num - 1);
             }
         }
     }
@@ -527,11 +522,6 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
         {
             evc_bsw_write(bs, sh->entry_point_offset_minus1[i], pps->tile_offset_lens_minus1 + 1);
         }
-    }
-
-    if(sh->slice_type != SLICE_I)
-    {
-        evc_bsw_write_se(bs, sh->dptr);
     }
 
     /* byte align */
@@ -3025,8 +3015,8 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
     cu_init(ctx, core, x, y, cup, cuw, cuh);
 
     EVC_TRACE_COUNTER;
-    EVC_TRACE_STR("ptr: ");
-    EVC_TRACE_INT(ctx->ptr);
+    EVC_TRACE_STR("poc: ");
+    EVC_TRACE_INT(ctx->poc.poc_val);
     EVC_TRACE_STR("x pos ");
     EVC_TRACE_INT(core->x_pel + ((cup % (ctx->max_cuwh >> MIN_CU_LOG2)) << MIN_CU_LOG2));
     EVC_TRACE_STR("y pos ");

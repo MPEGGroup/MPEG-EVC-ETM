@@ -822,10 +822,10 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 
     for (int k = 0; k < MAX_NUM_ACTIVE_REF_FRAME; k++)
     {
-        REF_SET[0][k] = ctx->refp[k][0].ptr;
-        REF_SET[1][k] = ctx->refp[k][1].ptr;
+        REF_SET[0][k] = ctx->refp[k][0].poc;
+        REF_SET[1][k] = ctx->refp[k][1].poc;
     }
-    REF_SET[2][0] = ctx->ptr;
+    REF_SET[2][0] = ctx->poc.poc_val;
 #if M50632_IMPROVEMENT_MMVD
     REF_SET[2][1] = ctx->dpm.cur_num_ref_pics;
 #endif
