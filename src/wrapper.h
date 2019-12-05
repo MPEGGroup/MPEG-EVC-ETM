@@ -67,15 +67,10 @@ void delete_ALF(AdaptiveLoopFilter*);
 
 void call_create_ALF(AdaptiveLoopFilter* p, const int picWidth, const int picHeight, const int maxCUWidth, const int maxCUHeight, const int maxCUDepth);
 void call_destroy_ALF(AdaptiveLoopFilter* p);
-
-void call_ALFProcess(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic);
-
 void init_AlfFilterShape(void * th, int size);
 
-#if ALF_PARAMETER_APS
 void store_dec_aps_to_buffer(EVCD_CTX * ctx);
 void call_dec_alf_process_aps(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic);
-#endif
 #ifdef __cplusplus
 }
 #endif

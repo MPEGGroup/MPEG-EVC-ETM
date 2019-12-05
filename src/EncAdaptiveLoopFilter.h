@@ -227,10 +227,7 @@ private:
       , int tile_idx, int col_bd2
 #endif
   );
-  void   alfTemporalEncoder(CodingStructure& cs, AlfSliceParam* alfSliceParam);
-#if APS_ALF_SEQ_FIX
   void   alfTemporalEncoderAPS(CodingStructure& cs, AlfSliceParam* alfSliceParam);
-#endif
 #if M50662_LUMA_CHROMA_SEPARATE_APS
   void   alfTemporalEncoderAPSComponent(CodingStructure& cs, AlfSliceParam* alfSliceParam);
 #endif
@@ -275,7 +272,7 @@ private:
   void setEnableFlag(AlfSliceParam* alfSlicePara, ChannelType channel, uint8_t** ctuFlags);
   void setCtuEnableFlag(uint8_t** ctuFlags, ChannelType channel, uint8_t val);
   void copyCtuEnableFlag(uint8_t** ctuFlagsDst, uint8_t** ctuFlagsSrc, ChannelType channel);
-#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+#if ALF_TILES_SUPPORT_M50663
   void tile_boundary_check(int* availableL, int* availableR, int* availableT, int* availableB, const int width, const int height, int xPos, int yPos, int x_l, int x_r, int y_l, int y_r);
 #endif
 };

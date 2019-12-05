@@ -223,7 +223,7 @@ struct _EVCD_CTX
     EVC_SPS                sps;
     /* picture parameter set */
     EVC_PPS                pps;
-#if ALF_PARAMETER_APS
+#if ALF
     /* adaptation parameter set */
     EVC_APS                aps;
     u8                     aps_temp;

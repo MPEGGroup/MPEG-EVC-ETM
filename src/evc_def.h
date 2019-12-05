@@ -37,7 +37,7 @@
 #include "evc.h"
 #include "evc_port.h"
 
-#define ALF_CTU_MULTIPLE_TILE_SUPPORT             1
+#define ALF_TILES_SUPPORT_M50663                     1
 
 //MPEG 128 adoptions
 
@@ -119,7 +119,6 @@
 #define M50632_IMPROVEMENT_BASELINE        1
 #endif
 
-#define ALF_PARAMETER_APS                  1
 #define TU_ZONAL_CODING                    1
 #if M50632_IMPROVEMENT_BASELINE
 #define CTX_MODEL_FOR_RESIDUAL_IN_BASE     0
@@ -450,16 +449,8 @@ enum SAD_POINT_INDEX
 #define MAX_ALF_FILTER_LENGTH              7
 #define MAX_NUM_ALF_COEFF                 (MAX_ALF_FILTER_LENGTH * MAX_ALF_FILTER_LENGTH / 2 + 1)
 
-#if ALF_PARAMETER_APS
-#define  APS_MAX_NUM                       32
-#define  APS_MAX_NUM_IN_BITS               5 
-
-#define  APS_ALF_CTU_FLAG                  1
-#define  APS_ALF_SEQ_FIX                   1
-#endif
-
-#define FIX_SEQUENTIAL_CODING              1
-#define ALF_CTU_MAP_DYNAMIC                1
+#define APS_MAX_NUM                        32
+#define APS_MAX_NUM_IN_BITS                5 
 
 // The structure below must be aligned to identical structure in evc_alf.c!
 typedef struct _evc_AlfFilterShape
@@ -1467,11 +1458,7 @@ typedef struct _EVC_PPS
 typedef struct _evc_AlfSliceParam
 {
     BOOL isCtbAlfOn;
-#if ALF_CTU_MAP_DYNAMIC
     u8 *alfCtuEnableFlag;
-#else
-    u8 alfCtuEnableFlag[3][512];
-#endif
 
     BOOL                         enabledFlag[3];                                          // alf_slice_enable_flag, alf_chroma_idc
     int                          lumaFilterType;                                          // filter_type_flag
@@ -1497,7 +1484,6 @@ typedef struct _evc_AlfSliceParam
 
 } evc_AlfSliceParam;
 
-#if ALF_PARAMETER_APS
 typedef struct _EVC_APS
 {
     int                               aps_id;                    // adaptation_parameter_set_id
@@ -1507,9 +1493,6 @@ typedef struct _EVC_APS
 #endif
     evc_AlfSliceParam          alf_aps_param;              // alf data
 } EVC_APS;
-
-#endif
-
 #endif
 
 typedef struct _EVC_SH
@@ -1562,14 +1545,12 @@ typedef struct _EVC_SH
     u8               mmvd_group_enable_flag;
     u8               ctb_alf_on;
     u16              num_ctb;
-#if ALF_PARAMETER_APS
     int              aps_signaled;
 #if M50662_LUMA_CHROMA_SEPARATE_APS
-    int aps_id_y;
-    int aps_id_ch;
+    int                 aps_id_y;
+    int                 aps_id_ch;
 #endif
     EVC_APS*         aps;
-#endif
     evc_AlfSliceParam alf_sh_param;
 #endif
     /* delta of presentation temporal reference */
