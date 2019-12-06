@@ -366,7 +366,7 @@ int main(int argc, const char **argv)
     EVC_SH          * sh;
     EVC_NALU        * nalu;
     EVCD_CTX        * ctx;
-#if ALF_PARAMETER_APS
+#if ALF
     EVC_APS         * aps;
 #endif
 
@@ -438,7 +438,7 @@ int main(int argc, const char **argv)
             pps = &ctx->pps;
             sh = &ctx->sh;
             nalu = &ctx->nalu;
-#if ALF_PARAMETER_APS
+#if ALF
             aps = &ctx->aps;
 #endif
             /* set error status */
@@ -471,8 +471,6 @@ int main(int argc, const char **argv)
                 /* decode slice header */
 #if ALF
                 sh->num_ctb = ctx->f_lcu;
-#endif
-#if ALF_CTU_MAP_DYNAMIC
                 sh->alf_sh_param.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
                 memset(sh->alf_sh_param.alfCtuEnableFlag, 1, N_C * ctx->f_lcu * sizeof(u8));
 #endif
@@ -517,7 +515,7 @@ int main(int argc, const char **argv)
                     fwrite(bs_buf, 1, bs_size, fp_bs_write);
                 }
             }
-#if ALF_PARAMETER_APS
+#if ALF
             else if (nalu->nal_unit_type_plus1 - 1 == EVC_APS_NUT)
             {
                 fwrite(tmp_size, 1, 4, fp_bs_write);

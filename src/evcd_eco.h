@@ -46,7 +46,7 @@ u32 evcd_sbac_decode_bin_trm(EVC_BSR *bs, EVCD_SBAC *sbac);
 int evcd_eco_nalu(EVC_BSR * bs, EVC_NALU * nalu);
 int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps);
 int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps);
-#if ALF_PARAMETER_APS
+#if ALF
 int evcd_eco_aps(EVC_BSR * bs, EVC_APS * aps);
 int evcd_eco_alf_aps_param(EVC_BSR * bs, EVC_APS * aps);
 #endif

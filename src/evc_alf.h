@@ -183,7 +183,7 @@ static const int golombIdx5[14] =
 {
   0,
   0, 1, 0,
-  0, 1, 2, 2
+  0, 1
 };
 
 static const int golombIdx7[14] =
@@ -191,7 +191,7 @@ static const int golombIdx7[14] =
   0,
   0, 1, 0,
   0, 1, 2, 1, 0,
-  0, 1, 2, 3, 3
+  0, 1, 2
 };
 
 static const int patternToLargeFilter5[13] =
@@ -228,11 +228,7 @@ extern void init_AlfFilterShape(void* _th, int size);
 struct AlfSliceParam
 {
   BOOL                         isCtbAlfOn;
-#if ALF_CTU_MAP_DYNAMIC
   u8                           *alfCtuEnableFlag;
-#else
-  u8                           alfCtuEnableFlag[3][512];                                // put into slice header
-#endif
   BOOL                         enabledFlag[MAX_NUM_COMPONENT];                          // alf_slice_enable_flag, alf_chroma_idc
   AlfFilterType                lumaFilterType;                                          // filter_type_flag
   BOOL                         chromaCtbPresentFlag;                                    // alf_chroma_ctb_present_flag
@@ -256,12 +252,11 @@ struct AlfSliceParam
 #endif
   BOOL resetALFBufferFlag;
   BOOL store2ALFBufferFlag;
-#if APS_ALF_SEQ_FIX
+
   // encoder side variables
   u32 m_filterPoc;  // store POC value for which filter was produced
   u32 m_minIdrPoc;  // Minimal of 2 IDR POC available for current coded nalu  (to identify availability of this filter for temp prediction)
   u32 m_maxIdrPoc;  // Max of 2 IDR POC available for current coded nalu  (to identify availability of this filter for temp prediction)
-#endif
 };
 #endif
 
@@ -288,7 +283,7 @@ extern ChromaFormat    m_chromaFormat;
 
 extern BOOL m_store2ALFBufferFlag;
 extern BOOL m_resetALFBufferFlag;
-#if APS_ALF_SEQ_FIX
+
 extern u32 m_firstIdrPoc;
 extern u32 m_lastIdrPoc;
 extern u32 m_currentPoc;
@@ -297,8 +292,6 @@ extern u32  m_currentTempLayer;
 extern int m_alf_present_idr;
 extern int m_alf_idx_idr;
 extern u32 m_i_period;
-#endif
-
 
 extern int m_lastRasPoc;
 extern BOOL m_pendingRasInit;
@@ -315,12 +308,9 @@ extern int   m_inputBitDepth[MAX_NUM_CHANNEL_TYPE];
 
 extern u8 m_acAlfLineBufferCurrentSize;
 
-#if ALF_PARAMETER_APS
 extern u8 m_alfIndxInScanOrder[APS_MAX_NUM];
 extern AlfSliceParam m_acAlfLineBuffer[APS_MAX_NUM];
-#else
-extern AlfSliceParam m_acAlfLineBuffer[ALF_TEMPORAL_WITH_LINE_BUFFER];
-#endif
+
 extern AlfSliceParam m_IRAPFilter;
 
 extern void init_AlfFilterShape(void* _th, int size);
@@ -332,32 +322,18 @@ extern void copyAlfParam(AlfSliceParam* dst, AlfSliceParam* src);
 #if M50662_LUMA_CHROMA_SEPARATE_APS
 extern void copyAlfParamChroma(AlfSliceParam* dst, AlfSliceParam* src);
 #endif
-extern void storeALFParamLine(AlfSliceParam* pAlfParam, unsigned tLayer);
-#if ALF_PARAMETER_APS
 void store_alf_paramline_from_aps(AlfSliceParam* pAlfParam, u8 idx);
 void load_alf_paramline_from_aps_buffer(AlfSliceParam* pAlfParam, u8 idx);
 #if M50662_LUMA_CHROMA_SEPARATE_APS
 void load_alf_paramline_from_aps_buffer2(AlfSliceParam* pAlfParam, u8 idxY, u8 idxUV);
 #endif
-#if APS_ALF_SEQ_FIX
 extern u8 m_nextFreeAlfIdxInBuffer;
 extern void resetAlfParam(AlfSliceParam* dst);
 extern void resetIdrIndexListBufferAPS();
 extern int  getProtectIdxFromList(int idx);
 extern void storeEncALFParamLineAPS(AlfSliceParam* pAlfParam, unsigned tLayer);
-extern void storeDecALFParamLine(AlfSliceParam* pAlfParam, unsigned tLayer);
-extern void loadALFParamLineAPS(AlfSliceParam* pAlfParam, unsigned idx, unsigned tLayer);
-#endif
-#endif
-
-extern void resetTemporalAlfBufferLine();
-extern void resetTemporalAlfBufferLine2First();
-
 void AdaptiveLoopFilter_create( const int picWidth, const int picHeight, const int maxCUWidth, const int maxCUHeight, const int maxCUDepth);
 void AdaptiveLoopFilter_destroy();
-
-void loadALFParamLine(AlfSliceParam* pAlfParam, unsigned idx, unsigned tLayer);
-
 void deriveClassificationBlk( AlfClassifier** classifier, const pel * srcLuma, const int srcStride, const Area * blk, const int shift );
 void filterBlk_7( AlfClassifier** classifier, pel * recDst, const int dstStride, const pel * recSrc, const int srcStride, const Area* blk, const ComponentID compId, short* filterSet, const ClpRng* clpRng );
 void filterBlk_5( AlfClassifier** classifier, pel * recDst, const int dstStride, const pel * recSrc, const int srcStride, const Area* blk, const ComponentID compId, short* filterSet, const ClpRng* clpRng );

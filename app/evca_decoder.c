@@ -215,7 +215,7 @@ static int print_stat(EVCD_STAT * stat, int ret)
         {
             v1print("Picture Parameter Set");
         }
-#if ALF_PARAMETER_APS
+#if ALF
         else if (stat->nalu_type == EVC_APS_NUT)
         {
             v1print("Adaptation Parameter Set");
