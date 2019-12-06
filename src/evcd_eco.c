@@ -2817,7 +2817,6 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps)
             }
         }
         pps->loop_filter_across_tiles_enabled_flag = evc_bsr_read1(bs);
-        //pps->tile_offset_lens_minus1 = evc_bsr_read1(bs); //Bug in the decoder
         pps->tile_offset_lens_minus1 = evc_bsr_read_ue(bs); 
     }
 
