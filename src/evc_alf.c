@@ -140,7 +140,7 @@ void store_dec_aps_to_buffer(EVCD_CTX * ctx)
 #endif
     alfSliceParam.tLayer = iAlfSliceParam.tLayer;
     alfSliceParam.temporalAlfFlag = (iAlfSliceParam.temporalAlfFlag);
-    const unsigned tidx = ctx->sh.layer_id;
+    const unsigned tidx = ctx->nalu.nuh_temporal_id;
 
     // Initialize un-used variables at the decoder side  TODO: Modify structure
     alfSliceParam.m_filterPoc = INT_MAX;

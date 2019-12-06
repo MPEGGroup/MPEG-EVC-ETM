@@ -38,6 +38,7 @@
 #include "evc_port.h"
 
 #define ALF_TILES_SUPPORT_M50663                     1
+#define FIX_END_OF_TILE_ONE_BIT_CODING               1
 
 //MPEG 128 adoptions
 
@@ -587,12 +588,8 @@ extern int fp_trace_started;
 
 /********* Conditional tools definition ********/
 
-/* bits for decoding temporal reference */
-#define DTR_BIT_CNT                       (10)
-/* maxium decoding temporal reference */
-#define MAX_DTR                           (1<<DTR_BIT_CNT)
-/* bit mask for decoding temporal reference */
-#define DTR_BIT_MSK                       (MAX_DTR - 1)
+/* number of picture order count lsb bit */
+#define POC_LSB_BIT                       (11)
 
 #define BIT_DEPTH                          10
 #define PEL2BYTE(pel)                      ((pel)*((BIT_DEPTH + 7)>>3))
@@ -1231,23 +1228,21 @@ typedef struct _EVC_PIC
     /* padding size of chroma */
     int              pad_c;
     /* image buffer */
-    EVC_IMGB       *imgb;
-    /* decoding temporal reference of this picture */
-    u32              dtr;
+    EVC_IMGB       * imgb;
     /* presentation temporal reference of this picture */
-    u32              ptr;
+    u32              poc;
     /* 0: not used for reference buffer, reference picture type */
     u8               is_ref;
     /* needed for output? */
     u8               need_for_out;
     /* scalable layer id */
-    u8               layer_id;
+    u8               temporal_id;
     s16            (*map_mv)[REFP_NUM][MV_D];
 #if DMVR_LAG
     s16            (*map_unrefined_mv)[REFP_NUM][MV_D];
 #endif
     s8             (*map_refi)[REFP_NUM];
-    u32              list_ptr[MAX_NUM_REF_PICS];
+    u32              list_poc[MAX_NUM_REF_PICS];
 #if ALF
     u8               m_alfCtuEnableFlag[3][510]; //510 = 30*17 -> class A1 resolution with CU ~ 128
 #endif
@@ -1262,7 +1257,7 @@ typedef struct _PICBUF_ALLOCATOR PICBUF_ALLOCATOR;
 struct _PICBUF_ALLOCATOR
 {
     /* address of picture buffer allocation function */
-    EVC_PIC      *(*fn_alloc)(PICBUF_ALLOCATOR *pa, int *ret);
+    EVC_PIC      *(* fn_alloc)(PICBUF_ALLOCATOR *pa, int *ret);
     /* address of picture buffer free function */
     void           (*fn_free)(PICBUF_ALLOCATOR *pa, EVC_PIC *pic);
     /* width */
@@ -1285,9 +1280,9 @@ struct _PICBUF_ALLOCATOR
 typedef struct _EVC_PM
 {
     /* picture store (including reference and non-reference) */
-    EVC_PIC        *pic[MAX_PB_SIZE];
+    EVC_PIC        * pic[MAX_PB_SIZE];
     /* address of reference pictures */
-    EVC_PIC        *pic_ref[MAX_NUM_REF_PICS];
+    EVC_PIC        * pic_ref[MAX_NUM_REF_PICS];
     /* maximum reference picture count */
     u8               max_num_ref_pics;
     /* current count of available reference pictures in PB */
@@ -1295,15 +1290,15 @@ typedef struct _EVC_PM
     /* number of reference pictures */
     u8               num_refp[REFP_NUM];
     /* next output POC */
-    u32              ptr_next_output;
+    u32              poc_next_output;
     /* POC increment */
-    u8               ptr_increase;
+    u8               poc_increase;
     /* max number of picture buffer */
     u8               max_pb_size;
     /* current picture buffer size */
     u8               cur_pb_size;
     /* address of leased picture for current decoding/encoding buffer */
-    EVC_PIC        *pic_lease;
+    EVC_PIC        * pic_lease;
     /* picture buffer allocator */
     PICBUF_ALLOCATOR pa;
 } EVC_PM;
@@ -1312,15 +1307,15 @@ typedef struct _EVC_PM
 typedef struct _EVC_REFP
 {
     /* address of reference picture */
-    EVC_PIC        *pic;
-    /* PTR of reference picture */
-    u32              ptr;
+    EVC_PIC        * pic;
+    /* POC of reference picture */
+    u32              poc;
     s16            (*map_mv)[REFP_NUM][MV_D];
 #if DMVR_LAG
     s16            (*map_unrefined_mv)[REFP_NUM][MV_D];
 #endif
     s8             (*map_refi)[REFP_NUM];
-    u32             *list_ptr;
+    u32             *list_poc;
 } EVC_REFP;
 
 /*****************************************************************************
@@ -1396,7 +1391,7 @@ typedef struct _EVC_SPS
     int              tool_adcc;
 #endif
     int              log2_max_pic_order_cnt_lsb_minus4;
-    int              sps_max_dec_pic_buffering_minus1;
+    int              max_dec_pic_buffering_minus1;
     int              max_num_ref_pics;
     u8               long_term_ref_pics_flag;
     /* HLS_RPL  */
@@ -1511,9 +1506,9 @@ typedef struct _EVC_SH
     int              collocated_from_list_idx;        // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
     int              collocated_from_ref_idx;         // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
     int              collocated_mvp_source_list_idx;  // Specifies source (List ID) in collocated pic that provides MV information 
-    s32              poc;
+    s32              poc_lsb;
 
-     /*   HLS_RPL */
+    /*   HLS_RPL */
     u8               ref_pic_list_sps_flag[2];
     int              rpl_l0_idx;                            //-1 means this slice does not use RPL candidate in SPS for RPL0
     int              rpl_l1_idx;                            //-1 means this slice does not use RPL candidate in SPS for RPL1
@@ -1536,10 +1531,6 @@ typedef struct _EVC_SH
     u8               qp_prev_mode;
 #endif
 
-    /* decoding temporal reference */
-    u32              dtr;
-    u8               layer_id;
-
 #if ALF
     u8               alf_on;
     u8               mmvd_group_enable_flag;
@@ -1547,21 +1538,20 @@ typedef struct _EVC_SH
     u16              num_ctb;
     int              aps_signaled;
 #if M50662_LUMA_CHROMA_SEPARATE_APS
-    int                 aps_id_y;
-    int                 aps_id_ch;
+    int              aps_id_y;
+    int              aps_id_ch;
 #endif
     EVC_APS*         aps;
     evc_AlfSliceParam alf_sh_param;
 #endif
-    /* delta of presentation temporal reference */
-    s32              dptr;
 } EVC_SH;
 
 #if EVC_TILE_SUPPORT
 /*****************************************************************************
 * Tiles
 *****************************************************************************/
-typedef struct _EVC_TILE {
+typedef struct _EVC_TILE
+{
     /* tile width in CTB unit */
     u16             w_ctb;
     /* tile height in CTB unit */
@@ -1574,6 +1564,16 @@ typedef struct _EVC_TILE {
 
 /*****************************************************************************/
 #endif
+
+typedef struct _EVC_POC
+{
+    /* current picture order count value */
+    int             poc_val;
+    /* the picture order count of the previous Tid0 picture */
+    u32             prev_poc_val;
+    /* the decoding order count of the previous picture */
+    u32             prev_doc_offset;
+} EVC_POC;
 
 /*****************************************************************************
  * user data types
@@ -1589,13 +1589,15 @@ typedef enum _TREE_TYPE
     TREE_C = 2,
 } TREE_TYPE;
 
-typedef enum _MODE_CONS {
+typedef enum _MODE_CONS
+{
     eOnlyIntra,
     eOnlyInter,
     eAll
 } MODE_CONS;
 
-typedef struct _TREE_CONS {
+typedef struct _TREE_CONS
+{
     BOOL            changed;
     TREE_TYPE       tree_type;
     MODE_CONS       mode_cons;

@@ -202,36 +202,36 @@ struct _EVCD_CTX
     /* magic code */
     u32                     magic;
     /* EVCD identifier */
-    EVCD                   id;
+    EVCD                    id;
     /* CORE information used for fast operation */
-    EVCD_CORE             *core;
+    EVCD_CORE             * core;
     /* current decoding bitstream */
-    EVC_BSR                bs;
+    EVC_BSR                 bs;
     /* current nalu header */
-    EVC_NALU               nalu;
+    EVC_NALU                nalu;
 #if ALF
     /* adaptive loop filter */
-    void                   *alf;
+    void                  * alf;
 #endif
     /* current slice header */
-    EVC_SH                sh;
+    EVC_SH                  sh;
     /* decoded picture buffer management */
-    EVC_PM                 dpm;
+    EVC_PM                  dpm;
     /* create descriptor */
-    EVCD_CDSC              cdsc;
+    EVCD_CDSC               cdsc;
     /* sequence parameter set */
-    EVC_SPS                sps;
+    EVC_SPS                 sps;
     /* picture parameter set */
-    EVC_PPS                pps;
+    EVC_PPS                 pps;
 #if ALF
     /* adaptation parameter set */
-    EVC_APS                aps;
-    u8                     aps_temp;
+    EVC_APS                 aps;
+    u8                      aps_temp;
 #endif
     /* current decoded (decoding) picture buffer */
-    EVC_PIC               *pic;
+    EVC_PIC               * pic;
     /* SBAC */
-    EVCD_SBAC              sbac_dec;
+    EVCD_SBAC               sbac_dec;
     /* decoding picture width */
     u16                     w;
     /* decoding picture height */
@@ -243,29 +243,29 @@ struct _EVCD_CTX
 
     /* MAPS *******************************************************************/
     /* SCU map for CU information */
-    u32                    *map_scu;
+    u32                   * map_scu;
     /* LCU split information */
-    s8                    (*map_split)[MAX_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
-    s8                    (*map_suco)[MAX_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
+    s8                   (* map_split)[MAX_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
+    s8                   (* map_suco)[MAX_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
     /* decoded motion vector for every blocks */
-    s16                   (*map_mv)[REFP_NUM][MV_D];
+    s16                  (* map_mv)[REFP_NUM][MV_D];
 #if DMVR_LAG
     /* decoded motion vector for every blocks */
-    s16                   (*map_unrefined_mv)[REFP_NUM][MV_D];
+    s16                  (* map_unrefined_mv)[REFP_NUM][MV_D];
 #endif
     /* reference frame indices */
-    s8                    (*map_refi)[REFP_NUM];
+    s8                   (* map_refi)[REFP_NUM];
     /* intra prediction modes */
-    s8                     *map_ipm;
+    s8                    * map_ipm;
 #if AFFINE
-    u32                    *map_affine;
+    u32                   * map_affine;
 #endif
     /* new coding tool flag*/
-    u32                    *map_cu_mode;
+    u32                   * map_cu_mode;
     u8                      ctx_flags[NUM_CNID];
 #if ATS_INTER_PROCESS
     /* ats_inter info map */
-    u8                     *map_ats_inter;
+    u8                    * map_ats_inter;
 #endif
 
     /**************************************************************************/
@@ -273,8 +273,8 @@ struct _EVCD_CTX
     when receiving a slice for new picture, this value is set to zero.
     this value can be used for distinguishing b/w slices */
     u16                     slice_num;
-    /* last coded intra picture's presentation temporal reference */
-    int                     last_intra_ptr;
+    /* last coded intra picture's picture order count */
+    int                     last_intra_poc;
     /* picture width in LCU unit */
     u16                     w_lcu;
     /* picture height in LCU unit */
@@ -287,14 +287,8 @@ struct _EVCD_CTX
     u16                     h_scu;
     /* picture size in SCU unit (= w_scu * h_scu) */
     u32                     f_scu;
-    /* current picture's decoding temporal reference */
-    u32                     dtr;
-    /* previous picture's decoding temporal reference low part */
-    u32                     dtr_prev_low;
-    /* previous picture's decoding temporal reference high part */
-    u32                     dtr_prev_high;
-    /* current picture's presentation temporal reference */
-    u32                     ptr;
+    /* the picture order count value */
+    EVC_POC                 poc;
     /* the picture order count of the previous Tid0 picture */
     u32                     prev_pic_order_cnt_val;
     /* the decoding order count of the previous picture */
@@ -302,15 +296,15 @@ struct _EVCD_CTX
     /* the number of currently decoded pictures */
     u32                     pic_cnt;
     /* flag whether current picture is refecened picture or not */
-    u8                     slice_ref_flag;
+    u8                      slice_ref_flag;
     /* distance between ref pics in addition to closest ref ref pic in LD*/
-    int                    ref_pic_gap_length;
+    int                     ref_pic_gap_length;
     /* picture buffer allocator */
     PICBUF_ALLOCATOR        pa;
     /* bitstream has an error? */
     u8                      bs_err;
     /* reference picture (0: foward, 1: backward) */
-    EVC_REFP               refp[MAX_NUM_REF_PICS][REFP_NUM];
+    EVC_REFP                refp[MAX_NUM_REF_PICS][REFP_NUM];
     /* flag for picture signature enabling */
     u8                      use_pic_sign;
     /* picture signature (MD5 digest 128bits) */
@@ -320,15 +314,15 @@ struct _EVCD_CTX
 #if EVC_TILE_SUPPORT     
     /* tile index map (width in SCU x height in SCU) of
     raster scan order in a frame */
-    u8                 * map_tidx;
+    u8                    * map_tidx;
     /* Number of tils in the picture*/
-    u32                 tile_cnt;
+    u32                     tile_cnt;
     /* Tile information for each index */
-    EVC_TILE               *tile;
+    EVC_TILE              * tile;
     /* number of tile columns */
-    u16                  w_tile;
+    u16                     w_tile;
     /* number of tile rows */
-    u16                  h_tile;
+    u16                     h_tile;
 #endif
     /* address of ready function */
     int  (* fn_ready)(EVCD_CTX * ctx);
@@ -357,7 +351,7 @@ struct _EVCD_CTX
     /* platform specific data, if needed */
     void                  * pf;
 #if M50761_CHROMA_NOT_SPLIT
-    TREE_CONS           tree_cons;
+    TREE_CONS               tree_cons;
 #endif
 };
 

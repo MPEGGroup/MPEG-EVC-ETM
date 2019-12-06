@@ -350,8 +350,8 @@ struct _EVCE_PINTER
     int              complexity;
     void            *pdata[4];
     int             *ndata[4];
-    /* current frame numbser */
-    int              ptr;
+    /* current picture order count */
+    int              poc;
     /* gop size */
     int              gop_size;
     int              sps_amvr_flag;
@@ -791,55 +791,57 @@ typedef struct _EVCE_CTX EVCE_CTX;
 struct _EVCE_CTX
 {
     /* address of current input picture, ref_picture  buffer structure */
-    EVCE_PICO            *pico_buf[EVCE_MAX_INBUF_CNT];
+    EVCE_PICO            * pico_buf[EVCE_MAX_INBUF_CNT];
     /* address of current input picture buffer structure */
-    EVCE_PICO            *pico;
+    EVCE_PICO            * pico;
     /* index of current input picture buffer in pico_buf[] */
     u8                     pico_idx;
     int                    pico_max_cnt;
     /* magic code */
     u32                    magic;
     /* EVCE identifier */
-    EVCE                  id;
+    EVCE                   id;
     /* address of core structure */
-    EVCE_CORE            *core;
+    EVCE_CORE            * core;
     /* current input (original) image */
-    EVC_PIC               pic_o;
+    EVC_PIC                pic_o;
     /* address indicating current encoding, list0, list1 and original pictures */
-    EVC_PIC              *pic[PIC_D + 1]; /* the last one is for original */
+    EVC_PIC              * pic[PIC_D + 1]; /* the last one is for original */
     /* picture address for mode decision */
-    EVC_PIC              *pic_m;
+    EVC_PIC              * pic_m;
     /* reference picture (0: foward, 1: backward) */
-    EVC_REFP              refp[MAX_NUM_REF_PICS][REFP_NUM];
+    EVC_REFP               refp[MAX_NUM_REF_PICS][REFP_NUM];
     /* encoding parameter */
-    EVCE_PARAM            param;
+    EVCE_PARAM             param;
     /* bitstream structure */
-    EVC_BSW               bs;
+    EVC_BSW                bs;
     /* bitstream structure for RDO */
-    EVC_BSW               bs_temp;
+    EVC_BSW                bs_temp;
     /* sequnce parameter set */
-    EVC_SPS               sps;
+    EVC_SPS                sps;
     /* picture parameter set */
-    EVC_PPS               pps;
+    EVC_PPS                pps;
 #if ALF
     /* adaptation parameter set */
-    EVC_APS               aps;
-    u8                    aps_counter;
-    u8                    aps_temp;
+    EVC_APS                aps;
+    u8                     aps_counter;
+    u8                     aps_temp;
 #endif
+    /* picture order count */
+    EVC_POC                poc;
     /* nal unit header */
-    EVC_NALU              nalu;
+    EVC_NALU               nalu;
     /* slice header */
-    EVC_SH                sh;
+    EVC_SH                 sh;
     /* reference picture manager */
-    EVC_PM                rpm;
+    EVC_PM                 rpm;
     /* create descriptor */
-    EVCE_CDSC             cdsc;
+    EVCE_CDSC              cdsc;
     /* quantization value of current encoding slice */
     u8                     qp;
     /* offset value of alpha and beta for deblocking filter */
-    u8                       deblock_alpha_offset;
-    u8                       deblock_beta_offset;
+    u8                     deblock_alpha_offset;
+    u8                     deblock_beta_offset;
     /* encoding picture width */
     u16                    w;
     /* encoding picture height */
@@ -847,9 +849,13 @@ struct _EVCE_CTX
     /* encoding picture width * height */
     u16                    f;
     /* the picture order count of the previous Tid0 picture */
-    u32                     prev_pic_order_cnt_val;
+    u32                    prev_pic_order_cnt_val;
+    /* the picture order count msb of the previous Tid0 picture */
+    u32                    prev_pic_order_cnt_msb;
+    /* the picture order count lsb of the previous Tid0 picture */
+    u32                    prev_pic_order_cnt_lsb;
     /* the decoding order count of the previous picture */
-    u32                     prev_doc_offset;
+    u32                    prev_doc_offset;
     /* current encoding picture count(This is not PicNum or FrameNum.
     Just count of encoded picture correctly) */
     u32                    pic_cnt;
@@ -876,15 +882,13 @@ struct _EVCE_CTX
     u8                     slice_ref_flag;
     /* distance between ref pics in addition to closest ref ref pic in LD*/
     int                    ref_pic_gap_length;
-    /* current picture POC number */
-    int                    poc;
     /* maximum CU depth */
     u8                     max_cud;
-    EVCE_SBAC             sbac_enc;
+    EVCE_SBAC              sbac_enc;
     /* address of inbufs */
-    EVC_IMGB             *inbuf[EVCE_MAX_INBUF_CNT];
-    /* last coded intra picture's presentation temporal reference */
-    int                    last_intra_ptr;
+    EVC_IMGB             * inbuf[EVCE_MAX_INBUF_CNT];
+    /* last coded intra picture's picture order count */
+    int                    last_intra_poc;
     /* maximum CU width and height */
     u16                    max_cuwh;
     /* log2 of maximum CU width and height */
@@ -909,54 +913,48 @@ struct _EVCE_CTX
     /* log2 of SCU count in a LCU (== log2_culine * 2) */
     u8                     log2_cudim;
     /* mode decision structure */
-    EVCE_MODE             mode;
+    EVCE_MODE              mode;
     /* intra prediction analysis */
-    EVCE_PINTRA           pintra;
+    EVCE_PINTRA            pintra;
     /* inter prediction analysis */
-    EVCE_PINTER           pinter;
+    EVCE_PINTER            pinter;
 #if IBC
     /* ibc prediction analysis */
-    EVCE_PIBC             pibc;
+    EVCE_PIBC              pibc;
 #endif
     /* picture buffer allocator */
     PICBUF_ALLOCATOR       pa;
-    /* current picture's decoding temporal reference */
-    u32                    dtr;
-    /* current picture's presentation temporal reference */
-    u32                    ptr;
-    /*current picutre's layer id for hierachical structure */
-    u8                     layer_id;
     /* MAPS *******************************************************************/
     /* CU map (width in SCU x height in SCU) of raster scan order in a frame */
-    u32                   *map_scu;
+    u32                  * map_scu;
     /* cu data for current LCU */
-    EVCE_CU_DATA         *map_cu_data;
+    EVCE_CU_DATA         * map_cu_data;
     /* map for encoded motion vectors in SCU */
-    s16                  (*map_mv)[REFP_NUM][MV_D];
+    s16                 (* map_mv)[REFP_NUM][MV_D];
 #if DMVR_LAG
     /* map for encoded motion vectors in SCU */
-    s16                  (*map_unrefined_mv)[REFP_NUM][MV_D];
+    s16                 (* map_unrefined_mv)[REFP_NUM][MV_D];
 #endif
     /* map for reference indices */
-    s8                   (*map_refi)[REFP_NUM];
+    s8                  (* map_refi)[REFP_NUM];
     /* map for intra pred mode */
-    s8                    *map_ipm;
+    s8                   * map_ipm;
 #if !M50761_REMOVE_BLOCK_SIZE_MAP
-    s16                  (*map_block_size)[2];
+    s16                 (* map_block_size)[2];
 #endif
-    s8                    *map_depth;
+    s8                   * map_depth;
 
 #if RDO_DBK
-    EVC_PIC              *pic_dbk;          //one picture that arranges cu pixels and neighboring pixels for deblocking (just to match the interface of deblocking functions)
+    EVC_PIC              * pic_dbk;          //one picture that arranges cu pixels and neighboring pixels for deblocking (just to match the interface of deblocking functions)
     s64                    delta_dist[N_C];  //delta distortion from filtering (negative values mean distortion reduced)
     s64                    dist_nofilt[N_C]; //distortion of not filtered samples
     s64                    dist_filter[N_C]; //distortion of filtered samples
 #endif
 #if AFFINE
     /* affine map (width in SCU x height in SCU) of raster scan order in a frame */
-    u32                   *map_affine;
+    u32                  * map_affine;
 #endif
-    u32                   *map_cu_mode;
+    u32                  * map_cu_mode;
     u8                     ctx_flags[NUM_CNID];
     double                 lambda[3];
     double                 sqrt_lambda[3];
@@ -964,28 +962,28 @@ struct _EVCE_CTX
 
 #if ATS_INTRA_PROCESS
     /* map for ats intra */
-    u8                    *map_ats_intra_cu;
-    u8                    *map_ats_tu_h;
-    u8                    *map_ats_tu_v;
+    u8                   * map_ats_intra_cu;
+    u8                   * map_ats_tu_h;
+    u8                   * map_ats_tu_v;
 #endif
 #if ATS_INTER_PROCESS
-    u8                    *map_ats_inter;
-    u32                   *ats_inter_pred_dist;
-    u8                    *ats_inter_info_pred;   //best-mode ats_inter info
-    u8                    *ats_inter_num_pred;
+    u8                   * map_ats_inter;
+    u32                  * ats_inter_pred_dist;
+    u8                   * ats_inter_info_pred;   //best-mode ats_inter info
+    u8                   * ats_inter_num_pred;
 #endif
 #if EVC_TILE_SUPPORT
     /* Tile information for each index */
-    EVC_TILE              *tile;
+    EVC_TILE             * tile;
     /* Total number of tiles in the picture*/
     u32                    tile_cnt;
     /* temporary tile bitstream store buffer if needed */
-    u8                    *bs_tbuf[MAX_NUM_TILES_ROW * MAX_NUM_TILES_COL];
+    u8                   * bs_tbuf[MAX_NUM_TILES_ROW * MAX_NUM_TILES_COL];
     /* bs_tbuf byte size for one tile */
     int                    bs_tbuf_size;
     /* tile index map (width in SCU x height in SCU) of
     raster scan order in a frame */
-    u8                    *map_tidx;
+    u8                   * map_tidx;
 #endif
     int (*fn_ready)(EVCE_CTX * ctx);
     void (*fn_flush)(EVCE_CTX * ctx);
