@@ -35,6 +35,7 @@
 #if GRAB_STAT
 #include "evc_debug.h"
 #endif
+#include <math.h>
 
 
 #define TX_SHIFT1(log2_size)   ((log2_size) - 1 + BIT_DEPTH - 8)
@@ -267,6 +268,45 @@ void evc_picbuf_expand(EVC_PIC *pic, int exp_l, int exp_c)
     picbuf_expand(pic->v, pic->s_c, pic->w_c, pic->h_c, exp_c);
 }
 
+void evc_poc_derivation(EVC_SPS sps, int tid, EVC_POC *poc)
+{
+    int sub_gop_length = (int)pow(2.0, sps.log2_sub_gop_length);
+    int expected_tid = 0;
+    int doc_offset, poc_offset;
+    
+    if (tid == 0)
+    {
+        poc->poc_val = poc->prev_poc_val + sub_gop_length;
+        poc->prev_doc_offset = 0;
+        poc->prev_poc_val = poc->poc_val;
+        return;
+    }
+    doc_offset = (poc->prev_doc_offset + 1) % sub_gop_length;
+    if (doc_offset == 0)
+    {
+        poc->prev_poc_val += sub_gop_length;
+    }
+    else
+    {
+        expected_tid = 1 + (int)log2(doc_offset);
+    }
+    while (tid != expected_tid)
+    {
+        doc_offset = (doc_offset + 1) % sub_gop_length;
+        if (doc_offset == 0)
+        {
+            expected_tid = 0;
+        }
+        else
+        {
+            expected_tid = 1 + (int)log2(doc_offset);
+        }
+    }
+    poc_offset = (int)(sub_gop_length * ((2.0 * doc_offset + 1) / (int)pow(2.0, tid) - 2));
+    poc->poc_val = poc->prev_poc_val + poc_offset;
+    poc->prev_doc_offset = doc_offset;
+}
+
 void scaling_mv(int ratio, s16 mvp[MV_D], s16 mv[MV_D])
 {
     int tmp_mv;
@@ -304,11 +344,9 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
     int hor1var[MMVD_MAX_REFINE_NUM] = {0};
     int ver1Var[MMVD_MAX_REFINE_NUM] = {0};
     int base_mv_idx = 0;
-    int base_skip[MMVD_BASE_MV_NUM];
     int c_num = 0;
     int base_mv[25][2][3];
     int k;
-    int nn;
     s16 mvp[MAX_NUM_MVP][MV_D];
     s16 mvp1[MAX_NUM_MVP][MV_D];
     s8 refi[MAX_NUM_MVP];
@@ -431,10 +469,6 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
         }
     }
 
-    for(k = 0; k < MMVD_BASE_MV_NUM; k++)
-    {
-        base_skip[k] = 1;
-    }
 #if !M50632_IMPROVEMENT_MMVD
     ref_sign = 1;
 #endif
@@ -690,61 +724,6 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
         }
     }
 
-    for(k = 0; k < MMVD_BASE_MV_NUM - 1; k++)
-    {
-        if (base_skip[k] == 1)
-        {
-            for(nn = k + 1; nn < MMVD_BASE_MV_NUM; nn++)
-            {
-
-                if ((base_mv[k][0][2] != -1) && (base_mv[nn][0][2] != -1))
-                {
-                    if ((base_mv[k][1][2] != -1) && (base_mv[nn][1][2] != -1))
-                    {
-                        if ((base_mv[k][0][MV_X] == base_mv[nn][0][MV_X])
-                            && (base_mv[k][0][MV_Y] == base_mv[nn][0][MV_Y])
-                            && (base_mv[k][0][2] == base_mv[nn][0][2])
-                            && (base_mv[k][1][MV_X] == base_mv[nn][1][MV_X])
-                            && (base_mv[k][1][MV_Y] == base_mv[nn][1][MV_Y])
-                            && (base_mv[k][1][2] == base_mv[nn][1][2])
-                            )
-                        {
-                            base_skip[nn] = -1;
-                        }
-                    }
-                    else if ((base_mv[k][1][2] == -1) && (base_mv[nn][1][2] == -1))
-                    {
-                        if ((base_mv[k][0][MV_X] == base_mv[nn][0][MV_X])
-                            && (base_mv[k][0][MV_Y] == base_mv[nn][0][MV_Y])
-                            && (base_mv[k][0][2] == base_mv[nn][0][2])
-                            )
-                        {
-                            base_skip[nn] = -1;
-                        }
-                    }
-                }
-
-                if ((base_mv[k][0][2] == -1) && (base_mv[nn][0][2] == -1))
-                {
-                    if ((base_mv[k][1][2] != -1) && (base_mv[nn][1][2] != -1))
-                    {
-                        if ((base_mv[k][1][MV_X] == base_mv[nn][1][MV_X])
-                            && (base_mv[k][1][MV_Y] == base_mv[nn][1][MV_Y])
-                            && (base_mv[k][1][2] == base_mv[nn][1][2])
-                            )
-                        {
-                            base_skip[nn] = -1;
-                        }
-                    }
-                    else if ((base_mv[k][1][2] == -1) && (base_mv[nn][1][2] == -1))
-                    {
-                        base_skip[nn] = -1;
-                    }
-                }
-            }
-        }
-    }
-
     for(base_mv_idx = 0; base_mv_idx < MMVD_BASE_MV_NUM; base_mv_idx++)
     {
         int list0_r, list1_r;
@@ -814,101 +793,93 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
             list1_r = base_mv[base_mv_idx][1][2];
 
             ref_sign = 1;
-        if (slice_t == SLICE_B)
-        {
-            if ((list0_r != -1) && (list1_r != -1))
+            if (slice_t == SLICE_B)
             {
-                poc0 = REF_SET[0][list0_r];
-                poc1 = REF_SET[1][list1_r];
-                poc_c = REF_SET[2][0];
-
-                if ((poc0 - poc_c) * (poc_c - poc1) > 0)
+                if ((list0_r != -1) && (list1_r != -1))
                 {
-                    ref_sign = -1;
+                    poc0 = REF_SET[0][list0_r];
+                    poc1 = REF_SET[1][list1_r];
+                    poc_c = REF_SET[2][0];
+
+                    if ((poc0 - poc_c) * (poc_c - poc1) > 0)
+                    {
+                        ref_sign = -1;
+                    }
                 }
             }
-        }
 
-        for(k = 0; k < MMVD_MAX_REFINE_NUM; k++)
-        {
-            list0_weight = 1 << MVP_SCALING_PRECISION;
-            list1_weight = 1 << MVP_SCALING_PRECISION;
-            ref_mvd = ref_mvd_cands[(int)(k / 4)];
-            ref_mvd1 = ref_mvd_cands[(int)(k / 4)];
-
-            if ((list0_r != -1) && (list1_r != -1))
+            for(k = 0; k < MMVD_MAX_REFINE_NUM; k++)
             {
-                poc0 = REF_SET[0][list0_r];
-                poc1 = REF_SET[1][list1_r];
-                poc_c = REF_SET[2][0];
+                list0_weight = 1 << MVP_SCALING_PRECISION;
+                list1_weight = 1 << MVP_SCALING_PRECISION;
+                ref_mvd = ref_mvd_cands[(int)(k / 4)];
+                ref_mvd1 = ref_mvd_cands[(int)(k / 4)];
 
-                if (EVC_ABS(poc1 - poc_c) >= EVC_ABS(poc0 - poc_c))
+                if ((list0_r != -1) && (list1_r != -1))
                 {
-                    list0_weight = (EVC_ABS(poc0 - poc_c) << MVP_SCALING_PRECISION) / (EVC_ABS(poc1 - poc_c));
-#if M50632_IMPROVEMENT_MMVD
-                    ref_mvd = EVC_CLIP3(-32768, 32767, (list0_weight * ref_mvd_cands[(int)(k / 4)] + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION);
-#endif
+                    poc0 = REF_SET[0][list0_r];
+                    poc1 = REF_SET[1][list1_r];
+                    poc_c = REF_SET[2][0];
+
+                    if (EVC_ABS(poc1 - poc_c) >= EVC_ABS(poc0 - poc_c))
+                    {
+                        list0_weight = (EVC_ABS(poc0 - poc_c) << MVP_SCALING_PRECISION) / (EVC_ABS(poc1 - poc_c));
+    #if M50632_IMPROVEMENT_MMVD
+                        ref_mvd = EVC_CLIP3(-32768, 32767, (list0_weight * ref_mvd_cands[(int)(k / 4)] + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION);
+    #endif
+                    }
+                    else
+                    {
+                        list1_weight = (EVC_ABS(poc1 - poc_c) << MVP_SCALING_PRECISION) / (EVC_ABS(poc0 - poc_c));
+    #if M50632_IMPROVEMENT_MMVD
+                        ref_mvd1 = EVC_CLIP3(-32768, 32767, (list1_weight * ref_mvd_cands[(int)(k / 4)] + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION);
+    #endif
+                    }
+    #if !M50632_IMPROVEMENT_MMVD
+                    ref_mvd = (list0_weight * (ref_mvd_cands[(int)(k / 4)]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION;
+                    ref_mvd1 = (list1_weight * (ref_mvd_cands[(int)(k / 4)]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION;
+    #endif
+                    ref_mvd = EVC_CLIP3(-(1 << 15), (1 << 15) - 1, ref_mvd);
+                    ref_mvd1 = EVC_CLIP3(-(1 << 15), (1 << 15) - 1, ref_mvd1);
+                }
+
+                if ((k % 4) == 0)
+                {
+                    hor0var[k] = ref_mvd;
+                    hor1var[k] = ref_mvd1 * ref_sign;
+                    ver0var[k] = 0;
+                    ver1Var[k] = 0;
+                }
+                else if ((k % 4) == 1)
+                {
+                    hor0var[k] = ref_mvd * -1;
+                    hor1var[k] = ref_mvd1 * -1 * ref_sign;
+                    ver0var[k] = 0;
+                    ver1Var[k] = 0;
+                }
+                else if ((k % 4) == 2)
+                {
+                    hor0var[k] = 0;
+                    hor1var[k] = 0;
+                    ver0var[k] = ref_mvd;
+                    ver1Var[k] = ref_mvd1 * ref_sign;
                 }
                 else
                 {
-                    list1_weight = (EVC_ABS(poc1 - poc_c) << MVP_SCALING_PRECISION) / (EVC_ABS(poc0 - poc_c));
-#if M50632_IMPROVEMENT_MMVD
-                    ref_mvd1 = EVC_CLIP3(-32768, 32767, (list1_weight * ref_mvd_cands[(int)(k / 4)] + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION);
-#endif
+                    hor0var[k] = 0;
+                    hor1var[k] = 0;
+                    ver0var[k] = ref_mvd * -1;
+                    ver1Var[k] = ref_mvd1 * -1 * ref_sign;
                 }
-#if !M50632_IMPROVEMENT_MMVD
-                ref_mvd = (list0_weight * (ref_mvd_cands[(int)(k / 4)]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION;
-                ref_mvd1 = (list1_weight * (ref_mvd_cands[(int)(k / 4)]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION;
-#endif
-                ref_mvd = EVC_CLIP3(-(1 << 15), (1 << 15) - 1, ref_mvd);
-                ref_mvd1 = EVC_CLIP3(-(1 << 15), (1 << 15) - 1, ref_mvd1);
-            }
 
-            if ((k % 4) == 0)
-            {
-                hor0var[k] = ref_mvd;
-                hor1var[k] = ref_mvd1 * ref_sign;
-                ver0var[k] = 0;
-                ver1Var[k] = 0;
-            }
-            else if ((k % 4) == 1)
-            {
-                hor0var[k] = ref_mvd * -1;
-                hor1var[k] = ref_mvd1 * -1 * ref_sign;
-                ver0var[k] = 0;
-                ver1Var[k] = 0;
-            }
-            else if ((k % 4) == 2)
-            {
-                hor0var[k] = 0;
-                hor1var[k] = 0;
-                ver0var[k] = ref_mvd;
-                ver1Var[k] = ref_mvd1 * ref_sign;
-            }
-            else
-            {
-                hor0var[k] = 0;
-                hor1var[k] = 0;
-                ver0var[k] = ref_mvd * -1;
-                ver1Var[k] = ref_mvd1 * -1 * ref_sign;
-            }
+                real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][0][MV_X] = base_mv[base_mv_idx][0][MV_X] + hor0var[k];
+                real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][0][MV_Y] = base_mv[base_mv_idx][0][MV_Y] + ver0var[k];
+                real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][1][MV_X] = base_mv[base_mv_idx][1][MV_X] + hor1var[k];
+                real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][1][MV_Y] = base_mv[base_mv_idx][1][MV_Y] + ver1Var[k];
 
-            real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][0][MV_X] = base_mv[base_mv_idx][0][MV_X] + hor0var[k];
-            real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][0][MV_Y] = base_mv[base_mv_idx][0][MV_Y] + ver0var[k];
-            real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][1][MV_X] = base_mv[base_mv_idx][1][MV_X] + hor1var[k];
-            real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][1][MV_Y] = base_mv[base_mv_idx][1][MV_Y] + ver1Var[k];
-
-            if (base_skip[base_mv_idx] == -1)
-            {
-                real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][0][2] = -1;
-                real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][1][2] = -1;
-            }
-            else
-            {
                 real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][0][2] = base_mv[base_mv_idx][0][2];
                 real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][1][2] = base_mv[base_mv_idx][1][2];
             }
-        }
         }
     }
 }
@@ -1486,7 +1457,7 @@ void evc_get_default_motion(int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag
     }
 }
 
-void evc_get_motion_from_mvr(u8 mvr_idx, int ptr, int scup, int lidx, s8 cur_refi, int num_refp, \
+void evc_get_motion_from_mvr(u8 mvr_idx, int poc, int scup, int lidx, s8 cur_refi, int num_refp, \
                              s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
                              int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][MV_D], s8 refi[MAX_NUM_MVP], u32* map_scu, u16 avail_lr
 #if DMVR_FLAG
@@ -1498,7 +1469,7 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int ptr, int scup, int lidx, s8 cur_ref
 #endif
 )
 {
-    int i, t0, ptr_refi_cur;
+    int i, t0, poc_refi_cur;
     int ratio[MAX_NUM_REF_PICS];
     int neb_addr[MAX_NUM_POSSIBLE_SCAND], valid_flag[MAX_NUM_POSSIBLE_SCAND];
     int rounding = mvr_idx > 0 ? 1 << (mvr_idx - 1) : 0;
@@ -1531,14 +1502,14 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int ptr, int scup, int lidx, s8 cur_ref
 #endif
     );
 
-    ptr_refi_cur = refp[cur_refi][lidx].ptr;
+    poc_refi_cur = refp[cur_refi][lidx].poc;
     for(i = 0; i < num_refp; i++)
     {
-        t0 = ptr - refp[i][lidx].ptr;
+        t0 = poc - refp[i][lidx].poc;
 
         if(t0 != 0)
         {
-            ratio[i] = ((ptr - ptr_refi_cur) << MVP_SCALING_PRECISION) / t0;
+            ratio[i] = ((poc - poc_refi_cur) << MVP_SCALING_PRECISION) / t0;
         }
 
         if(ratio[i] == 0 || t0 == 0)
@@ -1661,14 +1632,14 @@ void evc_get_motion(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[RE
 }
 
 #if AFFINE
-void evc_get_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int num_refp, s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM],
+void evc_get_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int num_refp, s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM],
                             int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][MV_D], s8 refi[MAX_NUM_MVP], u32* map_scu, u16 avail_lr
 #if DMVR_LAG
                             , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
 )
 {
-    int cnt, i, t0, ptr_refi_cur, dptr_co;
+    int cnt, i, t0, poc_refi_cur, dpoc_co;
     int ratio[MAX_NUM_REF_PICS] = {0,}, ratio_tmvp = 0;
     int neb_addr[MAX_NUM_POSSIBLE_SCAND], valid_flag[MAX_NUM_POSSIBLE_SCAND];
     s8(*map_refi_co)[REFP_NUM];
@@ -1687,14 +1658,14 @@ void evc_get_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int num_re
     );
 #endif
 
-    ptr_refi_cur = refp[cur_refi][lidx].ptr;
+    poc_refi_cur = refp[cur_refi][lidx].poc;
     for(i = 0; i < num_refp; i++)
     {
-        t0 = ptr - refp[i][lidx].ptr;
+        t0 = poc - refp[i][lidx].poc;
 
         if(t0 != 0)
         {
-            ratio[i] = ((ptr - ptr_refi_cur) << MVP_SCALING_PRECISION) / t0;
+            ratio[i] = ((poc - poc_refi_cur) << MVP_SCALING_PRECISION) / t0;
         }
         if(ratio[i] == 0 || t0 == 0)
         {
@@ -1765,16 +1736,16 @@ void evc_get_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int num_re
     map_refi_co = refp[0][REFP_1].map_refi;
     if(REFI_IS_VALID(map_refi_co[scup][REFP_0]))
     {
-        dptr_co = refp[0][REFP_1].ptr - refp[0][REFP_1].list_ptr[0];
+        dpoc_co = refp[0][REFP_1].poc - refp[0][REFP_1].list_poc[0];
         ratio_tmvp = 1 << MVP_SCALING_PRECISION;
-        if(dptr_co == 0)
+        if(dpoc_co == 0)
         {
             mvp[cnt][MV_X] = 0;
             mvp[cnt][MV_Y] = 0;
         }
         else
         {
-            ratio_tmvp = ((ptr - ptr_refi_cur) << MVP_SCALING_PRECISION) / dptr_co;
+            ratio_tmvp = ((poc - poc_refi_cur) << MVP_SCALING_PRECISION) / dpoc_co;
             scaling_mv(ratio_tmvp, refp[0][REFP_1].map_mv[scup][REFP_0], mvp[cnt]);
         }
     }
@@ -2114,11 +2085,11 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
         int scu_col = ((x_scu + (cuw >> 1 >> MIN_CU_LOG2)) >> 1 << 1) + ((y_scu + (cuh >> 1 >> MIN_CU_LOG2)) >> 1 << 1) * w_scu; // 8x8 grid
         evc_get_mv_collocated(
             refplx,
-            ptr, scu_col, scup, w_scu, h_scu, tmvp, &availablePredIdx, sh);
+            poc, scu_col, scup, w_scu, h_scu, tmvp, &availablePredIdx, sh);
 #else
         evc_get_mv_collocated(
             refplx,
-            ptr, scup + ((cuw >> 1) >> MIN_CU_LOG2) + ((cuh >> 1) >> MIN_CU_LOG2) * w_scu, scup, w_scu, h_scu, tmvp, &availablePredIdx
+            poc, scup + ((cuw >> 1) >> MIN_CU_LOG2) + ((cuh >> 1) >> MIN_CU_LOG2) * w_scu, scup, w_scu, h_scu, tmvp, &availablePredIdx
             , sh
         );
 #endif
@@ -2183,7 +2154,7 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
             );
         if (scup_tmp != -1)  // if available, add it to candidate list
         {
-            evc_get_mv_collocated(refplx,ptr, scup_tmp, scup, w_scu, h_scu, tmvp, &availablePredIdx, sh);
+            evc_get_mv_collocated(refplx,poc, scup_tmp, scup, w_scu, h_scu, tmvp, &availablePredIdx, sh);
 
             if ((availablePredIdx == 1) || (availablePredIdx == 3))
             {
@@ -2246,7 +2217,7 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
             );
         if (scup_tmp != -1)  // if available, add it to candidate list
         {
-            evc_get_mv_collocated(refplx,ptr, scup_tmp, scup, w_scu, h_scu, tmvp, &availablePredIdx, sh);
+            evc_get_mv_collocated(refplx,poc, scup_tmp, scup, w_scu, h_scu, tmvp, &availablePredIdx, sh);
 
             if ((availablePredIdx == 1) || (availablePredIdx == 3))
             {
@@ -2718,25 +2689,25 @@ void evc_clip_mv_pic(int x, int y, int maxX, int maxY, s16 mvp[REFP_NUM][MV_D])
     mvp[REFP_1][MV_Y] = (y + mvp[REFP_1][MV_Y]) > maxY ? (maxY - y) : mvp[REFP_1][MV_Y];
 }
 
-void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 ptr, int scup, int c_scu, u16 w_scu, u16 h_scu, s16 mvp[REFP_NUM][MV_D]
+void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 poc, int scup, int c_scu, u16 w_scu, u16 h_scu, s16 mvp[REFP_NUM][MV_D]
                     , int sps_admvp_flag
 )
 #else
-void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 ptr, int scup, u16 w_scu, s16 mvp[REFP_NUM][MV_D]
+void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 poc, int scup, u16 w_scu, s16 mvp[REFP_NUM][MV_D]
 )
 #endif
 {
     s16 mvc[MV_D];
-    int dptr_co, dptr_L0, dptr_L1;
+    int dpoc_co, dpoc_L0, dpoc_L1;
 
     mvc[MV_X] = refp[REFP_1].map_mv[scup][0][MV_X];
     mvc[MV_Y] = refp[REFP_1].map_mv[scup][0][MV_Y];
 
-    dptr_co = refp[REFP_1].ptr - refp[REFP_1].list_ptr[0];
-    dptr_L0 = ptr - refp[REFP_0].ptr;
-    dptr_L1 = refp[REFP_1].ptr - ptr;
+    dpoc_co = refp[REFP_1].poc - refp[REFP_1].list_poc[0];
+    dpoc_L0 = poc - refp[REFP_0].poc;
+    dpoc_L1 = refp[REFP_1].poc - poc;
 
-    if(dptr_co == 0)
+    if(dpoc_co == 0)
     {
         mvp[REFP_0][MV_X] = 0;
         mvp[REFP_0][MV_Y] = 0;
@@ -2745,10 +2716,10 @@ void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 ptr, int scup, u16 w_scu, s16 m
     }
     else
     {
-        mvp[REFP_0][MV_X] = dptr_L0 * mvc[MV_X] / dptr_co;
-        mvp[REFP_0][MV_Y] = dptr_L0 * mvc[MV_Y] / dptr_co;
-        mvp[REFP_1][MV_X] = -dptr_L1 * mvc[MV_X] / dptr_co;
-        mvp[REFP_1][MV_Y] = -dptr_L1 * mvc[MV_Y] / dptr_co;
+        mvp[REFP_0][MV_X] = dpoc_L0 * mvc[MV_X] / dpoc_co;
+        mvp[REFP_0][MV_Y] = dpoc_L0 * mvc[MV_Y] / dpoc_co;
+        mvp[REFP_1][MV_X] = -dpoc_L1 * mvc[MV_X] / dpoc_co;
+        mvp[REFP_1][MV_Y] = -dpoc_L1 * mvc[MV_Y] / dpoc_co;
     }
 }
 
@@ -4347,7 +4318,7 @@ int evc_get_affine_memory_access(s16 mv[VER_NUM][MV_D], int cuw, int cuh)
 }
 #endif
 
-int evc_derive_affine_constructed_candidate(int ptr, EVC_REFP (*refp)[REFP_NUM], int cuw, int cuh, int cp_valid[VER_NUM], s16 cp_mv[REFP_NUM][VER_NUM][MV_D], int cp_refi[REFP_NUM][VER_NUM], int cp_idx[VER_NUM], int model_idx, int ver_num, s16 mrg_list_cp_mv[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D], s8 mrg_list_refi[AFF_MAX_CAND][REFP_NUM], int *mrg_idx, int mrg_list_cp_num[AFF_MAX_CAND])
+int evc_derive_affine_constructed_candidate(int poc, EVC_REFP (*refp)[REFP_NUM], int cuw, int cuh, int cp_valid[VER_NUM], s16 cp_mv[REFP_NUM][VER_NUM][MV_D], int cp_refi[REFP_NUM][VER_NUM], int cp_idx[VER_NUM], int model_idx, int ver_num, s16 mrg_list_cp_mv[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D], s8 mrg_list_refi[AFF_MAX_CAND][REFP_NUM], int *mrg_idx, int mrg_list_cp_num[AFF_MAX_CAND])
 {
     int lidx, i;
     int valid_model[2] = {0, 0};
@@ -4579,7 +4550,7 @@ void evc_derive_affine_model_mv(int scup, int scun, int lidx, s16(*map_mv)[REFP_
 }
 
 /* inter affine mode */
-void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int num_refp, \
+void evc_get_affine_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int num_refp, \
                                    s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
                                    int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][VER_NUM][MV_D], s8 refi[MAX_NUM_MVP]
                                    , u32* map_scu, u32* map_affine, int vertex_num, u16 avail_lr
@@ -5036,7 +5007,7 @@ void evc_get_affine_motion_scaling(int ptr, int scup, int lidx, s8 cur_refi, int
 }
 
 /* merge affine mode */
-int evc_get_affine_merge_candidate(int ptr, int slice_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], EVC_REFP(*refp)[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, u16 avail,
+int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], EVC_REFP(*refp)[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, u16 avail,
                                    s8 mrg_list_refi[AFF_MAX_CAND][REFP_NUM], s16 mrg_list_cpmv[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D], int mrg_list_cp_num[AFF_MAX_CAND], u32* map_scu, u32* map_affine, int log2_max_cuwh
 #if DMVR_LAG
                                    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
@@ -5158,7 +5129,7 @@ int evc_get_affine_merge_candidate(int ptr, int slice_type, int scup, s8(*map_re
     {
 #if !M50761_TMVP_ALIGN_SPEC || !M50662_AFFINE_IBC_TMVP_SUCO_FIX
         s8(*map_refi_co)[REFP_NUM];
-        int dptr_co = 0;
+        int dpoc_co = 0;
         int ratio_tmvp = 1;
 #endif
 
@@ -5277,8 +5248,8 @@ int evc_get_affine_merge_candidate(int ptr, int slice_type, int scup, s8(*map_re
 #endif
                         )
                     {
-                        cp_mv[lidx][0][MV_X] = map_unrefined_mv[neb_addr_rt[k]][lidx][MV_X];
-                        cp_mv[lidx][0][MV_Y] = map_unrefined_mv[neb_addr_rt[k]][lidx][MV_Y];
+                        cp_mv[lidx][1][MV_X] = map_unrefined_mv[neb_addr_rt[k]][lidx][MV_X];
+                        cp_mv[lidx][1][MV_Y] = map_unrefined_mv[neb_addr_rt[k]][lidx][MV_Y];
                     }
                     else
                     {
@@ -5343,7 +5314,7 @@ int evc_get_affine_merge_candidate(int ptr, int slice_type, int scup, s8(*map_re
 #if M50662_AFFINE_IBC_TMVP_SUCO_FIX
             if (valid_flag_lb[0])
             {
-                evc_get_mv_collocated(refp,ptr, neb_addr_lb[0], scup, w_scu, h_scu, tmvp, &availablePredIdx, sh);
+                evc_get_mv_collocated(refp, poc, neb_addr_lb[0], scup, w_scu, h_scu, tmvp, &availablePredIdx, sh);
 
                 if ((availablePredIdx == 1) || (availablePredIdx == 3))
                 {
@@ -5382,13 +5353,13 @@ int evc_get_affine_merge_candidate(int ptr, int slice_type, int scup, s8(*map_re
                 {
                     if (REFI_IS_VALID(map_refi_co[neb_addr_lb[0]][lidx]))
                     {
-                        dptr_co = refp[0][REFP_1].ptr - refp[0][REFP_1].list_ptr[map_refi_co[neb_addr_lb[0]][lidx]];
-                        if (dptr_co == 0)
+                        dpoc_co = refp[0][REFP_1].poc - refp[0][REFP_1].list_poc[map_refi_co[neb_addr_lb[0]][lidx]];
+                        if (dpoc_co == 0)
                         {
                             break;
                         }
 
-                        ratio_tmvp = (int)((ptr - refp[0][REFP_1].ptr) << MVP_SCALING_PRECISION) / dptr_co;
+                        ratio_tmvp = (int)((poc - refp[0][REFP_1].poc) << MVP_SCALING_PRECISION) / dpoc_co;
                         cp_refi[lidx][2] = 0; // ref idx
                         scaling_mv(ratio_tmvp, refp[0][REFP_1].map_mv[neb_addr_lb[0]][lidx], cp_mv[lidx][2]);
                         cp_valid[2] = 1;
@@ -5455,7 +5426,7 @@ int evc_get_affine_merge_candidate(int ptr, int slice_type, int scup, s8(*map_re
             s8 availablePredIdx = 0;
 
             neb_addr_rb[0] = ((x_scu + scuw) >> 1 << 1) + ((y_scu + scuh) >> 1 << 1) * w_scu; // 8x8 grid
-            evc_get_mv_collocated( refp, ptr, neb_addr_rb[0], scup, w_scu, h_scu, tmvp, &availablePredIdx, sh );
+            evc_get_mv_collocated( refp, poc, neb_addr_rb[0], scup, w_scu, h_scu, tmvp, &availablePredIdx, sh );
 
             if ( (availablePredIdx == 1) || (availablePredIdx == 3) )
             {
@@ -5494,13 +5465,13 @@ int evc_get_affine_merge_candidate(int ptr, int slice_type, int scup, s8(*map_re
             {
                 if(slice_type == SLICE_B && REFI_IS_VALID(map_refi_co[neb_addr_rb[0]][lidx]))
                 {
-                    dptr_co = refp[0][REFP_1].ptr - refp[0][REFP_1].list_ptr[map_refi_co[neb_addr_rb[0]][lidx]];
-                    if (dptr_co == 0)
+                    dpoc_co = refp[0][REFP_1].poc - refp[0][REFP_1].list_poc[map_refi_co[neb_addr_rb[0]][lidx]];
+                    if (dpoc_co == 0)
                     {
                         break;
                     }
 
-                    ratio_tmvp = (int)((ptr - refp[0][REFP_1].ptr) << MVP_SCALING_PRECISION) / dptr_co;
+                    ratio_tmvp = (int)((poc - refp[0][REFP_1].poc) << MVP_SCALING_PRECISION) / dpoc_co;
                     cp_refi[lidx][3] = 0; // ref idx
                     scaling_mv(ratio_tmvp, refp[0][REFP_1].map_mv[neb_addr_rb[0]][lidx], cp_mv[lidx][3]);   //SEMIH:this is temporal MV, it is ok.
                 }
@@ -5532,7 +5503,7 @@ int evc_get_affine_merge_candidate(int ptr, int slice_type, int scup, s8(*map_re
         for ( idx = 0; idx < const_num; idx++ )
         {
             int const_idx = const_order[idx];
-            evc_derive_affine_constructed_candidate( ptr, refp, cuw, cuh, cp_valid, cp_mv, cp_refi, const_model[const_idx], const_idx, cp_num[const_idx], mrg_list_cpmv, mrg_list_refi, &cnt, mrg_list_cp_num );
+            evc_derive_affine_constructed_candidate( poc, refp, cuw, cuh, cp_valid, cp_mv, cp_refi, const_model[const_idx], const_idx, cp_num[const_idx], mrg_list_cpmv, mrg_list_refi, &cnt, mrg_list_cp_num );
         }
     }
 
@@ -6456,7 +6427,7 @@ char is_inter_applicable(int cuw, int cuh)
 }
 #endif
 
-void evc_get_mv_collocated(EVC_REFP(*refp)[REFP_NUM], u32 ptr, int scup, int c_scu, u16 w_scu, u16 h_scu, s16 mvp[REFP_NUM][MV_D], s8 *availablePredIdx, EVC_SH* sh)
+void evc_get_mv_collocated(EVC_REFP(*refp)[REFP_NUM], u32 poc, int scup, int c_scu, u16 w_scu, u16 h_scu, s16 mvp[REFP_NUM][MV_D], s8 *availablePredIdx, EVC_SH* sh)
 {
     *availablePredIdx = 0;
 
@@ -6475,27 +6446,27 @@ void evc_get_mv_collocated(EVC_REFP(*refp)[REFP_NUM], u32 ptr, int scup, int c_s
     EVC_REFP colPic = (refp[collocated_from_ref_idx][collocated_from_list_idx]);  // col picture is ref idx 0 and list 1
 
     int neb_addr_coll = scup;     // Col 
-    int dptr_co[REFP_NUM] = { 0, 0 };
-    int dptr[REFP_NUM] = { 0, 0 };
+    int dpoc_co[REFP_NUM] = { 0, 0 };
+    int dpoc[REFP_NUM] = { 0, 0 };
     int ver_refi[REFP_NUM] = { -1, -1 };
     memset(mvp, 0, sizeof(s16) * REFP_NUM * MV_D);
 
 
     s8(*map_refi_co)[REFP_NUM] = colPic.map_refi;
-    dptr[REFP_0] = ptr - refp[0][REFP_0].ptr;
-    dptr[REFP_1] = ptr - refp[0][REFP_1].ptr;
+    dpoc[REFP_0] = poc - refp[0][REFP_0].poc;
+    dpoc[REFP_1] = poc - refp[0][REFP_1].poc;
 
     if (!temporal_mvp_asigned_flag)
     {
-        dptr_co[REFP_0] = colPic.ptr - colPic.list_ptr[map_refi_co[neb_addr_coll][REFP_0]]; //POC1
-        dptr_co[REFP_1] = colPic.ptr - colPic.list_ptr[map_refi_co[neb_addr_coll][REFP_1]]; //POC2
+        dpoc_co[REFP_0] = colPic.poc - colPic.list_poc[map_refi_co[neb_addr_coll][REFP_0]]; //POC1
+        dpoc_co[REFP_1] = colPic.poc - colPic.list_poc[map_refi_co[neb_addr_coll][REFP_1]]; //POC2
 
         for (int lidx = 0; lidx < REFP_NUM; lidx++)
         {
             s8 refidx = map_refi_co[neb_addr_coll][lidx];
-            if (dptr_co[lidx] != 0 && REFI_IS_VALID(refidx))
+            if (dpoc_co[lidx] != 0 && REFI_IS_VALID(refidx))
             {
-                int ratio_tmvp = ((dptr[lidx]) << MVP_SCALING_PRECISION) / dptr_co[lidx];
+                int ratio_tmvp = ((dpoc[lidx]) << MVP_SCALING_PRECISION) / dpoc_co[lidx];
                 ver_refi[lidx] = 0; // ref idx
                 s16 *mvc = colPic.map_mv[neb_addr_coll][lidx];
                 scaling_mv(ratio_tmvp, mvc, mvp[lidx]);
@@ -6511,17 +6482,17 @@ void evc_get_mv_collocated(EVC_REFP(*refp)[REFP_NUM], u32 ptr, int scup, int c_s
     {
         // collocated_mvp_source_list_idx = REFP_0; // specified above
         s8 refidx = map_refi_co[neb_addr_coll][collocated_mvp_source_list_idx];
-        dptr_co[REFP_0] = colPic.ptr - colPic.list_ptr[refidx];
+        dpoc_co[REFP_0] = colPic.poc - colPic.list_poc[refidx];
         {
-            if (dptr_co[REFP_0] != 0 && REFI_IS_VALID(refidx))
+            if (dpoc_co[REFP_0] != 0 && REFI_IS_VALID(refidx))
             {
                 ver_refi[REFP_0] = 0;
                 ver_refi[REFP_1] = 0;
                 s16 *mvc = colPic.map_mv[neb_addr_coll][collocated_mvp_source_list_idx]; //  collocated_mvp_source_list_idx == 0 for RA
-                int ratio_tmvp = ((dptr[REFP_0]) << MVP_SCALING_PRECISION) / dptr_co[REFP_0];
+                int ratio_tmvp = ((dpoc[REFP_0]) << MVP_SCALING_PRECISION) / dpoc_co[REFP_0];
                 scaling_mv(ratio_tmvp, mvc, mvp[REFP_0]);
 
-                ratio_tmvp = ((dptr[REFP_1]) << MVP_SCALING_PRECISION) / dptr_co[REFP_0];
+                ratio_tmvp = ((dpoc[REFP_1]) << MVP_SCALING_PRECISION) / dpoc_co[REFP_0];
                 scaling_mv(ratio_tmvp, mvc, mvp[REFP_1]);
             }
             else

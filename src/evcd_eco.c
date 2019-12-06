@@ -2350,10 +2350,10 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                     s8 refidx;
 #endif
 #if ADMVP                            
-                    evc_get_mv_dir(ctx->refp[0], ctx->ptr, core->scup + ((1 << (core->log2_cuw - MIN_CU_LOG2)) - 1) + ((1 << (core->log2_cuh - MIN_CU_LOG2)) - 1) * ctx->w_scu, core->scup, ctx->w_scu, ctx->h_scu, core->mv
+                    evc_get_mv_dir(ctx->refp[0], ctx->poc.poc_val, core->scup + ((1 << (core->log2_cuw - MIN_CU_LOG2)) - 1) + ((1 << (core->log2_cuh - MIN_CU_LOG2)) - 1) * ctx->w_scu, core->scup, ctx->w_scu, ctx->h_scu, core->mv
                     );
 #else
-                    evc_get_mv_dir(ctx->refp[0], ctx->ptr, core->scup + ((1 << (core->log2_cuw - MIN_CU_LOG2)) - 1) + ((1 << (core->log2_cuh - MIN_CU_LOG2)) - 1) * ctx->w_scu, ctx->w_scu, core->mv
+                    evc_get_mv_dir(ctx->refp[0], ctx->poc.poc_val, core->scup + ((1 << (core->log2_cuw - MIN_CU_LOG2)) - 1) + ((1 << (core->log2_cuh - MIN_CU_LOG2)) - 1) * ctx->w_scu, ctx->w_scu, core->mv
                     );
 #endif
 #if ADMVP
@@ -2720,7 +2720,7 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
         }
 
     }
-    sps->sps_max_dec_pic_buffering_minus1 = (u32)evc_bsr_read_ue(bs);
+    sps->max_dec_pic_buffering_minus1 = (u32)evc_bsr_read_ue(bs);
     if (!sps->tool_rpl)
     {
         sps->max_num_ref_pics = (u32)evc_bsr_read_ue(bs);
@@ -2846,7 +2846,7 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps)
     return EVC_OK;
 }
 
-#if ALF_PARAMETER_APS
+#if ALF
 int evcd_eco_aps(EVC_BSR * bs, EVC_APS * aps)
 {
     aps->aps_id = evc_bsr_read(bs, APS_MAX_NUM_IN_BITS); // parse APS ID
@@ -3024,14 +3024,11 @@ int evcd_eco_alf_filter(EVC_BSR * bs, evc_AlfSliceParam* alfSliceParam, const BO
 
     return EVC_OK;
 }
-#if ALF_PARAMETER_APS
+
 int evcd_eco_alf_aps_param(EVC_BSR * bs, EVC_APS * aps)
 {
     evc_AlfSliceParam* alfSliceParam = &(aps->alf_aps_param);
     //AlfSliceParam reset
-    alfSliceParam->temporalAlfFlag = 0;
-    alfSliceParam->prevIdx = 0;
-    alfSliceParam->tLayer = 0;
     alfSliceParam->resetALFBufferFlag = 0;
     alfSliceParam->store2ALFBufferFlag = 0;
     alfSliceParam->temporalAlfFlag = 0;
@@ -3042,9 +3039,6 @@ int evcd_eco_alf_aps_param(EVC_BSR * bs, EVC_APS * aps)
 #endif
     alfSliceParam->tLayer = 0;
     alfSliceParam->isCtbAlfOn = 0;
-#if !ALF_CTU_MAP_DYNAMIC
-    memset(alfSliceParam->alfCtuEnableFlag, 1, 512 * 3 * sizeof(u8));
-#endif
     memset(alfSliceParam->enabledFlag, 0, 3 * sizeof(BOOL));
     alfSliceParam->lumaFilterType = ALF_FILTER_5;
     memset(alfSliceParam->lumaCoeff, 0, sizeof(short) * 325);
@@ -3121,8 +3115,6 @@ int evcd_eco_alf_aps_param(EVC_BSR * bs, EVC_APS * aps)
 
     if (alfChromaIdc)
     {
-        alfSliceParam->chromaCtbPresentFlag = (BOOL)evc_bsr_read1(bs);
-        if (!(alfSliceParam->temporalAlfFlag))
         {
             evcd_eco_alf_filter(bs, &(aps->alf_aps_param), TRUE);
         }
@@ -3136,22 +3128,16 @@ int evcd_eco_alf_sh_param(EVC_BSR * bs, EVC_SH * sh)
     evc_AlfSliceParam* alfSliceParam = &(sh->alf_sh_param);
 
     //AlfSliceParam reset
-    alfSliceParam->temporalAlfFlag = 0;
-    alfSliceParam->prevIdx = 0;
 #if M50662_LUMA_CHROMA_SEPARATE_APS
     alfSliceParam->prevIdxComp[0] = 0;
     alfSliceParam->prevIdxComp[1] = 0;
 #endif
-    alfSliceParam->tLayer = 0;
     alfSliceParam->resetALFBufferFlag = 0;
     alfSliceParam->store2ALFBufferFlag = 0;
     alfSliceParam->temporalAlfFlag = 0;
     alfSliceParam->prevIdx = 0;
     alfSliceParam->tLayer = 0;
     alfSliceParam->isCtbAlfOn = 0;
-#if !ALF_CTU_MAP_DYNAMIC
-    memset(alfSliceParam->alfCtuEnableFlag, 1, 512 * 3 * sizeof(u8));
-#endif
     memset(alfSliceParam->enabledFlag, 0, 3 * sizeof(BOOL));
     alfSliceParam->lumaFilterType = ALF_FILTER_5;
     memset(alfSliceParam->lumaCoeff, 0, sizeof(short) * 325);
@@ -3167,145 +3153,8 @@ int evcd_eco_alf_sh_param(EVC_BSR * bs, EVC_SH * sh)
 
     //decode map
     alfSliceParam->isCtbAlfOn = evc_bsr_read1(bs);
-#if !APS_ALF_CTU_FLAG
-    if (alfSliceParam->isCtbAlfOn)
-    {
-        for (int i = 0; i < sh->num_ctb; i++)
-#if ALF_CTU_MAP_DYNAMIC
-            *(alfSliceParam->alfCtuEnableFlag + i) = evc_bsr_read1(bs);
-#else
-            alfSliceParam->alfCtuEnableFlag[0][i] = evc_bsr_read1(bs);
-#endif
-    }
-#endif
     return EVC_OK;
 }
-#else
-int evcd_eco_alf_sh_param(EVC_BSR * bs, EVC_SH * sh)
-{
-    evc_AlfSliceParam* alfSliceParam = &(sh->alf_sh_param);
-    alfSliceParam->temporalAlfFlag = 0;
-    alfSliceParam->prevIdx = 0;
-    alfSliceParam->tLayer = 0;
-    alfSliceParam->resetALFBufferFlag = 0;
-    alfSliceParam->store2ALFBufferFlag = 0;
-    alfSliceParam->temporalAlfFlag = 0;
-    alfSliceParam->prevIdx = 0;
-    alfSliceParam->tLayer = 0;
-    alfSliceParam->isCtbAlfOn = 0;
-#if !ALF_CTU_MAP_DYNAMIC
-    memset(alfSliceParam->alfCtuEnableFlag, 1 , 512*3*sizeof(u8));
-#endif
-    memset(alfSliceParam->enabledFlag, 0, 3*sizeof(BOOL));
-    alfSliceParam->lumaFilterType = ALF_FILTER_5;
-    memset(alfSliceParam->lumaCoeff, 0, sizeof(short)*325);
-    memset(alfSliceParam->chromaCoeff, 0, sizeof(short)*7);
-    memset(alfSliceParam->filterCoeffDeltaIdx, 0, sizeof(short)*MAX_NUM_ALF_CLASSES);
-    memset(alfSliceParam->filterCoeffFlag, 1, sizeof(BOOL)*25);
-    alfSliceParam->numLumaFilters = 1;
-    alfSliceParam->coeffDeltaFlag = 0;
-    alfSliceParam->coeffDeltaPredModeFlag = 0;
-    alfSliceParam->chromaCtbPresentFlag = 0;
-    alfSliceParam->fixedFilterPattern = 0;
-    memset(alfSliceParam->fixedFilterIdx, 0, sizeof(int)*25);
-
-    alfSliceParam->enabledFlag[0] = evc_bsr_read1(bs);
-
-    if (!alfSliceParam->enabledFlag[0])
-    {
-        return EVC_OK;
-    }
-
-    int alfChromaIdc = evcd_truncatedUnaryEqProb(bs, 3);
-    alfSliceParam->enabledFlag[2] = alfChromaIdc & 1;
-    alfSliceParam->enabledFlag[1] = (alfChromaIdc >> 1) & 1;
-    {
-        alfSliceParam->temporalAlfFlag = evc_bsr_read1(bs); // "alf_temporal_enable_flag"
-        if ( alfSliceParam->temporalAlfFlag )
-        {
-            alfSliceParam->prevIdx = evc_bsr_read_ue(bs);  // "alf_temporal_index"
-        }
-        else
-        {
-            alfSliceParam->resetALFBufferFlag  = evc_bsr_read1( bs );
-            alfSliceParam->store2ALFBufferFlag = evc_bsr_read1( bs );
-        }
-    }
-
-    if (!alfSliceParam->temporalAlfFlag)
-    {
-
-    alfSliceParam->numLumaFilters = evcd_xReadTruncBinCode( bs, MAX_NUM_ALF_CLASSES) + 1;
-    alfSliceParam->lumaFilterType = !(evc_bsr_read1(bs));
-
-    if (alfSliceParam->numLumaFilters > 1)
-    {
-        for (int i = 0; i < MAX_NUM_ALF_CLASSES; i++)
-        {
-            alfSliceParam->filterCoeffDeltaIdx[i] = (short)evcd_xReadTruncBinCode( bs, alfSliceParam->numLumaFilters );  //filter_coeff_delta[i]
-        }
-    }
-
-    char codetab_pred[3] = {1, 0, 2};
-    const int iNumFixedFilterPerClass = 16;
-    memset(alfSliceParam->fixedFilterIdx, 0, sizeof(alfSliceParam->fixedFilterIdx));
-    if(iNumFixedFilterPerClass > 0)
-    {
-        alfSliceParam->fixedFilterPattern = codetab_pred[alfGolombDecode(bs, 0)];
-        if(alfSliceParam->fixedFilterPattern == 2)
-        {
-            for(int classIdx = 0; classIdx < MAX_NUM_ALF_CLASSES; classIdx++)
-            {
-                alfSliceParam->fixedFilterIdx[classIdx] = evc_bsr_read1(bs); // "fixed_filter_flag"
-            }
-        }
-        else if(alfSliceParam->fixedFilterPattern == 1)
-        {
-            for(int classIdx = 0; classIdx < MAX_NUM_ALF_CLASSES; classIdx++)
-            {
-                //on
-                alfSliceParam->fixedFilterIdx[classIdx] = 1;
-            }
-        }
-
-        if(alfSliceParam->fixedFilterPattern > 0 && iNumFixedFilterPerClass > 1)
-        {
-            for(int classIdx = 0; classIdx < MAX_NUM_ALF_CLASSES; classIdx++)
-            {
-                if(alfSliceParam->fixedFilterIdx[classIdx] > 0)
-                {
-                    alfSliceParam->fixedFilterIdx[classIdx] = (int)evcd_xReadTruncBinCode(bs, iNumFixedFilterPerClass) + 1;
-                }
-            }
-        }
-    }
-
-    evcd_eco_alf_filter(bs, &(sh->alf_sh_param), FALSE);
-    }
-
-    if (alfChromaIdc) 
-    {
-        alfSliceParam->chromaCtbPresentFlag = (BOOL)evc_bsr_read1(bs); 
-        if (!(alfSliceParam->temporalAlfFlag))
-        {
-            evcd_eco_alf_filter(bs, &(sh->alf_sh_param), TRUE);
-        }
-    }
-
-    //decode map
-    alfSliceParam->isCtbAlfOn = evc_bsr_read1(bs);
-    if(alfSliceParam->isCtbAlfOn)
-    {
-        for(int i = 0; i < sh->num_ctb; i++)
-#if ALF_CTU_MAP_DYNAMIC
-            *(alfSliceParam->alfCtuEnableFlag + i) = evc_bsr_read1(bs);
-#else
-            alfSliceParam->alfCtuEnableFlag[0][i] = evc_bsr_read1(bs);
-#endif
-    }
-    return EVC_OK;
-}
-#endif
 #endif
 
 int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut)
@@ -3315,8 +3164,6 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
 #else
     int NumTilesInSlice = 0;
 #endif
-    sh->dtr = evc_bsr_read(bs, DTR_BIT_CNT);
-    sh->layer_id = evc_bsr_read(bs, 3);
 #if !QC_ADMVP_SPEC_ALLIGHN
     sh->temporal_mvp_asigned_flag = evc_bsr_read1(bs);
     
@@ -3375,7 +3222,6 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
     if (sps->tool_alf)
     {
         sh->alf_on = evc_bsr_read1(bs);
-#if ALF_PARAMETER_APS
         if (sh->alf_on)
         {
 #if M50662_LUMA_CHROMA_SEPARATE_APS
@@ -3386,12 +3232,6 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
 #endif
             evcd_eco_alf_sh_param(bs, sh); // parse ALF map
         }
-#else
-        if (sh->alf_on)
-        {
-            evcd_eco_alf_sh_param(bs, sh);
-        }
-#endif
     }
 #endif
 
@@ -3399,9 +3239,8 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
     {
         if (sps->tool_pocs)
         {
-            sh->poc = evc_bsr_read(bs, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
+            sh->poc_lsb = evc_bsr_read(bs, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
         }
-
         if (sps->tool_rpl)
         {
             //L0 candidates signaling
@@ -3413,13 +3252,13 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
                 {
                     sh->rpl_l0_idx = evc_bsr_read_ue(bs);
                     memcpy(&sh->rpl_l0, &sps->rpls_l0[sh->rpl_l0_idx], sizeof(sh->rpl_l0)); //TBD: temporal workaround, consider refactoring
-                    sh->rpl_l0.poc = sh->poc;
+                    sh->rpl_l0.poc = sh->poc_lsb;
                 }
             }
             else
             {
                 evcd_eco_rlp(bs, &sh->rpl_l0);
-                sh->rpl_l0.poc = sh->poc;
+                sh->rpl_l0.poc = sh->poc_lsb;
             }
 
             //L1 candidates signaling
@@ -3431,32 +3270,33 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
                 {
                     sh->rpl_l1_idx = evc_bsr_read_ue(bs);
                     memcpy(&sh->rpl_l1, &sps->rpls_l1[sh->rpl_l1_idx], sizeof(sh->rpl_l1)); //TBD: temporal workaround, consider refactoring
-                    sh->rpl_l1.poc = sh->poc;
+                    sh->rpl_l1.poc = sh->poc_lsb;
                 }
             }
             else
             {
                 evcd_eco_rlp(bs, &sh->rpl_l1);
-                sh->rpl_l1.poc = sh->poc;
+                sh->rpl_l1.poc = sh->poc_lsb;
             }
         }
+    }
 
-        if (sh->slice_type == SLICE_P || sh->slice_type == SLICE_B)
+    if (sh->slice_type != SLICE_I)
+    {
+        sh->num_ref_idx_active_override_flag = evc_bsr_read1(bs);
+        if (sh->num_ref_idx_active_override_flag)
         {
-            sh->num_ref_idx_active_override_flag = evc_bsr_read1(bs);
-            if (sh->num_ref_idx_active_override_flag)
+            sh->rpl_l0.ref_pic_active_num = (u32)evc_bsr_read_ue(bs) + 1;
+            if (sh->slice_type == SLICE_B)
             {
-                sh->rpl_l0.ref_pic_active_num = (u32)evc_bsr_read_ue(bs) + 1;
-                if (sh->slice_type == SLICE_B)
-                {
-                    sh->rpl_l1.ref_pic_active_num = (u32)evc_bsr_read_ue(bs) + 1;
-                }
+                sh->rpl_l1.ref_pic_active_num = (u32)evc_bsr_read_ue(bs) + 1;
             }
-            else
-            {
-                sh->rpl_l0.ref_pic_active_num = 2;  //Temporarily i set it to 2. this should be set equal to the signalled num_ref_idx_default_active_minus1[0] + 1.
-                sh->rpl_l1.ref_pic_active_num = 2;  //Temporarily i set it to 2. this should be set equal to the signalled num_ref_idx_default_active_minus1[1] + 1.
-            }
+        }
+        else
+        {
+            sh->rpl_l0.ref_pic_active_num = 2;  //Temporarily i set it to 2. this should be set equal to the signalled num_ref_idx_default_active_minus1[0] + 1.
+            sh->rpl_l1.ref_pic_active_num = 2;  //Temporarily i set it to 2. this should be set equal to the signalled num_ref_idx_default_active_minus1[1] + 1.
+        }
 #if QC_ADMVP_SPEC_ALLIGHN
             if (sps->tool_admvp)
             {
@@ -3472,7 +3312,6 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
                 }
             }
 #endif
-        }
     }
 
     sh->deblocking_filter_on = evc_bsr_read1(bs);
@@ -3489,14 +3328,6 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
             sh->entry_point_offset_minus1[i] = evc_bsr_read(bs, pps->tile_offset_lens_minus1 + 1);
         }
     }
-
-    if(sh->slice_type!= SLICE_I)
-    {
-        /* dptr: delta of presentation temporal reference */
-        sh->dptr = evc_bsr_read_se(bs);
-    }
-
-    sh->poc = sh->dtr + sh->dptr;
 
     /* byte align */
     while(!EVC_BSR_IS_BYTE_ALIGN(bs))

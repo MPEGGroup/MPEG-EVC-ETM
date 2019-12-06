@@ -44,13 +44,8 @@ short m_coeffFinal[MAX_NUM_ALF_CLASSES * MAX_NUM_ALF_LUMA_COEFF];
 int  m_inputBitDepth[MAX_NUM_CHANNEL_TYPE];
 int  m_laplacian[NUM_DIRECTIONS][m_CLASSIFICATION_BLK_SIZE + 5][m_CLASSIFICATION_BLK_SIZE + 5];
 
-#if ALF_PARAMETER_APS
 AlfSliceParam m_acAlfLineBuffer[APS_MAX_NUM];
-#else
-AlfSliceParam m_acAlfLineBuffer[ALF_TEMPORAL_WITH_LINE_BUFFER];
-#endif
 
-#if APS_ALF_SEQ_FIX
 // Encoder side variables
 u8  m_alfIndxInScanOrder[APS_MAX_NUM] = { 0 };
 u8  m_nextFreeAlfIdxInBuffer = 0;  
@@ -61,7 +56,6 @@ u32 m_currentTempLayer = INT_MAX;
 u32 m_i_period;   
 int m_alf_present_idr = 0;
 int m_alf_idx_idr = INT_MAX;
-#endif
 
 
 AlfSliceParam m_IRAPFilter;
@@ -109,7 +103,6 @@ void call_destroy_ALF(AdaptiveLoopFilter* p)
     AdaptiveLoopFilter_destroy();
 }
 
-#if ALF_PARAMETER_APS
 void store_dec_aps_to_buffer(EVCD_CTX * ctx)
 {
     AlfSliceParam alfSliceParam;
@@ -147,14 +140,12 @@ void store_dec_aps_to_buffer(EVCD_CTX * ctx)
 #endif
     alfSliceParam.tLayer = iAlfSliceParam.tLayer;
     alfSliceParam.temporalAlfFlag = (iAlfSliceParam.temporalAlfFlag);
-    const unsigned tidx = ctx->sh.layer_id;
+    const unsigned tidx = ctx->nalu.nuh_temporal_id;
 
-#if APS_ALF_SEQ_FIX
     // Initialize un-used variables at the decoder side  TODO: Modify structure
     alfSliceParam.m_filterPoc = INT_MAX;
     alfSliceParam.m_maxIdrPoc = INT_MAX;
     alfSliceParam.m_minIdrPoc = INT_MAX;
-#endif
 
     store_alf_paramline_from_aps(&(alfSliceParam), alfSliceParam.prevIdx);
 }
@@ -165,10 +156,8 @@ void call_dec_alf_process_aps(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * p
     cs.pPic = pic;
 
     AlfSliceParam alfSliceParam;
-#if ALF_CTU_MAP_DYNAMIC
     alfSliceParam.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
     memset(alfSliceParam.alfCtuEnableFlag, 0, N_C * ctx->f_lcu * sizeof(u8));
-#endif
     // load filter from buffer
 #if M50662_LUMA_CHROMA_SEPARATE_APS
     load_alf_paramline_from_aps_buffer2(&(alfSliceParam), ctx->sh.aps_id_y, ctx->sh.aps_id_ch);
@@ -179,116 +168,9 @@ void call_dec_alf_process_aps(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * p
 
     // load filter map buffer
     alfSliceParam.isCtbAlfOn = ctx->sh.alf_sh_param.isCtbAlfOn;
-#if ALF_CTU_MAP_DYNAMIC
     memcpy(alfSliceParam.alfCtuEnableFlag, ctx->sh.alf_sh_param.alfCtuEnableFlag, N_C * ctx->f_lcu * sizeof(u8));
-#else
-    memcpy(alfSliceParam.alfCtuEnableFlag, ctx->sh.alf_sh_param.alfCtuEnableFlag, 3 * 512 * sizeof(u8));
-#endif
     ALFProcess(p, &cs, &alfSliceParam);
 }
-
-#else
-void call_ALFProcess(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic)
-{
-    CodingStructure cs;
-    cs.pCtx = (void*)ctx;
-    cs.pPic = pic;
-
-    AlfSliceParam alfSliceParam;
-    evc_AlfSliceParam iAlfSliceParam = ctx->sh.alf_sh_param;
-#if ALF_CTU_MAP_DYNAMIC
-    alfSliceParam.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
-    memset(alfSliceParam.alfCtuEnableFlag, 0, N_C * ctx->f_lcu * sizeof(u8));
-#endif
-    //port
-
-    alfSliceParam.enabledFlag[COMPONENT_Y]  = ( iAlfSliceParam.enabledFlag[0] );
-    alfSliceParam.enabledFlag[COMPONENT_Cb] = ( iAlfSliceParam.enabledFlag[1] );
-    alfSliceParam.enabledFlag[COMPONENT_Cr] = ( iAlfSliceParam.enabledFlag[2] );
-
-    alfSliceParam.numLumaFilters = iAlfSliceParam.numLumaFilters;
-    alfSliceParam.lumaFilterType = (AlfFilterType)( iAlfSliceParam.lumaFilterType );
-    alfSliceParam.chromaCtbPresentFlag = ( iAlfSliceParam.chromaCtbPresentFlag );
-
-    memcpy(alfSliceParam.filterCoeffDeltaIdx, iAlfSliceParam.filterCoeffDeltaIdx, MAX_NUM_ALF_CLASSES*sizeof(short));
-    memcpy(alfSliceParam.lumaCoeff,           iAlfSliceParam.lumaCoeff,           sizeof(short)*MAX_NUM_ALF_CLASSES*MAX_NUM_ALF_LUMA_COEFF);
-    memcpy(alfSliceParam.chromaCoeff,         iAlfSliceParam.chromaCoeff,         sizeof(short)*MAX_NUM_ALF_CHROMA_COEFF);
-    memcpy(alfSliceParam.fixedFilterIdx,      iAlfSliceParam.fixedFilterIdx,      MAX_NUM_ALF_CLASSES*sizeof(int));
-
-    alfSliceParam.fixedFilterPattern = iAlfSliceParam.fixedFilterPattern;
-
-    alfSliceParam.coeffDeltaFlag         = ( iAlfSliceParam.coeffDeltaFlag );
-    alfSliceParam.coeffDeltaPredModeFlag = ( iAlfSliceParam.coeffDeltaPredModeFlag );
-
-    for( int i = 0; i < MAX_NUM_ALF_CLASSES; i++)
-    {
-        alfSliceParam.filterCoeffFlag[i] = ( iAlfSliceParam.filterCoeffFlag[i] );
-    }
-
-    alfSliceParam.prevIdx = iAlfSliceParam.prevIdx;
-    alfSliceParam.tLayer  = iAlfSliceParam.tLayer;
-    alfSliceParam.temporalAlfFlag = ( iAlfSliceParam.temporalAlfFlag );
-    const unsigned tidx = ctx->sh.layer_id;
-
-
-    alfSliceParam.resetALFBufferFlag = ( iAlfSliceParam.resetALFBufferFlag );
-
-
-    if (alfSliceParam.resetALFBufferFlag )
-    {
-      resetTemporalAlfBufferLine();
-    }
-#if FIX_SEQUENTIAL_CODING
-    m_pendingRasInit = FALSE;
-    if( ctx->ptr > m_lastRasPoc )
-    {
-        m_lastRasPoc = INT_MAX;
-        m_pendingRasInit = TRUE;
-    }
-    if( ctx->sh.slice_type == SLICE_I )
-        m_lastRasPoc = ctx->ptr;
-
-    if( m_pendingRasInit )
-        resetTemporalAlfBufferLine2First();
-#endif
-
-    if (alfSliceParam.enabledFlag[COMPONENT_Y] && alfSliceParam.temporalAlfFlag)
-    {
-      loadALFParamLine(&(alfSliceParam), alfSliceParam.prevIdx, tidx);
-    }
-
-    alfSliceParam.store2ALFBufferFlag = ( iAlfSliceParam.store2ALFBufferFlag );
-#if !FIX_SEQUENTIAL_CODING
-    m_pendingRasInit = FALSE;
-    if( ctx->ptr > m_lastRasPoc )
-    {
-        m_lastRasPoc = INT_MAX;
-        m_pendingRasInit = TRUE;
-    }
-    if( ctx->sh.slice_type == SLICE_I )
-        m_lastRasPoc = ctx->ptr;
-
-    if( m_pendingRasInit )
-        resetTemporalAlfBufferLine2First();
-#endif
-
-    alfSliceParam.isCtbAlfOn = (iAlfSliceParam.isCtbAlfOn == 1 ? TRUE : FALSE);
-#if ALF_CTU_MAP_DYNAMIC
-    memcpy(alfSliceParam.alfCtuEnableFlag, iAlfSliceParam.alfCtuEnableFlag, N_C * ctx->f_lcu * sizeof(u8));
-#else
-    memcpy(alfSliceParam.alfCtuEnableFlag, iAlfSliceParam.alfCtuEnableFlag, 3*512 * sizeof(u8));
-#endif
-
-    ALFProcess(p, &cs, &alfSliceParam );
-
-    if (alfSliceParam.enabledFlag[COMPONENT_Y] && alfSliceParam.store2ALFBufferFlag )
-    {
-        storeALFParamLine(&(alfSliceParam), tidx);
-    }
-
-}
-
-#endif
 
 AlfFilterShape m_filterShapes[MAX_NUM_CHANNEL_TYPE][2];
 
@@ -531,7 +413,7 @@ const int m_classToFilterMapping[MAX_NUM_ALF_CLASSES][ALF_FIXED_FILTER_NUM] =
   { 8,  13,  36,  42,  45,  46,  51,  53,  54,  57,  58,  59,  60,  61,  62,  63 },
   { 8,  13,  20,  27,  36,  38,  42,  46,  52,  53,  56,  57,  59,  61,  62,  63 },
 };
-#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+#if ALF_TILES_SUPPORT_M50663
 void tile_boundary_check(int* availableL, int* availableR, int* availableT, int* availableB, const int width, const int height, int xPos, int yPos, int x_l, int x_r, int y_l, int y_r)
 {
     if (xPos == x_l)
@@ -567,11 +449,7 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
   // set CTU enable flags
   for (int compIdx = 0; compIdx < MAX_NUM_COMPONENT; compIdx++)
   {
-#if ALF_CTU_MAP_DYNAMIC
      m_ctuEnableFlag[compIdx] = alfSliceParam->alfCtuEnableFlag + ctx->f_lcu * compIdx;
-#else
-     m_ctuEnableFlag[compIdx] = &(alfSliceParam->alfCtuEnableFlag[compIdx][0]);
-#endif
   }
 
   reconstructCoeff(alfSliceParam, CHANNEL_TYPE_LUMA, FALSE, TRUE);
@@ -621,7 +499,7 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
       copy_and_extend_tile(recLuma1_tile, s1, recoYuv1_tile, cs->pPic->s_c, (w_tile >> 1), (h_tile >> 1), m);
       copy_and_extend_tile(recLuma2_tile, s1, recoYuv2_tile, cs->pPic->s_c, (w_tile >> 1), (h_tile >> 1), m);
 
-#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+#if ALF_TILES_SUPPORT_M50663
       int l_zero_offset = (MAX_CU_SIZE + m + m) * m + m;
       int l_stride = MAX_CU_SIZE + 2 * (MAX_ALF_FILTER_LENGTH >> 1);
       pel l_buffer[(MAX_CU_SIZE + 2 * (MAX_ALF_FILTER_LENGTH >> 1)) *(MAX_CU_SIZE + 2 * (MAX_ALF_FILTER_LENGTH >> 1))];
@@ -639,7 +517,7 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
           {
               const int width = (xPos + ctx->max_cuwh > cs->pPic->w_l) ? (cs->pPic->w_l - xPos) : ctx->max_cuwh;
               const int height = (yPos + ctx->max_cuwh > cs->pPic->h_l) ? (cs->pPic->h_l - yPos) : ctx->max_cuwh;
-#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+#if ALF_TILES_SUPPORT_M50663
               int availableL, availableR, availableT, availableB;
               availableL = availableR = availableT = availableB = 1;
               if (!(ctx->pps.loop_filter_across_tiles_enabled_flag))
@@ -686,13 +564,13 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
 #endif
               if (m_ctuEnableFlag[COMPONENT_Y][ctuIdx])
               {
-#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+#if ALF_TILES_SUPPORT_M50663
                   Area blk = { 0, 0, width, height };
 #else
                   Area blk = { xPos, yPos, width, height };
 #endif
                   {
-#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+#if ALF_TILES_SUPPORT_M50663
                       deriveClassification(m_classifier, p_buffer, l_stride, &blk);
                       p->m_filter7x7Blk(m_classifier, recYuv + xPos + yPos * (cs->pPic->s_l), cs->pPic->s_l, p_buffer, l_stride, &blk, COMPONENT_Y, m_coeffFinal, &(m_clpRngs.comp[COMPONENT_Y]));
 #else
@@ -701,7 +579,7 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
 #endif
                   }
               }
-#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+#if ALF_TILES_SUPPORT_M50663
               for (int i = m; i < ((height >> 1) + m); i++) {
                   int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
                   int srcPos_offset = (xPos >> 1) + (yPos >> 1) * s1;
@@ -769,7 +647,7 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
 
                   if (alfSliceParam->enabledFlag[compIdx] && m_ctuEnableFlag[compIdx][ctuIdx])
                   {
-#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+#if ALF_TILES_SUPPORT_M50663
                       Area blk = { 0, 0, width >> chromaScaleX, height >> chromaScaleY };
                       p->m_filter5x5Blk(m_classifier, recYuv1 + (xPos >> 1) + (yPos >> 1) * (cs->pPic->s_c), cs->pPic->s_c, p_buffer_cb, l_stride_chroma, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
                       p->m_filter5x5Blk(m_classifier, recYuv2 + (xPos >> 1) + (yPos >> 1) * (cs->pPic->s_c), cs->pPic->s_c, p_buffer_cr, l_stride_chroma, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
@@ -1187,7 +1065,7 @@ void filterBlk_7(AlfClassifier** classifier, pel * recDst, const int dstStride, 
   const int endWidth = blk->x + blk->width;
 
   const Pel* src = recSrc;
-#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+#if ALF_TILES_SUPPORT_M50663
   Pel* dst = recDst;
 #else
   Pel* dst = recDst + startHeight * dstStride;
@@ -1216,7 +1094,7 @@ void filterBlk_7(AlfClassifier** classifier, pel * recDst, const int dstStride, 
   int srcStride2 = srcStride * clsSizeY;
 
   Pel filterCoeff[MAX_NUM_ALF_LUMA_COEFF];
-#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+#if ALF_TILES_SUPPORT_M50663
   pImgYPad0 = src;
 #else
   pImgYPad0 = src + startHeight * srcStride + startWidth;
@@ -1227,7 +1105,7 @@ void filterBlk_7(AlfClassifier** classifier, pel * recDst, const int dstStride, 
   pImgYPad4 = pImgYPad2 - srcStride;
   pImgYPad5 = pImgYPad3 + srcStride;
   pImgYPad6 = pImgYPad4 - srcStride;
-#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+#if ALF_TILES_SUPPORT_M50663
   Pel* pRec0 = dst;
 #else
   Pel* pRec0 = dst + startWidth;
@@ -1326,7 +1204,7 @@ void filterBlk_5(AlfClassifier** classifier, pel * recDst, const int dstStride, 
   const int endWidth = blk->x + blk->width;
 
   const Pel* src = recSrc;
-#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+#if ALF_TILES_SUPPORT_M50663
   Pel* dst = recDst;
 #else
   Pel* dst = recDst + startHeight * dstStride;
@@ -1355,7 +1233,7 @@ void filterBlk_5(AlfClassifier** classifier, pel * recDst, const int dstStride, 
   int srcStride2 = srcStride * clsSizeY;
 
   Pel filterCoeff[MAX_NUM_ALF_LUMA_COEFF];
-#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+#if ALF_TILES_SUPPORT_M50663
   pImgYPad0 = src;
 #else
   pImgYPad0 = src + startHeight * srcStride + startWidth;
@@ -1364,7 +1242,7 @@ void filterBlk_5(AlfClassifier** classifier, pel * recDst, const int dstStride, 
   pImgYPad2 = pImgYPad0 - srcStride;
   pImgYPad3 = pImgYPad1 + srcStride;
   pImgYPad4 = pImgYPad2 - srcStride;
-#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+#if ALF_TILES_SUPPORT_M50663
   Pel* pRec0 = dst;
 #else
   Pel* pRec0 = dst + startWidth;
@@ -1477,36 +1355,16 @@ void copyAlfParam(AlfSliceParam* dst, AlfSliceParam* src)
   dst->prevIdxComp[1] = src->prevIdxComp[1];
 #endif
   dst->tLayer = src->tLayer;
-#if APS_ALF_SEQ_FIX
+
   // variables are not used at the decoder side. TODO: Modify the strcuture
   dst->m_filterPoc = src->m_filterPoc;
   dst->m_minIdrPoc = src->m_minIdrPoc;
   dst->m_maxIdrPoc = src->m_maxIdrPoc;
-#endif
 }
-
-void storeALFParamLine(AlfSliceParam* pAlfParam, unsigned tLayer)
-{
-  if( tLayer == 0 )
-      copyAlfParam(&m_IRAPFilter, pAlfParam);
-
-  unsigned idx = m_acAlfLineBufferCurrentSize % ALF_TEMPORAL_WITH_LINE_BUFFER;
-  pAlfParam->temporalAlfFlag = FALSE;
-  pAlfParam->tLayer = tLayer;
-  pAlfParam->chromaCtbPresentFlag = FALSE;
-  copyAlfParam(&(m_acAlfLineBuffer[idx]), pAlfParam);
-  m_acAlfLineBufferCurrentSize++;
-}
-
-#if ALF_PARAMETER_APS
-#if APS_ALF_SEQ_FIX
 void resetAlfParam(AlfSliceParam* dst)
 {
     //Reset destination
     dst->isCtbAlfOn = FALSE;
-#if !ALF_CTU_MAP_DYNAMIC
-    memset(dst->alfCtuEnableFlag, 1, sizeof(dst->alfCtuEnableFlag));
-#endif
     memset(dst->enabledFlag, 0, sizeof(dst->enabledFlag)); //false is still 0
     dst->lumaFilterType = ALF_FILTER_5;
     memset(dst->lumaCoeff, 0, sizeof(dst->lumaCoeff));
@@ -1629,21 +1487,6 @@ void storeEncALFParamLineAPS(AlfSliceParam* pAlfParam, unsigned tLayer)
     m_nextFreeAlfIdxInBuffer = (m_nextFreeAlfIdxInBuffer + 1) % APS_MAX_NUM;  // Compute next availble ALF circular buffer index
 }
 
-void loadALFParamLineAPS(AlfSliceParam* pAlfParam, unsigned idx, unsigned tLayer)
-{
-    BOOL enable[3];
-    BOOL ctbPresentFlag = pAlfParam->chromaCtbPresentFlag;
-    memcpy(enable, pAlfParam->enabledFlag, sizeof(pAlfParam->enabledFlag));
-    int bufIdx = 0; BOOL isFound = FALSE;
-    copyAlfParam(pAlfParam, &(m_acAlfLineBuffer[idx]));
-    isFound = TRUE;
-    memcpy(pAlfParam->enabledFlag, enable, sizeof(pAlfParam->enabledFlag));
-    pAlfParam->temporalAlfFlag = TRUE;
-    pAlfParam->chromaCtbPresentFlag = ctbPresentFlag;
-    CHECK(!isFound, "ALF : loadALFParamLine cannot load from the buffer");
-}
-#endif
-
 void store_alf_paramline_from_aps(AlfSliceParam* pAlfParam, u8 idx)
 {
     assert(idx < APS_MAX_NUM);
@@ -1662,44 +1505,4 @@ void load_alf_paramline_from_aps_buffer(AlfSliceParam* pAlfParam, u8 idx)
 {
     copyAlfParam(pAlfParam, &(m_acAlfLineBuffer[idx]) );
 }
-#endif
-
-void loadALFParamLine(AlfSliceParam* pAlfParam, unsigned idx, unsigned tLayer)
-{
-  BOOL enable[3];
-  BOOL ctbPresentFlag = pAlfParam->chromaCtbPresentFlag;
-  memcpy(enable, pAlfParam->enabledFlag, sizeof(pAlfParam->enabledFlag));
-  int bufIdx = 0; BOOL isFound = FALSE;
-  for (int i = 0; i < ALF_TEMPORAL_WITH_LINE_BUFFER; i++)
-  {
-    if (m_acAlfLineBuffer[i].tLayer <= tLayer)
-    {
-      if (idx == bufIdx)
-      {
-        copyAlfParam(pAlfParam, &(m_acAlfLineBuffer[i]));
-        isFound = TRUE;
-        break;
-      }
-      bufIdx++;
-    }
-  }
-  memcpy(pAlfParam->enabledFlag, enable, sizeof(pAlfParam->enabledFlag));
-  pAlfParam->temporalAlfFlag = TRUE;
-  pAlfParam->chromaCtbPresentFlag = ctbPresentFlag;
-  CHECK(!isFound, "ALF : loadALFParamLine cannot load from the buffer");
-}
-
-void resetTemporalAlfBufferLine()
-{
-  m_acAlfLineBufferCurrentSize = 0;
-}
-
-void resetTemporalAlfBufferLine2First()
-{
-  m_acAlfLineBuffer[0] = m_IRAPFilter;
-  m_acAlfLineBuffer[0].temporalAlfFlag = FALSE;
-  m_acAlfLineBuffer[0].tLayer = 0;
-  m_acAlfLineBufferCurrentSize = 1;
-}
-
 #endif

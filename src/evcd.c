@@ -65,7 +65,6 @@ static EVCD_CTX * ctx_alloc(void)
     evc_mset_x64a(ctx, 0, sizeof(EVCD_CTX));
 
     /* set default value */
-    ctx->dtr           = 0;
     ctx->pic_cnt       = 0;
 
     return ctx;
@@ -271,10 +270,6 @@ static int slice_init(EVCD_CTX * ctx, EVCD_CORE * core, EVC_SH * sh)
     core->qp_u = evc_tbl_qp_chroma_ajudst[sh->qp_u] + 6 * (BIT_DEPTH - 8);
     core->qp_v = evc_tbl_qp_chroma_ajudst[sh->qp_v] + 6 * (BIT_DEPTH - 8);
 
-    ctx->dtr_prev_low = sh->dtr;
-    ctx->dtr = sh->dtr;
-    ctx->ptr = sh->dptr + sh->dtr; /* PTR */
-
     /* clear maps */
     evc_mset_x64a(ctx->map_scu, 0, sizeof(u32) * ctx->f_scu);
 #if AFFINE
@@ -286,7 +281,7 @@ static int slice_init(EVCD_CTX * ctx, EVCD_CORE * core, EVC_SH * sh)
     evc_mset_x64a(ctx->map_cu_mode, 0, sizeof(u32) * ctx->f_scu);
     if(ctx->sh.slice_type == SLICE_I)
     {
-        ctx->last_intra_ptr = ctx->ptr;
+        ctx->last_intra_poc = ctx->poc.poc_val;
     }
 #if M50662_HISTORY_CTU_ROW_RESET
     evcd_hmvp_init(core);
@@ -327,61 +322,6 @@ static int evcd_hmvp_init(EVCD_CORE * core)
 }
 #endif
 
-int is_ref_pic(EVCD_CTX * ctx, EVC_SH * sh)
-{
-    return (sh->layer_id == 0 || sh->layer_id < ctx->sps.log2_sub_gop_length);
-}
-
-static const s8 poc_offset_from_doc_offset[5][16] =
-{
-    { 0,  -1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},  /* gop_size = 2 */
-    { 0,  -2,   -3,   -1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},  /* gop_size = 4 */
-    { 0,  -4,   -6,   -2,   -7,   -5,   -3,   -1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},  /* gop_size = 8 */
-    { 0,0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},  /* gop_size = 12 */
-    { 0,  -8,   -12,   -4,  -14,  -10,  -6,   -2,  -15,  -13,  -11,   -9,   -7,   -5,   -3,   -1}   /* gop_size = 16 */
-};
-
-int poc_derivation(EVCD_CTX * ctx, EVC_SH * sh)
-{
-    int sub_gop_length = (int)pow(2.0, ctx->sps.log2_sub_gop_length);
-    int expected_temporal_id = 0;
-    int doc_offset, poc_offset;
-    if (sh->layer_id == 0)
-    {
-        sh->poc = ctx->prev_pic_order_cnt_val + sub_gop_length;
-        ctx->prev_doc_offset = 0;
-        ctx->prev_pic_order_cnt_val = sh->poc;
-        return EVC_OK;
-    }
-    doc_offset = (ctx->prev_doc_offset + 1) % sub_gop_length;
-    if (doc_offset == 0)
-    {
-        ctx->prev_pic_order_cnt_val += sub_gop_length;
-    }
-    else
-    {
-        expected_temporal_id = 1 + (int)log2(doc_offset);
-    }
-    while (sh->layer_id != expected_temporal_id)
-    {
-        doc_offset = (doc_offset + 1) % sub_gop_length;
-        if (doc_offset == 0)
-        {
-            expected_temporal_id = 0;
-        }
-        else
-        {
-            expected_temporal_id = 1 + (int)log2(doc_offset);
-        }
-    }
-    //poc_offset = (int)(sub_gop_length * ((2.0 * doc_offset + 1) / (int)pow(2.0, sh->layer_id) - 2));
-    poc_offset = poc_offset_from_doc_offset[sub_gop_length >> 2][doc_offset];
-    sh->poc = ctx->prev_pic_order_cnt_val + poc_offset;
-    ctx->prev_doc_offset = doc_offset;
-
-    return EVC_OK;
-}
-
 static void make_stat(EVCD_CTX * ctx, int btype, EVCD_STAT * stat)
 {
     int i, j;
@@ -398,17 +338,15 @@ static void make_stat(EVCD_CTX * ctx, int btype, EVCD_STAT * stat)
 
             /* increase decoded picture count */
             ctx->pic_cnt++;
-
-            stat->poc = ctx->ptr;
-
-            stat->tid = ctx->sh.layer_id;
+            stat->poc = ctx->poc.poc_val;
+            stat->tid = ctx->nalu.nuh_temporal_id;
 
             for(i = 0; i < 2; i++)
             {
                 stat->refpic_num[i] = ctx->dpm.num_refp[i];
                 for(j = 0; j < stat->refpic_num[i]; j++)
                 {
-                    stat->refpic[i][j] = ctx->refp[j][i].ptr;
+                    stat->refpic[i][j] = ctx->refp[j][i].poc;
                 }
             }
         }
@@ -714,7 +652,7 @@ void evcd_get_direct_motion(EVCD_CTX * ctx, EVCD_CORE * core)
     else
     {
 #endif
-        evc_get_motion_merge_main(ctx->ptr, ctx->sh.slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, srefi, smvp, ctx->map_scu, core->avail_lr
+        evc_get_motion_merge_main(ctx->poc.poc_val, ctx->sh.slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, srefi, smvp, ctx->map_scu, core->avail_lr
 #if DMVR_LAG
             , ctx->map_unrefined_mv
 #endif
@@ -834,7 +772,7 @@ void evcd_get_inter_motion(EVCD_CTX * ctx, EVCD_CORE * core)
                     );
                 }   
 
-                evc_get_motion_from_mvr(core->mvr_idx, ctx->ptr, core->scup, inter_dir_idx, core->refi[inter_dir_idx], ctx->dpm.num_refp[inter_dir_idx], ctx->map_mv, ctx->map_refi, ctx->refp, \
+                evc_get_motion_from_mvr(core->mvr_idx, ctx->poc.poc_val, core->scup, inter_dir_idx, core->refi[inter_dir_idx], ctx->dpm.num_refp[inter_dir_idx], ctx->map_mv, ctx->map_refi, ctx->refp, \
                     cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, mvp, refi, ctx->map_scu, core->avail_lr
 #if DMVR_LAG
                     , ctx->map_unrefined_mv
@@ -883,7 +821,7 @@ void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
         int vertex, lidx;
         int mrg_idx = core->mvp_idx[0];
 
-        evc_get_affine_merge_candidate(ctx->ptr, ctx->sh.slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp, cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, aff_refi, aff_mrg_mvp, vertex_num, ctx->map_scu, ctx->map_affine
+        evc_get_affine_merge_candidate(ctx->poc.poc_val, ctx->sh.slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp, cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, aff_refi, aff_mrg_mvp, vertex_num, ctx->map_scu, ctx->map_affine
             , ctx->log2_max_cuwh
 #if DMVR_LAG
             , ctx->map_unrefined_mv
@@ -925,7 +863,7 @@ void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
             /* 0: forward, 1: backward */
             if (((core->inter_dir + 1) >> inter_dir_idx) & 1)
             {
-                evc_get_affine_motion_scaling(ctx->ptr, core->scup, inter_dir_idx, core->refi[inter_dir_idx],
+                evc_get_affine_motion_scaling(ctx->poc.poc_val, core->scup, inter_dir_idx, core->refi[inter_dir_idx],
                     ctx->dpm.num_refp[inter_dir_idx], ctx->map_mv, ctx->map_refi, ctx->refp, \
                     cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, affine_mvp, refi
                     , ctx->map_scu, ctx->map_affine, vertex_num, core->avail_lr
@@ -986,8 +924,8 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
     cuh = 1 << log2_cuh;
 
     EVC_TRACE_COUNTER;
-    EVC_TRACE_STR("ptr: ");
-    EVC_TRACE_INT(ctx->ptr);
+    EVC_TRACE_STR("poc: ");
+    EVC_TRACE_INT(ctx->poc.poc_val);
     EVC_TRACE_STR("x pos ");
     EVC_TRACE_INT(x);
     EVC_TRACE_STR("y pos ");
@@ -1137,7 +1075,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
                     {
                         if (ctx->sps.tool_amis == 0)
                         {
-                            evc_get_mv_dir(ctx->refp[0], ctx->ptr, core->scup + ((1 << (core->log2_cuw - MIN_CU_LOG2)) - 1) + ((1 << (core->log2_cuh - MIN_CU_LOG2)) - 1) * ctx->w_scu, core->scup, ctx->w_scu, ctx->h_scu, core->mv
+                            evc_get_mv_dir(ctx->refp[0], ctx->poc.poc_val, core->scup + ((1 << (core->log2_cuw - MIN_CU_LOG2)) - 1) + ((1 << (core->log2_cuh - MIN_CU_LOG2)) - 1) * ctx->w_scu, core->scup, ctx->w_scu, ctx->h_scu, core->mv
                                 , ctx->sps.tool_admvp
                             );
                             core->refi[REFP_0] = 0;
@@ -1165,7 +1103,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
             }
 #endif
 #if DMVR
-            evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, core->refi, core->mv, ctx->refp, core->pred, ctx->ptr, core->dmvr_template, core->dmvr_ref_pred_interpolated
+            evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, core->refi, core->mv, ctx->refp, core->pred, ctx->poc.poc_val, core->dmvr_template, core->dmvr_ref_pred_interpolated
                    , core->dmvr_half_pred_interpolated
                    , (core->DMVRenable == 1)
 #if DMVR
@@ -1560,6 +1498,9 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
                 MODE_CONS mode = eOnlyIntra;
                 if (ctx->sh.slice_type != SLICE_I && (evc_get_mode_cons_by_split(split_mode, cuw, cuh) == eAll))
                 {
+                    core->x_scu = PEL2SCU(x0);
+                    core->y_scu = PEL2SCU(y0);
+
                     evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
 #if IBC
                         , ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size
@@ -1979,13 +1920,7 @@ int evcd_deblock_h263(EVCD_CTX * ctx
 int evcd_alf(EVCD_CTX * ctx, EVC_PIC * pic)
 {
     AdaptiveLoopFilter* p = (AdaptiveLoopFilter*)(ctx->alf);
-
-#if ALF_PARAMETER_APS
     call_dec_alf_process_aps(p, ctx, pic);
-#else
-    call_ALFProcess(p, ctx, pic);
-#endif
-
     return EVC_OK;
 }
 #endif
@@ -2187,19 +2122,14 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
 #endif
             /* invoke coding_tree() recursion */
             evc_mset(core->split_mode, 0, sizeof(s8) * MAX_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
-#if APS_ALF_CTU_FLAG
+#if ALF
             evc_AlfSliceParam* alfSliceParam = &(ctx->sh.alf_sh_param);
             if ((alfSliceParam->isCtbAlfOn) && (ctx->sh.alf_on))
             {
                 EVC_TRACE_COUNTER;
                 EVC_TRACE_STR("Usage of ALF: ");
-#if ALF_CTU_MAP_DYNAMIC
                 *(alfSliceParam->alfCtuEnableFlag + core->lcu_num) = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ctb_alf_flag);
                 EVC_TRACE_INT((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)));
-#else
-                alfSliceParam->alfCtuEnableFlag[0][core->lcu_num] = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ctb_alf_flag);
-                EVC_TRACE_INT((int)(alfTileGroupParam->alfCtuEnableFlag[0][core->lcu_num]));
-#endif
                 EVC_TRACE_STR("\n");
             }
 #endif
@@ -2221,10 +2151,18 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
             lcu_cnt_in_tile--;
 
             /* read end_of_picture_flag */
+#if FIX_END_OF_TILE_ONE_BIT_CODING
+            if(lcu_cnt_in_tile == 0)
+            {
+                assert(evcd_eco_tile_end_flag(bs, sbac) == 1);
+                break;
+            }
+#else
             if (evcd_eco_tile_end_flag(bs, sbac))
             {
                 break;
             }
+#endif
             core->x_lcu++;
             if (core->x_lcu >= ctx->tile[i].w_ctb + col_bd)
             {
@@ -2249,19 +2187,14 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
 #endif
         /* invoke coding_tree() recursion */
         evc_mset(core->split_mode, 0, sizeof(s8) * MAX_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
-#if APS_ALF_CTU_FLAG
+#if ALF
         evc_AlfSliceParam* alfSliceParam = &(ctx->sh.alf_sh_param);
         if ((alfSliceParam->isCtbAlfOn) && (ctx->sh.alf_on))
         {
             EVC_TRACE_COUNTER;
             EVC_TRACE_STR("Usage of ALF: ");
-#if ALF_CTU_MAP_DYNAMIC
             *(alfSliceParam->alfCtuEnableFlag + core->lcu_num) = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ctb_alf_flag);
             EVC_TRACE_INT((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)));
-#else
-            alfSliceParam->alfCtuEnableFlag[0][core->lcu_num] = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ctb_alf_flag);
-            EVC_TRACE_INT((int)(alfTileGroupParam->alfCtuEnableFlag[0][core->lcu_num]));
-#endif
             EVC_TRACE_STR("\n");
         }
 #endif
@@ -2342,7 +2275,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     EVC_BSR  *bs = &ctx->bs;
     EVC_SPS  *sps = &ctx->sps;
     EVC_PPS  *pps = &ctx->pps;
-#if ALF_PARAMETER_APS
+#if ALF
     EVC_APS  *aps = &ctx->aps;
 #endif
     EVC_SH   *sh = &ctx->sh;
@@ -2386,7 +2319,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     /* parse nalu header */
     ret = evcd_eco_nalu(bs, nalu);
     evc_assert_rv(EVC_SUCCEEDED(ret), ret);
-#if ALF_PARAMETER_APS
+#if ALF
     ctx->aps_temp = -1;
 #endif
     if(nalu->nal_unit_type_plus1 - 1 == EVC_SPS_NUT)
@@ -2411,13 +2344,11 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         ret = evcd_eco_pps(bs, sps, pps);
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
     }
-#if ALF_PARAMETER_APS
+#if ALF
     else if (nalu->nal_unit_type_plus1 - 1 == EVC_APS_NUT)
     {
-#if ALF_CTU_MAP_DYNAMIC
         aps->alf_aps_param.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
         memset(aps->alf_aps_param.alfCtuEnableFlag, 0, N_C * ctx->f_lcu * sizeof(u8));
-#endif
         ret = evcd_eco_aps(bs, aps);
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
         aps->alf_aps_param.prevIdx = aps->aps_id;
@@ -2429,16 +2360,12 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         ctx->aps_temp = 0;
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
     }
-    else if (nalu->nal_unit_type_plus1 - 1 < EVC_SPS_NUT)
-#else
-    else if (nalu->nalu_type == EVC_CT_SLICE)
 #endif
+    else if (nalu->nal_unit_type_plus1 - 1 < EVC_SPS_NUT)
     {
         /* decode slice header */
 #if ALF
         sh->num_ctb = ctx->f_lcu;
-#endif
-#if ALF_CTU_MAP_DYNAMIC
         sh->alf_sh_param.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
         memset(sh->alf_sh_param.alfCtuEnableFlag, 1, N_C * ctx->f_lcu * sizeof(u8));
 #endif
@@ -2463,54 +2390,84 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
             printf("%d ", sh->rpl_l1.ref_pics[ii]);
         }
         printf("]\n");
+        evc_assert_rv(EVC_SUCCEEDED(ret), ret);
 */
-
-        evc_assert_rv(EVC_SUCCEEDED(ret), ret);
-        ret = slice_init(ctx, ctx->core, sh);
-        evc_assert_rv(EVC_SUCCEEDED(ret), ret);
-        if(!sps->tool_pocs)
+        /* POC derivation process */
+        if(!sps->tool_pocs) //sps_pocs_flag == 0
         {
-            if (ctx->dtr == 0) // TBD: Check instead if picture is IDR
+            if (ctx->nalu.nal_unit_type_plus1 - 1 == EVC_IDR_NUT)
             {
-                sh->poc = 0;
-                ctx->prev_doc_offset = 0;
-                ctx->prev_pic_order_cnt_val = sh->poc;
-                ctx->slice_ref_flag = is_ref_pic(ctx, sh);
+                sh->poc_lsb = 0;
+                ctx->poc.prev_doc_offset = 0;
+                ctx->poc.prev_poc_val = 0;
+                ctx->slice_ref_flag = (ctx->nalu.nuh_temporal_id == 0 || ctx->nalu.nuh_temporal_id < ctx->sps.log2_sub_gop_length);
+                ctx->poc.poc_val = 0;
             }
             else
             {
-                ctx->slice_ref_flag = is_ref_pic(ctx, sh);
-                poc_derivation(ctx, sh);
+                ctx->slice_ref_flag = (ctx->nalu.nuh_temporal_id == 0 || ctx->nalu.nuh_temporal_id < ctx->sps.log2_sub_gop_length);
+                evc_poc_derivation(ctx->sps, ctx->nalu.nuh_temporal_id, &ctx->poc);
+                sh->poc_lsb = ctx->poc.poc_val;
             }
         }
-        else
+        else //sps_pocs_flag == 1
         {
+            if (ctx->nalu.nal_unit_type_plus1 - 1 == EVC_IDR_NUT)
+            {
+                sh->poc_lsb = 0;
+                ctx->poc.poc_val = 0;
+            }
+            else
+            {
+                EVC_POC * poc = &ctx->poc;
+                int poc_msb, poc_lsb, max_poc_lsb, prev_poc_lsb, prev_poc_msb;
+                
+                poc_lsb = sh->poc_lsb;
+                max_poc_lsb = 1<<(sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
+                prev_poc_lsb = poc->prev_poc_val & (max_poc_lsb - 1);
+                prev_poc_msb = poc->prev_poc_val- prev_poc_lsb;
+                if ((poc_lsb < prev_poc_lsb) && ((prev_poc_lsb - poc_lsb) >= (max_poc_lsb / 2)))
+                    poc_msb = prev_poc_msb + max_poc_lsb;
+                else if ((poc_lsb > prev_poc_lsb) && ((poc_lsb - prev_poc_lsb) > (max_poc_lsb / 2)))
+                    poc_msb = prev_poc_msb - max_poc_lsb;
+                else
+                    poc_msb = prev_poc_msb;
+                
+                poc->poc_val = poc_msb + poc_lsb;
+                
+                if(ctx->nalu.nuh_temporal_id == 0)
+                {
+                    poc->prev_poc_val = poc->poc_val;
+                }
+            }
+
             ctx->slice_ref_flag = 1;
         }
+        ret = slice_init(ctx, ctx->core, sh);
+        evc_assert_rv(EVC_SUCCEEDED(ret), ret);
 #if TRACE_START_POC
-        if (ctx->ptr == TRACE_START_POC)
+        if (ctx->poc.poc_val == TRACE_START_POC)
         {
             fp_trace_started = 1;
             EVC_TRACE_SET(1);
         }
 #endif
 #if GRAB_STAT
-        evc_stat_set_poc(ctx->sh.poc);
+        evc_stat_set_poc(ctx->poc.poc_val);
 #endif
-
         if (!sps->tool_rpl)
         {
             /* initialize reference pictures */
-            ret = evc_picman_refp_init(&ctx->dpm, ctx->sps.max_num_ref_pics, sh->slice_type, ctx->ptr, ctx->sh.layer_id, ctx->last_intra_ptr, ctx->refp);
+            ret = evc_picman_refp_init(&ctx->dpm, ctx->sps.max_num_ref_pics, sh->slice_type, ctx->poc.poc_val, ctx->nalu.nuh_temporal_id, ctx->last_intra_poc, ctx->refp);
         }
         else
         {
             /* reference picture marking */
-            ret = evc_picman_refpic_marking(&ctx->dpm, sh);
+            ret = evc_picman_refpic_marking(&ctx->dpm, sh, ctx->poc.poc_val);
             evc_assert_rv(ret == EVC_OK, ret);
 
             /* reference picture lists construction */
-            ret = evc_picman_refp_rpl_based_init(&ctx->dpm, sh, ctx->refp);
+            ret = evc_picman_refp_rpl_based_init(&ctx->dpm, sh, ctx->poc.poc_val, ctx->refp);
         }
         evc_assert_rv(ret == EVC_OK, ret);
 
@@ -2562,7 +2519,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 #endif
 
         /* put decoded picture to DPB */
-        ret = evc_picman_put_pic(&ctx->dpm, ctx->pic, ctx->nalu.nal_unit_type_plus1 - 1 == EVC_IDR_NUT, ctx->ptr, ctx->dtr, ctx->sh.layer_id, 1, ctx->refp, ctx->slice_ref_flag, sps->tool_rpl, ctx->ref_pic_gap_length);
+        ret = evc_picman_put_pic(&ctx->dpm, ctx->pic, ctx->nalu.nal_unit_type_plus1 - 1 == EVC_IDR_NUT, ctx->poc.poc_val, ctx->nalu.nuh_temporal_id, 1, ctx->refp, ctx->slice_ref_flag, sps->tool_rpl, ctx->ref_pic_gap_length);
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
 
         slice_deinit(ctx);

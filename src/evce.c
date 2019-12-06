@@ -40,7 +40,7 @@
 #if ALF
 #include "enc_alf_wrapper.h"
 #endif
-#if APS_ALF_SEQ_FIX
+#if ALF
 int last_intra_poc = INT_MAX;
 BOOL aps_counter_reset = FALSE;
 #endif
@@ -281,13 +281,11 @@ static int set_enc_param(EVCE_CTX * ctx, EVCE_PARAM * param)
     return ret;
 }
 
-static void set_nalu(EVCE_CTX * ctx, EVC_NALU * nalu, int nalu_type)
+static void set_nalu(EVC_NALU * nalu, int nalu_type)
 {
     nalu->nal_unit_size = 0;
     nalu->forbidden_zero_bit = 0;
     nalu->nal_unit_type_plus1 = nalu_type + 1;
-    nalu->nuh_temporal_id = 0;
-    nalu->nuh_temporal_id = 0;
     nalu->nuh_reserved_zero_5bits = 0;
     nalu->nuh_extension_flag = 0;
 }
@@ -302,6 +300,9 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->ibc_flag = (ctx->param.use_ibc_flag) ? 1 : 0;
     sps->ibc_log_max_size = IBC_MAX_CU_LOG2;
 #endif
+    sps->log2_max_pic_order_cnt_lsb_minus4 = POC_LSB_BIT - 4;
+    sps->max_dec_pic_buffering_minus1 = 0; //[TBF]
+
     if(ctx->param.max_b_frames > 0)
     {
         sps->max_num_ref_pics = MAX_NUM_ACTIVE_REF_FRAME_B;
@@ -454,13 +455,13 @@ static void set_pps(EVCE_CTX * ctx, EVC_PPS * pps)
             pps->tile_row_height_minus1[pps->num_tile_rows_minus1] -= (pps->tile_row_height_minus1[i] + 1);
         }
     }
-#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+#if ALF_TILES_SUPPORT_M50663
     pps->loop_filter_across_tiles_enabled_flag = 0;
 #endif
 #endif
 }
 
-#if ALF_PARAMETER_APS
+#if ALF
 static void set_aps(EVCE_CTX * ctx, EVC_APS * aps)
 {
 }
@@ -497,6 +498,18 @@ QP_ADAPT_PARAM qp_adapt_param_ld[8] =
     { 9, -6.5000, 0.2590},
 };
 
+QP_ADAPT_PARAM qp_adapt_param_ai[8] =
+{
+    { 0,  0.0000, 0.0000},
+    { 0,  0.0000, 0.0000},
+    { 0,  0.0000, 0.0000},
+    { 0,  0.0000, 0.0000},
+    { 0,  0.0000, 0.0000},
+    { 0,  0.0000, 0.0000},
+    { 0,  0.0000, 0.0000},
+    { 0,  0.0000, 0.0000},
+};
+
   //Implementation for selecting and assigning RPL0 & RPL1 candidates in the SPS to SH
 static void select_assign_rpl_for_sh(EVCE_CTX *ctx, EVC_SH *sh)
 {
@@ -512,7 +525,7 @@ static void select_assign_rpl_for_sh(EVCE_CTX *ctx, EVC_SH *sh)
     int availableRPLs = (ctx->cdsc.rpls_l0_cfg_num < gopSize) ? ctx->cdsc.rpls_l0_cfg_num : gopSize;
     for (int i = 0; i < availableRPLs; i++)
     {
-        int pocIdx = (sh->poc % gopSize == 0) ? gopSize : sh->poc % gopSize;
+        int pocIdx = (ctx->poc.poc_val % gopSize == 0) ? gopSize : ctx->poc.poc_val % gopSize;
         if (pocIdx == ctx->cdsc.rpls_l0[i].poc)
         {
             sh->rpl_l0_idx = i;
@@ -524,9 +537,9 @@ static void select_assign_rpl_for_sh(EVCE_CTX *ctx, EVC_SH *sh)
     //For special case when the pic is in the first (few) GOP in the beginning of the bitstream.
     if(ctx->param.gop_size == 1)                          //For low delay configuration
     {
-        if (sh->poc <= (ctx->cdsc.rpls_l0_cfg_num - gopSize))
+        if (ctx->poc.poc_val <= (ctx->cdsc.rpls_l0_cfg_num - gopSize))
         {
-            sh->rpl_l0_idx = sh->poc + gopSize - 1;
+            sh->rpl_l0_idx = ctx->poc.poc_val + gopSize - 1;
             sh->rpl_l1_idx = sh->rpl_l0_idx;
         }
     }
@@ -535,7 +548,7 @@ static void select_assign_rpl_for_sh(EVCE_CTX *ctx, EVC_SH *sh)
         //for (int i = ctx->param.gop_size; i < ctx->cdsc.rpls_l0_cfg_num; i++)
         for (int i = gopSize; i < ctx->cdsc.rpls_l0_cfg_num; i++)
         {
-            int pocIdx = ctx->param.i_period == 0 ? sh->poc : (sh->poc % ctx->param.i_period == 0) ? ctx->param.i_period : sh->poc % ctx->param.i_period;
+            int pocIdx = ctx->param.i_period == 0 ? ctx->poc.poc_val : (ctx->poc.poc_val % ctx->param.i_period == 0) ? ctx->param.i_period : ctx->poc.poc_val % ctx->param.i_period;
             if (pocIdx == ctx->cdsc.rpls_l0[i].poc)
             {
                 sh->rpl_l0_idx = i;
@@ -549,7 +562,7 @@ static void select_assign_rpl_for_sh(EVCE_CTX *ctx, EVC_SH *sh)
         ctx->slice_type = ctx->cdsc.rpls_l0[sh->rpl_l0_idx].pic_type == 'P' ? SLICE_P : SLICE_B;
     }
     //Copy RPL0 from the candidate in SPS to this SH
-    sh->rpl_l0.poc = sh->poc;
+    sh->rpl_l0.poc = ctx->poc.poc_val;
     sh->rpl_l0.tid = ctx->cdsc.rpls_l0[sh->rpl_l0_idx].tid;
     sh->rpl_l0.ref_pic_num = ctx->cdsc.rpls_l0[sh->rpl_l0_idx].ref_pic_num;
     sh->rpl_l0.ref_pic_active_num = ctx->cdsc.rpls_l0[sh->rpl_l0_idx].ref_pic_active_num;
@@ -557,7 +570,7 @@ static void select_assign_rpl_for_sh(EVCE_CTX *ctx, EVC_SH *sh)
         sh->rpl_l0.ref_pics[i] = ctx->cdsc.rpls_l0[sh->rpl_l0_idx].ref_pics[i];
 
     //Copy RPL0 from the candidate in SPS to this SH
-    sh->rpl_l1.poc = sh->poc;
+    sh->rpl_l1.poc = ctx->poc.poc_val;
     sh->rpl_l1.tid = ctx->cdsc.rpls_l1[sh->rpl_l1_idx].tid;
     sh->rpl_l1.ref_pic_num = ctx->cdsc.rpls_l1[sh->rpl_l1_idx].ref_pic_num;
     sh->rpl_l1.ref_pic_active_num = ctx->cdsc.rpls_l1[sh->rpl_l1_idx].ref_pic_active_num;
@@ -584,7 +597,7 @@ static int check_refpic_available(int currentPOC, EVC_PM *pm, EVC_RPL *rpl)
         int isExistInDPB = 0;
         for (int j = 0; !isExistInDPB && j < MAX_PB_SIZE; j++)
         {
-            if (pm->pic[j] && pm->pic[j]->is_ref && pm->pic[j]->ptr == (currentPOC - rpl->ref_pics[i]))
+            if (pm->pic[j] && pm->pic[j]->is_ref && pm->pic[j]->poc == (currentPOC - rpl->ref_pics[i]))
                 isExistInDPB = 1;
         }
         if (!isExistInDPB) //Found one ref pic missing return 1
@@ -595,13 +608,11 @@ static int check_refpic_available(int currentPOC, EVC_PM *pm, EVC_RPL *rpl)
 
 //Return value 0 means no explicit RPL is created. The given input parameters rpl0 and rpl1 are not modified
 //Return value 1 means the given input parameters rpl0 and rpl1 are modified
-static int create_explicit_rpl(EVC_PM *pm, EVC_SH *sh)
-
+static int create_explicit_rpl(EVC_PM *pm, EVC_SH *sh, int poc_val)
 {
-    int currentPOC = sh->poc;
     EVC_RPL *rpl0 = &sh->rpl_l0;
     EVC_RPL *rpl1 = &sh->rpl_l1;
-    if (!check_refpic_available(currentPOC, pm, rpl0) && !check_refpic_available(currentPOC, pm, rpl1))
+    if (!check_refpic_available(poc_val, pm, rpl0) && !check_refpic_available(poc_val, pm, rpl1))
     {
         return 0;
     }
@@ -616,7 +627,7 @@ static int create_explicit_rpl(EVC_PM *pm, EVC_SH *sh)
         for (int jj = 0; !isAvailable && jj < pm->cur_num_ref_pics; jj++)
         {
             pic = pm->pic[jj];
-            if (pic && pic->is_ref && pic->ptr == (currentPOC - rpl0->ref_pics[ii]))
+            if (pic && pic->is_ref && pic->poc == (poc_val - rpl0->ref_pics[ii]))
                 isAvailable = 1;
             pic = NULL;
         }
@@ -640,7 +651,7 @@ static int create_explicit_rpl(EVC_PM *pm, EVC_SH *sh)
         for (int jj = 0; !isAvailable && jj < pm->cur_num_ref_pics; jj++)
         {
             pic = pm->pic[jj];
-            if (pic && pic->is_ref && pic->ptr == (currentPOC - rpl1->ref_pics[ii]))
+            if (pic && pic->is_ref && pic->poc == (poc_val - rpl1->ref_pics[ii]))
                 isAvailable = 1;
             pic = NULL;
         }
@@ -720,23 +731,21 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
     double qp;
     int qp_l_i;
     int qp_c_i;
-    QP_ADAPT_PARAM *qp_adapt_param = ctx->param.max_b_frames == 0 ? qp_adapt_param_ld : qp_adapt_param_ra;
+    QP_ADAPT_PARAM *qp_adapt_param = ctx->param.max_b_frames == 0 ?
+        (ctx->param.i_period == 1 ? qp_adapt_param_ai : qp_adapt_param_ld) : qp_adapt_param_ra;
 
     if (ctx->sps.tool_rpl)
     {
-        sh->poc = ctx->ptr;
+        sh->poc_lsb = ctx->poc.poc_val & ((1 << (ctx->sps.log2_max_pic_order_cnt_lsb_minus4 + 4))-1);
         select_assign_rpl_for_sh(ctx, sh);
         sh->num_ref_idx_active_override_flag = 1;
     }
 
-    sh->dtr = ctx->dtr & DTR_BIT_MSK;
     sh->slice_type = ctx->slice_type;
     sh->no_output_of_prior_pics_flag = 0;
     sh->deblocking_filter_on = (ctx->param.use_deblock) ? 1 : 0;
     sh->sh_deblock_alpha_offset = ctx->param.deblock_alpha_offset;
     sh->sh_deblock_beta_offset = ctx->param.deblock_beta_offset;
-    sh->dptr = ctx->ptr - ctx->dtr;
-    sh->layer_id = ctx->layer_id;
     sh->single_tile_in_slice_flag = 1;
     sh->collocated_from_list_idx = (sh->slice_type == SLICE_P) ? REFP_0 : REFP_1;  // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
     sh->collocated_from_ref_idx = 0;        // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
@@ -744,7 +753,7 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
 
     /* set lambda */
 #if USE_SLICE_DQP
-    qp = EVC_CLIP3(0, MAX_QUANT, (ctx->param.qp_incread_frame != 0 && (int)(ctx->ptr) >= ctx->param.qp_incread_frame) ? ctx->qp + 1.0 : ctx->qp);
+    qp = EVC_CLIP3(0, MAX_QUANT, (ctx->param.qp_incread_frame != 0 && (int)(ctx->poc.poc_val) >= ctx->param.qp_incread_frame) ? ctx->qp + 1.0 : ctx->qp);
 #else
     qp = ctx->qp;
 #endif
@@ -768,8 +777,8 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
 
         if (ctx->sps.tool_rpl)
         {
-            qp += qp_adapt_param[ctx->layer_id].qp_offset_layer;
-            dqp_offset = qp * qp_adapt_param[ctx->layer_id].qp_offset_model_scale + qp_adapt_param[ctx->layer_id].qp_offset_model_offset + 0.5;
+            qp += qp_adapt_param[ctx->nalu.nuh_temporal_id].qp_offset_layer;
+            dqp_offset = qp * qp_adapt_param[ctx->nalu.nuh_temporal_id].qp_offset_model_scale + qp_adapt_param[ctx->nalu.nuh_temporal_id].qp_offset_model_offset + 0.5;
         }
         else
         {
@@ -1284,8 +1293,7 @@ int evce_ready(EVCE_CTX * ctx)
     ctx->pa.pad_c    = PIC_PAD_SIZE_C;
     ctx->pic_cnt     = 0;
     ctx->pic_icnt    = -1;
-    ctx->dtr         = 0;
-    ctx->ptr         = 0;
+    ctx->poc.poc_val         = 0;
 
     ret = evc_picman_init(&ctx->rpm, MAX_PB_SIZE, MAX_NUM_REF_PICS, &ctx->pa);
     evc_assert_g(EVC_SUCCEEDED(ret), ERR);
@@ -1744,7 +1752,6 @@ int evce_deblock_h263(EVCE_CTX * ctx, EVC_PIC * pic
     return EVC_OK;
 }
 #if ALF
-#if ALF_PARAMETER_APS
 int evce_alf_aps(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh, EVC_APS* aps)
 {
     EncAdaptiveLoopFilter* p = (EncAdaptiveLoopFilter*)(ctx->enc_alf);
@@ -1763,12 +1770,10 @@ int evce_alf_aps(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh, EVC_APS* aps)
         ctx->aps_counter = -1;
     }
     sh->alf_on = sh->alf_sh_param.enabledFlag[0];
-#if APS_ALF_CTU_FLAG
     if (sh->alf_on == 0)
     {
         sh->alf_sh_param.isCtbAlfOn = 0;
     }
-#endif
     if (sh->alf_on)
     {
         if (aps->alf_aps_param.temporalAlfFlag)
@@ -1792,20 +1797,6 @@ int evce_alf_aps(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh, EVC_APS* aps)
     }
     return EVC_OK;
 }
-#else
-int evce_alf(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh)
-{
-    EncAdaptiveLoopFilter* p = (EncAdaptiveLoopFilter*)(ctx->enc_alf);
-
-    double lambdas[3];
-    for(int i = 0; i < 3; i++)
-        lambdas[i] = (ctx->lambda[i]) * ALF_LAMBDA_SCALE; //this is for appr match of different lambda sets
-
-    set_resetALFBufferFlag(p, sh->slice_type == SLICE_I ? 1 : 0);
-    call_enc_ALFProcess(p, lambdas, ctx, pic, &(sh->alf_sh_param) );
-    return EVC_OK;
-}
-#endif
 #endif
 
 int evce_picbuf_get_inbuf(EVCE_CTX * ctx, EVC_IMGB ** imgb)
@@ -1849,7 +1840,7 @@ int evce_picbuf_get_inbuf(EVCE_CTX * ctx, EVC_IMGB ** imgb)
 }
 
 
-#if ALF_PARAMETER_APS
+#if ALF
 int evce_aps_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, EVC_APS * aps)
 {
     EVC_BSW * bs = &ctx->bs;
@@ -1868,7 +1859,7 @@ int evce_aps_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, EVC_APS *
 
     /* Encode APS nalu header */
     EVC_NALU aps_nalu;
-    set_nalu(ctx, &aps_nalu, EVC_APS_NUT);
+    set_nalu(&aps_nalu, EVC_APS_NUT);
 
     /* Write ALF-APS */
     set_aps(ctx, aps); // TBD: empty function call
@@ -1906,7 +1897,7 @@ int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     evce_bsw_skip_slice_size(bs);
 
     /* nalu header */
-    set_nalu(ctx, &nalu, EVC_SPS_NUT);
+    set_nalu(&nalu, EVC_SPS_NUT);
     evce_eco_nalu(bs, nalu);
 
     /* sequence parameter set*/
@@ -1931,54 +1922,6 @@ int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     return EVC_OK;
 }
 
-static const s8 poc_offset_from_doc_offset[5][16] =
-{
-    { 0,  -1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},  /* gop_size = 2 */
-    { 0,  -2,   -3,   -1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},  /* gop_size = 4 */
-    { 0,  -4,   -6,   -2,   -7,   -5,   -3,   -1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},  /* gop_size = 8 */
-    { 0,0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},  /* gop_size = 12 */
-    { 0,  -8,   -12,   -4,  -14,  -10,  -6,   -2,  -15,  -13,  -11,   -9,   -7,   -5,   -3,   -1}   /* gop_size = 16 */
-};
-
-int poc_derivation(EVCE_CTX * ctx, int layer_id)
-{
-    int sub_gop_length = (int)pow(2.0, ctx->sps.log2_sub_gop_length);
-    int expected_temporal_id = 0;
-    int doc_offset, poc_offset;
-    if (layer_id == 0)
-    {
-        ctx->poc = ctx->prev_pic_order_cnt_val + sub_gop_length;
-        ctx->prev_doc_offset = 0;
-        ctx->prev_pic_order_cnt_val = ctx->poc;
-        return EVC_OK;
-    }
-    doc_offset = (ctx->prev_doc_offset + 1) % sub_gop_length;
-    if (doc_offset == 0)
-    {
-        ctx->prev_pic_order_cnt_val += sub_gop_length;
-    } else
-    {
-        expected_temporal_id = 1 + (int)log2(doc_offset);
-    }
-    while (layer_id != expected_temporal_id)
-    {
-        doc_offset = (doc_offset + 1) % sub_gop_length;
-        if (doc_offset == 0)
-        {
-            expected_temporal_id = 0;
-        } else
-        {
-            expected_temporal_id = 1 + (int)log2(doc_offset);
-        }
-    }
-    //poc_offset = (int)(sub_gop_length * ((2.0 * doc_offset + 1) / (int)pow(2.0, layer_id) - 2));
-    poc_offset = poc_offset_from_doc_offset[sub_gop_length >> 2][doc_offset];
-    ctx->poc = ctx->prev_pic_order_cnt_val + poc_offset;
-    ctx->prev_doc_offset = doc_offset;
-
-    return EVC_OK;
-}
-
 static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
 {
     int i_period, gop_size, pos;
@@ -1991,18 +1934,18 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
     {
         ctx->slice_type = SLICE_I;
         ctx->slice_depth = FRM_DEPTH_0;
-        ctx->poc = pic_imcnt;
-        ctx->prev_doc_offset = 0;
-        ctx->prev_pic_order_cnt_val = ctx->poc;
+        ctx->poc.poc_val = pic_imcnt;
+        ctx->poc.prev_doc_offset = 0;
+        ctx->poc.prev_poc_val = ctx->poc.poc_val;
         ctx->slice_ref_flag = 1;
     }
     else if((i_period != 0) && pic_imcnt % i_period == 0)
     {
         ctx->slice_type = SLICE_I;
         ctx->slice_depth = FRM_DEPTH_0;
-        ctx->poc = pic_imcnt;
-        ctx->prev_doc_offset = 0;
-        ctx->prev_pic_order_cnt_val = ctx->poc;
+        ctx->poc.poc_val = pic_imcnt;
+        ctx->poc.prev_doc_offset = 0;
+        ctx->poc.prev_poc_val = ctx->poc.poc_val;
         ctx->slice_ref_flag = 1;
     }
     else if(pic_imcnt % gop_size == 0)
@@ -2010,9 +1953,9 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
         ctx->slice_type = SLICE_B;
         ctx->slice_ref_flag = 1;
         ctx->slice_depth = FRM_DEPTH_1;
-        ctx->poc = pic_imcnt;
-        ctx->prev_doc_offset = 0;
-        ctx->prev_pic_order_cnt_val = ctx->poc;
+        ctx->poc.poc_val = pic_imcnt;
+        ctx->poc.prev_doc_offset = 0;
+        ctx->poc.prev_poc_val = ctx->poc.poc_val;
         ctx->slice_ref_flag = 1;
     }
     else
@@ -2025,14 +1968,15 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
             if (ctx->sps.tool_pocs)
             {
                 ctx->slice_depth = tbl_slice_depth_orig[gop_size >> 2][pos];
-                ctx->poc = ((pic_imcnt / gop_size) * gop_size) +
+                ctx->poc.poc_val = ((pic_imcnt / gop_size) * gop_size) +
                     tbl_poc_gop_offset[gop_size >> 2][pos];
             }
             else
             {
                 ctx->slice_depth = tbl_slice_depth[gop_size >> 2][pos];
-                int layer_id = ctx->slice_depth - (ctx->slice_depth > 0);
-                poc_derivation(ctx, layer_id);
+                int tid = ctx->slice_depth - (ctx->slice_depth > 0);
+                evc_poc_derivation(ctx->sps, tid, &ctx->poc);
+                ctx->poc.poc_val = ctx->poc.poc_val;
             }
             if (!ctx->sps.tool_pocs && gop_size >= 2)
             {
@@ -2047,11 +1991,11 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
         {
             pos = (pic_imcnt % gop_size) - 1;
             ctx->slice_depth = FRM_DEPTH_2;
-            ctx->poc = ((pic_imcnt / gop_size) * gop_size) - gop_size + pos + 1;
+            ctx->poc.poc_val = ((pic_imcnt / gop_size) * gop_size) - gop_size + pos + 1;
             ctx->slice_ref_flag = 0;
         }
         /* find current encoding picture's(B picture) pic_icnt */
-        pic_icnt_b = ctx->poc;
+        pic_icnt_b = ctx->poc.poc_val;
 
         /* find pico again here */
         ctx->pico_idx = (u8)(pic_icnt_b % ctx->pico_max_cnt);
@@ -2076,37 +2020,47 @@ static void decide_slice_type(EVCE_CTX * ctx)
     ctx->pico = ctx->pico_buf[ctx->pico_idx];
     PIC_ORIG(ctx) = &ctx->pico->pic;
 
-    if(gop_size == 1) /* IPPP... */
+    if(gop_size == 1) 
     {
-        pic_imcnt = (i_period > 0) ? pic_icnt % i_period : pic_icnt;
-        if(pic_imcnt == 0)
+        if (i_period == 1) /* IIII... */
         {
             ctx->slice_type = SLICE_I;
             ctx->slice_depth = FRM_DEPTH_0;
-            ctx->poc = 0;
-            ctx->slice_ref_flag = 1;
+            ctx->poc.poc_val = pic_icnt;
+            ctx->slice_ref_flag = 0;
         }
-        else
+        else /* IPPP... */
         {
-            ctx->slice_type = SLICE_B;
-            
-            if(ctx->param.use_hgop)
+            pic_imcnt = (i_period > 0) ? pic_icnt % i_period : pic_icnt;
+            if (pic_imcnt == 0)
             {
-                if (ctx->sps.tool_rpl)
-                {
-                    ctx->slice_depth = tbl_slice_depth_P_orig[(pic_imcnt - 1) % GOP_P];
-                }
-                else
-                {
-                    ctx->slice_depth = tbl_slice_depth_P[ctx->param.ref_pic_gap_length >> 2][(pic_imcnt - 1) % ctx->param.ref_pic_gap_length];
-                }
+                ctx->slice_type = SLICE_I;
+                ctx->slice_depth = FRM_DEPTH_0;
+                ctx->poc.poc_val = 0;
+                ctx->slice_ref_flag = 1;
             }
             else
             {
-                ctx->slice_depth = FRM_DEPTH_1;
+                ctx->slice_type = SLICE_B;
+
+                if (ctx->param.use_hgop)
+                {
+                    if (ctx->sps.tool_rpl)
+                    {
+                        ctx->slice_depth = tbl_slice_depth_P_orig[(pic_imcnt - 1) % GOP_P];
+                    }
+                    else
+                    {
+                        ctx->slice_depth = tbl_slice_depth_P[ctx->param.ref_pic_gap_length >> 2][(pic_imcnt - 1) % ctx->param.ref_pic_gap_length];
+                    }
+                }
+                else
+                {
+                    ctx->slice_depth = FRM_DEPTH_1;
+                }
+                ctx->poc.poc_val = (i_period > 0) ? ctx->pic_cnt % i_period : ctx->pic_cnt;
+                ctx->slice_ref_flag = 1;
             }
-            ctx->poc = (i_period > 0) ? ctx->pic_cnt % i_period : ctx->pic_cnt;
-            ctx->slice_ref_flag = 1;
         }
     }
     else /* include B Picture (gop_size = 2 or 4 or 8 or 16) */
@@ -2115,9 +2069,9 @@ static void decide_slice_type(EVCE_CTX * ctx)
         {
             ctx->slice_type = SLICE_I;
             ctx->slice_depth = FRM_DEPTH_0;
-            ctx->poc = 0;
-            ctx->prev_doc_offset = 0;
-            ctx->prev_pic_order_cnt_val = ctx->poc;
+            ctx->poc.poc_val = 0;
+            ctx->poc.prev_doc_offset = 0;
+            ctx->poc.prev_poc_val = ctx->poc.poc_val;
             ctx->slice_ref_flag = 1;
 
             /* flush the first IDR picture */
@@ -2133,7 +2087,7 @@ static void decide_slice_type(EVCE_CTX * ctx)
 
                 decide_normal_gop(ctx, pic_imcnt);
 
-                if(ctx->poc <= (int)ctx->pic_ticnt)
+                if(ctx->poc.poc_val <= (int)ctx->pic_ticnt)
                 {
                     break;
                 }
@@ -2149,18 +2103,16 @@ static void decide_slice_type(EVCE_CTX * ctx)
     {
         if (ctx->sps.tool_rpl)
         {
-            ctx->layer_id = ctx->slice_depth;
+            ctx->nalu.nuh_temporal_id = ctx->slice_depth;
         } else
         {
-            ctx->layer_id = ctx->slice_depth - (ctx->slice_depth > 0);
+            ctx->nalu.nuh_temporal_id = ctx->slice_depth - (ctx->slice_depth > 0);
         }
     }
     else
     {
-        ctx->layer_id = 0;
+        ctx->nalu.nuh_temporal_id = 0;
     }
-    ctx->ptr = ctx->poc;
-    ctx->dtr = ctx->ptr;
 }
 
 int evce_enc_pic_prepare(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
@@ -2196,7 +2148,7 @@ int evce_enc_pic_prepare(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     ctx->lcu_cnt = ctx->f_lcu;
     ctx->slice_num = 0;
 
-    if(ctx->slice_type == SLICE_I) ctx->last_intra_ptr = ctx->ptr;
+    if(ctx->slice_type == SLICE_I) ctx->last_intra_poc = ctx->poc.poc_val;
 
     size = sizeof(s8) * ctx->f_scu * REFP_NUM;
     evc_mset_x64a(ctx->map_refi, -1, size);
@@ -2237,7 +2189,7 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     {
         EVC_BSW  *bs = &ctx->bs;
         EVC_NALU sei_nalu;
-        set_nalu(ctx, &sei_nalu, EVC_SEI_NUT);
+        set_nalu(&sei_nalu, EVC_SEI_NUT);
 
         int* size_field = (int*)(*(&bs->cur));
         u8* cur_tmp = bs->cur;
@@ -2257,7 +2209,7 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
 
     /* picture buffer management */
     ret = evc_picman_put_pic(&ctx->rpm, PIC_CURR(ctx), ctx->nalu.nal_unit_type_plus1 - 1 == EVC_IDR_NUT,
-                              ctx->ptr, ctx->dtr, ctx->layer_id, 0, ctx->refp,
+                              ctx->poc.poc_val, ctx->nalu.nuh_temporal_id, 0, ctx->refp,
                               ctx->slice_ref_flag, ctx->sps.tool_rpl, ctx->ref_pic_gap_length);
 
     evc_assert_rv(ret == EVC_OK, ret);
@@ -2274,15 +2226,15 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     stat->stype = ctx->slice_type;
     stat->fnum = ctx->pic_cnt;
     stat->qp = ctx->sh.qp;
-    stat->poc = ctx->ptr;
-    stat->tid = ctx->sh.layer_id;
+    stat->poc = ctx->poc.poc_val;
+    stat->tid = ctx->nalu.nuh_temporal_id;
 
     for(i = 0; i < 2; i++)
     {
         stat->refpic_num[i] = ctx->rpm.num_refp[i];
         for (j = 0; j < stat->refpic_num[i]; j++)
         {
-            stat->refpic[i][j] = ctx->refp[j][i].ptr;
+            stat->refpic[i][j] = ctx->refp[j][i].poc;
         }
     }
 
@@ -2319,7 +2271,6 @@ static void update_core_loc_param(EVCE_CTX * ctx, EVCE_CORE * core)
     core->x_scu = core->x_lcu << (MAX_CU_LOG2 - MIN_CU_LOG2); // set x_scu location 
     core->y_scu = core->y_lcu << (MAX_CU_LOG2 - MIN_CU_LOG2); // set y_scu location 
     core->lcu_num = core->x_lcu + core->y_lcu*ctx->w_lcu; // Init the first lcu_num in tile
-
 }
 #endif
 
@@ -2328,36 +2279,34 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     EVCE_CORE * core;
     EVC_BSW   * bs;
     EVC_SH    * sh;
-#if ALF_PARAMETER_APS
+#if ALF
     EVC_APS   * aps;
 #endif
-    int          ret;
-    u32          i;
-    int split_mode_child[4];
-    int split_allow[6] = { 0, 0, 0, 0, 0, 1 };
+    int         ret;
+    u32         i;
+    int         split_mode_child[4];
+    int         split_allow[6] = { 0, 0, 0, 0, 0, 1 };
 #if EVC_TILE_SUPPORT
-    int  ctb_cnt_in_tile = 0;
-    int col_bd = 0;
+    int         ctb_cnt_in_tile = 0;
+    int         col_bd = 0;
 #endif
 
     bs = &ctx->bs;
     core = ctx->core;
     sh = &ctx->sh;
-#if ALF_PARAMETER_APS
+#if ALF
     aps = &ctx->aps;
-#if APS_ALF_SEQ_FIX
     aps_counter_reset = FALSE;
-    if ((int)ctx->ptr > last_intra_poc)
+    if ((int)ctx->poc.poc_val > last_intra_poc)
     {
         last_intra_poc = INT_MAX;
         aps_counter_reset = TRUE;
     }
     if (ctx->slice_type == SLICE_I)
-        last_intra_poc = ctx->ptr;
+        last_intra_poc = ctx->poc.poc_val;
 
     if (aps_counter_reset)
         ctx->aps_counter = 0;
-#endif
     if (ctx->slice_type == SLICE_I)
     {
         ctx->aps_counter = -1;
@@ -2369,7 +2318,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     if (!ctx->sps.tool_rpl)
     {
         /* initialize reference pictures */
-        ret = evc_picman_refp_init(&ctx->rpm, ctx->sps.max_num_ref_pics, ctx->slice_type, ctx->ptr, ctx->layer_id, ctx->last_intra_ptr, ctx->refp);
+        ret = evc_picman_refp_init(&ctx->rpm, ctx->sps.max_num_ref_pics, ctx->slice_type, ctx->poc.poc_val, ctx->nalu.nuh_temporal_id, ctx->last_intra_poc, ctx->refp);
     }
     else
     {
@@ -2377,12 +2326,12 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         //This needs to be done before reference picture marking and reference picture list construction are invoked
         set_sh(ctx, sh);
 #if GRAB_STAT
-        evc_stat_set_poc(ctx->sh.poc);
+        evc_stat_set_poc(ctx->poc.poc_val);
 #endif
 
-        if (sh->slice_type != SLICE_I && sh->poc != 0) //TBD: change this condition to say that if this slice is not a slice in IDR picture
+        if (sh->slice_type != SLICE_I && ctx->poc.poc_val != 0) //TBD: change this condition to say that if this slice is not a slice in IDR picture
         {
-            ret = create_explicit_rpl(&ctx->rpm, sh);
+            ret = create_explicit_rpl(&ctx->rpm, sh, ctx->poc.poc_val);
             if (ret == 1)
             {
                 if (sh->rpl_l0_idx == -1)
@@ -2393,17 +2342,17 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         }
 
         /* reference picture marking */
-        ret = evc_picman_refpic_marking(&ctx->rpm, sh);
+        ret = evc_picman_refpic_marking(&ctx->rpm, sh, ctx->poc.poc_val);
         evc_assert_rv(ret == EVC_OK, ret);
 
         /* reference picture lists construction */
-        ret = evc_picman_refp_rpl_based_init(&ctx->rpm, sh, ctx->refp);
+        ret = evc_picman_refp_rpl_based_init(&ctx->rpm, sh, ctx->poc.poc_val, ctx->refp);
         if (sh->slice_type != SLICE_I)
         {
-            int dptr0 = (int)(ctx->ptr) - (int)(ctx->refp[0][REFP_0].ptr);
-            int dptr1 = (int)(ctx->ptr) - (int)(ctx->refp[0][REFP_1].ptr);
-            sh->temporal_mvp_asigned_flag = !(((dptr0 > 0) && (dptr1 > 0)) || ((dptr0 < 0) && (dptr1 < 0)));
-            //            printf("tmvp: %d %d %d %d\n", ctx->ptr, ctx->refp[0][REFP_0].ptr, ctx->refp[0][REFP_1].ptr, sh->temporal_mvp_asigned_flag);
+            int delta_poc0 = (int)(ctx->poc.poc_val) - (int)(ctx->refp[0][REFP_0].poc);
+            int delta_poc1 = (int)(ctx->poc.poc_val) - (int)(ctx->refp[0][REFP_1].poc);
+            sh->temporal_mvp_asigned_flag = !(((delta_poc0 > 0) && (delta_poc1 > 0)) || ((delta_poc0 < 0) && (delta_poc1 < 0)));
+            //printf("tmvp: %d %d %d %d\n", ctx->poc, ctx->refp[0][REFP_0].poc, ctx->refp[0][REFP_1].poc, sh->temporal_mvp_asigned_flag);
         }
     }
     evc_assert_rv(ret == EVC_OK, ret);
@@ -2421,7 +2370,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     ctx->lcu_cnt = ctx->f_lcu;
 
     /* Set nalu header */
-    set_nalu(ctx, &ctx->nalu, (ctx->slice_type == SLICE_I && ctx->param.use_closed_gop) ? EVC_IDR_NUT: EVC_NONIDR_NUT);
+    set_nalu(&ctx->nalu, ctx->pic_cnt == 0 || (ctx->slice_type == SLICE_I && ctx->param.use_closed_gop) ? EVC_IDR_NUT : EVC_NONIDR_NUT);
 
     if (!ctx->sps.tool_rpl)
     {
@@ -2470,7 +2419,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #endif
     if (ctx->sps.tool_mmvd && (ctx->slice_type == SLICE_B))
     {
-        sh->mmvd_group_enable_flag = !(ctx->refp[0][0].ptr == ctx->refp[0][1].ptr);
+        sh->mmvd_group_enable_flag = !(ctx->refp[0][0].poc == ctx->refp[0][1].poc);
     }
 #if M50632_IMPROVEMENT_MMVD
     else if (ctx->sps.tool_mmvd && (ctx->slice_type == SLICE_P))
@@ -2534,7 +2483,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             }
 #endif
             /* entropy coding ************************************************/
-
             ret = evce_eco_tree(ctx, core, core->x_pel, core->y_pel, 0, ctx->max_cuwh, ctx->max_cuwh, 0, 1
                 , NO_SPLIT, split_mode_child, 0, split_allow, 0, 0
 #if DQP
@@ -2685,11 +2633,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     sh->alf_on = ctx->sps.tool_alf;
     if(sh->alf_on)
     {
-#if ALF_PARAMETER_APS
         ret = ctx->fn_alf(ctx, PIC_MODE(ctx), sh, aps);
-#else
-        ret = ctx->fn_alf(ctx, PIC_MODE(ctx), sh);
-#endif
         evc_assert_rv(ret == EVC_OK, ret);
     }
 #endif
@@ -2717,10 +2661,10 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #endif
 
     EVC_NALU aps_nalu;
-    set_nalu(ctx, &aps_nalu, EVC_APS_NUT);
+    set_nalu(&aps_nalu, EVC_APS_NUT);
     int aps_nalu_size = 0;
 
-#if ALF_PARAMETER_APS
+#if ALF
     /* Encode ALF in APS */
     if ((ctx->sps.tool_alf) && (ctx->sh.alf_on)) // User defined params
     {
@@ -2791,7 +2735,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
             while (1) // LCU level CABAC loop
             {
-#if APS_ALF_CTU_FLAG
+#if ALF
                 evc_AlfSliceParam* alfSliceParam = &(ctx->sh.alf_sh_param);
                 if ((alfSliceParam->isCtbAlfOn) && (sh->alf_on))
                 {
@@ -2799,13 +2743,8 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
                     sbac = GET_SBAC_ENC(bs);
                     EVC_TRACE_COUNTER;
                     EVC_TRACE_STR("Usage of ALF: ");
-#if ALF_CTU_MAP_DYNAMIC
                     evce_sbac_encode_bin((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)), sbac, sbac->ctx.ctb_alf_flag, bs);
                     EVC_TRACE_INT((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)));
-#else
-                    evce_sbac_encode_bin((int)(alfSliceParam->alfCtuEnableFlag[0][core->lcu_num]), sbac, sbac->ctx.ctb_alf_flag, bs);
-                    EVC_TRACE_INT((int)(alfSliceParam->alfCtuEnableFlag[0][core->lcu_num]));
-#endif
                     EVC_TRACE_STR("\n");
                 }
 #endif
@@ -2832,11 +2771,15 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
                 ctx->lcu_cnt--; //To be updated properly in case of multicore
 
                                 /* end_of_picture_flag */
+#if FIX_END_OF_TILE_ONE_BIT_CODING
+                if(ctb_cnt_in_tile == 0)
+#else
                 if (ctb_cnt_in_tile > 0)
                 {
                     evce_eco_tile_end_flag(bs, 0);
                 }
                 else
+#endif
                 {
                     evce_eco_tile_end_flag(bs, 1);
                     evce_sbac_finish(bs);
@@ -2849,7 +2792,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     /* Encode slice data */
     while(1)
     {
-#if APS_ALF_CTU_FLAG
+#if ALF
         evc_AlfSliceParam* alfSliceParam = &(ctx->sh.alf_sh_param);
         if ((alfSliceParam->isCtbAlfOn) && (sh->alf_on))
         {
@@ -2857,13 +2800,8 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             sbac = GET_SBAC_ENC(bs);
             EVC_TRACE_COUNTER;
             EVC_TRACE_STR("Usage of ALF: ");
-#if ALF_CTU_MAP_DYNAMIC
             evce_sbac_encode_bin((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)), sbac, sbac->ctx.ctb_alf_flag, bs);
             EVC_TRACE_INT((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)));
-#else
-            evce_sbac_encode_bin((int)(alfSliceParam->alfCtuEnableFlag[0][core->lcu_num]), sbac, sbac->ctx.ctb_alf_flag, bs);
-            EVC_TRACE_INT((int)(alfSliceParam->alfCtuEnableFlag[0][core->lcu_num]));
-#endif
             EVC_TRACE_STR("\n");
         }
 #endif
@@ -3009,11 +2947,7 @@ int evce_platform_init(EVCE_CTX * ctx)
 #endif
 
 #if ALF
-#if ALF_PARAMETER_APS
     ctx->fn_alf = evce_alf_aps;
-#else
-    ctx->fn_alf = evce_alf;
-#endif
 #endif
     ctx->fn_ready = evce_ready;
     ctx->fn_flush = evce_flush;
@@ -3101,7 +3035,7 @@ EVCE evce_create(EVCE_CDSC * cdsc, int * err)
     /* set default value for ctx */
     ctx->magic = EVCE_MAGIC_CODE;
     ctx->id = (EVCE)ctx;
-#if ALF_PARAMETER_APS
+#if ALF
     ctx->sh.aps_signaled = -1;
 #endif
 
@@ -3165,7 +3099,7 @@ int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
     bs->pdata[1] = &ctx->sbac_enc;
 
     /* nalu header */
-    set_nalu(ctx, &nalu, EVC_SPS_NUT);
+    set_nalu(&nalu, EVC_SPS_NUT);
     evce_eco_nalu(bs, nalu);
 
     /* sequence parameter set*/
@@ -3208,7 +3142,7 @@ int evce_encode_pps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
     bs->pdata[1] = &ctx->sbac_enc;
 
     /* nalu header */
-    set_nalu(ctx, &nalu, EVC_PPS_NUT);
+    set_nalu(&nalu, EVC_PPS_NUT);
     evce_eco_nalu(bs, nalu);
 
     /* sequence parameter set*/

@@ -139,25 +139,25 @@ static void get_range_ipel(EVCE_PINTER * pi, s16 mvc[MV_D], s16 range[MV_RANGE_D
         int max_hpel_sr = pi->max_search_range >> 2;
         int max_ipel_sr = pi->max_search_range >> 1;
         int max_spel_sr = pi->max_search_range;
-        int max_search_range = EVC_CLIP3(pi->max_search_range >> 2, pi->max_search_range, (pi->max_search_range * EVC_ABS(pi->ptr - (int)pi->refp[ri][lidx].ptr) + offset) / pi->gop_size);
+        int max_search_range = EVC_CLIP3(pi->max_search_range >> 2, pi->max_search_range, (pi->max_search_range * EVC_ABS(pi->poc - (int)pi->refp[ri][lidx].poc) + offset) / pi->gop_size);
         int offset_x, offset_y, rangexy;
         int range_offset = 3 * (1 << (pi->curr_mvr - 1));
 
         if(pi->curr_mvr == 0)
         {
-            rangexy = EVC_CLIP3(max_qpel_sr >> 2, max_qpel_sr, (max_qpel_sr * EVC_ABS(pi->ptr - (int)pi->refp[ri][lidx].ptr) + offset) / pi->gop_size);
+            rangexy = EVC_CLIP3(max_qpel_sr >> 2, max_qpel_sr, (max_qpel_sr * EVC_ABS(pi->poc - (int)pi->refp[ri][lidx].poc) + offset) / pi->gop_size);
         }
         else if(pi->curr_mvr == 1)
         {
-            rangexy = EVC_CLIP3(max_hpel_sr >> 2, max_hpel_sr, (max_hpel_sr * EVC_ABS(pi->ptr - (int)pi->refp[ri][lidx].ptr) + offset) / pi->gop_size);
+            rangexy = EVC_CLIP3(max_hpel_sr >> 2, max_hpel_sr, (max_hpel_sr * EVC_ABS(pi->poc - (int)pi->refp[ri][lidx].poc) + offset) / pi->gop_size);
         }
         else if(pi->curr_mvr == 2)
         {
-            rangexy = EVC_CLIP3(max_ipel_sr >> 2, max_ipel_sr, (max_ipel_sr * EVC_ABS(pi->ptr - (int)pi->refp[ri][lidx].ptr) + offset) / pi->gop_size);
+            rangexy = EVC_CLIP3(max_ipel_sr >> 2, max_ipel_sr, (max_ipel_sr * EVC_ABS(pi->poc - (int)pi->refp[ri][lidx].poc) + offset) / pi->gop_size);
         }
         else
         {
-            rangexy = EVC_CLIP3(max_spel_sr >> 2, max_spel_sr, (max_spel_sr * EVC_ABS(pi->ptr - (int)pi->refp[ri][lidx].ptr) + offset) / pi->gop_size);
+            rangexy = EVC_CLIP3(max_spel_sr >> 2, max_spel_sr, (max_spel_sr * EVC_ABS(pi->poc - (int)pi->refp[ri][lidx].poc) + offset) / pi->gop_size);
         }
 
         if(rangexy > max_search_range)
@@ -200,7 +200,7 @@ static void get_range_ipel(EVCE_PINTER * pi, s16 mvc[MV_D], s16 range[MV_RANGE_D
     else
     {
         int offset = pi->gop_size >> 1;
-        int max_search_range = EVC_CLIP3(pi->max_search_range >> 2, pi->max_search_range, (pi->max_search_range * EVC_ABS(pi->ptr - (int)pi->refp[ri][lidx].ptr) + offset) / pi->gop_size);
+        int max_search_range = EVC_CLIP3(pi->max_search_range >> 2, pi->max_search_range, (pi->max_search_range * EVC_ABS(pi->poc - (int)pi->refp[ri][lidx].poc) + offset) / pi->gop_size);
         int search_range_x = bi ? BI_STEP : max_search_range;
         int search_range_y = bi ? BI_STEP : max_search_range;
 
@@ -1002,7 +1002,7 @@ static void evc_mc_mmvd(int x, int y, int pic_w, int pic_h, int w, int h, s8 ref
     /* check identical motion */
     if(REFI_IS_VALID(refi[REFP_0]) && REFI_IS_VALID(refi[REFP_1]))
     {
-        if(refp[refi[REFP_0]][REFP_0].pic->ptr == refp[refi[REFP_1]][REFP_1].pic->ptr &&  mv_t[REFP_0][MV_X] == mv_t[REFP_1][MV_X] && mv_t[REFP_0][MV_Y] == mv_t[REFP_1][MV_Y])
+        if(refp[refi[REFP_0]][REFP_0].pic->poc == refp[refi[REFP_1]][REFP_1].pic->poc &&  mv_t[REFP_0][MV_X] == mv_t[REFP_1][MV_X] && mv_t[REFP_0][MV_Y] == mv_t[REFP_1][MV_Y])
         {
             return;
         }
@@ -1538,7 +1538,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 #endif
 
 #if DMVR
-        evc_mc(x, y, ctx->w, ctx->h, w[0], h[0], pi->refi[pidx], pi->mv[pidx], pi->refp, pred, ctx->ptr, pi->dmvr_template, pi->dmvr_ref_pred_interpolated
+        evc_mc(x, y, ctx->w, ctx->h, w[0], h[0], pi->refi[pidx], pi->mv[pidx], pi->refp, pred, ctx->poc.poc_val, pi->dmvr_template, pi->dmvr_ref_pred_interpolated
                , pi->dmvr_half_pred_interpolated
                , apply_dmvr && ctx->sps.tool_dmvr
 #if DMVR_PADDING
@@ -2319,7 +2319,7 @@ static double analyze_skip_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y
             }
 #endif
             evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi, mvp, pi->refp, pi->pred[PRED_NUM],
-                   ctx->ptr, pi->dmvr_template, pi->dmvr_ref_pred_interpolated,
+                   ctx->poc.poc_val, pi->dmvr_template, pi->dmvr_ref_pred_interpolated,
                    pi->dmvr_half_pred_interpolated, FALSE, pi->dmvr_padding_buf, &core->dmvr_flag, dmvr_mv, ctx->sps.tool_amis);
 
             cy = evce_ssd_16b(log2_cuw, log2_cuh, pi->pred[PRED_NUM][0][Y_C], y_org, cuw, pi->s_o[Y_C]);
@@ -2389,7 +2389,216 @@ static double analyze_skip_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y
 
     return cost_best;
 }
+static void mmvd_base_skip(EVCE_CTX *ctx, EVCE_CORE *core, int real_mv[][2][3], int log2_cuw, int log2_cuh, int slice_t, int scup
+    , s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], EVC_REFP refp[REFP_NUM], int w_scu, u16 avail, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME]
+    , int h_scu, u32 *map_scu, u16 avail_lr
+#if ADMVP
+    , EVC_HISTORY_BUFFER history_buffer, int admvp_flag
+#endif
+    , EVC_SH* sh
+#if M50761_TMVP_8X8_GRID
+    , int log2_max_cuwh
+#endif
+)
+{
+    int nn;
+    int k;
+    int base_skip[MMVD_BASE_MV_NUM];
+    int base_mv[25][2][3];
+    int cuw = (1 << log2_cuw);
+    int cuh = (1 << log2_cuh);
+    int small_cu = 0;
+    int c_num = 0;
+    s16 mvp[MAX_NUM_MVP][MV_D];
+    s16 mvp1[MAX_NUM_MVP][MV_D];
+    s8 refi[MAX_NUM_MVP];
+    s8 refi1[MAX_NUM_MVP];
+    int sld[MMVD_BASE_MV_NUM*MMVD_BASE_MV_NUM][2];
+    int idx0, idx1, cnt;
+    int s, z, a;
+    int sld1[MMVD_BASE_MV_NUM];
+    int sld2[MMVD_BASE_MV_NUM];
+    int comp;
+    int c_win = 0;
+    s8 srefi[REFP_NUM][MAX_NUM_MVP];
+    s16 smvp[REFP_NUM][MAX_NUM_MVP][MV_D];
+    int cur_num;
+    int dev0;
+    int t_base_num = MMVD_MAX_REFINE_NUM * MMVD_BASE_MV_NUM;
 
+    if (cuw*cuh <= NUM_SAMPLES_BLOCK)
+        small_cu = 1;
+    for (k = 0; k < MMVD_BASE_MV_NUM; k++)
+    {
+        base_skip[k] = 1;
+    }
+    for (s = 0; s < MMVD_BASE_MV_NUM; s++)
+    {
+        sld1[s] = s;
+        sld2[s] = s;
+    }
+    for (z = 0; z < MMVD_BASE_MV_NUM; z++)
+    {
+        comp = z;
+        for (s = 0; s < MMVD_BASE_MV_NUM; s++)
+        {
+            a = s + comp;
+            if (a >= MMVD_BASE_MV_NUM)
+            {
+                a = a - MMVD_BASE_MV_NUM;
+            }
+            sld[c_win][0] = sld1[s];
+            sld[c_win][1] = sld2[a];
+            c_win++;
+        }
+    }
+#if ADMVP
+    if (admvp_flag == 0)
+        evc_get_motion_skip_baseline(slice_t, scup, map_refi, map_mv, refp, cuw, cuh, w_scu, srefi, smvp, avail);
+    else
+#endif
+        evc_get_motion_merge_main(REF_SET[2][0], slice_t, scup, map_refi, map_mv, refp, cuw, cuh, w_scu, h_scu, srefi, smvp, map_scu, avail_lr
+#if DMVR_LAG
+            , NULL
+#endif
+#if ADMVP
+            , history_buffer
+#endif
+#if IBC
+            , 0
+#endif
+            , (EVC_REFP(*)[2])refp
+            , sh
+#if M50761_TMVP_8X8_GRID
+            , log2_max_cuwh
+#endif
+        );
+
+    for (z = 0; z < MAX_NUM_MVP; z++)
+    {
+        mvp[z][MV_X] = smvp[REFP_0][z][MV_X];
+        mvp[z][MV_Y] = smvp[REFP_0][z][MV_Y];
+        mvp1[z][MV_X] = smvp[REFP_1][z][MV_X];
+        mvp1[z][MV_Y] = smvp[REFP_1][z][MV_Y];
+        refi[z] = srefi[REFP_0][z];
+        refi1[z] = srefi[REFP_1][z];
+    }
+
+    if (slice_t == SLICE_B)
+    {
+        for (k = 0; k < MMVD_BASE_MV_NUM; k++)
+        {
+            base_mv[c_num][0][MV_X] = mvp[sld[k][0]][MV_X];
+            base_mv[c_num][0][MV_Y] = mvp[sld[k][0]][MV_Y];
+            base_mv[c_num][1][MV_X] = mvp1[sld[k][1]][MV_X];
+            base_mv[c_num][1][MV_Y] = mvp1[sld[k][1]][MV_Y];
+            base_mv[c_num][0][2] = refi[sld[k][0]];
+            base_mv[c_num][1][2] = refi1[sld[k][1]];
+
+            c_num++;
+        }
+    }
+    else
+    {
+#if INCREASE_MVP_NUM
+        for (idx0 = 0; idx0 < ORG_MAX_NUM_MVP; idx0++)
+#else
+        for (idx0 = 0; idx0 < MAX_NUM_MVP; idx0++)
+#endif
+        {
+#if INCREASE_MVP_NUM
+            cnt = (slice_t == SLICE_B ? ORG_MAX_NUM_MVP : 1);
+#else
+            cnt = (slice_t == SLICE_B ? MAX_NUM_MVP : 1);
+#endif
+            for (idx1 = 0; idx1 < cnt; idx1++)
+            {
+                base_mv[c_num][0][MV_X] = mvp[idx0][MV_X];
+                base_mv[c_num][0][MV_Y] = mvp[idx0][MV_Y];
+                base_mv[c_num][1][MV_X] = mvp1[idx1][MV_X];
+                base_mv[c_num][1][MV_Y] = mvp1[idx1][MV_Y];
+                base_mv[c_num][0][2] = refi[idx0];
+                base_mv[c_num][1][2] = refi1[idx1];
+
+                c_num++;
+            }
+        }
+    }
+    for (k = 0; k < MMVD_BASE_MV_NUM - 1; k++)
+    {
+        if (base_skip[k] == 1)
+        {
+            for (nn = k + 1; nn < MMVD_BASE_MV_NUM; nn++)
+            {
+                if ((base_mv[k][0][2] != -1) && (base_mv[nn][0][2] != -1))
+                {
+                    if ((base_mv[k][1][2] != -1) && (base_mv[nn][1][2] != -1))
+                    {
+                        if ((base_mv[k][0][MV_X] == base_mv[nn][0][MV_X])
+                            && (base_mv[k][0][MV_Y] == base_mv[nn][0][MV_Y])
+                            && (base_mv[k][0][2] == base_mv[nn][0][2])
+                            && (base_mv[k][1][MV_X] == base_mv[nn][1][MV_X])
+                            && (base_mv[k][1][MV_Y] == base_mv[nn][1][MV_Y])
+                            && (base_mv[k][1][2] == base_mv[nn][1][2])
+                            )
+                        {
+                            base_skip[nn] = -1;
+                        }
+                    }
+                    else if ((base_mv[k][1][2] == -1) && (base_mv[nn][1][2] == -1))
+                    {
+                        if ((base_mv[k][0][MV_X] == base_mv[nn][0][MV_X])
+                            && (base_mv[k][0][MV_Y] == base_mv[nn][0][MV_Y])
+                            && (base_mv[k][0][2] == base_mv[nn][0][2])
+                            )
+                        {
+                            base_skip[nn] = -1;
+                        }
+                    }
+                }
+
+                if ((base_mv[k][0][2] == -1) && (base_mv[nn][0][2] == -1))
+                {
+                    if ((base_mv[k][1][2] != -1) && (base_mv[nn][1][2] != -1))
+                    {
+                        if ((base_mv[k][1][MV_X] == base_mv[nn][1][MV_X])
+                            && (base_mv[k][1][MV_Y] == base_mv[nn][1][MV_Y])
+                            && (base_mv[k][1][2] == base_mv[nn][1][2])
+                            )
+                        {
+                            base_skip[nn] = -1;
+                        }
+                    }
+                    else if ((base_mv[k][1][2] == -1) && (base_mv[nn][1][2] == -1))
+                    {
+                        base_skip[nn] = -1;
+                    }
+                }
+            }
+        }
+    }
+
+    for (c_num = 0; c_num < 3 * t_base_num; c_num++)
+    {
+        if ((c_num >= t_base_num) && (!(ctx->sh.mmvd_group_enable_flag) || (small_cu == 1)))
+        {
+            continue;
+        }
+
+        cur_num = c_num;
+        if (cur_num >= (MMVD_MAX_REFINE_NUM*MMVD_BASE_MV_NUM))
+        {
+            cur_num = cur_num % (MMVD_MAX_REFINE_NUM*MMVD_BASE_MV_NUM);
+        }
+        dev0 = cur_num / (MMVD_MAX_REFINE_NUM);
+        if (base_skip[dev0] == -1)
+        {
+            real_mv[c_num][0][2] = -1;
+            real_mv[c_num][1][2] = -1;
+        }
+
+    }
+}
 static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_cuw, int log2_cuh)
 {
     EVCE_PINTER *pi = &ctx->pinter;
@@ -2434,7 +2643,7 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
         );
     else
 #endif
-        evc_get_motion_merge_main(ctx->ptr, ctx->slice_type, core->scup, ctx->map_refi, ctx->map_mv, pi->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, pi->refi_pred, pi->mvp, ctx->map_scu, core->avail_lr
+        evc_get_motion_merge_main(ctx->poc.poc_val, ctx->slice_type, core->scup, ctx->map_refi, ctx->map_mv, pi->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, pi->refi_pred, pi->mvp, ctx->map_scu, core->avail_lr
 #if DMVR_LAG
             , ctx->map_unrefined_mv
 #endif
@@ -2498,7 +2707,7 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
 #endif
 
 #if DMVR
-            evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi, mvp, pi->refp, pi->pred[PRED_NUM], ctx->ptr, pi->dmvr_template, pi->dmvr_ref_pred_interpolated
+            evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi, mvp, pi->refp, pi->pred[PRED_NUM], ctx->poc.poc_val, pi->dmvr_template, pi->dmvr_ref_pred_interpolated
                    , pi->dmvr_half_pred_interpolated, TRUE && ctx->sps.tool_dmvr
 #if DMVR_PADDING
                    , pi->dmvr_padding_buf
@@ -2713,7 +2922,7 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
         );
     else
 #endif
-        evc_get_motion_merge_main(ctx->ptr, ctx->slice_type, core->scup, ctx->map_refi, ctx->map_mv, pi->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, pi->refi_pred, pi->mvp, ctx->map_scu, core->avail_lr
+        evc_get_motion_merge_main(ctx->poc.poc_val, ctx->slice_type, core->scup, ctx->map_refi, ctx->map_mv, pi->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, pi->refi_pred, pi->mvp, ctx->map_scu, core->avail_lr
 #if DMVR_LAG
             , ctx->map_unrefined_mv
 #endif
@@ -2879,7 +3088,7 @@ static double analyze_t_direct(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 #endif
 
     pidx = PRED_DIR;
-    evc_get_mv_dir(pi->refp[0], ctx->ptr, core->scup + ((1 << (log2_cuw - MIN_CU_LOG2)) - 1) + ((1 << (log2_cuh - MIN_CU_LOG2)) - 1) * ctx->w_scu, core->scup, ctx->w_scu, ctx->h_scu, pi->mv[pidx], ctx->sps.tool_admvp);
+    evc_get_mv_dir(pi->refp[0], ctx->poc.poc_val, core->scup + ((1 << (log2_cuw - MIN_CU_LOG2)) - 1) + ((1 << (log2_cuh - MIN_CU_LOG2)) - 1) * ctx->w_scu, core->scup, ctx->w_scu, ctx->h_scu, pi->mv[pidx], ctx->sps.tool_admvp);
 
     pi->mvd[pidx][REFP_0][MV_X] = 0;
     pi->mvd[pidx][REFP_0][MV_Y] = 0;
@@ -2986,7 +3195,7 @@ static double analyze_skip_mmvd(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, 
 #endif
 
 #if DMVR
-        evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi, mvp, pi->refp, pi->pred[PRED_NUM], ctx->ptr, pi->dmvr_template, pi->dmvr_ref_pred_interpolated
+        evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi, mvp, pi->refp, pi->pred[PRED_NUM], ctx->poc.poc_val, pi->dmvr_template, pi->dmvr_ref_pred_interpolated
                , pi->dmvr_half_pred_interpolated
                , FALSE
 #if DMVR_PADDING
@@ -3777,7 +3986,7 @@ static int pinter_init_lcu(EVCE_CTX *ctx, EVCE_CORE *core)
     pi->qp_y      = core->qp_y;
     pi->qp_u      = core->qp_u;
     pi->qp_v      = core->qp_v;
-    pi->ptr       = ctx->ptr;
+    pi->poc       = ctx->poc.poc_val;
     pi->gop_size  = ctx->param.gop_size;
 
     return EVC_OK;
@@ -5164,7 +5373,7 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
     u_org = pi->o[U_C] + (x >> 1) + ((y >> 1) * pi->s_o[U_C]);
     v_org = pi->o[V_C] + (x >> 1) + ((y >> 1) * pi->s_o[V_C]);
 
-    mrg_cnt = evc_get_affine_merge_candidate(ctx->ptr, ctx->slice_type, core->scup, ctx->map_refi, ctx->map_mv, pi->refp, cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, mrg_list_refi, mrg_list_cp_mv, mrg_list_cp_num, ctx->map_scu, ctx->map_affine
+    mrg_cnt = evc_get_affine_merge_candidate(ctx->poc.poc_val, ctx->slice_type, core->scup, ctx->map_refi, ctx->map_mv, pi->refp, cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, mrg_list_refi, mrg_list_cp_mv, mrg_list_cp_num, ctx->map_scu, ctx->map_affine
                                              , ctx->log2_max_cuwh
 #if DMVR_LAG
                                              , ctx->map_unrefined_mv
@@ -5687,10 +5896,10 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
     {
         for(k = 0; k < MAX_NUM_ACTIVE_REF_FRAME; k++)
         {
-            REF_SET[0][k] = ctx->refp[k][0].ptr;
-            REF_SET[1][k] = ctx->refp[k][1].ptr;
+            REF_SET[0][k] = ctx->refp[k][0].poc;
+            REF_SET[1][k] = ctx->refp[k][1].poc;
         }
-        REF_SET[2][0] = ctx->ptr;
+        REF_SET[2][0] = ctx->poc.poc_val;
 #if M50632_IMPROVEMENT_MMVD
         REF_SET[2][1] = ctx->rpm.cur_num_ref_pics;
 #endif
@@ -5704,7 +5913,17 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 #endif
         );
     }
-
+    mmvd_base_skip(ctx, core, real_mv, log2_cuw, log2_cuh, ctx->slice_type, core->scup
+        , ctx->map_refi, ctx->map_mv, ctx->refp[0], ctx->w_scu, core->avail_cu, REF_SET
+        , ctx->h_scu, ctx->map_scu, core->avail_lr
+#if ADMVP
+        , core->history_buffer, ctx->sps.tool_admvp
+#endif   
+        , &ctx->sh
+#if M50761_TMVP_8X8_GRID
+        , ctx->log2_max_cuwh
+#endif
+    );
     /* skip mode */
     cost = cost_inter[PRED_SKIP] = analyze_skip(ctx, core, x, y, log2_cuw, log2_cuh);
 
@@ -5870,7 +6089,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                 {
                     mvp = pi->mvp_scale[lidx][refi_cur];
 
-                    evc_get_motion_from_mvr(pi->curr_mvr, ctx->ptr, core->scup, lidx, refi_cur, pi->num_refp, ctx->map_mv, ctx->map_refi, pi->refp, core->cuw, core->cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, mvp, pi->refi_pred[lidx], ctx->map_scu, core->avail_lr
+                    evc_get_motion_from_mvr(pi->curr_mvr, ctx->poc.poc_val, core->scup, lidx, refi_cur, pi->num_refp, ctx->map_mv, ctx->map_refi, pi->refp, core->cuw, core->cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, mvp, pi->refi_pred[lidx], ctx->map_scu, core->avail_lr
 #if DMVR_LAG
                                             , ctx->map_unrefined_mv
 #endif
@@ -6154,7 +6373,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                         {
                             affine_mvp = pi->affine_mvp_scale[lidx][refi_cur];
 
-                            evc_get_affine_motion_scaling(ctx->ptr, core->scup, lidx, refi_cur, pi->num_refp, ctx->map_mv, ctx->map_refi, pi->refp,
+                            evc_get_affine_motion_scaling(ctx->poc.poc_val, core->scup, lidx, refi_cur, pi->num_refp, ctx->map_mv, ctx->map_refi, pi->refp,
                                                           core->cuw, core->cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, affine_mvp, pi->refi_pred[lidx],
                                                           ctx->map_scu, ctx->map_affine, vertex_num, core->avail_lr
                                                           , ctx->log2_max_cuwh
@@ -6394,7 +6613,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                             {
                                 affine_mvp = pi->affine_mvp_scale[lidx][refi_cur];
 
-                                evc_get_affine_motion_scaling(ctx->ptr, core->scup, lidx, refi_cur, pi->num_refp, ctx->map_mv, ctx->map_refi, pi->refp,
+                                evc_get_affine_motion_scaling(ctx->poc.poc_val, core->scup, lidx, refi_cur, pi->num_refp, ctx->map_mv, ctx->map_refi, pi->refp,
                                                               core->cuw, core->cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, affine_mvp, pi->refi_pred[lidx],
                                                               ctx->map_scu, ctx->map_affine, vertex_num, core->avail_lr
                                                               , ctx->log2_max_cuwh
