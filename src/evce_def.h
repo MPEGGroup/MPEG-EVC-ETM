@@ -821,7 +821,7 @@ struct _EVCE_CTX
     EVC_SPS                sps;
     /* picture parameter set */
     EVC_PPS                pps;
-#if ALF_PARAMETER_APS
+#if ALF
     /* adaptation parameter set */
     EVC_APS                aps;
     u8                     aps_counter;
@@ -1003,10 +1003,8 @@ struct _EVCE_CTX
 
 #if ALF
     void* enc_alf;
-#if ALF_PARAMETER_APS
+#if ALF
     int(*fn_alf)(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh, EVC_APS* aps);
-#else
-    int (*fn_alf)(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh);
 #endif
 #endif
 

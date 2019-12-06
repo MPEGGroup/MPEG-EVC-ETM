@@ -40,7 +40,7 @@
 #if ALF
 #include "enc_alf_wrapper.h"
 #endif
-#if APS_ALF_SEQ_FIX
+#if ALF
 int last_intra_poc = INT_MAX;
 BOOL aps_counter_reset = FALSE;
 #endif
@@ -455,13 +455,13 @@ static void set_pps(EVCE_CTX * ctx, EVC_PPS * pps)
             pps->tile_row_height_minus1[pps->num_tile_rows_minus1] -= (pps->tile_row_height_minus1[i] + 1);
         }
     }
-#if ALF_CTU_MULTIPLE_TILE_SUPPORT
+#if ALF_TILES_SUPPORT_M50663
     pps->loop_filter_across_tiles_enabled_flag = 0;
 #endif
 #endif
 }
 
-#if ALF_PARAMETER_APS
+#if ALF
 static void set_aps(EVCE_CTX * ctx, EVC_APS * aps)
 {
 }
@@ -1752,7 +1752,6 @@ int evce_deblock_h263(EVCE_CTX * ctx, EVC_PIC * pic
     return EVC_OK;
 }
 #if ALF
-#if ALF_PARAMETER_APS
 int evce_alf_aps(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh, EVC_APS* aps)
 {
     EncAdaptiveLoopFilter* p = (EncAdaptiveLoopFilter*)(ctx->enc_alf);
@@ -1771,12 +1770,10 @@ int evce_alf_aps(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh, EVC_APS* aps)
         ctx->aps_counter = -1;
     }
     sh->alf_on = sh->alf_sh_param.enabledFlag[0];
-#if APS_ALF_CTU_FLAG
     if (sh->alf_on == 0)
     {
         sh->alf_sh_param.isCtbAlfOn = 0;
     }
-#endif
     if (sh->alf_on)
     {
         if (aps->alf_aps_param.temporalAlfFlag)
@@ -1800,20 +1797,6 @@ int evce_alf_aps(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh, EVC_APS* aps)
     }
     return EVC_OK;
 }
-#else
-int evce_alf(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh)
-{
-    EncAdaptiveLoopFilter* p = (EncAdaptiveLoopFilter*)(ctx->enc_alf);
-
-    double lambdas[3];
-    for(int i = 0; i < 3; i++)
-        lambdas[i] = (ctx->lambda[i]) * ALF_LAMBDA_SCALE; //this is for appr match of different lambda sets
-
-    set_resetALFBufferFlag(p, sh->slice_type == SLICE_I ? 1 : 0);
-    call_enc_ALFProcess(p, lambdas, ctx, pic, &(sh->alf_sh_param) );
-    return EVC_OK;
-}
-#endif
 #endif
 
 int evce_picbuf_get_inbuf(EVCE_CTX * ctx, EVC_IMGB ** imgb)
@@ -1857,7 +1840,7 @@ int evce_picbuf_get_inbuf(EVCE_CTX * ctx, EVC_IMGB ** imgb)
 }
 
 
-#if ALF_PARAMETER_APS
+#if ALF
 int evce_aps_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, EVC_APS * aps)
 {
     EVC_BSW * bs = &ctx->bs;
@@ -2296,7 +2279,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     EVCE_CORE * core;
     EVC_BSW   * bs;
     EVC_SH    * sh;
-#if ALF_PARAMETER_APS
+#if ALF
     EVC_APS   * aps;
 #endif
     int         ret;
@@ -2311,9 +2294,8 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     bs = &ctx->bs;
     core = ctx->core;
     sh = &ctx->sh;
-#if ALF_PARAMETER_APS
+#if ALF
     aps = &ctx->aps;
-#if APS_ALF_SEQ_FIX
     aps_counter_reset = FALSE;
     if ((int)ctx->poc.poc_val > last_intra_poc)
     {
@@ -2325,7 +2307,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
     if (aps_counter_reset)
         ctx->aps_counter = 0;
-#endif
     if (ctx->slice_type == SLICE_I)
     {
         ctx->aps_counter = -1;
@@ -2652,11 +2633,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     sh->alf_on = ctx->sps.tool_alf;
     if(sh->alf_on)
     {
-#if ALF_PARAMETER_APS
         ret = ctx->fn_alf(ctx, PIC_MODE(ctx), sh, aps);
-#else
-        ret = ctx->fn_alf(ctx, PIC_MODE(ctx), sh);
-#endif
         evc_assert_rv(ret == EVC_OK, ret);
     }
 #endif
@@ -2687,7 +2664,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     set_nalu(&aps_nalu, EVC_APS_NUT);
     int aps_nalu_size = 0;
 
-#if ALF_PARAMETER_APS
+#if ALF
     /* Encode ALF in APS */
     if ((ctx->sps.tool_alf) && (ctx->sh.alf_on)) // User defined params
     {
@@ -2758,7 +2735,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
             while (1) // LCU level CABAC loop
             {
-#if APS_ALF_CTU_FLAG
+#if ALF
                 evc_AlfSliceParam* alfSliceParam = &(ctx->sh.alf_sh_param);
                 if ((alfSliceParam->isCtbAlfOn) && (sh->alf_on))
                 {
@@ -2766,13 +2743,8 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
                     sbac = GET_SBAC_ENC(bs);
                     EVC_TRACE_COUNTER;
                     EVC_TRACE_STR("Usage of ALF: ");
-#if ALF_CTU_MAP_DYNAMIC
                     evce_sbac_encode_bin((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)), sbac, sbac->ctx.ctb_alf_flag, bs);
                     EVC_TRACE_INT((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)));
-#else
-                    evce_sbac_encode_bin((int)(alfSliceParam->alfCtuEnableFlag[0][core->lcu_num]), sbac, sbac->ctx.ctb_alf_flag, bs);
-                    EVC_TRACE_INT((int)(alfSliceParam->alfCtuEnableFlag[0][core->lcu_num]));
-#endif
                     EVC_TRACE_STR("\n");
                 }
 #endif
@@ -2820,7 +2792,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     /* Encode slice data */
     while(1)
     {
-#if APS_ALF_CTU_FLAG
+#if ALF
         evc_AlfSliceParam* alfSliceParam = &(ctx->sh.alf_sh_param);
         if ((alfSliceParam->isCtbAlfOn) && (sh->alf_on))
         {
@@ -2828,13 +2800,8 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             sbac = GET_SBAC_ENC(bs);
             EVC_TRACE_COUNTER;
             EVC_TRACE_STR("Usage of ALF: ");
-#if ALF_CTU_MAP_DYNAMIC
             evce_sbac_encode_bin((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)), sbac, sbac->ctx.ctb_alf_flag, bs);
             EVC_TRACE_INT((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)));
-#else
-            evce_sbac_encode_bin((int)(alfSliceParam->alfCtuEnableFlag[0][core->lcu_num]), sbac, sbac->ctx.ctb_alf_flag, bs);
-            EVC_TRACE_INT((int)(alfSliceParam->alfCtuEnableFlag[0][core->lcu_num]));
-#endif
             EVC_TRACE_STR("\n");
         }
 #endif
@@ -2980,11 +2947,7 @@ int evce_platform_init(EVCE_CTX * ctx)
 #endif
 
 #if ALF
-#if ALF_PARAMETER_APS
     ctx->fn_alf = evce_alf_aps;
-#else
-    ctx->fn_alf = evce_alf;
-#endif
 #endif
     ctx->fn_ready = evce_ready;
     ctx->fn_flush = evce_flush;
@@ -3072,7 +3035,7 @@ EVCE evce_create(EVCE_CDSC * cdsc, int * err)
     /* set default value for ctx */
     ctx->magic = EVCE_MAGIC_CODE;
     ctx->id = (EVCE)ctx;
-#if ALF_PARAMETER_APS
+#if ALF
     ctx->sh.aps_signaled = -1;
 #endif
 

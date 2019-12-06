@@ -52,13 +52,8 @@ void call_create_enc_ALF(EncAdaptiveLoopFilter* p, const int picWidth, const int
 void call_destroy_enc_ALF(EncAdaptiveLoopFilter* p);
 
 void set_resetALFBufferFlag(EncAdaptiveLoopFilter* p, int flag);
-
-void call_enc_ALFProcess(EncAdaptiveLoopFilter* p, const double* lambdas, EVCE_CTX * ctx, EVC_PIC * pic, evc_AlfSliceParam* iAlfSliceParam);
-
-#if APS_ALF_SEQ_FIX
 u8 alf_aps_get_current_alf_idx();
 void alf_aps_enc_opt_process(EncAdaptiveLoopFilter* p, const double* lambdas, EVCE_CTX * ctx, EVC_PIC * pic, evc_AlfSliceParam* iAlfSliceParam);
-#endif
 
 #endif
 #ifdef __cplusplus
