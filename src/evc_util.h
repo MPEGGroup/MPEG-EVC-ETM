@@ -175,6 +175,10 @@ void evc_get_motion_merge_main(int poc, int slice_type, int scup, s8(*map_refi)[
 #endif
 );
 
+#if QC_ADMVP_CLEANUP
+void evc_get_merge_insert_mv(s8* refi_dst, s16 *mvp_dst_L0, s16 *mvp_dst_L1, s8* map_refi_src, s16* map_mv_src, int slice_type, int cuw, int cuh);
+#endif
+
 void evc_get_motion_skip_baseline(int slice_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],
     EVC_REFP refp[REFP_NUM], int cuw, int cuh, int w_scu, s8 refi[REFP_NUM][MAX_NUM_MVP], s16 mvp[REFP_NUM][MAX_NUM_MVP][MV_D], u16 avail_lr
 );
@@ -251,17 +255,9 @@ int evc_split_is_horizontal(SPLIT_MODE mode);
 
 #if ADMVP    
 void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 poc, int scup, int c_scu, u16 w_scu, u16 h_scu, s16 mvp[REFP_NUM][MV_D]
-#if ADMVP
-                    , s8 *refidx
-#endif
-                    , int sps_admvp_flag
-);
+                    , int sps_admvp_flag);
 #else
-void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 poc, int scup, u16 w_scu, s16 mvp[REFP_NUM][MV_D]
-#if ADMVP
-    , s8 *refidx
-#endif
-);
+void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 poc, int scup, u16 w_scu, s16 mvp[REFP_NUM][MV_D]);
 #endif
 
 int evc_get_avail_cu(int neb_scua[MAX_NEB2], u32 * map_cu);

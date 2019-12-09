@@ -3088,7 +3088,7 @@ static double analyze_t_direct(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 #endif
 
     pidx = PRED_DIR;
-    evc_get_mv_dir(pi->refp[0], ctx->poc.poc_val, core->scup + ((1 << (log2_cuw - MIN_CU_LOG2)) - 1) + ((1 << (log2_cuh - MIN_CU_LOG2)) - 1) * ctx->w_scu, core->scup, ctx->w_scu, ctx->h_scu, pi->mv[pidx], &refidx, ctx->sps.tool_admvp);
+    evc_get_mv_dir(pi->refp[0], ctx->poc.poc_val, core->scup + ((1 << (log2_cuw - MIN_CU_LOG2)) - 1) + ((1 << (log2_cuh - MIN_CU_LOG2)) - 1) * ctx->w_scu, core->scup, ctx->w_scu, ctx->h_scu, pi->mv[pidx], ctx->sps.tool_admvp);
 
     pi->mvd[pidx][REFP_0][MV_X] = 0;
     pi->mvd[pidx][REFP_0][MV_Y] = 0;

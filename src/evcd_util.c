@@ -804,9 +804,15 @@ void evcd_draw_partition(EVCD_CTX * ctx, EVC_PIC * pic)
 BOOL check_bi_applicability_dec(int slice_type, int cuw, int cuh)
 {
     BOOL is_applicable = FALSE;
+#if QC_TEST3 || QC_ADMVP_CLEANUP
+    if ((slice_type == SLICE_B) &&
+        !(cuw + cuh == 12)
+        )
+#else
     if ((slice_type == SLICE_B) &&
         !((max(cuw, cuh) < 8 && min(cuw, cuh) < 8))
         )
+#endif
     {
         is_applicable = TRUE;
     }

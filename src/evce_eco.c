@@ -472,6 +472,7 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
     int NumTilesInSlice = 0; //TBD according to the spec
 #endif
 
+#if !QC_ADMVP_SPEC_ALLIGHN
     evc_bsw_write1(bs, sh->temporal_mvp_asigned_flag);
     if (sh->temporal_mvp_asigned_flag)
     {
@@ -479,6 +480,7 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
         evc_bsw_write1(bs, sh->collocated_from_ref_idx);
         evc_bsw_write1(bs, sh->collocated_mvp_source_list_idx);
     }
+#endif
 
     evc_bsw_write_ue(bs, sh->slice_pic_parameter_set_id);
     evc_bsw_write1(bs, sh->single_tile_in_slice_flag);
@@ -593,6 +595,21 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
                 evc_bsw_write_ue(bs, (u32)(sh->rpl_l1).ref_pic_active_num - 1);
             }
         }
+#if QC_ADMVP_SPEC_ALLIGHN
+            if (sps->tool_admvp)
+            {
+                evc_bsw_write1(bs, sh->temporal_mvp_asigned_flag);
+                if (sh->temporal_mvp_asigned_flag)
+                {
+                    if (sh->slice_type == SLICE_B)
+                    {
+                        evc_bsw_write1(bs, sh->collocated_from_list_idx);
+                        evc_bsw_write1(bs, sh->collocated_mvp_source_list_idx);
+                    }
+                    evc_bsw_write1(bs, sh->collocated_from_ref_idx);
+                }
+            }
+#endif
     }
 
     evc_bsw_write1(bs, sh->deblocking_filter_on);
