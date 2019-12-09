@@ -41,6 +41,7 @@ extern "C"
 {
 #endif
        
+#define CHROMA_QP_TABLE_SUPPORT_M50663  1
 #define USE_TILE_GROUP_DQP              1
 #define DQP_CFG                         1
 #define EVC_TILE_SUPPORT                1
@@ -415,6 +416,9 @@ typedef struct _EVCE_CDSC
     int            out_bit_depth;
     int            profile;
     int            level;
+#if CHROMA_QP_TABLE_SUPPORT_M50663
+    int            toolset_idc;
+#endif
     int            btt;
     int            suco;
     int            add_qp_frame;

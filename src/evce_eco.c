@@ -90,11 +90,69 @@ int evce_eco_vui(EVC_BSW * bs)
     return EVC_OK;
 }
 
+#if CHROMA_QP_TABLE_SUPPORT_M50663
+void derived_chroma_qp_mapping_tables(EVC_SPS * sps)
+{
+    int MAX_QP = MAX_QP_TABLE_SIZE - 1;
+    int qpInVal[MAX_QP_TABLE_SIZE_EXT] = { 0 };
+    int qpOutVal[MAX_QP_TABLE_SIZE_EXT] = { 0 };
+
+    int qpBdOffsetC = 6 * sps->bit_depth_chroma_minus8;
+    int startQp = (sps->global_offset_flag == 1) ? 16 : -qpBdOffsetC;
+
+    for (int i = 0; i < (sps->same_qp_table_for_chroma ? 1 : 2); i++)
+    {
+        qpInVal[0] = startQp + sps->delta_qp_in_val_minus1[i][0];
+        qpOutVal[0] = startQp + sps->delta_qp_in_val_minus1[i][0] + sps->delta_qp_out_val[i][0];
+        for (int j = 1; j <= sps->num_points_in_qp_table[i]; j++)
+        {
+            qpInVal[j] = qpInVal[j - 1] + sps->delta_qp_in_val_minus1[i][j] + 1;
+            qpOutVal[j] = qpOutVal[j - 1] + (sps->delta_qp_in_val_minus1[i][j] + 1 + sps->delta_qp_out_val[i][j]);
+        }
+
+        for (int j = 0; j <= sps->num_points_in_qp_table[i]; j++)
+        {
+        assert(qpInVal[j]  >= -qpBdOffsetC && qpInVal[j]  < MAX_QP);// , "qpInVal out of range");
+        assert(qpOutVal[j] >= -qpBdOffsetC && qpOutVal[j] < MAX_QP);// , "qpOutVal out of range");
+        }
+
+        p_evc_tbl_qp_chroma_dynamic[i][qpInVal[0]] = qpOutVal[0];
+        for (int k = qpInVal[0] - 1; k >= -qpBdOffsetC; k--)
+        {
+            p_evc_tbl_qp_chroma_dynamic[i][k] = EVC_CLIP3(-qpBdOffsetC, MAX_QP, p_evc_tbl_qp_chroma_dynamic[i][k + 1] - 1);
+        }
+        for (int j = 0; j < sps->num_points_in_qp_table[i]; j++)
+        {
+            int sh = (sps->delta_qp_in_val_minus1[i][j + 1] + 1) >> 1;
+            for (int k = qpInVal[j] + 1, m = 1; k <= qpInVal[j + 1]; k++, m++)
+            {
+                p_evc_tbl_qp_chroma_dynamic[i][k] = p_evc_tbl_qp_chroma_dynamic[i][qpInVal[j]]
+                    + ((qpOutVal[j + 1] - qpOutVal[j]) * m + sh) / (sps->delta_qp_in_val_minus1[i][j + 1] + 1);
+            }
+        }
+        for (int k = qpInVal[sps->num_points_in_qp_table[i]] + 1; k <= MAX_QP; k++)
+        {
+            p_evc_tbl_qp_chroma_dynamic[i][k] = EVC_CLIP3(-qpBdOffsetC, MAX_QP, p_evc_tbl_qp_chroma_dynamic[i][k - 1] + 1);
+        }
+    }
+    if (sps->same_qp_table_for_chroma)
+    {
+        memcpy(&(p_evc_tbl_qp_chroma_dynamic[1][-qpBdOffsetC]), &(p_evc_tbl_qp_chroma_dynamic[0][-qpBdOffsetC]), MAX_QP_TABLE_SIZE_EXT * sizeof(int));
+    }
+}
+#endif
+
 int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
 {
     evc_bsw_write_ue(bs, (u32)sps->sps_seq_parameter_set_id);
+#if CHROMA_QP_TABLE_SUPPORT_M50663
+    evc_bsw_write(bs, (u32)sps->profile_idc, 8);
+    evc_bsw_write(bs, (u32)sps->level_idc, 8);
+    evc_bsw_write(bs, (u32)sps->toolset_idc, 32);
+#else
     evc_bsw_write(bs, (u32)sps->profile_idc, 7);
     evc_bsw_write(bs, (u32)sps->level_idc, 8);
+#endif
     evc_bsw_write_ue(bs, (u32)sps->chroma_format_idc);
     evc_bsw_write_ue(bs, (u32)sps->pic_width_in_luma_samples);
     evc_bsw_write_ue(bs, (u32)sps->pic_height_in_luma_samples);
@@ -255,7 +313,42 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
         evc_bsw_write_ue(bs, (u32)sps->picture_crop_top_offset);
         evc_bsw_write_ue(bs, (u32)sps->picture_crop_bottom_offset);
     }
+#if CHROMA_QP_TABLE_SUPPORT_M50663
+    int qpBdOffsetC = 6 * sps->bit_depth_chroma_minus8;
+    int inArray[] = { 22,37,40,45 };
+    int outArray[] = { 22,36,38,42 };
+    sps->chroma_qp_table_present_flag = 0;
+    evc_bsw_write1(bs, sps->chroma_qp_table_present_flag);
+    if (sps->chroma_qp_table_present_flag)
+    {
+        sps->same_qp_table_for_chroma = 1;
+        sps->global_offset_flag = (inArray[0] > 15 && inArray[0] > 15) ? 1 : 0;
+        int startQp = (sps->global_offset_flag == 1) ? 16 : -qpBdOffsetC;
+        for (int i = 0; i < (sps->same_qp_table_for_chroma ? 1 : 2); i++) {
+            sps->num_points_in_qp_table[i] = 3;
+            sps->delta_qp_in_val_minus1[i][0] = inArray[0]- startQp;
+            sps->delta_qp_out_val[i][0] = outArray[0] - startQp - sps->delta_qp_in_val_minus1[i][0];
 
+            for (int k = 1; k <= sps->num_points_in_qp_table[i]; k++)
+            {
+                sps->delta_qp_in_val_minus1[i][k] = (inArray[k] - inArray[k - 1]) - 1;
+                sps->delta_qp_out_val[i][k] = (outArray[k] - outArray[k - 1]) - (sps->delta_qp_in_val_minus1[i][k] + 1);
+            }
+        }
+
+        derived_chroma_qp_mapping_tables(sps);
+
+        evc_bsw_write1(bs, sps->same_qp_table_for_chroma);
+        evc_bsw_write1(bs, sps->global_offset_flag);
+        for (int i = 0; i < (sps->same_qp_table_for_chroma ? 1 : 2); i++) {
+            evc_bsw_write_ue(bs, (u32)sps->num_points_in_qp_table[i]);
+            for (int j = 0; j <= sps->num_points_in_qp_table[i]; j++) {
+                evc_bsw_write(bs, sps->delta_qp_in_val_minus1[i][j], 6);
+                evc_bsw_write_se(bs, (u32)sps->delta_qp_out_val[i][j]);
+            }
+        }
+    }
+#endif
     evc_bsw_write1(bs, sps->vui_parameters_present_flag);
     if (sps->vui_parameters_present_flag)
         evce_eco_vui(bs); //To be implemented

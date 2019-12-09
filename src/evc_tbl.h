@@ -67,9 +67,14 @@ extern const int evc_tbl_ipred_dxdy[IPD_CNT][2];
 extern u16 evc_split_tbl[SPLIT_CHECK_NUM][2];
 extern const u8  evc_split_order[2][SPLIT_CHECK_NUM];
 
-extern int evc_tbl_qp_chroma_ajudst_main[58];
-extern int evc_tbl_qp_chroma_ajudst_base[58];
+extern int evc_tbl_qp_chroma_ajudst_main[MAX_QP_TABLE_SIZE];
+extern int evc_tbl_qp_chroma_ajudst_base[MAX_QP_TABLE_SIZE];
 extern int* evc_tbl_qp_chroma_ajudst;
+#if CHROMA_QP_TABLE_SUPPORT_M50663
+extern int evc_tbl_qp_chroma_dynamic_ext[2][MAX_QP_TABLE_SIZE_EXT];
+extern int* p_evc_tbl_qp_chroma_dynamic_ext[2];// pointer to [0th position in evc_tbl_qp_chroma_dynamic_ext]
+extern int* p_evc_tbl_qp_chroma_dynamic[2];    // pointer to [12th position in evc_tbl_qp_chroma_dynamic_ext]
+#endif
 
 #if CTX_REPRESENTATION_IMPROVEMENT
 extern const s16 init_cbf[2][NUM_QT_CBF_CTX][1];

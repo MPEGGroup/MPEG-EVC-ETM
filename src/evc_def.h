@@ -38,6 +38,9 @@
 #include "evc_port.h"
 
 #define ALF_TILES_SUPPORT_M50663                     1
+#define CHROMA_QP_TABLE_SUPPORT_M50663               1
+#define MAX_QP_TABLE_SIZE  58   
+#define MAX_QP_TABLE_SIZE_EXT  70   
 #define FIX_END_OF_TILE_ONE_BIT_CODING               1
 
 //MPEG 128 adoptions
@@ -1326,6 +1329,9 @@ typedef struct _EVC_SPS
     int              sps_seq_parameter_set_id;
     int              profile_idc;
     int              level_idc;
+#if CHROMA_QP_TABLE_SUPPORT_M50663
+    int              toolset_idc;
+#endif
     int              chroma_format_idc;
     u16              pic_width_in_luma_samples;  
     u16              pic_height_in_luma_samples; 
@@ -1396,6 +1402,14 @@ typedef struct _EVC_SPS
     int              picture_crop_bottom_offset;
 #if DQP
     int              dquant_flag;              /*1 specifies the improved delta qp signaling processes is used*/
+#endif
+#if CHROMA_QP_TABLE_SUPPORT_M50663
+    int             chroma_qp_table_present_flag;              /*1 enables signaling of chroma QP table */
+    int             same_qp_table_for_chroma;
+    int             global_offset_flag;
+    int             num_points_in_qp_table [2];
+    int             delta_qp_in_val_minus1[2][MAX_QP_TABLE_SIZE];
+    int             delta_qp_out_val[2][MAX_QP_TABLE_SIZE];
 #endif
 #if IBC
     u8               ibc_flag;                   /* 1 bit : flag of enabling IBC or not */

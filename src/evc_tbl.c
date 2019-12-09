@@ -341,7 +341,7 @@ const u8 evc_split_order[2][SPLIT_CHECK_NUM] =
     { 0, 2, 1, 4, 3, 5 },
 };
 
-int evc_tbl_qp_chroma_ajudst_main[58] =
+int evc_tbl_qp_chroma_ajudst_main[MAX_QP_TABLE_SIZE] =
 {
     0,  1,  2,  3,  4,  5,  6,  7,  8,  9,
     10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
@@ -351,7 +351,7 @@ int evc_tbl_qp_chroma_ajudst_main[58] =
     47, 48, 49, 50, 51, 52, 53, 54
 };
 
-int evc_tbl_qp_chroma_ajudst_base[58] =
+int evc_tbl_qp_chroma_ajudst_base[MAX_QP_TABLE_SIZE] =
 {
      0,  1,  2,  3,  4,  5,  6,  7,  8,  9,
     10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
@@ -362,6 +362,12 @@ int evc_tbl_qp_chroma_ajudst_base[58] =
 };
 
 int* evc_tbl_qp_chroma_ajudst;
+#if CHROMA_QP_TABLE_SUPPORT_M50663
+// ChromaQP offset for U and V components
+int evc_tbl_qp_chroma_dynamic_ext[2][MAX_QP_TABLE_SIZE_EXT] = { { 0 }, {0} };
+int *p_evc_tbl_qp_chroma_dynamic_ext[2] = { &(evc_tbl_qp_chroma_dynamic_ext[0][0]) , &(evc_tbl_qp_chroma_dynamic_ext[1][0]) };
+int *p_evc_tbl_qp_chroma_dynamic[2] = { &(evc_tbl_qp_chroma_dynamic_ext[0][6 * (BIT_DEPTH - 8)]) , &(evc_tbl_qp_chroma_dynamic_ext[1][6 * (BIT_DEPTH - 8)]) };
+#endif
 
 #if CTX_REPRESENTATION_IMPROVEMENT
 #if ALF
