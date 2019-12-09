@@ -1419,7 +1419,7 @@ typedef struct _EVC_SPS
 #if CHROMA_QP_TABLE_SUPPORT_M50663
     int             chroma_qp_table_present_flag;              /*1 enables signaling of chroma QP table */
     int             same_qp_table_for_chroma;
-    int              global_offset_flag;
+    int             global_offset_flag;
     int             num_points_in_qp_table [2];
     int             delta_qp_in_val_minus1[2][MAX_QP_TABLE_SIZE];
     int             delta_qp_out_val[2][MAX_QP_TABLE_SIZE];

@@ -419,8 +419,8 @@ static void deblock_h263_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
                 deblock_scu_ver_chroma(u, p_evc_tbl_qp_chroma_dynamic[0][qp], s_c, 0, tbl_qp_to_st);
                 deblock_scu_ver_chroma(v, p_evc_tbl_qp_chroma_dynamic[1][qp], s_c, 0, tbl_qp_to_st);
 #else
-            deblock_scu_ver_chroma(u, evc_tbl_qp_chroma_ajudst[qp], s_c, 0, tbl_qp_to_st);
-            deblock_scu_ver_chroma(v, evc_tbl_qp_chroma_ajudst[qp], s_c, 0, tbl_qp_to_st);
+                deblock_scu_ver_chroma(u, evc_tbl_qp_chroma_ajudst[qp], s_c, 0, tbl_qp_to_st);
+                deblock_scu_ver_chroma(v, evc_tbl_qp_chroma_ajudst[qp], s_c, 0, tbl_qp_to_st);
 #endif
 #if M50761_CHROMA_NOT_SPLIT
             }
@@ -472,8 +472,8 @@ static void deblock_h263_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
                 deblock_scu_ver_chroma(u, p_evc_tbl_qp_chroma_dynamic[0][qp], s_c, 0, tbl_qp_to_st);
                 deblock_scu_ver_chroma(v, p_evc_tbl_qp_chroma_dynamic[1][qp], s_c, 0, tbl_qp_to_st);
 #else
-            deblock_scu_ver_chroma(u, evc_tbl_qp_chroma_ajudst[qp], s_c, 0, tbl_qp_to_st);
-            deblock_scu_ver_chroma(v, evc_tbl_qp_chroma_ajudst[qp], s_c, 0, tbl_qp_to_st);
+                deblock_scu_ver_chroma(u, evc_tbl_qp_chroma_ajudst[qp], s_c, 0, tbl_qp_to_st);
+                deblock_scu_ver_chroma(v, evc_tbl_qp_chroma_ajudst[qp], s_c, 0, tbl_qp_to_st);
 #endif
 #if M50761_CHROMA_NOT_SPLIT
             }

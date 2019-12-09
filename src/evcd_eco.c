@@ -2611,7 +2611,7 @@ int evcd_eco_vui(EVC_BSR * bs)
 }
 
 #if CHROMA_QP_TABLE_SUPPORT_M50663
-void derivedChromaQPMappingTablesDec(EVC_SPS * sps)
+void derived_chroma_qp_mapping_tables_dec(EVC_SPS * sps)
 {
     int MAX_QP = MAX_QP_TABLE_SIZE -1;
     int qpInVal[MAX_QP_TABLE_SIZE_EXT] = { 0 };
@@ -2632,8 +2632,8 @@ void derivedChromaQPMappingTablesDec(EVC_SPS * sps)
 
         for (int j = 0; j <= sps->num_points_in_qp_table[i]; j++)
         {
-        assert(qpInVal[j]  >= -qpBdOffsetC && qpInVal[j]  < MAX_QP);// , "qpInVal out of range");
-        assert(qpOutVal[j] >= -qpBdOffsetC && qpOutVal[j] < MAX_QP);// , "qpOutVal out of range");
+            assert(qpInVal[j]  >= -qpBdOffsetC && qpInVal[j]  < MAX_QP);// , "qpInVal out of range");
+            assert(qpOutVal[j] >= -qpBdOffsetC && qpOutVal[j] < MAX_QP);// , "qpOutVal out of range");
         }
 
         p_evc_tbl_qp_chroma_dynamic[i][qpInVal[0]] = qpOutVal[0];

@@ -91,7 +91,7 @@ int evce_eco_vui(EVC_BSW * bs)
 }
 
 #if CHROMA_QP_TABLE_SUPPORT_M50663
-void derivedChromaQPMappingTables(EVC_SPS * sps)
+void derived_chroma_qp_mapping_tables(EVC_SPS * sps)
 {
     int MAX_QP = MAX_QP_TABLE_SIZE - 1;
     int qpInVal[MAX_QP_TABLE_SIZE_EXT] = { 0 };
@@ -336,7 +336,7 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
             }
         }
 
-        derivedChromaQPMappingTables(sps);
+        derived_chroma_qp_mapping_tables(sps);
 
         evc_bsw_write1(bs, sps->same_qp_table_for_chroma);
         evc_bsw_write1(bs, sps->global_offset_flag);

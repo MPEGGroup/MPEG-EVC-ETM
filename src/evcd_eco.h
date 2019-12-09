@@ -55,7 +55,7 @@ int evcd_eco_udata(EVCD_CTX * ctx, EVC_BSR * bs);
 void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_init_flag);
 int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core);
 #if CHROMA_QP_TABLE_SUPPORT_M50663
-void derivedChromaQPMappingTablesDec(EVC_SPS * sps);
+void derived_chroma_qp_mapping_tables_dec(EVC_SPS * sps);
 #endif
 
 s8 evcd_eco_split_mode(EVCD_CTX * ctx, EVC_BSR *bs, EVCD_SBAC *sbac, int cuw, int cuh, const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int* curr_split_allow, int qt_depth, int btt_depth, int x, int y);

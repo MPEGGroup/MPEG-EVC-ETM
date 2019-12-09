@@ -252,7 +252,9 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
     memcpy(&(evc_tbl_qp_chroma_dynamic_ext[0][6 * (BIT_DEPTH - 8)]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
     memcpy(&(evc_tbl_qp_chroma_dynamic_ext[1][6 * (BIT_DEPTH - 8)]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
     if (sps->chroma_qp_table_present_flag)
-        {derivedChromaQPMappingTablesDec(sps);}
+    {
+        derived_chroma_qp_mapping_tables_dec(sps);
+    }
 #endif
 
     return EVC_OK;
