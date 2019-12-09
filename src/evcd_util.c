@@ -569,7 +569,7 @@ int write_pic(char * fname, EVC_PIC * pic)
     cnt++;
     if (fp == NULL)
     {
-        evc_print("cannot open file = %s\n", fname);
+        assert(!"cannot open file");
         return -1;
     }
 

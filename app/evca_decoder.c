@@ -37,13 +37,6 @@
 #include "evca_util.h"
 #include "evca_args.h"
 
-#if LINUX
-#include <signal.h>
-#include <stdlib.h>
-#include <unistd.h>
-
-#endif
-
 #define VERBOSE_NONE               VERBOSE_0
 #define VERBOSE_FRAME              VERBOSE_1
 #define VERBOSE_ALL                VERBOSE_2
@@ -177,64 +170,18 @@ static int read_nalu(FILE * fp, int * pos, unsigned char * bs_buf)
     return read_size;
 }
 
-static int print_stat(EVCD_STAT * stat, int ret)
+static void print_stat(EVCD_STAT * stat, int ret)
 {
-    char stype;
     int i, j;
 
     if(EVC_SUCCEEDED(ret))
     {
         if(stat->nalu_type < EVC_SPS_NUT)
         {
-            switch(stat->stype)
-            {
-            case EVC_ST_I:
-                stype = 'I';
-                break;
+            v1print("%c-slice", stat->stype == EVC_ST_I ? 'I' : stat->stype == EVC_ST_P ? 'P' : 'B');
 
-            case EVC_ST_P:
-                stype = 'P';
-                break;
-
-            case EVC_ST_B:
-                stype = 'B';
-                break;
-
-            case EVC_ST_UNKNOWN:
-            default :
-                stype = 'U';
-                break;
-            }
-            v1print("%c-slice", stype);
-        }
-        else if(stat->nalu_type == EVC_SPS_NUT)
-        {
-            v1print("Sequence Parameter Set");
-        }
-        else if (stat->nalu_type == EVC_PPS_NUT)
-        {
-            v1print("Picture Parameter Set");
-        }
-#if ALF
-        else if (stat->nalu_type == EVC_APS_NUT)
-        {
-            v1print("Adaptation Parameter Set");
-        }
-#endif
-        else if (stat->nalu_type == EVC_SEI_NUT)
-        {
-            v1print("SEI message");
-        }
-        else
-        {
-            v0print("Unknown bitstream");
-        }
-
-        v1print(" (%d bytes", stat->read);
-
-        if (stat->nalu_type < EVC_SPS_NUT)
-        {
-            v1print(", poc=%d, tid=%d) ", (int)stat->poc, (int)stat->tid);
+            v1print(" (%d bytes", stat->read);
+            v1print(", poc=%d, tid=%d, ", (int)stat->poc, (int)stat->tid);
 
             for (i = 0; i < 2; i++)
             {
@@ -243,12 +190,45 @@ static int print_stat(EVCD_STAT * stat, int ret)
                 v1print("] ");
             }
         }
+        else if(stat->nalu_type == EVC_SPS_NUT)
+        {
+            v1print("Sequence Parameter Set (%d bytes)", stat->read);
+        }
+        else if (stat->nalu_type == EVC_PPS_NUT)
+        {
+            v1print("Picture Parameter Set (%d bytes)", stat->read);
+        }
+#if ALF
+        else if (stat->nalu_type == EVC_APS_NUT)
+        {
+            v1print("Adaptation Parameter Set (%d bytes)", stat->read);
+        }
+#endif
+        else if (stat->nalu_type == EVC_SEI_NUT)
+        {
+            v1print("SEI message: ");
+            if (ret == EVC_OK)
+            {
+                v1print("MD5 check OK");
+            }
+            else if (ret == EVC_ERR_BAD_CRC)
+            {
+                v1print("MD5 check mismatch!");
+            }
+            else if (ret == EVC_WARN_CRC_IGNORED)
+            {
+                v1print("MD5 check ignored!");
+            }
+        }
         else
         {
-            v1print(")");
+            v0print("Unknown bitstream");
         }
 
-        if(ret == EVC_OK)
+        v1print("\n");
+
+        //TBD the following stages need to be further hadnled in the proper places
+        /*if(ret == EVC_OK)
         {
             v1print("\n");
         }
@@ -260,24 +240,15 @@ static int print_stat(EVCD_STAT * stat, int ret)
         {
             v1print("--> Resolution changed\n");
         }
-        else if (ret == EVC_ERR_BAD_CRC)
-        {
-            v1print(" --> MD5 hash mismatch!\n");
-        }
-        else if (ret == EVC_WARN_CRC_IGNORED)
-        {
-            v1print(" --> MD5 hash check ignored!\n");
-        }
         else
         {
             v1print(" --> Unknown warning code = %d\n", ret);
-        }
+        }*/
     }
     else
     {
         v0print("Decoding error = %d\n", ret);
     }
-    return 0;
 }
 
 static int set_extra_config(EVCD id)
@@ -422,11 +393,7 @@ int main(int argc, const char **argv)
             if(EVC_FAILED(ret))
             {
                 v0print("failed to decode bitstream\n");
-                return -1;
-            }
-            else if (ret > EVC_OK)
-            {
-                process_status = ret;
+                goto END;
             }
 
 #if !DECODING_TIME_TEST
@@ -439,6 +406,8 @@ int main(int argc, const char **argv)
                 v0print("\t=> different reading of bitstream (in:%d, read:%d)\n",
                     bs_size, stat.read);
             }
+
+            process_status = ret;
         }
         if(stat.fnum >= 0 || state == STATE_BUMPING)
         {

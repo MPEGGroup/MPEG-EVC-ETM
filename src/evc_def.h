@@ -202,34 +202,21 @@
 //                              SIMD Optimizations                            //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
-#ifdef X86_SSE
-#define OPT_SIMD                           1 ///< Enable all SIMD related optimizations
-#else
-#define OPT_SIMD                           0 ///< Enable all SIMD related optimizations
-#endif
-
-/* OPT_SIMD (START) */
-#if OPT_SIMD
+#if X86_SSE
 #define OPT_SIMD_MC_L                      1
 #define OPT_SIMD_MC_C                      1
 #define OPT_SIMD_MC_BL                     1
-
 #define OPT_SIMD_SAD                       1
-#define OPT_SIMD_MR_SAD                    1
 #define OPT_SIMD_HAD_SAD                   1
 #define OPT_SIMD_DMVR_MR_SAD               1
-#define OPT_SIMD_STR                       1
 #else
 #define OPT_SIMD_MC_L                      0
-#define OPT_SIMD_MC_C                      0
+#define OPT_SIMD_MC_C                      0 
 #define OPT_SIMD_MC_BL                     0
 #define OPT_SIMD_SAD                       0
-#define OPT_SIMD_MR_SAD                    0
 #define OPT_SIMD_HAD_SAD                   0
 #define OPT_SIMD_DMVR_MR_SAD               0
-#define OPT_SIMD_STR                       0
 #endif
-/* OPT_SIMD (END) */
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //

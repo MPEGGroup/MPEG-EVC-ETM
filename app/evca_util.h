@@ -62,10 +62,10 @@ extern "C"
 #include <time.h>
 
 /* print function ************************************************************/
-#if defined(LINUX)
-#define print(args...) printf(args)
-#else
+#if _WIN32
 #define print(args, ...) printf(args, __VA_ARGS__)
+#else
+#define print(args...) printf(args)
 #endif
 
 #define VERBOSE_0                  0
@@ -74,18 +74,17 @@ extern "C"
 
 static int op_verbose = VERBOSE_2;
 
-
-#if defined(LINUX)
-#define v0print(args...) {if(op_verbose >= VERBOSE_0) {print(args);}}
-#define v1print(args...) {if(op_verbose >= VERBOSE_1) {print(args);}}
-#define v2print(args...) {if(op_verbose >= VERBOSE_2) {print(args);}}
-#else
+#if _WIN32
 #define v0print(args,...) {if(op_verbose >= VERBOSE_0){print(args,__VA_ARGS__);}}
 #define v1print(args,...) {if(op_verbose >= VERBOSE_1){print(args,__VA_ARGS__);}}
 #define v2print(args,...) {if(op_verbose >= VERBOSE_2){print(args,__VA_ARGS__);}}
+#else
+#define v0print(args...) {if(op_verbose >= VERBOSE_0) {print(args);}}
+#define v1print(args...) {if(op_verbose >= VERBOSE_1) {print(args);}}
+#define v2print(args...) {if(op_verbose >= VERBOSE_2) {print(args);}}
 #endif
 /****************************************************************************/
-#if defined(WIN32) || defined(WIN64)
+#if _WIN32
 #include <windows.h>
 
 #define EVC_CLK             DWORD
@@ -98,7 +97,7 @@ static int op_verbose = VERBOSE_2;
 #define evc_clk_get()       GetTickCount()
 #endif
 /****************************************************************************/
-#elif defined(LINUX) || defined(ANDROID)
+#elif __linux__ || __CYGWIN__
 #include <time.h>
 #include <sys/time.h>
 #define EVC_CLK             unsigned long
@@ -119,7 +118,7 @@ static EVC_CLK evc_clk_get(void)
 }
 /* The others ***************************************************************/
 #else
-#error THIS PLATFORM CANNOT SUPPORT CLOCK.
+#error THIS PLATFORM CANNOT SUPPORT CLOCK
 #endif
 
 #define evc_clk_diff(t1, t2) \
