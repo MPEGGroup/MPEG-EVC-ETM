@@ -2433,15 +2433,19 @@ void evce_eco_inter_dir(EVC_BSW *bs, s8 refi[REFP_NUM]
         evce_sbac_encode_bin(1, sbac, sbac->ctx.inter_dir + 1, bs);
         EVC_TRACE_INT(PRED_BI);
 #if REMOVE_BI_INTERDIR
-        evc_assert(check_bi_applicability_rdo(slice_type, cuw, cuh));
+        //evc_assert(check_bi_applicability(slice_type, cuw, cuh)); TBD(@Chernyak)
+        assert(check_bi_applicability(slice_type, cuw, cuh));
 #endif
     }
     else
     {
 #if REMOVE_BI_INTERDIR
-        if (check_bi_applicability_rdo(slice_type, cuw, cuh))
+        if (check_bi_applicability(slice_type, cuw, cuh))
 #endif
-        evce_sbac_encode_bin(0, sbac, sbac->ctx.inter_dir + 1, bs);
+        {
+            evce_sbac_encode_bin(0, sbac, sbac->ctx.inter_dir + 1, bs);
+        }
+
         if(REFI_IS_VALID(refi[REFP_0])) /* PRED_L0 */
         {
             evce_sbac_encode_bin(0, sbac, sbac->ctx.inter_dir + 2, bs);
