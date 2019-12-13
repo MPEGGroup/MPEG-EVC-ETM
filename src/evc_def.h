@@ -37,6 +37,8 @@
 #include "evc.h"
 #include "evc_port.h"
 
+#define AFFINE_TMVP_SPEC_CONDITION_ALIGN             1
+
 #define ALF_TILES_SUPPORT_M50663                     1
 #define CHROMA_QP_TABLE_SUPPORT_M50663               1
 #define MAX_QP_TABLE_SIZE  58   
