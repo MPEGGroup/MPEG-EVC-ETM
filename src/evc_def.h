@@ -43,7 +43,6 @@
 #define CHROMA_QP_TABLE_SUPPORT_M50663               1
 #define MAX_QP_TABLE_SIZE  58   
 #define MAX_QP_TABLE_SIZE_EXT  70   
-#define FIX_END_OF_TILE_ONE_BIT_CODING               1
 
 //MPEG 128 adoptions
 #define M50662                                       1

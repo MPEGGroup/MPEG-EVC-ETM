@@ -2794,16 +2794,8 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
                 ctb_cnt_in_tile--;
                 ctx->lcu_cnt--; //To be updated properly in case of multicore
 
-                                /* end_of_picture_flag */
-#if FIX_END_OF_TILE_ONE_BIT_CODING
+                /* end_of_picture_flag */
                 if(ctb_cnt_in_tile == 0)
-#else
-                if (ctb_cnt_in_tile > 0)
-                {
-                    evce_eco_tile_end_flag(bs, 0);
-                }
-                else
-#endif
                 {
                     evce_eco_tile_end_flag(bs, 1);
                     evce_sbac_finish(bs);

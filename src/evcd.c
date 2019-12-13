@@ -2159,18 +2159,12 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
             lcu_cnt_in_tile--;
 
             /* read end_of_picture_flag */
-#if FIX_END_OF_TILE_ONE_BIT_CODING
             if(lcu_cnt_in_tile == 0)
             {
                 assert(evcd_eco_tile_end_flag(bs, sbac) == 1);
                 break;
             }
-#else
-            if (evcd_eco_tile_end_flag(bs, sbac))
-            {
-                break;
-            }
-#endif
+
             core->x_lcu++;
             if (core->x_lcu >= ctx->tile[i].w_ctb + col_bd)
             {
