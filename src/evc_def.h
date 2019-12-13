@@ -45,8 +45,6 @@
 #define MAX_QP_TABLE_SIZE_EXT  70   
 #define FIX_END_OF_TILE_ONE_BIT_CODING               1
 
-#define QC_ADMVP_SPEC_ALLIGHN                        1  // ADMVP signaling alligned to spec.
-
 // Affine memory bandwith threhsold:
 #define QC_THRESHOLD                                 0
 
