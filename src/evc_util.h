@@ -419,13 +419,6 @@ BOOL check_bi_applicability(int slice_type, int cuw, int cuh);
 
 void evc_block_copy(s16 * src, int src_stride, s16 * dst, int dst_stride, int log2_copy_w, int log2_copy_h);
 
-#if M50761_REMOVE_BIBLOCKS_8x4
-char allowed_block_size(int cuw, int cuh);
-char process_bi_mv(s16 *mv0, s8* refi);
-BOOL check_bi_applicability_rdo(int tile_group_type, int cuw, int cuh);
-#endif
-
-
 #if M50761_CHROMA_NOT_SPLIT
 u8 evc_check_chroma_split_allowed(int luma_width, int luma_height);
 u8 evc_tree_split_allowed(int w, int h, SPLIT_MODE split);

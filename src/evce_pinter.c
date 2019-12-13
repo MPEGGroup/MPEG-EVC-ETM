@@ -2311,13 +2311,7 @@ static double analyze_skip_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y
             {
                 continue;
             }
-#if M50761_REMOVE_BIBLOCKS_8x4
-            if (!check_bi_applicability_rdo(ctx->slice_type, cuw, cuh) && REFI_IS_VALID(refi[REFP_0]) && REFI_IS_VALID(refi[REFP_1]))
-            {
-                if (!process_bi_mv((s16 *)mvp, refi))
-                    continue;
-            }
-#endif
+
             evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi, mvp, pi->refp, pi->pred[PRED_NUM],
                    ctx->poc.poc_val, pi->dmvr_template, pi->dmvr_ref_pred_interpolated,
                    pi->dmvr_half_pred_interpolated, FALSE, pi->dmvr_padding_buf, &core->dmvr_flag, dmvr_mv, ctx->sps.tool_amis);
@@ -2698,14 +2692,6 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
             {
                 continue;
             }
-#if M50761_REMOVE_BIBLOCKS_8x4
-            if (!check_bi_applicability_rdo(ctx->slice_type, cuw, cuh) && REFI_IS_VALID(refi[REFP_0]) && REFI_IS_VALID(refi[REFP_1]))
-            {
-                if (!process_bi_mv((s16 *)mvp, refi))
-                    continue;
-            }
-#endif
-
 #if DMVR
             evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi, mvp, pi->refp, pi->pred[PRED_NUM], ctx->poc.poc_val, pi->dmvr_template, pi->dmvr_ref_pred_interpolated
                    , pi->dmvr_half_pred_interpolated, TRUE && ctx->sps.tool_dmvr
@@ -2960,13 +2946,6 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
         {
             continue;
         }
-#if M50761_REMOVE_BIBLOCKS_8x4
-        if (!check_bi_applicability_rdo(ctx->slice_type, cuw, cuh) && REFI_IS_VALID(refi[REFP_0]) && REFI_IS_VALID(refi[REFP_1]))
-        {
-            if (!process_bi_mv((s16 *)mvp, refi))
-                continue;
-        }
-#endif
 
         pi->mvp_idx[pidx][REFP_0] = idx0;
         pi->mvp_idx[pidx][REFP_1] = idx0;
@@ -3096,13 +3075,6 @@ static double analyze_t_direct(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
     pi->mvd[pidx][REFP_1][MV_Y] = 0;
 
     SET_REFI(pi->refi[pidx], 0, 0);
-#if M50761_REMOVE_BIBLOCKS_8x4 
-    if (!check_bi_applicability_rdo(ctx->slice_type, 1 << log2_cuw, 1 << log2_cuh))
-    {
-        if (process_bi_mv((s16 *)pi->mv[pidx], pi->refi[pidx]) != 2)
-            return MAX_COST;
-    }
-#endif
 
     cost = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[pidx], pi->coef[pidx], pidx, pi->mvp_idx[pidx], FALSE);
 
@@ -3186,13 +3158,6 @@ static double analyze_skip_mmvd(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, 
         {
             continue;
         }
-#if M50761_REMOVE_BIBLOCKS_8x4
-        if (!check_bi_applicability_rdo(ctx->slice_type, cuw, cuh) && REFI_IS_VALID(refi[REFP_0]) && REFI_IS_VALID(refi[REFP_1]))
-        {
-            if (!process_bi_mv((s16 *)mvp, refi))
-                continue;
-        }
-#endif
 
 #if DMVR
         evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi, mvp, pi->refp, pi->pred[PRED_NUM], ctx->poc.poc_val, pi->dmvr_template, pi->dmvr_ref_pred_interpolated
@@ -3277,13 +3242,6 @@ static double analyze_skip_mmvd(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, 
     mvp[REFP_1][MV_Y] = real_mv[best_idx_num][1][MV_Y];
     pi->refi[PRED_SKIP_MMVD][REFP_0] = real_mv[best_idx_num][0][2];
     pi->refi[PRED_SKIP_MMVD][REFP_1] = real_mv[best_idx_num][1][2];
-#if M50761_REMOVE_BIBLOCKS_8x4 
-    if (!check_bi_applicability_rdo(ctx->slice_type, cuw, cuh) && REFI_IS_VALID(pi->refi[PRED_SKIP_MMVD][REFP_0]) && REFI_IS_VALID(pi->refi[PRED_SKIP_MMVD][REFP_1]))
-    {
-        if (!process_bi_mv((s16 *)mvp, pi->refi[PRED_SKIP_MMVD]))
-            return MAX_COST;
-    }
-#endif
 
     pi->mvd[PRED_SKIP_MMVD][REFP_0][MV_X] = 0;
     pi->mvd[PRED_SKIP_MMVD][REFP_0][MV_Y] = 0;
@@ -3371,14 +3329,6 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         {
             continue;
         }
-#if M50761_REMOVE_BIBLOCKS_8x4
-        if (!check_bi_applicability_rdo(ctx->slice_type, 1 << log2_cuw, 1 << log2_cuh) && REFI_IS_VALID(pi->refi[pidx][REFP_0]) && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
-        {
-            if (!process_bi_mv((s16 *)pi->mv[pidx], pi->refi[pidx]))
-                continue;
-            evc_mcpy(refi, pi->refi, sizeof(refi));
-        }
-#endif
 
         pi->mvd[pidx][REFP_0][MV_X] = 0;
         pi->mvd[pidx][REFP_0][MV_Y] = 0;
@@ -3454,16 +3404,7 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         {
             continue;
         }
-#if M50761_REMOVE_BIBLOCKS_8x4
-        if (c_num == -1)
-            continue;
-        if (!check_bi_applicability_rdo(ctx->slice_type, 1 << log2_cuw, 1 << log2_cuh) && REFI_IS_VALID(pi->refi[pidx][REFP_0]) && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
-        {
-            if (!process_bi_mv((s16 *)pi->mv[pidx], pi->refi[pidx]))
-                continue;
-            evc_mcpy(refi, pi->refi, sizeof(refi));
-        }
-#endif
+
         pi->mvd[pidx][REFP_0][MV_X] = 0;
         pi->mvd[pidx][REFP_0][MV_Y] = 0;
         pi->mvd[pidx][REFP_1][MV_X] = 0;
@@ -3507,16 +3448,6 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         {
             continue;
         }
-#if M50761_REMOVE_BIBLOCKS_8x4
-        if (c_num == -1)
-            continue;
-        if (!check_bi_applicability_rdo(ctx->slice_type, 1 << log2_cuw, 1 << log2_cuh) && REFI_IS_VALID(pi->refi[pidx][REFP_0]) && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
-        {
-            if (!process_bi_mv((s16 *)pi->mv[pidx], pi->refi[pidx]))
-                continue;
-            evc_mcpy(refi, pi->refi, sizeof(refi));
-        }
-#endif
 
         pi->mvd[pidx][REFP_0][MV_X] = 0;
         pi->mvd[pidx][REFP_0][MV_Y] = 0;
@@ -3567,13 +3498,6 @@ static double analyze_bi(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_
 
     cuw = (1 << log2_cuw);
     cuh = (1 << log2_cuh);
-
-#if M50761_REMOVE_BIBLOCKS_8x4
-    if (!check_bi_applicability_rdo(ctx->slice_type, cuw, cuh))
-    {
-        return MAX_COST;
-    }
-#endif
 
     if(bi_idx == BI_FL0 || bi_idx == BI_FL1)
     {
@@ -6199,11 +6123,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                 }
             }
 #if ADMVP
-            if(check_bi_applicability(pi->slice_type, cuw, cuh)
-#if M50761_REMOVE_BIBLOCKS_8x4
-                && check_bi_applicability_rdo(pi->slice_type, cuw, cuh)
-#endif
-                )
+            if(check_bi_applicability(pi->slice_type, cuw, cuh) )
 #else
             if(pi->slice_type == SLICE_B)
 #endif

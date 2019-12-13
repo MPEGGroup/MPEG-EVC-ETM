@@ -1110,12 +1110,6 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
                     }
                 }
             }
-#if M50761_REMOVE_BIBLOCKS_8x4 
-            if (!check_bi_applicability_rdo(ctx->sh.slice_type, 1 << core->log2_cuw, 1 << core->log2_cuh) && REFI_IS_VALID(core->refi[REFP_0]) && REFI_IS_VALID(core->refi[REFP_1]))
-            {
-                evc_assert(process_bi_mv((s16 *)core->mv, core->refi));
-            }
-#endif
 #if DMVR
             evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, core->refi, core->mv, ctx->refp, core->pred, ctx->poc.poc_val, core->dmvr_template, core->dmvr_ref_pred_interpolated
                    , core->dmvr_half_pred_interpolated

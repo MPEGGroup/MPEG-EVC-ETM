@@ -1874,19 +1874,6 @@ static int evc_get_right_below_scup(int scup, int cuw, int cuh, int w_scu, int h
 }
 #endif
 
-#if M50761_REMOVE_BIBLOCKS_8x4
-BOOL check_bi_applicability_rdo(int tile_group_type, int cuw, int cuh)
-{
-    BOOL is_applicable = FALSE;
-    if ((tile_group_type == SLICE_B) &&
-        allowed_block_size(cuw, cuh))
-    {
-        is_applicable = TRUE;
-    }
-    return is_applicable;
-}
-#endif
-
 #if ADMVP
 BOOL check_bi_applicability(int slice_type, int cuw, int cuh)
 {
@@ -6529,20 +6516,6 @@ void evc_get_mv_collocated(EVC_REFP(*refp)[REFP_NUM], u32 poc, int scup, int c_s
     int flag = REFI_IS_VALID(ver_refi[REFP_0]) + (REFI_IS_VALID(ver_refi[REFP_1]) << 1);
     *availablePredIdx = flag; // combines flag and indication on what type of prediction is ( 0 - not available, 1 = uniL0, 2 = uniL1, 3 = Bi)
 }
-
-#if M50761_REMOVE_BIBLOCKS_8x4
-char process_bi_mv(s16 *mv, s8* refi)
-{
-    refi[1] = REFI_INVALID;
-    return 1;
-}
-
-char allowed_block_size(int cuw, int cuh)
-{
-    return !((max(cuw, cuh) == 8 && min(cuw, cuh) == 4));
-}
-#endif
-
 
 #if M50761_CHROMA_NOT_SPLIT
 int evc_get_luma_cup(int x_scu, int y_scu, int cu_w_scu, int cu_h_scu, int w_scu)

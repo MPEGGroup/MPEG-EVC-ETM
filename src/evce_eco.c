@@ -2433,7 +2433,6 @@ void evce_eco_inter_dir(EVC_BSW *bs, s8 refi[REFP_NUM]
         evce_sbac_encode_bin(1, sbac, sbac->ctx.inter_dir + 1, bs);
         EVC_TRACE_INT(PRED_BI);
 #if REMOVE_BI_INTERDIR
-        //evc_assert(check_bi_applicability(slice_type, cuw, cuh)); TBD(@Chernyak)
         assert(check_bi_applicability(slice_type, cuw, cuh));
 #endif
     }
@@ -3190,12 +3189,6 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 #endif
       )
     {
-#if M50761_REMOVE_BIBLOCKS_8x4 
-        if (!check_bi_applicability_rdo(ctx->sh.slice_type, cuw, cuh) && REFI_IS_VALID(cu_data->refi[cup][REFP_0]) && REFI_IS_VALID(cu_data->refi[cup][REFP_1]))
-        {
-            evc_assert(0);
-        }
-#endif
 #if IBC
         if(!(ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
         {

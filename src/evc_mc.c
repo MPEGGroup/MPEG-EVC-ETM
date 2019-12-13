@@ -7117,9 +7117,6 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
 #if DMVR
         BOOL template_needs_update = FALSE;
         s32 center_cost[2] = {1 << 30, 1 << 30};
-#if M50761_REMOVE_BIBLOCKS_8x4
-        evc_assert(check_bi_applicability_rdo(SLICE_B, w, h));
-#endif
 
         //only if the references are located on opposite sides of the current frame
         if(apply_DMVR && dmvr_poc_condition)

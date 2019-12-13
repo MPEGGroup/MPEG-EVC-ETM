@@ -104,9 +104,6 @@
 #define M50761_DMVR_SIMP_SUBPUPAD                  1 //sub PU padding 
 #define M50761_DMVR_RESTRICT_SMALL_BLOCKS          1 //apply DMVR for blocks with w >=8 && h >= 8
 
-#define M50761_REMOVE_BIBLOCKS_8x4                 0
-#if M50761_REMOVE_BIBLOCKS_8x4
-#endif
 #define REMOVE_BI_INTERDIR                         1   // Remove signalling part of Inter dir flag
 #define FIX_IBC_PRED_MODE_4x4                      1   // Remove signalling of pred.mode flag for blocks 4x4 if IBC is on
 
