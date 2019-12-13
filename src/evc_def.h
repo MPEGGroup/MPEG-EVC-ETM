@@ -45,11 +45,7 @@
 #define MAX_QP_TABLE_SIZE_EXT  70   
 #define FIX_END_OF_TILE_ONE_BIT_CODING               1
 
-// Affine memory bandwith threhsold:
-#define QC_THRESHOLD                                 0
-
 //MPEG 128 adoptions
-
 #define M50662                                       1
 #if M50662
 #define M50662_AFFINE_IBC_TMVP_SUCO_FIX              1
@@ -422,11 +418,7 @@ enum SAD_POINT_INDEX
 /* EIF (END) */
 
 #if EIF_MEMORY_BANDWIDTH_RESTRICTION
-#if QC_THRESHOLD
-#define MAX_MEMORY_ACCESS_BI             72  // Threshold fo affine bandwith flag triggering aligned to the effective MV clipping value
-#else
 #define MAX_MEMORY_ACCESS_BI           ( (4 + 5) * (4 + 5) )
-#endif
 #else
 #define MAX_MEMORY_ACCESS_BI             ((8 + 7) * (8 + 7) / 64)
 #define MAX_MEMORY_ACCESS_UNI            ((8 + 7) * (4 + 7) / 32)
