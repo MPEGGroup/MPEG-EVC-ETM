@@ -45,19 +45,10 @@
 #define MAX_QP_TABLE_SIZE_EXT  70   
 #define FIX_END_OF_TILE_ONE_BIT_CODING               1
 
-// ETM4.1_rcQC_admvp  - clean up and spec alignment with specification
-#define QC_ADMVP_SPEC_ALLIGHN                         1  // ADMVP signaling alligned to spec.
-#define QC_ADMVP_CLEANUP                              1  // ADMVP ADMVP implementation spec alignment and simplification
-#if !QC_ADMVP_CLEANUP                                //  Detailed changes are in disabled macro branch for information (to be cleaned)
-#define QC_TEST2                                     1 // disable HEVC combined-bi pruning (aligned with Spec)
-#define QC_TEST3                                     1 // Fix block size constrain when constructing merge list (aligned with Spec)
-#define QC_TEST4                                     1 // enable list one in case of uni-pred merge candidate (aligned with Spec)
-#define QC_TEST7                                     1 // introduce bi-uni conversion in DMVR branch of ADMVP  (aligned with Spec)
-#endif
+#define QC_ADMVP_SPEC_ALLIGHN                        1  // ADMVP signaling alligned to spec.
 
 // Affine memory bandwith threhsold:
 #define QC_THRESHOLD                                 0
-
 
 //MPEG 128 adoptions
 
