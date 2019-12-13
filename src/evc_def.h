@@ -118,14 +118,13 @@
 #define M50632_IMPROVEMENT_MMVD            1
 #define M50632_IMPROVEMENT_SPS             1
 #define M50632_IMPROVEMENT_BASELINE        1
-#endif
 
 #if M50632_IMPROVEMENT_BASELINE
 #define CTX_MODEL_FOR_RESIDUAL_IN_BASE     0
 #else
 #define CTX_MODEL_FOR_RESIDUAL_IN_BASE     1
 #endif
-#define USE_SLICE_DQP                      1
+#endif
 
 /* Profiles definitions */
 #define PROFILE_BASELINE                   0

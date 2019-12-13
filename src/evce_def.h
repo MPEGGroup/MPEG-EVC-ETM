@@ -499,9 +499,7 @@ typedef struct _EVCE_PARAM
     /* config parameter for cu_qp_delta_area*/
     int                 cu_qp_delta_area;
 #endif
-#if USE_SLICE_DQP
     int                 qp_incread_frame;           /* 10 bits*/
-#endif
 #if EVC_TILE_SUPPORT
     /* number of tile' columns (1-20)*/
     int                 tile_columns;

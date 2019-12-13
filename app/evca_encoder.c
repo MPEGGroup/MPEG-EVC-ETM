@@ -102,9 +102,7 @@ static int  op_profile            = 1;
 static int  op_level              = 0;
 static int  op_btt                = 1;
 static int  op_suco               = 1;
-#if USE_SLICE_DQP
 static int  op_add_qp_frames      = 0;
-#endif
 static int  op_framework_ctu_size = 7;
 static int  op_framework_cu11_max = 7;
 static int  op_framework_cu11_min = 2;
@@ -194,9 +192,7 @@ typedef enum _OP_FLAGS
     OP_LEVEL,
     OP_BTT,
     OP_SUCO,
-#if USE_SLICE_DQP
     OP_FLAG_ADD_QP_FRAME,
-#endif
     OP_FRAMEWORK_CTU_SIZE,
     OP_FRAMEWORK_CU11_MAX,
     OP_FRAMEWORK_CU11_MIN,
@@ -468,13 +464,11 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_SUCO], &op_suco,
         "split unit coding ordering on/off flag"
     },
-#if USE_SLICE_DQP
     {
         'a',  "qp_add_frm", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_FLAG_ADD_QP_FRAME], &op_add_qp_frames,
         "one more qp are added after this number of frames, disable:0 (default)"
     },
-#endif
     {
         EVC_ARGS_NO_KEY,  "ctu", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_FRAMEWORK_CTU_SIZE], &op_framework_ctu_size,
@@ -938,10 +932,8 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->cu_qp_delta_area = op_cu_qp_delta_area;
 #endif
     cdsc->ref_pic_gap_length = op_ref_pic_gap_length;
-
-#if USE_SLICE_DQP
     cdsc->add_qp_frame = op_add_qp_frames;
-#endif
+
     if(op_disable_hgop)
     {
         cdsc->disable_hgop = 1;

@@ -250,9 +250,7 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
     param->ibc_fast_method = cdsc->ibc_fast_method;
 #endif
     param->use_hgop       = (cdsc->disable_hgop)? 0: 1;
-#if USE_SLICE_DQP
     param->qp_incread_frame = cdsc->add_qp_frame;
-#endif
 #if DQP_CFG
     param->use_dqp = cdsc->use_dqp;
     param->cu_qp_delta_area = cdsc->cu_qp_delta_area;
@@ -763,11 +761,8 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
     sh->collocated_mvp_source_list_idx = REFP_0;  // Specifies source (List ID) in collocated pic that provides MV information (Applicability is function of NoBackwardPredFlag)
 
     /* set lambda */
-#if USE_SLICE_DQP
     qp = EVC_CLIP3(0, MAX_QUANT, (ctx->param.qp_incread_frame != 0 && (int)(ctx->poc.poc_val) >= ctx->param.qp_incread_frame) ? ctx->qp + 1.0 : ctx->qp);
-#else
-    qp = ctx->qp;
-#endif
+
 #if EVC_TILE_SUPPORT
     if (ctx->tile_cnt > 1)
     {
