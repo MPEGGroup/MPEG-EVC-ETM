@@ -39,12 +39,12 @@
 
 #define AFFINE_TMVP_SPEC_CONDITION_ALIGN             1
 
+//MPEG 128 adoptions
 #define ALF_TILES_SUPPORT_M50663                     1
 #define CHROMA_QP_TABLE_SUPPORT_M50663               1
-#define MAX_QP_TABLE_SIZE  58   
-#define MAX_QP_TABLE_SIZE_EXT  70   
+#define MAX_QP_TABLE_SIZE                            58   
+#define MAX_QP_TABLE_SIZE_EXT                        70   
 
-//MPEG 128 adoptions
 #define M50662                                       1
 #if M50662
 #define M50662_AFFINE_IBC_TMVP_SUCO_FIX              1
@@ -120,7 +120,6 @@
 #define M50632_IMPROVEMENT_BASELINE        1
 #endif
 
-#define TU_ZONAL_CODING                    1
 #if M50632_IMPROVEMENT_BASELINE
 #define CTX_MODEL_FOR_RESIDUAL_IN_BASE     0
 #else

@@ -310,7 +310,7 @@ static void tx_pb64b(void *src, void *dst, int shift, int line, int step)
     s64 EEEE[4], EEEO[4];
     s64 EEEEE[2], EEEEO[2];
     int add = 1 << (shift - 1);
-#if TU_ZONAL_CODING
+
 #define RUN_TX_PB64(src, dst, type_src, type_dst) \
     for (j = 0; j < line; j++)\
     {\
@@ -402,71 +402,7 @@ static void tx_pb64b(void *src, void *dst, int shift, int line, int step)
         src = (type_src *)src + tx_size;\
         dst = (type_dst *)dst + 1;\
     }
-#else
-#define RUN_TX_PB64(src, dst, type_src, type_dst) \
-    for (j = 0; j < line; j++)\
-    {\
-        for (k = 0; k < 32; k++)\
-        {\
-            E[k] =  *((type_src *)src + k) + *((type_src *)src + 63 - k);\
-            O[k] =  *((type_src *)src + k) - *((type_src *)src + 63 - k);\
-        }\
-        for (k = 0; k<16; k++)\
-        {\
-            EE[k] = E[k] + E[31 - k];\
-            EO[k] = E[k] - E[31 - k];\
-        }\
-        for (k = 0; k<8; k++)\
-        {\
-            EEE[k] = EE[k] + EE[15 - k];\
-            EEO[k] = EE[k] - EE[15 - k];\
-        }\
-        for (k = 0; k<4; k++)\
-        {\
-            EEEE[k] = EEE[k] + EEE[7 - k];\
-            EEEO[k] = EEE[k] - EEE[7 - k];\
-        }\
-        EEEEE[0] = EEEE[0] + EEEE[3];\
-        EEEEO[0] = EEEE[0] - EEEE[3];\
-        EEEEE[1] = EEEE[1] + EEEE[2];\
-        EEEEO[1] = EEEE[1] - EEEE[2];\
-        \
-        *((type_dst *)dst + 0        ) = (type_dst)((tm[0 * 64 + 0]  * EEEEE[0] + tm[0 * 64 + 1]  * EEEEE[1] + add) >> shift);\
-        *((type_dst *)dst + 16 * line) = (type_dst)((tm[16 * 64 + 0] * EEEEO[0] + tm[16 * 64 + 1] * EEEEO[1] + add) >> shift);\
-        *((type_dst *)dst + 32 * line) = (type_dst)((tm[32 * 64 + 0] * EEEEE[0] + tm[32 * 64 + 1] * EEEEE[1] + add) >> shift);\
-        *((type_dst *)dst + 48 * line) = (type_dst)((tm[48 * 64 + 0] * EEEEO[0] + tm[48 * 64 + 1] * EEEEO[1] + add) >> shift);\
-        \
-        for (k = 8; k<64; k += 16)\
-        {\
-            *((type_dst *)dst + k*line) = (type_dst)((tm[k * 64 + 0] * EEEO[0] + tm[k * 64 + 1] * EEEO[1] + tm[k * 64 + 2] * EEEO[2] + tm[k * 64 + 3] * EEEO[3] + add) >> shift);\
-        }\
-        for (k = 4; k<64; k += 8)\
-        {\
-            *((type_dst *)dst + k*line) = (type_dst)((tm[k * 64 + 0] * EEO[0] + tm[k * 64 + 1] * EEO[1] + tm[k * 64 + 2] * EEO[2] + tm[k * 64 + 3] * EEO[3] +\
-                tm[k * 64 + 4] * EEO[4] + tm[k * 64 + 5] * EEO[5] + tm[k * 64 + 6] * EEO[6] + tm[k * 64 + 7] * EEO[7] + add) >> shift);\
-        }\
-        for (k = 2; k<64; k += 4)\
-        {\
-            *((type_dst *)dst + k*line) = (type_dst)((tm[k * 64 + 0] * EO[0] + tm[k * 64 + 1] * EO[1] + tm[k * 64 + 2] * EO[2] + tm[k * 64 + 3] * EO[3] +\
-                tm[k * 64 + 4] * EO[4] + tm[k * 64 + 5] * EO[5] + tm[k * 64 + 6] * EO[6] + tm[k * 64 + 7] * EO[7] +\
-                tm[k * 64 + 8] * EO[8] + tm[k * 64 + 9] * EO[9] + tm[k * 64 + 10] * EO[10] + tm[k * 64 + 11] * EO[11] +\
-                tm[k * 64 + 12] * EO[12] + tm[k * 64 + 13] * EO[13] + tm[k * 64 + 14] * EO[14] + tm[k * 64 + 15] * EO[15] + add) >> shift);\
-        }\
-        for (k = 1; k<64; k += 2)\
-        {\
-            *((type_dst *)dst + k*line) = (type_dst)((tm[k * 64 + 0] * O[0] + tm[k * 64 + 1] * O[1] + tm[k * 64 + 2] * O[2] + tm[k * 64 + 3] * O[3] +\
-                tm[k * 64 + 4] * O[4] + tm[k * 64 + 5] * O[5] + tm[k * 64 + 6] * O[6] + tm[k * 64 + 7] * O[7] +\
-                tm[k * 64 + 8] * O[8] + tm[k * 64 + 9] * O[9] + tm[k * 64 + 10] * O[10] + tm[k * 64 + 11] * O[11] +\
-                tm[k * 64 + 12] * O[12] + tm[k * 64 + 13] * O[13] + tm[k * 64 + 14] * O[14] + tm[k * 64 + 15] * O[15] +\
-                tm[k * 64 + 16] * O[16] + tm[k * 64 + 17] * O[17] + tm[k * 64 + 18] * O[18] + tm[k * 64 + 19] * O[19] +\
-                tm[k * 64 + 20] * O[20] + tm[k * 64 + 21] * O[21] + tm[k * 64 + 22] * O[22] + tm[k * 64 + 23] * O[23] +\
-                tm[k * 64 + 24] * O[24] + tm[k * 64 + 25] * O[25] + tm[k * 64 + 26] * O[26] + tm[k * 64 + 27] * O[27] +\
-                tm[k * 64 + 28] * O[28] + tm[k * 64 + 29] * O[29] + tm[k * 64 + 30] * O[30] + tm[k * 64 + 31] * O[31] + add) >> shift);\
-        }\
-        src = (type_src *)src + tx_size;\
-        dst = (type_dst *)dst + 1;\
-    }
-#endif
+
     if(step == 0)
     {
         RUN_TX_PB64(src, dst, s16, s32);
@@ -691,60 +627,64 @@ static void tx_pb64(s16 *src, s16 *dst, int shift, int line)
 
         dst[0] = (tm[0 * 64 + 0] * EEEEE[0] + tm[0 * 64 + 1] * EEEEE[1] + add) >> shift;
         dst[16 * line] = (tm[16 * 64 + 0] * EEEEO[0] + tm[16 * 64 + 1] * EEEEO[1] + add) >> shift;
-#if TU_ZONAL_CODING
+
         dst[32 * line] = 0;
         dst[48 * line] = 0;
-#else
-        dst[32 * line] = (tm[32 * 64 + 0] * EEEEE[0] + tm[32 * 64 + 1] * EEEEE[1] + add) >> shift;
-        dst[48 * line] = (tm[48 * 64 + 0] * EEEEO[0] + tm[48 * 64 + 1] * EEEEO[1] + add) >> shift;
-#endif
 
         for (k = 8; k<64; k += 16)
         {
-#if TU_ZONAL_CODING
             if (k > 31)
+            {
                 dst[k*line] = 0;
+            }
             else
-#endif
-            dst[k*line] = (tm[k * 64 + 0] * EEEO[0] + tm[k * 64 + 1] * EEEO[1] + tm[k * 64 + 2] * EEEO[2] + tm[k * 64 + 3] * EEEO[3] + add) >> shift;
+            {
+                dst[k*line] = (tm[k * 64 + 0] * EEEO[0] + tm[k * 64 + 1] * EEEO[1] + tm[k * 64 + 2] * EEEO[2] + tm[k * 64 + 3] * EEEO[3] + add) >> shift;
+            }
         }
         for (k = 4; k<64; k += 8)
         {
-#if TU_ZONAL_CODING
             if (k > 31)
+            {
                 dst[k*line] = 0;
+            }
             else
-#endif
-            dst[k*line] = (tm[k * 64 + 0] * EEO[0] + tm[k * 64 + 1] * EEO[1] + tm[k * 64 + 2] * EEO[2] + tm[k * 64 + 3] * EEO[3] +
-                tm[k * 64 + 4] * EEO[4] + tm[k * 64 + 5] * EEO[5] + tm[k * 64 + 6] * EEO[6] + tm[k * 64 + 7] * EEO[7] + add) >> shift;
+            {
+                dst[k*line] = (tm[k * 64 + 0] * EEO[0] + tm[k * 64 + 1] * EEO[1] + tm[k * 64 + 2] * EEO[2] + tm[k * 64 + 3] * EEO[3] +
+                    tm[k * 64 + 4] * EEO[4] + tm[k * 64 + 5] * EEO[5] + tm[k * 64 + 6] * EEO[6] + tm[k * 64 + 7] * EEO[7] + add) >> shift;
+            }
         }
         for (k = 2; k<64; k += 4)
         {
-#if TU_ZONAL_CODING
             if (k > 31)
+            {
                 dst[k*line] = 0;
+            }
             else
-#endif
-            dst[k*line] = (tm[k * 64 + 0] * EO[0] + tm[k * 64 + 1] * EO[1] + tm[k * 64 + 2] * EO[2] + tm[k * 64 + 3] * EO[3] +
-                tm[k * 64 + 4] * EO[4] + tm[k * 64 + 5] * EO[5] + tm[k * 64 + 6] * EO[6] + tm[k * 64 + 7] * EO[7] +
-                tm[k * 64 + 8] * EO[8] + tm[k * 64 + 9] * EO[9] + tm[k * 64 + 10] * EO[10] + tm[k * 64 + 11] * EO[11] +
-                tm[k * 64 + 12] * EO[12] + tm[k * 64 + 13] * EO[13] + tm[k * 64 + 14] * EO[14] + tm[k * 64 + 15] * EO[15] + add) >> shift;
+            {
+                dst[k*line] = (tm[k * 64 + 0] * EO[0] + tm[k * 64 + 1] * EO[1] + tm[k * 64 + 2] * EO[2] + tm[k * 64 + 3] * EO[3] +
+                    tm[k * 64 + 4] * EO[4] + tm[k * 64 + 5] * EO[5] + tm[k * 64 + 6] * EO[6] + tm[k * 64 + 7] * EO[7] +
+                    tm[k * 64 + 8] * EO[8] + tm[k * 64 + 9] * EO[9] + tm[k * 64 + 10] * EO[10] + tm[k * 64 + 11] * EO[11] +
+                    tm[k * 64 + 12] * EO[12] + tm[k * 64 + 13] * EO[13] + tm[k * 64 + 14] * EO[14] + tm[k * 64 + 15] * EO[15] + add) >> shift;
+            }
         }
         for (k = 1; k<64; k += 2)
         {
-#if TU_ZONAL_CODING
             if (k > 31)
+            {
                 dst[k*line] = 0;
+            }
             else
-#endif
-            dst[k*line] = (tm[k * 64 + 0] * O[0] + tm[k * 64 + 1] * O[1] + tm[k * 64 + 2] * O[2] + tm[k * 64 + 3] * O[3] +
-                tm[k * 64 + 4] * O[4] + tm[k * 64 + 5] * O[5] + tm[k * 64 + 6] * O[6] + tm[k * 64 + 7] * O[7] +
-                tm[k * 64 + 8] * O[8] + tm[k * 64 + 9] * O[9] + tm[k * 64 + 10] * O[10] + tm[k * 64 + 11] * O[11] +
-                tm[k * 64 + 12] * O[12] + tm[k * 64 + 13] * O[13] + tm[k * 64 + 14] * O[14] + tm[k * 64 + 15] * O[15] +
-                tm[k * 64 + 16] * O[16] + tm[k * 64 + 17] * O[17] + tm[k * 64 + 18] * O[18] + tm[k * 64 + 19] * O[19] +
-                tm[k * 64 + 20] * O[20] + tm[k * 64 + 21] * O[21] + tm[k * 64 + 22] * O[22] + tm[k * 64 + 23] * O[23] +
-                tm[k * 64 + 24] * O[24] + tm[k * 64 + 25] * O[25] + tm[k * 64 + 26] * O[26] + tm[k * 64 + 27] * O[27] +
-                tm[k * 64 + 28] * O[28] + tm[k * 64 + 29] * O[29] + tm[k * 64 + 30] * O[30] + tm[k * 64 + 31] * O[31] + add) >> shift;
+            {
+                dst[k*line] = (tm[k * 64 + 0] * O[0] + tm[k * 64 + 1] * O[1] + tm[k * 64 + 2] * O[2] + tm[k * 64 + 3] * O[3] +
+                    tm[k * 64 + 4] * O[4] + tm[k * 64 + 5] * O[5] + tm[k * 64 + 6] * O[6] + tm[k * 64 + 7] * O[7] +
+                    tm[k * 64 + 8] * O[8] + tm[k * 64 + 9] * O[9] + tm[k * 64 + 10] * O[10] + tm[k * 64 + 11] * O[11] +
+                    tm[k * 64 + 12] * O[12] + tm[k * 64 + 13] * O[13] + tm[k * 64 + 14] * O[14] + tm[k * 64 + 15] * O[15] +
+                    tm[k * 64 + 16] * O[16] + tm[k * 64 + 17] * O[17] + tm[k * 64 + 18] * O[18] + tm[k * 64 + 19] * O[19] +
+                    tm[k * 64 + 20] * O[20] + tm[k * 64 + 21] * O[21] + tm[k * 64 + 22] * O[22] + tm[k * 64 + 23] * O[23] +
+                    tm[k * 64 + 24] * O[24] + tm[k * 64 + 25] * O[25] + tm[k * 64 + 26] * O[26] + tm[k * 64 + 27] * O[27] +
+                    tm[k * 64 + 28] * O[28] + tm[k * 64 + 29] * O[29] + tm[k * 64 + 30] * O[30] + tm[k * 64 + 31] * O[31] + add) >> shift;
+            }
         }
         src += tx_size;
         dst++;
