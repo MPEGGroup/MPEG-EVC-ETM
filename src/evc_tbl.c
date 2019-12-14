@@ -367,6 +367,57 @@ int* evc_tbl_qp_chroma_ajudst;
 int evc_tbl_qp_chroma_dynamic_ext[2][MAX_QP_TABLE_SIZE_EXT] = { { 0 }, {0} };
 int *p_evc_tbl_qp_chroma_dynamic_ext[2] = { &(evc_tbl_qp_chroma_dynamic_ext[0][0]) , &(evc_tbl_qp_chroma_dynamic_ext[1][0]) };
 int *p_evc_tbl_qp_chroma_dynamic[2] = { &(evc_tbl_qp_chroma_dynamic_ext[0][6 * (BIT_DEPTH - 8)]) , &(evc_tbl_qp_chroma_dynamic_ext[1][6 * (BIT_DEPTH - 8)]) };
+
+void evc_derived_chroma_qp_mapping_tables(EVC_CHROMA_TABLE *structChromaQP)
+{
+    int MAX_QP = MAX_QP_TABLE_SIZE - 1;
+    int qpInVal[MAX_QP_TABLE_SIZE_EXT] = { 0 };
+    int qpOutVal[MAX_QP_TABLE_SIZE_EXT] = { 0 };
+
+    int qpBdOffsetC = 6 * (BIT_DEPTH - 8);
+    int startQp = (structChromaQP->global_offset_flag == 1) ? 16 : -qpBdOffsetC;
+
+    for (int i = 0; i < (structChromaQP->same_qp_table_for_chroma ? 1 : 2); i++)
+    {
+        qpInVal[0] = startQp + structChromaQP->delta_qp_in_val_minus1[i][0];
+        qpOutVal[0] = startQp + structChromaQP->delta_qp_in_val_minus1[i][0] + structChromaQP->delta_qp_out_val[i][0];
+        for (int j = 1; j <= structChromaQP->num_points_in_qp_table_minus1[i]; j++)
+        {
+            qpInVal[j] = qpInVal[j - 1] + structChromaQP->delta_qp_in_val_minus1[i][j] + 1;
+            qpOutVal[j] = qpOutVal[j - 1] + (structChromaQP->delta_qp_in_val_minus1[i][j] + 1 + structChromaQP->delta_qp_out_val[i][j]);
+        }
+
+        for (int j = 0; j <= structChromaQP->num_points_in_qp_table_minus1[i]; j++)
+        {
+            assert(qpInVal[j] >= -qpBdOffsetC && qpInVal[j]  < MAX_QP);
+            assert(qpOutVal[j] >= -qpBdOffsetC && qpOutVal[j] < MAX_QP);
+        }
+
+        p_evc_tbl_qp_chroma_dynamic[i][qpInVal[0]] = qpOutVal[0];
+        for (int k = qpInVal[0] - 1; k >= -qpBdOffsetC; k--)
+        {
+            p_evc_tbl_qp_chroma_dynamic[i][k] = EVC_CLIP3(-qpBdOffsetC, MAX_QP, p_evc_tbl_qp_chroma_dynamic[i][k + 1] - 1);
+        }
+        for (int j = 0; j < structChromaQP->num_points_in_qp_table_minus1[i]; j++)
+        {
+            int sh = (structChromaQP->delta_qp_in_val_minus1[i][j + 1] + 1) >> 1;
+            for (int k = qpInVal[j] + 1, m = 1; k <= qpInVal[j + 1]; k++, m++)
+            {
+                p_evc_tbl_qp_chroma_dynamic[i][k] = p_evc_tbl_qp_chroma_dynamic[i][qpInVal[j]]
+                    + ((qpOutVal[j + 1] - qpOutVal[j]) * m + sh) / (structChromaQP->delta_qp_in_val_minus1[i][j + 1] + 1);
+            }
+        }
+        for (int k = qpInVal[structChromaQP->num_points_in_qp_table_minus1[i]] + 1; k <= MAX_QP; k++)
+        {
+            p_evc_tbl_qp_chroma_dynamic[i][k] = EVC_CLIP3(-qpBdOffsetC, MAX_QP, p_evc_tbl_qp_chroma_dynamic[i][k - 1] + 1);
+        }
+    }
+    if (structChromaQP->same_qp_table_for_chroma)
+    {
+        memcpy(&(p_evc_tbl_qp_chroma_dynamic[1][-qpBdOffsetC]), &(p_evc_tbl_qp_chroma_dynamic[0][-qpBdOffsetC]), MAX_QP_TABLE_SIZE_EXT * sizeof(int));
+    }
+}
+
 #endif
 
 #if CTX_REPRESENTATION_IMPROVEMENT
