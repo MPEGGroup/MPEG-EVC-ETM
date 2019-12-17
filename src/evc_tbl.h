@@ -74,6 +74,7 @@ extern int* evc_tbl_qp_chroma_ajudst;
 extern int evc_tbl_qp_chroma_dynamic_ext[2][MAX_QP_TABLE_SIZE_EXT];
 extern int* p_evc_tbl_qp_chroma_dynamic_ext[2];// pointer to [0th position in evc_tbl_qp_chroma_dynamic_ext]
 extern int* p_evc_tbl_qp_chroma_dynamic[2];    // pointer to [12th position in evc_tbl_qp_chroma_dynamic_ext]
+void evc_derived_chroma_qp_mapping_tables(EVC_CHROMA_TABLE *structChromaQP);
 #endif
 
 #if CTX_REPRESENTATION_IMPROVEMENT

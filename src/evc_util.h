@@ -120,17 +120,12 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 );
 
 #if ADMVP
-void evc_check_motion_availability2(int scup, int cuw, int cuh, int w_scu, int h_scu, int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], u32 *map_scu, u16 avail_lr, int num_mvp
-#if IBC
-  , int is_ibc
-#endif
-);
-#endif
 void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_scu, int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], u32 *map_scu, u16 avail_lr, int num_mvp
 #if IBC
   , int is_ibc
 #endif
 );
+#endif
 
 void evc_get_default_motion(int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], s8 cur_refi, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], s8 *refi, s16 mv[MV_D]
 #if DMVR_LAG
@@ -256,8 +251,6 @@ int evc_split_is_horizontal(SPLIT_MODE mode);
 #if ADMVP    
 void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 poc, int scup, int c_scu, u16 w_scu, u16 h_scu, s16 mvp[REFP_NUM][MV_D]
                     , int sps_admvp_flag);
-#else
-void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 poc, int scup, u16 w_scu, s16 mvp[REFP_NUM][MV_D]);
 #endif
 
 int evc_get_avail_cu(int neb_scua[MAX_NEB2], u32 * map_cu);

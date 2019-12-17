@@ -42,6 +42,10 @@ extern "C"
 #endif
        
 #define CHROMA_QP_TABLE_SUPPORT_M50663  1
+#if CHROMA_QP_TABLE_SUPPORT_M50663 
+#define MAX_QP_TABLE_SIZE  58   
+#define MAX_QP_TABLE_SIZE_EXT  70   
+#endif
 #define USE_TILE_GROUP_DQP              1
 #define DQP_CFG                         1
 #define EVC_TILE_SUPPORT                1
@@ -361,6 +365,19 @@ typedef struct _EVC_RPL
     char pic_type;
 } EVC_RPL;
 
+#if CHROMA_QP_TABLE_SUPPORT_M50663
+/* chromaQP table structure to be signalled in SPS*/
+typedef struct _EVC_CHROMA_TABLE
+{
+    int             chroma_qp_table_present_flag;
+    int             same_qp_table_for_chroma;
+    int             global_offset_flag;
+    int             num_points_in_qp_table_minus1[2];
+    int             delta_qp_in_val_minus1[2][MAX_QP_TABLE_SIZE];
+    int             delta_qp_out_val[2][MAX_QP_TABLE_SIZE];
+} EVC_CHROMA_TABLE;
+#endif
+
 /*****************************************************************************
  * description for creating of encoder
  *****************************************************************************/
@@ -463,6 +480,9 @@ typedef struct _EVCE_CDSC
     int            tile_row_height_array[22];
     int            num_slice_in_pic;
     int            slice_boundary_array[2 * 600];
+#endif
+#if CHROMA_QP_TABLE_SUPPORT_M50663
+    EVC_CHROMA_TABLE chroma_qp_table_struct;
 #endif
     EVC_RPL rpls_l0[MAX_NUM_RPLS];
     EVC_RPL rpls_l1[MAX_NUM_RPLS];

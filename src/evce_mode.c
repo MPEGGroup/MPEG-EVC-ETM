@@ -4788,14 +4788,8 @@ static int mode_analyze_lcu(EVCE_CTX *ctx, EVCE_CORE *core)
 #if M50662_HISTORY_CTU_ROW_RESET
     evce_hmvp_init(&core->m_pTempMotLUTs[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2]);
     evce_hmvp_init(&core->m_pBestMotLUTs[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2]);
-#else
-    // initialize history-based prediction buffer
-    init_history_buffer(&core->m_pTempMotLUTs[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2]);
-    init_history_buffer(&core->m_pBestMotLUTs[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2]);
 #endif 
     
-    // core->m_pTempMotLUTs stores original ctx->history_buffer
-    // core->m_pBestMotLUTs stores updated ctx->history_buffer
     copy_history_buffer(&core->m_pTempMotLUTs[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], &core->history_buffer);
     copy_history_buffer(&core->m_pBestMotLUTs[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], &core->history_buffer);
 #endif
