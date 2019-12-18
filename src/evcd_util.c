@@ -840,7 +840,7 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
         core->mv[REFP_1][MV_Y] = real_mv[core->mmvd_idx][1][MV_Y];
     }
 #if ADMVP
-    if ((ctx->sh.slice_type == SLICE_P) || (!check_bi_applicability(ctx->sh.slice_type, cuw, cuh)))
+    if ((ctx->sh.slice_type == SLICE_P) || (!check_bi_applicability(ctx->sh.slice_type, cuw, cuh, ctx->sps.tool_amis)))
 #else
     if (ctx->sh.slice_type == SLICE_P)
 #endif

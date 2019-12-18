@@ -1727,7 +1727,7 @@ void evcd_eco_inter_pred_idc(EVCD_CTX * ctx, EVCD_CORE * core)
     sbac = GET_SBAC_DEC(bs);
 
 #if REMOVE_BI_INTERDIR
-    if (check_bi_applicability(ctx->sh.slice_type, 1 << core->log2_cuw, 1 << core->log2_cuh))
+    if (check_bi_applicability(ctx->sh.slice_type, 1 << core->log2_cuw, 1 << core->log2_cuh, ctx->sps.tool_amis))
 #endif
     tmp = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.inter_dir + 1);
     if (tmp)

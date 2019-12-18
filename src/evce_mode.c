@@ -656,7 +656,7 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
         {
             evce_eco_inter_dir(&core->bs_temp, refi
 #if REMOVE_BI_INTERDIR
-                , slice_type, 1 << core->log2_cuw, 1 << core->log2_cuh
+                , slice_type, 1 << core->log2_cuw, 1 << core->log2_cuh, ctx->sps.tool_amis
 #endif
             );
 

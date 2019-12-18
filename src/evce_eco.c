@@ -2336,27 +2336,27 @@ int evce_eco_mmvd_info(EVC_BSW *bs, int mvp_idx, int type)
 
 void evce_eco_inter_dir(EVC_BSW *bs, s8 refi[REFP_NUM]
 #if REMOVE_BI_INTERDIR
-    , int slice_type, int cuw, int cuh
+    , int slice_type, int cuw, int cuh, int is_sps_amis
 #endif
 )
 {
     EVCE_SBAC *sbac;
-
     sbac = GET_SBAC_ENC(bs);
     EVC_TRACE_COUNTER;
     EVC_TRACE_STR("inter dir ");
+
     if(REFI_IS_VALID(refi[REFP_0]) && REFI_IS_VALID(refi[REFP_1])) /* PRED_BI */
     {
+#if REMOVE_BI_INTERDIR
+        assert(check_bi_applicability(slice_type, cuw, cuh, is_sps_amis));
+#endif
         evce_sbac_encode_bin(1, sbac, sbac->ctx.inter_dir + 1, bs);
         EVC_TRACE_INT(PRED_BI);
-#if REMOVE_BI_INTERDIR
-        assert(check_bi_applicability(slice_type, cuw, cuh));
-#endif
     }
     else
     {
 #if REMOVE_BI_INTERDIR
-        if (check_bi_applicability(slice_type, cuw, cuh))
+        if (check_bi_applicability(slice_type, cuw, cuh, is_sps_amis))
 #endif
         {
             evce_sbac_encode_bin(0, sbac, sbac->ctx.inter_dir + 1, bs);
@@ -3269,7 +3269,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                 {
                     evce_eco_inter_dir(bs, cu_data->refi[cup]
 #if REMOVE_BI_INTERDIR
-                        , slice_type, cuw, cuh
+                        , slice_type, cuw, cuh, ctx->sps.tool_amis
 #endif
                     );
 

@@ -6111,7 +6111,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                 }
             }
 #if ADMVP
-            if(check_bi_applicability(pi->slice_type, cuw, cuh) )
+            if(check_bi_applicability(pi->slice_type, cuw, cuh, ctx->sps.tool_amis) )
 #else
             if(pi->slice_type == SLICE_B)
 #endif
