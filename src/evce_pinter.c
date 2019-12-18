@@ -2666,14 +2666,10 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
     pi->mvp_idx[PRED_SKIP][REFP_1] = 0;
 #if ADMVP
     for (idx0 = 0; idx0 < (cuw*cuh<= NUM_SAMPLES_BLOCK ? MAX_NUM_MVP_SMALL_CU:MAX_NUM_MVP); idx0++)
-#else
-    for(idx0 = 0; idx0 < MAX_NUM_MVP; idx0++)
 #endif
     {
 #if ADMVP
         cnt = (ctx->slice_type == SLICE_B ? (cuw * cuh <= NUM_SAMPLES_BLOCK ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP) : 1);
-#else
-        cnt = (ctx->slice_type == SLICE_B ? MAX_NUM_MVP : 1);
 #endif
         for(idx1 = 0; idx1 < cnt; idx1++)
         {
@@ -2806,8 +2802,6 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
         /* removes the cost above threshold and remove the duplicates */
 #if ADMVP
         for (idx0 = 0; idx0 < (cuw * cuh <= NUM_SAMPLES_BLOCK ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP); idx0++)
-#else
-        for(idx0 = 0; idx0 < MAX_NUM_MVP; idx0++)
 #endif
         {
             /* removes the cost above threshold */
@@ -2820,16 +2814,12 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
         /* remove the duplicates and keep the best */
 #if ADMVP
         for (idx0 = 0; idx0 < (cuw * cuh <= NUM_SAMPLES_BLOCK ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP); idx0++)
-#else
-        for (idx0 = 0; idx0 < MAX_NUM_MVP; idx0++)
 #endif
         {
             if(core->au8_eval_mvp_idx[idx0] == 1)
             {
 #if ADMVP
                 for (j = idx0 + 1; j < (cuw * cuh <= NUM_SAMPLES_BLOCK ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP); j++)
-#else
-                for(j = idx0 + 1; j < MAX_NUM_MVP; j++)
 #endif
                 {
                     if(core->au8_eval_mvp_idx[j] == 1)
@@ -2926,8 +2916,6 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
         );
 #if ADMVP
     for(idx0 = 0; idx0 < (cuw*cuh <= NUM_SAMPLES_BLOCK ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP); idx0++)
-#else
-    for(idx0 = 0; idx0 < MAX_NUM_MVP; idx0++)
 #endif
     {
 #if MERGE

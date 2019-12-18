@@ -800,19 +800,6 @@ void evcd_draw_partition(EVCD_CTX * ctx, EVC_PIC * pic)
 }
 #endif
 
-#if ADMVP
-BOOL check_bi_applicability_dec(int slice_type, int cuw, int cuh)
-{
-    BOOL is_applicable = FALSE;
-
-    if ((slice_type == SLICE_B) && !(cuw + cuh == 12) )
-    {
-        is_applicable = TRUE;
-    }
-
-    return is_applicable;
-}
-#endif
 
 void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 {
@@ -853,7 +840,7 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
         core->mv[REFP_1][MV_Y] = real_mv[core->mmvd_idx][1][MV_Y];
     }
 #if ADMVP
-    if ((ctx->sh.slice_type == SLICE_P) || (!check_bi_applicability_dec(ctx->sh.slice_type, cuw, cuh)))
+    if ((ctx->sh.slice_type == SLICE_P) || (!check_bi_applicability(ctx->sh.slice_type, cuw, cuh)))
 #else
     if (ctx->sh.slice_type == SLICE_P)
 #endif

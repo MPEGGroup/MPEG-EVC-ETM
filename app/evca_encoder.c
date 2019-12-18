@@ -147,6 +147,15 @@ static int  op_num_slice_in_pic_minus1 = 0;     // default 1
 static char op_slice_boundary_array[2 * 600];   // Max. slices can be 600 for the highest level 6.2
 #endif
 
+#if CHROMA_QP_TABLE_SUPPORT_M50663
+static int  op_chroma_qp_table_present_flag = 0;
+static char op_chroma_qp_num_points_in_table[2] = {0};
+static char op_chroma_qp_delta_in_val_cb[MAX_QP_TABLE_SIZE_EXT] = {0};
+static char op_chroma_qp_delta_out_val_cb[MAX_QP_TABLE_SIZE_EXT] = { 0 };
+static char op_chroma_qp_delta_in_val_cr[MAX_QP_TABLE_SIZE_EXT] = { 0 };
+static char op_chroma_qp_delta_out_val_cr[MAX_QP_TABLE_SIZE_EXT] = { 0 };
+#endif
+
 static char  op_rpl0[MAX_NUM_RPLS][256];
 static char  op_rpl1[MAX_NUM_RPLS][256];
 
@@ -233,6 +242,14 @@ typedef enum _OP_FLAGS
     OP_TILE_ROW_HEIGHT_ARRAY,
     OP_NUM_SLICE_IN_PIC_MINUS1,
     OP_SLICE_BOUNDARY_ARRAY,
+#endif
+#if CHROMA_QP_TABLE_SUPPORT_M50663
+    OP_CHROMA_QP_TABLE_PRESENT_FLAG,
+    OP_CHROMA_QP_NUM_POINTS_IN_TABLE,
+    OP_CHROMA_QP_DELTA_IN_VAL_CB,
+    OP_CHROMA_QP_DELTA_OUT_VAL_CB,
+    OP_CHROMA_QP_DELTA_IN_VAL_CR,
+    OP_CHROMA_QP_DELTA_OUT_VAL_CR,
 #endif
     OP_FLAG_RPL0_0,
     OP_FLAG_RPL0_1,
@@ -655,6 +672,38 @@ static EVC_ARGS_OPTION options[] = \
         "Array of Slice Boundaries"
     },
 #endif
+#if CHROMA_QP_TABLE_SUPPORT_M50663
+    {
+        EVC_ARGS_NO_KEY,  "chroma_qp_table_present_flag", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_CHROMA_QP_TABLE_PRESENT_FLAG], &op_chroma_qp_table_present_flag,
+        "chroma_qp_table_present_flag"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "chroma_qp_num_points_in_table", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_CHROMA_QP_NUM_POINTS_IN_TABLE], &op_chroma_qp_num_points_in_table,
+        "Number of pivot points for Cb and Cr channels"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "chroma_qp_delta_in_val_cb", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_CHROMA_QP_DELTA_IN_VAL_CB], &op_chroma_qp_delta_in_val_cb,
+        "Array of input pivot points for Cb"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "chroma_qp_delta_out_val_cb", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_CHROMA_QP_DELTA_OUT_VAL_CB], &op_chroma_qp_delta_out_val_cb,
+        "Array of input pivot points for Cb"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "chroma_qp_delta_in_val_cr", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_CHROMA_QP_DELTA_IN_VAL_CR], &op_chroma_qp_delta_in_val_cr,
+        "Array of input pivot points for Cr"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "chroma_qp_delta_out_val_cr", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_CHROMA_QP_DELTA_OUT_VAL_CR], &op_chroma_qp_delta_out_val_cr,
+        "Array of input pivot points for Cr"
+    },
+#endif
     {
         EVC_ARGS_NO_KEY,  "RPL0_0", EVC_ARGS_VAL_TYPE_STRING,
         &op_flag[OP_FLAG_RPL0_0], &op_rpl0[0],
@@ -913,6 +962,54 @@ static char get_pic_type(char * in)
     return type;
 }
 
+#if CHROMA_QP_TABLE_SUPPORT_M50663
+static void evca_parse_chroma_qp_mapping_params(EVC_CHROMA_TABLE *dst_struct, EVC_CHROMA_TABLE *src_struct)
+{
+    int qpBdOffsetC = 6 * (BIT_DEPTH - 8);
+    EVC_CHROMA_TABLE *p_chroma_qp_table = dst_struct;
+    p_chroma_qp_table->chroma_qp_table_present_flag = src_struct->chroma_qp_table_present_flag;
+    p_chroma_qp_table->num_points_in_qp_table_minus1[0] = src_struct->num_points_in_qp_table_minus1[0];
+    p_chroma_qp_table->num_points_in_qp_table_minus1[1] = src_struct->num_points_in_qp_table_minus1[1];
+
+    if (p_chroma_qp_table->chroma_qp_table_present_flag)
+    {
+        p_chroma_qp_table->same_qp_table_for_chroma = 1;
+        if (src_struct->num_points_in_qp_table_minus1[0] != src_struct->num_points_in_qp_table_minus1[1])
+            p_chroma_qp_table->same_qp_table_for_chroma = 0;
+        else
+        {
+            for (int i = 0; i < src_struct->num_points_in_qp_table_minus1[0]; i++)
+            {
+                if ( (src_struct->delta_qp_in_val_minus1[0][i] != src_struct->delta_qp_in_val_minus1[1][i]) ||
+                    (src_struct->delta_qp_out_val[0][i] != src_struct->delta_qp_out_val[1][i]) )
+                {
+                    p_chroma_qp_table->same_qp_table_for_chroma = 0;
+                    break;
+                }
+            }
+        }
+
+        p_chroma_qp_table->global_offset_flag = (src_struct->delta_qp_in_val_minus1[0][0] > 15 && src_struct->delta_qp_out_val[0][0] > 15) ? 1 : 0;
+        if (!p_chroma_qp_table->same_qp_table_for_chroma)
+        {
+            p_chroma_qp_table->global_offset_flag = p_chroma_qp_table->global_offset_flag && ((src_struct->delta_qp_in_val_minus1[1][0] > 15 && src_struct->delta_qp_out_val[1][0] > 15) ? 1 : 0);
+        }
+
+        int startQp = (p_chroma_qp_table->global_offset_flag == 1) ? 16 : -qpBdOffsetC;
+        for (int ch = 0; ch < (p_chroma_qp_table->same_qp_table_for_chroma ? 1 : 2); ch++) {
+            p_chroma_qp_table->delta_qp_in_val_minus1[ch][0] = src_struct->delta_qp_in_val_minus1[ch][0] - startQp;
+            p_chroma_qp_table->delta_qp_out_val[ch][0] = src_struct->delta_qp_out_val[ch][0] - startQp - p_chroma_qp_table->delta_qp_in_val_minus1[ch][0];
+
+            for (int k = 1; k <= p_chroma_qp_table->num_points_in_qp_table_minus1[ch]; k++)
+            {
+                p_chroma_qp_table->delta_qp_in_val_minus1[ch][k] = (src_struct->delta_qp_in_val_minus1[ch][k] - src_struct->delta_qp_in_val_minus1[ch][k - 1]) - 1;
+                p_chroma_qp_table->delta_qp_out_val[ch][k] = (src_struct->delta_qp_out_val[ch][k] - src_struct->delta_qp_out_val[ch][k - 1]) - (p_chroma_qp_table->delta_qp_in_val_minus1[ch][k] + 1);
+            }
+        }
+    }
+}
+#endif
+
 static int get_conf(EVCE_CDSC * cdsc)
 {
     memset(cdsc, 0, sizeof(EVCE_CDSC));
@@ -1046,6 +1143,65 @@ static int get_conf(EVCE_CDSC * cdsc)
         } while (1);
     }
 #endif
+#if CHROMA_QP_TABLE_SUPPORT_M50663
+    EVC_CHROMA_TABLE l_chroma_qp_table;
+    memset(&l_chroma_qp_table, 0, sizeof(EVC_CHROMA_TABLE));
+
+    l_chroma_qp_table.chroma_qp_table_present_flag = op_chroma_qp_table_present_flag;
+    if (l_chroma_qp_table.chroma_qp_table_present_flag)
+    {
+        l_chroma_qp_table.num_points_in_qp_table_minus1[0] = atoi(strtok(op_chroma_qp_num_points_in_table, " ")) - 1;
+        l_chroma_qp_table.num_points_in_qp_table_minus1[1] = atoi( strtok(NULL, " \r") ) - 1;
+
+        { // input pivot points
+            l_chroma_qp_table.delta_qp_in_val_minus1[0][0] = atoi(strtok(op_chroma_qp_delta_in_val_cb, " "));
+            int j = 1;
+            do
+            {
+                char* val = strtok(NULL, " \r");
+                if (!val)
+                    break;
+                l_chroma_qp_table.delta_qp_in_val_minus1[0][j++] = atoi(val);
+            } while (1);
+            evc_assert(l_chroma_qp_table.num_points_in_qp_table_minus1[0] + 1 == j);
+
+            l_chroma_qp_table.delta_qp_in_val_minus1[1][0] = atoi(strtok(op_chroma_qp_delta_in_val_cr, " "));
+            j = 1;
+            do
+            {
+                char* val = strtok(NULL, " \r");
+                if (!val)
+                    break;
+                l_chroma_qp_table.delta_qp_in_val_minus1[1][j++] = atoi(val);
+            } while (1);
+            evc_assert(l_chroma_qp_table.num_points_in_qp_table_minus1[1] + 1 == j);
+        }
+        {// output pivot points
+            l_chroma_qp_table.delta_qp_out_val[0][0] = atoi(strtok(op_chroma_qp_delta_out_val_cb, " "));
+            int j = 1;
+            do
+            {
+                char* val = strtok(NULL, " \r");
+                if (!val)
+                    break;
+                l_chroma_qp_table.delta_qp_out_val[0][j++] = atoi(val);
+            } while (1);
+            evc_assert(l_chroma_qp_table.num_points_in_qp_table_minus1[0] + 1 == j);
+
+            l_chroma_qp_table.delta_qp_out_val[1][0] = atoi(strtok(op_chroma_qp_delta_out_val_cr, " "));
+            j = 1;
+            do
+            {
+                char* val = strtok(NULL, " \r");
+                if (!val)
+                    break;
+                l_chroma_qp_table.delta_qp_out_val[1][j++] = atoi(val);
+            } while (1);
+            evc_assert(l_chroma_qp_table.num_points_in_qp_table_minus1[1] + 1 == j);
+        }
+    }
+    evca_parse_chroma_qp_mapping_params(&(cdsc->chroma_qp_table_struct), &l_chroma_qp_table);  // parse input params and create chroma_qp_table_struct structure
+#endif
     for (int i = 0; i < MAX_NUM_RPLS && op_rpl0[i][0] != 0; ++i)
     {
         cdsc->rpls_l0[i].pic_type = get_pic_type(strtok(op_rpl0[i], " "));
@@ -1123,6 +1279,9 @@ static int print_enc_conf(EVCE_CDSC * cdsc)
     printf("Uniform Tile Spacing: %d, ", cdsc->tile_uniform_spacing_flag);
     printf("Number of Tile Columns: %d, ", cdsc->tile_columns);
     printf("Number of Tile  Rows: %d ", cdsc->tile_rows);
+#endif
+#if CHROMA_QP_TABLE_SUPPORT_M50663
+    printf("ChromaQPTable: %d ", cdsc->chroma_qp_table_struct.chroma_qp_table_present_flag);
 #endif
     printf("\n");
     return 0;

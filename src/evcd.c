@@ -249,11 +249,14 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
     }
 
 #if CHROMA_QP_TABLE_SUPPORT_M50663
-    memcpy(&(evc_tbl_qp_chroma_dynamic_ext[0][6 * (BIT_DEPTH - 8)]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
-    memcpy(&(evc_tbl_qp_chroma_dynamic_ext[1][6 * (BIT_DEPTH - 8)]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
-    if (sps->chroma_qp_table_present_flag)
+    if (sps->chroma_qp_table_struct.chroma_qp_table_present_flag)
     {
-        derived_chroma_qp_mapping_tables_dec(sps);
+        evc_derived_chroma_qp_mapping_tables(&(sps->chroma_qp_table_struct));
+    }
+    else
+    {
+        memcpy(&(evc_tbl_qp_chroma_dynamic_ext[0][6 * (BIT_DEPTH - 8)]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
+        memcpy(&(evc_tbl_qp_chroma_dynamic_ext[1][6 * (BIT_DEPTH - 8)]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
     }
 #endif
 
@@ -299,23 +302,6 @@ static int slice_init(EVCD_CTX * ctx, EVCD_CORE * core, EVC_SH * sh)
     }
 #if M50662_HISTORY_CTU_ROW_RESET
     evcd_hmvp_init(core);
-#else
-#if ADMVP
-    evc_mset(core->history_buffer.history_mv_table, 0, ALLOWED_CHECKED_NUM * REFP_NUM * MV_D * sizeof(s16));
-#if TRACE_ENC_CU_DATA
-    evc_mset(core->history_buffer.history_cu_table, 0, ALLOWED_CHECKED_NUM * sizeof(core->history_buffer.history_cu_table[0]));
-#endif
-    
-    //evc_mset(core->history_buffer.history_refi_table, 0, ALLOWED_CHECKED_NUM * REFP_NUM * sizeof(s8));
-    for (int i = 0; i < ALLOWED_CHECKED_NUM; i++)
-    {
-        core->history_buffer.history_refi_table[i][REFP_0] = REFI_INVALID;
-        core->history_buffer.history_refi_table[i][REFP_1] = REFI_INVALID;
-    }
-
-    core->history_buffer.currCnt = 0;
-    core->history_buffer.m_maxCnt = ALLOWED_CHECKED_NUM;
-#endif
 #endif
     return EVC_OK;
 }

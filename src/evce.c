@@ -181,6 +181,19 @@ static void core_free(EVCE_CORE * core)
     evc_mfree_fast(core);
 }
 
+#if CHROMA_QP_TABLE_SUPPORT_M50663
+void evce_copy_chroma_qp_mapping_params(EVC_CHROMA_TABLE *dst, EVC_CHROMA_TABLE *src)
+{
+    dst->chroma_qp_table_present_flag = src->chroma_qp_table_present_flag;
+    dst->same_qp_table_for_chroma = src->same_qp_table_for_chroma;
+    dst->global_offset_flag = src->global_offset_flag;
+    dst->num_points_in_qp_table_minus1[0] = src->num_points_in_qp_table_minus1[0];
+    dst->num_points_in_qp_table_minus1[1] = src->num_points_in_qp_table_minus1[1];
+    memcpy(&(dst->delta_qp_in_val_minus1), &(src->delta_qp_in_val_minus1), sizeof(int) * 2 * MAX_QP_TABLE_SIZE);
+    memcpy(&(dst->delta_qp_out_val), &(src->delta_qp_out_val), sizeof(int) * 2 * MAX_QP_TABLE_SIZE);
+}
+#endif
+
 static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
 {
     /* check input parameters */
@@ -265,8 +278,15 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
         evc_tbl_qp_chroma_ajudst = evc_tbl_qp_chroma_ajudst_main;
     }
 #if CHROMA_QP_TABLE_SUPPORT_M50663
-    memcpy(&(evc_tbl_qp_chroma_dynamic_ext[0][6 * (BIT_DEPTH - 8)]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
-    memcpy(&(evc_tbl_qp_chroma_dynamic_ext[1][6 * (BIT_DEPTH - 8)]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
+    if (cdsc->chroma_qp_table_struct.chroma_qp_table_present_flag)
+    {
+        evc_derived_chroma_qp_mapping_tables(&(cdsc->chroma_qp_table_struct));
+    }
+    else 
+    {
+        memcpy(&(evc_tbl_qp_chroma_dynamic_ext[0][6 * (BIT_DEPTH - 8)]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
+        memcpy(&(evc_tbl_qp_chroma_dynamic_ext[1][6 * (BIT_DEPTH - 8)]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
+    }
 #endif
 
 #if EVC_TILE_SUPPORT    
@@ -413,6 +433,12 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
 
 #if DQP
     sps->dquant_flag = ctx->cdsc.profile == 0 ? 0 : 1;                 /*Baseline : Active SPSs shall have sps_dquant_flag equal to 0 only*/
+#endif
+#if CHROMA_QP_TABLE_SUPPORT_M50663
+    if (ctx->cdsc.chroma_qp_table_struct.chroma_qp_table_present_flag)
+    {
+        evce_copy_chroma_qp_mapping_params(&(sps->chroma_qp_table_struct), &(ctx->cdsc.chroma_qp_table_struct));
+    }
 #endif
 }
 
@@ -2403,20 +2429,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #if M50662_HISTORY_CTU_ROW_RESET
     ret = evce_hmvp_init(&(core->history_buffer));
     evc_assert_rv(ret == EVC_OK, ret);
-#else
-#if ADMVP
-    evc_mset(core->history_buffer.history_mv_table, 0, ALLOWED_CHECKED_NUM * REFP_NUM * MV_D * sizeof(s16));
-    
-    //evc_mset(core->history_buffer.history_refi_table, 0, ALLOWED_CHECKED_NUM * REFP_NUM * sizeof(s8));
-    for (int i = 0; i < ALLOWED_CHECKED_NUM; i++)
-    {
-        core->history_buffer.history_refi_table[i][REFP_0] = REFI_INVALID;
-        core->history_buffer.history_refi_table[i][REFP_1] = REFI_INVALID;
-    }
-
-    core->history_buffer.currCnt = 0;
-    core->history_buffer.m_maxCnt = ALLOWED_CHECKED_NUM;
-#endif
 #endif
 
 #if !EVC_TILE_SUPPORT    

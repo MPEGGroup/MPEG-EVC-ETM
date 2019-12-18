@@ -42,8 +42,6 @@
 //MPEG 128 adoptions
 #define ALF_TILES_SUPPORT_M50663                     1
 #define CHROMA_QP_TABLE_SUPPORT_M50663               1
-#define MAX_QP_TABLE_SIZE                            58   
-#define MAX_QP_TABLE_SIZE_EXT                        70   
 
 #define M50662                                       1
 #if M50662
@@ -632,12 +630,6 @@ extern int fp_trace_started;
 #define MAX_NUM_MVP_SMALL_CU               4
 #define MAX_NUM_MVP                        6
 #define NUM_SAMPLES_BLOCK                  32 // 16..64
-#else
-#if ADMVP
-#define MAX_NUM_MVP                        6
-#else
-#define MAX_NUM_MVP                        5
-#endif
 #endif
 #define ORG_MAX_NUM_MVP                    4
 #else
@@ -1399,12 +1391,7 @@ typedef struct _EVC_SPS
     int              dquant_flag;              /*1 specifies the improved delta qp signaling processes is used*/
 #endif
 #if CHROMA_QP_TABLE_SUPPORT_M50663
-    int             chroma_qp_table_present_flag;              /*1 enables signaling of chroma QP table */
-    int             same_qp_table_for_chroma;
-    int             global_offset_flag;
-    int             num_points_in_qp_table [2];
-    int             delta_qp_in_val_minus1[2][MAX_QP_TABLE_SIZE];
-    int             delta_qp_out_val[2][MAX_QP_TABLE_SIZE];
+    EVC_CHROMA_TABLE chroma_qp_table_struct;
 #endif
 #if IBC
     u8               ibc_flag;                   /* 1 bit : flag of enabling IBC or not */
