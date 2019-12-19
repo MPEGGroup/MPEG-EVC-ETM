@@ -497,7 +497,7 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
 
 void evcd_split_tbl_init(EVCD_CTX *ctx)
 {
-    evc_split_tbl[0][0] = ctx->sps.log2_diff_ctu_max_11_cb_size + ctx->log2_max_cuwh;
+    evc_split_tbl[0][0] = ctx->log2_max_cuwh - ctx->sps.log2_diff_ctu_max_11_cb_size;
     evc_split_tbl[0][1] = evc_split_tbl[0][0] - ctx->sps.log2_diff_max_11_min_11_cb_size;
     evc_split_tbl[1][0] = evc_split_tbl[0][0] - ctx->sps.log2_diff_max_11_max_12_cb_size;
     evc_split_tbl[1][1] = evc_split_tbl[0][1] + 1 + ctx->sps.log2_diff_min_11_min_12_cb_size_minus1;
