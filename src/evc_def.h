@@ -132,9 +132,6 @@
 #define ATS                                1   
 #define IBC                                1   
 
-//partitioning
-#define SUCO                               1
-
 //inter
 #define AFFINE                             1  // Affine Prediction
 #define DMVR                               1  // Decoder-side Motion Vector Refinement
@@ -192,7 +189,7 @@
 #if MERGE
 #define FAST_MERGE_THR                     1.3
 #endif
-
+#define ENC_SUCO_FAST_CONFIG               1  /* fast config: 1(low complexity), 2(medium complexity), 4(high_complexity) */
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                              SIMD Optimizations                            //
@@ -597,7 +594,6 @@ extern int fp_trace_started;
 
 #define N_REF                              3  /* left, up, right */
 #define NUM_NEIB                           4  /* LR: 00, 10, 01, 11*/
-#define NUM_SUCO_FAST_NEIB                 1  /* other config, 1, 2, 4 */
 
 #define MAX_CU_LOG2                        7
 #define MIN_CU_LOG2                        2

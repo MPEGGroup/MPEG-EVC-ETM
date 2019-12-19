@@ -2421,11 +2421,11 @@ void evce_init_bef_data(EVCE_CORE* core, EVCE_CTX* ctx)
 u16 evc_get_lr(u16 avail)
 {
     u16 avail_lr = avail;
-#if NUM_SUCO_FAST_NEIB == 1
+#if ENC_SUCO_FAST_CONFIG == 1
     avail_lr = 0;
-#elif NUM_SUCO_FAST_NEIB == 2
+#elif ENC_SUCO_FAST_CONFIG == 2
     avail_lr = (avail == LR_10 || avail == LR_00) ? 0 : 1;
-#else // NUM_SUCO_FAST_NEIB == 4
+#else // ENC_SUCO_FAST_CONFIG == 4
     avail_lr = avail;
 #endif
     return avail_lr;
