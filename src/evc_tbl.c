@@ -711,7 +711,7 @@ const s16 init_cc_scanr_x[2][NUM_CTX_SCANR] = {
 const s16 init_cc_scanr_y[2][NUM_CTX_SCANR] = { 
         { initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA },
         { initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB }};
-#if COEFF_CODE_ADCC2
+
 #if M50631_IMPROVEMENT_ADCC_CTXINIT
 const s16 init_cc_gt0_4[2][NUM_CTX_GT0] = {
     { 387, 421, 369, 288, 67, 534, 466, 662, 321, 65, 163, 404, 199, 645, 131, 363, 549, 683, 751, 427, 596, 416, 293, 263, 101, 144, 416, 80, 304, 150, 67, 112, 101, 368, 120, 681, 423, 144, 71, 519, 224, 241, 905, 64, 146, 329, 241 },
@@ -733,7 +733,6 @@ const s16 init_cc_scanr_x_3[2][NUM_CTX_SCANR] = {
 const s16 init_cc_scanr_y_3[2][NUM_CTX_SCANR] = {
         { 1020, 926, 4, 436, 830, 86, 500, 666, 636, 320, 272, 470, 504, 830, 615, 596, 306, 600, 404, 828, 487, 336, 696, 502, 163, 128, 52, 288 },
         { 306, 180, 288, 0, 84, 194, 48, 212, 52, 451, 99, 146, 212, 342, 743, 325, 210, 308, 242, 890, 421, 357, 566, 566, 195, 288, 98, 483 } };
-#endif
 
 const s16 init_run[2][NUM_SBAC_CTX_RUN][1] = {
     {

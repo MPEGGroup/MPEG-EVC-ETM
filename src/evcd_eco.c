@@ -1404,7 +1404,7 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_in
 #if DQP
         evc_eco_sbac_ctx_initialize(sbac_ctx->delta_qp, (s16*)init_dqp, NUM_DELTA_QP_CTX, slice_type, slice_qp);
 #endif
-#if COEFF_CODE_ADCC2
+
 #if M50631_IMPROVEMENT_ADCC_CTXINIT
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gt0, (s16*)init_cc_gt0_4, NUM_CTX_GT0, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gtA, (s16*)init_cc_gtA_4, NUM_CTX_GTA, slice_type, slice_qp);
@@ -1419,7 +1419,6 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_in
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gtA, (s16*)init_cc_gtA, NUM_CTX_GTA, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_x, (s16*)init_cc_scanr_x, NUM_CTX_SCANR, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_y, (s16*)init_cc_scanr_y, NUM_CTX_SCANR, slice_type, slice_qp);
-#endif
         evc_eco_sbac_ctx_initialize(sbac_ctx->pred_mode, (s16*)init_pred_mode, NUM_PRED_MODE_CTX, slice_type, slice_qp);
 #if M50761_CHROMA_NOT_SPLIT
         evc_eco_sbac_ctx_initialize(sbac_ctx->mode_cons, (s16*)init_mode_cons, NUM_MODE_CONS_CTX, slice_type, slice_qp);

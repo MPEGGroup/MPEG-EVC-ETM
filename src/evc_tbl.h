@@ -112,7 +112,7 @@ extern const s16 init_cc_gt0[2][NUM_CTX_GT0];
 extern const s16 init_cc_gtA[2][NUM_CTX_GTA];
 extern const s16 init_cc_scanr_x[2][NUM_CTX_SCANR];
 extern const s16 init_cc_scanr_y[2][NUM_CTX_SCANR];
-#if COEFF_CODE_ADCC2
+
 #if M50631_IMPROVEMENT_ADCC_CTXINIT
 extern const s16 init_cc_gt0_4[2][NUM_CTX_GT0];
 extern const s16 init_cc_gtA_4[2][NUM_CTX_GTA];
@@ -122,7 +122,6 @@ extern const s16 init_cc_gtA_3[2][NUM_CTX_GTA];
 #endif
 extern const s16 init_cc_scanr_x_3[2][NUM_CTX_SCANR];
 extern const s16 init_cc_scanr_y_3[2][NUM_CTX_SCANR];
-#endif
 
 #if AFFINE
 extern const s16 init_affine_flag[2][NUM_SBAC_CTX_AFFINE_FLAG][1];

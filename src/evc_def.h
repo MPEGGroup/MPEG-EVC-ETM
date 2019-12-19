@@ -473,8 +473,6 @@ typedef struct _evc_AlfFilterShape
 /* TRANSFORM PACKAGE (END) */
 
 /* ADCC (START) */
-#define COEFF_CODE_ADCC2                   1 
-
 #define LOG2_RATIO_GTA                     1
 #define LOG2_RATIO_GTB                     4
 #define LOG2_CG_SIZE                       4
