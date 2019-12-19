@@ -154,7 +154,6 @@ IBC_INLINE int is_bv_valid(EVCE_CTX *ctx, int x, int y, int width, int height, i
                 return 0;
             }
 
-#if SUCO
             if (ctx->sps.sps_suco_flag)
             {
               // top right position of ref block's collocated block in current CTU
@@ -221,7 +220,6 @@ IBC_INLINE int is_bv_valid(EVCE_CTX *ctx, int x, int y, int width, int height, i
                 }
                   }
             }
-#endif
         }
 #else
         // ref block's collocated block in current CTU
@@ -287,7 +285,6 @@ IBC_INLINE int is_bv_valid(EVCE_CTX *ctx, int x, int y, int width, int height, i
         return 0;
     }
 
-#if SUCO
     if (ctx->sps.sps_suco_flag)
     {
       // check the availablity of bottom-left corner
@@ -315,7 +312,6 @@ IBC_INLINE int is_bv_valid(EVCE_CTX *ctx, int x, int y, int width, int height, i
         }
       }
     }
-#endif
 
     return 1;
 #endif
