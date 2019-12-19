@@ -106,9 +106,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 #if ATS_INTER_PROCESS
                           , 0
 #endif
-#if ADCC
             , ctx->sps.tool_adcc
-#endif
 #if M50761_CHROMA_NOT_SPLIT
             , ctx->tree_cons
 #endif
@@ -198,9 +196,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 #if ATS_INTER_PROCESS
                           , 0
 #endif
-#if ADCC
             , ctx->sps.tool_adcc
-#endif
 #if M50761_CHROMA_NOT_SPLIT
             , ctx->tree_cons
 #endif

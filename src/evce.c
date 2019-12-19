@@ -386,9 +386,7 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->tool_amis = ctx->cdsc.tool_amis;
     sps->tool_eipd = ctx->cdsc.tool_eipd;
     sps->tool_iqt = ctx->cdsc.tool_iqt;
-#if ADCC
     sps->tool_adcc = ctx->cdsc.tool_adcc;
-#endif
     sps->tool_cm_init = ctx->cdsc.tool_cm_init;
 #if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
     sps->tool_ats = ctx->cdsc.tool_ats;

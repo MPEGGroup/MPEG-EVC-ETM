@@ -1630,9 +1630,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 #if ATS_INTER_PROCESS
                              , core->ats_inter_info
 #endif
-#if ADCC
         , ctx->sps.tool_adcc
-#endif
 #if M50761_CHROMA_NOT_SPLIT
         , ctx->tree_cons
 #endif
@@ -1927,7 +1925,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
                     SBAC_LOAD(core->s_temp_run, core->s_temp_prev_comp_run);
                     evce_sbac_bit_reset(&core->s_temp_run);
                     evce_rdo_bit_cnt_cu_inter_comp(core, coef, i, pidx
-#if ATS_INTRA_PROCESS || ADCC
+#if ATS_INTRA_PROCESS 
                                                   , ctx
 #endif
 #if M50761_CHROMA_NOT_SPLIT

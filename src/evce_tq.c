@@ -44,12 +44,10 @@ static double err_scale_tbl[6][MAX_CU_DEPTH];
 
 extern int rdoq_est_all_cbf[2];
 extern int rdoq_est_cbf[NUM_QT_CBF_CTX][2];
-#if ADCC
 extern int rdoq_est_gt0[NUM_CTX_GT0][2];
 extern int rdoq_est_gtA[NUM_CTX_GTA][2];
 extern int rdoq_est_scanr_x[NUM_CTX_SCANR][2];
 extern int rdoq_est_scanr_y[NUM_CTX_SCANR][2];
-#endif
 extern s32 rdoq_est_run[NUM_SBAC_CTX_RUN][2];
 extern s32 rdoq_est_level[NUM_SBAC_CTX_LEVEL][2];
 extern s32 rdoq_est_last[NUM_SBAC_CTX_LAST][2];
@@ -1157,7 +1155,6 @@ void evce_init_err_scale()
 #define GET_I_COST(rate, lamba)  (rate*lamba)
 #define GET_IEP_RATE             (32768)
 
-#if ADCC
 #if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
 __inline static s64 get_rate_positionLastXY(int pos_x, int pos_y, int width, int height, int ch_type, s64 lambda, int sps_cm_init_flag)
 #else
@@ -1519,7 +1516,7 @@ __inline static int get_ctx_gt012_inc(s16 *pcoeff, int blkpos, int width, int he
 
     return ctx_ofs + ctx_idx;
 }
-#endif
+
 #if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
 static __inline s64 get_ic_rate_cost_rl(u32 abs_level, u32 run, s32 ctx_run, u32 ctx_level, s64 lambda)
 #else
@@ -1788,7 +1785,6 @@ int evce_rdoq_run_length_cc(u8 qp, double lambda, u8 is_intra, s16 *src_coef, s1
     return nnz;
 }
 
-#if ADCC
 int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s16 *dst_tmp, int log2_cuw, int log2_cuh, int ch_type, int sps_cm_init_flag)
 {
     const int ns_shift = ((log2_cuw + log2_cuh) & 1) ? 7 : 0;
@@ -2562,13 +2558,8 @@ int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
     return nnz;
 #endif
 }
-#endif
 
-int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw, int log2_cuh, u16 scale, int ch_type, int slice_type, int sps_cm_init_flag
-#if ADCC
-                    , int tool_adcc
-#endif
-)
+int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw, int log2_cuh, u16 scale, int ch_type, int slice_type, int sps_cm_init_flag, int tool_adcc)
 {
     int nnz = 0;
 
@@ -2612,12 +2603,14 @@ int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw,
 
     if(USE_RDOQ)
     {
-#if ADCC
         if (tool_adcc)
+        {
             nnz = ifvce_rdoq_method_ccA(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type, sps_cm_init_flag);
+        }
         else
-#endif
+        {
             nnz = evce_rdoq_run_length_cc(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type, sps_cm_init_flag);
+        }
     }
     else
     {
@@ -2653,9 +2646,7 @@ int evce_tq_nnz(u8 qp, double lambda, s16 * coef, int log2_cuw, int log2_cuh, u1
 #if ATS_INTRA_PROCESS
                 , u8 ats_intra_cu, u8 ats_tu
 #endif
-#if ADCC
                  , int tool_adcc
-#endif
 )
 {
 #if ATS_INTRA_PROCESS
@@ -2671,11 +2662,7 @@ int evce_tq_nnz(u8 qp, double lambda, s16 * coef, int log2_cuw, int log2_cuh, u1
     evce_trans(coef, log2_cuw, log2_cuh, iqt_flag);
 #endif
 
-    return evce_quant_nnz(qp, lambda, is_intra, coef, log2_cuw, log2_cuh, scale, ch_type, slice_type, sps_cm_init_flag
-#if ADCC
-        , tool_adcc
-#endif
-    );
+    return evce_quant_nnz(qp, lambda, is_intra, coef, log2_cuw, log2_cuh, scale, ch_type, slice_type, sps_cm_init_flag, tool_adcc);
 }
 
 int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int slice_type, int nnz[N_C]
@@ -2686,9 +2673,7 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
 #if ATS_INTER_PROCESS
                       , u8 ats_inter_info
 #endif
-#if ADCC
                      , int tool_adcc
-#endif
 #if M50761_CHROMA_NOT_SPLIT
                      , TREE_CONS tree_cons
 #endif
@@ -2759,10 +2744,7 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
 #if ATS_INTRA_PROCESS
                             , ats_intra_cu_on, ats_tu_mode
 #endif
-#if ADCC
-                            , tool_adcc
-#endif
-                    );
+                            , tool_adcc);
                     nnz_temp[c] += nnz_sub[c][(j << 1) | i];
 
                     if(loop_h + loop_w > 2)

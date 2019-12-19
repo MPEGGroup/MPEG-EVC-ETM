@@ -37,6 +37,10 @@
 #include "evc.h"
 #include "evc_port.h"
 
+/* Profiles definitions */
+#define PROFILE_BASELINE                             0
+#define PROFILE_MAIN                                 1
+
 #define AFFINE_TMVP_SPEC_CONDITION_ALIGN             1
 
 //MPEG 128 adoptions
@@ -64,7 +68,7 @@
 #endif
 #endif
 
-#define M50761                                     1
+#define M50761                                       1
 #if M50761
 //chroma no split for avoiding 2x2, 2x4 and 4x2 chroma blocks
 #define M50761_CHROMA_NOT_SPLIT                    0
@@ -102,33 +106,28 @@
 #endif
 #endif
 
-#define M50631_IMPROVEMENT_ADCC            1
+#define M50631_IMPROVEMENT_ADCC                      1
 #if M50631_IMPROVEMENT_ADCC
-#define M50631_IMPROVEMENT_ADCC_CTXINIT    1
-#define M50631_IMPROVEMENT_ADCC_CTXGT12    1
-#define M50631_IMPROVEMENT_ADCC_RDOQFIX    1
+#define M50631_IMPROVEMENT_ADCC_CTXINIT              1
+#define M50631_IMPROVEMENT_ADCC_CTXGT12              1
+#define M50631_IMPROVEMENT_ADCC_RDOQFIX              1
 #endif
 
-#define M50632_IMPROVEMENT                 1
+#define M50632_IMPROVEMENT                           1
 #if M50632_IMPROVEMENT
-#define M50632_SIMPLIFICATION_TT           1
-#define M50632_SIMPLIFICATION_ATS          1
-#define M50632_IMPROVEMENT_MMVD            1
-#define M50632_IMPROVEMENT_SPS             1
-#define M50632_IMPROVEMENT_BASELINE        1
+#define M50632_SIMPLIFICATION_TT                     1
+#define M50632_SIMPLIFICATION_ATS                    1
+#define M50632_IMPROVEMENT_MMVD                      1
+#define M50632_IMPROVEMENT_SPS                       1
+#define M50632_IMPROVEMENT_BASELINE                  1
 
 #if M50632_IMPROVEMENT_BASELINE
-#define CTX_MODEL_FOR_RESIDUAL_IN_BASE     0
+#define CTX_MODEL_FOR_RESIDUAL_IN_BASE               0
 #else
-#define CTX_MODEL_FOR_RESIDUAL_IN_BASE     1
+#define CTX_MODEL_FOR_RESIDUAL_IN_BASE               1
 #endif
 #endif
 
-/* Profiles definitions */
-#define PROFILE_BASELINE                   0
-#define PROFILE_MAIN                       1
-
-#define ADCC                               1   
 #define ATS                                1   
 #define IBC                                1   
 
@@ -190,6 +189,7 @@
 #define FAST_MERGE_THR                     1.3
 #endif
 #define ENC_SUCO_FAST_CONFIG               1  /* fast config: 1(low complexity), 2(medium complexity), 4(high_complexity) */
+
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                              SIMD Optimizations                            //
@@ -473,7 +473,6 @@ typedef struct _evc_AlfFilterShape
 /* TRANSFORM PACKAGE (END) */
 
 /* ADCC (START) */
-#if ADCC
 #define COEFF_CODE_ADCC2                   1 
 
 #define LOG2_RATIO_GTA                     1
@@ -487,7 +486,24 @@ typedef struct _evc_AlfFilterShape
 #define MAX_GR_ORDER_RESIDUAL              10
 #define COEF_REMAIN_BIN_REDUCTION          3
 #define LAST_SIGNIFICANT_GROUPS            14
-#endif
+
+#define NUM_CTX_SCANR_LUMA                 25
+#define NUM_CTX_SCANR_CHROMA               3
+#define NUM_CTX_SCANR                      (NUM_CTX_SCANR_LUMA + NUM_CTX_SCANR_CHROMA)
+
+#define NUM_CTX_GT0_LUMA                   39  /* number of context models for luma gt0 flag */
+#define NUM_CTX_GT0_CHROMA                 8   /* number of context models for chroma gt0 flag */
+#define NUM_CTX_GT0_LUMA_TU                13  /* number of context models for luma gt0 flag per TU */
+#define NUM_CTX_GT0                        (NUM_CTX_GT0_LUMA + NUM_CTX_GT0_CHROMA)  /* number of context models for gt0 flag */
+
+#define NUM_CTX_GTA_LUMA                   13
+#define NUM_CTX_GTA_CHROMA                 5     
+#define NUM_CTX_GTA                        (NUM_CTX_GTA_LUMA + NUM_CTX_GTA_CHROMA)  /* number of context models for gtA/B flag */
+
+#define COEF_SCAN_ZIGZAG                   0
+#define COEF_SCAN_DIAG                     1
+#define COEF_SCAN_DIAG_CG                  2
+#define COEF_SCAN_TYPE_NUM                 3
 /* ADCC (END) */
 
 /* IBC (START) */
@@ -1020,21 +1036,6 @@ typedef u32 SBAC_CTX_MODEL;
 #define NUM_SBAC_CTX_LAST                  2
 #define NUM_SBAC_CTX_LEVEL                 24
 
-#if ADCC
-#define NUM_CTX_SCANR_LUMA                 25
-#define NUM_CTX_SCANR_CHROMA               3
-#define NUM_CTX_SCANR                      (NUM_CTX_SCANR_LUMA + NUM_CTX_SCANR_CHROMA)
-
-#define NUM_CTX_GT0_LUMA                   39  /* number of context models for luma gt0 flag */
-#define NUM_CTX_GT0_CHROMA                 8   /* number of context models for chroma gt0 flag */
-#define NUM_CTX_GT0_LUMA_TU                13  /* number of context models for luma gt0 flag per TU */
-#define NUM_CTX_GT0                        (NUM_CTX_GT0_LUMA + NUM_CTX_GT0_CHROMA)  /* number of context models for gt0 flag */
-
-#define NUM_CTX_GTA_LUMA                   13
-#define NUM_CTX_GTA_CHROMA                 5     
-#define NUM_CTX_GTA                        (NUM_CTX_GTA_LUMA + NUM_CTX_GTA_CHROMA)  /* number of context models for gtA/B flag */
-#endif
-
 #if ALF
 #define NUM_SBAC_CTX_ALF_FLAG              9
 #endif
@@ -1089,12 +1090,10 @@ typedef struct _EVC_SBAC_CTX
     SBAC_CTX_MODEL   last            [NUM_SBAC_CTX_LAST];
     SBAC_CTX_MODEL   level           [NUM_SBAC_CTX_LEVEL];
 
-#if ADCC
     SBAC_CTX_MODEL   cc_gt0[NUM_CTX_GT0];
     SBAC_CTX_MODEL   cc_gtA[NUM_CTX_GTA];
     SBAC_CTX_MODEL   cc_scanr_x[NUM_CTX_SCANR];
     SBAC_CTX_MODEL   cc_scanr_y[NUM_CTX_SCANR];
-#endif
 
     SBAC_CTX_MODEL   btt_split_flag  [NUM_SBAC_CTX_BTT_SPLIT_FLAG];
     SBAC_CTX_MODEL   btt_split_dir   [NUM_SBAC_CTX_BTT_SPLIT_DIR];
@@ -1126,17 +1125,6 @@ typedef struct _EVC_SBAC_CTX
     SBAC_CTX_MODEL   ats_inter_info  [NUM_SBAC_CTX_ATS_INTER_INFO];
 #endif
 } EVC_SBAC_CTX;
-
-
-#if ADCC
-#define COEF_SCAN_ZIGZAG                   0
-#define COEF_SCAN_DIAG                     1
-#define COEF_SCAN_DIAG_CG                  2
-#define COEF_SCAN_TYPE_NUM                 3
-#else
-#define COEF_SCAN_ZIGZAG                   0
-#define COEF_SCAN_TYPE_NUM                 1
-#endif
 
 /* Maximum transform dynamic range (excluding sign bit) */
 #define MAX_TX_DYNAMIC_RANGE               15
@@ -1362,10 +1350,7 @@ typedef struct _EVC_SPS
     int              tool_pocs;
     int              log2_sub_gop_length;
     int              log2_ref_pic_gap_length;
-
-#if ADCC  
     int              tool_adcc;
-#endif
     int              log2_max_pic_order_cnt_lsb_minus4;
     int              max_dec_pic_buffering_minus1;
     int              max_num_ref_pics;

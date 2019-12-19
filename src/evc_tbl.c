@@ -256,10 +256,8 @@ const s8 * evc_tbl_tm[MAX_CU_DEPTH] =
 u16 *evc_scan_tbl[COEF_SCAN_TYPE_NUM][MAX_CU_LOG2 - 1][MAX_CU_LOG2 - 1];
 int evc_scan_sr[MAX_TR_SIZE*MAX_TR_SIZE];
 
-#if ADCC
 u16 *evc_inv_scan_tbl[COEF_SCAN_TYPE_NUM][MAX_CU_LOG2 - 1][MAX_CU_LOG2 - 1];
 int evc_inv_scan_sr[MAX_TR_SIZE*MAX_TR_SIZE];
-#endif
 const int evc_tbl_dq_scale[6] = {40, 45, 51, 57, 64, 72};
 const int evc_tbl_dq_scale_b[6] = {40, 45, 51, 57, 64, 71};
 const int evc_tbl_ipred_adi[32][4]=
@@ -698,7 +696,7 @@ const s16 init_dqp[2][NUM_DELTA_QP_CTX][1] = {
     }
 };
 #endif
-#if ADCC   // tables below to be optimized for the final design
+// ADCC the tables below are to be optimized for the final design
 #define initA 0
 #define initB 128
 const s16 init_cc_gt0[2][NUM_CTX_GT0] = { 
@@ -735,7 +733,6 @@ const s16 init_cc_scanr_x_3[2][NUM_CTX_SCANR] = {
 const s16 init_cc_scanr_y_3[2][NUM_CTX_SCANR] = {
         { 1020, 926, 4, 436, 830, 86, 500, 666, 636, 320, 272, 470, 504, 830, 615, 596, 306, 600, 404, 828, 487, 336, 696, 502, 163, 128, 52, 288 },
         { 306, 180, 288, 0, 84, 194, 48, 212, 52, 451, 99, 146, 212, 342, 743, 325, 210, 308, 242, 890, 421, 357, 566, 566, 195, 288, 98, 483 } };
-#endif
 #endif
 
 const s16 init_run[2][NUM_SBAC_CTX_RUN][1] = {
@@ -1145,7 +1142,7 @@ const u8 CLIP_TAB[52][5] =
     { 0, 9,12,18,18 },{ 0,10,13,20,20 },{ 0,11,15,23,23 },{ 0,13,17,25,25 }
 };
 #endif
-#if ADCC 
+
 const int g_min_in_group[LAST_SIGNIFICANT_GROUPS] = { 0,1,2,3,4,6,8,12,16,24,32,48,64,96 };
 const int g_group_idx[MAX_TR_SIZE] = { 0,1,2,3,4,4,5,5,6,6,6,6,7,7,7,7,8,8,8,8,8,8,8,8,9,9,9,9,9,9,9,9, 10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11 };
 
@@ -1158,5 +1155,3 @@ const int g_go_rice_para_coeff[32] =
 {
     0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3
 };
-
-#endif

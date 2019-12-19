@@ -2676,10 +2676,8 @@ int evc_scan_tbl_init()
                 size_x = 1 << (x + 1);
                 evc_scan_tbl[scan_type][x][y] = (u16*)evc_malloc_fast(size_y * size_x * sizeof(u16));
                 init_scan(evc_scan_tbl[scan_type][x][y], size_x, size_y, scan_type);
-#if ADCC
                 evc_inv_scan_tbl[scan_type][x][y] = (u16*)evc_malloc_fast(size_y * size_x * sizeof(u16));
                 evc_init_inverse_scan_sr(evc_inv_scan_tbl[scan_type][x][y], evc_scan_tbl[scan_type][x][y], size_x, size_y, scan_type);
-#endif
             }
         }
     }
@@ -2700,12 +2698,11 @@ int evc_scan_tbl_delete()
                 {
                     free(evc_scan_tbl[scan_type][x][y]);
                 }
-#if ADCC
+
                 if (evc_inv_scan_tbl[scan_type][x][y] != NULL)
                 {
                     free(evc_inv_scan_tbl[scan_type][x][y]);
                 }
-#endif
             }
         }
     }
@@ -4858,7 +4855,6 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
 }
 #endif
 
-#if ADCC
 void evc_get_ctx_last_pos_xy_para(int ch_type, int width, int height, int *result_offset_x, int *result_offset_y, int *result_shift_x, int *result_shift_y)
 {
     int convertedWidth = CONV_LOG2(width) - 2;
@@ -5191,7 +5187,6 @@ void evc_init_inverse_scan_sr(u16 *scan_inv, u16 *scan_orig, int width, int heig
     }
 }
 
-#endif
 
 int evc_get_transform_shift(int log2_size, int type)
 {

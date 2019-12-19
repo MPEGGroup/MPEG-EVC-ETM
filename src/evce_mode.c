@@ -53,12 +53,11 @@ typedef int(*LOSSY_ES_FUNC)(EVCE_CU_DATA *, int, double, int, int, int, int, int
 int rdoq_est_all_cbf[2];
 int rdoq_est_cbf[NUM_QT_CBF_CTX][2];
 
-#if ADCC
 int rdoq_est_gt0[NUM_CTX_GT0][2];
 int rdoq_est_gtA[NUM_CTX_GTA][2];
 int rdoq_est_scanr_x[NUM_CTX_SCANR][2];
 int rdoq_est_scanr_y[NUM_CTX_SCANR][2];
-#endif
+
 s32 rdoq_est_run[NUM_SBAC_CTX_RUN][2];
 s32 rdoq_est_level[NUM_SBAC_CTX_LEVEL][2];
 s32 rdoq_est_last[NUM_SBAC_CTX_LAST][2];
@@ -208,9 +207,7 @@ void evce_rdo_bit_cnt_cu_intra_luma(EVCE_CTX *ctx, EVCE_CORE *core, s32 slice_ty
 #if ATS_INTER_PROCESS
                   , 0
 #endif
-#if ADCC  
                   , ctx
-#endif
 #if DQP
                   , core, -1, core->qp
 #endif
@@ -251,9 +248,7 @@ void evce_rdo_bit_cnt_cu_intra_chroma(EVCE_CTX *ctx, EVCE_CORE *core, s32 slice_
 #if ATS_INTER_PROCESS
                   , 0
 #endif
-#if ADCC  
                   , ctx
-#endif
 #if DQP
                   , core, -1, 0
 #endif
@@ -345,9 +340,7 @@ void evce_rdo_bit_cnt_cu_intra(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
 #if ATS_INTER_PROCESS
                   , 0
 #endif
-#if ADCC  
                   , ctx
-#endif
 #if DQP
                   , core, ctx->pps.cu_qp_delta_enabled_flag ? 1 : 0, core->qp
 #endif
@@ -367,7 +360,7 @@ void evce_rdo_bit_cnt_cu_intra(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
 }
 
 void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM], int ch_type, int pidx
-#if ATS_INTRA_PROCESS || ADCC
+#if ATS_INTRA_PROCESS
                                     , EVCE_CTX * ctx
 #endif
 #if M50761_CHROMA_NOT_SPLIT
@@ -393,9 +386,7 @@ void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM],
 #if ATS_INTER_PROCESS
             , core->ats_inter_info
 #endif
-#if ADCC  
             , ctx
-#endif
 #if DQP
             , core, 0, core->qp
 #endif
@@ -418,9 +409,7 @@ void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM],
 #if ATS_INTER_PROCESS
             , core->ats_inter_info
 #endif
-#if ADCC  
             , ctx
-#endif
 #if DQP
             , core, -1, 0
 #endif
@@ -442,9 +431,7 @@ void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM],
 #if ATS_INTER_PROCESS
             , core->ats_inter_info
 #endif
-#if ADCC  
             , ctx
-#endif
 #if DQP
             , core, -1, 0
 #endif
@@ -504,9 +491,7 @@ void evce_rdo_bit_cnt_cu_ibc(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s
 #if ATS_INTER_PROCESS
     , 0
 #endif
-#if ADCC  
     , ctx
-#endif   
 #if DQP
     , core, ctx->pps.cu_qp_delta_enabled_flag ? 1 : 0, core->qp
 #endif
@@ -810,9 +795,7 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
 #if ATS_INTER_PROCESS
         , core->ats_inter_info
 #endif
-#if ADCC  
         , ctx
-#endif
 #if DQP
         , core, ctx->pps.cu_qp_delta_enabled_flag ? 1 : 0, core->qp
 #endif
@@ -914,8 +897,6 @@ static void evce_rdoq_bit_est(EVCE_SBAC * sbac)
         rdoq_est_all_cbf[bin] = biari_no_bits(bin, sbac->ctx.all_cbf);
     }
 
-#if ADCC
-
     for (ctx = 0; ctx < NUM_CTX_GT0; ctx++)
     {
         for (bin = 0; bin < 2; bin++)
@@ -940,7 +921,7 @@ static void evce_rdoq_bit_est(EVCE_SBAC * sbac)
             rdoq_est_scanr_y[ctx][bin] = biari_no_bits(bin, sbac->ctx.cc_scanr_y + ctx);
         }
     }
-#endif
+
     for(ctx = 0; ctx < NUM_SBAC_CTX_RUN; ctx++)
     {
         for(bin = 0; bin < 2; bin++)

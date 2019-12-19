@@ -547,7 +547,7 @@ static int evcd_eco_ats_tu_v(EVC_BSR * bs, EVCD_SBAC * sbac, u8 ctx)
     return t0;
 }
 #endif
-#if ADCC
+
 static void parse_positionLastXY(EVC_BSR *bs, EVCD_SBAC *sbac, int* sr_x, int* sr_y, int width, int height, int ch_type)
 {
     EVC_SBAC_CTX *sbac_ctx = &sbac->ctx;
@@ -874,15 +874,12 @@ static int evcd_eco_ccA(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int log2_w, int
     return EVC_OK;
 }
 
-#endif
 
 static int evcd_eco_xcoef(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int log2_w, int log2_h, int ch_type
 #if ATS_INTER_PROCESS
     , u8 ats_inter_info, int is_intra
 #endif
-#if ADCC
     , int tool_adcc
-#endif
 )
 {
 #if ATS_INTER_PROCESS
@@ -892,12 +889,15 @@ static int evcd_eco_xcoef(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int log2_w, i
     }
     get_tu_size(ats_inter_info, log2_w, log2_h, &log2_w, &log2_h);
 #endif
-#if ADCC
-    if(tool_adcc)
+
+    if (tool_adcc)
+    {
         evcd_eco_ccA(bs, sbac, coef, log2_w, log2_h, (ch_type == Y_C ? 0 : 1));
+    }
     else
-#endif
+    {
         evcd_eco_run_length_cc(bs, sbac, coef, log2_w, log2_h, (ch_type == Y_C ? 0 : 1));
+    }
 #if TRACE_COEFFS
     int cuw = 1 << log2_w;
     int cuh = 1 << log2_h;
@@ -1339,9 +1339,7 @@ int evcd_eco_coef(EVCD_CTX * ctx, EVCD_CORE * core)
 #if ATS_INTER_PROCESS
                                     , core->ats_inter_info, core->pred_mode == MODE_INTRA
 #endif
-#if ADCC
                                     , ctx->sps.tool_adcc
-#endif
                     );
 
                     evc_assert_rv(ret == EVC_OK, ret);
@@ -1406,7 +1404,6 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_in
 #if DQP
         evc_eco_sbac_ctx_initialize(sbac_ctx->delta_qp, (s16*)init_dqp, NUM_DELTA_QP_CTX, slice_type, slice_qp);
 #endif
-#if ADCC 
 #if COEFF_CODE_ADCC2
 #if M50631_IMPROVEMENT_ADCC_CTXINIT
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gt0, (s16*)init_cc_gt0_4, NUM_CTX_GT0, slice_type, slice_qp);
@@ -1422,7 +1419,6 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_in
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gtA, (s16*)init_cc_gtA, NUM_CTX_GTA, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_x, (s16*)init_cc_scanr_x, NUM_CTX_SCANR, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_y, (s16*)init_cc_scanr_y, NUM_CTX_SCANR, slice_type, slice_qp);
-#endif
 #endif
         evc_eco_sbac_ctx_initialize(sbac_ctx->pred_mode, (s16*)init_pred_mode, NUM_PRED_MODE_CTX, slice_type, slice_qp);
 #if M50761_CHROMA_NOT_SPLIT
@@ -1488,12 +1484,10 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_in
         for(i = 0; i < NUM_SBAC_CTX_LEVEL; i++) sbac_ctx->level[i] = PROB_INIT;
         for(i = 0; i < NUM_QT_CBF_CTX; i++) sbac_ctx->cbf[i] = PROB_INIT;
         sbac_ctx->all_cbf[0] = PROB_INIT;
-#if ADCC 
         for (i = 0; i < NUM_CTX_GT0; i++) sbac_ctx->cc_gt0[i] = PROB_INIT;
         for (i = 0; i < NUM_CTX_GTA; i++) sbac_ctx->cc_gtA[i] = PROB_INIT;
         for (i = 0; i < NUM_CTX_SCANR; i++) sbac_ctx->cc_scanr_x[i] = PROB_INIT;
         for (i = 0; i < NUM_CTX_SCANR; i++) sbac_ctx->cc_scanr_y[i] = PROB_INIT;
-#endif
         for(i = 0; i < NUM_PRED_MODE_CTX; i++) sbac_ctx->pred_mode[i] = PROB_INIT;
 #if M50761_CHROMA_NOT_SPLIT
         for (i = 0; i < NUM_MODE_CONS_CTX; i++) sbac_ctx->mode_cons[i] = PROB_INIT;
@@ -2643,9 +2637,7 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
     sps->tool_cm_init = evc_bsr_read1(bs);
     if(sps->tool_cm_init)
     {
-#if ADCC
         sps->tool_adcc = evc_bsr_read1(bs);
-#endif
     }
 
     sps->tool_iqt = evc_bsr_read1(bs);
@@ -2683,9 +2675,7 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
 #if HTDF
     sps->tool_htdf = evc_bsr_read1(bs);
 #endif
-#if ADCC
     sps->tool_adcc = evc_bsr_read1(bs);
-#endif
     sps->tool_cm_init = evc_bsr_read1(bs);
 #if IBC
     sps->ibc_flag = evc_bsr_read1(bs);

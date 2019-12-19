@@ -79,10 +79,8 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
 #if ATS_INTER_PROCESS
                   , u8 ats_inter_info
 #endif
-#if ADCC || DQP
-                  , EVCE_CTX * ctx
-#endif
 #if DQP
+                  , EVCE_CTX * ctx
                   , EVCE_CORE * core, int enc_dqp, u8 cur_qp
 #endif
 #if M50761_CHROMA_NOT_SPLIT
@@ -117,11 +115,7 @@ void evce_eco_inter_dir(EVC_BSW * bs, s8 refi[REFP_NUM]
 );
 void evce_eco_inter_t_direct(EVC_BSW *bs, int t_direct_flag);
 //! \todo Change list of arguments
-void evce_eco_xcoef(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num_sig, int ch_type
-#if ADCC  
-                    , int tool_adcc
-#endif
-);
+void evce_eco_xcoef(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num_sig, int ch_type, int tool_adcc);
 //! \todo Change list of arguments
 int evce_eco_intra_dir_b(EVC_BSW *bs, u8 ipm, u8 * mpm, u8 mpm_ext[8], u8 pims[IPD_CNT]);
 int evce_eco_intra_dir(EVC_BSW *bs, u8 ipm, u8 mpm[2], u8 mpm_ext[8], u8 pims[IPD_CNT]);

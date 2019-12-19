@@ -125,9 +125,7 @@ static int  op_tool_htdf          = 1; /* default on */
 static int  op_tool_eipd          = 1; /* default on */
 static int  op_tool_iqt           = 1; /* default on */
 static int  op_tool_cm_init       = 1; /* default on */
-#if ADCC
 static int  op_tool_adcc          = 1; /* default on */
-#endif
 static int  op_cb_qp_offset       = 0;
 static int  op_cr_qp_offset       = 0;
 #if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
@@ -224,9 +222,7 @@ typedef enum _OP_FLAGS
     OP_TOOL_EIPD,
     OP_TOOL_IQT,
     OP_TOOL_CM_INIT,
-#if ADCC
     OP_TOOL_ADCC,
-#endif
     OP_CB_QP_OFFSET,
     OP_CR_QP_OFFSET,
 #if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
@@ -596,13 +592,11 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_TOOL_CM_INIT], &op_tool_cm_init,
         "cm_init on/off flag"
     },
-#if ADCC
     {
         EVC_ARGS_NO_KEY,  "adcc", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_TOOL_ADCC], &op_tool_adcc,
         "adcc on/off flag"
     },
-#endif
     {
         EVC_ARGS_NO_KEY,  "cb_qp_offset", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_CB_QP_OFFSET], &op_cb_qp_offset,
@@ -1084,9 +1078,7 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->tool_eipd          = op_tool_eipd;
     cdsc->tool_iqt           = op_tool_iqt;
     cdsc->tool_cm_init       = op_tool_cm_init;
-#if ADCC
     cdsc->tool_adcc          = op_tool_adcc;
-#endif
     cdsc->cb_qp_offset       = op_cb_qp_offset;
     cdsc->cr_qp_offset       = op_cr_qp_offset;
 #if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
@@ -1247,8 +1239,13 @@ static int get_conf(EVCE_CDSC * cdsc)
 }
 
 #if MULT_CONFIG
-static int print_enc_conf(EVCE_CDSC * cdsc)
+static void print_enc_conf(EVCE_CDSC * cdsc)
 {
+    /*
+    TBD(@Chernyak)
+    This function is to be modified to down all encoding process related information, not only tools list
+    */
+
     printf("AMVR: %d, ",   cdsc->tool_amvr);
     printf("MMVD: %d, ",   cdsc->tool_mmvd);
     printf("AFFINE: %d, ", cdsc->tool_affine);
@@ -1260,12 +1257,7 @@ static int print_enc_conf(EVCE_CDSC * cdsc)
     printf("EIPD: %d, ",   cdsc->tool_eipd);
     printf("IQT: %d, ",    cdsc->tool_iqt);
     printf("CM_INIT: %d ", cdsc->tool_cm_init);
-#if ADCC
     printf("ADCC: %d ",    cdsc->tool_adcc);
-#endif
-    // TODO: These are not tools, i suggest not report it here, instead as encoder parameters.
-    printf("CB_QP_OFFSET: %d, ", cdsc->cb_qp_offset);
-    printf("CR_QP_OFFSET: %d, ", cdsc->cr_qp_offset);
 #if IBC
     printf("IBC: %d, ", cdsc->ibc_flag);
 #endif
@@ -1284,14 +1276,13 @@ static int print_enc_conf(EVCE_CDSC * cdsc)
     printf("ChromaQPTable: %d ", cdsc->chroma_qp_table_struct.chroma_qp_table_present_flag);
 #endif
     printf("\n");
-    return 0;
 }
 #endif
 
 int check_conf(EVCE_CDSC* cdsc)
 {
     int success = 1;
-    if(cdsc->profile == 0)
+    if(cdsc->profile == PROFILE_BASELINE)
     {
         if (cdsc->tool_amvr    == 1) { v0print("AMVR cannot be on in base profile\n"); success = 0; }
         if (cdsc->tool_mmvd    == 1) { v0print("MMVD cannot be on in base profile\n"); success = 0; }
