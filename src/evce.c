@@ -388,9 +388,7 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->tool_iqt = ctx->cdsc.tool_iqt;
     sps->tool_adcc = ctx->cdsc.tool_adcc;
     sps->tool_cm_init = ctx->cdsc.tool_cm_init;
-#if ATS_INTER_PROCESS
     sps->tool_ats = ctx->cdsc.tool_ats;
-#endif
 
     if(sps->profile_idc == PROFILE_MAIN)
     {
@@ -1151,12 +1149,11 @@ int evce_ready(EVCE_CTX * ctx)
     EVCE_CORE * core = NULL;
     int          w, h, ret, i;
     s64          size;
-#if ATS_INTER_PROCESS
+
     ctx->map_ats_inter = NULL;
     ctx->ats_inter_info_pred = NULL;
     ctx->ats_inter_pred_dist = NULL;
     ctx->ats_inter_num_pred = NULL;
-#endif
 
     evc_assert(ctx);
 
@@ -1295,7 +1292,6 @@ int evce_ready(EVCE_CTX * ctx)
         evc_mset(ctx->map_ats_tu_v, 0, size);
     }
 
-#if ATS_INTER_PROCESS
     if (ctx->map_ats_inter == NULL)
     {
         size = sizeof(u8) * ctx->f_scu;
@@ -1319,7 +1315,6 @@ int evce_ready(EVCE_CTX * ctx)
         ctx->ats_inter_num_pred = evc_malloc_fast(size);
         evc_assert_gv(ctx->ats_inter_num_pred, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
     }
-#endif
 
     /* initialize reference picture manager */
     ctx->pa.fn_alloc = evce_pic_alloc;
@@ -1382,12 +1377,10 @@ ERR:
     evc_mfree_fast(ctx->map_ats_intra_cu);
     evc_mfree_fast(ctx->map_ats_tu_h);
     evc_mfree_fast(ctx->map_ats_tu_v);
-#if ATS_INTER_PROCESS
     evc_mfree_fast(ctx->map_ats_inter);
     evc_mfree_fast(ctx->ats_inter_pred_dist);
     evc_mfree_fast(ctx->ats_inter_info_pred);
     evc_mfree_fast(ctx->ats_inter_num_pred);
-#endif
     evc_mfree_fast(ctx->map_cu_mode);
 #if EVC_TILE_SUPPORT
     evc_mfree_fast(ctx->map_tidx);
@@ -1426,12 +1419,10 @@ void evce_flush(EVCE_CTX * ctx)
     evc_mfree_fast(ctx->map_ats_intra_cu);
     evc_mfree_fast(ctx->map_ats_tu_h);
     evc_mfree_fast(ctx->map_ats_tu_v);
-#if ATS_INTER_PROCESS
     evc_mfree_fast(ctx->map_ats_inter);
     evc_mfree_fast(ctx->ats_inter_pred_dist);
     evc_mfree_fast(ctx->ats_inter_info_pred);
     evc_mfree_fast(ctx->ats_inter_num_pred);
-#endif
     evc_mfree_fast(ctx->map_cu_mode);
 #if EVC_TILE_SUPPORT
     evc_mfree_fast(ctx->map_tidx);
@@ -1537,12 +1528,11 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
     else
 #endif
     {
-#if ATS_INTER_PROCESS // deblock
+        // deblock
         int t = (x >> MIN_CU_LOG2) + (y >> MIN_CU_LOG2) * ctx->w_scu;
         u8 ats_inter_info = ctx->map_ats_inter[t];
         u8 ats_inter_idx = get_ats_inter_idx(ats_inter_info);
         u8 ats_inter_pos = get_ats_inter_pos(ats_inter_info);
-#endif
         if(is_hor)
         {
             if (cuh > MAX_TR_SIZE)
@@ -2201,9 +2191,8 @@ int evce_enc_pic_prepare(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #if AFFINE
     evc_mset_x64a(ctx->map_affine, 0, sizeof(u32) * ctx->f_scu);
 #endif
-#if ATS_INTER_PROCESS
+
     evc_mset_x64a(ctx->map_ats_inter, 0, sizeof(u8) * ctx->f_scu);
-#endif
     evc_mset_x64a(ctx->map_cu_mode, 0, sizeof(u32) * ctx->f_scu);
 
     return EVC_OK;
@@ -3474,9 +3463,7 @@ int evce_create_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
     evce_malloc_1d((void**)& cu_data->ats_tu_h, size_8b);
     evce_malloc_1d((void**)& cu_data->ats_tu_v, size_8b);
 
-#if ATS_INTER_PROCESS
     evce_malloc_1d((void**)&cu_data->ats_inter_info, size_8b);
-#endif
 
     for(i = 0; i < N_C; i++)
     {
@@ -3576,9 +3563,7 @@ int evce_delete_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
     evce_free_1d((void*)cu_data->ats_intra_cu);
     evce_free_1d((void*)cu_data->ats_tu_h);
     evce_free_1d((void*)cu_data->ats_tu_v);
-#if ATS_INTER_PROCESS
     evce_free_1d((void*)cu_data->ats_inter_info);
-#endif
     evce_free_1d((void*)cu_data->map_cu_mode);
 #if !M50761_REMOVE_BLOCK_SIZE_MAP
     evce_free_2d((void**)cu_data->block_size);

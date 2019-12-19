@@ -2651,11 +2651,7 @@ int evce_tq_nnz(u8 qp, double lambda, s16 * coef, int log2_cuw, int log2_cuh, u1
 
 int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int slice_type, int nnz[N_C]
                       , int nnz_sub[N_C][MAX_SUB_TB_NUM], int is_intra, double lambda_y, double lambda_u, double lambda_v, int run_stats, int sps_cm_init_flag, int iqt_flag
-                      , u8 ats_intra_cu, u8 ats_tu
-#if ATS_INTER_PROCESS
-                      , u8 ats_inter_info
-#endif
-                     , int tool_adcc
+                      , u8 ats_intra_cu, u8 ats_tu, u8 ats_inter_info, int tool_adcc
 #if M50761_CHROMA_NOT_SPLIT
                      , TREE_CONS tree_cons
 #endif
@@ -2680,13 +2676,12 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
     evc_mset(nnz_sub, 0, sizeof(int) * N_C * MAX_SUB_TB_NUM);
     u8 ats_intra_cu_on = 0;
     u8 ats_tu_mode = 0;
-#if ATS_INTER_PROCESS
+
     if (ats_inter_info)
     {
         get_tu_size(ats_inter_info, log2_cuw, log2_cuh, &log2_w_sub, &log2_h_sub);
         sub_stride = (1 << log2_w_sub);
     }
-#endif
 
     for(j = 0; j < loop_h; j++)
     {
@@ -2696,12 +2691,12 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
             {
                 ats_intra_cu_on = (c == 0)? ats_intra_cu : 0;
                 ats_tu_mode = (c == 0) ? ats_tu : 0;
-#if ATS_INTER_PROCESS
+
                 if (c == 0)
                 {
                     get_ats_inter_trs(ats_inter_info, log2_cuw, log2_cuh, &ats_intra_cu_on, &ats_tu_mode);
                 }
-#endif
+
                 if(run[c])
                 {
                     int pos_sub_x = i * (1 << (log2_w_sub - !!c));

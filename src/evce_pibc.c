@@ -87,9 +87,7 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 #if RDO_DBK
     u8     is_from_mv_field = 0;
 #endif
-#if ATS_INTER_PROCESS
     core->ats_inter_info = 0;
-#endif
 #if M50761_CHROMA_NOT_SPLIT
     int start_c = evce_check_luma(ctx) ? Y_C : U_C;
     int end_c = evce_check_chroma(ctx) ? N_C : U_C;
@@ -130,11 +128,7 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 #else
     tnnz = evce_sub_block_tq(coef, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, pi->slice_type, nnz
 #endif
-      , core->nnz_sub, 0, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt, 0, 0
-#if ATS_INTER_PROCESS
-      , 0
-#endif
-      , ctx->sps.tool_adcc
+      , core->nnz_sub, 0, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt, 0, 0, 0, ctx->sps.tool_adcc
 #if M50761_CHROMA_NOT_SPLIT
       , ctx->tree_cons
 #endif
@@ -156,11 +150,7 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
             nnz_store[i] = nnz[i];
         }
 
-        evc_sub_block_itdq(pi->inv_coef, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, nnz, core->nnz_sub, ctx->sps.tool_iqt, 0, 0
-#if ATS_INTER_PROCESS
-          , 0
-#endif
-        );
+        evc_sub_block_itdq(pi->inv_coef, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, nnz, core->nnz_sub, ctx->sps.tool_iqt, 0, 0, 0);
 
 #if M50761_CHROMA_NOT_SPLIT
         for (i = start_c; i < end_c; i++)
@@ -168,22 +158,13 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
         for (i = 0; i < N_C; i++)
 #endif
         {
-            evc_recon(pi->inv_coef[i], pred[0][i], nnz[i], w[i], h[i], w[i], rec[i]
-#if ATS_INTER_PROCESS
-              , 0
-#endif
-            );
-
+            evc_recon(pi->inv_coef[i], pred[0][i], nnz[i], w[i], h[i], w[i], rec[i], 0);
             dist[i] = evce_ssd_16b(log2_w[i], log2_h[i], rec[i], org[i], w[i], pi->s_o[i]);
 
         }
 #if RDO_DBK
         //filter rec and calculate ssd
-        calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, rec, cuw, x, y, core->avail_lr, 0, nnz[Y_C] != 0, NULL, pi->mv, is_from_mv_field
-#if ATS_INTER_PROCESS
-          , 0
-#endif
-        );
+        calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, rec, cuw, x, y, core->avail_lr, 0, nnz[Y_C] != 0, NULL, pi->mv, is_from_mv_field, 0);
 #if M50761_CHROMA_NOT_SPLIT
         for (i = start_c; i < end_c; i++)
 #else
@@ -275,21 +256,11 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
         for (i = 0; i < N_C; i++)
 #endif
         {
-            evc_recon(coef[i], pred[0][i], nnz[i], w[i], h[i], w[i], rec[i]
-#if ATS_INTER_PROCESS
-              , 0
-#endif
-            );
-
+            evc_recon(coef[i], pred[0][i], nnz[i], w[i], h[i], w[i], rec[i], 0);
             dist[i] = evce_ssd_16b(log2_w[i], log2_h[i], rec[i], org[i], w[i], pi->s_o[i]);
-
         }
 #if RDO_DBK
-        calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, rec, cuw, x, y, core->avail_lr, 0, 0, NULL, pi->mv, is_from_mv_field
-#if ATS_INTER_PROCESS
-          , 0
-#endif
-        );
+        calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, rec, cuw, x, y, core->avail_lr, 0, 0, NULL, pi->mv, is_from_mv_field, 0);
 #if M50761_CHROMA_NOT_SPLIT
         for (i = start_c; i < end_c; i++)
 #else
@@ -902,9 +873,7 @@ static double pibc_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int 
   double cost, cost_best = MAX_COST;
   double cost_ibc;
   u8 found_available_ibc = 0;
-#if ATS_INTER_PROCESS
   core->ats_inter_info = 0;
-#endif
 #if M50761_CHROMA_NOT_SPLIT
   int start_c = evce_check_luma(ctx) ? Y_C : U_C;
   int end_c = evce_check_chroma(ctx) ? N_C : U_C;

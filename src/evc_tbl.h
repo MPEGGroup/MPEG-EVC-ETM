@@ -140,9 +140,7 @@ extern const s16 init_ats_tu[2][NUM_ATS_INTRA_TU_FLAG_CTX][1];
 extern const s16 init_ats_tu_h[2][NUM_ATS_INTRA_TU_FLAG_CTX][1];
 extern const s16 init_ats_tu_v[2][NUM_ATS_INTRA_TU_FLAG_CTX][1];
 #endif
-#if ATS_INTER_PROCESS
 extern const s16 init_ats_inter_info[2][NUM_SBAC_CTX_ATS_INTER_INFO][1];
-#endif
 #else
 
 extern const s16 init_cbf[2][NUM_QT_CBF_CTX][2];
@@ -188,9 +186,7 @@ extern const s16 init_ats_tu[2][NUM_ATS_INTRA_TU_FLAG_CTX][2];
 extern const s16 init_ats_tu_h[2][NUM_ATS_INTRA_TU_FLAG_CTX][2];
 extern const s16 init_ats_tu_v[2][NUM_ATS_INTRA_TU_FLAG_CTX][2];
 #endif
-#if ATS_INTER_PROCESS
 extern const s16 init_ats_inter_info[2][NUM_SBAC_CTX_ATS_INTER_INFO][2];
-#endif
 #endif
 
 extern s16 evc_tbl_tr2[NUM_TRANS_TYPE][2][2];

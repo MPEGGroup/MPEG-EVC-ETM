@@ -5576,7 +5576,6 @@ void evc_block_copy(s16 * src, int src_stride, s16 * dst, int dst_stride, int lo
     }
 }
 
-#if ATS_INTER_PROCESS
 u8 check_ats_inter_info_coded(int cuw, int cuh, int pred_mode, int tool_ats)
 {
     int min_size = 8;
@@ -5733,7 +5732,6 @@ void set_cu_cbf_flags(u8 cbf_y, u8 ats_inter_info, int log2_cuw, int log2_cuh, u
         assert(0);
     }
 }
-#endif
 
 #if REMOVE_UNIBLOCKS_4x4
 char is_inter_applicable_log2(int log2_cuw, int log2_cuh)

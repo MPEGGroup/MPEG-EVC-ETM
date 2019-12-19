@@ -1332,11 +1332,7 @@ void evc_itdq(s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag, u8 ats
 }
 
 void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int flag[N_C], int nnz_sub[N_C][MAX_SUB_TB_NUM], int iqt_flag
-                        , u8 ats_intra_cu, u8 ats_tu
-#if ATS_INTER_PROCESS
-                        , u8 ats_inter_info
-#endif
-)
+                        , u8 ats_intra_cu, u8 ats_tu, u8 ats_inter_info)
 {
     s16 *coef_temp[N_C];
     s16 coef_temp_buf[N_C][MAX_TR_DIM];
@@ -1351,13 +1347,12 @@ void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u
     int scale = 0;
     u8 ats_intra_cu_on = 0;
     u8 ats_tu_mode = 0;
-#if ATS_INTER_PROCESS
+
     if (ats_inter_info)
     {
         get_tu_size(ats_inter_info, log2_cuw, log2_cuh, &log2_w_sub, &log2_h_sub);
         sub_stride = (1 << log2_w_sub);
     }
-#endif
 
     for(j = 0; j < loop_h; j++)
     {
@@ -1367,12 +1362,12 @@ void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u
             {
                 ats_intra_cu_on = (c == 0)? ats_intra_cu : 0;
                 ats_tu_mode = (c == 0) ? ats_tu : 0;
-#if ATS_INTER_PROCESS
+
                 if (c == 0)
                 {
                     get_ats_inter_trs(ats_inter_info, log2_cuw, log2_cuh, &ats_intra_cu_on, &ats_tu_mode);
                 }
-#endif
+
                 if(nnz_sub[c][(j << 1) | i])
                 {
                     int pos_sub_x = i * (1 << (log2_w_sub - !!c));

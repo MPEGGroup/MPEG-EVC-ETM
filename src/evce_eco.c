@@ -162,9 +162,7 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
     evc_bsw_write1(bs, sps->tool_iqt);
     if(sps->tool_iqt)
     {
-#if ATS_INTER_PROCESS
-    evc_bsw_write1(bs, sps->tool_ats);
-#endif
+        evc_bsw_write1(bs, sps->tool_ats);
     }
 
 #if ALF
@@ -202,9 +200,7 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
     if (sps->ibc_flag)
         evc_bsw_write_ue(bs, (u32)(sps->ibc_log_max_size - 2));
 #endif
-#if ATS_INTER_PROCESS
     evc_bsw_write1(bs, sps->tool_ats);
-#endif
 #endif
     evc_bsw_write1(bs, sps->tool_rpl);
     evc_bsw_write1(bs, sps->tool_pocs);
@@ -960,9 +956,7 @@ void evce_sbac_reset(EVCE_SBAC *sbac, u8 slice_type, u8 slice_qp, int sps_cm_ini
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_tu_h, (s16*)init_ats_tu_h, NUM_ATS_INTRA_TU_FLAG_CTX, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_tu_v, (s16*)init_ats_tu_v, NUM_ATS_INTRA_TU_FLAG_CTX, slice_type, slice_qp);
 #endif
-#if ATS_INTER_PROCESS
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_inter_info, (s16*)init_ats_inter_info, NUM_SBAC_CTX_ATS_INTER_INFO, slice_type, slice_qp);
-#endif
     }
     else // (sps_cm_init_flag == 0)
     {
@@ -1027,10 +1021,7 @@ void evce_sbac_reset(EVCE_SBAC *sbac, u8 slice_type, u8 slice_qp, int sps_cm_ini
         for (i = 0; i < NUM_ATS_INTRA_TU_FLAG_CTX; i++) sbac_ctx->ats_tu_h[i] = PROB_INIT;
         for (i = 0; i < NUM_ATS_INTRA_TU_FLAG_CTX; i++) sbac_ctx->ats_tu_v[i] = PROB_INIT;
 #endif
-#if ATS_INTER_PROCESS
         for (i = 0; i < NUM_SBAC_CTX_ATS_INTER_INFO; i++) sbac_ctx->ats_inter_info[i] = PROB_INIT;
-#endif
-
     }
 }
 
@@ -1671,7 +1662,6 @@ void evce_eco_xcoef(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num_sig,
 #endif
 }
 
-#if ATS_INTER_PROCESS
 int evce_eco_ats_inter_info(EVC_BSW * bs, int log2_cuw, int log2_cuh, int ats_inter_info, u8 ats_inter_avail)
 {
     u8 mode_vert = (ats_inter_avail >> 0) & 0x1;
@@ -1747,7 +1737,6 @@ int evce_eco_ats_inter_info(EVC_BSW * bs, int log2_cuw, int log2_cuh, int ats_in
         return EVC_OK;
     }
 }
-#endif
 
 int evce_eco_cbf(EVC_BSW * bs, int cbf_y, int cbf_u, int cbf_v, u8 pred_mode, int b_no_cbf, int is_sub,int sub_pos, int cbf_all, int run[N_C]
 #if M50761_CHROMA_NOT_SPLIT
@@ -1884,14 +1873,7 @@ int evce_eco_dqp(EVC_BSW * bs, int ref_qp, int cur_qp)
 #endif
 
 int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 pred_mode, int nnz_sub[N_C][MAX_SUB_TB_NUM], int b_no_cbf, int run_stats
-#if ATS_INTER_PROCESS
-                  , int tool_ats
-#endif
-                  , u8 ats_intra_cu, u8 ats_tu
-#if ATS_INTER_PROCESS
-                  , u8 ats_inter_info
-#endif
-    , EVCE_CTX * ctx
+                  , int tool_ats, u8 ats_intra_cu, u8 ats_tu, u8 ats_inter_info, EVCE_CTX * ctx
 #if DQP
     , EVCE_CORE * core, int enc_dqp, u8 cur_qp
 #endif
@@ -1929,14 +1911,14 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
     int cbf_all = 0;
     u8 is_intra = (pred_mode == MODE_INTRA) ? 1 : 0;
     EVCE_SBAC    * sbac = GET_SBAC_ENC(bs);
-#if ATS_INTER_PROCESS
+
     u8 ats_inter_avail = check_ats_inter_info_coded(1 << log2_cuw, 1 << log2_cuh, pred_mode, tool_ats);
     if( ats_inter_avail )
     {
         get_tu_size( ats_inter_info, log2_cuw, log2_cuh, &log2_w_sub, &log2_h_sub );
         sub_stride = (1 << log2_w_sub);
     }
-#endif
+
     for (j = 0; j < loop_h; j++)
     {
         for (i = 0; i < loop_w; i++)
@@ -2003,7 +1985,6 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
                 }
         }
 
-#if ATS_INTER_PROCESS
 #if IBC
             if (pred_mode != MODE_INTRA && pred_mode != MODE_IBC && run[Y_C] && run[U_C] && run[V_C])
 #else
@@ -2020,7 +2001,6 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
                     assert(ats_inter_info == 0);
                 }
             }
-#endif
             
             for (c = 0; c < N_C; c++)
             {
@@ -2573,9 +2553,7 @@ static int cu_init(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int cup, int cu
     core->affine_flag = cu_data->affine_flag[cup];
 #endif
     core->nnz[Y_C] = core->nnz[U_C] = core->nnz[V_C] = 0;
-#if ATS_INTER_PROCESS //assign ctu data to cu
     core->ats_inter_info = cu_data->ats_inter_info[cup];
-#endif
 #if M50761_CHROMA_NOT_SPLIT
     core->cu_mode = evce_check_luma(ctx) ? cu_data->pred_mode[cup] : cu_data->pred_mode_chroma[cup];
 #endif
@@ -3538,14 +3516,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 #else
             cu_data->pred_mode[cup]
 #endif
-            , core->nnz_sub, b_no_cbf, RUN_L | RUN_CB | RUN_CR
-#if ATS_INTER_PROCESS
-                      , ctx->sps.tool_ats
-#endif
-                      , cu_data->ats_intra_cu[cup], (cu_data->ats_tu_h[cup] << 1 | cu_data->ats_tu_v[cup])
-#if ATS_INTER_PROCESS
-                      , core->ats_inter_info
-#endif
+            , core->nnz_sub, b_no_cbf, RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_ats, cu_data->ats_intra_cu[cup], (cu_data->ats_tu_h[cup] << 1 | cu_data->ats_tu_v[cup]), core->ats_inter_info
 #if DQP
             , ctx
             , core, enc_dqp, cu_data->qp_y[cup] - 6 * (BIT_DEPTH - 8)
@@ -3638,7 +3609,6 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 #endif
         map_cu_mode += ctx->w_scu;
     }
-#if ATS_INTER_PROCESS //set cbf
     if (core->ats_inter_info)
     {
         assert(core->nnz_sub[Y_C][0] == core->nnz[Y_C]);
@@ -3646,7 +3616,6 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
         assert(core->nnz_sub[V_C][0] == core->nnz[V_C]);
         set_cu_cbf_flags(core->nnz[Y_C], core->ats_inter_info, core->log2_cuw, core->log2_cuh, ctx->map_scu + core->scup, ctx->w_scu);
     }
-#endif
 #if M50761_CHROMA_NOT_SPLIT
     }
     if (evce_check_chroma(ctx))

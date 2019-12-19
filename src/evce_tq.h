@@ -41,11 +41,7 @@ int evce_tq_nnz(u8 qp, double lambda, s16 * coef, int log2_cuw, int log2_cuh, u1
 //! \todo Change list of arguments
 int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int slice_type, int nnz[N_C]
                       , int nnz_sub[N_C][MAX_SUB_TB_NUM], int is_intra, double lambda_y, double lambda_u, double lambda_v, int run_stats, int sps_cm_init_flag, int iqt_flag
-                      , u8 ats_intra_cu, u8 ats_tu
-#if ATS_INTER_PROCESS
-                      , u8 ats_inter_info
-#endif
-                      , int tool_adcc
+                      , u8 ats_intra_cu, u8 ats_tu, u8 ats_inter_info, int tool_adcc
 #if M50761_CHROMA_NOT_SPLIT
                       , TREE_CONS tree_cons
 #endif

@@ -102,9 +102,7 @@ static void sequence_deinit(EVCD_CTX * ctx)
     evc_mfree(ctx->map_affine);
 #endif
     evc_mfree(ctx->map_cu_mode);
-#if ATS_INTER_PROCESS
     evc_mfree(ctx->map_ats_inter);
-#endif
 #if EVC_TILE_SUPPORT
     evc_mfree_fast(ctx->map_tidx);
 #endif
@@ -177,7 +175,7 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
         evc_assert_gv(ctx->map_cu_mode, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
         evc_mset_x64a(ctx->map_cu_mode, 0, size);
     }
-#if ATS_INTER_PROCESS
+
     if (ctx->map_ats_inter == NULL)
     {
         size = sizeof(u8) * ctx->f_scu;
@@ -185,7 +183,6 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
         evc_assert_gv(ctx->map_ats_inter, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
         evc_mset_x64a(ctx->map_ats_inter, 0, size);
     }
-#endif
 
     /* alloc map for CU split flag */
     if(ctx->map_split == NULL)
@@ -292,9 +289,7 @@ static int slice_init(EVCD_CTX * ctx, EVCD_CORE * core, EVC_SH * sh)
 #if AFFINE
     evc_mset_x64a(ctx->map_affine, 0, sizeof(u32) * ctx->f_scu);
 #endif
-#if ATS_INTER_PROCESS
     evc_mset_x64a(ctx->map_ats_inter, 0, sizeof(u8) * ctx->f_scu);
-#endif
     evc_mset_x64a(ctx->map_cu_mode, 0, sizeof(u32) * ctx->f_scu);
     if(ctx->sh.slice_type == SLICE_I)
     {
@@ -362,12 +357,10 @@ static void evcd_itdq(EVCD_CTX * ctx, EVCD_CORE * core)
 #else
                        , core->ats_intra_cu, ((core->ats_intra_tu_h << 1) | core->ats_intra_tu_v)
 #endif
-#if ATS_INTER_PROCESS
 #if IBC
                          , core->pred_mode == MODE_IBC ? 0 : core->ats_inter_info
 #else
                        , core->ats_inter_info
-#endif
 #endif
     );
 }
@@ -1214,12 +1207,10 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 
     /* reconstruction */
     evc_recon_yuv(x, y, cuw, cuh, core->coef, core->pred[0], core->is_coef, ctx->pic
-#if ATS_INTER_PROCESS
 #if IBC
       , core->pred_mode == MODE_IBC ? 0 : core->ats_inter_info
 #else
                   , core->ats_inter_info
-#endif
 #endif
 #if M50761_CHROMA_NOT_SPLIT
         , ctx->tree_cons
@@ -1655,12 +1646,12 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
     else
 #endif
     {
-#if ATS_INTER_PROCESS // deblock
+        // deblock
         int t = (x >> MIN_CU_LOG2) + (y >> MIN_CU_LOG2) * ctx->w_scu;
         u8 ats_inter_info = ctx->map_ats_inter[t];
         u8 ats_inter_idx = get_ats_inter_idx(ats_inter_info);
         u8 ats_inter_pos = get_ats_inter_pos(ats_inter_info);
-#endif
+
         if(is_hor)
         {
             if (cuh > MAX_TR_SIZE)

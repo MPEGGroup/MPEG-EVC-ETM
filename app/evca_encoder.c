@@ -128,9 +128,7 @@ static int  op_tool_cm_init       = 1; /* default on */
 static int  op_tool_adcc          = 1; /* default on */
 static int  op_cb_qp_offset       = 0;
 static int  op_cr_qp_offset       = 0;
-#if ATS_INTER_PROCESS
 static int op_tool_ats            = 1; /* default on */
-#endif
 static int  op_constrained_intra_pred = 0;
 static int  op_deblock_alpha_offset = 0; /* default offset 0*/
 static int  op_deblock_beta_offset = 0;  /* default offset 0*/
@@ -225,9 +223,7 @@ typedef enum _OP_FLAGS
     OP_TOOL_ADCC,
     OP_CB_QP_OFFSET,
     OP_CR_QP_OFFSET,
-#if ATS_INTER_PROCESS
     OP_TOOL_ATS,
-#endif
     OP_CONSTRAINED_INTRA_PRED,
     OP_TOOL_DBFOFFSET,
 #if EVC_TILE_SUPPORT
@@ -607,13 +603,11 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_CR_QP_OFFSET], &op_cr_qp_offset,
         "cr qp offset"
     },
-#if ATS_INTER_PROCESS
     {
          EVC_ARGS_NO_KEY,  "ats", EVC_ARGS_VAL_TYPE_INTEGER,
          &op_flag[OP_TOOL_ATS], &op_tool_ats,
          "ats on/off flag"
     },
-#endif
     {
         EVC_ARGS_NO_KEY,  "constrained_intra_pred", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_CONSTRAINED_INTRA_PRED], &op_constrained_intra_pred,
@@ -1081,9 +1075,7 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->tool_adcc          = op_tool_adcc;
     cdsc->cb_qp_offset       = op_cb_qp_offset;
     cdsc->cr_qp_offset       = op_cr_qp_offset;
-#if ATS_INTER_PROCESS
     cdsc->tool_ats           = op_tool_ats;
-#endif
     cdsc->constrained_intra_pred = op_constrained_intra_pred;
     cdsc->deblock_aplha_offset = op_deblock_alpha_offset;
     cdsc->deblock_beta_offset = op_deblock_beta_offset;

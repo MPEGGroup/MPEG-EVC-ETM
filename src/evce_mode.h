@@ -76,12 +76,7 @@ u16  evc_get_bef_data_idx(EVCE_CORE * core);
 void evce_init_bef_data(EVCE_CORE * core, EVCE_CTX * ctx);
 
 #if RDO_DBK
-void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *pic_org, int cuw, int cuh, pel(*src)[MAX_CU_DIM], int s_src, int x, int y, u16 avail_lr
-                                     , u8 intra_flag, u8 cbf_l, s8 *refi, s16(*mv)[MV_D], u8 is_mv_from_mvf
-#if ATS_INTER_PROCESS
-                                     , u8 ats_inter_info
-#endif
-);
+void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *pic_org, int cuw, int cuh, pel(*src)[MAX_CU_DIM], int s_src, int x, int y, u16 avail_lr, u8 intra_flag, u8 cbf_l, s8 *refi, s16(*mv)[MV_D], u8 is_mv_from_mvf, u8 ats_inter_info);
 #endif
 #if M50662_HISTORY_CTU_ROW_RESET
 int evce_hmvp_init(EVC_HISTORY_BUFFER *history_buffer);

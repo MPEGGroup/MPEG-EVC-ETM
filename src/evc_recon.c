@@ -37,11 +37,7 @@
 #include <math.h>
 
 
-void evc_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, pel *rec
-#if ATS_INTER_PROCESS
-               , u8 ats_inter_info
-#endif
-)
+void evc_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, pel *rec, u8 ats_inter_info)
 {
     int i, j;
     s16 t0;
@@ -61,7 +57,6 @@ void evc_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, p
     }
     else  /* add b/w pred and coef and copy it into rec */
     {
-#if ATS_INTER_PROCESS
         if (ats_inter_info != 0)
         {
             u8  ats_inter_idx = get_ats_inter_idx(ats_inter_info);
@@ -114,7 +109,7 @@ void evc_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, p
             }
             return;
         }
-#endif
+
         for(i = 0; i < cuh; i++)
         {
             for(j = 0; j < cuw; j++)
@@ -129,10 +124,7 @@ void evc_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, p
     }
 }
 
-void evc_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pel pred[N_C][MAX_CU_DIM], int nnz[N_C], EVC_PIC *pic
-#if ATS_INTER_PROCESS
-                   , u8 ats_inter_info
-#endif
+void evc_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pel pred[N_C][MAX_CU_DIM], int nnz[N_C], EVC_PIC *pic, u8 ats_inter_info
 #if M50761_CHROMA_NOT_SPLIT
     , TREE_CONS tree_cons
 #endif
@@ -148,11 +140,7 @@ void evc_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pe
     /* Y */
     s_rec = pic->s_l;
     rec = pic->y + (y * s_rec) + x;
-    evc_recon(coef[Y_C], pred[Y_C], nnz[Y_C], cuw, cuh, s_rec, rec
-#if ATS_INTER_PROCESS
-              , ats_inter_info
-#endif
-    );
+    evc_recon(coef[Y_C], pred[Y_C], nnz[Y_C], cuw, cuh, s_rec, rec, ats_inter_info);
 #if M50761_CHROMA_NOT_SPLIT
     }
     if (evc_check_chroma(tree_cons))
@@ -162,16 +150,8 @@ void evc_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pe
     cuw >>= 1;
     cuh >>= 1;
     off = (x >> 1) + (y >> 1) * pic->s_c;
-    evc_recon(coef[U_C], pred[U_C], nnz[U_C], cuw, cuh, pic->s_c, pic->u + off
-#if ATS_INTER_PROCESS
-              , ats_inter_info
-#endif
-    );
-    evc_recon(coef[V_C], pred[V_C], nnz[V_C], cuw, cuh, pic->s_c, pic->v + off
-#if ATS_INTER_PROCESS
-              , ats_inter_info
-#endif
-    );
+    evc_recon(coef[U_C], pred[U_C], nnz[U_C], cuw, cuh, pic->s_c, pic->u + off, ats_inter_info);
+    evc_recon(coef[V_C], pred[V_C], nnz[V_C], cuw, cuh, pic->s_c, pic->v + off, ats_inter_info);
 #if M50761_CHROMA_NOT_SPLIT
     }
 #endif

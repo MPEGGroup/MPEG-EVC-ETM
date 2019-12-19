@@ -81,9 +81,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
     double cost = 0;
     int tmp_cbf_l =0;
     int tmp_cbf_sub_l[MAX_SUB_TB_NUM] = {0,};
-#if ATS_INTER_PROCESS
     core->ats_inter_info = 0;
-#endif
 
     cuw = 1 << log2_cuw;
     cuh = 1 << log2_cuh;
@@ -99,12 +97,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
         evce_diff_16b(log2_cuw, log2_cuh, org_luma, pred, s_org, cuw, cuw, pi->coef_tmp[Y_C]);
 
         evce_sub_block_tq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, pi->slice_type, core->nnz
-                          , core->nnz_sub, 1, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L, ctx->sps.tool_cm_init, ctx->sps.tool_iqt
-                          , core->ats_intra_cu, core->ats_tu
-#if ATS_INTER_PROCESS
-                          , 0
-#endif
-            , ctx->sps.tool_adcc
+                          , core->nnz_sub, 1, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L, ctx->sps.tool_cm_init, ctx->sps.tool_iqt, core->ats_intra_cu, core->ats_tu, 0, ctx->sps.tool_adcc
 #if M50761_CHROMA_NOT_SPLIT
             , ctx->tree_cons
 #endif
@@ -124,18 +117,8 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
         evce_rdo_bit_cnt_cu_intra_luma(ctx, core, ctx->sh.slice_type, core->scup, pi->coef_tmp);
         bit_cnt = evce_get_bit_number(&core->s_temp_run);
 
-        evc_sub_block_itdq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->nnz, core->nnz_sub, ctx->sps.tool_iqt
-                           , core->ats_intra_cu, core->ats_tu
-#if ATS_INTER_PROCESS
-                           , core->ats_inter_info
-#endif
-        );
-
-        evc_recon(pi->coef_tmp[Y_C], pred, core->nnz[Y_C], cuw, cuh, cuw, pi->rec[Y_C]
-#if ATS_INTER_PROCESS
-                  , core->ats_inter_info
-#endif
-        );
+        evc_sub_block_itdq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->nnz, core->nnz_sub, ctx->sps.tool_iqt, core->ats_intra_cu, core->ats_tu, core->ats_inter_info);
+        evc_recon(pi->coef_tmp[Y_C], pred, core->nnz[Y_C], cuw, cuh, cuw, pi->rec[Y_C], core->ats_inter_info);
 #if HTDF
         if(ctx->sps.tool_htdf == 1)
         {
@@ -146,11 +129,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 
 #if RDO_DBK
         {
-            calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->rec, cuw, x, y, core->avail_lr, 1, core->nnz[Y_C] != 0, NULL, NULL, 0
-#if ATS_INTER_PROCESS
-                                            , core->ats_inter_info
-#endif 
-            );
+            calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->rec, cuw, x, y, core->avail_lr, 1, core->nnz[Y_C] != 0, NULL, NULL, 0, core->ats_inter_info);
             cost += ctx->delta_dist[Y_C];
         }
 #endif
@@ -184,11 +163,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 
         evce_sub_block_tq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, pi->slice_type, core->nnz, core->nnz_sub
                           , 1, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt
-                          , core->ats_intra_cu, core->ats_tu
-#if ATS_INTER_PROCESS
-                          , 0
-#endif
-            , ctx->sps.tool_adcc
+                          , core->ats_intra_cu, core->ats_tu, 0, ctx->sps.tool_adcc
 #if M50761_CHROMA_NOT_SPLIT
             , ctx->tree_cons
 #endif
@@ -204,11 +179,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
         evc_mcpy(coef[V_C], pi->coef_tmp[V_C], sizeof(u16) * (cuw * cuh));
 #endif
 
-        evc_sub_block_itdq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->nnz, core->nnz_sub, ctx->sps.tool_iqt, core->ats_intra_cu, core->ats_tu
-#if ATS_INTER_PROCESS
-                           , 0
-#endif
-        );
+        evc_sub_block_itdq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->nnz, core->nnz_sub, ctx->sps.tool_iqt, core->ats_intra_cu, core->ats_tu, 0);
 
         if (!ctx->sps.tool_eipd)
         {
@@ -216,16 +187,8 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
             evc_mcpy(core->nnz_sub[Y_C], tmp_cbf_sub_l, sizeof(int) * MAX_SUB_TB_NUM);
         }
 
-        evc_recon(pi->coef_tmp[U_C], pi->pred[U_C], core->nnz[U_C], cuw >> 1, cuh >> 1, cuw >> 1, pi->rec[U_C]
-#if ATS_INTER_PROCESS
-                  , 0
-#endif
-        );
-        evc_recon(pi->coef_tmp[V_C], pi->pred[V_C], core->nnz[V_C], cuw >> 1, cuh >> 1, cuw >> 1, pi->rec[V_C]
-#if ATS_INTER_PROCESS
-                  , 0
-#endif
-        );
+        evc_recon(pi->coef_tmp[U_C], pi->pred[U_C], core->nnz[U_C], cuw >> 1, cuh >> 1, cuw >> 1, pi->rec[U_C], 0);
+        evc_recon(pi->coef_tmp[V_C], pi->pred[V_C], core->nnz[V_C], cuw >> 1, cuh >> 1, cuw >> 1, pi->rec[V_C], 0);
 
         if (ctx->sps.tool_eipd)
         {
@@ -246,11 +209,8 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 #if M50761_CHROMA_NOT_SPLIT
                 !evce_check_luma(ctx) ? core->cu_data_temp[log2_cuw-2][log2_cuh-2].nnz[Y_C] != 0 :
 #endif
-                core->nnz[Y_C] != 0, NULL, NULL, 0
-#if ATS_INTER_PROCESS
-                                            , core->ats_inter_info
-#endif
-            );
+                core->nnz[Y_C] != 0, NULL, NULL, 0, core->ats_inter_info);
+
             cost += (ctx->delta_dist[U_C] * ctx->dist_chroma_weight[0]) + (ctx->delta_dist[V_C] * ctx->dist_chroma_weight[1]);
         }
 #endif
@@ -381,10 +341,7 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
     int best_nnz = 1;
     double cost_ipd[IPD_CNT];
 #endif
-#if ATS_INTER_PROCESS
     core->ats_inter_info = 0;
-#endif
-
 
     cuw = 1 << log2_cuw;
     cuh = 1 << log2_cuh;

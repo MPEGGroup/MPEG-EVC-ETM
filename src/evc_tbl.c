@@ -1079,7 +1079,6 @@ const s16 init_ats_tu_v[2][NUM_ATS_INTRA_TU_FLAG_CTX][1] = {
 };
 #endif
 
-#if ATS_INTER_PROCESS
 const s16 init_ats_inter_info[2][NUM_SBAC_CTX_ATS_INTER_INFO][1] = {
     {
         { 0 },
@@ -1100,7 +1099,6 @@ const s16 init_ats_inter_info[2][NUM_SBAC_CTX_ATS_INTER_INFO][1] = {
         { 0 },
     }
 };
-#endif
 #endif
 
 s16 evc_tbl_tr2[NUM_TRANS_TYPE][2][2];

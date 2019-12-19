@@ -263,12 +263,9 @@ struct _EVCE_PINTER
     pel  p_error[MAX_CU_DIM];
     int  i_gradient[2][MAX_CU_DIM];
 #endif
-#if ATS_INTER_PROCESS
     s16  resi[N_C][MAX_CU_DIM];
     s16  coff_save[N_C][MAX_CU_DIM];
     u8   ats_inter_info_mode[PRED_NUM];
-#endif
-
     /* MV predictor */
     s16  mvp[REFP_NUM][MAX_NUM_MVP][MV_D]; 
 #if DMVR_LAG
@@ -577,9 +574,7 @@ typedef struct _EVCE_CU_DATA
     u8* ats_intra_cu;
     u8* ats_tu_h;
     u8* ats_tu_v;
-#if ATS_INTER_PROCESS
     u8  *ats_inter_info;
-#endif
     u32 *map_cu_mode;
 #if !M50761_REMOVE_BLOCK_SIZE_MAP
     s16 **block_size;
@@ -709,10 +704,8 @@ typedef struct _EVCE_CORE
 #endif
     u8             ats_intra_cu;
     u8             ats_tu;
-#if ATS_INTER_PROCESS
     /* ats_inter info (index + position)*/
     u8             ats_inter_info;
-#endif
     /* width of current CU */
     u16            cuw;
     /* height of current CU */
@@ -952,12 +945,10 @@ struct _EVCE_CTX
     u8                   * map_ats_intra_cu;
     u8                   * map_ats_tu_h;
     u8                   * map_ats_tu_v;
-#if ATS_INTER_PROCESS
     u8                   * map_ats_inter;
     u32                  * ats_inter_pred_dist;
     u8                   * ats_inter_info_pred;   //best-mode ats_inter info
     u8                   * ats_inter_num_pred;
-#endif
 #if EVC_TILE_SUPPORT
     /* Tile information for each index */
     EVC_TILE             * tile;

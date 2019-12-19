@@ -128,7 +128,6 @@
 #endif
 #endif
 
-#define ATS                                1   
 #define IBC                                1   
 
 //inter
@@ -449,8 +448,6 @@ typedef struct _evc_AlfFilterShape
 /* ALF (END) */
 
 /* TRANSFORM PACKAGE (START) */
-#define ATS_INTER_PROCESS                  ATS
-
 #define ATS_INTRA_FAST                     0
 #if ATS_INTRA_FAST
 #define ATS_INTER_INTRA_SKIP_THR           1.05
@@ -458,7 +455,6 @@ typedef struct _evc_AlfFilterShape
 #define ATS_INTRA_IPD_THR                  1.10
 #endif
 
-#if ATS_INTER_PROCESS
 #define ATS_INTER_DEBUG                    0
 #define ATS_INTER_SL_NUM                   16
 #define get_ats_inter_idx(s)               (s & 0xf)
@@ -466,7 +462,6 @@ typedef struct _evc_AlfFilterShape
 #define get_ats_inter_info(idx, pos)       (idx + (pos << 4))
 #define is_ats_inter_horizontal(idx)       (idx == 2 || idx == 4)
 #define is_ats_inter_quad_size(idx)        (idx == 3 || idx == 4)
-#endif
 /* TRANSFORM PACKAGE (END) */
 
 /* ADCC (START) */
@@ -1035,15 +1030,13 @@ typedef u32 SBAC_CTX_MODEL;
 #endif
 
 #if M50632_SIMPLIFICATION_ATS
-#define NUM_ATS_INTRA_CU_FLAG_CTX                1
-#define NUM_ATS_INTRA_TU_FLAG_CTX                1
+#define NUM_ATS_INTRA_CU_FLAG_CTX          1
+#define NUM_ATS_INTRA_TU_FLAG_CTX          1
 #else
-#define NUM_ATS_INTRA_CU_FLAG_CTX                8
-#define NUM_ATS_INTRA_TU_FLAG_CTX                2
+#define NUM_ATS_INTRA_CU_FLAG_CTX          8
+#define NUM_ATS_INTRA_TU_FLAG_CTX          2
 #endif
-#if ATS_INTER_PROCESS
 #define NUM_SBAC_CTX_ATS_INTER_INFO        7
-#endif
 /* context models for arithemetic coding */
 typedef struct _EVC_SBAC_CTX
 {
@@ -1108,9 +1101,7 @@ typedef struct _EVC_SBAC_CTX
     SBAC_CTX_MODEL   ats_tu_h        [NUM_ATS_INTRA_TU_FLAG_CTX];
     SBAC_CTX_MODEL   ats_tu_v        [NUM_ATS_INTRA_TU_FLAG_CTX];
 #endif
-#if ATS_INTER_PROCESS
     SBAC_CTX_MODEL   ats_inter_info  [NUM_SBAC_CTX_ATS_INTER_INFO];
-#endif
 } EVC_SBAC_CTX;
 
 /* Maximum transform dynamic range (excluding sign bit) */
@@ -1329,10 +1320,7 @@ typedef struct _EVC_SPS
     int              tool_eipd;
     int              tool_iqt;
     int              tool_cm_init;
-#if ATS_INTER_PROCESS
     int              tool_ats;
-#endif
-
     int              tool_rpl;
     int              tool_pocs;
     int              log2_sub_gop_length;
