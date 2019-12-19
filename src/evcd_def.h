@@ -149,12 +149,11 @@ typedef struct _EVCD_CORE
     void          *pf;
     s16            mmvd_idx;
     u8             mmvd_flag;
-#if ATS_INTRA_PROCESS   
     /* ATS_INTRA flags */
     u8             ats_intra_cu;
     u8             ats_intra_tu_h;
     u8             ats_intra_tu_v;
-#endif
+
 #if ATS_INTER_PROCESS
     /* ATS_INTER info (index + position)*/
     u8             ats_inter_info;

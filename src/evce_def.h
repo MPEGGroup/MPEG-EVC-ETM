@@ -134,11 +134,9 @@ typedef struct _EVCE_MODE
     s16   mv_sp[REFP_NUM][MV_D];
 #endif
 #endif
-#if ATS_INTRA_PROCESS   
     u8    ats_intra_cu;
     u8    ats_intra_tu_h;
     u8    ats_intra_tu_v;
-#endif
 
 #if TRACE_ENC_CU_DATA
     u64   trace_cu_idx;
@@ -576,11 +574,9 @@ typedef struct _EVCE_CU_DATA
     u8  *affine_flag;
     u32 *map_affine;
 #endif
-#if ATS_INTRA_PROCESS
     u8* ats_intra_cu;
     u8* ats_tu_h;
     u8* ats_tu_v;
-#endif
 #if ATS_INTER_PROCESS
     u8  *ats_inter_info;
 #endif
@@ -617,11 +613,8 @@ typedef struct _EVCE_BEF_DATA
 #if AFFINE
     int    affine_flag;
 #endif
-#if ATS_INTRA_PROCESS
     int    ats_intra_cu_idx_intra;
     int    ats_intra_cu_idx_inter;
-#endif
-
 } EVCE_BEF_DATA;
 /*****************************************************************************
  * CORE information used for encoding process.
@@ -714,10 +707,8 @@ typedef struct _EVCE_CORE
     /* affine flag for MODE_INTER */
     u8             affine_flag;
 #endif
-#if ATS_INTRA_PROCESS
     u8             ats_intra_cu;
     u8             ats_tu;
-#endif
 #if ATS_INTER_PROCESS
     /* ats_inter info (index + position)*/
     u8             ats_inter_info;
@@ -957,13 +948,10 @@ struct _EVCE_CTX
     double                 lambda[3];
     double                 sqrt_lambda[3];
     double                 dist_chroma_weight[2];
-
-#if ATS_INTRA_PROCESS
     /* map for ats intra */
     u8                   * map_ats_intra_cu;
     u8                   * map_ats_tu_h;
     u8                   * map_ats_tu_v;
-#endif
 #if ATS_INTER_PROCESS
     u8                   * map_ats_inter;
     u32                  * ats_inter_pred_dist;

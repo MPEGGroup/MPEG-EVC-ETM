@@ -162,7 +162,7 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
     evc_bsw_write1(bs, sps->tool_iqt);
     if(sps->tool_iqt)
     {
-#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+#if ATS_INTER_PROCESS
     evc_bsw_write1(bs, sps->tool_ats);
 #endif
     }
@@ -202,7 +202,7 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
     if (sps->ibc_flag)
         evc_bsw_write_ue(bs, (u32)(sps->ibc_log_max_size - 2));
 #endif
-#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+#if ATS_INTER_PROCESS
     evc_bsw_write1(bs, sps->tool_ats);
 #endif
 #endif
@@ -910,11 +910,6 @@ void evce_sbac_reset(EVCE_SBAC *sbac, u8 slice_type, u8 slice_qp, int sps_cm_ini
 #endif
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_x, (s16*)init_cc_scanr_x_3, NUM_CTX_SCANR, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_y, (s16*)init_cc_scanr_y_3, NUM_CTX_SCANR, slice_type, slice_qp);
-#else
-        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gt0, (s16*)init_cc_gt0, NUM_CTX_GT0, slice_type, slice_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gtA, (s16*)init_cc_gtA, NUM_CTX_GTA, slice_type, slice_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_x, (s16*)init_cc_scanr_x, NUM_CTX_SCANR, slice_type, slice_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_y, (s16*)init_cc_scanr_y, NUM_CTX_SCANR, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->pred_mode, (s16*)init_pred_mode, NUM_PRED_MODE_CTX, slice_type, slice_qp);
 #if M50761_CHROMA_NOT_SPLIT
         evc_eco_sbac_ctx_initialize(sbac_ctx->mode_cons, (s16*)init_mode_cons, NUM_MODE_CONS_CTX, slice_type, slice_qp);
@@ -958,14 +953,12 @@ void evce_sbac_reset(EVCE_SBAC *sbac, u8 slice_type, u8 slice_qp, int sps_cm_ini
 #if IBC
         evc_eco_sbac_ctx_initialize(sbac_ctx->ibc_flag, (s16*)init_ibc_flag, NUM_SBAC_CTX_IBC_FLAG, slice_type, slice_qp);
 #endif
-#if ATS_INTRA_PROCESS
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_intra_cu, (s16*)init_ats_intra_cu, NUM_ATS_INTRA_CU_FLAG_CTX, slice_type, slice_qp);
 #if M50632_SIMPLIFICATION_ATS
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_tu, (s16*)init_ats_tu, NUM_ATS_INTRA_TU_FLAG_CTX, slice_type, slice_qp);
 #else
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_tu_h, (s16*)init_ats_tu_h, NUM_ATS_INTRA_TU_FLAG_CTX, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_tu_v, (s16*)init_ats_tu_v, NUM_ATS_INTRA_TU_FLAG_CTX, slice_type, slice_qp);
-#endif
 #endif
 #if ATS_INTER_PROCESS
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_inter_info, (s16*)init_ats_inter_info, NUM_SBAC_CTX_ATS_INTER_INFO, slice_type, slice_qp);
@@ -1027,14 +1020,12 @@ void evce_sbac_reset(EVCE_SBAC *sbac, u8 slice_type, u8 slice_qp, int sps_cm_ini
 #if IBC
         for (i = 0; i < NUM_SBAC_CTX_IBC_FLAG; i++) sbac_ctx->ibc_flag[i] = PROB_INIT;
 #endif
-#if ATS_INTRA_PROCESS
         for (i = 0; i < NUM_ATS_INTRA_CU_FLAG_CTX; i++) sbac_ctx->ats_intra_cu[i] = PROB_INIT;
 #if M50632_SIMPLIFICATION_ATS
         for (i = 0; i < NUM_ATS_INTRA_TU_FLAG_CTX; i++) sbac_ctx->ats_tu[i] = PROB_INIT;
 #else
         for (i = 0; i < NUM_ATS_INTRA_TU_FLAG_CTX; i++) sbac_ctx->ats_tu_h[i] = PROB_INIT;
         for (i = 0; i < NUM_ATS_INTRA_TU_FLAG_CTX; i++) sbac_ctx->ats_tu_v[i] = PROB_INIT;
-#endif
 #endif
 #if ATS_INTER_PROCESS
         for (i = 0; i < NUM_SBAC_CTX_ATS_INTER_INFO; i++) sbac_ctx->ats_inter_info[i] = PROB_INIT;
@@ -1398,211 +1389,209 @@ int countNonZeroCoeffs(s16 *pcCoef, int *scan, int uiSize)
 
 static void evce_eco_ccA(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num_sig, int ch_type)
 {
-        int width = 1 << log2_w;
-        int height = 1 << log2_h;
-        int offset0;
-        EVCE_SBAC    * sbac = GET_SBAC_ENC(bs);
-        SBAC_CTX_MODEL* cm_gt0;
-        SBAC_CTX_MODEL* cm_gtx;
-        int scan_type = COEF_SCAN_ZIGZAG;
-        int log2_block_size = min(log2_w, log2_h);
-        u16 *scan;
-        int scan_pos_last = -1;
-        int sr_x = 0, sr_y = 0;
-        int ipos;
-        int last_scan_set;
-        int rice_param;
-        int sub_set;
+    int width = 1 << log2_w;
+    int height = 1 << log2_h;
+    int offset0;
+    EVCE_SBAC    * sbac = GET_SBAC_ENC(bs);
+    SBAC_CTX_MODEL* cm_gt0;
+    SBAC_CTX_MODEL* cm_gtx;
+    int scan_type = COEF_SCAN_ZIGZAG;
+    int log2_block_size = min(log2_w, log2_h);
+    u16 *scan;
+    int scan_pos_last = -1;
+    int sr_x = 0, sr_y = 0;
+    int ipos;
+    int last_scan_set;
+    int rice_param;
+    int sub_set;
 
-        int ctx_gt0 = 0;
-        int cg_log2_size = LOG2_CG_SIZE;
-        int is_last_x = 0;
-        int is_last_y = 0;
-        int is_last_nz = 0;
-        int pos_last = 0;
-        int ctx_gtA = 0;
-        int ctx_gtB = 0;
-        int escape_data_present_ingroup = 0;
-        int cnt_nz = 0;
-        int blkpos, sx, sy;
-        int sig;
+    int ctx_gt0 = 0;
+    int cg_log2_size = LOG2_CG_SIZE;
+    int is_last_x = 0;
+    int is_last_y = 0;
+    int is_last_nz = 0;
+    int pos_last = 0;
+    int ctx_gtA = 0;
+    int ctx_gtB = 0;
+    int escape_data_present_ingroup = 0;
+    int cnt_nz = 0;
+    int blkpos, sx, sy;
+    int sig;
 
 
-        int max_num_coef = width * height;
-        scan = evc_scan_tbl[scan_type][log2_w - 1][log2_h - 1];
+    int max_num_coef = width * height;
+    scan = evc_scan_tbl[scan_type][log2_w - 1][log2_h - 1];
 
-        int last_pos_in_scan = 0;
-        int numNonZeroCoefs = 0;
+    int last_pos_in_scan = 0;
+    int numNonZeroCoefs = 0;
 
-        last_pos_in_scan = -1;
-        int last_pos_in_raster_from_scan = -1;
+    last_pos_in_scan = -1;
+    int last_pos_in_raster_from_scan = -1;
 
-        for (int blk_pos = 0; blk_pos < max_num_coef; blk_pos++)
+    for (int blk_pos = 0; blk_pos < max_num_coef; blk_pos++)
+    {
+        int scan_pos = scan[blk_pos];
+
+        if (coef[scan_pos] != 0)
         {
-            int scan_pos = scan[blk_pos];
+            sr_y = scan_pos >> log2_w;
+            sr_x = scan_pos - (sr_y << log2_w);
 
-            if (coef[scan_pos] != 0)
+            numNonZeroCoefs++;
+            last_pos_in_scan = blk_pos;
+            last_pos_in_raster_from_scan = scan_pos;
+        }
+    }
+    code_positionLastXY(bs, sr_x, sr_y, width, height, ch_type);
+
+    //===== code significance flag =====
+    last_scan_set = last_pos_in_scan >> cg_log2_size;
+    if (sbac->ctx.sps_cm_init_flag == 1)
+    {
+        offset0 = log2_block_size <= 2 ? 0 : NUM_CTX_GT0_LUMA_TU << (EVC_MIN(1, (log2_block_size - 3)));
+        cm_gt0 = (ch_type == Y_C) ? sbac->ctx.cc_gt0 + offset0 : sbac->ctx.cc_gt0 + NUM_CTX_GT0_LUMA;
+        cm_gtx = (ch_type == Y_C) ? sbac->ctx.cc_gtA : sbac->ctx.cc_gtA + NUM_CTX_GTA_LUMA;
+    }
+    else
+    {
+        cm_gt0 = (ch_type == Y_C) ? sbac->ctx.cc_gt0 : sbac->ctx.cc_gt0 + 1;
+        cm_gtx = (ch_type == Y_C) ? sbac->ctx.cc_gtA : sbac->ctx.cc_gtA + 1;
+    }
+    rice_param = 0;
+    ipos = last_pos_in_scan;
+
+    for (sub_set = last_scan_set; sub_set >= 0; sub_set--)
+    {
+        int num_nz = 0;
+        int sub_pos = sub_set << cg_log2_size;
+        int coef_signs = 0;
+        int abs_coef[1 << LOG2_CG_SIZE];  // array size of CG
+        int pos[1 << LOG2_CG_SIZE];  // array size of CG
+        int last_nz_pos_in_cg = -1;
+        int first_nz_pos_in_cg = 1 << cg_log2_size;
+
+        {
+            for (; ipos >= sub_pos; ipos--)
             {
-                sr_y = scan_pos >> log2_w;
-                sr_x = scan_pos - (sr_y << log2_w);
+                blkpos = scan[ipos];
+                sy = blkpos >> log2_w;
+                sx = blkpos - (sy << log2_w);
 
-                numNonZeroCoefs++;
-                last_pos_in_scan = blk_pos;
-                last_pos_in_raster_from_scan = scan_pos;
+                // sigmap
+                sig = (coef[blkpos] != 0 ? 1 : 0);
+                if (ipos == last_pos_in_scan)
+                {
+                    ctx_gt0 = 0;
+                }
+                else
+                {
+#if M50631_IMPROVEMENT_ADCC_CTXGT12
+                    ctx_gt0 = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gt0_inc(coef, blkpos, width, height, ch_type) : 0;
+#else
+                    ctx_gt0 = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gt0_inc(coef, blkpos, width, height, ch_type, sr_x, sr_y) : 0;
+#endif
+                }
+
+                if (!(ipos == last_pos_in_scan))
+                {
+                    evce_sbac_encode_bin((u32)sig, sbac, &cm_gt0[ctx_gt0], bs);
+                }
+
+                if (sig)
+                {
+                    pos[num_nz] = blkpos;
+                    abs_coef[num_nz] = (int)(EVC_ABS(coef[blkpos]));
+                    coef_signs = 2 * coef_signs + (coef[blkpos] < 0 ? 1 : 0);
+                    num_nz++;
+
+                    if (last_nz_pos_in_cg == -1)
+                    {
+                        last_nz_pos_in_cg = ipos;
+                    }
+                    first_nz_pos_in_cg = ipos;
+                    if (is_last_nz == 0)
+                    {
+                        pos_last = blkpos;
+                        is_last_nz = 1;
+                    }
+                }
             }
-        }
-        code_positionLastXY(bs, sr_x, sr_y, width, height, ch_type);
 
-        //===== code significance flag =====
-        last_scan_set = last_pos_in_scan >> cg_log2_size;  
-        if (sbac->ctx.sps_cm_init_flag == 1)
-        {
-            offset0 = log2_block_size <= 2 ? 0 : NUM_CTX_GT0_LUMA_TU << (EVC_MIN(1, (log2_block_size - 3)));
-            cm_gt0 = (ch_type == Y_C) ? sbac->ctx.cc_gt0 + offset0 : sbac->ctx.cc_gt0 + NUM_CTX_GT0_LUMA;
-            cm_gtx = (ch_type == Y_C) ? sbac->ctx.cc_gtA : sbac->ctx.cc_gtA + NUM_CTX_GTA_LUMA;
-        }
-        else
-        {
-            cm_gt0 = (ch_type == Y_C) ? sbac->ctx.cc_gt0 : sbac->ctx.cc_gt0 + 1;
-            cm_gtx = (ch_type == Y_C) ? sbac->ctx.cc_gtA : sbac->ctx.cc_gtA + 1;
-        }
-        rice_param = 0;
-        ipos = last_pos_in_scan;
-
-        for (sub_set = last_scan_set; sub_set >= 0; sub_set--)
-        {
-            int num_nz = 0;
-            int sub_pos = sub_set << cg_log2_size;
-            int coef_signs = 0;
-            int abs_coef[1 << LOG2_CG_SIZE];  // array size of CG
-            int pos[1 << LOG2_CG_SIZE];  // array size of CG
-            int last_nz_pos_in_cg = -1;
-            int first_nz_pos_in_cg = 1 << cg_log2_size;
-
+            if (num_nz > 0)
             {
-                for (; ipos >= sub_pos; ipos--)
-                {
-                    blkpos = scan[ipos];
-                    sy = blkpos >> log2_w;
-                    sx = blkpos - (sy << log2_w);
+                int numC1Flag = min(num_nz, CAFLAG_NUMBER);
 
-                    // sigmap
-                    sig = (coef[blkpos] != 0 ? 1 : 0);
-                    if (ipos == last_pos_in_scan)
-                    {
-                        ctx_gt0 = 0;
-                    }
-                    else
+                int firstC2FlagIdx = -1;
+                escape_data_present_ingroup = 0;
+
+                for (int idx = 0; idx < numC1Flag; idx++)  // 
+                {
+                    u32 symbol = abs_coef[idx] > 1 ? 1 : 0;
+                    if (pos[idx] != pos_last)
                     {
 #if M50631_IMPROVEMENT_ADCC_CTXGT12
-                        ctx_gt0 = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gt0_inc(coef, blkpos, width, height, ch_type) : 0;
+                        ctx_gtA = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gtA_inc(coef, pos[idx], width, height, ch_type) : 0;
 #else
-                        ctx_gt0 = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gt0_inc(coef, blkpos, width, height, ch_type, sr_x, sr_y) : 0;
+                        ctx_gtA = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gtA_inc(coef, pos[idx], width, height, ch_type, sr_x, sr_y) : 0;
 #endif
                     }
-
-                    if (!(ipos == last_pos_in_scan)) 
+                    evce_sbac_encode_bin(symbol, sbac, &cm_gtx[ctx_gtA], bs);
+                    if (symbol)
                     {
-                        evce_sbac_encode_bin((u32)sig, sbac, &cm_gt0[ctx_gt0], bs);
-                    }
-
-                    if (sig)
-                    {
-                        pos[num_nz] = blkpos;  
-                        abs_coef[num_nz] = (int)(EVC_ABS(coef[blkpos]));
-                        coef_signs = 2 * coef_signs + (coef[blkpos] < 0 ? 1 : 0);
-                        num_nz++;
-
-                        if (last_nz_pos_in_cg == -1)
+                        if (firstC2FlagIdx == -1)
                         {
-                            last_nz_pos_in_cg = ipos;
+                            firstC2FlagIdx = idx;
                         }
-                        first_nz_pos_in_cg = ipos;
-                        if (is_last_nz == 0)  
+                        else
                         {
-                            pos_last = blkpos;
-                            is_last_nz = 1;
+                            escape_data_present_ingroup = TRUE;
                         }
                     }
                 }
-
-                if (num_nz > 0)
+                if (firstC2FlagIdx != -1)
                 {
-                    int numC1Flag = min(num_nz, CAFLAG_NUMBER);
-
-                    int firstC2FlagIdx = -1;
-                    escape_data_present_ingroup = 0;
-
-                    for (int idx = 0; idx < numC1Flag; idx++)  // 
+                    u32 symbol2 = abs_coef[firstC2FlagIdx] > 2 ? 1 : 0;
+                    if (pos[firstC2FlagIdx] != pos_last)
                     {
-                        u32 symbol = abs_coef[idx] > 1 ? 1 : 0;
-                        if (pos[idx] != pos_last)  
-                        {
 #if M50631_IMPROVEMENT_ADCC_CTXGT12
-                            ctx_gtA = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gtA_inc(coef, pos[idx], width, height, ch_type) : 0;
+                        ctx_gtB = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gtB_inc(coef, pos[firstC2FlagIdx], width, height, ch_type) : 0;
 #else
-                            ctx_gtA = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gtA_inc(coef, pos[idx], width, height, ch_type, sr_x, sr_y) : 0;
+                        ctx_gtB = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gtB_inc(coef, pos[firstC2FlagIdx], width, height, ch_type, sr_x, sr_y) : 0;
 #endif
-                        }
-                        evce_sbac_encode_bin(symbol, sbac, &cm_gtx[ctx_gtA], bs);
-                        if (symbol)
-                        {
-                            if (firstC2FlagIdx == -1)
-                            {
-                                firstC2FlagIdx = idx;
-                            }
-                            else 
-                            {
-                                escape_data_present_ingroup = TRUE;
-                            }
-                        }
                     }
-                    if (firstC2FlagIdx !=-1)
-                    {
-                        u32 symbol2 = abs_coef[firstC2FlagIdx] > 2 ? 1 : 0;
-                        if (pos[firstC2FlagIdx] != pos_last)  
-                        {
-#if M50631_IMPROVEMENT_ADCC_CTXGT12
-                            ctx_gtB = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gtB_inc(coef, pos[firstC2FlagIdx], width, height, ch_type) : 0;
-#else
-                            ctx_gtB = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gtB_inc(coef, pos[firstC2FlagIdx], width, height, ch_type, sr_x, sr_y) : 0;
-#endif
-                        }
-                        evce_sbac_encode_bin(symbol2, sbac, &cm_gtx[ctx_gtB], bs);
+                    evce_sbac_encode_bin(symbol2, sbac, &cm_gtx[ctx_gtB], bs);
 
-                        if (symbol2 != 0)
-                        {
-                            escape_data_present_ingroup = 1;
-                        }
-                    }
-                    escape_data_present_ingroup = escape_data_present_ingroup || (num_nz > CAFLAG_NUMBER);
-
-                    int iFirstCoeff2 = 1;
-                    if (escape_data_present_ingroup)
+                    if (symbol2 != 0)
                     {
-                        for (int idx = 0; idx < num_nz; idx++)
-                        {
-                            int base_level = (idx < CAFLAG_NUMBER) ? (2 + iFirstCoeff2) : 1;
-                            if (abs_coef[idx] >= base_level)
-                            {
-                                int escape_code_value = abs_coef[idx] - base_level;
-                                rice_param = get_rice_para(coef, pos[idx], width, height, base_level);
-                                code_coef_remain_exgolomb(bs, escape_code_value, rice_param);
-                            }
-                            if (abs_coef[idx] >= 2)
-                            {
-                                iFirstCoeff2 = 0;
-                            }
-                        }
+                        escape_data_present_ingroup = 1;
                     }
-                    sbac_encode_bins_ep_msb(coef_signs, num_nz, sbac, bs);
                 }
+                escape_data_present_ingroup = escape_data_present_ingroup || (num_nz > CAFLAG_NUMBER);
+
+                int iFirstCoeff2 = 1;
+                if (escape_data_present_ingroup)
+                {
+                    for (int idx = 0; idx < num_nz; idx++)
+                    {
+                        int base_level = (idx < CAFLAG_NUMBER) ? (2 + iFirstCoeff2) : 1;
+                        if (abs_coef[idx] >= base_level)
+                        {
+                            int escape_code_value = abs_coef[idx] - base_level;
+                            rice_param = get_rice_para(coef, pos[idx], width, height, base_level);
+                            code_coef_remain_exgolomb(bs, escape_code_value, rice_param);
+                        }
+                        if (abs_coef[idx] >= 2)
+                        {
+                            iFirstCoeff2 = 0;
+                        }
+                    }
+                }
+                sbac_encode_bins_ep_msb(coef_signs, num_nz, sbac, bs);
             }
         }
     }
+}
 
-
-#if ATS_INTRA_PROCESS   
 static int evce_eco_ats_intra_cu(EVC_BSW *bs, u8 ats_intra_cu, u8 ctx)
 {
     EVCE_SBAC *sbac;
@@ -1653,7 +1642,6 @@ static int evce_eco_ats_tu_v(EVC_BSW *bs, u8 ats_tu_v, u8 ctx)
 
     return EVC_OK;
 }
-#endif
 
 void evce_eco_xcoef(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num_sig, int ch_type, int tool_adcc)
 {
@@ -1896,12 +1884,10 @@ int evce_eco_dqp(EVC_BSW * bs, int ref_qp, int cur_qp)
 #endif
 
 int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 pred_mode, int nnz_sub[N_C][MAX_SUB_TB_NUM], int b_no_cbf, int run_stats
-#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+#if ATS_INTER_PROCESS
                   , int tool_ats
 #endif
-#if ATS_INTRA_PROCESS    
                   , u8 ats_intra_cu, u8 ats_tu
-#endif
 #if ATS_INTER_PROCESS
                   , u8 ats_inter_info
 #endif
@@ -1941,10 +1927,8 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
 #endif
 
     int cbf_all = 0;
-#if ATS_INTRA_PROCESS
     u8 is_intra = (pred_mode == MODE_INTRA) ? 1 : 0;
     EVCE_SBAC    * sbac = GET_SBAC_ENC(bs);
-#endif
 #if ATS_INTER_PROCESS
     u8 ats_inter_avail = check_ats_inter_info_coded(1 << log2_cuw, 1 << log2_cuh, pred_mode, tool_ats);
     if( ats_inter_avail )
@@ -1996,7 +1980,6 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
             }
 #endif
 
-#if ATS_INTRA_PROCESS
             if (tool_ats && (!!nnz_sub[Y_C][(j << 1) | i]) && (log2_cuw <= 5 && log2_cuh <= 5) && is_intra
 #if M50761_CHROMA_NOT_SPLIT
                 && run[Y_C]
@@ -2019,7 +2002,6 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
 #endif
                 }
         }
-#endif
 
 #if ATS_INTER_PROCESS
 #if IBC
@@ -3557,12 +3539,10 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
             cu_data->pred_mode[cup]
 #endif
             , core->nnz_sub, b_no_cbf, RUN_L | RUN_CB | RUN_CR
-#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+#if ATS_INTER_PROCESS
                       , ctx->sps.tool_ats
 #endif
-#if ATS_INTRA_PROCESS            
                       , cu_data->ats_intra_cu[cup], (cu_data->ats_tu_h[cup] << 1 | cu_data->ats_tu_v[cup])
-#endif
 #if ATS_INTER_PROCESS
                       , core->ats_inter_info
 #endif

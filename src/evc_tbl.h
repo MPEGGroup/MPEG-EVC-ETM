@@ -133,14 +133,12 @@ extern const s16 init_skip_flag[2][NUM_SBAC_CTX_SKIP_FLAG][1];
 #if IBC
 extern const s16 init_ibc_flag[2][NUM_SBAC_CTX_IBC_FLAG][1];
 #endif
-#if ATS_INTRA_PROCESS
 extern const s16 init_ats_intra_cu[2][NUM_ATS_INTRA_CU_FLAG_CTX][1];
 #if M50632_SIMPLIFICATION_ATS
 extern const s16 init_ats_tu[2][NUM_ATS_INTRA_TU_FLAG_CTX][1];
 #else
 extern const s16 init_ats_tu_h[2][NUM_ATS_INTRA_TU_FLAG_CTX][1];
 extern const s16 init_ats_tu_v[2][NUM_ATS_INTRA_TU_FLAG_CTX][1];
-#endif
 #endif
 #if ATS_INTER_PROCESS
 extern const s16 init_ats_inter_info[2][NUM_SBAC_CTX_ATS_INTER_INFO][1];
@@ -183,7 +181,6 @@ extern const s16 init_affine_mrg[2][AFF_MAX_CAND][2];
 extern const s16 init_affine_mvd_flag[2][NUM_SBAC_CTX_AFFINE_MVD_FLAG][2];
 #endif
 extern const s16 init_skip_flag[2][NUM_SBAC_CTX_SKIP_FLAG][2];
-#if ATS_INTRA_PROCESS
 extern const s16 init_ats_intra_cu[2][NUM_ATS_INTRA_CU_FLAG_CTX][2];
 #if M50632_SIMPLIFICATION_ATS
 extern const s16 init_ats_tu[2][NUM_ATS_INTRA_TU_FLAG_CTX][2];
@@ -191,13 +188,11 @@ extern const s16 init_ats_tu[2][NUM_ATS_INTRA_TU_FLAG_CTX][2];
 extern const s16 init_ats_tu_h[2][NUM_ATS_INTRA_TU_FLAG_CTX][2];
 extern const s16 init_ats_tu_v[2][NUM_ATS_INTRA_TU_FLAG_CTX][2];
 #endif
-#endif
 #if ATS_INTER_PROCESS
 extern const s16 init_ats_inter_info[2][NUM_SBAC_CTX_ATS_INTER_INFO][2];
 #endif
 #endif
 
-#if ATS_INTRA_PROCESS
 extern s16 evc_tbl_tr2[NUM_TRANS_TYPE][2][2];
 extern s16 evc_tbl_tr4[NUM_TRANS_TYPE][4][4];
 extern s16 evc_tbl_tr8[NUM_TRANS_TYPE][8][8];
@@ -215,7 +210,6 @@ extern s16 evc_tbl_inv_tr16[NUM_TRANS_TYPE][16][16];
 extern s16 evc_tbl_inv_tr32[NUM_TRANS_TYPE][32][32];
 extern s16 evc_tbl_inv_tr64[NUM_TRANS_TYPE][64][64];
 extern s16 evc_tbl_inv_tr128[NUM_TRANS_TYPE][128][128];
-#endif
 
 #if DBF == DBF_AVC
 extern const u8 ALPHA_TABLE[52];

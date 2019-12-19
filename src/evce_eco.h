@@ -70,12 +70,10 @@ void evce_sbac_encode_bin_trm(u32 bin, EVCE_SBAC *sbac, EVC_BSW *bs);
 int evce_eco_dqp(EVC_BSW * bs, int ref_qp, int cur_qp);
 #endif
 int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 pred_mode, int nnz_sub[N_C][MAX_SUB_TB_NUM], int b_no_cbf, int run_stats
-#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+#if ATS_INTER_PROCESS
                   , int tool_ats
 #endif
-#if ATS_INTRA_PROCESS
                   , u8 ats_intra_cu, u8 ats_tu
-#endif
 #if ATS_INTER_PROCESS
                   , u8 ats_inter_info
 #endif

@@ -54,7 +54,6 @@ extern s32 rdoq_est_last[NUM_SBAC_CTX_LAST][2];
 
 const int quant_scale[6] = {26214, 23302, 20560, 18396, 16384, 14564};
 
-#if ATS_INTRA_PROCESS
 void evce_trans_DST7_B4(s16* block, s16* coeff, s32 shift, s32 line, int skip_line, int skip_line_2);
 void evce_trans_DST7_B8(s16* block, s16* coeff, s32 shift, s32 line, int skip_line, int skip_line_2);
 void evce_trans_DST7_B16(s16* block, s16* coeff, s32 shift, s32 line, int skip_line, int skip_line_2);
@@ -70,7 +69,6 @@ Trans* evce_trans_map_tbl[16][5] =
     { NULL, evce_trans_DCT8_B4, evce_trans_DCT8_B8, evce_trans_DCT8_B16, evce_trans_DCT8_B32 },
     { NULL, evce_trans_DST7_B4, evce_trans_DST7_B8, evce_trans_DST7_B16, evce_trans_DST7_B32 },
 };
-#endif
 
 static void tx_pb2b(void * src, void * dst, int shift, int line, int step)
 {
@@ -689,7 +687,6 @@ static void tx_pb64(s16 *src, s16 *dst, int shift, int line)
     }
 }
 
-#if ATS_INTRA_PROCESS
 /********************************** DST-VII **********************************/
 void evce_trans_DST7_B4(s16 *block, s16 *coef, s32 shift, s32 line, int skip_line, int skip_line_2)  /* input block, output coef */
 {
@@ -1052,8 +1049,6 @@ void evc_t_MxN_ats_intra(s16 *coef, int tuw, int tuh, int bit_depth, u8 ats_intr
     evce_trans_map_tbl[t_idx_h][log2_minus1_w](coef, t, shift_1st, tuh, 0, skip_w);
     evce_trans_map_tbl[t_idx_v][log2_minus1_h](t, coef, shift_2nd, tuw, skip_w, skip_h);
 }
-#endif
-
 
 typedef void(*EVC_TXB)(void * coef, void * t, int shift, int line, int step);
 static EVC_TXB evce_tbl_txb[MAX_TR_LOG2] =
@@ -1077,13 +1072,10 @@ static EVC_TX evce_tbl_tx[MAX_TR_LOG2] =
     tx_pb64
 };
 
-#if ATS_INTRA_PROCESS
 void evce_trans_ats_intra(s16* coef, int log2_cuw, int log2_cuh, u8 ats_intra_cu, u8 ats_tu)
 {
     evc_t_MxN_ats_intra(coef, (1 << log2_cuw), (1 << log2_cuh), BIT_DEPTH, ats_intra_cu, ats_tu);
 }
-#endif
-
 
 void evce_trans(s16 * coef, int log2_cuw, int log2_cuh, int iqt_flag)
 {    
@@ -2643,13 +2635,8 @@ int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw,
 
 
 int evce_tq_nnz(u8 qp, double lambda, s16 * coef, int log2_cuw, int log2_cuh, u16 scale, int slice_type, int ch_type, int is_intra, int sps_cm_init_flag, int iqt_flag
-#if ATS_INTRA_PROCESS
-                , u8 ats_intra_cu, u8 ats_tu
-#endif
-                 , int tool_adcc
-)
+                , u8 ats_intra_cu, u8 ats_tu, int tool_adcc)
 {
-#if ATS_INTRA_PROCESS
     if (ats_intra_cu)
     {
         evce_trans_ats_intra(coef, log2_cuw, log2_cuh, ats_intra_cu, ats_tu);
@@ -2658,18 +2645,13 @@ int evce_tq_nnz(u8 qp, double lambda, s16 * coef, int log2_cuw, int log2_cuh, u1
     {
         evce_trans(coef, log2_cuw, log2_cuh, iqt_flag);
     }
-#else
-    evce_trans(coef, log2_cuw, log2_cuh, iqt_flag);
-#endif
 
     return evce_quant_nnz(qp, lambda, is_intra, coef, log2_cuw, log2_cuh, scale, ch_type, slice_type, sps_cm_init_flag, tool_adcc);
 }
 
 int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int slice_type, int nnz[N_C]
                       , int nnz_sub[N_C][MAX_SUB_TB_NUM], int is_intra, double lambda_y, double lambda_u, double lambda_v, int run_stats, int sps_cm_init_flag, int iqt_flag
-#if ATS_INTRA_PROCESS
                       , u8 ats_intra_cu, u8 ats_tu
-#endif
 #if ATS_INTER_PROCESS
                       , u8 ats_inter_info
 #endif
@@ -2696,10 +2678,8 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
     double lambda[N_C] = { lambda_y , lambda_u , lambda_v };
     int nnz_temp[N_C] = {0};
     evc_mset(nnz_sub, 0, sizeof(int) * N_C * MAX_SUB_TB_NUM);
-#if ATS_INTRA_PROCESS
     u8 ats_intra_cu_on = 0;
     u8 ats_tu_mode = 0;
-#endif
 #if ATS_INTER_PROCESS
     if (ats_inter_info)
     {
@@ -2714,7 +2694,6 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
         {
             for(c = 0; c < N_C; c++)
             {
-#if ATS_INTRA_PROCESS
                 ats_intra_cu_on = (c == 0)? ats_intra_cu : 0;
                 ats_tu_mode = (c == 0) ? ats_tu : 0;
 #if ATS_INTER_PROCESS
@@ -2722,7 +2701,6 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
                 {
                     get_ats_inter_trs(ats_inter_info, log2_cuw, log2_cuh, &ats_intra_cu_on, &ats_tu_mode);
                 }
-#endif
 #endif
                 if(run[c])
                 {
@@ -2741,10 +2719,7 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
 
                     int scale = quant_scale[qp[c] % 6];
                     nnz_sub[c][(j << 1) | i] = evce_tq_nnz(qp[c], lambda[c], coef_temp[c], log2_w_sub - !!c, log2_h_sub - !!c, scale, slice_type, c, is_intra, sps_cm_init_flag, iqt_flag
-#if ATS_INTRA_PROCESS
-                            , ats_intra_cu_on, ats_tu_mode
-#endif
-                            , tool_adcc);
+                            , ats_intra_cu_on, ats_tu_mode, tool_adcc);
                     nnz_temp[c] += nnz_sub[c][(j << 1) | i];
 
                     if(loop_h + loop_w > 2)

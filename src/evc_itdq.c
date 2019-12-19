@@ -31,11 +31,10 @@
 *  THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include <math.h>
+
 #include "evc_def.h"
 #include "evc_tbl.h"
-#if ATS_INTRA_PROCESS
-#include <math.h>
-#endif
 
 #define ITX_SHIFT1   (7)                     /* shift after 1st IT stage */
 #define ITX_SHIFT2   (12 - (BIT_DEPTH - 8))  /* shift after 2nd IT stage */
@@ -565,7 +564,6 @@ static void itx_pb64b(void *src, void *dst, int shift, int line, int step)
     
 }
 
-#if ATS_INTRA_PROCESS
 void evc_itrans_ats_intra_DST7_B4(s16 *coeff, s16 *block, int shift, int line, int skip_line, int skip_line_2);
 void evc_itrans_ats_intra_DST7_B8(s16 *coeff, s16 *block, int shift, int line, int skip_line, int skip_line_2);
 void evc_itrans_ats_intra_DST7_B16(s16 *coeff, s16 *block, int shift, int line, int skip_line, int skip_line_2);
@@ -585,9 +583,7 @@ INV_TRANS *evc_itrans_map_tbl[16][5] =
 
 void evc_itrans_ats_intra(s16 *coef, int log2_cuw, int log2_cuh, u8 ats_tu, int skip_w, int skip_h);
 void evc_it_MxN_ats_intra(s16 *coef, int tuw, int tuh, int bit_depth, const int max_log2_tr_dynamic_range, u8 ats_intra_tridx, int skip_w, int skip_h);
-#endif
 
-#if ATS_INTRA_PROCESS
 void evc_init_multi_tbl()
 {
     int c, k, n, i;
@@ -945,7 +941,6 @@ void evc_it_MxN_ats_intra(s16 *coef, int tuw, int tuh, int bit_depth, const int 
     evc_itrans_map_tbl[t_idx_v][log2_minus1_h](coef, t, shift_1st, tuw, skip_w, skip_h);
     evc_itrans_map_tbl[t_idx_h][log2_minus1_w](t, coef, shift_2nd, tuh, 0, skip_w);
 }
-#endif
 
 static void itx_pb2(s16 *src, s16 *dst, int shift, int line)
 {
@@ -1261,12 +1256,12 @@ void evc_itrans(s16 *coef, int log2_cuw, int log2_cuh, int iqt_flag)
     }
 }
 
-#if ATS_INTRA_PROCESS
+
 void evc_itrans_ats_intra(s16* coef, int log2_w, int log2_h, u8 ats_tu, int skip_w, int skip_h)
 {
     evc_it_MxN_ats_intra(coef, (1 << log2_w), (1 << log2_h), BIT_DEPTH, 15, ats_tu, skip_w, skip_h);
 }
-#endif
+
 static void evc_dquant(s16 *coef, int log2_w, int log2_h, int scale, s32 offset, u8 shift)
 {
     int i;
@@ -1280,11 +1275,7 @@ static void evc_dquant(s16 *coef, int log2_w, int log2_h, int scale, s32 offset,
     }
 }
 
-void evc_itdq(s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag
-#if ATS_INTRA_PROCESS
-              , u8 ats_intra_cu, u8 ats_tu
-#endif
-)
+void evc_itdq(s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag, u8 ats_intra_cu, u8 ats_tu)
 {
     s32 offset;
     u8 shift;
@@ -1292,7 +1283,6 @@ void evc_itdq(s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag
     int log2_size = (log2_w + log2_h) >> 1;
     const int ns_shift = ((log2_w + log2_h) & 1) ? 8 : 0;
 
-#if ATS_INTRA_PROCESS
     int skip_w = 1 << log2_w;
     int skip_h = 1 << log2_h;
     int max_x = 0;
@@ -1301,7 +1291,6 @@ void evc_itdq(s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag
     int i, j;
     int cuw = 1 << log2_w;
     int cuh = 1 << log2_h;
-#endif
 
     tr_shift = MAX_TX_DYNAMIC_RANGE - BIT_DEPTH - log2_size;
     shift = QUANT_IQUANT_SHIFT - QUANT_SHIFT - tr_shift;
@@ -1309,8 +1298,7 @@ void evc_itdq(s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag
     offset = (shift == 0) ? 0 : (1 << (shift - 1));
 
     evc_dquant(coef, log2_w, log2_h, scale, offset, shift);
-
-#if ATS_INTRA_PROCESS
+    
     for(j = 0; j < cuh; j++)
     {
         for(i = 0; i < cuw; i++)
@@ -1341,15 +1329,10 @@ void evc_itdq(s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag
     {
         evc_itrans(coef, log2_w, log2_h, iqt_flag);
     }
-#else
-    evc_itrans(coef, log2_w, log2_h, iqt_flag);
-#endif
 }
 
 void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int flag[N_C], int nnz_sub[N_C][MAX_SUB_TB_NUM], int iqt_flag
-#if ATS_INTRA_PROCESS
                         , u8 ats_intra_cu, u8 ats_tu
-#endif
 #if ATS_INTER_PROCESS
                         , u8 ats_inter_info
 #endif
@@ -1382,10 +1365,8 @@ void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u
         {
             for(c = 0; c < N_C; c++)
             {
-#if ATS_INTRA_PROCESS
                 ats_intra_cu_on = (c == 0)? ats_intra_cu : 0;
                 ats_tu_mode = (c == 0) ? ats_tu : 0;
-#endif
 #if ATS_INTER_PROCESS
                 if (c == 0)
                 {
@@ -1416,11 +1397,7 @@ void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u
                         scale = evc_tbl_dq_scale_b[qp[c] % 6] << (qp[c] / 6);
                     }
 
-                    evc_itdq(coef_temp[c], log2_w_sub - !!c, log2_h_sub - !!c, scale, iqt_flag
-#if ATS_INTRA_PROCESS
-                        , ats_intra_cu_on, ats_tu_mode
-#endif
-                    );
+                    evc_itdq(coef_temp[c], log2_w_sub - !!c, log2_h_sub - !!c, scale, iqt_flag, ats_intra_cu_on, ats_tu_mode);
 
                     if(loop_h + loop_w > 2)
                     {

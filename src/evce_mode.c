@@ -198,12 +198,10 @@ void evce_rdo_bit_cnt_cu_intra_luma(EVCE_CTX *ctx, EVCE_CORE *core, s32 slice_ty
     }
 #endif
     evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTRA, core->nnz_sub, 0, RUN_L
-#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+#if ATS_INTER_PROCESS
                   , ctx->sps.tool_ats
 #endif
-#if ATS_INTRA_PROCESS
                   , core->ats_intra_cu, core->ats_tu
-#endif
 #if ATS_INTER_PROCESS
                   , 0
 #endif
@@ -239,12 +237,10 @@ void evce_rdo_bit_cnt_cu_intra_chroma(EVCE_CTX *ctx, EVCE_CORE *core, s32 slice_
     }
 
     evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTRA, core->nnz_sub, 0, RUN_CB | RUN_CR
-#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+#if ATS_INTER_PROCESS
                   , ctx->sps.tool_ats
 #endif
-#if ATS_INTRA_PROCESS        
                   , 0, 0
-#endif
 #if ATS_INTER_PROCESS
                   , 0
 #endif
@@ -331,12 +327,10 @@ void evce_rdo_bit_cnt_cu_intra(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
     }
 #endif
     evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTRA, core->nnz_sub, 0, RUN_L | RUN_CB | RUN_CR
-#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+#if ATS_INTER_PROCESS
                   , ctx->sps.tool_ats
 #endif
-#if ATS_INTRA_PROCESS        
                   , core->ats_intra_cu, core->ats_tu
-#endif
 #if ATS_INTER_PROCESS
                   , 0
 #endif
@@ -359,10 +353,7 @@ void evce_rdo_bit_cnt_cu_intra(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
 #endif
 }
 
-void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM], int ch_type, int pidx
-#if ATS_INTRA_PROCESS
-                                    , EVCE_CTX * ctx
-#endif
+void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM], int ch_type, int pidx, EVCE_CTX * ctx
 #if M50761_CHROMA_NOT_SPLIT
     , TREE_CONS tree_cons
 #endif
@@ -377,12 +368,10 @@ void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM],
     if(ch_type == Y_C)
     {
         evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTER, core->nnz_sub, b_no_cbf, RUN_L
-#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+#if ATS_INTER_PROCESS
             , ctx->sps.tool_ats
 #endif
-#if ATS_INTRA_PROCESS            
             , 0, 0
-#endif
 #if ATS_INTER_PROCESS
             , core->ats_inter_info
 #endif
@@ -400,12 +389,10 @@ void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM],
     if(ch_type == U_C)
     {
         evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTER, core->nnz_sub, b_no_cbf, RUN_CB
-#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+#if ATS_INTER_PROCESS
             , ctx->sps.tool_ats
 #endif
-#if ATS_INTRA_PROCESS
             , 0, 0
-#endif
 #if ATS_INTER_PROCESS
             , core->ats_inter_info
 #endif
@@ -422,12 +409,10 @@ void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM],
     if(ch_type == V_C)
     {
         evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTER, core->nnz_sub, b_no_cbf, RUN_CR
-#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+#if ATS_INTER_PROCESS
             , ctx->sps.tool_ats
 #endif
-#if ATS_INTRA_PROCESS            
             , 0, 0
-#endif
 #if ATS_INTER_PROCESS
             , core->ats_inter_info
 #endif
@@ -482,12 +467,10 @@ void evce_rdo_bit_cnt_cu_ibc(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s
 #endif
   evce_eco_coef(&core->bs_temp, coef, core->log2_cuw, core->log2_cuh, MODE_IBC, core->nnz_sub, b_no_cbf
     , RUN_L | RUN_CB | RUN_CR 
-#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+#if ATS_INTER_PROCESS
     , ctx->sps.tool_ats
 #endif
-#if ATS_INTRA_PROCESS
     , 0, 0
-#endif
 #if ATS_INTER_PROCESS
     , 0
 #endif
@@ -786,12 +769,10 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
     }
 #endif
     evce_eco_coef(&core->bs_temp, coef, core->log2_cuw, core->log2_cuh, MODE_INTER, core->nnz_sub, b_no_cbf, RUN_L | RUN_CB | RUN_CR
-#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+#if ATS_INTER_PROCESS
         , ctx->sps.tool_ats
 #endif
-#if ATS_INTRA_PROCESS
         , 0, 0
-#endif
 #if ATS_INTER_PROCESS
         , core->ats_inter_info
 #endif
@@ -978,11 +959,9 @@ static int init_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh, int q
 #if DMVR_FLAG
         evc_mset(cu_data->dmvr_flag, 0, cuw_scu * cuh_scu * sizeof(s8));
 #endif
-#if ATS_INTRA_PROCESS
     evc_mset(cu_data->ats_intra_cu, 0, cuw_scu * cuh_scu * sizeof(u8));
     evc_mset(cu_data->ats_tu_h, 0, cuw_scu * cuh_scu * sizeof(u8));
     evc_mset(cu_data->ats_tu_v, 0, cuw_scu * cuh_scu * sizeof(u8));
-#endif
 #if ATS_INTER_PROCESS
     evc_mset(cu_data->ats_inter_info, 0, cuw_scu * cuh_scu * sizeof(s8));
 #endif
@@ -1049,11 +1028,9 @@ static int copy_cu_data(EVCE_CU_DATA *dst, EVCE_CU_DATA *src, int x, int y, int 
             }
         }
 
-#if ATS_INTRA_PROCESS
         evc_mcpy(dst->ats_intra_cu + idx_dst, src->ats_intra_cu + idx_src, size);
         evc_mcpy(dst->ats_tu_h + idx_dst, src->ats_tu_h + idx_src, size);
         evc_mcpy(dst->ats_tu_v + idx_dst, src->ats_tu_v + idx_src, size);
-#endif
 #if ATS_INTER_PROCESS
         evc_mcpy(dst->ats_inter_info + idx_dst, src->ats_inter_info + idx_src, size);
 #endif
@@ -1772,12 +1749,9 @@ static void copy_to_cu_data(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi, s16 c
             cu_data->block_size[idx + i][1] = core->cuh;
 #endif
             cu_data->depth[idx + i] = core->cud;
-
-#if ATS_INTRA_PROCESS
             cu_data->ats_intra_cu[idx + i] = core->ats_intra_cu;
             cu_data->ats_tu_h[idx + i] = core->ats_tu >> 1;
             cu_data->ats_tu_v[idx + i] = core->ats_tu & 1;
-#endif
 #if ATS_INTER_PROCESS
             cu_data->ats_inter_info[idx + i] = core->ats_inter_info;
 #endif
@@ -4638,11 +4612,9 @@ static void update_to_ctx_map(EVCE_CTX *ctx, EVCE_CORE *core)
 #if DMVR_LAG
     s16(*map_unrefined_mv)[REFP_NUM][MV_D];
 #endif
-#if ATS_INTRA_PROCESS
     u8* map_ats_intra_cu;
     u8* map_ats_tu_h;
     u8* map_ats_tu_v;
-#endif
 #if ATS_INTER_PROCESS
     u8   *map_ats_inter;
 #endif
@@ -4677,11 +4649,9 @@ static void update_to_ctx_map(EVCE_CTX *ctx, EVCE_CORE *core)
 #if DMVR_LAG
     map_unrefined_mv = ctx->map_unrefined_mv;
 #endif
-#if ATS_INTRA_PROCESS
     map_ats_intra_cu = ctx->map_ats_intra_cu;
     map_ats_tu_h = ctx->map_ats_tu_h;
     map_ats_tu_v = ctx->map_ats_tu_v;
-#endif
 #if ATS_INTER_PROCESS
     map_ats_inter = ctx->map_ats_inter;
 #endif
@@ -4690,11 +4660,9 @@ static void update_to_ctx_map(EVCE_CTX *ctx, EVCE_CORE *core)
     {
         for(j = 0; j < w; j++)
         {
-#if ATS_INTRA_PROCESS
             map_ats_intra_cu[ctx_idx + j] = cu_data->ats_intra_cu[core_idx + j];
             map_ats_tu_h[ctx_idx + j] = cu_data->ats_tu_h[core_idx + j];
             map_ats_tu_v[ctx_idx + j] = cu_data->ats_tu_v[core_idx + j];
-#endif
 #if ATS_INTER_PROCESS
             map_ats_inter[ctx_idx + j] = cu_data->ats_inter_info[core_idx + j];
 #if IBC

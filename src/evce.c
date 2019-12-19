@@ -388,7 +388,7 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->tool_iqt = ctx->cdsc.tool_iqt;
     sps->tool_adcc = ctx->cdsc.tool_adcc;
     sps->tool_cm_init = ctx->cdsc.tool_cm_init;
-#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+#if ATS_INTER_PROCESS
     sps->tool_ats = ctx->cdsc.tool_ats;
 #endif
 
@@ -1273,7 +1273,6 @@ int evce_ready(EVCE_CTX * ctx)
         evc_mset_x64a(ctx->map_cu_mode, 0, size);
     }
 
-#if ATS_INTRA_PROCESS
     if (ctx->map_ats_intra_cu == NULL)
     {
         size = sizeof(u8) * ctx->f_scu;
@@ -1295,7 +1294,7 @@ int evce_ready(EVCE_CTX * ctx)
         evc_assert_gv(ctx->map_ats_tu_v, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
         evc_mset(ctx->map_ats_tu_v, 0, size);
     }
-#endif
+
 #if ATS_INTER_PROCESS
     if (ctx->map_ats_inter == NULL)
     {
@@ -1380,11 +1379,9 @@ ERR:
 #if AFFINE
     evc_mfree_fast(ctx->map_affine);
 #endif
-#if ATS_INTRA_PROCESS
     evc_mfree_fast(ctx->map_ats_intra_cu);
     evc_mfree_fast(ctx->map_ats_tu_h);
     evc_mfree_fast(ctx->map_ats_tu_v);
-#endif
 #if ATS_INTER_PROCESS
     evc_mfree_fast(ctx->map_ats_inter);
     evc_mfree_fast(ctx->ats_inter_pred_dist);
@@ -1426,11 +1423,9 @@ void evce_flush(EVCE_CTX * ctx)
 #if AFFINE
     evc_mfree_fast(ctx->map_affine);
 #endif
-#if ATS_INTRA_PROCESS
     evc_mfree_fast(ctx->map_ats_intra_cu);
     evc_mfree_fast(ctx->map_ats_tu_h);
     evc_mfree_fast(ctx->map_ats_tu_v);
-#endif
 #if ATS_INTER_PROCESS
     evc_mfree_fast(ctx->map_ats_inter);
     evc_mfree_fast(ctx->ats_inter_pred_dist);
@@ -3060,10 +3055,8 @@ EVCE evce_create(EVCE_CDSC * cdsc, int * err)
     ctx->sh.aps_signaled = -1;
 #endif
 
-#if ATS_INTRA_PROCESS
     evc_init_multi_tbl();
     evc_init_multi_inv_tbl();
-#endif
 
     return (ctx->id);
 ERR:
@@ -3477,11 +3470,10 @@ int evce_create_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
     evce_malloc_1d((void**)&cu_data->mmvd_idx, size_16b);
     evce_malloc_1d((void**)&cu_data->mmvd_flag, size_8b);
 
-#if ATS_INTRA_PROCESS
     evce_malloc_1d((void**)& cu_data->ats_intra_cu, size_8b);
     evce_malloc_1d((void**)& cu_data->ats_tu_h, size_8b);
     evce_malloc_1d((void**)& cu_data->ats_tu_v, size_8b);
-#endif
+
 #if ATS_INTER_PROCESS
     evce_malloc_1d((void**)&cu_data->ats_inter_info, size_8b);
 #endif
@@ -3581,11 +3573,9 @@ int evce_delete_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
     evce_free_1d((void*)cu_data->affine_flag);
     evce_free_1d((void*)cu_data->map_affine);
 #endif   
-#if ATS_INTRA_PROCESS
     evce_free_1d((void*)cu_data->ats_intra_cu);
     evce_free_1d((void*)cu_data->ats_tu_h);
     evce_free_1d((void*)cu_data->ats_tu_v);
-#endif
 #if ATS_INTER_PROCESS
     evce_free_1d((void*)cu_data->ats_inter_info);
 #endif

@@ -1623,10 +1623,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 #else
     tnnz = evce_sub_block_tq(coef, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, pi->slice_type, nnz
 #endif
-                             , core->nnz_sub, 0, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt
-#if ATS_INTRA_PROCESS
-                             , 0, 0
-#endif
+                             , core->nnz_sub, 0, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt, 0, 0
 #if ATS_INTER_PROCESS
                              , core->ats_inter_info
 #endif
@@ -1652,10 +1649,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
             evc_mcpy(nnz_sub_store[i], core->nnz_sub[i], sizeof(int) * MAX_SUB_TB_NUM);
         }
 
-        evc_sub_block_itdq(coef_t, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, nnz, core->nnz_sub, ctx->sps.tool_iqt
-#if ATS_INTRA_PROCESS
-                           , 0, 0
-#endif
+        evc_sub_block_itdq(coef_t, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, nnz, core->nnz_sub, ctx->sps.tool_iqt, 0, 0
 #if ATS_INTER_PROCESS
                            , core->ats_inter_info
 #endif
@@ -1924,10 +1918,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 
                     SBAC_LOAD(core->s_temp_run, core->s_temp_prev_comp_run);
                     evce_sbac_bit_reset(&core->s_temp_run);
-                    evce_rdo_bit_cnt_cu_inter_comp(core, coef, i, pidx
-#if ATS_INTRA_PROCESS 
-                                                  , ctx
-#endif
+                    evce_rdo_bit_cnt_cu_inter_comp(core, coef, i, pidx, ctx
 #if M50761_CHROMA_NOT_SPLIT
                                                   , ctx->tree_cons
 #endif
@@ -5665,10 +5656,7 @@ static double pinter_analyze_cu_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, 
 #endif
 #endif
 
-    evc_sub_block_itdq(pi->residue, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, pi->nnz_best[best_idx], pi->nnz_sub_best[best_idx], ctx->sps.tool_iqt
-#if ATS_INTRA_PROCESS
-                       , 0, 0
-#endif
+    evc_sub_block_itdq(pi->residue, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, pi->nnz_best[best_idx], pi->nnz_sub_best[best_idx], ctx->sps.tool_iqt, 0, 0
 #if ATS_INTER_PROCESS
                        , core->ats_inter_info
 #endif
@@ -6766,10 +6754,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 #endif
 #endif
 
-    evc_sub_block_itdq(pi->residue, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, pi->nnz_best[best_idx], pi->nnz_sub_best[best_idx], ctx->sps.tool_iqt
-#if ATS_INTRA_PROCESS
-                       , 0, 0
-#endif
+    evc_sub_block_itdq(pi->residue, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, pi->nnz_best[best_idx], pi->nnz_sub_best[best_idx], ctx->sps.tool_iqt, 0, 0
 #if ATS_INTER_PROCESS
                        , core->ats_inter_info
 #endif

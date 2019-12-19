@@ -356,13 +356,11 @@ static void make_stat(EVCD_CTX * ctx, int btype, EVCD_STAT * stat)
 static void evcd_itdq(EVCD_CTX * ctx, EVCD_CORE * core)
 {
     evc_sub_block_itdq(core->coef, core->log2_cuw, core->log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->is_coef, core->is_coef_sub, ctx->sps.tool_iqt
-#if ATS_INTRA_PROCESS
 #if IBC
                        , core->pred_mode == MODE_IBC ? 0 : core->ats_intra_cu
                        , core->pred_mode == MODE_IBC ? 0 : ((core->ats_intra_tu_h << 1) | core->ats_intra_tu_v)
 #else
                        , core->ats_intra_cu, ((core->ats_intra_tu_h << 1) | core->ats_intra_tu_v)
-#endif
 #endif
 #if ATS_INTER_PROCESS
 #if IBC
@@ -942,9 +940,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 #endif
     EVC_TRACE_STR("\n");
 
-#if ATS_INTRA_PROCESS
     core->ats_intra_cu = core->ats_intra_tu_h = core->ats_intra_tu_v = 0;
-#endif
 
     core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu
 #if EVC_TILE_SUPPORT
@@ -2635,11 +2631,8 @@ EVCD evcd_create(EVCD_CDSC * cdsc, int * err)
     /* Set CTX variables to default value */
     ctx->magic = EVCD_MAGIC_CODE;
     ctx->id = (EVCD)ctx;
-
-#if ATS_INTRA_PROCESS
     evc_init_multi_tbl();
     evc_init_multi_inv_tbl();
-#endif
 
     return (ctx->id);
 ERR:

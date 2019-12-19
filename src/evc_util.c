@@ -5650,7 +5650,6 @@ void get_tu_pos_offset(u8 ats_inter_info, int log2_cuw, int log2_cuh, int* x_off
     }
 }
 
-#if ATS_INTRA_PROCESS
 void get_ats_inter_trs(u8 ats_inter_info, int log2_cuw, int log2_cuh, u8* ats_cu, u8* ats_tu)
 {
     if (ats_inter_info == 0)
@@ -5687,7 +5686,6 @@ void get_ats_inter_trs(u8 ats_inter_info, int log2_cuw, int log2_cuh, u8* ats_cu
         *ats_tu = (t_idx_h << 1) | t_idx_v;
     }
 }
-#endif
 
 void set_cu_cbf_flags(u8 cbf_y, u8 ats_inter_info, int log2_cuw, int log2_cuh, u32 *map_scu, int w_scu)
 {

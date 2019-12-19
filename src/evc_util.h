@@ -395,9 +395,7 @@ void clip_simd(const pel* src, int src_stride, pel *dst, int dst_stride, int wid
 u8 check_ats_inter_info_coded(int cuw, int cuh, int pred_mode, int tool_ats);
 void get_tu_size(u8 ats_inter_info, int log2_cuw, int log2_cuh, int* log2_tuw, int* log2_tuh);
 void get_tu_pos_offset(u8 ats_inter_info, int log2_cuw, int log2_cuh, int* x_offset, int* y_offset);
-#if ATS_INTRA_PROCESS
 void get_ats_inter_trs(u8 ats_inter_info, int log2_cuw, int log2_cuh, u8* ats_cu, u8* ats_tu);
-#endif
 void set_cu_cbf_flags(u8 cbf_y, u8 ats_inter_info, int log2_cuw, int log2_cuh, u32 *map_scu, int w_scu);
 #endif
 

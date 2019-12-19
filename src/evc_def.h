@@ -449,16 +449,13 @@ typedef struct _evc_AlfFilterShape
 /* ALF (END) */
 
 /* TRANSFORM PACKAGE (START) */
-#define ATS_INTRA_PROCESS                  ATS
 #define ATS_INTER_PROCESS                  ATS
 
-#if ATS_INTRA_PROCESS
 #define ATS_INTRA_FAST                     0
 #if ATS_INTRA_FAST
 #define ATS_INTER_INTRA_SKIP_THR           1.05
 #define ATS_INTRA_Y_NZZ_THR                1.00
 #define ATS_INTRA_IPD_THR                  1.10
-#endif
 #endif
 
 #if ATS_INTER_PROCESS
@@ -840,16 +837,12 @@ extern int fp_trace_started;
 /*****************************************************************************
 * Transform
 *****************************************************************************/
-#if ATS_INTRA_PROCESS
 typedef enum _TRANS_TYPE
 {
     DCT8, DST7, NUM_TRANS_TYPE,
 } TRANS_TYPE;
-#endif
 
-#if ATS_INTRA_PROCESS
 #define PI                                (3.14159265358979323846)
-#endif
 
 /*****************************************************************************
  * reference index
@@ -1041,14 +1034,12 @@ typedef u32 SBAC_CTX_MODEL;
 #define NUM_DELTA_QP_CTX                   1
 #endif
 
-#if ATS_INTRA_PROCESS 
 #if M50632_SIMPLIFICATION_ATS
 #define NUM_ATS_INTRA_CU_FLAG_CTX                1
 #define NUM_ATS_INTRA_TU_FLAG_CTX                1
 #else
 #define NUM_ATS_INTRA_CU_FLAG_CTX                8
 #define NUM_ATS_INTRA_TU_FLAG_CTX                2
-#endif
 #endif
 #if ATS_INTER_PROCESS
 #define NUM_SBAC_CTX_ATS_INTER_INFO        7
@@ -1110,14 +1101,12 @@ typedef struct _EVC_SBAC_CTX
     SBAC_CTX_MODEL   delta_qp        [NUM_DELTA_QP_CTX];
 #endif
     int              sps_cm_init_flag;
-#if ATS_INTRA_PROCESS   
     SBAC_CTX_MODEL   ats_intra_cu          [NUM_ATS_INTRA_CU_FLAG_CTX];
 #if M50632_SIMPLIFICATION_ATS
     SBAC_CTX_MODEL   ats_tu[NUM_ATS_INTRA_TU_FLAG_CTX];
 #else
     SBAC_CTX_MODEL   ats_tu_h        [NUM_ATS_INTRA_TU_FLAG_CTX];
     SBAC_CTX_MODEL   ats_tu_v        [NUM_ATS_INTRA_TU_FLAG_CTX];
-#endif
 #endif
 #if ATS_INTER_PROCESS
     SBAC_CTX_MODEL   ats_inter_info  [NUM_SBAC_CTX_ATS_INTER_INFO];
@@ -1340,7 +1329,7 @@ typedef struct _EVC_SPS
     int              tool_eipd;
     int              tool_iqt;
     int              tool_cm_init;
-#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
+#if ATS_INTER_PROCESS
     int              tool_ats;
 #endif
 

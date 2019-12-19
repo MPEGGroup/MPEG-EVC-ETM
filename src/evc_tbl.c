@@ -1021,7 +1021,6 @@ const s16 init_ctb_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG][1] = {
 };
 #endif
 
-#if ATS_INTRA_PROCESS   
 const s16 init_ats_intra_cu[2][NUM_ATS_INTRA_CU_FLAG_CTX][1] = {
     {
         { 999  },
@@ -1080,7 +1079,6 @@ const s16 init_ats_tu_v[2][NUM_ATS_INTRA_TU_FLAG_CTX][1] = {
 };
 #endif
 
-#endif
 #if ATS_INTER_PROCESS
 const s16 init_ats_inter_info[2][NUM_SBAC_CTX_ATS_INTER_INFO][1] = {
     {
@@ -1105,7 +1103,6 @@ const s16 init_ats_inter_info[2][NUM_SBAC_CTX_ATS_INTER_INFO][1] = {
 #endif
 #endif
 
-#if ATS_INTRA_PROCESS
 s16 evc_tbl_tr2[NUM_TRANS_TYPE][2][2];
 s16 evc_tbl_tr4[NUM_TRANS_TYPE][4][4];
 s16 evc_tbl_tr8[NUM_TRANS_TYPE][8][8];
@@ -1123,9 +1120,6 @@ s16 evc_tbl_inv_tr16[NUM_TRANS_TYPE][16][16];
 s16 evc_tbl_inv_tr32[NUM_TRANS_TYPE][32][32];
 s16 evc_tbl_inv_tr64[NUM_TRANS_TYPE][64][64];
 s16 evc_tbl_inv_tr128[NUM_TRANS_TYPE][128][128];
-
-#endif
-
 
 #if DBF == DBF_AVC
 const u8 ALPHA_TABLE[52] = { 0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,4,4,5,6,  7,8,9,10,12,13,15,17,  20,22,25,28,32,36,40,45,  50,56,63,71,80,90,101,113,  127,144,162,182,203,226,255,255 };
