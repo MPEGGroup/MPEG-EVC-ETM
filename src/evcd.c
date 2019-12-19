@@ -351,18 +351,7 @@ static void make_stat(EVCD_CTX * ctx, int btype, EVCD_STAT * stat)
 static void evcd_itdq(EVCD_CTX * ctx, EVCD_CORE * core)
 {
     evc_sub_block_itdq(core->coef, core->log2_cuw, core->log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->is_coef, core->is_coef_sub, ctx->sps.tool_iqt
-#if IBC
-                       , core->pred_mode == MODE_IBC ? 0 : core->ats_intra_cu
-                       , core->pred_mode == MODE_IBC ? 0 : ((core->ats_intra_tu_h << 1) | core->ats_intra_tu_v)
-#else
-                       , core->ats_intra_cu, ((core->ats_intra_tu_h << 1) | core->ats_intra_tu_v)
-#endif
-#if IBC
-                         , core->pred_mode == MODE_IBC ? 0 : core->ats_inter_info
-#else
-                       , core->ats_inter_info
-#endif
-    );
+                       , core->pred_mode == MODE_IBC ? 0 : core->ats_intra_cu, core->pred_mode == MODE_IBC ? 0 : ((core->ats_intra_tu_h << 1) | core->ats_intra_tu_v), core->pred_mode == MODE_IBC ? 0 : core->ats_inter_info);
 }
 
 static void get_nbr_yuv(int x, int y, int cuw, int cuh, EVCD_CTX * ctx, EVCD_CORE * core)
@@ -650,9 +639,7 @@ void evcd_get_direct_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #if ADMVP
             , core->history_buffer
 #endif
-#if IBC
             , core->ibc_flag
-#endif
             , (EVC_REFP(*)[2])ctx->refp[0]
             , &ctx->sh
 #if M50761_TMVP_8X8_GRID
@@ -940,12 +927,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
         , ctx->map_tidx
 #endif
     );
-    evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
-#if IBC
-        , ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size
-#endif
-    );
-
+    evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init, ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size);
 
     /* parse CU info */
     ret = evcd_eco_cu(ctx, core);
@@ -993,16 +975,11 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 
     evcd_set_dec_info(ctx, core
 #if ENC_DEC_TRACE
-#if IBC
                       , (core->pred_mode == MODE_INTRA || core->pred_mode == MODE_IBC)
-#else
-                      , core->pred_mode == MODE_INTRA
-#endif
 #endif
     );
 
     /* prediction */
-#if IBC
     if (core->pred_mode == MODE_IBC)
     {
         core->avail_cu = evc_get_avail_ibc(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, cuw, cuh, ctx->map_scu);
@@ -1014,7 +991,6 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
         get_nbr_yuv(x, y, cuw, cuh, ctx, core);
     }
     else
-#endif
     if(core->pred_mode != MODE_INTRA)
     {    
         core->avail_cu = evc_get_avail_inter(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, cuw, cuh, ctx->map_scu
@@ -1119,19 +1095,13 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 #endif
 #if AFFINE && ADMVP && AFFINE_UPDATE 
 #if !M50662_AFFINE_MV_HISTORY_TABLE
-        if (core->pred_mode != MODE_INTRA && !core->affine_flag
-#if IBC
-            && core->pred_mode != MODE_IBC
-#endif
+        if (core->pred_mode != MODE_INTRA && !core->affine_flag && core->pred_mode != MODE_IBC
 #if M50761_CHROMA_NOT_SPLIT
             && evcd_check_luma(ctx)
 #endif
             )
 #else
-        if (core->pred_mode != MODE_INTRA
-#if IBC
-            && core->pred_mode != MODE_IBC
-#endif
+        if (core->pred_mode != MODE_INTRA && core->pred_mode != MODE_IBC
 #if M50761_CHROMA_NOT_SPLIT
             && evcd_check_luma(ctx)
 #endif
@@ -1206,20 +1176,15 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 #endif
 
     /* reconstruction */
-    evc_recon_yuv(x, y, cuw, cuh, core->coef, core->pred[0], core->is_coef, ctx->pic
-#if IBC
-      , core->pred_mode == MODE_IBC ? 0 : core->ats_inter_info
-#else
-                  , core->ats_inter_info
-#endif
+    evc_recon_yuv(x, y, cuw, cuh, core->coef, core->pred[0], core->is_coef, ctx->pic, core->pred_mode == MODE_IBC ? 0 : core->ats_inter_info
+
 #if M50761_CHROMA_NOT_SPLIT
         , ctx->tree_cons
 #endif
     );
-#if IBC
+
     if (core->pred_mode != MODE_IBC)
     {
-#endif
 #if HTDF
     if(ctx->sps.tool_htdf == 1 && (core->is_coef[Y_C] || core->pred_mode == MODE_INTRA)
 #if M50761_CHROMA_NOT_SPLIT
@@ -1236,9 +1201,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
             , ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->pic->s_l, avail_cu);
     }
 #endif
-#if IBC
     }
-#endif
     return EVC_OK;
 ERR:
     return ret;
@@ -1482,11 +1445,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
                     core->x_scu = PEL2SCU(x0);
                     core->y_scu = PEL2SCU(y0);
 
-                    evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
-#if IBC
-                        , ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size
-#endif
-                    );
+                    evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init, ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size);
 
                     mode = evcd_eco_mode_constr(ctx);
                 }

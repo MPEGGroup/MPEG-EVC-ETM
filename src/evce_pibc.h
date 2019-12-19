@@ -36,8 +36,6 @@
 
 #include "evce_def.h"
 
-#if IBC
-
 #if ((defined WIN32) || (defined WIN64))
 #define  IBC_INLINE __forceinline
 #else
@@ -319,8 +317,6 @@ IBC_INLINE int is_bv_valid(EVCE_CTX *ctx, int x, int y, int width, int height, i
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif
 
 #endif /* _EVCE_PIBC_H_ */

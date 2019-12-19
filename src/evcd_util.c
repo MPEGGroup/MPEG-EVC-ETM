@@ -292,7 +292,6 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
                 MCU_CLR_AFF(map_scu[j]);
             }
 #endif
-#if IBC
             if (core->ibc_flag)
             {
               MCU_SET_IBC(map_scu[j]);
@@ -301,7 +300,6 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
             {
               MCU_CLR_IBC(map_scu[j]);
             }
-#endif
             MCU_SET_LOGW(map_cu_mode[j], core->log2_cuw);
             MCU_SET_LOGH(map_cu_mode[j], core->log2_cuh);
 
@@ -331,10 +329,10 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
             map_refi[j][REFP_0] = core->refi[REFP_0];
             map_refi[j][REFP_1] = core->refi[REFP_1];
             map_ats_inter[j] = core->ats_inter_info;
-#if IBC
-            if(core->pred_mode == MODE_IBC)
-              map_ats_inter[j] = 0;
-#endif
+            if (core->pred_mode == MODE_IBC)
+            {
+                map_ats_inter[j] = 0;
+            }
 
 #if DMVR_LAG
             if(core->dmvr_flag)
@@ -872,10 +870,6 @@ u8 evcd_check_all_preds(EVCD_CTX *ctx)
 
 MODE_CONS evcd_derive_mode_cons(EVCD_CTX *ctx, int scup)
 {
-    return ( MCU_GET_IF(ctx->map_scu[scup])
-#if IBC
-        || MCU_GET_IBC(ctx->map_scu[scup])
-#endif
-        ) ? eOnlyIntra : eOnlyInter;
+    return ( MCU_GET_IF(ctx->map_scu[scup]) || MCU_GET_IBC(ctx->map_scu[scup]) ) ? eOnlyIntra : eOnlyInter;
 }
 #endif

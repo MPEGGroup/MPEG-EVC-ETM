@@ -100,9 +100,7 @@ u16 evc_get_avail_intra(int x_scu, int y_scu, int w_scu, int h_scu, int scup, in
     , u8* map_tidx
 #endif 
 );
-#if IBC
 u16 evc_get_avail_ibc(int x_scu, int y_scu, int w_scu, int h_scu, int scup, int cuw, int cuh, u32 * map_scu);
-#endif
 EVC_PIC* evc_picbuf_alloc(int w, int h, int pad_l, int pad_c, int *err);
 void evc_picbuf_free(EVC_PIC *pic);
 void evc_picbuf_expand(EVC_PIC *pic, int exp_l, int exp_c);
@@ -120,11 +118,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 );
 
 #if ADMVP
-void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_scu, int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], u32 *map_scu, u16 avail_lr, int num_mvp
-#if IBC
-  , int is_ibc
-#endif
-);
+void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_scu, int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], u32 *map_scu, u16 avail_lr, int num_mvp, int is_ibc);
 #endif
 
 void evc_get_default_motion(int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], s8 cur_refi, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], s8 *refi, s16 mv[MV_D]
@@ -160,9 +154,7 @@ void evc_get_motion_merge_main(int poc, int slice_type, int scup, s8(*map_refi)[
 #if ADMVP
     , EVC_HISTORY_BUFFER history_buffer
 #endif
-#if IBC
     , u8 ibc_flag
-#endif
     , EVC_REFP(*refplx)[REFP_NUM]
     , EVC_SH* sh
 #if M50761_TMVP_8X8_GRID
@@ -267,11 +259,7 @@ u16 evc_check_nev_avail(int x_scu, int y_scu, int cuw, int cuh, int w_scu, int h
 #endif
 );
 
-void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u32* map_scu, u32* map_cu_mode, u8* ctx, u8 slice_type, int sps_cm_init_flag
-#if IBC
-  , u8 ibc_flag, u8 ibc_log_max_size
-#endif
-);
+void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u32* map_scu, u32* map_cu_mode, u8* ctx, u8 slice_type, int sps_cm_init_flag, u8 ibc_flag, u8 ibc_log_max_size);
 
 void evc_mv_rounding_s32( s32 hor, int ver, s32 * rounded_hor, s32 * rounded_ver, s32 right_shift, int left_shift );
 #if M50761_AFFINE_ADAPT_SUB_SIZE

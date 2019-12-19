@@ -456,7 +456,7 @@ const s16 init_skip_flag[2][NUM_SBAC_CTX_SKIP_FLAG][1] = {
         { 233 }
     }
 };
-#if IBC
+
 const s16 init_ibc_flag[2][NUM_SBAC_CTX_IBC_FLAG][1] = {
   {
     { 0 },
@@ -467,7 +467,7 @@ const s16 init_ibc_flag[2][NUM_SBAC_CTX_IBC_FLAG][1] = {
     { 233 }
   }
 };
-#endif
+
 const s16 init_mmvd_flag[2][NUM_SBAC_CTX_MMVD_FLAG][1] = {
     {
         { 0 }

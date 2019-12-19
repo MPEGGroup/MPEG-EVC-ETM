@@ -130,9 +130,7 @@ extern const s16 init_affine_mrg[2][AFF_MAX_CAND][1];
 extern const s16 init_affine_mvd_flag[2][NUM_SBAC_CTX_AFFINE_MVD_FLAG][1];
 #endif
 extern const s16 init_skip_flag[2][NUM_SBAC_CTX_SKIP_FLAG][1];
-#if IBC
 extern const s16 init_ibc_flag[2][NUM_SBAC_CTX_IBC_FLAG][1];
-#endif
 extern const s16 init_ats_intra_cu[2][NUM_ATS_INTRA_CU_FLAG_CTX][1];
 #if M50632_SIMPLIFICATION_ATS
 extern const s16 init_ats_tu[2][NUM_ATS_INTRA_TU_FLAG_CTX][1];

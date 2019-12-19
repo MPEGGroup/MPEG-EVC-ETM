@@ -2358,11 +2358,7 @@ static void mmvd_base_skip(EVCE_CTX *ctx, EVCE_CORE *core, int real_mv[][2][3], 
 #if ADMVP
             , history_buffer
 #endif
-#if IBC
-            , 0
-#endif
-            , (EVC_REFP(*)[2])refp
-            , sh
+            , 0, (EVC_REFP(*)[2])refp, sh
 #if M50761_TMVP_8X8_GRID
             , log2_max_cuwh
 #endif
@@ -2541,11 +2537,7 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
 #if ADMVP
             , core->history_buffer
 #endif
-#if IBC
-            , core->ibc_flag
-#endif
-            , (EVC_REFP(*)[2])ctx->refp[0]
-            , &ctx->sh
+            , core->ibc_flag, (EVC_REFP(*)[2])ctx->refp[0], &ctx->sh
 #if M50761_TMVP_8X8_GRID
             , ctx->log2_max_cuwh
 #endif
@@ -2791,11 +2783,7 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
 #if ADMVP
             , core->history_buffer
 #endif
-#if IBC
-            , core->ibc_flag
-#endif
-            , (EVC_REFP(*)[2])ctx->refp[0]
-            , &ctx->sh
+            , core->ibc_flag, (EVC_REFP(*)[2])ctx->refp[0], &ctx->sh
 #if M50761_TMVP_8X8_GRID
             , ctx->log2_max_cuwh
 #endif

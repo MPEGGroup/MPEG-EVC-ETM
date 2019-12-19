@@ -361,7 +361,7 @@ struct _EVCE_PINTER
                                    );
 #endif
 };
-#if IBC
+
 typedef struct _EVCE_PIBC EVCE_PIBC;
 struct _EVCE_PIBC
 {
@@ -438,7 +438,6 @@ struct _EVCE_PIBC
   void            *pdata[4];
   int             *ndata[4];
 };
-#endif
 
 /* EVC encoder parameter */
 typedef struct _EVCE_PARAM
@@ -480,7 +479,6 @@ typedef struct _EVCE_PARAM
     int                 gop_size;
     int                 use_dqp;
     int                 use_closed_gop;
-#if IBC
     int                 use_ibc_flag;
     int                 ibc_search_range_x;
     int                 ibc_search_range_y;
@@ -488,7 +486,6 @@ typedef struct _EVCE_PARAM
     int                 ibc_hash_search_max_cand;
     int                 ibc_hash_search_range_4smallblk;
     int                 ibc_fast_method;
-#endif
     int                 use_hgop;
 #if DQP_CFG
     /* config parameter for cu_qp_delta_area*/
@@ -544,9 +541,7 @@ typedef struct _EVCE_CU_DATA
     u8  **mpm_ext;
     s8  **ipm;
     u8  *skip_flag;
-#if IBC
     u8  *ibc_flag;
-#endif
 #if DMVR_FLAG
     u8  *dmvr_flag;
 #endif
@@ -686,10 +681,8 @@ typedef struct _EVCE_CORE
     s8             ipm[2];
     /* skip flag for MODE_INTER */
     u8             skip_flag;
-#if IBC
     /* ibc flag for MODE_IBC */
     u8             ibc_flag;
-#endif
 #if ADMVP
     /* history-based prediction buffer */
     EVC_HISTORY_BUFFER  m_pTempMotLUTs[MAX_CU_DEPTH][MAX_CU_DEPTH];
@@ -900,10 +893,8 @@ struct _EVCE_CTX
     EVCE_PINTRA            pintra;
     /* inter prediction analysis */
     EVCE_PINTER            pinter;
-#if IBC
     /* ibc prediction analysis */
     EVCE_PIBC              pibc;
-#endif
     /* picture buffer allocator */
     PICBUF_ALLOCATOR       pa;
     /* MAPS *******************************************************************/
@@ -1019,7 +1010,6 @@ struct _EVCE_CTX
                                    );
 
     int (*fn_pinter_set_complexity)(EVCE_CTX * ctx, int complexity);
-#if IBC
     void *ibc_hash_handle;
     int(*fn_pibc_init_frame)(EVCE_CTX * ctx);
     int(*fn_pibc_init_lcu)(EVCE_CTX * ctx, EVCE_CORE * core);
@@ -1028,7 +1018,6 @@ struct _EVCE_CTX
       int log2_cuw, int log2_cuh, EVCE_MODE *mi, s16 coef[N_C][MAX_CU_DIM], pel *rec[N_C], int s_rec[N_C]);
 
     int(*fn_pibc_set_complexity)(EVCE_CTX * ctx, int complexity);
-#endif
     /* platform specific data, if needed */
     void                  * pf;
 #if M50761_CHROMA_NOT_SPLIT
@@ -1059,7 +1048,5 @@ int evce_picbuf_get_inbuf(EVCE_CTX * ctx, EVC_IMGB ** img);
 #include "evce_pintra.h"
 #include "evce_pinter.h"
 #include "evce_tbl.h"
-#if IBC
 #include "evce_pibc.h"
-#endif
 #endif /* _EVCE_DEF_H_ */

@@ -49,8 +49,6 @@
 #ifdef max
 #undef max
 
-#if IBC
-
 #include <unordered_map>
 #include <vector>
 
@@ -89,7 +87,7 @@ public:
   int     getHashHitRatio(EVCE_CTX *ctx, int cu_x, int cu_y, int log2_cuw, int log2_cuh);
 };
 
-#endif // <-- min
-#endif // <-- max
+
+#endif 
 #endif
 #endif // __EVCE_IBC_HASHMAP__

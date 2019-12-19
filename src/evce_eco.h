@@ -58,9 +58,7 @@ int evce_eco_aps(EVC_BSW * bs, EVC_APS * aps);
 int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut);
 int evce_eco_udata(EVCE_CTX * ctx, EVC_BSW * bs);
 int evce_eco_pred_mode(EVC_BSW * bs, u8 pred_mode, int ctx);
-#if IBC
 int evce_eco_ibc(EVC_BSW * bs, u8 pred_mode_ibc_flag, int ctx);
-#endif
 int evce_eco_mvd(EVC_BSW * bs, s16 mvd[MV_D]);
 void evce_sbac_reset(EVCE_SBAC * sbac, u8 slice_type, u8 slice_qp, int sps_cm_init_flag);
 void evce_sbac_finish(EVC_BSW *bs);
@@ -130,7 +128,7 @@ int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS * aps);
 #endif
 int evce_eco_alf_sh_param(EVC_BSW * bs, EVC_SH * sh);
 #endif
-#if IBC && M50761_BUGFIX_ENCSIDE_IBC
+#if M50761_BUGFIX_ENCSIDE_IBC
 void evce_eco_ibc_flag(EVC_BSW * bs, int flag, int ctx);
 #endif
 #ifdef __cplusplus

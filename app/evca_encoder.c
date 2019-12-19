@@ -85,15 +85,13 @@ static int  op_iperiod            = 0;
 static int  op_max_b_frames       = 0;
 static int  op_ref_pic_gap_length = 0;
 static int  op_closed_gop         = 0;
-#if IBC
-static int  op_enable_ibc = 0;
+static int  op_enable_ibc         = 0;
 static int  op_ibc_search_range_x = IBC_SEARCH_RANGE;
 static int  op_ibc_search_range_y = IBC_SEARCH_RANGE;
 static int  op_ibc_hash_search_flag = 0;
 static int  op_ibc_hash_search_max_cand = IBC_NUM_CANDIDATES;
 static int  op_ibc_hash_search_range_4smallblk = IBC_SEARCH_RANGE;
 static int  op_ibc_fast_method = IBC_FAST_METHOD_ADAPTIVE_SEARCHRANGE;
-#endif
 static int  op_disable_hgop       = 0;
 static int  op_in_bit_depth       = 8;
 static int  op_skip_frames        = 0;
@@ -180,7 +178,6 @@ typedef enum _OP_FLAGS
     OP_FLAG_VERBOSE,
     OP_FLAG_MAX_B_FRAMES,
     OP_FLAG_CLOSED_GOP,
-#if IBC
     OP_FLAG_IBC,
     OP_IBC_SEARCH_RNG_X,
     OP_IBC_SEARCH_RND_Y,
@@ -188,7 +185,6 @@ typedef enum _OP_FLAGS
     OP_IBC_HASH_SEARCH_MAX_CAND,
     OP_IBC_HASH_SEARCH_RANGE_4SMALLBLK,
     OP_IBC_FAST_METHOD,
-#endif
     OP_FLAG_DISABLE_HGOP,
     OP_FLAG_OUT_BIT_DEPTH,
     OP_FLAG_IN_BIT_DEPTH,
@@ -398,7 +394,6 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_FLAG_CLOSED_GOP], &op_closed_gop,
         "use closed GOP structure. if not set, open GOP is used"
     },
-#if IBC
     {
       EVC_ARGS_NO_KEY,  "ibc", EVC_ARGS_VAL_TYPE_INTEGER,
       &op_flag[OP_FLAG_IBC], &op_enable_ibc,
@@ -442,7 +437,6 @@ static EVC_ARGS_OPTION options[] = \
       "\t 1: Buffer IBC block vector (current not support)\n"
           "\t 2: Adaptive search range (default)\n"
     },
-#endif
     {
         EVC_ARGS_NO_KEY,  "disable_hgop", EVC_ARGS_VAL_TYPE_NONE,
         &op_flag[OP_FLAG_DISABLE_HGOP], &op_disable_hgop,
@@ -1027,7 +1021,7 @@ static int get_conf(EVCE_CDSC * cdsc)
     {
         cdsc->closed_gop = 1;
     }
-#if IBC
+
     if (op_enable_ibc)
     {
       cdsc->ibc_flag = 1;
@@ -1042,7 +1036,7 @@ static int get_conf(EVCE_CDSC * cdsc)
       cdsc->ibc_hash_search_range_4smallblk = op_ibc_hash_search_range_4smallblk;
       cdsc->ibc_fast_method = op_ibc_fast_method;
     }
-#endif
+
     cdsc->in_bit_depth = op_in_bit_depth;
 
     if(op_out_bit_depth == 0)
@@ -1250,9 +1244,7 @@ static void print_enc_conf(EVCE_CDSC * cdsc)
     printf("IQT: %d, ",    cdsc->tool_iqt);
     printf("CM_INIT: %d ", cdsc->tool_cm_init);
     printf("ADCC: %d ",    cdsc->tool_adcc);
-#if IBC
     printf("IBC: %d, ", cdsc->ibc_flag);
-#endif
     printf("ATS: %d, ",    cdsc->tool_ats);
     printf("CONSTRAINED_INTRA_PRED: %d, ", cdsc->constrained_intra_pred);
     printf("DBFOffsetA: %d, ", cdsc->deblock_aplha_offset);

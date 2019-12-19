@@ -312,10 +312,6 @@ u8 evce_check_all_preds(EVCE_CTX *ctx)
 
 MODE_CONS evce_derive_mode_cons(EVCE_CTX *ctx, int lcu_num, int cup)
 {
-        return ((ctx->map_cu_data[lcu_num].pred_mode[cup] == MODE_INTRA)
-#if IBC
-            || (ctx->map_cu_data[lcu_num].pred_mode[cup] == MODE_IBC)
-#endif
-            ) ? eOnlyIntra : eOnlyInter;
+        return ((ctx->map_cu_data[lcu_num].pred_mode[cup] == MODE_INTRA) || (ctx->map_cu_data[lcu_num].pred_mode[cup] == MODE_IBC) ) ? eOnlyIntra : eOnlyInter;
 }
 #endif

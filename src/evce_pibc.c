@@ -37,8 +37,6 @@
 #include "evce_def.h"
 #include "evce_ibc_hash_wrapper.h"
 
-#if IBC
-
 #define ENABLE_IBC_CHROMA_REFINE 0
 
 #define SWAP(a, b, t) { (t) = (a); (a) = (b); (b) = (t); }
@@ -1091,4 +1089,3 @@ int evce_pibc_create(EVCE_CTX *ctx, int complexity)
 
     return ctx->fn_pibc_set_complexity(ctx, complexity);
 }
-#endif

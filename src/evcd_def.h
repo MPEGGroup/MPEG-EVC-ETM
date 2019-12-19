@@ -120,11 +120,11 @@ typedef struct _EVCD_CORE
     s16            affine_mv[REFP_NUM][VER_NUM][MV_D];
     u8             affine_flag;
 #endif
-#if IBC
+
     u8             ibc_flag;
     u8             ibc_skip_flag;
     u8             ibc_merge_flag;
-#endif
+
 #if DQP
     u8             qp;
     u8             cu_qp_delta_code;

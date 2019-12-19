@@ -40,8 +40,6 @@
 #include "evce_pibc.h"
 #include "evce_ibc_hash_wrapper.h"
 
-#if IBC
-
 #define MIN_PU_SIZE 4
 
 extern "C"
@@ -466,5 +464,3 @@ int EVCE_IBC_HashMap::getHashHitRatio(EVCE_CTX *ctx, int cu_x, int cu_y, int log
     }
     return 100 * hit / total;
 }
-
-#endif
