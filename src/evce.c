@@ -37,13 +37,9 @@
 #include "evc_df.h"
 #include "evce_mode.h"
 #include "evc_util.h"
-#if ALF
 #include "enc_alf_wrapper.h"
-#endif
-#if ALF
 int last_intra_poc = INT_MAX;
 BOOL aps_counter_reset = FALSE;
-#endif
 #include "evce_ibc_hash_wrapper.h"
 
 #if GRAB_STAT
@@ -362,21 +358,11 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
 
     sps->tool_amvr = ctx->cdsc.tool_amvr;
     sps->tool_mmvd = ctx->cdsc.tool_mmvd;
-#if AFFINE
     sps->tool_affine = ctx->cdsc.tool_affine;
-#endif
-#if DMVR
     sps->tool_dmvr = ctx->cdsc.tool_dmvr;
-#endif
-#if ALF
     sps->tool_alf = ctx->cdsc.tool_alf;
-#endif
-#if HTDF
     sps->tool_htdf = ctx->cdsc.tool_htdf;
-#endif
-#if ADMVP
     sps->tool_admvp = ctx->cdsc.tool_admvp;
-#endif
     sps->tool_amis = ctx->cdsc.tool_amis;
     sps->tool_eipd = ctx->cdsc.tool_eipd;
     sps->tool_iqt = ctx->cdsc.tool_iqt;
@@ -486,11 +472,9 @@ static void set_pps(EVCE_CTX * ctx, EVC_PPS * pps)
 #endif
 }
 
-#if ALF
 static void set_aps(EVCE_CTX * ctx, EVC_APS * aps)
 {
 }
-#endif
 
 typedef struct _QP_ADAPT_PARAM
 {
@@ -1191,11 +1175,10 @@ int evce_ready(EVCE_CTX * ctx)
     ctx->cdsc.framework_cu12_max = min(ctx->cdsc.framework_cu11_max, ctx->cdsc.framework_cu12_max);
     ctx->cdsc.framework_cu14_max = min(ctx->cdsc.framework_cu12_max, ctx->cdsc.framework_cu14_max);
     ctx->cdsc.framework_suco_max = min(ctx->log2_max_cuwh, ctx->cdsc.framework_suco_max);
-#if ALF
     ctx->enc_alf = new_enc_ALF();
     EncAdaptiveLoopFilter* p = (EncAdaptiveLoopFilter*)(ctx->enc_alf);
     call_create_enc_ALF(p, ctx->w, ctx->h, ctx->max_cuwh, ctx->max_cuwh, 5);
-#endif
+
     if (ctx->param.use_ibc_flag)
     {
       ctx->ibc_hash_handle = create_enc_IBC(ctx->w, ctx->h);
@@ -1241,7 +1224,6 @@ int evce_ready(EVCE_CTX * ctx)
     evc_assert_gv(ctx->map_depth, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
     evc_mset(ctx->map_depth, -1, size);
 
-#if AFFINE
     if (ctx->map_affine == NULL)
     {
         size = sizeof(u32) * ctx->f_scu;
@@ -1249,7 +1231,6 @@ int evce_ready(EVCE_CTX * ctx)
         evc_assert_gv(ctx->map_affine, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
         evc_mset_x64a(ctx->map_affine, 0, size);
     }
-#endif
 
     if(ctx->map_cu_mode == NULL)
     {
@@ -1360,9 +1341,7 @@ ERR:
     evc_mfree_fast(ctx->map_block_size);
 #endif
     evc_mfree_fast(ctx->map_depth);
-#if AFFINE
     evc_mfree_fast(ctx->map_affine);
-#endif
     evc_mfree_fast(ctx->map_ats_intra_cu);
     evc_mfree_fast(ctx->map_ats_tu_h);
     evc_mfree_fast(ctx->map_ats_tu_v);
@@ -1402,9 +1381,7 @@ void evce_flush(EVCE_CTX * ctx)
     evc_mfree_fast(ctx->map_block_size);
 #endif
     evc_mfree_fast(ctx->map_depth);
-#if AFFINE
     evc_mfree_fast(ctx->map_affine);
-#endif
     evc_mfree_fast(ctx->map_ats_intra_cu);
     evc_mfree_fast(ctx->map_ats_tu_h);
     evc_mfree_fast(ctx->map_ats_tu_v);
@@ -1763,7 +1740,7 @@ int evce_deblock_h263(EVCE_CTX * ctx, EVC_PIC * pic
 #endif
     return EVC_OK;
 }
-#if ALF
+
 int evce_alf_aps(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh, EVC_APS* aps)
 {
     EncAdaptiveLoopFilter* p = (EncAdaptiveLoopFilter*)(ctx->enc_alf);
@@ -1809,7 +1786,6 @@ int evce_alf_aps(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh, EVC_APS* aps)
     }
     return EVC_OK;
 }
-#endif
 
 int evce_picbuf_get_inbuf(EVCE_CTX * ctx, EVC_IMGB ** imgb)
 {
@@ -1851,8 +1827,6 @@ int evce_picbuf_get_inbuf(EVCE_CTX * ctx, EVC_IMGB ** imgb)
     return EVC_ERR_UNEXPECTED;
 }
 
-
-#if ALF
 int evce_aps_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, EVC_APS * aps)
 {
     EVC_BSW * bs = &ctx->bs;
@@ -1890,7 +1864,7 @@ int evce_aps_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, EVC_APS *
 
     return EVC_OK;
 }
-#endif
+
 int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 {
     EVC_BSW * bs = &ctx->bs;
@@ -2176,11 +2150,7 @@ int evce_enc_pic_prepare(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
     /* clear map */
     evc_mset_x64a(ctx->map_scu, 0, sizeof(u32) * ctx->f_scu);
-
-#if AFFINE
     evc_mset_x64a(ctx->map_affine, 0, sizeof(u32) * ctx->f_scu);
-#endif
-
     evc_mset_x64a(ctx->map_ats_inter, 0, sizeof(u8) * ctx->f_scu);
     evc_mset_x64a(ctx->map_cu_mode, 0, sizeof(u32) * ctx->f_scu);
 
@@ -2290,9 +2260,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     EVCE_CORE * core;
     EVC_BSW   * bs;
     EVC_SH    * sh;
-#if ALF
     EVC_APS   * aps;
-#endif
     int         ret;
     u32         i;
     int         split_mode_child[4];
@@ -2305,7 +2273,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     bs = &ctx->bs;
     core = ctx->core;
     sh = &ctx->sh;
-#if ALF
     aps = &ctx->aps;
     aps_counter_reset = FALSE;
     if ((int)ctx->poc.poc_val > last_intra_poc)
@@ -2325,7 +2292,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         ctx->sh.aps_signaled = -1; // reset stored aps id in tile group header
         ctx->aps_temp = 0;
     }
-#endif
+
     if (!ctx->sps.tool_rpl)
     {
         /* initialize reference pictures */
@@ -2626,7 +2593,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #endif
     }
 
-#if ALF
     /* adaptive loop filter */
     sh->alf_on = ctx->sps.tool_alf;
     if(sh->alf_on)
@@ -2634,7 +2600,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         ret = ctx->fn_alf(ctx, PIC_MODE(ctx), sh, aps);
         evc_assert_rv(ret == EVC_OK, ret);
     }
-#endif
 
     /* Bit-stream re-writing (START) */
     evc_bsw_init(&ctx->bs, (u8*)bitb->addr, bitb->bsize, NULL);
@@ -2662,7 +2627,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     set_nalu(&aps_nalu, EVC_APS_NUT);
     int aps_nalu_size = 0;
 
-#if ALF
     /* Encode ALF in APS */
     if ((ctx->sps.tool_alf) && (ctx->sh.alf_on)) // User defined params
     {
@@ -2681,7 +2645,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             aps_nalu_size = aps_nalu.nal_unit_size + 4;
         }
     }
-#endif
 
     int* size_field = (int*)(*(&bs->cur));
 
@@ -2690,9 +2653,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     evc_assert_rv(ret == EVC_OK, ret);
 
     /* Encode slice header */
-#if ALF
     sh->num_ctb = ctx->f_lcu;
-#endif
     ret = evce_eco_sh(bs, &ctx->sps, &ctx->pps, sh, ctx->nalu.nal_unit_type_plus1 - 1);
     evc_assert_rv(ret == EVC_OK, ret);
 
@@ -2733,7 +2694,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
             while (1) // LCU level CABAC loop
             {
-#if ALF
                 evc_AlfSliceParam* alfSliceParam = &(ctx->sh.alf_sh_param);
                 if ((alfSliceParam->isCtbAlfOn) && (sh->alf_on))
                 {
@@ -2745,7 +2705,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
                     EVC_TRACE_INT((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)));
                     EVC_TRACE_STR("\n");
                 }
-#endif
                 ret = evce_eco_tree(ctx, core, core->x_pel, core->y_pel, 0, ctx->max_cuwh, ctx->max_cuwh, 0, 1, NO_SPLIT, split_mode_child, 0, split_allow, 0, 0
 #if DQP
                     , 0
@@ -2782,7 +2741,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     /* Encode slice data */
     while(1)
     {
-#if ALF
         evc_AlfSliceParam* alfSliceParam = &(ctx->sh.alf_sh_param);
         if ((alfSliceParam->isCtbAlfOn) && (sh->alf_on))
         {
@@ -2794,7 +2752,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             EVC_TRACE_INT((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)));
             EVC_TRACE_STR("\n");
         }
-#endif
         ret = evce_eco_tree(ctx, core, core->x_pel, core->y_pel, 0, ctx->max_cuwh, ctx->max_cuwh, 0, 1, NO_SPLIT, split_mode_child, 0, split_allow, 0, 0
 #if DQP
             , 0
@@ -2933,10 +2890,7 @@ int evce_platform_init(EVCE_CTX * ctx)
 #if RDO_DBK
     ctx->pic_dbk = NULL;
 #endif
-
-#if ALF
     ctx->fn_alf = evce_alf_aps;
-#endif
     ctx->fn_ready = evce_ready;
     ctx->fn_flush = evce_flush;
     ctx->fn_enc = evce_enc;
@@ -2965,12 +2919,10 @@ void evce_platform_deinit(EVCE_CTX * ctx)
     ctx->fn_enc_pic_finish = NULL;
     ctx->fn_push = NULL;
     ctx->fn_deblock = NULL;
-#if ALF
     EncAdaptiveLoopFilter* p = (EncAdaptiveLoopFilter*)(ctx->enc_alf);
     call_destroy_enc_ALF(p);
     delete_enc_ALF(ctx->enc_alf);
     ctx->fn_alf = NULL;
-#endif
     if (ctx->param.use_ibc_flag)
     {
       destroy_enc_IBC(ctx->ibc_hash_handle);
@@ -3021,10 +2973,7 @@ EVCE evce_create(EVCE_CDSC * cdsc, int * err)
     /* set default value for ctx */
     ctx->magic = EVCE_MAGIC_CODE;
     ctx->id = (EVCE)ctx;
-#if ALF
     ctx->sh.aps_signaled = -1;
-#endif
-
     evc_init_multi_tbl();
     evc_init_multi_inv_tbl();
 
@@ -3456,10 +3405,8 @@ int evce_create_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
         }
     }
     evce_malloc_1d((void**)&cu_data->map_scu, size_32b);
-#if AFFINE
     evce_malloc_1d((void**)&cu_data->affine_flag, size_8b);
     evce_malloc_1d((void**)&cu_data->map_affine, size_32b);
-#endif    
     evce_malloc_1d((void**)&cu_data->map_cu_mode, size_32b);
 #if !M50761_REMOVE_BLOCK_SIZE_MAP
     evce_malloc_2d((s8***)&cu_data->block_size, cu_cnt, 2, sizeof(s16));
@@ -3533,10 +3480,8 @@ int evce_delete_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
         }
     }
     evce_free_1d((void*)cu_data->map_scu);
-#if AFFINE
     evce_free_1d((void*)cu_data->affine_flag);
     evce_free_1d((void*)cu_data->map_affine);
-#endif   
     evce_free_1d((void*)cu_data->ats_intra_cu);
     evce_free_1d((void*)cu_data->ats_tu_h);
     evce_free_1d((void*)cu_data->ats_tu_v);
@@ -3555,9 +3500,8 @@ int evce_delete_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
     return EVC_OK;
 }
 
-#if ALF
 void codeAlfCtuEnableFlag(EVC_BSW *bs, EVCE_CTX * ctx, int refId, int compIdx)
 {
 // TO DO
 }
-#endif
+

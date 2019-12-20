@@ -39,7 +39,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#if ALF
 typedef struct AlfSliceParam AlfSliceParam;
 typedef struct AdaptiveLoopFilter AdaptiveLoopFilter;
 typedef struct EncAdaptiveLoopFilter EncAdaptiveLoopFilter;
@@ -54,8 +53,6 @@ void call_destroy_enc_ALF(EncAdaptiveLoopFilter* p);
 void set_resetALFBufferFlag(EncAdaptiveLoopFilter* p, int flag);
 u8 alf_aps_get_current_alf_idx();
 void alf_aps_enc_opt_process(EncAdaptiveLoopFilter* p, const double* lambdas, EVCE_CTX * ctx, EVC_PIC * pic, evc_AlfSliceParam* iAlfSliceParam);
-
-#endif
 #ifdef __cplusplus
 }
 #endif

@@ -52,9 +52,7 @@ void ence_stat_cu(int x, int y, int cuw, int cuh, int cup, void *ctx, void *core
 int evce_eco_nalu(EVC_BSW * bs, EVC_NALU nalu);
 int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps);
 int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps);
-#if ALF
 int evce_eco_aps(EVC_BSW * bs, EVC_APS * aps);
-#endif
 int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut);
 int evce_eco_udata(EVCE_CTX * ctx, EVC_BSW * bs);
 int evce_eco_pred_mode(EVC_BSW * bs, u8 pred_mode, int ctx);
@@ -112,22 +110,16 @@ int evce_eco_intra_dir(EVC_BSW *bs, u8 ipm, u8 mpm[2], u8 mpm_ext[8], u8 pims[IP
 int evce_eco_intra_dir_c(EVC_BSW *bs, u8 ipm, u8 ipm_l);
 int evce_eco_mvr_idx(EVC_BSW *bs, u8 mvr_idx);
 int evce_eco_bi_idx(EVC_BSW * bs, u8 bi_idx);
-#if AFFINE
 void evce_eco_affine_flag(EVC_BSW * bs, int flag, int ctx);
 void evce_eco_affine_mode(EVC_BSW * bs, int flag);
 int evce_eco_affine_mrg_idx(EVC_BSW *bs, s16 affine_mrg_idx);
 void evce_eco_affine_mvd_flag(EVC_BSW *bs, int flag, int refi);
-#endif
-#if ALF
 void setAlfFilterShape(evc_AlfFilterShape *  alfShape, int shapeSize);
 int evc_lengthGolomb(int coeffVal, int k);
 int evc_getGolombKMin(evc_AlfFilterShape *  alfShape, int numFilters, int *kMinTab, int bitsCoeffScan[m_MAX_SCAN_VAL][m_MAX_EXP_GOLOMB]);
 void evc_alfGolombEncode(EVC_BSW * bs, int coeff, int kMinTab);
-#if ALF
 int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS * aps);
-#endif
 int evce_eco_alf_sh_param(EVC_BSW * bs, EVC_SH * sh);
-#endif
 #if M50761_BUGFIX_ENCSIDE_IBC
 void evce_eco_ibc_flag(EVC_BSW * bs, int flag, int ctx);
 #endif

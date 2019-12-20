@@ -50,10 +50,8 @@
 #define m_MAX_SCAN_VAL 11
 #define m_MAX_EXP_GOLOMB 16
 
-#pragma warning(disable:4099)
-#pragma warning(disable:4800)
-
-#if ALF
+#pragma warning(disable:4099)    //@Chernyak: why?
+#pragma warning(disable:4800)    //@Chernyak: why?
 
 struct AlfCovariance
 {
@@ -276,6 +274,4 @@ private:
   void tile_boundary_check(int* availableL, int* availableR, int* availableT, int* availableB, const int width, const int height, int xPos, int yPos, int x_l, int x_r, int y_l, int y_r);
 #endif
 };
-#endif
-
 #endif

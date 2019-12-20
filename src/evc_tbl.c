@@ -419,7 +419,6 @@ void evc_derived_chroma_qp_mapping_tables(EVC_CHROMA_TABLE *structChromaQP)
 #endif
 
 #if CTX_REPRESENTATION_IMPROVEMENT
-#if ALF
 const s16 init_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG][1] = {
     {
         { 512 },
@@ -444,7 +443,6 @@ const s16 init_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG][1] = {
         { 512 }
     }
 };
-#endif
 
 const s16 init_skip_flag[2][NUM_SBAC_CTX_SKIP_FLAG][1] = {
     {
@@ -604,8 +602,6 @@ const s16 init_mvp_idx[2][NUM_MVP_IDX_CTX][1] = {
         { 69 }
     }
 };
-#if AFFINE
-
 const s16 init_affine_mvp_idx[2][NUM_AFFINE_MVP_IDX_CTX][1] = {
     {
         { 0 },
@@ -632,7 +628,6 @@ const s16 init_affine_mvp_idx[2][NUM_AFFINE_MVP_IDX_CTX][1] = {
 #endif
     }
 };
-#endif
 
 const s16 init_mvr_idx[2][NUM_MVR_IDX_CTX][1] = {
     {
@@ -912,7 +907,6 @@ const s16 init_btt_split_type[2][NUM_SBAC_CTX_BTT_SPLIT_TYPE][1] = {
         { 225 }
     }
 };
-#if AFFINE
 
 const s16 init_affine_flag[2][NUM_SBAC_CTX_AFFINE_FLAG][1] = {
     {
@@ -958,7 +952,6 @@ const s16 init_affine_mvd_flag[2][2][1] = {
         { 645 }
     }
 };
-#endif
 
 const s16 init_suco_flag[2][NUM_SBAC_CTX_SUCO_FLAG][1] = {
     {
@@ -994,7 +987,7 @@ const s16 init_suco_flag[2][NUM_SBAC_CTX_SUCO_FLAG][1] = {
         { 0 }
     }
 };
-#if ALF
+
 const s16 init_ctb_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG][1] = {
     {
         { 0 },
@@ -1019,7 +1012,6 @@ const s16 init_ctb_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG][1] = {
         { 0 }
     }
 };
-#endif
 
 const s16 init_ats_intra_cu[2][NUM_ATS_INTRA_CU_FLAG_CTX][1] = {
     {

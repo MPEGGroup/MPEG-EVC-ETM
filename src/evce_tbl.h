@@ -43,10 +43,7 @@ extern "C"
 
 extern const u8 *evce_tbl_mv_bits;
 extern const u8 evce_tbl_refi_bits[17][16];
-#if AFFINE
 extern const u8 evce_tbl_mvp_idx_bits[5][4];
-#endif
-
 extern const int quant_scale[6];
 
 #define RATE_TO_COST_LAMBDA(l, r)       ((double)r * l)

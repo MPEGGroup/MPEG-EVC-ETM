@@ -270,7 +270,6 @@ const u8 evce_tbl_refi_bits[17][16] =
      {1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 15, },
 };
 
-#if AFFINE
 const u8 evce_tbl_mvp_idx_bits[5][4] =
 {
     { 0, },
@@ -279,4 +278,3 @@ const u8 evce_tbl_mvp_idx_bits[5][4] =
     { 1,  2,  2, },
     { 1,  2,  3,  3 }
 };
-#endif

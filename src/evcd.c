@@ -39,9 +39,7 @@
 #include "evc_debug.h"
 #endif
 
-#if ALF
 #include "wrapper.h"
-#endif
 
 /* convert EVCD into EVCD_CTX */
 #define EVCD_ID_TO_CTX_R(id, ctx) \
@@ -98,9 +96,7 @@ static void sequence_deinit(EVCD_CTX * ctx)
     evc_mfree(ctx->map_split);
     evc_mfree(ctx->map_ipm);
     evc_mfree(ctx->map_suco);
-#if AFFINE
     evc_mfree(ctx->map_affine);
-#endif
     evc_mfree(ctx->map_cu_mode);
     evc_mfree(ctx->map_ats_inter);
 #if EVC_TILE_SUPPORT
@@ -141,12 +137,9 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
     ctx->w_scu = (ctx->w + ((1 << MIN_CU_LOG2) - 1)) >> MIN_CU_LOG2;
     ctx->h_scu = (ctx->h + ((1 << MIN_CU_LOG2) - 1)) >> MIN_CU_LOG2;
     ctx->f_scu = ctx->w_scu * ctx->h_scu;
-
-#if ALF
     ctx->alf              = new_ALF();
     AdaptiveLoopFilter* p = (AdaptiveLoopFilter*)(ctx->alf);
     call_create_ALF(p, ctx->w, ctx->h, ctx->max_cuwh, ctx->max_cuwh, 5);
-#endif
 
     /* alloc SCU map */
     if(ctx->map_scu == NULL)
@@ -157,7 +150,6 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
         evc_mset_x64a(ctx->map_scu, 0, size);
     }
 
-#if AFFINE
     /* alloc affine SCU map */
     if (ctx->map_affine == NULL)
     {
@@ -166,7 +158,7 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
         evc_assert_gv(ctx->map_affine, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
         evc_mset_x64a(ctx->map_affine, 0, size);
     }
-#endif
+
     /* alloc cu mode SCU map */
     if(ctx->map_cu_mode == NULL)
     {
@@ -286,9 +278,7 @@ static int slice_init(EVCD_CTX * ctx, EVCD_CORE * core, EVC_SH * sh)
 
     /* clear maps */
     evc_mset_x64a(ctx->map_scu, 0, sizeof(u32) * ctx->f_scu);
-#if AFFINE
     evc_mset_x64a(ctx->map_affine, 0, sizeof(u32) * ctx->f_scu);
-#endif
     evc_mset_x64a(ctx->map_ats_inter, 0, sizeof(u8) * ctx->f_scu);
     evc_mset_x64a(ctx->map_cu_mode, 0, sizeof(u32) * ctx->f_scu);
     if(ctx->sh.slice_type == SLICE_I)
@@ -411,7 +401,6 @@ static void get_nbr_yuv(int x, int y, int cuw, int cuh, EVCD_CTX * ctx, EVCD_COR
 #endif
 }
 
-#if ADMVP
 static void update_history_buffer_parse(EVCD_CORE *core, int slice_type)
 {
     int i;
@@ -444,7 +433,7 @@ static void update_history_buffer_parse(EVCD_CORE *core, int slice_type)
     }
 }
 
-#if AFFINE_UPDATE && AFFINE
+#if AFFINE_UPDATE 
 static void update_history_buffer_parse_affine(EVCD_CORE *core, int slice_type)
 {
     int i;
@@ -613,7 +602,6 @@ static void update_history_buffer_parse_affine(EVCD_CORE *core, int slice_type)
     }
 }
 #endif
-#endif
 
 void evcd_get_direct_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 {
@@ -623,7 +611,7 @@ void evcd_get_direct_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 
     cuw = (1 << core->log2_cuw);
     cuh = (1 << core->log2_cuh);
-#if ADMVP
+
     if (ctx->sps.tool_admvp == 0)
     {
         evc_get_motion_skip_baseline(ctx->sh.slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, srefi, smvp, core->avail_cu
@@ -631,14 +619,11 @@ void evcd_get_direct_motion(EVCD_CTX * ctx, EVCD_CORE * core)
     }
     else
     {
-#endif
         evc_get_motion_merge_main(ctx->poc.poc_val, ctx->sh.slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, srefi, smvp, ctx->map_scu, core->avail_lr
 #if DMVR_LAG
             , ctx->map_unrefined_mv
 #endif
-#if ADMVP
             , core->history_buffer
-#endif
             , core->ibc_flag
             , (EVC_REFP(*)[2])ctx->refp[0]
             , &ctx->sh
@@ -743,10 +728,8 @@ void evcd_get_inter_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #if DMVR_LAG
                         , ctx->map_unrefined_mv
 #endif
-#if ADMVP
                         , core->history_buffer
                         , ctx->sps.tool_admvp
-#endif
                     );
                 }   
 
@@ -755,11 +738,7 @@ void evcd_get_inter_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #if DMVR_LAG
                     , ctx->map_unrefined_mv
 #endif
-#if ADMVP
-                    , core->history_buffer
-                    , ctx->sps.tool_admvp
-#endif
-                );
+                    , core->history_buffer, ctx->sps.tool_admvp);
                 core->mvp_idx[inter_dir_idx] = 0;
 
                 if (core->bi_idx == BI_FL0 + inter_dir_idx)
@@ -781,7 +760,6 @@ void evcd_get_inter_motion(EVCD_CTX * ctx, EVCD_CORE * core)
     }
 }
 
-#if AFFINE
 void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 {
     int          cuw, cuh;
@@ -880,7 +858,6 @@ void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
         }
     }
 }
-#endif
 
 static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log2_cuw, int log2_cuh
 #if M50761_CHROMA_NOT_SPLIT
@@ -998,7 +975,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
             , ctx->map_tidx
 #endif
         );
-#if DMVR
+
         if (ctx->sps.tool_dmvr)
         {
             core->DMVRenable = 0;
@@ -1008,27 +985,19 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 
             if (core->inter_dir == PRED_DIR)
                 core->DMVRenable = 1;
-#if AFFINE
+
             if (core->affine_flag)
                 core->DMVRenable = 0;
-#endif
         }
-#endif
-    
-#if AFFINE
+
         if(core->affine_flag)
         {
             evcd_get_affine_motion(ctx, core);
 
-            evc_affine_mc(x, y, ctx->w, ctx->h, cuw, cuh, core->refi, core->affine_mv, ctx->refp, core->pred, core->affine_flag + 1
-#if EIF
-                          , core->eif_tmp_buffer
-#endif
-            );
+            evc_affine_mc(x, y, ctx->w, ctx->h, cuw, cuh, core->refi, core->affine_mv, ctx->refp, core->pred, core->affine_flag + 1, core->eif_tmp_buffer);
         }
         else
         {
-#endif
             if (core->pred_mode == MODE_SKIP)
             {
                 evcd_get_skip_motion(ctx, core);
@@ -1061,13 +1030,10 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
                     }
                 }
             }
-#if DMVR
             evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, core->refi, core->mv, ctx->refp, core->pred, ctx->poc.poc_val, core->dmvr_template, core->dmvr_ref_pred_interpolated
                    , core->dmvr_half_pred_interpolated
                    , (core->DMVRenable == 1)
-#if DMVR
                    && ctx->sps.tool_dmvr
-#endif
 #if DMVR_PADDING
                    , core->dmvr_padding_buf
 #endif
@@ -1078,22 +1044,17 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 #endif
 #endif
                    , ctx->sps.tool_amis
-#else
-            evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, core->refi, core->mv, ctx->refp, core->pred
-#endif
             );
-#if AFFINE
         }
-#endif
 
-#if DMVR && HISTORY_LCU_COPY_BUG_FIX
+#if HISTORY_LCU_COPY_BUG_FIX
         evcd_set_dec_info(ctx, core
 #if ENC_DEC_TRACE
                           , 1
 #endif
         );
 #endif
-#if AFFINE && ADMVP && AFFINE_UPDATE 
+#if AFFINE_UPDATE 
 #if !M50662_AFFINE_MV_HISTORY_TABLE
         if (core->pred_mode != MODE_INTRA && !core->affine_flag && core->pred_mode != MODE_IBC
 #if M50761_CHROMA_NOT_SPLIT
@@ -1112,8 +1073,8 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
             );
         }
 
-#endif        // #if AFFINE && ADMVP && AFFINE_UPDATE 
-#if DMVR && !HISTORY_LCU_COPY_BUG_FIX
+#endif
+#if !HISTORY_LCU_COPY_BUG_FIX
         evcd_set_dec_info(ctx, core
 #if ENC_DEC_TRACE
                           , 1
@@ -1185,22 +1146,20 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 
     if (core->pred_mode != MODE_IBC)
     {
-#if HTDF
-    if(ctx->sps.tool_htdf == 1 && (core->is_coef[Y_C] || core->pred_mode == MODE_INTRA)
+        if (ctx->sps.tool_htdf == 1 && (core->is_coef[Y_C] || core->pred_mode == MODE_INTRA)
 #if M50761_CHROMA_NOT_SPLIT
-        && evcd_check_luma(ctx)
+            && evcd_check_luma(ctx)
 #endif
-        )
-    {
-        u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu
+            )
+        {
+            u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu
 #if EVC_TILE_SUPPORT
-            , ctx->map_tidx
+                , ctx->map_tidx
 #endif
-        );
-        evc_htdf(ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->sh.qp, cuw, cuh, ctx->pic->s_l, core->pred_mode == MODE_INTRA
-            , ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->pic->s_l, avail_cu);
-    }
-#endif
+            );
+            evc_htdf(ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->sh.qp, cuw, cuh, ctx->pic->s_l, core->pred_mode == MODE_INTRA
+                , ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->pic->s_l, avail_cu);
+        }
     }
     return EVC_OK;
 ERR:
@@ -1856,14 +1815,12 @@ int evcd_deblock_h263(EVCD_CTX * ctx
     return EVC_OK;
 }
 
-#if ALF
 int evcd_alf(EVCD_CTX * ctx, EVC_PIC * pic)
 {
     AdaptiveLoopFilter* p = (AdaptiveLoopFilter*)(ctx->alf);
     call_dec_alf_process_aps(p, ctx, pic);
     return EVC_OK;
 }
-#endif
 
 #if EVC_TILE_SUPPORT
 void static derive_tile_boundary(EVCD_CTX * ctx, EVCD_CORE * core, int * col_bd, int * row_bd)
@@ -2062,7 +2019,7 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
 #endif
             /* invoke coding_tree() recursion */
             evc_mset(core->split_mode, 0, sizeof(s8) * MAX_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
-#if ALF
+
             evc_AlfSliceParam* alfSliceParam = &(ctx->sh.alf_sh_param);
             if ((alfSliceParam->isCtbAlfOn) && (ctx->sh.alf_on))
             {
@@ -2072,7 +2029,7 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
                 EVC_TRACE_INT((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)));
                 EVC_TRACE_STR("\n");
             }
-#endif
+
             ret = evcd_eco_tree(ctx, core, core->x_pel, core->y_pel, ctx->log2_max_cuwh, ctx->log2_max_cuwh, 0, 0, bs, sbac, 1
                 , 0, NO_SPLIT, same_layer_split, 0, split_allow, 0, 0
 #if DQP
@@ -2121,7 +2078,6 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
 #endif
         /* invoke coding_tree() recursion */
         evc_mset(core->split_mode, 0, sizeof(s8) * MAX_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
-#if ALF
         evc_AlfSliceParam* alfSliceParam = &(ctx->sh.alf_sh_param);
         if ((alfSliceParam->isCtbAlfOn) && (ctx->sh.alf_on))
         {
@@ -2131,7 +2087,6 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
             EVC_TRACE_INT((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)));
             EVC_TRACE_STR("\n");
         }
-#endif
         ret = evcd_eco_tree(ctx, core, core->x_pel, core->y_pel, ctx->log2_max_cuwh, ctx->log2_max_cuwh, 0, 0, bs, sbac, 1
                             , 0, NO_SPLIT, same_layer_split, 0, split_allow, 0, 0
 #if DQP
@@ -2209,9 +2164,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     EVC_BSR  *bs = &ctx->bs;
     EVC_SPS  *sps = &ctx->sps;
     EVC_PPS  *pps = &ctx->pps;
-#if ALF
     EVC_APS  *aps = &ctx->aps;
-#endif
     EVC_SH   *sh = &ctx->sh;
     EVC_NALU *nalu = &ctx->nalu;
     int        ret;
@@ -2253,9 +2206,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     /* parse nalu header */
     ret = evcd_eco_nalu(bs, nalu);
     evc_assert_rv(EVC_SUCCEEDED(ret), ret);
-#if ALF
     ctx->aps_temp = -1;
-#endif
     if(nalu->nal_unit_type_plus1 - 1 == EVC_SPS_NUT)
     {
         ret = evcd_eco_sps(bs, sps);
@@ -2267,10 +2218,9 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         enc_stat_header(ctx->w, ctx->h);
 #endif
 
-#if ALF
         //TDB: check if should be here
         sh->alf_on = sps->tool_alf;
-#endif
+
         sh->mmvd_group_enable_flag = sps->tool_mmvd;
     }
     else if (nalu->nal_unit_type_plus1 - 1 == EVC_PPS_NUT)
@@ -2278,7 +2228,6 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         ret = evcd_eco_pps(bs, sps, pps);
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
     }
-#if ALF
     else if (nalu->nal_unit_type_plus1 - 1 == EVC_APS_NUT)
     {
         aps->alf_aps_param.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
@@ -2294,15 +2243,13 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         ctx->aps_temp = 0;
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
     }
-#endif
     else if (nalu->nal_unit_type_plus1 - 1 < EVC_SPS_NUT)
     {
         /* decode slice header */
-#if ALF
         sh->num_ctb = ctx->f_lcu;
         sh->alf_sh_param.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
         memset(sh->alf_sh_param.alfCtuEnableFlag, 1, N_C * ctx->f_lcu * sizeof(u8));
-#endif
+
         ret = evcd_eco_sh(bs, &ctx->sps, &ctx->pps, sh, ctx->nalu.nal_unit_type_plus1 - 1);
 
 #if EVC_TILE_SUPPORT  
@@ -2434,14 +2381,12 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 #endif
         }
 
-#if ALF
         /* adaptive loop filter */
         if( ctx->sh.alf_on )
         {
             ret = ctx->fn_alf(ctx,  ctx->pic);
             evc_assert_rv(EVC_SUCCEEDED(ret), ret);
         }
-#endif
 
 #if USE_DRAW_PARTITION_DEC
         evcd_draw_partition(ctx, ctx->pic);
@@ -2530,7 +2475,7 @@ void evcd_platform_deinit(EVCD_CTX * ctx)
     ctx->fn_dec_slice     = NULL;
     ctx->fn_pull          = NULL;
     ctx->fn_deblock       = NULL;
-#if ALF
+
     AdaptiveLoopFilter* p = (AdaptiveLoopFilter*)(ctx->alf);
     if (p!=NULL)
     {
@@ -2541,7 +2486,7 @@ void evcd_platform_deinit(EVCD_CTX * ctx)
         delete_ALF(ctx->alf);
         ctx->fn_alf = NULL;
     }
-#endif
+
     ctx->fn_picbuf_expand = NULL;
 }
 
@@ -2574,9 +2519,7 @@ EVCD evcd_create(EVCD_CDSC * cdsc, int * err)
         evc_assert_g(ret == EVC_OK, ERR);
     }
 
-#if ALF
     ctx->fn_alf           = evcd_alf;
-#endif
 
     /* Set CTX variables to default value */
     ctx->magic = EVCD_MAGIC_CODE;

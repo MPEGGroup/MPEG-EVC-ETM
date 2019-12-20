@@ -48,7 +48,7 @@ int evce_bsw_write_nalu_size(EVC_BSW *bs);
 
 void evce_diff_pred(int x, int y, int log2_cuw, int log2_cuh, EVC_PIC *org, pel pred[N_C][MAX_CU_DIM], s16 diff[N_C][MAX_CU_DIM]);
 
-#if AFFINE && RDO_DBK
+#if RDO_DBK
 void evc_set_affine_mvf(EVCE_CTX * ctx, EVCE_CORE * core, int w, int h, s8 refi[REFP_NUM], s16 mv[REFP_NUM][VER_NUM][MV_D], int vertex_num);
 #endif
 

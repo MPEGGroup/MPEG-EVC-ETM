@@ -64,7 +64,6 @@ int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16])
     return EVC_OK;
 }
 
-#if AFFINE
 void evcd_set_affine_mvf(EVCD_CTX * ctx, EVCD_CORE * core)
 {
     int   w_cu;
@@ -188,7 +187,6 @@ void evcd_set_affine_mvf(EVCD_CTX * ctx, EVCD_CORE * core)
         }
     }
 }
-#endif
 
 void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
 #if ENC_DEC_TRACE
@@ -211,9 +209,8 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
     int   w_scu;
     int   i, j;
     int   flag;
-#if AFFINE
+
     u32  *map_affine;
-#endif
     u32  *map_cu_mode;
 
     scup = core->scup;
@@ -229,9 +226,7 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
     map_ipm  = ctx->map_ipm + scup;
 
     flag = (core->pred_mode == MODE_INTRA) ? 1 : 0;
-#if AFFINE
     map_affine = ctx->map_affine + scup;
-#endif
     map_cu_mode = ctx->map_cu_mode + scup;
     map_ats_inter = ctx->map_ats_inter + scup;
 
@@ -277,7 +272,6 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
                 MCU_CLR_CBFL(map_scu[j]);
             }
 
-#if AFFINE
             if(core->affine_flag)
             {
                 MCU_SET_AFF(map_scu[j], core->affine_flag);
@@ -291,7 +285,6 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
             {
                 MCU_CLR_AFF(map_scu[j]);
             }
-#endif
             if (core->ibc_flag)
             {
               MCU_SET_IBC(map_scu[j]);
@@ -382,9 +375,7 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
         map_scu += w_scu;
         map_ipm += w_scu;
 
-#if AFFINE
         map_affine += w_scu;
-#endif
         map_cu_mode += w_scu;
         map_ats_inter += w_scu;
     }
@@ -397,12 +388,10 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
         set_cu_cbf_flags(core->is_coef[Y_C], core->ats_inter_info, core->log2_cuw, core->log2_cuh, ctx->map_scu + core->scup, ctx->w_scu);
     }
 
-#if AFFINE
     if(core->affine_flag)
     {
         evcd_set_affine_mvf(ctx, core);
     }
-#endif
 
 #if HISTORY_LCU_COPY_BUG_FIX
     map_refi = ctx->map_refi + scup;
@@ -423,9 +412,7 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
         map_refi = ctx->map_refi + scup;
         map_scu = ctx->map_scu + scup;
         map_mv = ctx->map_mv + scup;
-#if AFFINE
         map_affine = ctx->map_affine + scup;
-#endif
 #if DMVR_LAG
         map_unrefined_mv = ctx->map_unrefined_mv + scup;
 #endif
@@ -450,7 +437,6 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
                 EVC_TRACE_STR(" mv: ");
                 EVC_TRACE_MV(map_mv[j][REFP_1][MV_X], map_mv[j][REFP_1][MV_Y]);
 
-#if AFFINE
                 EVC_TRACE_STR(" affine: ");
                 EVC_TRACE_INT(MCU_GET_AFF(map_scu[j]));
                 if (MCU_GET_AFF(map_scu[j]))
@@ -464,7 +450,6 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
                     EVC_TRACE_STR(" yoff: ");
                     EVC_TRACE_INT(MCU_GET_AFF_YOFF(map_affine[j]));
                 }
-#endif
 #if DMVR_LAG
                 if (MCU_GET_DMVRF(map_scu[j]))
                 {
@@ -484,9 +469,7 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
             map_refi += w_scu;
             map_mv += w_scu;
             map_scu += w_scu;
-#if AFFINE
             map_affine += w_scu;
-#endif
 #if DMVR_LAG
             map_unrefined_mv += w_scu;
 #endif
@@ -809,10 +792,7 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
     cuh = (1 << core->log2_cuh);
 
     evc_get_mmvd_mvp_list(ctx->map_refi, ctx->refp[0], ctx->map_mv, ctx->w_scu, ctx->h_scu, core->scup, core->avail_cu, core->log2_cuw, core->log2_cuh, ctx->sh.slice_type, real_mv, ctx->map_scu, REF_SET, core->avail_lr
-#if ADMVP
-        , core->history_buffer, ctx->sps.tool_admvp
-#endif
-        , &ctx->sh
+        , core->history_buffer, ctx->sps.tool_admvp, &ctx->sh
 #if M50761_TMVP_8X8_GRID
         , ctx->log2_max_cuwh
 #endif
@@ -828,11 +808,8 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
         core->mv[REFP_1][MV_X] = real_mv[core->mmvd_idx][1][MV_X];
         core->mv[REFP_1][MV_Y] = real_mv[core->mmvd_idx][1][MV_Y];
     }
-#if ADMVP
+
     if ((ctx->sh.slice_type == SLICE_P) || (!check_bi_applicability(ctx->sh.slice_type, cuw, cuh, ctx->sps.tool_amis)))
-#else
-    if (ctx->sh.slice_type == SLICE_P)
-#endif
     {
         core->refi[REFP_1] = -1;
     }

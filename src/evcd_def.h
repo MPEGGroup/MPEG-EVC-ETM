@@ -63,14 +63,12 @@ typedef struct _EVCD_CORE
     /* pred buffer of current CU */
     /* [1] is used for bi-pred. */
     pel            pred[2][N_C][MAX_CU_DIM];
-#if DMVR
     pel            dmvr_template[MAX_CU_DIM];
     pel            dmvr_half_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + 1) * (MAX_CU_SIZE + 1)];
     pel            dmvr_ref_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT)) * (MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT))];
 
 #if DMVR_PADDING
     pel  dmvr_padding_buf[2][N_C][PAD_BUFFER_STRIDE * PAD_BUFFER_STRIDE];
-#endif
 #endif
     /* neighbor pixel buffer for intra prediction */
     pel            nb[N_C][N_REF][MAX_CU_SIZE * 3];
@@ -101,9 +99,7 @@ typedef struct _EVCD_CORE
     u8             pims[IPD_CNT]; /* probable intra mode set*/
     /* prediction mode of current CU: INTRA, INTER, ... */
     u8             pred_mode;
-#if DMVR
     u8             DMVRenable;
-#endif
     /* log2 of cuw */
     u8             log2_cuw;
     /* log2 of cuh */
@@ -116,10 +112,8 @@ typedef struct _EVCD_CORE
     /* QP for Chroma of current encoding MB */
     u8             qp_u;
     u8             qp_v;
-#if AFFINE
     s16            affine_mv[REFP_NUM][VER_NUM][MV_D];
     u8             affine_flag;
-#endif
 
     u8             ibc_flag;
     u8             ibc_skip_flag;
@@ -156,23 +150,20 @@ typedef struct _EVCD_CORE
 
     /* ATS_INTER info (index + position)*/
     u8             ats_inter_info;
-#if EIF
     /* temporal pixel buffer for inter prediction */
     pel            eif_tmp_buffer[ (MAX_CU_SIZE + 2) * (MAX_CU_SIZE + 2) ];
-#endif
     u8             mvr_idx;
 #if DMVR_FLAG
     u8            dmvr_flag;
 #endif
-#if ADMVP
+
     /* history-based motion vector prediction candidate list */
     EVC_HISTORY_BUFFER     history_buffer;
 #if M50662_AFFINE_MV_HISTORY_TABLE
-#if AFFINE_UPDATE && AFFINE
+#if AFFINE_UPDATE
     // spatial neighboring MV of affine block
     s8             refi_sp[REFP_NUM];
     s16            mv_sp[REFP_NUM][MV_D];
-#endif
 #endif
 #endif
 #if TRACE_ENC_CU_DATA
@@ -182,10 +173,8 @@ typedef struct _EVCD_CORE
     s16            mvd[REFP_NUM][MV_D];
     int            inter_dir;
     int            bi_idx;
-#if AFFINE
     int            affine_bzero[REFP_NUM];
     s16            affine_mvd[REFP_NUM][3][MV_D];
-#endif
 } EVCD_CORE;
 
 /******************************************************************************
@@ -206,10 +195,8 @@ struct _EVCD_CTX
     EVC_BSR                 bs;
     /* current nalu header */
     EVC_NALU                nalu;
-#if ALF
     /* adaptive loop filter */
     void                  * alf;
-#endif
     /* current slice header */
     EVC_SH                  sh;
     /* decoded picture buffer management */
@@ -220,11 +207,9 @@ struct _EVCD_CTX
     EVC_SPS                 sps;
     /* picture parameter set */
     EVC_PPS                 pps;
-#if ALF
     /* adaptation parameter set */
     EVC_APS                 aps;
     u8                      aps_temp;
-#endif
     /* current decoded (decoding) picture buffer */
     EVC_PIC               * pic;
     /* SBAC */
@@ -254,9 +239,7 @@ struct _EVCD_CTX
     s8                   (* map_refi)[REFP_NUM];
     /* intra prediction modes */
     s8                    * map_ipm;
-#if AFFINE
     u32                   * map_affine;
-#endif
     /* new coding tool flag*/
     u32                   * map_cu_mode;
     u8                      ctx_flags[NUM_CNID];
@@ -334,12 +317,8 @@ struct _EVCD_CTX
         , int    tile_idx
 #endif
         );
-
-#if ALF
     /* function address of ALF */
     int (*fn_alf)(EVCD_CTX * ctx, EVC_PIC * pic);
-#endif
-
     /* function address of picture buffer expand */
     void (* fn_picbuf_expand)(EVCD_CTX * ctx, EVC_PIC * pic);
     /* platform specific data, if needed */

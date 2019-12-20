@@ -3337,7 +3337,7 @@ void evc_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pre
 
 #if X86_SSE
 #if OPT_SIMD_MC_L
-    if(1)
+    if (1)
     {
         int max = ((1 << BIT_DEPTH) - 1);
         int min = 0;
@@ -3425,7 +3425,7 @@ void evc_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
 
 #if X86_SSE
 #if OPT_SIMD_MC_L
-    if(1)
+    if (1)
     {
         int max = ((1 << BIT_DEPTH) - 1);
         int min = 0;
@@ -3620,8 +3620,7 @@ void evc_mc_dmvr_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
     int min = 0;
 
 
-    mc_filter_l_8pel_horz_clip_sse(ref, s_ref, pred, s_pred, tbl_mc_l_coeff[g_mc_ftr][dx], w, h, min, max,
-      MAC_ADD_N0, MAC_SFT_N0);
+    mc_filter_l_8pel_horz_clip_sse(ref, s_ref, pred, s_pred, tbl_mc_l_coeff[g_mc_ftr][dx], w, h, min, max, MAC_ADD_N0, MAC_SFT_N0);
   }
 #else
   if ((w & 0x7) == 0)
@@ -3710,8 +3709,7 @@ void evc_mc_dmvr_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
     int max = ((1 << BIT_DEPTH) - 1);
     int min = 0;
 
-    mc_filter_l_8pel_vert_clip_sse(ref, s_ref, pred, s_pred, tbl_mc_l_coeff[g_mc_ftr][dy], w, h, min, max,
-      MAC_ADD_0N, MAC_SFT_0N);
+    mc_filter_l_8pel_vert_clip_sse(ref, s_ref, pred, s_pred, tbl_mc_l_coeff[g_mc_ftr][dy], w, h, min, max, MAC_ADD_0N, MAC_SFT_0N);
   }
 #else
   if ((w & 0x7) == 0)
@@ -3804,11 +3802,9 @@ void evc_mc_dmvr_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
     int max = ((1 << BIT_DEPTH) - 1);
     int min = 0;
 
-    mc_filter_l_8pel_horz_no_clip_sse(ref, s_ref, buf, w, tbl_mc_l_coeff[g_mc_ftr][dx], w, (h + 7),
-      MAC_ADD_NN_S1, MAC_SFT_NN_S1);
+    mc_filter_l_8pel_horz_no_clip_sse(ref, s_ref, buf, w, tbl_mc_l_coeff[g_mc_ftr][dx], w, (h + 7), MAC_ADD_NN_S1, MAC_SFT_NN_S1);
 
-    mc_filter_l_8pel_vert_clip_sse(buf, w, pred, s_pred, tbl_mc_l_coeff[g_mc_ftr][dy], w, h, min, max,
-      MAC_ADD_NN_S2, MAC_SFT_NN_S2);
+    mc_filter_l_8pel_vert_clip_sse(buf, w, pred, s_pred, tbl_mc_l_coeff[g_mc_ftr][dy], w, h, min, max, MAC_ADD_NN_S2, MAC_SFT_NN_S2);
   }
 #else
   if ((w & 0x7) == 0)
@@ -4000,8 +3996,7 @@ void evc_bl_mc_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *
         int max = ((1 << BIT_DEPTH) - 1);
         int min = 0;
 
-        mc_filter_bilin_horz_sse(ref, s_ref, pred, s_pred, tbl_bl_mc_l_coeff[dx],
-                                 w, h, min, max, MAC_ADD_N0, MAC_SFT_N0, 1);
+        mc_filter_bilin_horz_sse(ref, s_ref, pred, s_pred, tbl_bl_mc_l_coeff[dx], w, h, min, max, MAC_ADD_N0, MAC_SFT_N0, 1);
     }
 #else
     if((w & 0x7) == 0)
@@ -4087,8 +4082,7 @@ void evc_bl_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *
         int max = ((1 << BIT_DEPTH) - 1);
         int min = 0;
 
-        mc_filter_bilin_vert_sse(ref, s_ref, pred, s_pred, tbl_bl_mc_l_coeff[dy],
-                                 w, h, min, max, MAC_ADD_0N, MAC_SFT_0N, 1);
+        mc_filter_bilin_vert_sse(ref, s_ref, pred, s_pred, tbl_bl_mc_l_coeff[dy], w, h, min, max, MAC_ADD_0N, MAC_SFT_0N, 1);
     }
 #else
     if((w & 0x7) == 0)
@@ -4179,11 +4173,9 @@ void evc_bl_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *
         int max = ((1 << BIT_DEPTH) - 1);
         int min = 0;
 
-        mc_filter_bilin_horz_sse(ref, s_ref, buf, w, tbl_bl_mc_l_coeff[dx],
-                                 w, (h + 1), min, max, MAC_ADD_NN_S1, MAC_SFT_NN_S1, 0);
+        mc_filter_bilin_horz_sse(ref, s_ref, buf, w, tbl_bl_mc_l_coeff[dx], w, (h + 1), min, max, MAC_ADD_NN_S1, MAC_SFT_NN_S1, 0);
 
-        mc_filter_bilin_vert_sse(buf, w, pred, s_pred, tbl_bl_mc_l_coeff[dy],
-                                 w, h, min, max, MAC_ADD_NN_S2, MAC_SFT_NN_S2, 1);
+        mc_filter_bilin_vert_sse(buf, w, pred, s_pred, tbl_bl_mc_l_coeff[dy], w, h, min, max, MAC_ADD_NN_S2, MAC_SFT_NN_S2, 1);
     }
 #else
     if((w & 0x7) == 0)
@@ -4477,7 +4469,7 @@ void evc_mc_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
 
 #if X86_SSE
 #if OPT_SIMD_MC_C
-    if(1)
+    if (1)
     {
         int max = ((1 << BIT_DEPTH) - 1);
         int min = 0;
@@ -4562,7 +4554,7 @@ void evc_mc_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
 
 #if X86_SSE
 #if OPT_SIMD_MC_C
-    if(1)
+    if (1)
     {
         int max = ((1 << BIT_DEPTH) - 1);
         int min = 0;
@@ -4652,7 +4644,7 @@ void evc_mc_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
 
 #if X86_SSE
 #if OPT_SIMD_MC_C
-    if(1)
+    if (1)
     {
         int max = ((1 << BIT_DEPTH) - 1);
         int min = 0;
@@ -4852,8 +4844,7 @@ void evc_mc_dmvr_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
     int min = 0;
 
 
-    mc_filter_c_4pel_horz_sse(ref, s_ref, pred, s_pred, tbl_mc_c_coeff[g_mc_ftr][dx],
-      w, h, min, max, MAC_ADD_N0, MAC_SFT_N0, 1);
+    mc_filter_c_4pel_horz_sse(ref, s_ref, pred, s_pred, tbl_mc_c_coeff[g_mc_ftr][dx], w, h, min, max, MAC_ADD_N0, MAC_SFT_N0, 1);
   }
 #else
   if ((w & 0x7) == 0)
@@ -4941,8 +4932,7 @@ void evc_mc_dmvr_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
     int max = ((1 << BIT_DEPTH) - 1);
     int min = 0;
 
-    mc_filter_c_4pel_vert_sse(ref, s_ref, pred, s_pred, tbl_mc_c_coeff[g_mc_ftr][dy],
-      w, h, min, max, MAC_ADD_0N, MAC_SFT_0N, 1);
+    mc_filter_c_4pel_vert_sse(ref, s_ref, pred, s_pred, tbl_mc_c_coeff[g_mc_ftr][dy], w, h, min, max, MAC_ADD_0N, MAC_SFT_0N, 1);
   }
 #else
   if ((w & 0x7) == 0)
@@ -5036,11 +5026,9 @@ void evc_mc_dmvr_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
     int max = ((1 << BIT_DEPTH) - 1);
     int min = 0;
 
-    mc_filter_c_4pel_horz_sse(ref, s_ref, buf, w, tbl_mc_c_coeff[g_mc_ftr][dx],
-      w, (h + 3), min, max, MAC_ADD_NN_S1, MAC_SFT_NN_S1, 0);
+    mc_filter_c_4pel_horz_sse(ref, s_ref, buf, w, tbl_mc_c_coeff[g_mc_ftr][dx], w, (h + 3), min, max, MAC_ADD_NN_S1, MAC_SFT_NN_S1, 0);
 
-    mc_filter_c_4pel_vert_sse(buf, w, pred, s_pred, tbl_mc_c_coeff[g_mc_ftr][dy],
-      w, h, min, max, MAC_ADD_NN_S2, MAC_SFT_NN_S2, 1);
+    mc_filter_c_4pel_vert_sse(buf, w, pred, s_pred, tbl_mc_c_coeff[g_mc_ftr][dy], w, h, min, max, MAC_ADD_NN_S2, MAC_SFT_NN_S2, 1);
   }
 #else
   if ((w & 0x7) == 0)
@@ -5243,7 +5231,6 @@ void mv_clip(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM]
     }
 }
 
-#if DMVR
 typedef enum EVC_POINT_INDEX
 {
     CENTER = 0,
@@ -6958,9 +6945,6 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
 #endif
 #endif
             , int sps_amis_flag
-#else
-void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16 mv[REFP_NUM][MV_D], EVC_REFP(*refp)[REFP_NUM], pel pred[2][N_C][MAX_CU_DIM]
-#endif // DMVR
              )
 {
     EVC_PIC    *ref_pic;
@@ -6968,8 +6952,6 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
     pel         *p2, *p3;
 #endif
     int          qpel_gmv_x, qpel_gmv_y;
-#if !OPT_SIMD_MC_L || DMVR 
-#endif
     int          bidx = 0;
     s16          mv_t[REFP_NUM][MV_D];
     s16          mv_before_clipping[REFP_NUM][MV_D]; //store it to pass it to interpolation function for deriving correct interpolation filter
@@ -6981,7 +6963,6 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
 
     mv_clip(x, y, pic_w, pic_h, w, h, refi, mv, mv_t);
 
-#if DMVR
     int          poc0 = refp[refi[REFP_0]][REFP_0].poc;
     int          poc1 = refp[refi[REFP_1]][REFP_1].poc;
     s16          mv_refine[REFP_NUM][MV_D] = {{mv[REFP_0][MV_X], mv[REFP_0][MV_Y]},
@@ -7008,7 +6989,7 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
     apply_DMVR = apply_DMVR && w >= 8 && h >= 8;
 #endif
 
-#endif
+
 #if DMVR_FLAG
     *cu_dmvr_flag = 0;
 #endif
@@ -7035,25 +7016,20 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
         {
             evc_mc_l(mv_before_clipping[REFP_0][MV_X]<<2, mv_before_clipping[REFP_0][MV_Y]<<2, ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, w, pred[0][Y_C], w, h);
         }
-#if DMVR
+
         if(!REFI_IS_VALID(refi[REFP_1]) || !apply_DMVR || !dmvr_poc_condition)
-#endif
         {
             evc_mc_c(mv_before_clipping[REFP_0][MV_X]<<2, mv_before_clipping[REFP_0][MV_Y]<<2, ref_pic->u, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[0][U_C], w >> 1, h >> 1);
             evc_mc_c(mv_before_clipping[REFP_0][MV_X]<<2, mv_before_clipping[REFP_0][MV_Y]<<2, ref_pic->v, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[0][V_C], w >> 1, h >> 1);
         }
 #else
 
-#if DMVR
         if(!apply_DMVR)
-#endif
         {
             evc_mc_l(mv_before_clipping[REFP_0][MV_X], mv_before_clipping[REFP_0][MV_Y], ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, w, pred[0][Y_C], w, h);
         }
 
-#if DMVR
         if(!REFI_IS_VALID(refi[REFP_1]) || !apply_DMVR || !dmvr_poc_condition)
-#endif
         {
             evc_mc_c(mv_before_clipping[REFP_0][MV_X], mv_before_clipping[REFP_0][MV_Y], ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[0][U_C], w >> 1, h >> 1);
             evc_mc_c(mv_before_clipping[REFP_0][MV_X], mv_before_clipping[REFP_0][MV_Y], ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[0][V_C], w >> 1, h >> 1);
@@ -7085,25 +7061,20 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
         {
             evc_mc_l(mv_before_clipping[REFP_1][MV_X]<<2, mv_before_clipping[REFP_1][MV_Y]<<2, ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, w, pred[bidx][Y_C], w, h);
         }
-#if DMVR
+
         if(!REFI_IS_VALID(refi[REFP_0]) || !apply_DMVR || !dmvr_poc_condition)
-#endif
         {
             evc_mc_c(mv_before_clipping[REFP_1][MV_X]<<2, mv_before_clipping[REFP_1][MV_Y]<<2,ref_pic->u, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[bidx][U_C], w >> 1, h >> 1);
             evc_mc_c(mv_before_clipping[REFP_1][MV_X]<<2, mv_before_clipping[REFP_1][MV_Y]<<2,ref_pic->v, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[bidx][V_C], w >> 1, h >> 1);
         }
 #else
 
-#if DMVR
         if(!apply_DMVR)
-#endif
         {
             evc_mc_l(mv_before_clipping[REFP_1][MV_X], mv_before_clipping[REFP_1][MV_Y], ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, w, pred[bidx][Y_C], w, h);
         }
 
-#if DMVR
         if(!REFI_IS_VALID(refi[REFP_0]) || !apply_DMVR || !dmvr_poc_condition)
-#endif
         {
             evc_mc_c(mv_before_clipping[REFP_1][MV_X], mv_before_clipping[REFP_1][MV_Y],ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[bidx][U_C], w >> 1, h >> 1);
             evc_mc_c(mv_before_clipping[REFP_1][MV_X], mv_before_clipping[REFP_1][MV_Y],ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[bidx][V_C], w >> 1, h >> 1);
@@ -7114,7 +7085,6 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
 
     if(bidx == 2)
     {
-#if DMVR
         BOOL template_needs_update = FALSE;
         s32 center_cost[2] = {1 << 30, 1 << 30};
 
@@ -7144,8 +7114,6 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
           mv[REFP_1][MV_X] = inital_mv[REFP_1][MV_X];
           mv[REFP_1][MV_Y] = inital_mv[REFP_1][MV_Y];
         } //if (apply_DMVR && ((poc_c - poc0)*(poc_c - poc1) < 0))
-
-#endif // DMVR
 
 #if OPT_SIMD_MC_L
         average_16b_no_clip_sse(pred[0][Y_C], pred[1][Y_C], pred[0][Y_C], w, w, w, w, h);
@@ -7270,7 +7238,6 @@ void evc_IBC_mc(int x, int y, int log2_cuw, int log2_cuh, s16 mv[MV_D], EVC_PIC 
 #endif
 }
 
-#if AFFINE
 #if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV && !M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
 BOOL check_eif_clipMV_flag(s16 ac_mv[VER_NUM][MV_D], int d_hor[MV_D], int d_ver[MV_D], int mv_precision)
 {
@@ -7427,11 +7394,7 @@ void evc_derive_mv_clip_range_2D(int cuw, int cuh, int mv_scale_hor, int mv_scal
 #endif
 
 #endif
-void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 ac_mv[VER_NUM][MV_D], EVC_PIC* ref_pic, pel pred[MAX_CU_DIM], int vertex_num
-#if EIF
-                      , pel* tmp_buffer
-#endif
-                      )
+void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 ac_mv[VER_NUM][MV_D], EVC_PIC* ref_pic, pel pred[MAX_CU_DIM], int vertex_num, pel* tmp_buffer)
 {
     int qpel_gmv_x, qpel_gmv_y;
     pel *pred_y = pred;
@@ -7493,7 +7456,6 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
         dmv_ver_y = dmv_hor_x;
     }
 
-#if EIF
 #if M50761_AFFINE_ADAPT_SUB_SIZE || M50761_AFFINE_SUB_SIZE_LUT
     int b_eif = sub_w < AFFINE_ADAPT_EIF_SIZE || sub_h < AFFINE_ADAPT_EIF_SIZE;
 #if M50662_AFFINE_BANDWIDTH_CLIPMV
@@ -7557,7 +7519,7 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
       return;
     }
 #endif
-#endif
+
     int mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori;
     // get prediction block by block
     for(h = 0; h < cuh; h += sub_h)
@@ -7588,9 +7550,7 @@ void evc_affine_mc_lc( int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16
 #if M50761_AFFINE_ADAPT_SUB_SIZE
     , int sub_w, int sub_h
 #endif
-#if EIF
     , pel* tmp_buffer_for_eif
-#endif
 #if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
   , BOOL mem_band_conditions_for_eif_are_satisfied
 #endif
@@ -7650,7 +7610,6 @@ void evc_affine_mc_lc( int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16
         dmv_ver_y = dmv_hor_x;
     }
 
-#if EIF
 #if M50761_AFFINE_ADAPT_SUB_SIZE || M50761_AFFINE_SUB_SIZE_LUT
     int b_eif = sub_w < AFFINE_ADAPT_EIF_SIZE || sub_h < AFFINE_ADAPT_EIF_SIZE;
 #if M50662_AFFINE_BANDWIDTH_CLIPMV
@@ -7733,7 +7692,7 @@ void evc_affine_mc_lc( int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16
       return;
     }
 #endif
-#endif
+
     int mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori;
 
     // get prediction block by block
@@ -7774,8 +7733,6 @@ void evc_affine_mc_lc( int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16
         pred_v += (cuw * sub_h) >> 2;
     }
 }
-
-#if EIF
 
 BOOL can_mv_clipping_occurs(int block_width, int block_height, int mv0[MV_D], int d_x[MV_D], int d_y[MV_D], int mv_max[MV_D], int mv_min[MV_D])
 {
@@ -8070,15 +8027,7 @@ void evc_eif_mc(int block_width, int block_height, int x, int y, int mv_scale_ho
   evc_eif_filter(block_width, block_height, p_tmp_buf, tmp_buf_stride, p_dst, dst_stride, shifts, offsets, bit_depth);
 }
 
-
-#endif //EIF
-
-void evc_affine_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16 mv[REFP_NUM][VER_NUM][MV_D], EVC_REFP(*refp)[REFP_NUM], pel pred[2][N_C][MAX_CU_DIM], int vertex_num
-#if EIF
-                    , pel* tmp_buffer
-#endif
-
-                    )
+void evc_affine_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16 mv[REFP_NUM][VER_NUM][MV_D], EVC_REFP(*refp)[REFP_NUM], pel pred[2][N_C][MAX_CU_DIM], int vertex_num, pel* tmp_buffer)
 {
     EVC_PIC *ref_pic;
     pel      *p0, *p1, *p2, *p3;
@@ -8107,9 +8056,7 @@ void evc_affine_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REF
 #if M50761_AFFINE_ADAPT_SUB_SIZE
                           , sub_w, sub_h
 #endif
-#if EIF
                           , tmp_buffer
-#endif
 #if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
                           , mem_band_conditions_for_eif_are_satisfied
 #endif
@@ -8126,9 +8073,7 @@ void evc_affine_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REF
 #if M50761_AFFINE_ADAPT_SUB_SIZE
                           , sub_w, sub_h
 #endif
-#if EIF
                           , tmp_buffer
-#endif
 #if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
                           , mem_band_conditions_for_eif_are_satisfied
 #endif
@@ -8170,4 +8115,3 @@ void evc_affine_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REF
         }
     }
 }
-#endif

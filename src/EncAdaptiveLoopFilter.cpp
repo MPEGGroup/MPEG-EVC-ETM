@@ -36,8 +36,7 @@
  */
 #include "EncAdaptiveLoopFilter.h"
 
-#pragma warning(disable : 4996)
-#if ALF
+#pragma warning(disable : 4996) //@Chernyak: why?
 
 extern "C"
 {
@@ -2758,4 +2757,3 @@ void EncAdaptiveLoopFilter::setCtuEnableFlag(uint8_t** ctuFlags, ChannelType cha
     memset(ctuFlags[COMPONENT_Cr], val, sizeof(uint8_t) * m_numCTUsInPic);
   }
 }
-#endif

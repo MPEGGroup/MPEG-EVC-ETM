@@ -128,16 +128,10 @@
 #endif
 #endif
 
-//inter
-#define AFFINE                             1  // Affine Prediction
-#define DMVR                               1  // Decoder-side Motion Vector Refinement
-#define ADMVP                              1
-
 //loop filter
 #define DBF_LONGF                          0
 #define DBF_IMPROVE                        1
 #define DBF                                2  // Deblocking filter: 0 - without DBF, 1 - h.263, 2 - AVC, 3 - HEVC   !!! NOTE: THE SWITCH MAY BE BROKEN !!!
-#define ALF                                1  // Adaptive Loop Filter 
 
 //TILE support
 #define TILE_SUPPORT                       1
@@ -165,26 +159,16 @@
 #endif
 
 //platform tools & trivial improvement
-#if ADMVP
-#define MERGE                              1
-#endif
 #define MC_PRECISION_ADD                   2 
-#if AFFINE 
-#define EIF                                1 // Enhanced bilinear Interpolation Filter
-#endif
-
 #define USE_RDOQ                           1 // Use RDOQ
 #define RDO_DBK                            1 // include DBK changes into distortion
-#define HTDF                               1 // enable Hadamard transform domain filter
 
 //fast algorithm
 #define ENC_ECU_DEPTH                      8 // for early CU termination
 #define ENC_ECU_ADAPTIVE                   1 // for early CU termination
 #define ENC_ECU_DEPTH_B                    8 // for early CU termination
 #define MULTI_REF_ME_STEP                  1 // for ME speed-up
-#if MERGE
 #define FAST_MERGE_THR                     1.3
-#endif
 #define ENC_SUCO_FAST_CONFIG               1  /* fast config: 1(low complexity), 2(medium complexity), 4(high_complexity) */
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -290,14 +274,11 @@
 /* DBF (END) */
 
 /* MERGE (START) */
-#if MERGE
 #define MERGE_MVP                          1
 #define INCREASE_MVP_NUM                   1
-#endif
 /* MERGE (END) */
 
 /* DMVR (START) */
-#if DMVR
 #define USE_MR_SAD                         0
 #define DMVR_SUBCU                         1
 #if DMVR_SUBCU
@@ -335,20 +316,16 @@ enum SAD_POINT_INDEX
     SAD_CENTER,
     SAD_COUNT
 };
-#endif
 /* DMVR (END) */
 
 /* HISTORY (START) */
-#if ADMVP
 #define HISTORY_LCU_COPY_BUG_FIX           1
 #define ALLOWED_CHECKED_NUM                23
 #define ALLOWED_CHECKED_AMVP_NUM           4
 #define AFFINE_UPDATE                      1
-#endif
 /* ADMVP (END) */
 
 /* ALF (START) */
-#if ALF
 #define MAX_NUM_TLAYER                     6      
 #define MAX_NUM_ALFS_PER_TLAYER            6
 #define ALF_LAMBDA_SCALE                   17
@@ -358,11 +335,9 @@ enum SAD_POINT_INDEX
 #define MAX_NUM_ALF_CHROMA_COEFF           7
 #define MAX_ALF_FILTER_LENGTH              7
 #define MAX_NUM_ALF_COEFF                 (MAX_ALF_FILTER_LENGTH * MAX_ALF_FILTER_LENGTH / 2 + 1)
-#endif
 /* ALF (END) */
 
 /* AFFINE (START) */
-#if AFFINE
  // AFFINE Constant
 #define VER_NUM                            4
 #define AFFINE_MAX_NUM_LT                  3 ///< max number of motion candidates in top-left corner
@@ -386,23 +361,15 @@ enum SAD_POINT_INDEX
 #endif
 
 /* EIF (START) */
-#if EIF
-
 #define AFFINE_ADAPT_EIF_SIZE                                   8
-
 #if M50761_EIF_RESTRICTIONS
 #define EIF_HW_SUBBLOCK_SIZE                                    4
-
 #if EIF_NUM_FETCHED_LINES_BASIC_RESTRICTION
 #define EIF_NUM_ALLOWED_FETCHED_LINES_FOR_THE_FIRST_LINE        3
 #endif
-
 #if EIF_NEW_BILINEAR
 #define EIF_MV_PRECISION_BILINEAR                               5
 #endif
-
-#endif
-
 #endif
 /* EIF (END) */
 
@@ -412,12 +379,9 @@ enum SAD_POINT_INDEX
 #define MAX_MEMORY_ACCESS_BI             ((8 + 7) * (8 + 7) / 64)
 #define MAX_MEMORY_ACCESS_UNI            ((8 + 7) * (4 + 7) / 32)
 #endif
-
-#endif
 /* AFFINE (END) */
 
 /* ALF (START) */
-#if ALF
 #define m_MAX_SCAN_VAL                     11
 #define m_MAX_EXP_GOLOMB                   16
 #define MAX_NUM_ALF_LUMA_COEFF             13
@@ -442,7 +406,6 @@ typedef struct _evc_AlfFilterShape
     int golombIdx[14];
     int patternToLargeFilter[13];
 } evc_AlfFilterShape;
-#endif 
 /* ALF (END) */
 
 /* TRANSFORM PACKAGE (START) */
@@ -624,11 +587,9 @@ extern int fp_trace_started;
 
 /* number of MVP candidates */
 #if INCREASE_MVP_NUM
-#if ADMVP
 #define MAX_NUM_MVP_SMALL_CU               4
 #define MAX_NUM_MVP                        6
 #define NUM_SAMPLES_BLOCK                  32 // 16..64
-#endif
 #define ORG_MAX_NUM_MVP                    4
 #else
 #define MAX_NUM_MVP                        4
@@ -727,7 +688,6 @@ extern int fp_trace_started;
 #define ORG_PRED_NUM                       13
 #define PRED_NUM                          (ORG_PRED_NUM * MAX_NUM_MVR)
 
-#if AFFINE
 #define START_NUM                         (ORG_PRED_NUM * MAX_NUM_MVR)
 
 #define AFF_L0                            (START_NUM)          // 5  7  42
@@ -742,7 +702,6 @@ extern int fp_trace_started;
 
 #undef PRED_NUM
 #define PRED_NUM                          (START_NUM + 8)
-#endif
 
 #define LR_00                              0
 #define LR_10                              1
@@ -910,8 +869,6 @@ typedef enum _TRANS_TYPE
     (m) = (((m)&0xFF807F80)|((sn)&0x7F)|((qp)<<16)|((i)<<15)|(1<<31))
 
 #define MCU_IS_COD_NIF(m)      ((((m)>>15) & 0x10001) == 0x10000)
-
-#if AFFINE
 /*
 - [8:9] : affine vertex number, 00: 1(trans); 01: 2(affine); 10: 3(affine); 11: 4(affine)
 */
@@ -940,7 +897,6 @@ typedef enum _TRANS_TYPE
 #define MCU_GET_AFF_LOGH(m)          (int)(((m)>>8)&0xFF)
 #define MCU_GET_AFF_XOFF(m)          (int)(((m)>>16)&0xFF)
 #define MCU_GET_AFF_YOFF(m)          (int)(((m)>>24)&0xFF)
-#endif
 
 /* set MMVD skip flag to map */
 #define MCU_SET_MMVDS(m)            (m)=((m)|(1<<2))
@@ -983,18 +939,13 @@ typedef u32 SBAC_CTX_MODEL;
 #define NUM_BI_IDX_CTX                     2
 #define NUM_MV_RES_CTX                     1       /* number of context models for motion vector difference */
 #define NUM_INTRA_DIR_CTX                  3
-#if AFFINE
 #define NUM_SBAC_CTX_AFFINE_FLAG           2
 #define NUM_SBAC_CTX_AFFINE_MODE           1
 #define NUM_SBAC_CTX_AFFINE_MRG            AFF_MAX_CAND
-#endif
 #define NUM_SBAC_CTX_RUN                   24
 #define NUM_SBAC_CTX_LAST                  2
 #define NUM_SBAC_CTX_LEVEL                 24
-
-#if ALF
 #define NUM_SBAC_CTX_ALF_FLAG              9
-#endif
 #if DQP
 #define NUM_DELTA_QP_CTX                   1
 #endif
@@ -1010,9 +961,7 @@ typedef u32 SBAC_CTX_MODEL;
 /* context models for arithemetic coding */
 typedef struct _EVC_SBAC_CTX
 {
-#if ALF
     SBAC_CTX_MODEL   alf_flag        [NUM_SBAC_CTX_ALF_FLAG]; 
-#endif
     SBAC_CTX_MODEL   skip_flag       [NUM_SBAC_CTX_SKIP_FLAG];
     SBAC_CTX_MODEL   ibc_flag[NUM_SBAC_CTX_IBC_FLAG];
     SBAC_CTX_MODEL   mmvd_flag       [NUM_SBAC_CTX_MMVD_FLAG];
@@ -1028,9 +977,7 @@ typedef struct _EVC_SBAC_CTX
 #endif
     SBAC_CTX_MODEL   refi            [NUM_REFI_CTX];
     SBAC_CTX_MODEL   mvp_idx         [NUM_MVP_IDX_CTX];
-#if AFFINE
     SBAC_CTX_MODEL   affine_mvp_idx  [NUM_AFFINE_MVP_IDX_CTX];
-#endif
     SBAC_CTX_MODEL   mvr_idx         [NUM_MVR_IDX_CTX];
     SBAC_CTX_MODEL   bi_idx          [NUM_BI_IDX_CTX];
     SBAC_CTX_MODEL   mvd             [NUM_MV_RES_CTX];
@@ -1048,16 +995,12 @@ typedef struct _EVC_SBAC_CTX
     SBAC_CTX_MODEL   btt_split_flag  [NUM_SBAC_CTX_BTT_SPLIT_FLAG];
     SBAC_CTX_MODEL   btt_split_dir   [NUM_SBAC_CTX_BTT_SPLIT_DIR];
     SBAC_CTX_MODEL   btt_split_type  [NUM_SBAC_CTX_BTT_SPLIT_TYPE];
-#if AFFINE
     SBAC_CTX_MODEL   affine_flag     [NUM_SBAC_CTX_AFFINE_FLAG];
     SBAC_CTX_MODEL   affine_mode     [NUM_SBAC_CTX_AFFINE_MODE];
     SBAC_CTX_MODEL   affine_mrg      [NUM_SBAC_CTX_AFFINE_MRG];
     SBAC_CTX_MODEL   affine_mvd_flag [2];
-#endif
     SBAC_CTX_MODEL   suco_flag       [NUM_SBAC_CTX_SUCO_FLAG];
-#if ALF
     SBAC_CTX_MODEL   ctb_alf_flag    [NUM_SBAC_CTX_ALF_FLAG]; //todo: add *3 for every component
-#endif
 #if DQP
     SBAC_CTX_MODEL   delta_qp        [NUM_DELTA_QP_CTX];
 #endif
@@ -1150,9 +1093,7 @@ typedef struct _EVC_PIC
 #endif
     s8             (*map_refi)[REFP_NUM];
     u32              list_poc[MAX_NUM_REF_PICS];
-#if ALF
     u8               m_alfCtuEnableFlag[3][510]; //510 = 30*17 -> class A1 resolution with CU ~ 128
-#endif
     int              pic_deblock_alpha_offset;
     int              pic_deblock_beta_offset;
 } EVC_PIC;
@@ -1269,21 +1210,11 @@ typedef struct _EVC_SPS
     int              log2_diff_max_suco_min_suco_cb_size;
     int              tool_amvr;
     int              tool_mmvd;
-#if AFFINE
     int              tool_affine;
-#endif
-#if DMVR
     int              tool_dmvr;
-#endif
-#if ALF
     int              tool_alf;
-#endif
-#if HTDF
     int              tool_htdf;
-#endif
-#if ADMVP
     int              tool_admvp;
-#endif
     int              tool_amis;
     int              tool_eipd;
     int              tool_iqt;
@@ -1354,7 +1285,6 @@ typedef struct _EVC_PPS
 /*****************************************************************************
  * slice header
  *****************************************************************************/
-#if ALF
 typedef struct _evc_AlfSliceParam
 {
     BOOL isCtbAlfOn;
@@ -1393,7 +1323,6 @@ typedef struct _EVC_APS
 #endif
     evc_AlfSliceParam          alf_aps_param;              // alf data
 } EVC_APS;
-#endif
 
 typedef struct _EVC_SH
 {
@@ -1435,8 +1364,6 @@ typedef struct _EVC_SH
     u8               dqp;
     u8               qp_prev_mode;
 #endif
-
-#if ALF
     u8               alf_on;
     u8               mmvd_group_enable_flag;
     u8               ctb_alf_on;
@@ -1448,7 +1375,6 @@ typedef struct _EVC_SH
 #endif
     EVC_APS*         aps;
     evc_AlfSliceParam alf_sh_param;
-#endif
 } EVC_SH;
 
 #if EVC_TILE_SUPPORT
@@ -1537,7 +1463,6 @@ typedef enum _BLOCK_SHAPE
     NUM_BLOCK_SHAPE,
 } BLOCK_SHAPE;
 
-#if ADMVP
 /*****************************************************************************
 * history-based MV prediction buffer (slice level)
 *****************************************************************************/
@@ -1551,7 +1476,6 @@ typedef struct _EVC_HISTORY_BUFFER
     int currCnt;
     int m_maxCnt;
 } EVC_HISTORY_BUFFER;
-#endif
 
 typedef enum _CTX_NEV_IDX
 {
@@ -1560,9 +1484,7 @@ typedef enum _CTX_NEV_IDX
 #if M50761_CHROMA_NOT_SPLIT
     CNID_MODE_CONS,
 #endif
-#if AFFINE
     CNID_AFFN_FLAG,
-#endif
     CNID_IBC_FLAG,
     NUM_CNID,
 
@@ -1587,7 +1509,6 @@ static const int NTAPS_LUMA = 8; ///< Number of taps for luma
 static const int NTAPS_CHROMA = 4; ///< Number of taps for chroma
 #endif
 
-#if EIF
 #define EIF_MV_PRECISION_INTERNAL                                       (2 + MAX_CU_LOG2 + 0) //2 + MAX_CU_LOG2 is MV precision in regular affine
 
 #if EIF_MV_PRECISION_INTERNAL > 14 || EIF_MV_PRECISION_INTERNAL < 9
@@ -1602,8 +1523,6 @@ static const int NTAPS_CHROMA = 4; ///< Number of taps for chroma
 #if EIF_MV_PRECISION_BILINEAR < 3 
 #error "EIF_MV_PRECISION_BILINEAR is to small"
 #endif
-#endif
-
 #endif
 
 #define MAX_SUB_TB_NUM 4
