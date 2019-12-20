@@ -228,7 +228,7 @@ static int picman_get_empty_pic_from_list(EVC_PM * pm)
             evc_assert(imgb != NULL);
 
             /* check reference count */
-            if(1 == imgb->getref(imgb))
+            if (1 == imgb->getref(imgb))
             {
                 return i; /* this is empty buffer */
             }

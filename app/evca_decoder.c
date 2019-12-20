@@ -143,7 +143,7 @@ static int read_nalu(FILE * fp, int * pos, unsigned char * bs_buf)
             while(bs_size)
             {
                 /* read byte */
-                if(1 != fread(&b, 1, 1, fp))
+                if (1 != fread(&b, 1, 1, fp))
                 {
                     v0print("Cannot read bitstream!\n");
                     return -1;

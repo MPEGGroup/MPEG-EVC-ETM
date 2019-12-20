@@ -3337,7 +3337,7 @@ void evc_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pre
 
 #if X86_SSE
 #if OPT_SIMD_MC_L
-    if(1)
+    if (1)
     {
         int max = ((1 << BIT_DEPTH) - 1);
         int min = 0;
@@ -3425,7 +3425,7 @@ void evc_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
 
 #if X86_SSE
 #if OPT_SIMD_MC_L
-    if(1)
+    if (1)
     {
         int max = ((1 << BIT_DEPTH) - 1);
         int min = 0;
@@ -3620,8 +3620,7 @@ void evc_mc_dmvr_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
     int min = 0;
 
 
-    mc_filter_l_8pel_horz_clip_sse(ref, s_ref, pred, s_pred, tbl_mc_l_coeff[g_mc_ftr][dx], w, h, min, max,
-      MAC_ADD_N0, MAC_SFT_N0);
+    mc_filter_l_8pel_horz_clip_sse(ref, s_ref, pred, s_pred, tbl_mc_l_coeff[g_mc_ftr][dx], w, h, min, max, MAC_ADD_N0, MAC_SFT_N0);
   }
 #else
   if ((w & 0x7) == 0)
@@ -3710,8 +3709,7 @@ void evc_mc_dmvr_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
     int max = ((1 << BIT_DEPTH) - 1);
     int min = 0;
 
-    mc_filter_l_8pel_vert_clip_sse(ref, s_ref, pred, s_pred, tbl_mc_l_coeff[g_mc_ftr][dy], w, h, min, max,
-      MAC_ADD_0N, MAC_SFT_0N);
+    mc_filter_l_8pel_vert_clip_sse(ref, s_ref, pred, s_pred, tbl_mc_l_coeff[g_mc_ftr][dy], w, h, min, max, MAC_ADD_0N, MAC_SFT_0N);
   }
 #else
   if ((w & 0x7) == 0)
@@ -3804,11 +3802,9 @@ void evc_mc_dmvr_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
     int max = ((1 << BIT_DEPTH) - 1);
     int min = 0;
 
-    mc_filter_l_8pel_horz_no_clip_sse(ref, s_ref, buf, w, tbl_mc_l_coeff[g_mc_ftr][dx], w, (h + 7),
-      MAC_ADD_NN_S1, MAC_SFT_NN_S1);
+    mc_filter_l_8pel_horz_no_clip_sse(ref, s_ref, buf, w, tbl_mc_l_coeff[g_mc_ftr][dx], w, (h + 7), MAC_ADD_NN_S1, MAC_SFT_NN_S1);
 
-    mc_filter_l_8pel_vert_clip_sse(buf, w, pred, s_pred, tbl_mc_l_coeff[g_mc_ftr][dy], w, h, min, max,
-      MAC_ADD_NN_S2, MAC_SFT_NN_S2);
+    mc_filter_l_8pel_vert_clip_sse(buf, w, pred, s_pred, tbl_mc_l_coeff[g_mc_ftr][dy], w, h, min, max, MAC_ADD_NN_S2, MAC_SFT_NN_S2);
   }
 #else
   if ((w & 0x7) == 0)
@@ -4000,8 +3996,7 @@ void evc_bl_mc_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *
         int max = ((1 << BIT_DEPTH) - 1);
         int min = 0;
 
-        mc_filter_bilin_horz_sse(ref, s_ref, pred, s_pred, tbl_bl_mc_l_coeff[dx],
-                                 w, h, min, max, MAC_ADD_N0, MAC_SFT_N0, 1);
+        mc_filter_bilin_horz_sse(ref, s_ref, pred, s_pred, tbl_bl_mc_l_coeff[dx], w, h, min, max, MAC_ADD_N0, MAC_SFT_N0, 1);
     }
 #else
     if((w & 0x7) == 0)
@@ -4087,8 +4082,7 @@ void evc_bl_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *
         int max = ((1 << BIT_DEPTH) - 1);
         int min = 0;
 
-        mc_filter_bilin_vert_sse(ref, s_ref, pred, s_pred, tbl_bl_mc_l_coeff[dy],
-                                 w, h, min, max, MAC_ADD_0N, MAC_SFT_0N, 1);
+        mc_filter_bilin_vert_sse(ref, s_ref, pred, s_pred, tbl_bl_mc_l_coeff[dy], w, h, min, max, MAC_ADD_0N, MAC_SFT_0N, 1);
     }
 #else
     if((w & 0x7) == 0)
@@ -4179,11 +4173,9 @@ void evc_bl_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *
         int max = ((1 << BIT_DEPTH) - 1);
         int min = 0;
 
-        mc_filter_bilin_horz_sse(ref, s_ref, buf, w, tbl_bl_mc_l_coeff[dx],
-                                 w, (h + 1), min, max, MAC_ADD_NN_S1, MAC_SFT_NN_S1, 0);
+        mc_filter_bilin_horz_sse(ref, s_ref, buf, w, tbl_bl_mc_l_coeff[dx], w, (h + 1), min, max, MAC_ADD_NN_S1, MAC_SFT_NN_S1, 0);
 
-        mc_filter_bilin_vert_sse(buf, w, pred, s_pred, tbl_bl_mc_l_coeff[dy],
-                                 w, h, min, max, MAC_ADD_NN_S2, MAC_SFT_NN_S2, 1);
+        mc_filter_bilin_vert_sse(buf, w, pred, s_pred, tbl_bl_mc_l_coeff[dy], w, h, min, max, MAC_ADD_NN_S2, MAC_SFT_NN_S2, 1);
     }
 #else
     if((w & 0x7) == 0)
@@ -4477,7 +4469,7 @@ void evc_mc_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
 
 #if X86_SSE
 #if OPT_SIMD_MC_C
-    if(1)
+    if (1)
     {
         int max = ((1 << BIT_DEPTH) - 1);
         int min = 0;
@@ -4562,7 +4554,7 @@ void evc_mc_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
 
 #if X86_SSE
 #if OPT_SIMD_MC_C
-    if(1)
+    if (1)
     {
         int max = ((1 << BIT_DEPTH) - 1);
         int min = 0;
@@ -4652,7 +4644,7 @@ void evc_mc_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
 
 #if X86_SSE
 #if OPT_SIMD_MC_C
-    if(1)
+    if (1)
     {
         int max = ((1 << BIT_DEPTH) - 1);
         int min = 0;
@@ -4852,8 +4844,7 @@ void evc_mc_dmvr_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
     int min = 0;
 
 
-    mc_filter_c_4pel_horz_sse(ref, s_ref, pred, s_pred, tbl_mc_c_coeff[g_mc_ftr][dx],
-      w, h, min, max, MAC_ADD_N0, MAC_SFT_N0, 1);
+    mc_filter_c_4pel_horz_sse(ref, s_ref, pred, s_pred, tbl_mc_c_coeff[g_mc_ftr][dx], w, h, min, max, MAC_ADD_N0, MAC_SFT_N0, 1);
   }
 #else
   if ((w & 0x7) == 0)
@@ -4941,8 +4932,7 @@ void evc_mc_dmvr_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
     int max = ((1 << BIT_DEPTH) - 1);
     int min = 0;
 
-    mc_filter_c_4pel_vert_sse(ref, s_ref, pred, s_pred, tbl_mc_c_coeff[g_mc_ftr][dy],
-      w, h, min, max, MAC_ADD_0N, MAC_SFT_0N, 1);
+    mc_filter_c_4pel_vert_sse(ref, s_ref, pred, s_pred, tbl_mc_c_coeff[g_mc_ftr][dy], w, h, min, max, MAC_ADD_0N, MAC_SFT_0N, 1);
   }
 #else
   if ((w & 0x7) == 0)
@@ -5036,11 +5026,9 @@ void evc_mc_dmvr_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
     int max = ((1 << BIT_DEPTH) - 1);
     int min = 0;
 
-    mc_filter_c_4pel_horz_sse(ref, s_ref, buf, w, tbl_mc_c_coeff[g_mc_ftr][dx],
-      w, (h + 3), min, max, MAC_ADD_NN_S1, MAC_SFT_NN_S1, 0);
+    mc_filter_c_4pel_horz_sse(ref, s_ref, buf, w, tbl_mc_c_coeff[g_mc_ftr][dx], w, (h + 3), min, max, MAC_ADD_NN_S1, MAC_SFT_NN_S1, 0);
 
-    mc_filter_c_4pel_vert_sse(buf, w, pred, s_pred, tbl_mc_c_coeff[g_mc_ftr][dy],
-      w, h, min, max, MAC_ADD_NN_S2, MAC_SFT_NN_S2, 1);
+    mc_filter_c_4pel_vert_sse(buf, w, pred, s_pred, tbl_mc_c_coeff[g_mc_ftr][dy], w, h, min, max, MAC_ADD_NN_S2, MAC_SFT_NN_S2, 1);
   }
 #else
   if ((w & 0x7) == 0)

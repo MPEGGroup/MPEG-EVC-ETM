@@ -1671,11 +1671,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         }
 #endif
 
-        if(1
-           && pidx != AFF_DIR
-           && pidx != PRED_DIR_MMVD
-           && pidx != PRED_DIR
-           && core->ats_inter_info == 0)
+        if (pidx != AFF_DIR && pidx != PRED_DIR_MMVD && pidx != PRED_DIR && core->ats_inter_info == 0)
         {
             /* test all zero case */
             idx_y = 0;

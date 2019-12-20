@@ -3189,7 +3189,7 @@ void derive_affine_subblock_size_bi( s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi
         }
     }
 
-#if M50761_EIF_HW_RESTRICTIONS_SET_B || M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV // Dmytro comment HW
+#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV
     int apply_eif = check_eif_applicability_bi( ac_mv, refi, cuw, cuh, vertex_num
 #if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
       , mem_band_conditions_for_eif_are_satisfied
@@ -3298,7 +3298,7 @@ void derive_affine_subblock_size( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, in
     *sub_w = w;
     *sub_h = h;
 
-#if M50761_EIF_HW_RESTRICTIONS_SET_B || M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV // Dmytro comment HW
+#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV 
     int apply_eif = check_eif_applicability_uni( ac_mv, cuw, cuh, vertex_num
 #if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
     , mem_band_conditions_for_eif_are_satisfied 
@@ -3310,12 +3310,11 @@ void derive_affine_subblock_size( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, in
       *sub_w = max( *sub_w, AFFINE_ADAPT_EIF_SIZE );
       *sub_h = max( *sub_h, AFFINE_ADAPT_EIF_SIZE );
     }
-#endif // Dmytro comment HW
+#endif 
 
 }
 
-#if M50761_EIF_HW_RESTRICTIONS_SET_B || M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV // Dmytro comment HW
-
+#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV
 void calculate_affine_motion_model_parameters( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int vertex_num, int d_hor[MV_D], int d_ver[MV_D], int mv_additional_precision )
 {
   assert( MV_X == 0 && MV_Y == 1 );
