@@ -204,9 +204,7 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
 #endif
     u32  *map_scu;
     s8   *map_ipm;
-#if ATS_INTER_PROCESS
     u8   *map_ats_inter;
-#endif
     int   w_cu;
     int   h_cu;
     int   scup;
@@ -235,9 +233,7 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
     map_affine = ctx->map_affine + scup;
 #endif
     map_cu_mode = ctx->map_cu_mode + scup;
-#if ATS_INTER_PROCESS
     map_ats_inter = ctx->map_ats_inter + scup;
-#endif
 
 #if DMVR_LAG
     idx = 0;
@@ -296,7 +292,6 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
                 MCU_CLR_AFF(map_scu[j]);
             }
 #endif
-#if IBC
             if (core->ibc_flag)
             {
               MCU_SET_IBC(map_scu[j]);
@@ -305,7 +300,6 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
             {
               MCU_CLR_IBC(map_scu[j]);
             }
-#endif
             MCU_SET_LOGW(map_cu_mode[j], core->log2_cuw);
             MCU_SET_LOGH(map_cu_mode[j], core->log2_cuh);
 
@@ -334,13 +328,11 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
 
             map_refi[j][REFP_0] = core->refi[REFP_0];
             map_refi[j][REFP_1] = core->refi[REFP_1];
-#if ATS_INTER_PROCESS
             map_ats_inter[j] = core->ats_inter_info;
-#if IBC
-            if(core->pred_mode == MODE_IBC)
-              map_ats_inter[j] = 0;
-#endif
-#endif
+            if (core->pred_mode == MODE_IBC)
+            {
+                map_ats_inter[j] = 0;
+            }
 
 #if DMVR_LAG
             if(core->dmvr_flag)
@@ -394,11 +386,9 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
         map_affine += w_scu;
 #endif
         map_cu_mode += w_scu;
-#if ATS_INTER_PROCESS
         map_ats_inter += w_scu;
-#endif
     }
-#if ATS_INTER_PROCESS //set cbf
+
     if (core->ats_inter_info)
     {
         assert(core->is_coef_sub[Y_C][0] == core->is_coef[Y_C]);
@@ -406,7 +396,6 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
         assert(core->is_coef_sub[V_C][0] == core->is_coef[V_C]);
         set_cu_cbf_flags(core->is_coef[Y_C], core->ats_inter_info, core->log2_cuw, core->log2_cuh, ctx->map_scu + core->scup, ctx->w_scu);
     }
-#endif
 
 #if AFFINE
     if(core->affine_flag)
@@ -508,7 +497,7 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
 
 void evcd_split_tbl_init(EVCD_CTX *ctx)
 {
-    evc_split_tbl[0][0] = ctx->sps.log2_diff_ctu_max_11_cb_size + ctx->log2_max_cuwh;
+    evc_split_tbl[0][0] = ctx->log2_max_cuwh - ctx->sps.log2_diff_ctu_max_11_cb_size;
     evc_split_tbl[0][1] = evc_split_tbl[0][0] - ctx->sps.log2_diff_max_11_min_11_cb_size;
     evc_split_tbl[1][0] = evc_split_tbl[0][0] - ctx->sps.log2_diff_max_11_max_12_cb_size;
     evc_split_tbl[1][1] = evc_split_tbl[0][1] + 1 + ctx->sps.log2_diff_min_11_min_12_cb_size_minus1;
@@ -800,6 +789,7 @@ void evcd_draw_partition(EVCD_CTX * ctx, EVC_PIC * pic)
 }
 #endif
 
+
 void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 {
     int real_mv[MMVD_GRP_NUM * MMVD_BASE_MV_NUM * MMVD_MAX_REFINE_NUM][2][3];
@@ -839,7 +829,7 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
         core->mv[REFP_1][MV_Y] = real_mv[core->mmvd_idx][1][MV_Y];
     }
 #if ADMVP
-    if ((ctx->sh.slice_type == SLICE_P) || (!check_bi_applicability(ctx->sh.slice_type, cuw, cuh)))
+    if ((ctx->sh.slice_type == SLICE_P) || (!check_bi_applicability(ctx->sh.slice_type, cuw, cuh, ctx->sps.tool_amis)))
 #else
     if (ctx->sh.slice_type == SLICE_P)
 #endif
@@ -880,10 +870,6 @@ u8 evcd_check_all_preds(EVCD_CTX *ctx)
 
 MODE_CONS evcd_derive_mode_cons(EVCD_CTX *ctx, int scup)
 {
-    return ( MCU_GET_IF(ctx->map_scu[scup])
-#if IBC
-        || MCU_GET_IBC(ctx->map_scu[scup])
-#endif
-        ) ? eOnlyIntra : eOnlyInter;
+    return ( MCU_GET_IF(ctx->map_scu[scup]) || MCU_GET_IBC(ctx->map_scu[scup]) ) ? eOnlyIntra : eOnlyInter;
 }
 #endif

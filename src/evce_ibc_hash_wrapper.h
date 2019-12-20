@@ -35,9 +35,6 @@
 #define __EVCE_IBC_HASH_WRAPPER_H
 
 #include <stdint.h>
-#include "evce_def.h"
-
-#if IBC
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,6 +56,5 @@ int get_hash_hit_ratio(EVCE_CTX* ctx, ibc_hash_handle* p, int cu_x, int cu_y, in
 }
 #endif
 
-#endif
 
 #endif /* end of __EVCE_IBC_HASH_WRAPPER_H */

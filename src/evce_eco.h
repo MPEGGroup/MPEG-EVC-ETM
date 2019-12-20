@@ -58,9 +58,7 @@ int evce_eco_aps(EVC_BSW * bs, EVC_APS * aps);
 int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut);
 int evce_eco_udata(EVCE_CTX * ctx, EVC_BSW * bs);
 int evce_eco_pred_mode(EVC_BSW * bs, u8 pred_mode, int ctx);
-#if IBC
 int evce_eco_ibc(EVC_BSW * bs, u8 pred_mode_ibc_flag, int ctx);
-#endif
 int evce_eco_mvd(EVC_BSW * bs, s16 mvd[MV_D]);
 void evce_sbac_reset(EVCE_SBAC * sbac, u8 slice_type, u8 slice_qp, int sps_cm_init_flag);
 void evce_sbac_finish(EVC_BSW *bs);
@@ -70,19 +68,9 @@ void evce_sbac_encode_bin_trm(u32 bin, EVCE_SBAC *sbac, EVC_BSW *bs);
 int evce_eco_dqp(EVC_BSW * bs, int ref_qp, int cur_qp);
 #endif
 int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 pred_mode, int nnz_sub[N_C][MAX_SUB_TB_NUM], int b_no_cbf, int run_stats
-#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
-                  , int tool_ats
-#endif
-#if ATS_INTRA_PROCESS
-                  , u8 ats_intra_cu, u8 ats_tu
-#endif
-#if ATS_INTER_PROCESS
-                  , u8 ats_inter_info
-#endif
-#if ADCC || DQP
-                  , EVCE_CTX * ctx
-#endif
+                  , int tool_ats, u8 ats_intra_cu, u8 ats_tu, u8 ats_inter_info
 #if DQP
+                  , EVCE_CTX * ctx
                   , EVCE_CORE * core, int enc_dqp, u8 cur_qp
 #endif
 #if M50761_CHROMA_NOT_SPLIT
@@ -112,16 +100,12 @@ int evce_eco_mvd(EVC_BSW *bs, s16 mvd[MV_D]);
 int evce_eco_refi(EVC_BSW * bs, int num_refp, int refi);
 void evce_eco_inter_dir(EVC_BSW * bs, s8 refi[REFP_NUM]
 #if REMOVE_BI_INTERDIR
-    , int slice_type, int cuw, int cuh
+    , int slice_type, int cuw, int cuh, int is_sps_amis
 #endif
 );
 void evce_eco_inter_t_direct(EVC_BSW *bs, int t_direct_flag);
 //! \todo Change list of arguments
-void evce_eco_xcoef(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num_sig, int ch_type
-#if ADCC  
-                    , int tool_adcc
-#endif
-);
+void evce_eco_xcoef(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num_sig, int ch_type, int tool_adcc);
 //! \todo Change list of arguments
 int evce_eco_intra_dir_b(EVC_BSW *bs, u8 ipm, u8 * mpm, u8 mpm_ext[8], u8 pims[IPD_CNT]);
 int evce_eco_intra_dir(EVC_BSW *bs, u8 ipm, u8 mpm[2], u8 mpm_ext[8], u8 pims[IPD_CNT]);
@@ -144,7 +128,7 @@ int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS * aps);
 #endif
 int evce_eco_alf_sh_param(EVC_BSW * bs, EVC_SH * sh);
 #endif
-#if IBC && M50761_BUGFIX_ENCSIDE_IBC
+#if M50761_BUGFIX_ENCSIDE_IBC
 void evce_eco_ibc_flag(EVC_BSW * bs, int flag, int ctx);
 #endif
 #ifdef __cplusplus

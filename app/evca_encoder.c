@@ -85,15 +85,13 @@ static int  op_iperiod            = 0;
 static int  op_max_b_frames       = 0;
 static int  op_ref_pic_gap_length = 0;
 static int  op_closed_gop         = 0;
-#if IBC
-static int  op_enable_ibc = 0;
+static int  op_enable_ibc         = 0;
 static int  op_ibc_search_range_x = IBC_SEARCH_RANGE;
 static int  op_ibc_search_range_y = IBC_SEARCH_RANGE;
 static int  op_ibc_hash_search_flag = 0;
 static int  op_ibc_hash_search_max_cand = IBC_NUM_CANDIDATES;
 static int  op_ibc_hash_search_range_4smallblk = IBC_SEARCH_RANGE;
 static int  op_ibc_fast_method = IBC_FAST_METHOD_ADAPTIVE_SEARCHRANGE;
-#endif
 static int  op_disable_hgop       = 0;
 static int  op_in_bit_depth       = 8;
 static int  op_skip_frames        = 0;
@@ -102,9 +100,7 @@ static int  op_profile            = 1;
 static int  op_level              = 0;
 static int  op_btt                = 1;
 static int  op_suco               = 1;
-#if USE_SLICE_DQP
 static int  op_add_qp_frames      = 0;
-#endif
 static int  op_framework_ctu_size = 7;
 static int  op_framework_cu11_max = 7;
 static int  op_framework_cu11_min = 2;
@@ -127,14 +123,10 @@ static int  op_tool_htdf          = 1; /* default on */
 static int  op_tool_eipd          = 1; /* default on */
 static int  op_tool_iqt           = 1; /* default on */
 static int  op_tool_cm_init       = 1; /* default on */
-#if ADCC
 static int  op_tool_adcc          = 1; /* default on */
-#endif
 static int  op_cb_qp_offset       = 0;
 static int  op_cr_qp_offset       = 0;
-#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
 static int op_tool_ats            = 1; /* default on */
-#endif
 static int  op_constrained_intra_pred = 0;
 static int  op_deblock_alpha_offset = 0; /* default offset 0*/
 static int  op_deblock_beta_offset = 0;  /* default offset 0*/
@@ -186,7 +178,6 @@ typedef enum _OP_FLAGS
     OP_FLAG_VERBOSE,
     OP_FLAG_MAX_B_FRAMES,
     OP_FLAG_CLOSED_GOP,
-#if IBC
     OP_FLAG_IBC,
     OP_IBC_SEARCH_RNG_X,
     OP_IBC_SEARCH_RND_Y,
@@ -194,7 +185,6 @@ typedef enum _OP_FLAGS
     OP_IBC_HASH_SEARCH_MAX_CAND,
     OP_IBC_HASH_SEARCH_RANGE_4SMALLBLK,
     OP_IBC_FAST_METHOD,
-#endif
     OP_FLAG_DISABLE_HGOP,
     OP_FLAG_OUT_BIT_DEPTH,
     OP_FLAG_IN_BIT_DEPTH,
@@ -203,9 +193,7 @@ typedef enum _OP_FLAGS
     OP_LEVEL,
     OP_BTT,
     OP_SUCO,
-#if USE_SLICE_DQP
     OP_FLAG_ADD_QP_FRAME,
-#endif
     OP_FRAMEWORK_CTU_SIZE,
     OP_FRAMEWORK_CU11_MAX,
     OP_FRAMEWORK_CU11_MIN,
@@ -228,14 +216,10 @@ typedef enum _OP_FLAGS
     OP_TOOL_EIPD,
     OP_TOOL_IQT,
     OP_TOOL_CM_INIT,
-#if ADCC
     OP_TOOL_ADCC,
-#endif
     OP_CB_QP_OFFSET,
     OP_CR_QP_OFFSET,
-#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
     OP_TOOL_ATS,
-#endif
     OP_CONSTRAINED_INTRA_PRED,
     OP_TOOL_DBFOFFSET,
 #if EVC_TILE_SUPPORT
@@ -410,7 +394,6 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_FLAG_CLOSED_GOP], &op_closed_gop,
         "use closed GOP structure. if not set, open GOP is used"
     },
-#if IBC
     {
       EVC_ARGS_NO_KEY,  "ibc", EVC_ARGS_VAL_TYPE_INTEGER,
       &op_flag[OP_FLAG_IBC], &op_enable_ibc,
@@ -454,7 +437,6 @@ static EVC_ARGS_OPTION options[] = \
       "\t 1: Buffer IBC block vector (current not support)\n"
           "\t 2: Adaptive search range (default)\n"
     },
-#endif
     {
         EVC_ARGS_NO_KEY,  "disable_hgop", EVC_ARGS_VAL_TYPE_NONE,
         &op_flag[OP_FLAG_DISABLE_HGOP], &op_disable_hgop,
@@ -485,13 +467,11 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_SUCO], &op_suco,
         "split unit coding ordering on/off flag"
     },
-#if USE_SLICE_DQP
     {
         'a',  "qp_add_frm", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_FLAG_ADD_QP_FRAME], &op_add_qp_frames,
         "one more qp are added after this number of frames, disable:0 (default)"
     },
-#endif
     {
         EVC_ARGS_NO_KEY,  "ctu", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_FRAMEWORK_CTU_SIZE], &op_framework_ctu_size,
@@ -602,13 +582,11 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_TOOL_CM_INIT], &op_tool_cm_init,
         "cm_init on/off flag"
     },
-#if ADCC
     {
         EVC_ARGS_NO_KEY,  "adcc", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_TOOL_ADCC], &op_tool_adcc,
         "adcc on/off flag"
     },
-#endif
     {
         EVC_ARGS_NO_KEY,  "cb_qp_offset", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_CB_QP_OFFSET], &op_cb_qp_offset,
@@ -619,13 +597,11 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_CR_QP_OFFSET], &op_cr_qp_offset,
         "cr qp offset"
     },
-#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
     {
          EVC_ARGS_NO_KEY,  "ats", EVC_ARGS_VAL_TYPE_INTEGER,
          &op_flag[OP_TOOL_ATS], &op_tool_ats,
          "ats on/off flag"
     },
-#endif
     {
         EVC_ARGS_NO_KEY,  "constrained_intra_pred", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_CONSTRAINED_INTRA_PRED], &op_constrained_intra_pred,
@@ -1035,10 +1011,8 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->cu_qp_delta_area = op_cu_qp_delta_area;
 #endif
     cdsc->ref_pic_gap_length = op_ref_pic_gap_length;
-
-#if USE_SLICE_DQP
     cdsc->add_qp_frame = op_add_qp_frames;
-#endif
+
     if(op_disable_hgop)
     {
         cdsc->disable_hgop = 1;
@@ -1047,7 +1021,7 @@ static int get_conf(EVCE_CDSC * cdsc)
     {
         cdsc->closed_gop = 1;
     }
-#if IBC
+
     if (op_enable_ibc)
     {
       cdsc->ibc_flag = 1;
@@ -1062,7 +1036,7 @@ static int get_conf(EVCE_CDSC * cdsc)
       cdsc->ibc_hash_search_range_4smallblk = op_ibc_hash_search_range_4smallblk;
       cdsc->ibc_fast_method = op_ibc_fast_method;
     }
-#endif
+
     cdsc->in_bit_depth = op_in_bit_depth;
 
     if(op_out_bit_depth == 0)
@@ -1092,14 +1066,10 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->tool_eipd          = op_tool_eipd;
     cdsc->tool_iqt           = op_tool_iqt;
     cdsc->tool_cm_init       = op_tool_cm_init;
-#if ADCC
     cdsc->tool_adcc          = op_tool_adcc;
-#endif
     cdsc->cb_qp_offset       = op_cb_qp_offset;
     cdsc->cr_qp_offset       = op_cr_qp_offset;
-#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
     cdsc->tool_ats           = op_tool_ats;
-#endif
     cdsc->constrained_intra_pred = op_constrained_intra_pred;
     cdsc->deblock_aplha_offset = op_deblock_alpha_offset;
     cdsc->deblock_beta_offset = op_deblock_beta_offset;
@@ -1255,8 +1225,13 @@ static int get_conf(EVCE_CDSC * cdsc)
 }
 
 #if MULT_CONFIG
-static int print_enc_conf(EVCE_CDSC * cdsc)
+static void print_enc_conf(EVCE_CDSC * cdsc)
 {
+    /*
+    TBD(@Chernyak)
+    This function is to be modified to down all encoding process related information, not only tools list
+    */
+
     printf("AMVR: %d, ",   cdsc->tool_amvr);
     printf("MMVD: %d, ",   cdsc->tool_mmvd);
     printf("AFFINE: %d, ", cdsc->tool_affine);
@@ -1268,18 +1243,9 @@ static int print_enc_conf(EVCE_CDSC * cdsc)
     printf("EIPD: %d, ",   cdsc->tool_eipd);
     printf("IQT: %d, ",    cdsc->tool_iqt);
     printf("CM_INIT: %d ", cdsc->tool_cm_init);
-#if ADCC
     printf("ADCC: %d ",    cdsc->tool_adcc);
-#endif
-    // TODO: These are not tools, i suggest not report it here, instead as encoder parameters.
-    printf("CB_QP_OFFSET: %d, ", cdsc->cb_qp_offset);
-    printf("CR_QP_OFFSET: %d, ", cdsc->cr_qp_offset);
-#if IBC
     printf("IBC: %d, ", cdsc->ibc_flag);
-#endif
-#if ATS_INTRA_PROCESS
     printf("ATS: %d, ",    cdsc->tool_ats);
-#endif
     printf("CONSTRAINED_INTRA_PRED: %d, ", cdsc->constrained_intra_pred);
     printf("DBFOffsetA: %d, ", cdsc->deblock_aplha_offset);
     printf("DBFOffsetB: %d, ", cdsc->deblock_beta_offset);
@@ -1292,14 +1258,13 @@ static int print_enc_conf(EVCE_CDSC * cdsc)
     printf("ChromaQPTable: %d ", cdsc->chroma_qp_table_struct.chroma_qp_table_present_flag);
 #endif
     printf("\n");
-    return 0;
 }
 #endif
 
 int check_conf(EVCE_CDSC* cdsc)
 {
     int success = 1;
-    if(cdsc->profile == 0)
+    if(cdsc->profile == PROFILE_BASELINE)
     {
         if (cdsc->tool_amvr    == 1) { v0print("AMVR cannot be on in base profile\n"); success = 0; }
         if (cdsc->tool_mmvd    == 1) { v0print("MMVD cannot be on in base profile\n"); success = 0; }

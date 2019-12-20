@@ -256,10 +256,8 @@ const s8 * evc_tbl_tm[MAX_CU_DEPTH] =
 u16 *evc_scan_tbl[COEF_SCAN_TYPE_NUM][MAX_CU_LOG2 - 1][MAX_CU_LOG2 - 1];
 int evc_scan_sr[MAX_TR_SIZE*MAX_TR_SIZE];
 
-#if ADCC
 u16 *evc_inv_scan_tbl[COEF_SCAN_TYPE_NUM][MAX_CU_LOG2 - 1][MAX_CU_LOG2 - 1];
 int evc_inv_scan_sr[MAX_TR_SIZE*MAX_TR_SIZE];
-#endif
 const int evc_tbl_dq_scale[6] = {40, 45, 51, 57, 64, 72};
 const int evc_tbl_dq_scale_b[6] = {40, 45, 51, 57, 64, 71};
 const int evc_tbl_ipred_adi[32][4]=
@@ -458,7 +456,7 @@ const s16 init_skip_flag[2][NUM_SBAC_CTX_SKIP_FLAG][1] = {
         { 233 }
     }
 };
-#if IBC
+
 const s16 init_ibc_flag[2][NUM_SBAC_CTX_IBC_FLAG][1] = {
   {
     { 0 },
@@ -469,7 +467,7 @@ const s16 init_ibc_flag[2][NUM_SBAC_CTX_IBC_FLAG][1] = {
     { 233 }
   }
 };
-#endif
+
 const s16 init_mmvd_flag[2][NUM_SBAC_CTX_MMVD_FLAG][1] = {
     {
         { 0 }
@@ -698,7 +696,7 @@ const s16 init_dqp[2][NUM_DELTA_QP_CTX][1] = {
     }
 };
 #endif
-#if ADCC   // tables below to be optimized for the final design
+// ADCC the tables below are to be optimized for the final design
 #define initA 0
 #define initB 128
 const s16 init_cc_gt0[2][NUM_CTX_GT0] = { 
@@ -713,7 +711,7 @@ const s16 init_cc_scanr_x[2][NUM_CTX_SCANR] = {
 const s16 init_cc_scanr_y[2][NUM_CTX_SCANR] = { 
         { initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA },
         { initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB }};
-#if COEFF_CODE_ADCC2
+
 #if M50631_IMPROVEMENT_ADCC_CTXINIT
 const s16 init_cc_gt0_4[2][NUM_CTX_GT0] = {
     { 387, 421, 369, 288, 67, 534, 466, 662, 321, 65, 163, 404, 199, 645, 131, 363, 549, 683, 751, 427, 596, 416, 293, 263, 101, 144, 416, 80, 304, 150, 67, 112, 101, 368, 120, 681, 423, 144, 71, 519, 224, 241, 905, 64, 146, 329, 241 },
@@ -735,8 +733,6 @@ const s16 init_cc_scanr_x_3[2][NUM_CTX_SCANR] = {
 const s16 init_cc_scanr_y_3[2][NUM_CTX_SCANR] = {
         { 1020, 926, 4, 436, 830, 86, 500, 666, 636, 320, 272, 470, 504, 830, 615, 596, 306, 600, 404, 828, 487, 336, 696, 502, 163, 128, 52, 288 },
         { 306, 180, 288, 0, 84, 194, 48, 212, 52, 451, 99, 146, 212, 342, 743, 325, 210, 308, 242, 890, 421, 357, 566, 566, 195, 288, 98, 483 } };
-#endif
-#endif
 
 const s16 init_run[2][NUM_SBAC_CTX_RUN][1] = {
     {
@@ -1025,7 +1021,6 @@ const s16 init_ctb_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG][1] = {
 };
 #endif
 
-#if ATS_INTRA_PROCESS   
 const s16 init_ats_intra_cu[2][NUM_ATS_INTRA_CU_FLAG_CTX][1] = {
     {
         { 999  },
@@ -1084,8 +1079,6 @@ const s16 init_ats_tu_v[2][NUM_ATS_INTRA_TU_FLAG_CTX][1] = {
 };
 #endif
 
-#endif
-#if ATS_INTER_PROCESS
 const s16 init_ats_inter_info[2][NUM_SBAC_CTX_ATS_INTER_INFO][1] = {
     {
         { 0 },
@@ -1107,9 +1100,7 @@ const s16 init_ats_inter_info[2][NUM_SBAC_CTX_ATS_INTER_INFO][1] = {
     }
 };
 #endif
-#endif
 
-#if ATS_INTRA_PROCESS
 s16 evc_tbl_tr2[NUM_TRANS_TYPE][2][2];
 s16 evc_tbl_tr4[NUM_TRANS_TYPE][4][4];
 s16 evc_tbl_tr8[NUM_TRANS_TYPE][8][8];
@@ -1128,9 +1119,6 @@ s16 evc_tbl_inv_tr32[NUM_TRANS_TYPE][32][32];
 s16 evc_tbl_inv_tr64[NUM_TRANS_TYPE][64][64];
 s16 evc_tbl_inv_tr128[NUM_TRANS_TYPE][128][128];
 
-#endif
-
-
 #if DBF == DBF_AVC
 const u8 ALPHA_TABLE[52] = { 0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,4,4,5,6,  7,8,9,10,12,13,15,17,  20,22,25,28,32,36,40,45,  50,56,63,71,80,90,101,113,  127,144,162,182,203,226,255,255 };
 const u8 BETA_TABLE[52] = { 0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,2,2,2,3,  3,3,3, 4, 4, 4, 6, 6,   7, 7, 8, 8, 9, 9,10,10,  11,11,12,12,13,13, 14, 14,   15, 15, 16, 16, 17, 17, 18, 18 };
@@ -1145,7 +1133,7 @@ const u8 CLIP_TAB[52][5] =
     { 0, 9,12,18,18 },{ 0,10,13,20,20 },{ 0,11,15,23,23 },{ 0,13,17,25,25 }
 };
 #endif
-#if ADCC 
+
 const int g_min_in_group[LAST_SIGNIFICANT_GROUPS] = { 0,1,2,3,4,6,8,12,16,24,32,48,64,96 };
 const int g_group_idx[MAX_TR_SIZE] = { 0,1,2,3,4,4,5,5,6,6,6,6,7,7,7,7,8,8,8,8,8,8,8,8,9,9,9,9,9,9,9,9, 10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11 };
 
@@ -1158,5 +1146,3 @@ const int g_go_rice_para_coeff[32] =
 {
     0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3
 };
-
-#endif

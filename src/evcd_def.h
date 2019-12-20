@@ -120,11 +120,11 @@ typedef struct _EVCD_CORE
     s16            affine_mv[REFP_NUM][VER_NUM][MV_D];
     u8             affine_flag;
 #endif
-#if IBC
+
     u8             ibc_flag;
     u8             ibc_skip_flag;
     u8             ibc_merge_flag;
-#endif
+
 #if DQP
     u8             qp;
     u8             cu_qp_delta_code;
@@ -149,16 +149,13 @@ typedef struct _EVCD_CORE
     void          *pf;
     s16            mmvd_idx;
     u8             mmvd_flag;
-#if ATS_INTRA_PROCESS   
     /* ATS_INTRA flags */
     u8             ats_intra_cu;
     u8             ats_intra_tu_h;
     u8             ats_intra_tu_v;
-#endif
-#if ATS_INTER_PROCESS
+
     /* ATS_INTER info (index + position)*/
     u8             ats_inter_info;
-#endif
 #if EIF
     /* temporal pixel buffer for inter prediction */
     pel            eif_tmp_buffer[ (MAX_CU_SIZE + 2) * (MAX_CU_SIZE + 2) ];
@@ -263,11 +260,8 @@ struct _EVCD_CTX
     /* new coding tool flag*/
     u32                   * map_cu_mode;
     u8                      ctx_flags[NUM_CNID];
-#if ATS_INTER_PROCESS
     /* ats_inter info map */
     u8                    * map_ats_inter;
-#endif
-
     /**************************************************************************/
     /* current slice number, which is increased whenever decoding a slice.
     when receiving a slice for new picture, this value is set to zero.

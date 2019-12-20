@@ -121,13 +121,13 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
 void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16 mv[REFP_NUM][MV_D], EVC_REFP(*refp)[REFP_NUM], pel pred[2][N_C][MAX_CU_DIM]
 #endif
 );
-#if IBC
+
 void evc_IBC_mc(int x, int y, int log2_cuw, int log2_cuh, s16 mv[MV_D], EVC_PIC *ref_pic, pel pred[N_C][MAX_CU_DIM]
 #if M50761_CHROMA_NOT_SPLIT
     , TREE_CONS tree_cons
 #endif
 );
-#endif
+
 void mv_clip(int x, int y, int pic_w, int pic_h, int w, int h,
              s8 refi[REFP_NUM], s16 mv[REFP_NUM][MV_D], s16(*mv_t)[MV_D]);
 #if AFFINE

@@ -43,8 +43,8 @@ extern "C"
        
 #define CHROMA_QP_TABLE_SUPPORT_M50663  1
 #if CHROMA_QP_TABLE_SUPPORT_M50663 
-#define MAX_QP_TABLE_SIZE  58   
-#define MAX_QP_TABLE_SIZE_EXT  70   
+#define MAX_QP_TABLE_SIZE               58   
+#define MAX_QP_TABLE_SIZE_EXT           70   
 #endif
 #define USE_TILE_GROUP_DQP              1
 #define DQP_CFG                         1

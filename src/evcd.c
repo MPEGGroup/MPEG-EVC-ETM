@@ -102,9 +102,7 @@ static void sequence_deinit(EVCD_CTX * ctx)
     evc_mfree(ctx->map_affine);
 #endif
     evc_mfree(ctx->map_cu_mode);
-#if ATS_INTER_PROCESS
     evc_mfree(ctx->map_ats_inter);
-#endif
 #if EVC_TILE_SUPPORT
     evc_mfree_fast(ctx->map_tidx);
 #endif
@@ -177,7 +175,7 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
         evc_assert_gv(ctx->map_cu_mode, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
         evc_mset_x64a(ctx->map_cu_mode, 0, size);
     }
-#if ATS_INTER_PROCESS
+
     if (ctx->map_ats_inter == NULL)
     {
         size = sizeof(u8) * ctx->f_scu;
@@ -185,7 +183,6 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
         evc_assert_gv(ctx->map_ats_inter, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
         evc_mset_x64a(ctx->map_ats_inter, 0, size);
     }
-#endif
 
     /* alloc map for CU split flag */
     if(ctx->map_split == NULL)
@@ -292,9 +289,7 @@ static int slice_init(EVCD_CTX * ctx, EVCD_CORE * core, EVC_SH * sh)
 #if AFFINE
     evc_mset_x64a(ctx->map_affine, 0, sizeof(u32) * ctx->f_scu);
 #endif
-#if ATS_INTER_PROCESS
     evc_mset_x64a(ctx->map_ats_inter, 0, sizeof(u8) * ctx->f_scu);
-#endif
     evc_mset_x64a(ctx->map_cu_mode, 0, sizeof(u32) * ctx->f_scu);
     if(ctx->sh.slice_type == SLICE_I)
     {
@@ -356,22 +351,7 @@ static void make_stat(EVCD_CTX * ctx, int btype, EVCD_STAT * stat)
 static void evcd_itdq(EVCD_CTX * ctx, EVCD_CORE * core)
 {
     evc_sub_block_itdq(core->coef, core->log2_cuw, core->log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->is_coef, core->is_coef_sub, ctx->sps.tool_iqt
-#if ATS_INTRA_PROCESS
-#if IBC
-                       , core->pred_mode == MODE_IBC ? 0 : core->ats_intra_cu
-                       , core->pred_mode == MODE_IBC ? 0 : ((core->ats_intra_tu_h << 1) | core->ats_intra_tu_v)
-#else
-                       , core->ats_intra_cu, ((core->ats_intra_tu_h << 1) | core->ats_intra_tu_v)
-#endif
-#endif
-#if ATS_INTER_PROCESS
-#if IBC
-                         , core->pred_mode == MODE_IBC ? 0 : core->ats_inter_info
-#else
-                       , core->ats_inter_info
-#endif
-#endif
-    );
+                       , core->pred_mode == MODE_IBC ? 0 : core->ats_intra_cu, core->pred_mode == MODE_IBC ? 0 : ((core->ats_intra_tu_h << 1) | core->ats_intra_tu_v), core->pred_mode == MODE_IBC ? 0 : core->ats_inter_info);
 }
 
 static void get_nbr_yuv(int x, int y, int cuw, int cuh, EVCD_CTX * ctx, EVCD_CORE * core)
@@ -659,9 +639,7 @@ void evcd_get_direct_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #if ADMVP
             , core->history_buffer
 #endif
-#if IBC
             , core->ibc_flag
-#endif
             , (EVC_REFP(*)[2])ctx->refp[0]
             , &ctx->sh
 #if M50761_TMVP_8X8_GRID
@@ -942,21 +920,14 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 #endif
     EVC_TRACE_STR("\n");
 
-#if ATS_INTRA_PROCESS
     core->ats_intra_cu = core->ats_intra_tu_h = core->ats_intra_tu_v = 0;
-#endif
 
     core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu
 #if EVC_TILE_SUPPORT
         , ctx->map_tidx
 #endif
     );
-    evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
-#if IBC
-        , ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size
-#endif
-    );
-
+    evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init, ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size);
 
     /* parse CU info */
     ret = evcd_eco_cu(ctx, core);
@@ -1004,16 +975,11 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 
     evcd_set_dec_info(ctx, core
 #if ENC_DEC_TRACE
-#if IBC
                       , (core->pred_mode == MODE_INTRA || core->pred_mode == MODE_IBC)
-#else
-                      , core->pred_mode == MODE_INTRA
-#endif
 #endif
     );
 
     /* prediction */
-#if IBC
     if (core->pred_mode == MODE_IBC)
     {
         core->avail_cu = evc_get_avail_ibc(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, cuw, cuh, ctx->map_scu);
@@ -1025,7 +991,6 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
         get_nbr_yuv(x, y, cuw, cuh, ctx, core);
     }
     else
-#endif
     if(core->pred_mode != MODE_INTRA)
     {    
         core->avail_cu = evc_get_avail_inter(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, cuw, cuh, ctx->map_scu
@@ -1096,12 +1061,6 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
                     }
                 }
             }
-#if M50761_REMOVE_BIBLOCKS_8x4 
-            if (!check_bi_applicability_rdo(ctx->sh.slice_type, 1 << core->log2_cuw, 1 << core->log2_cuh) && REFI_IS_VALID(core->refi[REFP_0]) && REFI_IS_VALID(core->refi[REFP_1]))
-            {
-                evc_assert(process_bi_mv((s16 *)core->mv, core->refi));
-            }
-#endif
 #if DMVR
             evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, core->refi, core->mv, ctx->refp, core->pred, ctx->poc.poc_val, core->dmvr_template, core->dmvr_ref_pred_interpolated
                    , core->dmvr_half_pred_interpolated
@@ -1136,19 +1095,13 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 #endif
 #if AFFINE && ADMVP && AFFINE_UPDATE 
 #if !M50662_AFFINE_MV_HISTORY_TABLE
-        if (core->pred_mode != MODE_INTRA && !core->affine_flag
-#if IBC
-            && core->pred_mode != MODE_IBC
-#endif
+        if (core->pred_mode != MODE_INTRA && !core->affine_flag && core->pred_mode != MODE_IBC
 #if M50761_CHROMA_NOT_SPLIT
             && evcd_check_luma(ctx)
 #endif
             )
 #else
-        if (core->pred_mode != MODE_INTRA
-#if IBC
-            && core->pred_mode != MODE_IBC
-#endif
+        if (core->pred_mode != MODE_INTRA && core->pred_mode != MODE_IBC
 #if M50761_CHROMA_NOT_SPLIT
             && evcd_check_luma(ctx)
 #endif
@@ -1223,22 +1176,15 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 #endif
 
     /* reconstruction */
-    evc_recon_yuv(x, y, cuw, cuh, core->coef, core->pred[0], core->is_coef, ctx->pic
-#if ATS_INTER_PROCESS
-#if IBC
-      , core->pred_mode == MODE_IBC ? 0 : core->ats_inter_info
-#else
-                  , core->ats_inter_info
-#endif
-#endif
+    evc_recon_yuv(x, y, cuw, cuh, core->coef, core->pred[0], core->is_coef, ctx->pic, core->pred_mode == MODE_IBC ? 0 : core->ats_inter_info
+
 #if M50761_CHROMA_NOT_SPLIT
         , ctx->tree_cons
 #endif
     );
-#if IBC
+
     if (core->pred_mode != MODE_IBC)
     {
-#endif
 #if HTDF
     if(ctx->sps.tool_htdf == 1 && (core->is_coef[Y_C] || core->pred_mode == MODE_INTRA)
 #if M50761_CHROMA_NOT_SPLIT
@@ -1255,9 +1201,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
             , ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->pic->s_l, avail_cu);
     }
 #endif
-#if IBC
     }
-#endif
     return EVC_OK;
 ERR:
     return ret;
@@ -1501,11 +1445,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
                     core->x_scu = PEL2SCU(x0);
                     core->y_scu = PEL2SCU(y0);
 
-                    evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
-#if IBC
-                        , ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size
-#endif
-                    );
+                    evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init, ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size);
 
                     mode = evcd_eco_mode_constr(ctx);
                 }
@@ -1665,12 +1605,12 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
     else
 #endif
     {
-#if ATS_INTER_PROCESS // deblock
+        // deblock
         int t = (x >> MIN_CU_LOG2) + (y >> MIN_CU_LOG2) * ctx->w_scu;
         u8 ats_inter_info = ctx->map_ats_inter[t];
         u8 ats_inter_idx = get_ats_inter_idx(ats_inter_info);
         u8 ats_inter_pos = get_ats_inter_pos(ats_inter_info);
-#endif
+
         if(is_hor)
         {
             if (cuh > MAX_TR_SIZE)
@@ -2151,18 +2091,12 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
             lcu_cnt_in_tile--;
 
             /* read end_of_picture_flag */
-#if FIX_END_OF_TILE_ONE_BIT_CODING
             if(lcu_cnt_in_tile == 0)
             {
                 assert(evcd_eco_tile_end_flag(bs, sbac) == 1);
                 break;
             }
-#else
-            if (evcd_eco_tile_end_flag(bs, sbac))
-            {
-                break;
-            }
-#endif
+
             core->x_lcu++;
             if (core->x_lcu >= ctx->tile[i].w_ctb + col_bd)
             {
@@ -2647,11 +2581,8 @@ EVCD evcd_create(EVCD_CDSC * cdsc, int * err)
     /* Set CTX variables to default value */
     ctx->magic = EVCD_MAGIC_CODE;
     ctx->id = (EVCD)ctx;
-
-#if ATS_INTRA_PROCESS
     evc_init_multi_tbl();
     evc_init_multi_inv_tbl();
-#endif
 
     return (ctx->id);
 ERR:

@@ -50,10 +50,8 @@ extern const s8 evc_tbl_tm32[32][32];
 extern const s8 evc_tbl_tm64[64][64];
 extern const s8 *evc_tbl_tm[MAX_CU_DEPTH];
 extern int evc_scan_sr[MAX_TR_SIZE*MAX_TR_SIZE];
-#if ADCC
 extern int evc_inv_scan_sr[MAX_TR_SIZE*MAX_TR_SIZE];
 extern u16 * evc_inv_scan_tbl[COEF_SCAN_TYPE_NUM][MAX_CU_LOG2 - 1][MAX_CU_LOG2 - 1];
-#endif
 extern u16 * evc_scan_tbl[COEF_SCAN_TYPE_NUM][MAX_CU_LOG2 - 1][MAX_CU_LOG2 - 1];
 extern const u8 evey_tbl_mpm[6][6][5];
 
@@ -110,12 +108,11 @@ extern const s16 init_suco_flag[2][NUM_SBAC_CTX_SUCO_FLAG][1];
 #if ALF
 extern const s16 init_ctb_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG][1];
 #endif
-#if ADCC 
 extern const s16 init_cc_gt0[2][NUM_CTX_GT0];
 extern const s16 init_cc_gtA[2][NUM_CTX_GTA];
 extern const s16 init_cc_scanr_x[2][NUM_CTX_SCANR];
 extern const s16 init_cc_scanr_y[2][NUM_CTX_SCANR];
-#if COEFF_CODE_ADCC2
+
 #if M50631_IMPROVEMENT_ADCC_CTXINIT
 extern const s16 init_cc_gt0_4[2][NUM_CTX_GT0];
 extern const s16 init_cc_gtA_4[2][NUM_CTX_GTA];
@@ -125,8 +122,6 @@ extern const s16 init_cc_gtA_3[2][NUM_CTX_GTA];
 #endif
 extern const s16 init_cc_scanr_x_3[2][NUM_CTX_SCANR];
 extern const s16 init_cc_scanr_y_3[2][NUM_CTX_SCANR];
-#endif
-#endif
 
 #if AFFINE
 extern const s16 init_affine_flag[2][NUM_SBAC_CTX_AFFINE_FLAG][1];
@@ -135,10 +130,7 @@ extern const s16 init_affine_mrg[2][AFF_MAX_CAND][1];
 extern const s16 init_affine_mvd_flag[2][NUM_SBAC_CTX_AFFINE_MVD_FLAG][1];
 #endif
 extern const s16 init_skip_flag[2][NUM_SBAC_CTX_SKIP_FLAG][1];
-#if IBC
 extern const s16 init_ibc_flag[2][NUM_SBAC_CTX_IBC_FLAG][1];
-#endif
-#if ATS_INTRA_PROCESS
 extern const s16 init_ats_intra_cu[2][NUM_ATS_INTRA_CU_FLAG_CTX][1];
 #if M50632_SIMPLIFICATION_ATS
 extern const s16 init_ats_tu[2][NUM_ATS_INTRA_TU_FLAG_CTX][1];
@@ -146,10 +138,7 @@ extern const s16 init_ats_tu[2][NUM_ATS_INTRA_TU_FLAG_CTX][1];
 extern const s16 init_ats_tu_h[2][NUM_ATS_INTRA_TU_FLAG_CTX][1];
 extern const s16 init_ats_tu_v[2][NUM_ATS_INTRA_TU_FLAG_CTX][1];
 #endif
-#endif
-#if ATS_INTER_PROCESS
 extern const s16 init_ats_inter_info[2][NUM_SBAC_CTX_ATS_INTER_INFO][1];
-#endif
 #else
 
 extern const s16 init_cbf[2][NUM_QT_CBF_CTX][2];
@@ -188,7 +177,6 @@ extern const s16 init_affine_mrg[2][AFF_MAX_CAND][2];
 extern const s16 init_affine_mvd_flag[2][NUM_SBAC_CTX_AFFINE_MVD_FLAG][2];
 #endif
 extern const s16 init_skip_flag[2][NUM_SBAC_CTX_SKIP_FLAG][2];
-#if ATS_INTRA_PROCESS
 extern const s16 init_ats_intra_cu[2][NUM_ATS_INTRA_CU_FLAG_CTX][2];
 #if M50632_SIMPLIFICATION_ATS
 extern const s16 init_ats_tu[2][NUM_ATS_INTRA_TU_FLAG_CTX][2];
@@ -196,13 +184,9 @@ extern const s16 init_ats_tu[2][NUM_ATS_INTRA_TU_FLAG_CTX][2];
 extern const s16 init_ats_tu_h[2][NUM_ATS_INTRA_TU_FLAG_CTX][2];
 extern const s16 init_ats_tu_v[2][NUM_ATS_INTRA_TU_FLAG_CTX][2];
 #endif
-#endif
-#if ATS_INTER_PROCESS
 extern const s16 init_ats_inter_info[2][NUM_SBAC_CTX_ATS_INTER_INFO][2];
 #endif
-#endif
 
-#if ATS_INTRA_PROCESS
 extern s16 evc_tbl_tr2[NUM_TRANS_TYPE][2][2];
 extern s16 evc_tbl_tr4[NUM_TRANS_TYPE][4][4];
 extern s16 evc_tbl_tr8[NUM_TRANS_TYPE][8][8];
@@ -220,7 +204,6 @@ extern s16 evc_tbl_inv_tr16[NUM_TRANS_TYPE][16][16];
 extern s16 evc_tbl_inv_tr32[NUM_TRANS_TYPE][32][32];
 extern s16 evc_tbl_inv_tr64[NUM_TRANS_TYPE][64][64];
 extern s16 evc_tbl_inv_tr128[NUM_TRANS_TYPE][128][128];
-#endif
 
 #if DBF == DBF_AVC
 extern const u8 ALPHA_TABLE[52];
@@ -228,12 +211,10 @@ extern const u8 BETA_TABLE[52];
 extern const u8 CLIP_TAB[52][5];
 #endif
 
-#if ADCC 
 extern const int g_min_in_group[LAST_SIGNIFICANT_GROUPS];
 extern const int g_group_idx[MAX_TR_SIZE];
 extern const int g_go_rice_range[MAX_GR_ORDER_RESIDUAL];
 extern const int g_go_rice_para_coeff[32];
-#endif
 #ifdef __cplusplus
 }
 #endif

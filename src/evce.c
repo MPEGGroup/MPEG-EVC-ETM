@@ -44,9 +44,7 @@
 int last_intra_poc = INT_MAX;
 BOOL aps_counter_reset = FALSE;
 #endif
-#if IBC
 #include "evce_ibc_hash_wrapper.h"
-#endif
 
 #if GRAB_STAT
 #include "evc_debug.h"
@@ -253,7 +251,6 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
     param->ref_pic_gap_length = cdsc->ref_pic_gap_length;
     param->gop_size       = param->max_b_frames +1;
     param->use_closed_gop = (cdsc->closed_gop)? 1: 0;
-#if IBC
     param->use_ibc_flag = (cdsc->ibc_flag) ? 1 : 0;
     param->ibc_search_range_x = cdsc->ibc_search_range_x;
     param->ibc_search_range_y = cdsc->ibc_search_range_y;
@@ -261,11 +258,8 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
     param->ibc_hash_search_max_cand = cdsc->ibc_hash_search_max_cand;
     param->ibc_hash_search_range_4smallblk = cdsc->ibc_hash_search_range_4smallblk;
     param->ibc_fast_method = cdsc->ibc_fast_method;
-#endif
     param->use_hgop       = (cdsc->disable_hgop)? 0: 1;
-#if USE_SLICE_DQP
     param->qp_incread_frame = cdsc->add_qp_frame;
-#endif
 #if DQP_CFG
     param->use_dqp = cdsc->use_dqp;
     param->cu_qp_delta_area = cdsc->cu_qp_delta_area;
@@ -327,10 +321,8 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->bit_depth_chroma_minus8 = ctx->cdsc.out_bit_depth - 8;
     sps->chroma_format_idc = 1; // YCbCr 4:2:0
 #endif
-#if IBC
     sps->ibc_flag = (ctx->param.use_ibc_flag) ? 1 : 0;
     sps->ibc_log_max_size = IBC_MAX_CU_LOG2;
-#endif
     sps->log2_max_pic_order_cnt_lsb_minus4 = POC_LSB_BIT - 4;
     sps->max_dec_pic_buffering_minus1 = 0; //[TBF]
 
@@ -388,13 +380,9 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->tool_amis = ctx->cdsc.tool_amis;
     sps->tool_eipd = ctx->cdsc.tool_eipd;
     sps->tool_iqt = ctx->cdsc.tool_iqt;
-#if ADCC
     sps->tool_adcc = ctx->cdsc.tool_adcc;
-#endif
     sps->tool_cm_init = ctx->cdsc.tool_cm_init;
-#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
     sps->tool_ats = ctx->cdsc.tool_ats;
-#endif
 
     if(sps->profile_idc == PROFILE_MAIN)
     {
@@ -789,11 +777,8 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
     sh->collocated_mvp_source_list_idx = REFP_0;  // Specifies source (List ID) in collocated pic that provides MV information (Applicability is function of NoBackwardPredFlag)
 
     /* set lambda */
-#if USE_SLICE_DQP
     qp = EVC_CLIP3(0, MAX_QUANT, (ctx->param.qp_incread_frame != 0 && (int)(ctx->poc.poc_val) >= ctx->param.qp_incread_frame) ? ctx->qp + 1.0 : ctx->qp);
-#else
-    qp = ctx->qp;
-#endif
+
 #if EVC_TILE_SUPPORT
     if (ctx->tile_cnt > 1)
     {
@@ -1073,10 +1058,7 @@ static int evce_eco_tree(EVCE_CTX * ctx, EVCE_CORE * core, int x0, int y0, int c
             if (mode_cons_signal)
             {
                 evc_get_ctx_some_flags(PEL2SCU(x0), PEL2SCU(y0), cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
-#if IBC
-                    , ctx->param.use_ibc_flag, ctx->sps.ibc_log_max_size
-#endif
-                );
+                    , ctx->param.use_ibc_flag, ctx->sps.ibc_log_max_size);
 
                 evce_eco_mode_constr(bs, split_struct.tree_cons.mode_cons, ctx->ctx_flags[CNID_MODE_CONS]);
             }
@@ -1158,12 +1140,11 @@ int evce_ready(EVCE_CTX * ctx)
     EVCE_CORE * core = NULL;
     int          w, h, ret, i;
     s64          size;
-#if ATS_INTER_PROCESS
+
     ctx->map_ats_inter = NULL;
     ctx->ats_inter_info_pred = NULL;
     ctx->ats_inter_pred_dist = NULL;
     ctx->ats_inter_num_pred = NULL;
-#endif
 
     evc_assert(ctx);
 
@@ -1215,12 +1196,10 @@ int evce_ready(EVCE_CTX * ctx)
     EncAdaptiveLoopFilter* p = (EncAdaptiveLoopFilter*)(ctx->enc_alf);
     call_create_enc_ALF(p, ctx->w, ctx->h, ctx->max_cuwh, ctx->max_cuwh, 5);
 #endif
-#if IBC
     if (ctx->param.use_ibc_flag)
     {
       ctx->ibc_hash_handle = create_enc_IBC(ctx->w, ctx->h);
     }
-#endif
     /*  allocate CU data map*/
     if(ctx->map_cu_data == NULL)
     {
@@ -1280,7 +1259,6 @@ int evce_ready(EVCE_CTX * ctx)
         evc_mset_x64a(ctx->map_cu_mode, 0, size);
     }
 
-#if ATS_INTRA_PROCESS
     if (ctx->map_ats_intra_cu == NULL)
     {
         size = sizeof(u8) * ctx->f_scu;
@@ -1302,8 +1280,7 @@ int evce_ready(EVCE_CTX * ctx)
         evc_assert_gv(ctx->map_ats_tu_v, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
         evc_mset(ctx->map_ats_tu_v, 0, size);
     }
-#endif
-#if ATS_INTER_PROCESS
+
     if (ctx->map_ats_inter == NULL)
     {
         size = sizeof(u8) * ctx->f_scu;
@@ -1327,7 +1304,6 @@ int evce_ready(EVCE_CTX * ctx)
         ctx->ats_inter_num_pred = evc_malloc_fast(size);
         evc_assert_gv(ctx->ats_inter_num_pred, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
     }
-#endif
 
     /* initialize reference picture manager */
     ctx->pa.fn_alloc = evce_pic_alloc;
@@ -1387,17 +1363,13 @@ ERR:
 #if AFFINE
     evc_mfree_fast(ctx->map_affine);
 #endif
-#if ATS_INTRA_PROCESS
     evc_mfree_fast(ctx->map_ats_intra_cu);
     evc_mfree_fast(ctx->map_ats_tu_h);
     evc_mfree_fast(ctx->map_ats_tu_v);
-#endif
-#if ATS_INTER_PROCESS
     evc_mfree_fast(ctx->map_ats_inter);
     evc_mfree_fast(ctx->ats_inter_pred_dist);
     evc_mfree_fast(ctx->ats_inter_info_pred);
     evc_mfree_fast(ctx->ats_inter_num_pred);
-#endif
     evc_mfree_fast(ctx->map_cu_mode);
 #if EVC_TILE_SUPPORT
     evc_mfree_fast(ctx->map_tidx);
@@ -1433,17 +1405,13 @@ void evce_flush(EVCE_CTX * ctx)
 #if AFFINE
     evc_mfree_fast(ctx->map_affine);
 #endif
-#if ATS_INTRA_PROCESS
     evc_mfree_fast(ctx->map_ats_intra_cu);
     evc_mfree_fast(ctx->map_ats_tu_h);
     evc_mfree_fast(ctx->map_ats_tu_v);
-#endif
-#if ATS_INTER_PROCESS
     evc_mfree_fast(ctx->map_ats_inter);
     evc_mfree_fast(ctx->ats_inter_pred_dist);
     evc_mfree_fast(ctx->ats_inter_info_pred);
     evc_mfree_fast(ctx->ats_inter_num_pred);
-#endif
     evc_mfree_fast(ctx->map_cu_mode);
 #if EVC_TILE_SUPPORT
     evc_mfree_fast(ctx->map_tidx);
@@ -1549,12 +1517,11 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
     else
 #endif
     {
-#if ATS_INTER_PROCESS // deblock
+        // deblock
         int t = (x >> MIN_CU_LOG2) + (y >> MIN_CU_LOG2) * ctx->w_scu;
         u8 ats_inter_info = ctx->map_ats_inter[t];
         u8 ats_inter_idx = get_ats_inter_idx(ats_inter_info);
         u8 ats_inter_pos = get_ats_inter_pos(ats_inter_info);
-#endif
         if(is_hor)
         {
             if (cuh > MAX_TR_SIZE)
@@ -2213,9 +2180,8 @@ int evce_enc_pic_prepare(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #if AFFINE
     evc_mset_x64a(ctx->map_affine, 0, sizeof(u32) * ctx->f_scu);
 #endif
-#if ATS_INTER_PROCESS
+
     evc_mset_x64a(ctx->map_ats_inter, 0, sizeof(u8) * ctx->f_scu);
-#endif
     evc_mset_x64a(ctx->map_cu_mode, 0, sizeof(u32) * ctx->f_scu);
 
     return EVC_OK;
@@ -2512,12 +2478,10 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #endif
             ret = ctx->fn_mode_analyze_lcu(ctx, core);
             evc_assert_rv(ret == EVC_OK, ret);
-#if IBC
             if (ctx->param.use_ibc_flag && (ctx->param.ibc_fast_method & IBC_FAST_METHOD_ADAPTIVE_SEARCHRANGE) && ctx->param.ibc_hash_search_flag)
             {
                 reset_ibc_search_range(ctx, core->x_pel, core->y_pel, ctx->max_cuwh, ctx->max_cuwh);
             }
-#endif
             /* entropy coding ************************************************/
             ret = evce_eco_tree(ctx, core, core->x_pel, core->y_pel, 0, ctx->max_cuwh, ctx->max_cuwh, 0, 1
                 , NO_SPLIT, split_mode_child, 0, split_allow, 0, 0
@@ -2592,12 +2556,10 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #endif
         ret = ctx->fn_mode_analyze_lcu(ctx, core);
         evc_assert_rv(ret == EVC_OK, ret);
-#if IBC
         if (ctx->param.use_ibc_flag && (ctx->param.ibc_fast_method & IBC_FAST_METHOD_ADAPTIVE_SEARCHRANGE) && ctx->param.ibc_hash_search_flag)
         {
           reset_ibc_search_range(ctx, core->x_pel, core->y_pel, ctx->max_cuwh, ctx->max_cuwh);
         }
-#endif
         /* entropy coding ************************************************/
 #if DQP_RDO
         if(ctx->pps.cu_qp_delta_enabled_flag)
@@ -2806,16 +2768,8 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
                 ctb_cnt_in_tile--;
                 ctx->lcu_cnt--; //To be updated properly in case of multicore
 
-                                /* end_of_picture_flag */
-#if FIX_END_OF_TILE_ONE_BIT_CODING
+                /* end_of_picture_flag */
                 if(ctb_cnt_in_tile == 0)
-#else
-                if (ctb_cnt_in_tile > 0)
-                {
-                    evce_eco_tile_end_flag(bs, 0);
-                }
-                else
-#endif
                 {
                     evce_eco_tile_end_flag(bs, 1);
                     evce_sbac_finish(bs);
@@ -2970,14 +2924,12 @@ int evce_platform_init(EVCE_CTX * ctx)
     /* create inter prediction analyzer */
     ret = evce_pinter_create(ctx, 0);
     evc_assert_rv(EVC_OK == ret, ret);
-#if IBC
     if (ctx->param.use_ibc_flag)
     {
       /* create ibc prediction analyzer */
       ret = evce_pibc_create(ctx, 0);
       evc_assert_rv(EVC_OK == ret, ret);
     }
-#endif
 #if RDO_DBK
     ctx->pic_dbk = NULL;
 #endif
@@ -3019,13 +2971,11 @@ void evce_platform_deinit(EVCE_CTX * ctx)
     delete_enc_ALF(ctx->enc_alf);
     ctx->fn_alf = NULL;
 #endif
-#if IBC
     if (ctx->param.use_ibc_flag)
     {
       destroy_enc_IBC(ctx->ibc_hash_handle);
       ctx->ibc_hash_handle = NULL;
     }
-#endif
     ctx->fn_picbuf_expand = NULL;
     ctx->fn_get_inbuf = NULL;
 }
@@ -3075,10 +3025,8 @@ EVCE evce_create(EVCE_CDSC * cdsc, int * err)
     ctx->sh.aps_signaled = -1;
 #endif
 
-#if ATS_INTRA_PROCESS
     evc_init_multi_tbl();
     evc_init_multi_inv_tbl();
-#endif
 
     return (ctx->id);
 ERR:
@@ -3479,9 +3427,7 @@ int evce_create_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
     evce_malloc_2d((s8***)&cu_data->ipm, 2, cu_cnt, sizeof(u8));
     evce_malloc_2d((s8***)&cu_data->mpm_ext, 8, cu_cnt, sizeof(u8));
     evce_malloc_1d((void**)&cu_data->skip_flag, size_8b);
-#if IBC
     evce_malloc_1d((void**)&cu_data->ibc_flag, size_8b);
-#endif
 #if DMVR_FLAG
     evce_malloc_1d((void**)&cu_data->dmvr_flag, size_8b);
 #endif
@@ -3492,14 +3438,11 @@ int evce_create_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
     evce_malloc_1d((void**)&cu_data->mmvd_idx, size_16b);
     evce_malloc_1d((void**)&cu_data->mmvd_flag, size_8b);
 
-#if ATS_INTRA_PROCESS
     evce_malloc_1d((void**)& cu_data->ats_intra_cu, size_8b);
     evce_malloc_1d((void**)& cu_data->ats_tu_h, size_8b);
     evce_malloc_1d((void**)& cu_data->ats_tu_v, size_8b);
-#endif
-#if ATS_INTER_PROCESS
+
     evce_malloc_1d((void**)&cu_data->ats_inter_info, size_8b);
-#endif
 
     for(i = 0; i < N_C; i++)
     {
@@ -3567,9 +3510,7 @@ int evce_delete_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
     evce_free_2d((void**)cu_data->ipm);
     evce_free_2d((void**)cu_data->mpm_ext);
     evce_free_1d((void*)cu_data->skip_flag);
-#if IBC
     evce_free_1d((void*)cu_data->ibc_flag);
-#endif
 #if DMVR_FLAG
     evce_free_1d((void*)cu_data->dmvr_flag);
 #endif
@@ -3596,14 +3537,10 @@ int evce_delete_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
     evce_free_1d((void*)cu_data->affine_flag);
     evce_free_1d((void*)cu_data->map_affine);
 #endif   
-#if ATS_INTRA_PROCESS
     evce_free_1d((void*)cu_data->ats_intra_cu);
     evce_free_1d((void*)cu_data->ats_tu_h);
     evce_free_1d((void*)cu_data->ats_tu_v);
-#endif
-#if ATS_INTER_PROCESS
     evce_free_1d((void*)cu_data->ats_inter_info);
-#endif
     evce_free_1d((void*)cu_data->map_cu_mode);
 #if !M50761_REMOVE_BLOCK_SIZE_MAP
     evce_free_2d((void**)cu_data->block_size);

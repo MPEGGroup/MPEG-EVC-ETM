@@ -52,14 +52,11 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
 #if M50761_CHROMA_NOT_SPLIT
 void evce_rdo_bit_cnt_cu_inter_chroma(EVCE_CTX * ctx, EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM], int pidx);
 #endif
-#if IBC
+
 void evce_rdo_bit_cnt_cu_ibc(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s32 cup, s16 mvd[MV_D],
   s16 coef[N_C][MAX_CU_DIM], u8 mvp_idx, u8 pred_mode);
-#endif
-void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM], int ch_type, int pidx
-#if ATS_INTRA_PROCESS || ADCC
-                                    , EVCE_CTX * ctx
-#endif
+
+void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM], int ch_type, int pidx, EVCE_CTX * ctx
 #if M50761_CHROMA_NOT_SPLIT
     , TREE_CONS tree_cons
 #endif
@@ -79,12 +76,7 @@ u16  evc_get_bef_data_idx(EVCE_CORE * core);
 void evce_init_bef_data(EVCE_CORE * core, EVCE_CTX * ctx);
 
 #if RDO_DBK
-void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *pic_org, int cuw, int cuh, pel(*src)[MAX_CU_DIM], int s_src, int x, int y, u16 avail_lr
-                                     , u8 intra_flag, u8 cbf_l, s8 *refi, s16(*mv)[MV_D], u8 is_mv_from_mvf
-#if ATS_INTER_PROCESS
-                                     , u8 ats_inter_info
-#endif
-);
+void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *pic_org, int cuw, int cuh, pel(*src)[MAX_CU_DIM], int s_src, int x, int y, u16 avail_lr, u8 intra_flag, u8 cbf_l, s8 *refi, s16(*mv)[MV_D], u8 is_mv_from_mvf, u8 ats_inter_info);
 #endif
 #if M50662_HISTORY_CTU_ROW_RESET
 int evce_hmvp_init(EVC_HISTORY_BUFFER *history_buffer);

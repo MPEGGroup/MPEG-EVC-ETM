@@ -37,23 +37,15 @@
 #include "evc.h"
 #include "evc_port.h"
 
+/* Profiles definitions */
+#define PROFILE_BASELINE                             0
+#define PROFILE_MAIN                                 1
+
 #define AFFINE_TMVP_SPEC_CONDITION_ALIGN             1
 
+//MPEG 128 adoptions
 #define ALF_TILES_SUPPORT_M50663                     1
 #define CHROMA_QP_TABLE_SUPPORT_M50663               1
-#define MAX_QP_TABLE_SIZE  58   
-#define MAX_QP_TABLE_SIZE_EXT  70   
-#define FIX_END_OF_TILE_ONE_BIT_CODING               1
-
-// ETM4.1_rcQC_admvp  - clean up and spec alignment with specification
-#define QC_ADMVP_SPEC_ALLIGHN                         1  // ADMVP signaling alligned to spec.
-#define QC_ADMVP_CLEANUP                              1  // ADMVP ADMVP implementation spec alignment and simplification
-
-// Affine memory bandwith threhsold:
-#define QC_THRESHOLD                                 0
-
-
-//MPEG 128 adoptions
 
 #define M50662                                       1
 #if M50662
@@ -76,7 +68,7 @@
 #endif
 #endif
 
-#define M50761                                     1
+#define M50761                                       1
 #if M50761
 //chroma no split for avoiding 2x2, 2x4 and 4x2 chroma blocks
 #define M50761_CHROMA_NOT_SPLIT                    0
@@ -98,11 +90,8 @@
 #define M50761_DMVR_SIMP_SUBPUPAD                  1 //sub PU padding 
 #define M50761_DMVR_RESTRICT_SMALL_BLOCKS          1 //apply DMVR for blocks with w >=8 && h >= 8
 
-#define M50761_REMOVE_BIBLOCKS_8x4                 1
-#if M50761_REMOVE_BIBLOCKS_8x4
 #define REMOVE_BI_INTERDIR                         1   // Remove signalling part of Inter dir flag
 #define FIX_IBC_PRED_MODE_4x4                      1   // Remove signalling of pred.mode flag for blocks 4x4 if IBC is on
-#endif
 
 #define M50761_TMVP_ALIGN_SPEC                     1
 #define M50761_AFFINE_ADAPT_SUB_SIZE               1
@@ -117,37 +106,27 @@
 #endif
 #endif
 
-#define M50631_IMPROVEMENT_ADCC            1
+#define M50631_IMPROVEMENT_ADCC                      1
 #if M50631_IMPROVEMENT_ADCC
-#define M50631_IMPROVEMENT_ADCC_CTXINIT    1
-#define M50631_IMPROVEMENT_ADCC_CTXGT12    1
-#define M50631_IMPROVEMENT_ADCC_RDOQFIX    1
+#define M50631_IMPROVEMENT_ADCC_CTXINIT              1
+#define M50631_IMPROVEMENT_ADCC_CTXGT12              1
+#define M50631_IMPROVEMENT_ADCC_RDOQFIX              1
 #endif
 
-#define M50632_IMPROVEMENT                 1
+#define M50632_IMPROVEMENT                           1
 #if M50632_IMPROVEMENT
-#define M50632_SIMPLIFICATION_TT           1
-#define M50632_SIMPLIFICATION_ATS          1
-#define M50632_IMPROVEMENT_MMVD            1
-#define M50632_IMPROVEMENT_SPS             1
-#define M50632_IMPROVEMENT_BASELINE        1
-#endif
+#define M50632_SIMPLIFICATION_TT                     1
+#define M50632_SIMPLIFICATION_ATS                    1
+#define M50632_IMPROVEMENT_MMVD                      1
+#define M50632_IMPROVEMENT_SPS                       1
+#define M50632_IMPROVEMENT_BASELINE                  1
 
-#define TU_ZONAL_CODING                    1
 #if M50632_IMPROVEMENT_BASELINE
-#define CTX_MODEL_FOR_RESIDUAL_IN_BASE     0
+#define CTX_MODEL_FOR_RESIDUAL_IN_BASE               0
 #else
-#define CTX_MODEL_FOR_RESIDUAL_IN_BASE     1
+#define CTX_MODEL_FOR_RESIDUAL_IN_BASE               1
 #endif
-#define USE_SLICE_DQP                      1
-
-/* Profiles definitions */
-#define PROFILE_BASELINE                   0
-#define PROFILE_MAIN                       1
-
-#define ADCC                               1   
-#define ATS                                1   
-#define IBC                                1   
+#endif
 
 //inter
 #define AFFINE                             1  // Affine Prediction
@@ -207,6 +186,7 @@
 #define FAST_MERGE_THR                     1.3
 #endif
 #define ENC_SUCO_FAST_CONFIG               1  /* fast config: 1(low complexity), 2(medium complexity), 4(high_complexity) */
+
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                              SIMD Optimizations                            //
@@ -427,11 +407,7 @@ enum SAD_POINT_INDEX
 /* EIF (END) */
 
 #if EIF_MEMORY_BANDWIDTH_RESTRICTION
-#if QC_THRESHOLD
-#define MAX_MEMORY_ACCESS_BI             72  // Threshold fo affine bandwith flag triggering aligned to the effective MV clipping value
-#else
 #define MAX_MEMORY_ACCESS_BI           ( (4 + 5) * (4 + 5) )
-#endif
 #else
 #define MAX_MEMORY_ACCESS_BI             ((8 + 7) * (8 + 7) / 64)
 #define MAX_MEMORY_ACCESS_UNI            ((8 + 7) * (4 + 7) / 32)
@@ -470,19 +446,13 @@ typedef struct _evc_AlfFilterShape
 /* ALF (END) */
 
 /* TRANSFORM PACKAGE (START) */
-#define ATS_INTRA_PROCESS                  ATS
-#define ATS_INTER_PROCESS                  ATS
-
-#if ATS_INTRA_PROCESS
 #define ATS_INTRA_FAST                     0
 #if ATS_INTRA_FAST
 #define ATS_INTER_INTRA_SKIP_THR           1.05
 #define ATS_INTRA_Y_NZZ_THR                1.00
 #define ATS_INTRA_IPD_THR                  1.10
 #endif
-#endif
 
-#if ATS_INTER_PROCESS
 #define ATS_INTER_DEBUG                    0
 #define ATS_INTER_SL_NUM                   16
 #define get_ats_inter_idx(s)               (s & 0xf)
@@ -490,13 +460,9 @@ typedef struct _evc_AlfFilterShape
 #define get_ats_inter_info(idx, pos)       (idx + (pos << 4))
 #define is_ats_inter_horizontal(idx)       (idx == 2 || idx == 4)
 #define is_ats_inter_quad_size(idx)        (idx == 3 || idx == 4)
-#endif
 /* TRANSFORM PACKAGE (END) */
 
 /* ADCC (START) */
-#if ADCC
-#define COEFF_CODE_ADCC2                   1 
-
 #define LOG2_RATIO_GTA                     1
 #define LOG2_RATIO_GTB                     4
 #define LOG2_CG_SIZE                       4
@@ -508,16 +474,31 @@ typedef struct _evc_AlfFilterShape
 #define MAX_GR_ORDER_RESIDUAL              10
 #define COEF_REMAIN_BIN_REDUCTION          3
 #define LAST_SIGNIFICANT_GROUPS            14
-#endif
+
+#define NUM_CTX_SCANR_LUMA                 25
+#define NUM_CTX_SCANR_CHROMA               3
+#define NUM_CTX_SCANR                      (NUM_CTX_SCANR_LUMA + NUM_CTX_SCANR_CHROMA)
+
+#define NUM_CTX_GT0_LUMA                   39  /* number of context models for luma gt0 flag */
+#define NUM_CTX_GT0_CHROMA                 8   /* number of context models for chroma gt0 flag */
+#define NUM_CTX_GT0_LUMA_TU                13  /* number of context models for luma gt0 flag per TU */
+#define NUM_CTX_GT0                        (NUM_CTX_GT0_LUMA + NUM_CTX_GT0_CHROMA)  /* number of context models for gt0 flag */
+
+#define NUM_CTX_GTA_LUMA                   13
+#define NUM_CTX_GTA_CHROMA                 5     
+#define NUM_CTX_GTA                        (NUM_CTX_GTA_LUMA + NUM_CTX_GTA_CHROMA)  /* number of context models for gtA/B flag */
+
+#define COEF_SCAN_ZIGZAG                   0
+#define COEF_SCAN_DIAG                     1
+#define COEF_SCAN_DIAG_CG                  2
+#define COEF_SCAN_TYPE_NUM                 3
 /* ADCC (END) */
 
 /* IBC (START) */
-#if IBC
 #define IBC_SEARCH_RANGE                     64
 #define IBC_NUM_CANDIDATES                   64
 #define IBC_FAST_METHOD_BUFFERBV             0X01
 #define IBC_FAST_METHOD_ADAPTIVE_SEARCHRANGE 0X02
-#endif
 /* IBC (END) */
 
 /* Common routines (START) */
@@ -721,9 +702,7 @@ extern int fp_trace_started;
 #define MODE_DIR                           3
 #define MODE_SKIP_MMVD                     4
 #define MODE_DIR_MMVD                      5
-#if IBC
 #define MODE_IBC                           6
-#endif
 /*****************************************************************************
  * prediction direction
  *****************************************************************************/
@@ -740,10 +719,8 @@ extern int fp_trace_started;
 
 #define PRED_SKIP_MMVD                     5
 #define PRED_DIR_MMVD                      6
-#if IBC
 /* IBC pred direction, look current picture as reference */
 #define PRED_IBC                           7
-#endif
 #define PRED_FL0_BI                        10
 #define PRED_FL1_BI                        11
 #define PRED_BI_REF                        12
@@ -835,28 +812,22 @@ extern int fp_trace_started;
 #define INTRA_MPM_NUM                      2
 #define INTRA_PIMS_NUM                     8
 
-#if IBC
 #if M50662_IBC_MAX_BLOCK_SIZE_FIX
 #define IBC_MAX_CU_LOG2                      6 /* max block size for ibc search in unit of log2 */
 #else
 #define IBC_MAX_CU_LOG2                      4 /* max block size for ibc search in unit of log2 */
 #endif
 //#define IBC_MAX_CAND_SIZE                    (1 << IBC_MAX_CU_LOG2)
-#endif
 
 /*****************************************************************************
 * Transform
 *****************************************************************************/
-#if ATS_INTRA_PROCESS
 typedef enum _TRANS_TYPE
 {
     DCT8, DST7, NUM_TRANS_TYPE,
 } TRANS_TYPE;
-#endif
 
-#if ATS_INTRA_PROCESS
 #define PI                                (3.14159265358979323846)
-#endif
 
 /*****************************************************************************
  * reference index
@@ -865,7 +836,6 @@ typedef enum _TRANS_TYPE
 #define REFI_IS_VALID(refi)               ((refi) >= 0)
 #define SET_REFI(refi, idx0, idx1)        (refi)[REFP_0] = (idx0); (refi)[REFP_1] = (idx1)
 
-#if IBC
  /*****************************************************************************
  * macros for CU map
 
@@ -880,21 +850,6 @@ typedef enum _TRANS_TYPE
  - [27:30] : reserved
  - [31:31] : 0 -> no encoded/decoded CU, 1 -> encoded/decoded CU
  *****************************************************************************/
-#else
-/*****************************************************************************
- * macros for CU map
-
- - [ 0: 6] : slice number (0 ~ 128)
- - [ 7:14] : reserved
- - [15:15] : 1 -> intra CU, 0 -> inter CU
- - [16:22] : QP
- - [23:23] : skip mode flag
- - [24:24] : luma cbf
- - [25:25] : dmvr_flag
- - [26:30] : reserved
- - [31:31] : 0 -> no encoded/decoded CU, 1 -> encoded/decoded CU
- *****************************************************************************/
-#endif
 /* set slice number to map */
 #define MCU_SET_SN(m, sn)       (m)=(((m) & 0xFFFFFF80)|((sn) & 0x7F))
 /* get slice number from map */
@@ -937,14 +892,12 @@ typedef enum _TRANS_TYPE
 /* clear dmvr flag */
 #define MCU_CLR_DMVRF(m)         (m)=((m) & (~(1<<25)))
 #endif
-#if IBC
 /* set ibc mode flag */
 #define MCU_SET_IBC(m)          (m)=((m)|(1<<26))
 /* get ibc mode flag */
 #define MCU_GET_IBC(m)          (int)(((m)>>26) & 1)
 /* clear ibc mode flag */
 #define MCU_CLR_IBC(m)          (m)=((m) & (~(1<<26)))
-#endif
 /* set encoded/decoded CU to map */
 #define MCU_SET_COD(m)          (m)=((m)|(1<<31))
 /* get encoded/decoded CU flag from map */
@@ -1012,9 +965,7 @@ typedef u32 SBAC_CTX_MODEL;
 #define NUM_SBAC_CTX_DIRECTION_IDX         2
 #define NUM_SBAC_CTX_AFFINE_MVD_FLAG       2
 #define NUM_SBAC_CTX_SKIP_FLAG             2
-#if IBC
 #define NUM_SBAC_CTX_IBC_FLAG              2
-#endif
 #define NUM_SBAC_CTX_BTT_SPLIT_FLAG        15
 #define NUM_SBAC_CTX_BTT_SPLIT_DIR         5
 #define NUM_SBAC_CTX_BTT_SPLIT_TYPE        1
@@ -1041,21 +992,6 @@ typedef u32 SBAC_CTX_MODEL;
 #define NUM_SBAC_CTX_LAST                  2
 #define NUM_SBAC_CTX_LEVEL                 24
 
-#if ADCC
-#define NUM_CTX_SCANR_LUMA                 25
-#define NUM_CTX_SCANR_CHROMA               3
-#define NUM_CTX_SCANR                      (NUM_CTX_SCANR_LUMA + NUM_CTX_SCANR_CHROMA)
-
-#define NUM_CTX_GT0_LUMA                   39  /* number of context models for luma gt0 flag */
-#define NUM_CTX_GT0_CHROMA                 8   /* number of context models for chroma gt0 flag */
-#define NUM_CTX_GT0_LUMA_TU                13  /* number of context models for luma gt0 flag per TU */
-#define NUM_CTX_GT0                        (NUM_CTX_GT0_LUMA + NUM_CTX_GT0_CHROMA)  /* number of context models for gt0 flag */
-
-#define NUM_CTX_GTA_LUMA                   13
-#define NUM_CTX_GTA_CHROMA                 5     
-#define NUM_CTX_GTA                        (NUM_CTX_GTA_LUMA + NUM_CTX_GTA_CHROMA)  /* number of context models for gtA/B flag */
-#endif
-
 #if ALF
 #define NUM_SBAC_CTX_ALF_FLAG              9
 #endif
@@ -1063,18 +999,14 @@ typedef u32 SBAC_CTX_MODEL;
 #define NUM_DELTA_QP_CTX                   1
 #endif
 
-#if ATS_INTRA_PROCESS 
 #if M50632_SIMPLIFICATION_ATS
-#define NUM_ATS_INTRA_CU_FLAG_CTX                1
-#define NUM_ATS_INTRA_TU_FLAG_CTX                1
+#define NUM_ATS_INTRA_CU_FLAG_CTX          1
+#define NUM_ATS_INTRA_TU_FLAG_CTX          1
 #else
-#define NUM_ATS_INTRA_CU_FLAG_CTX                8
-#define NUM_ATS_INTRA_TU_FLAG_CTX                2
+#define NUM_ATS_INTRA_CU_FLAG_CTX          8
+#define NUM_ATS_INTRA_TU_FLAG_CTX          2
 #endif
-#endif
-#if ATS_INTER_PROCESS
 #define NUM_SBAC_CTX_ATS_INTER_INFO        7
-#endif
 /* context models for arithemetic coding */
 typedef struct _EVC_SBAC_CTX
 {
@@ -1082,9 +1014,7 @@ typedef struct _EVC_SBAC_CTX
     SBAC_CTX_MODEL   alf_flag        [NUM_SBAC_CTX_ALF_FLAG]; 
 #endif
     SBAC_CTX_MODEL   skip_flag       [NUM_SBAC_CTX_SKIP_FLAG];
-#if IBC
     SBAC_CTX_MODEL   ibc_flag[NUM_SBAC_CTX_IBC_FLAG];
-#endif
     SBAC_CTX_MODEL   mmvd_flag       [NUM_SBAC_CTX_MMVD_FLAG];
     SBAC_CTX_MODEL   mmvd_merge_idx  [NUM_SBAC_CTX_MMVD_MERGE_IDX];
     SBAC_CTX_MODEL   mmvd_distance_idx[NUM_SBAC_CTX_MMVD_DIST_IDX];
@@ -1110,12 +1040,10 @@ typedef struct _EVC_SBAC_CTX
     SBAC_CTX_MODEL   last            [NUM_SBAC_CTX_LAST];
     SBAC_CTX_MODEL   level           [NUM_SBAC_CTX_LEVEL];
 
-#if ADCC
     SBAC_CTX_MODEL   cc_gt0[NUM_CTX_GT0];
     SBAC_CTX_MODEL   cc_gtA[NUM_CTX_GTA];
     SBAC_CTX_MODEL   cc_scanr_x[NUM_CTX_SCANR];
     SBAC_CTX_MODEL   cc_scanr_y[NUM_CTX_SCANR];
-#endif
 
     SBAC_CTX_MODEL   btt_split_flag  [NUM_SBAC_CTX_BTT_SPLIT_FLAG];
     SBAC_CTX_MODEL   btt_split_dir   [NUM_SBAC_CTX_BTT_SPLIT_DIR];
@@ -1134,7 +1062,6 @@ typedef struct _EVC_SBAC_CTX
     SBAC_CTX_MODEL   delta_qp        [NUM_DELTA_QP_CTX];
 #endif
     int              sps_cm_init_flag;
-#if ATS_INTRA_PROCESS   
     SBAC_CTX_MODEL   ats_intra_cu          [NUM_ATS_INTRA_CU_FLAG_CTX];
 #if M50632_SIMPLIFICATION_ATS
     SBAC_CTX_MODEL   ats_tu[NUM_ATS_INTRA_TU_FLAG_CTX];
@@ -1142,22 +1069,8 @@ typedef struct _EVC_SBAC_CTX
     SBAC_CTX_MODEL   ats_tu_h        [NUM_ATS_INTRA_TU_FLAG_CTX];
     SBAC_CTX_MODEL   ats_tu_v        [NUM_ATS_INTRA_TU_FLAG_CTX];
 #endif
-#endif
-#if ATS_INTER_PROCESS
     SBAC_CTX_MODEL   ats_inter_info  [NUM_SBAC_CTX_ATS_INTER_INFO];
-#endif
 } EVC_SBAC_CTX;
-
-
-#if ADCC
-#define COEF_SCAN_ZIGZAG                   0
-#define COEF_SCAN_DIAG                     1
-#define COEF_SCAN_DIAG_CG                  2
-#define COEF_SCAN_TYPE_NUM                 3
-#else
-#define COEF_SCAN_ZIGZAG                   0
-#define COEF_SCAN_TYPE_NUM                 1
-#endif
 
 /* Maximum transform dynamic range (excluding sign bit) */
 #define MAX_TX_DYNAMIC_RANGE               15
@@ -1375,18 +1288,12 @@ typedef struct _EVC_SPS
     int              tool_eipd;
     int              tool_iqt;
     int              tool_cm_init;
-#if ATS_INTRA_PROCESS || ATS_INTER_PROCESS
     int              tool_ats;
-#endif
-
     int              tool_rpl;
     int              tool_pocs;
     int              log2_sub_gop_length;
     int              log2_ref_pic_gap_length;
-
-#if ADCC  
     int              tool_adcc;
-#endif
     int              log2_max_pic_order_cnt_lsb_minus4;
     int              max_dec_pic_buffering_minus1;
     int              max_num_ref_pics;
@@ -1410,10 +1317,8 @@ typedef struct _EVC_SPS
 #if CHROMA_QP_TABLE_SUPPORT_M50663
     EVC_CHROMA_TABLE chroma_qp_table_struct;
 #endif
-#if IBC
     u8               ibc_flag;                   /* 1 bit : flag of enabling IBC or not */
     int              ibc_log_max_size;           /* log2 max ibc size */
-#endif
     int              vui_parameters_present_flag;
 } EVC_SPS;
 
@@ -1658,9 +1563,7 @@ typedef enum _CTX_NEV_IDX
 #if AFFINE
     CNID_AFFN_FLAG,
 #endif
-#if IBC
     CNID_IBC_FLAG,
-#endif
     NUM_CNID,
 
 } CTX_NEV_IDX;

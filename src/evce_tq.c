@@ -44,19 +44,16 @@ static double err_scale_tbl[6][MAX_CU_DEPTH];
 
 extern int rdoq_est_all_cbf[2];
 extern int rdoq_est_cbf[NUM_QT_CBF_CTX][2];
-#if ADCC
 extern int rdoq_est_gt0[NUM_CTX_GT0][2];
 extern int rdoq_est_gtA[NUM_CTX_GTA][2];
 extern int rdoq_est_scanr_x[NUM_CTX_SCANR][2];
 extern int rdoq_est_scanr_y[NUM_CTX_SCANR][2];
-#endif
 extern s32 rdoq_est_run[NUM_SBAC_CTX_RUN][2];
 extern s32 rdoq_est_level[NUM_SBAC_CTX_LEVEL][2];
 extern s32 rdoq_est_last[NUM_SBAC_CTX_LAST][2];
 
 const int quant_scale[6] = {26214, 23302, 20560, 18396, 16384, 14564};
 
-#if ATS_INTRA_PROCESS
 void evce_trans_DST7_B4(s16* block, s16* coeff, s32 shift, s32 line, int skip_line, int skip_line_2);
 void evce_trans_DST7_B8(s16* block, s16* coeff, s32 shift, s32 line, int skip_line, int skip_line_2);
 void evce_trans_DST7_B16(s16* block, s16* coeff, s32 shift, s32 line, int skip_line, int skip_line_2);
@@ -72,7 +69,6 @@ Trans* evce_trans_map_tbl[16][5] =
     { NULL, evce_trans_DCT8_B4, evce_trans_DCT8_B8, evce_trans_DCT8_B16, evce_trans_DCT8_B32 },
     { NULL, evce_trans_DST7_B4, evce_trans_DST7_B8, evce_trans_DST7_B16, evce_trans_DST7_B32 },
 };
-#endif
 
 static void tx_pb2b(void * src, void * dst, int shift, int line, int step)
 {
@@ -310,7 +306,7 @@ static void tx_pb64b(void *src, void *dst, int shift, int line, int step)
     s64 EEEE[4], EEEO[4];
     s64 EEEEE[2], EEEEO[2];
     int add = 1 << (shift - 1);
-#if TU_ZONAL_CODING
+
 #define RUN_TX_PB64(src, dst, type_src, type_dst) \
     for (j = 0; j < line; j++)\
     {\
@@ -402,71 +398,7 @@ static void tx_pb64b(void *src, void *dst, int shift, int line, int step)
         src = (type_src *)src + tx_size;\
         dst = (type_dst *)dst + 1;\
     }
-#else
-#define RUN_TX_PB64(src, dst, type_src, type_dst) \
-    for (j = 0; j < line; j++)\
-    {\
-        for (k = 0; k < 32; k++)\
-        {\
-            E[k] =  *((type_src *)src + k) + *((type_src *)src + 63 - k);\
-            O[k] =  *((type_src *)src + k) - *((type_src *)src + 63 - k);\
-        }\
-        for (k = 0; k<16; k++)\
-        {\
-            EE[k] = E[k] + E[31 - k];\
-            EO[k] = E[k] - E[31 - k];\
-        }\
-        for (k = 0; k<8; k++)\
-        {\
-            EEE[k] = EE[k] + EE[15 - k];\
-            EEO[k] = EE[k] - EE[15 - k];\
-        }\
-        for (k = 0; k<4; k++)\
-        {\
-            EEEE[k] = EEE[k] + EEE[7 - k];\
-            EEEO[k] = EEE[k] - EEE[7 - k];\
-        }\
-        EEEEE[0] = EEEE[0] + EEEE[3];\
-        EEEEO[0] = EEEE[0] - EEEE[3];\
-        EEEEE[1] = EEEE[1] + EEEE[2];\
-        EEEEO[1] = EEEE[1] - EEEE[2];\
-        \
-        *((type_dst *)dst + 0        ) = (type_dst)((tm[0 * 64 + 0]  * EEEEE[0] + tm[0 * 64 + 1]  * EEEEE[1] + add) >> shift);\
-        *((type_dst *)dst + 16 * line) = (type_dst)((tm[16 * 64 + 0] * EEEEO[0] + tm[16 * 64 + 1] * EEEEO[1] + add) >> shift);\
-        *((type_dst *)dst + 32 * line) = (type_dst)((tm[32 * 64 + 0] * EEEEE[0] + tm[32 * 64 + 1] * EEEEE[1] + add) >> shift);\
-        *((type_dst *)dst + 48 * line) = (type_dst)((tm[48 * 64 + 0] * EEEEO[0] + tm[48 * 64 + 1] * EEEEO[1] + add) >> shift);\
-        \
-        for (k = 8; k<64; k += 16)\
-        {\
-            *((type_dst *)dst + k*line) = (type_dst)((tm[k * 64 + 0] * EEEO[0] + tm[k * 64 + 1] * EEEO[1] + tm[k * 64 + 2] * EEEO[2] + tm[k * 64 + 3] * EEEO[3] + add) >> shift);\
-        }\
-        for (k = 4; k<64; k += 8)\
-        {\
-            *((type_dst *)dst + k*line) = (type_dst)((tm[k * 64 + 0] * EEO[0] + tm[k * 64 + 1] * EEO[1] + tm[k * 64 + 2] * EEO[2] + tm[k * 64 + 3] * EEO[3] +\
-                tm[k * 64 + 4] * EEO[4] + tm[k * 64 + 5] * EEO[5] + tm[k * 64 + 6] * EEO[6] + tm[k * 64 + 7] * EEO[7] + add) >> shift);\
-        }\
-        for (k = 2; k<64; k += 4)\
-        {\
-            *((type_dst *)dst + k*line) = (type_dst)((tm[k * 64 + 0] * EO[0] + tm[k * 64 + 1] * EO[1] + tm[k * 64 + 2] * EO[2] + tm[k * 64 + 3] * EO[3] +\
-                tm[k * 64 + 4] * EO[4] + tm[k * 64 + 5] * EO[5] + tm[k * 64 + 6] * EO[6] + tm[k * 64 + 7] * EO[7] +\
-                tm[k * 64 + 8] * EO[8] + tm[k * 64 + 9] * EO[9] + tm[k * 64 + 10] * EO[10] + tm[k * 64 + 11] * EO[11] +\
-                tm[k * 64 + 12] * EO[12] + tm[k * 64 + 13] * EO[13] + tm[k * 64 + 14] * EO[14] + tm[k * 64 + 15] * EO[15] + add) >> shift);\
-        }\
-        for (k = 1; k<64; k += 2)\
-        {\
-            *((type_dst *)dst + k*line) = (type_dst)((tm[k * 64 + 0] * O[0] + tm[k * 64 + 1] * O[1] + tm[k * 64 + 2] * O[2] + tm[k * 64 + 3] * O[3] +\
-                tm[k * 64 + 4] * O[4] + tm[k * 64 + 5] * O[5] + tm[k * 64 + 6] * O[6] + tm[k * 64 + 7] * O[7] +\
-                tm[k * 64 + 8] * O[8] + tm[k * 64 + 9] * O[9] + tm[k * 64 + 10] * O[10] + tm[k * 64 + 11] * O[11] +\
-                tm[k * 64 + 12] * O[12] + tm[k * 64 + 13] * O[13] + tm[k * 64 + 14] * O[14] + tm[k * 64 + 15] * O[15] +\
-                tm[k * 64 + 16] * O[16] + tm[k * 64 + 17] * O[17] + tm[k * 64 + 18] * O[18] + tm[k * 64 + 19] * O[19] +\
-                tm[k * 64 + 20] * O[20] + tm[k * 64 + 21] * O[21] + tm[k * 64 + 22] * O[22] + tm[k * 64 + 23] * O[23] +\
-                tm[k * 64 + 24] * O[24] + tm[k * 64 + 25] * O[25] + tm[k * 64 + 26] * O[26] + tm[k * 64 + 27] * O[27] +\
-                tm[k * 64 + 28] * O[28] + tm[k * 64 + 29] * O[29] + tm[k * 64 + 30] * O[30] + tm[k * 64 + 31] * O[31] + add) >> shift);\
-        }\
-        src = (type_src *)src + tx_size;\
-        dst = (type_dst *)dst + 1;\
-    }
-#endif
+
     if(step == 0)
     {
         RUN_TX_PB64(src, dst, s16, s32);
@@ -691,67 +623,70 @@ static void tx_pb64(s16 *src, s16 *dst, int shift, int line)
 
         dst[0] = (tm[0 * 64 + 0] * EEEEE[0] + tm[0 * 64 + 1] * EEEEE[1] + add) >> shift;
         dst[16 * line] = (tm[16 * 64 + 0] * EEEEO[0] + tm[16 * 64 + 1] * EEEEO[1] + add) >> shift;
-#if TU_ZONAL_CODING
+
         dst[32 * line] = 0;
         dst[48 * line] = 0;
-#else
-        dst[32 * line] = (tm[32 * 64 + 0] * EEEEE[0] + tm[32 * 64 + 1] * EEEEE[1] + add) >> shift;
-        dst[48 * line] = (tm[48 * 64 + 0] * EEEEO[0] + tm[48 * 64 + 1] * EEEEO[1] + add) >> shift;
-#endif
 
         for (k = 8; k<64; k += 16)
         {
-#if TU_ZONAL_CODING
             if (k > 31)
+            {
                 dst[k*line] = 0;
+            }
             else
-#endif
-            dst[k*line] = (tm[k * 64 + 0] * EEEO[0] + tm[k * 64 + 1] * EEEO[1] + tm[k * 64 + 2] * EEEO[2] + tm[k * 64 + 3] * EEEO[3] + add) >> shift;
+            {
+                dst[k*line] = (tm[k * 64 + 0] * EEEO[0] + tm[k * 64 + 1] * EEEO[1] + tm[k * 64 + 2] * EEEO[2] + tm[k * 64 + 3] * EEEO[3] + add) >> shift;
+            }
         }
         for (k = 4; k<64; k += 8)
         {
-#if TU_ZONAL_CODING
             if (k > 31)
+            {
                 dst[k*line] = 0;
+            }
             else
-#endif
-            dst[k*line] = (tm[k * 64 + 0] * EEO[0] + tm[k * 64 + 1] * EEO[1] + tm[k * 64 + 2] * EEO[2] + tm[k * 64 + 3] * EEO[3] +
-                tm[k * 64 + 4] * EEO[4] + tm[k * 64 + 5] * EEO[5] + tm[k * 64 + 6] * EEO[6] + tm[k * 64 + 7] * EEO[7] + add) >> shift;
+            {
+                dst[k*line] = (tm[k * 64 + 0] * EEO[0] + tm[k * 64 + 1] * EEO[1] + tm[k * 64 + 2] * EEO[2] + tm[k * 64 + 3] * EEO[3] +
+                    tm[k * 64 + 4] * EEO[4] + tm[k * 64 + 5] * EEO[5] + tm[k * 64 + 6] * EEO[6] + tm[k * 64 + 7] * EEO[7] + add) >> shift;
+            }
         }
         for (k = 2; k<64; k += 4)
         {
-#if TU_ZONAL_CODING
             if (k > 31)
+            {
                 dst[k*line] = 0;
+            }
             else
-#endif
-            dst[k*line] = (tm[k * 64 + 0] * EO[0] + tm[k * 64 + 1] * EO[1] + tm[k * 64 + 2] * EO[2] + tm[k * 64 + 3] * EO[3] +
-                tm[k * 64 + 4] * EO[4] + tm[k * 64 + 5] * EO[5] + tm[k * 64 + 6] * EO[6] + tm[k * 64 + 7] * EO[7] +
-                tm[k * 64 + 8] * EO[8] + tm[k * 64 + 9] * EO[9] + tm[k * 64 + 10] * EO[10] + tm[k * 64 + 11] * EO[11] +
-                tm[k * 64 + 12] * EO[12] + tm[k * 64 + 13] * EO[13] + tm[k * 64 + 14] * EO[14] + tm[k * 64 + 15] * EO[15] + add) >> shift;
+            {
+                dst[k*line] = (tm[k * 64 + 0] * EO[0] + tm[k * 64 + 1] * EO[1] + tm[k * 64 + 2] * EO[2] + tm[k * 64 + 3] * EO[3] +
+                    tm[k * 64 + 4] * EO[4] + tm[k * 64 + 5] * EO[5] + tm[k * 64 + 6] * EO[6] + tm[k * 64 + 7] * EO[7] +
+                    tm[k * 64 + 8] * EO[8] + tm[k * 64 + 9] * EO[9] + tm[k * 64 + 10] * EO[10] + tm[k * 64 + 11] * EO[11] +
+                    tm[k * 64 + 12] * EO[12] + tm[k * 64 + 13] * EO[13] + tm[k * 64 + 14] * EO[14] + tm[k * 64 + 15] * EO[15] + add) >> shift;
+            }
         }
         for (k = 1; k<64; k += 2)
         {
-#if TU_ZONAL_CODING
             if (k > 31)
+            {
                 dst[k*line] = 0;
+            }
             else
-#endif
-            dst[k*line] = (tm[k * 64 + 0] * O[0] + tm[k * 64 + 1] * O[1] + tm[k * 64 + 2] * O[2] + tm[k * 64 + 3] * O[3] +
-                tm[k * 64 + 4] * O[4] + tm[k * 64 + 5] * O[5] + tm[k * 64 + 6] * O[6] + tm[k * 64 + 7] * O[7] +
-                tm[k * 64 + 8] * O[8] + tm[k * 64 + 9] * O[9] + tm[k * 64 + 10] * O[10] + tm[k * 64 + 11] * O[11] +
-                tm[k * 64 + 12] * O[12] + tm[k * 64 + 13] * O[13] + tm[k * 64 + 14] * O[14] + tm[k * 64 + 15] * O[15] +
-                tm[k * 64 + 16] * O[16] + tm[k * 64 + 17] * O[17] + tm[k * 64 + 18] * O[18] + tm[k * 64 + 19] * O[19] +
-                tm[k * 64 + 20] * O[20] + tm[k * 64 + 21] * O[21] + tm[k * 64 + 22] * O[22] + tm[k * 64 + 23] * O[23] +
-                tm[k * 64 + 24] * O[24] + tm[k * 64 + 25] * O[25] + tm[k * 64 + 26] * O[26] + tm[k * 64 + 27] * O[27] +
-                tm[k * 64 + 28] * O[28] + tm[k * 64 + 29] * O[29] + tm[k * 64 + 30] * O[30] + tm[k * 64 + 31] * O[31] + add) >> shift;
+            {
+                dst[k*line] = (tm[k * 64 + 0] * O[0] + tm[k * 64 + 1] * O[1] + tm[k * 64 + 2] * O[2] + tm[k * 64 + 3] * O[3] +
+                    tm[k * 64 + 4] * O[4] + tm[k * 64 + 5] * O[5] + tm[k * 64 + 6] * O[6] + tm[k * 64 + 7] * O[7] +
+                    tm[k * 64 + 8] * O[8] + tm[k * 64 + 9] * O[9] + tm[k * 64 + 10] * O[10] + tm[k * 64 + 11] * O[11] +
+                    tm[k * 64 + 12] * O[12] + tm[k * 64 + 13] * O[13] + tm[k * 64 + 14] * O[14] + tm[k * 64 + 15] * O[15] +
+                    tm[k * 64 + 16] * O[16] + tm[k * 64 + 17] * O[17] + tm[k * 64 + 18] * O[18] + tm[k * 64 + 19] * O[19] +
+                    tm[k * 64 + 20] * O[20] + tm[k * 64 + 21] * O[21] + tm[k * 64 + 22] * O[22] + tm[k * 64 + 23] * O[23] +
+                    tm[k * 64 + 24] * O[24] + tm[k * 64 + 25] * O[25] + tm[k * 64 + 26] * O[26] + tm[k * 64 + 27] * O[27] +
+                    tm[k * 64 + 28] * O[28] + tm[k * 64 + 29] * O[29] + tm[k * 64 + 30] * O[30] + tm[k * 64 + 31] * O[31] + add) >> shift;
+            }
         }
         src += tx_size;
         dst++;
     }
 }
 
-#if ATS_INTRA_PROCESS
 /********************************** DST-VII **********************************/
 void evce_trans_DST7_B4(s16 *block, s16 *coef, s32 shift, s32 line, int skip_line, int skip_line_2)  /* input block, output coef */
 {
@@ -1114,8 +1049,6 @@ void evc_t_MxN_ats_intra(s16 *coef, int tuw, int tuh, int bit_depth, u8 ats_intr
     evce_trans_map_tbl[t_idx_h][log2_minus1_w](coef, t, shift_1st, tuh, 0, skip_w);
     evce_trans_map_tbl[t_idx_v][log2_minus1_h](t, coef, shift_2nd, tuw, skip_w, skip_h);
 }
-#endif
-
 
 typedef void(*EVC_TXB)(void * coef, void * t, int shift, int line, int step);
 static EVC_TXB evce_tbl_txb[MAX_TR_LOG2] =
@@ -1139,13 +1072,10 @@ static EVC_TX evce_tbl_tx[MAX_TR_LOG2] =
     tx_pb64
 };
 
-#if ATS_INTRA_PROCESS
 void evce_trans_ats_intra(s16* coef, int log2_cuw, int log2_cuh, u8 ats_intra_cu, u8 ats_tu)
 {
     evc_t_MxN_ats_intra(coef, (1 << log2_cuw), (1 << log2_cuh), BIT_DEPTH, ats_intra_cu, ats_tu);
 }
-#endif
-
 
 void evce_trans(s16 * coef, int log2_cuw, int log2_cuh, int iqt_flag)
 {    
@@ -1217,7 +1147,6 @@ void evce_init_err_scale()
 #define GET_I_COST(rate, lamba)  (rate*lamba)
 #define GET_IEP_RATE             (32768)
 
-#if ADCC
 #if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
 __inline static s64 get_rate_positionLastXY(int pos_x, int pos_y, int width, int height, int ch_type, s64 lambda, int sps_cm_init_flag)
 #else
@@ -1579,7 +1508,7 @@ __inline static int get_ctx_gt012_inc(s16 *pcoeff, int blkpos, int width, int he
 
     return ctx_ofs + ctx_idx;
 }
-#endif
+
 #if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
 static __inline s64 get_ic_rate_cost_rl(u32 abs_level, u32 run, s32 ctx_run, u32 ctx_level, s64 lambda)
 #else
@@ -1848,7 +1777,6 @@ int evce_rdoq_run_length_cc(u8 qp, double lambda, u8 is_intra, s16 *src_coef, s1
     return nnz;
 }
 
-#if ADCC
 int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s16 *dst_tmp, int log2_cuw, int log2_cuh, int ch_type, int sps_cm_init_flag)
 {
     const int ns_shift = ((log2_cuw + log2_cuh) & 1) ? 7 : 0;
@@ -2622,13 +2550,8 @@ int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
     return nnz;
 #endif
 }
-#endif
 
-int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw, int log2_cuh, u16 scale, int ch_type, int slice_type, int sps_cm_init_flag
-#if ADCC
-                    , int tool_adcc
-#endif
-)
+int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw, int log2_cuh, u16 scale, int ch_type, int slice_type, int sps_cm_init_flag, int tool_adcc)
 {
     int nnz = 0;
 
@@ -2672,12 +2595,14 @@ int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw,
 
     if(USE_RDOQ)
     {
-#if ADCC
         if (tool_adcc)
+        {
             nnz = ifvce_rdoq_method_ccA(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type, sps_cm_init_flag);
+        }
         else
-#endif
+        {
             nnz = evce_rdoq_run_length_cc(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type, sps_cm_init_flag);
+        }
     }
     else
     {
@@ -2710,15 +2635,8 @@ int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw,
 
 
 int evce_tq_nnz(u8 qp, double lambda, s16 * coef, int log2_cuw, int log2_cuh, u16 scale, int slice_type, int ch_type, int is_intra, int sps_cm_init_flag, int iqt_flag
-#if ATS_INTRA_PROCESS
-                , u8 ats_intra_cu, u8 ats_tu
-#endif
-#if ADCC
-                 , int tool_adcc
-#endif
-)
+                , u8 ats_intra_cu, u8 ats_tu, int tool_adcc)
 {
-#if ATS_INTRA_PROCESS
     if (ats_intra_cu)
     {
         evce_trans_ats_intra(coef, log2_cuw, log2_cuh, ats_intra_cu, ats_tu);
@@ -2727,28 +2645,13 @@ int evce_tq_nnz(u8 qp, double lambda, s16 * coef, int log2_cuw, int log2_cuh, u1
     {
         evce_trans(coef, log2_cuw, log2_cuh, iqt_flag);
     }
-#else
-    evce_trans(coef, log2_cuw, log2_cuh, iqt_flag);
-#endif
 
-    return evce_quant_nnz(qp, lambda, is_intra, coef, log2_cuw, log2_cuh, scale, ch_type, slice_type, sps_cm_init_flag
-#if ADCC
-        , tool_adcc
-#endif
-    );
+    return evce_quant_nnz(qp, lambda, is_intra, coef, log2_cuw, log2_cuh, scale, ch_type, slice_type, sps_cm_init_flag, tool_adcc);
 }
 
 int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int slice_type, int nnz[N_C]
                       , int nnz_sub[N_C][MAX_SUB_TB_NUM], int is_intra, double lambda_y, double lambda_u, double lambda_v, int run_stats, int sps_cm_init_flag, int iqt_flag
-#if ATS_INTRA_PROCESS
-                      , u8 ats_intra_cu, u8 ats_tu
-#endif
-#if ATS_INTER_PROCESS
-                      , u8 ats_inter_info
-#endif
-#if ADCC
-                     , int tool_adcc
-#endif
+                      , u8 ats_intra_cu, u8 ats_tu, u8 ats_inter_info, int tool_adcc
 #if M50761_CHROMA_NOT_SPLIT
                      , TREE_CONS tree_cons
 #endif
@@ -2771,17 +2674,14 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
     double lambda[N_C] = { lambda_y , lambda_u , lambda_v };
     int nnz_temp[N_C] = {0};
     evc_mset(nnz_sub, 0, sizeof(int) * N_C * MAX_SUB_TB_NUM);
-#if ATS_INTRA_PROCESS
     u8 ats_intra_cu_on = 0;
     u8 ats_tu_mode = 0;
-#endif
-#if ATS_INTER_PROCESS
+
     if (ats_inter_info)
     {
         get_tu_size(ats_inter_info, log2_cuw, log2_cuh, &log2_w_sub, &log2_h_sub);
         sub_stride = (1 << log2_w_sub);
     }
-#endif
 
     for(j = 0; j < loop_h; j++)
     {
@@ -2789,16 +2689,14 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
         {
             for(c = 0; c < N_C; c++)
             {
-#if ATS_INTRA_PROCESS
                 ats_intra_cu_on = (c == 0)? ats_intra_cu : 0;
                 ats_tu_mode = (c == 0) ? ats_tu : 0;
-#if ATS_INTER_PROCESS
+
                 if (c == 0)
                 {
                     get_ats_inter_trs(ats_inter_info, log2_cuw, log2_cuh, &ats_intra_cu_on, &ats_tu_mode);
                 }
-#endif
-#endif
+
                 if(run[c])
                 {
                     int pos_sub_x = i * (1 << (log2_w_sub - !!c));
@@ -2816,13 +2714,7 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
 
                     int scale = quant_scale[qp[c] % 6];
                     nnz_sub[c][(j << 1) | i] = evce_tq_nnz(qp[c], lambda[c], coef_temp[c], log2_w_sub - !!c, log2_h_sub - !!c, scale, slice_type, c, is_intra, sps_cm_init_flag, iqt_flag
-#if ATS_INTRA_PROCESS
-                            , ats_intra_cu_on, ats_tu_mode
-#endif
-#if ADCC
-                            , tool_adcc
-#endif
-                    );
+                            , ats_intra_cu_on, ats_tu_mode, tool_adcc);
                     nnz_temp[c] += nnz_sub[c][(j << 1) | i];
 
                     if(loop_h + loop_w > 2)

@@ -7117,9 +7117,6 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
 #if DMVR
         BOOL template_needs_update = FALSE;
         s32 center_cost[2] = {1 << 30, 1 << 30};
-#if M50761_REMOVE_BIBLOCKS_8x4
-        evc_assert(check_bi_applicability_rdo(SLICE_B, w, h));
-#endif
 
         //only if the references are located on opposite sides of the current frame
         if(apply_DMVR && dmvr_poc_condition)
@@ -7197,82 +7194,82 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
 #endif
     }
 }
-#if IBC
+
 void evc_IBC_mc(int x, int y, int log2_cuw, int log2_cuh, s16 mv[MV_D], EVC_PIC *ref_pic, pel pred[N_C][MAX_CU_DIM]
 #if M50761_CHROMA_NOT_SPLIT
     , TREE_CONS tree_cons
 #endif
 )
 {
-  int i = 0, j = 0;
-  int size = 0;
+    int i = 0, j = 0;
+    int size = 0;
 
-  int cuw = 0, cuh = 0;
-  int stride = 0;
-  int mv_x = 0, mv_y = 0;
+    int cuw = 0, cuh = 0;
+    int stride = 0;
+    int mv_x = 0, mv_y = 0;
 
-  pel *dst = NULL;
-  pel *ref = NULL;
+    pel *dst = NULL;
+    pel *ref = NULL;
 
-  cuw = 1 << log2_cuw;
-  cuh = 1 << log2_cuh;
-  mv_x = mv[0];
-  mv_y = mv[1];
-  stride = ref_pic->s_l;
+    cuw = 1 << log2_cuw;
+    cuh = 1 << log2_cuh;
+    mv_x = mv[0];
+    mv_y = mv[1];
+    stride = ref_pic->s_l;
 
 #if M50761_CHROMA_NOT_SPLIT
-  if (evc_check_luma(tree_cons))
-  {
+    if (evc_check_luma(tree_cons))
+    {
 #endif
-  dst = pred[0];
-  ref = ref_pic->y + (mv_y + y) * stride + (mv_x + x);
-  size = sizeof(pel) * cuw;
+        dst = pred[0];
+        ref = ref_pic->y + (mv_y + y) * stride + (mv_x + x);
+        size = sizeof(pel) * cuw;
 
-  for (i = 0; i < cuh; i++)
-  {
-    evc_mcpy(dst, ref, size);
-    ref += stride;
-    dst += cuw;
-  }
+        for (i = 0; i < cuh; i++)
+        {
+            evc_mcpy(dst, ref, size);
+            ref += stride;
+            dst += cuw;
+        }
 #if M50761_CHROMA_NOT_SPLIT
-  }
-  if (evc_check_chroma(tree_cons))
-  {
+    }
+    if (evc_check_chroma(tree_cons))
+    {
 #endif
-  cuw >>= 1;
-  cuh >>= 1;
-  x >>= 1;
-  y >>= 1;
-  mv_x >>= 1;
-  mv_y >>= 1;
-  log2_cuw--;
-  log2_cuh--;
-  stride = ref_pic->s_c;
+        cuw >>= 1;
+        cuh >>= 1;
+        x >>= 1;
+        y >>= 1;
+        mv_x >>= 1;
+        mv_y >>= 1;
+        log2_cuw--;
+        log2_cuh--;
+        stride = ref_pic->s_c;
 
-  dst = pred[1];
-  ref = ref_pic->u + (mv_y + y) * stride + (mv_x + x);
-  size = sizeof(pel) * cuw;
-  for (i = 0; i < cuh; i++)
-  {
-    evc_mcpy(dst, ref, size);
-    ref += stride;
-    dst += cuw;
-  }
+        dst = pred[1];
+        ref = ref_pic->u + (mv_y + y) * stride + (mv_x + x);
+        size = sizeof(pel) * cuw;
+        for (i = 0; i < cuh; i++)
+        {
+            evc_mcpy(dst, ref, size);
+            ref += stride;
+            dst += cuw;
+        }
 
-  dst = pred[2];
-  ref = ref_pic->v + (mv_y + y) * stride + (mv_x + x);
-  size = sizeof(pel) * cuw;
-  for (i = 0; i < cuh; i++)
-  {
-    evc_mcpy(dst, ref, size);
-    ref += stride;
-    dst += cuw;
-  }
+        dst = pred[2];
+        ref = ref_pic->v + (mv_y + y) * stride + (mv_x + x);
+        size = sizeof(pel) * cuw;
+        for (i = 0; i < cuh; i++)
+        {
+            evc_mcpy(dst, ref, size);
+            ref += stride;
+            dst += cuw;
+        }
 #if M50761_CHROMA_NOT_SPLIT
-  }
+    }
 #endif
 }
-#endif
+
 #if AFFINE
 #if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV && !M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
 BOOL check_eif_clipMV_flag(s16 ac_mv[VER_NUM][MV_D], int d_hor[MV_D], int d_ver[MV_D], int mv_precision)
