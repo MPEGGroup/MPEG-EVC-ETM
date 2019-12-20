@@ -392,12 +392,10 @@ int main(int argc, const char **argv)
                         fwrite(bs_buf, 1, bs_size, fp_bs_write);
                     }
                     break;
-#if ALF_PARAMETER_APS
                 case EVC_APS_NUT:
                     fwrite(tmp_size, 1, 4, fp_bs_write);
                     fwrite(bs_buf, 1, bs_size, fp_bs_write);
                     break;
-#endif
                 case EVC_NONIDR_NUT:
                 case EVC_IDR_NUT:
                     sh->num_ctb = ctx->f_lcu;
