@@ -36,7 +36,6 @@
 */
 
 #include "evc_alf.h"
-#if ALF
 
 void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSliceParam);
 
@@ -1505,4 +1504,3 @@ void load_alf_paramline_from_aps_buffer(AlfSliceParam* pAlfParam, u8 idx)
 {
     copyAlfParam(pAlfParam, &(m_acAlfLineBuffer[idx]) );
 }
-#endif

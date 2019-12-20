@@ -132,7 +132,6 @@
 #define DBF_LONGF                          0
 #define DBF_IMPROVE                        1
 #define DBF                                2  // Deblocking filter: 0 - without DBF, 1 - h.263, 2 - AVC, 3 - HEVC   !!! NOTE: THE SWITCH MAY BE BROKEN !!!
-#define ALF                                1  // Adaptive Loop Filter 
 
 //TILE support
 #define TILE_SUPPORT                       1
@@ -334,7 +333,6 @@ enum SAD_POINT_INDEX
 /* ADMVP (END) */
 
 /* ALF (START) */
-#if ALF
 #define MAX_NUM_TLAYER                     6      
 #define MAX_NUM_ALFS_PER_TLAYER            6
 #define ALF_LAMBDA_SCALE                   17
@@ -344,7 +342,6 @@ enum SAD_POINT_INDEX
 #define MAX_NUM_ALF_CHROMA_COEFF           7
 #define MAX_ALF_FILTER_LENGTH              7
 #define MAX_NUM_ALF_COEFF                 (MAX_ALF_FILTER_LENGTH * MAX_ALF_FILTER_LENGTH / 2 + 1)
-#endif
 /* ALF (END) */
 
 /* AFFINE (START) */
@@ -392,7 +389,6 @@ enum SAD_POINT_INDEX
 /* AFFINE (END) */
 
 /* ALF (START) */
-#if ALF
 #define m_MAX_SCAN_VAL                     11
 #define m_MAX_EXP_GOLOMB                   16
 #define MAX_NUM_ALF_LUMA_COEFF             13
@@ -417,7 +413,6 @@ typedef struct _evc_AlfFilterShape
     int golombIdx[14];
     int patternToLargeFilter[13];
 } evc_AlfFilterShape;
-#endif 
 /* ALF (END) */
 
 /* TRANSFORM PACKAGE (START) */
@@ -957,10 +952,7 @@ typedef u32 SBAC_CTX_MODEL;
 #define NUM_SBAC_CTX_RUN                   24
 #define NUM_SBAC_CTX_LAST                  2
 #define NUM_SBAC_CTX_LEVEL                 24
-
-#if ALF
 #define NUM_SBAC_CTX_ALF_FLAG              9
-#endif
 #if DQP
 #define NUM_DELTA_QP_CTX                   1
 #endif
@@ -976,9 +968,7 @@ typedef u32 SBAC_CTX_MODEL;
 /* context models for arithemetic coding */
 typedef struct _EVC_SBAC_CTX
 {
-#if ALF
     SBAC_CTX_MODEL   alf_flag        [NUM_SBAC_CTX_ALF_FLAG]; 
-#endif
     SBAC_CTX_MODEL   skip_flag       [NUM_SBAC_CTX_SKIP_FLAG];
     SBAC_CTX_MODEL   ibc_flag[NUM_SBAC_CTX_IBC_FLAG];
     SBAC_CTX_MODEL   mmvd_flag       [NUM_SBAC_CTX_MMVD_FLAG];
@@ -1017,9 +1007,7 @@ typedef struct _EVC_SBAC_CTX
     SBAC_CTX_MODEL   affine_mrg      [NUM_SBAC_CTX_AFFINE_MRG];
     SBAC_CTX_MODEL   affine_mvd_flag [2];
     SBAC_CTX_MODEL   suco_flag       [NUM_SBAC_CTX_SUCO_FLAG];
-#if ALF
     SBAC_CTX_MODEL   ctb_alf_flag    [NUM_SBAC_CTX_ALF_FLAG]; //todo: add *3 for every component
-#endif
 #if DQP
     SBAC_CTX_MODEL   delta_qp        [NUM_DELTA_QP_CTX];
 #endif
@@ -1112,9 +1100,7 @@ typedef struct _EVC_PIC
 #endif
     s8             (*map_refi)[REFP_NUM];
     u32              list_poc[MAX_NUM_REF_PICS];
-#if ALF
     u8               m_alfCtuEnableFlag[3][510]; //510 = 30*17 -> class A1 resolution with CU ~ 128
-#endif
     int              pic_deblock_alpha_offset;
     int              pic_deblock_beta_offset;
 } EVC_PIC;
@@ -1233,9 +1219,7 @@ typedef struct _EVC_SPS
     int              tool_mmvd;
     int              tool_affine;
     int              tool_dmvr;
-#if ALF
     int              tool_alf;
-#endif
 #if HTDF
     int              tool_htdf;
 #endif
@@ -1310,7 +1294,6 @@ typedef struct _EVC_PPS
 /*****************************************************************************
  * slice header
  *****************************************************************************/
-#if ALF
 typedef struct _evc_AlfSliceParam
 {
     BOOL isCtbAlfOn;
@@ -1349,7 +1332,6 @@ typedef struct _EVC_APS
 #endif
     evc_AlfSliceParam          alf_aps_param;              // alf data
 } EVC_APS;
-#endif
 
 typedef struct _EVC_SH
 {
@@ -1391,8 +1373,6 @@ typedef struct _EVC_SH
     u8               dqp;
     u8               qp_prev_mode;
 #endif
-
-#if ALF
     u8               alf_on;
     u8               mmvd_group_enable_flag;
     u8               ctb_alf_on;
@@ -1404,7 +1384,6 @@ typedef struct _EVC_SH
 #endif
     EVC_APS*         aps;
     evc_AlfSliceParam alf_sh_param;
-#endif
 } EVC_SH;
 
 #if EVC_TILE_SUPPORT

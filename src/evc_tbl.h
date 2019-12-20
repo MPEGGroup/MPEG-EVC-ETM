@@ -105,9 +105,7 @@ extern const s16 init_run[2][NUM_SBAC_CTX_RUN][1];
 extern const s16 init_last[2][NUM_SBAC_CTX_LAST][1];
 extern const s16 init_level[2][NUM_SBAC_CTX_LEVEL][1];
 extern const s16 init_suco_flag[2][NUM_SBAC_CTX_SUCO_FLAG][1];
-#if ALF
 extern const s16 init_ctb_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG][1];
-#endif
 extern const s16 init_cc_gt0[2][NUM_CTX_GT0];
 extern const s16 init_cc_gtA[2][NUM_CTX_GTA];
 extern const s16 init_cc_scanr_x[2][NUM_CTX_SCANR];
@@ -165,9 +163,7 @@ extern const s16 init_run[2][NUM_SBAC_CTX_RUN][2];
 extern const s16 init_last[2][NUM_SBAC_CTX_LAST][2];
 extern const s16 init_level[2][NUM_SBAC_CTX_LEVEL][2];
 extern const s16 init_suco_flag[2][NUM_SBAC_CTX_SUCO_FLAG][2];
-#if ALF
 extern const s16 init_ctb_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG][2];
-#endif
 extern const s16 init_affine_flag[2][NUM_SBAC_CTX_AFFINE_FLAG][2];
 extern const s16 init_affine_mode[2][NUM_SBAC_CTX_AFFINE_MODE][2];
 extern const s16 init_affine_mrg[2][AFF_MAX_CAND][2];

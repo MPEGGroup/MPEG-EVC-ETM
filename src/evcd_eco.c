@@ -34,12 +34,11 @@
 #include "evcd_def.h"
 #include "evc_tbl.h"
 
-#if ALF
 #include <math.h>
 #include "wrapper.h"
 #include "enc_alf_wrapper.h"
 #pragma warning(disable:4018)
-#endif
+
 #if GRAB_STAT
 #include "evc_debug.h"
 #endif
@@ -1419,9 +1418,7 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_in
         evc_eco_sbac_ctx_initialize(sbac_ctx->btt_split_dir, (s16*)init_btt_split_dir, NUM_SBAC_CTX_BTT_SPLIT_DIR, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->btt_split_type, (s16*)init_btt_split_type, NUM_SBAC_CTX_BTT_SPLIT_TYPE, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->suco_flag, (s16*)init_suco_flag, NUM_SBAC_CTX_SUCO_FLAG, slice_type, slice_qp);
-#if ALF
         evc_eco_sbac_ctx_initialize(sbac_ctx->ctb_alf_flag, (s16*)init_ctb_alf_flag, NUM_SBAC_CTX_ALF_FLAG, slice_type, slice_qp);
-#endif
         evc_eco_sbac_ctx_initialize(sbac_ctx->affine_flag, (s16*)init_affine_flag, NUM_SBAC_CTX_AFFINE_FLAG, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->affine_mode, (s16*)init_affine_mode, NUM_SBAC_CTX_AFFINE_MODE, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->affine_mrg, (s16*)init_affine_mrg, AFF_MAX_CAND, slice_type, slice_qp);
@@ -2562,10 +2559,8 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
     {
         sps->tool_ats = evc_bsr_read1(bs);
     }
-    
-#if ALF
+
     sps->tool_alf = evc_bsr_read1(bs);
-#endif
 #if HTDF
     sps->tool_htdf = evc_bsr_read1(bs);
 #endif
@@ -2574,9 +2569,7 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
     sps->tool_mmvd = evc_bsr_read1(bs);
     sps->tool_affine = evc_bsr_read1(bs);
     sps->tool_dmvr = evc_bsr_read1(bs);
-#if ALF
     sps->tool_alf = evc_bsr_read1(bs);
-#endif
     sps->tool_admvp = evc_bsr_read1(bs);
     sps->tool_eipd = evc_bsr_read1(bs);
     sps->tool_amis = evc_bsr_read1(bs);
@@ -2752,7 +2745,6 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps)
     return EVC_OK;
 }
 
-#if ALF
 int evcd_eco_aps(EVC_BSR * bs, EVC_APS * aps)
 {
     aps->aps_id = evc_bsr_read(bs, APS_MAX_NUM_IN_BITS); // parse APS ID
@@ -2778,9 +2770,7 @@ int evcd_eco_aps(EVC_BSR * bs, EVC_APS * aps)
 
     return EVC_OK;
 }
-#endif
 
-#if ALF
 int evcd_truncatedUnaryEqProb(EVC_BSR * bs, const int maxSymbol)
 {
     for(int k = 0; k < maxSymbol; k++)
@@ -3061,7 +3051,6 @@ int evcd_eco_alf_sh_param(EVC_BSR * bs, EVC_SH * sh)
     alfSliceParam->isCtbAlfOn = evc_bsr_read1(bs);
     return EVC_OK;
 }
-#endif
 
 int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut)
 {
@@ -3114,7 +3103,7 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
     {
         sh->mmvd_group_enable_flag = 0;
     }
-#if ALF
+
     if (sps->tool_alf)
     {
         sh->alf_on = evc_bsr_read1(bs);
@@ -3129,7 +3118,6 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
             evcd_eco_alf_sh_param(bs, sh); // parse ALF map
         }
     }
-#endif
 
     if (nut != EVC_IDR_NUT)
     {

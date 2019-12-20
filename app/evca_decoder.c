@@ -198,12 +198,10 @@ static void print_stat(EVCD_STAT * stat, int ret)
         {
             v1print("Picture Parameter Set (%d bytes)", stat->read);
         }
-#if ALF
         else if (stat->nalu_type == EVC_APS_NUT)
         {
             v1print("Adaptation Parameter Set (%d bytes)", stat->read);
         }
-#endif
         else if (stat->nalu_type == EVC_SEI_NUT)
         {
             v1print("SEI message: ");

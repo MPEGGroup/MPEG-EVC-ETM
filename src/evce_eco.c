@@ -34,11 +34,10 @@
 #include "evce_def.h"
 #include <limits.h>
 
-#if ALF
 #include <math.h>
 #include "wrapper.h"
 #include "enc_alf_wrapper.h"
-#endif
+
 #if GRAB_STAT
 #include "evc_debug.h"
 #endif
@@ -159,9 +158,7 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
         evc_bsw_write1(bs, sps->tool_ats);
     }
 
-#if ALF
     evc_bsw_write1(bs, sps->tool_alf);
-#endif
 #if HTDF
     evc_bsw_write1(bs, sps->tool_htdf);
 #endif
@@ -171,9 +168,7 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
     evc_bsw_write1(bs, sps->tool_mmvd);
     evc_bsw_write1(bs, sps->tool_affine);
     evc_bsw_write1(bs, sps->tool_dmvr);
-#if ALF
     evc_bsw_write1(bs, sps->tool_alf);
-#endif
     evc_bsw_write1(bs, sps->tool_admvp);
     evc_bsw_write1(bs, sps->tool_eipd);
     evc_bsw_write1(bs, sps->tool_amis);
@@ -342,7 +337,6 @@ int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps)
     return EVC_OK;
 }
 
-#if ALF
 int evce_eco_aps(EVC_BSW * bs, EVC_APS * aps)
 {
     evc_bsw_write(bs, aps->aps_id, APS_MAX_NUM_IN_BITS); // signal APS ID
@@ -370,7 +364,6 @@ int evce_eco_aps(EVC_BSW * bs, EVC_APS * aps)
 
     return EVC_OK;
 }
-#endif
 
 int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut)
 {
@@ -421,7 +414,7 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
         evc_bsw_write1(bs, sh->mmvd_group_enable_flag);
     }
 #endif
-#if ALF
+
     if (sps->tool_alf)
     {
         evc_bsw_write1(bs, sh->alf_on);
@@ -436,7 +429,6 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
             evce_eco_alf_sh_param(bs, sh); // signaling ALF map
         }
     }
-#endif
 
     if (nut != EVC_IDR_NUT)
     {
@@ -924,9 +916,7 @@ void evce_sbac_reset(EVCE_SBAC *sbac, u8 slice_type, u8 slice_qp, int sps_cm_ini
         evc_eco_sbac_ctx_initialize(sbac_ctx->btt_split_dir, (s16*)init_btt_split_dir, NUM_SBAC_CTX_BTT_SPLIT_DIR, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->btt_split_type, (s16*)init_btt_split_type, NUM_SBAC_CTX_BTT_SPLIT_TYPE, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->suco_flag, (s16*)init_suco_flag, NUM_SBAC_CTX_SUCO_FLAG, slice_type, slice_qp);
-#if ALF
         evc_eco_sbac_ctx_initialize(sbac_ctx->ctb_alf_flag, (s16*)init_ctb_alf_flag, NUM_SBAC_CTX_ALF_FLAG, slice_type, slice_qp);
-#endif
         evc_eco_sbac_ctx_initialize(sbac_ctx->affine_flag, (s16*)init_affine_flag, NUM_SBAC_CTX_AFFINE_FLAG, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->affine_mode, (s16*)init_affine_mode, NUM_SBAC_CTX_AFFINE_MODE, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->affine_mrg, (s16*)init_affine_mrg, AFF_MAX_CAND, slice_type, slice_qp);
@@ -3675,8 +3665,6 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
     return EVC_OK;
 }
 
-#if ALF
-
 int evc_lengthGolomb(int coeffVal, int k)
 {
     int m = k == 0 ? 1 : (2 << (k - 1));
@@ -3980,7 +3968,6 @@ int evce_eco_alf_sh_param(EVC_BSW * bs, EVC_SH * sh)
     evc_bsw_write1(bs, alfSliceParam.isCtbAlfOn);
     return EVC_OK;
 }
-#endif
 
 #if GRAB_STAT
 void ence_stat_cu(int x, int y, int cuw, int cuh, int cup, void *ctx, void *core

@@ -289,9 +289,7 @@ int main(int argc, const char **argv)
     EVC_SH          * sh;
     EVC_NALU        * nalu;
     EVCD_CTX        * ctx;
-#if ALF
     EVC_APS         * aps;
-#endif
 
     // set line buffering (_IOLBF) for stdout to prevent incomplete logs when app crashed.
     setvbuf(stdout, NULL, _IOLBF, 1024);
@@ -359,9 +357,7 @@ int main(int argc, const char **argv)
             pps = &ctx->pps;
             sh = &ctx->sh;
             nalu = &ctx->nalu;
-#if ALF
             aps = &ctx->aps;
-#endif
             /* set error status */
             ctx->bs_err = bitb.err = 0;
             EVC_TRACE_SET(1);
@@ -381,9 +377,7 @@ int main(int argc, const char **argv)
                 case EVC_SPS_NUT:
                     ret = evcd_eco_sps(bsr, sps);
                     evc_assert_rv(EVC_SUCCEEDED(ret), ret);
-#if ALF
                     sh->alf_on = sps->tool_alf;
-#endif
                     sh->mmvd_group_enable_flag = sps->tool_mmvd;
                     if (!bs_num)
                     {
@@ -406,11 +400,9 @@ int main(int argc, const char **argv)
 #endif
                 case EVC_NONIDR_NUT:
                 case EVC_IDR_NUT:
-#if ALF
                     sh->num_ctb = ctx->f_lcu;
                     sh->alf_sh_param.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
                     memset(sh->alf_sh_param.alfCtuEnableFlag, 1, N_C * ctx->f_lcu * sizeof(u8));
-#endif
                     /* decode slice header */
                     ret = evcd_eco_sh(bsr, &ctx->sps, &ctx->pps, sh, ctx->nalu.nal_unit_type_plus1 - 1);
                     evc_assert_rv(EVC_SUCCEEDED(ret), ret);

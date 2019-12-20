@@ -443,11 +443,9 @@ typedef struct _EVCE_PARAM
        - 1: Enable deblocking filter
     */
     int                 use_deblock;
-    int                    deblock_alpha_offset;
-    int                    deblock_beta_offset;
-#if ALF
+    int                 deblock_alpha_offset;
+    int                 deblock_beta_offset;
     int                 use_alf;
-#endif
     /* I-frame period */
     int                 i_period;
     /* force I-frame */
@@ -771,12 +769,10 @@ struct _EVCE_CTX
     EVC_SPS                sps;
     /* picture parameter set */
     EVC_PPS                pps;
-#if ALF
     /* adaptation parameter set */
     EVC_APS                aps;
     u8                     aps_counter;
     u8                     aps_temp;
-#endif
     /* picture order count */
     EVC_POC                poc;
     /* nal unit header */
@@ -942,12 +938,8 @@ struct _EVCE_CTX
 #endif
         );
 
-#if ALF
     void* enc_alf;
-#if ALF
     int(*fn_alf)(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh, EVC_APS* aps);
-#endif
-#endif
 
     void (*fn_picbuf_expand)(EVCE_CTX * ctx, EVC_PIC * pic);
 

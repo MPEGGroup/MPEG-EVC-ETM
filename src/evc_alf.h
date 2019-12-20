@@ -43,8 +43,6 @@ extern "C" {
 #include "evc_def.h"
 #include "evcd_def.h"
 
-#if ALF
-
 #define CHECK(a,b) assert((!(a)) && (b));
 #define DISTORTION_PRECISION_ADJUSTMENT(x)                0
 
@@ -351,5 +349,4 @@ struct AdaptiveLoopFilter
 }
 #endif
 
-#endif
 #endif

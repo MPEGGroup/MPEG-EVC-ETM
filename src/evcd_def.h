@@ -195,10 +195,8 @@ struct _EVCD_CTX
     EVC_BSR                 bs;
     /* current nalu header */
     EVC_NALU                nalu;
-#if ALF
     /* adaptive loop filter */
     void                  * alf;
-#endif
     /* current slice header */
     EVC_SH                  sh;
     /* decoded picture buffer management */
@@ -209,11 +207,9 @@ struct _EVCD_CTX
     EVC_SPS                 sps;
     /* picture parameter set */
     EVC_PPS                 pps;
-#if ALF
     /* adaptation parameter set */
     EVC_APS                 aps;
     u8                      aps_temp;
-#endif
     /* current decoded (decoding) picture buffer */
     EVC_PIC               * pic;
     /* SBAC */
@@ -321,12 +317,8 @@ struct _EVCD_CTX
         , int    tile_idx
 #endif
         );
-
-#if ALF
     /* function address of ALF */
     int (*fn_alf)(EVCD_CTX * ctx, EVC_PIC * pic);
-#endif
-
     /* function address of picture buffer expand */
     void (* fn_picbuf_expand)(EVCD_CTX * ctx, EVC_PIC * pic);
     /* platform specific data, if needed */
