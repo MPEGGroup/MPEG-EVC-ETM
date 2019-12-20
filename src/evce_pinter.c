@@ -1446,12 +1446,7 @@ void save_ats_inter_info_pred(EVCE_CTX *ctx, EVCE_CORE *core, u32 dist_pu, u8 at
 
 static s16    coef_t[N_C][MAX_CU_DIM];
 
-static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_cuw, int log2_cuh,
-                                 pel pred[2][N_C][MAX_CU_DIM], s16 coef[N_C][MAX_CU_DIM], int pidx, u8 *mvp_idx
-#if DMVR
-                                 , BOOL apply_dmvr
-#endif
-)
+static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_cuw, int log2_cuh, pel pred[2][N_C][MAX_CU_DIM], s16 coef[N_C][MAX_CU_DIM], int pidx, u8 *mvp_idx, BOOL apply_dmvr)
 {
     EVCE_PINTER *pi = &ctx->pinter;
     int   *nnz, tnnz, w[N_C], h[N_C], log2_w[N_C], log2_h[N_C];
@@ -1526,8 +1521,6 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
     }
     else
     {
-
-#if DMVR
         evc_mc(x, y, ctx->w, ctx->h, w[0], h[0], pi->refi[pidx], pi->mv[pidx], pi->refp, pred, ctx->poc.poc_val, pi->dmvr_template, pi->dmvr_ref_pred_interpolated
                , pi->dmvr_half_pred_interpolated
                , apply_dmvr && ctx->sps.tool_dmvr
@@ -1541,9 +1534,6 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 #endif
 #endif
                , ctx->sps.tool_amis
-#else
-        evc_mc(x, y, ctx->w, ctx->h, w[0], h[0], pi->refi[pidx], pi->mv[pidx], pi->refp, pred
-#endif
         );
     }
 
@@ -2545,7 +2535,7 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
             {
                 continue;
             }
-#if DMVR
+
             evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi, mvp, pi->refp, pi->pred[PRED_NUM], ctx->poc.poc_val, pi->dmvr_template, pi->dmvr_ref_pred_interpolated
                    , pi->dmvr_half_pred_interpolated, TRUE && ctx->sps.tool_dmvr
 #if DMVR_PADDING
@@ -2558,9 +2548,6 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
 #endif
 #endif
                    , ctx->sps.tool_amis
-#else
-            evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi, mvp, pi->refp, pi->pred[PRED_NUM]
-#endif
             );
 
             cy = evce_ssd_16b(log2_cuw, log2_cuh, pi->pred[PRED_NUM][0][Y_C], y_org, cuw, pi->s_o[Y_C]);
@@ -2726,10 +2713,7 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
 #if DMVR_LAG
     int          tmp_dmvr_mv[MAX_CU_CNT_IN_LCU][REFP_NUM][MV_D];
 #endif
-
-#if DMVR
     BOOL apply_dmvr;
-#endif
 #if DMVR_FLAG
     int best_dmvr = 0;
 #endif
@@ -2791,11 +2775,7 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
         pi->refi[pidx][REFP_1] = refi[REFP_1];
 
         apply_dmvr = TRUE;
-        cost = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[pidx], pi->coef[pidx], pidx, pi->mvp_idx[pidx]
-#if DMVR
-                                  , apply_dmvr
-#endif
-        );
+        cost = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[pidx], pi->coef[pidx], pidx, pi->mvp_idx[pidx], apply_dmvr);
 
         if(cost < cost_best)
         {
@@ -2981,7 +2961,6 @@ static double analyze_skip_mmvd(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, 
             continue;
         }
 
-#if DMVR
         evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi, mvp, pi->refp, pi->pred[PRED_NUM], ctx->poc.poc_val, pi->dmvr_template, pi->dmvr_ref_pred_interpolated
                , pi->dmvr_half_pred_interpolated
                , FALSE
@@ -2995,9 +2974,6 @@ static double analyze_skip_mmvd(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, 
 #endif
 #endif
                , ctx->sps.tool_amis
-#else
-        evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi, mvp, pi->refp, pi->pred[PRED_NUM]
-#endif
         );
         
         cy = evce_ssd_16b(log2_cuw, log2_cuh, pi->pred[PRED_NUM][0][Y_C], y_org, cuw, pi->s_o[Y_C]);
@@ -3225,11 +3201,7 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 
         pi->mmvd_idx[pidx] = c_num;
 
-        temp_cost = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[pidx], pi->coef[pidx], pidx, pi->mvp_idx[pidx]
-#if DMVR
-                                       , FALSE
-#endif
-        );
+        temp_cost = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[pidx], pi->coef[pidx], pidx, pi->mvp_idx[pidx], FALSE);
 
         evc_mcpy(pi->nnz_best[pidx], core->nnz, sizeof(int) * N_C);
         evc_mcpy(pi->nnz_sub_best[pidx], core->nnz_sub, sizeof(int) * N_C * MAX_SUB_TB_NUM);
@@ -3269,11 +3241,7 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 
         pi->mmvd_idx[pidx] = c_num;
 
-        min_cost = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[pidx], pi->coef[pidx], pidx, pi->mvp_idx[pidx]
-#if DMVR
-                                      , FALSE
-#endif
-        );
+        min_cost = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[pidx], pi->coef[pidx], pidx, pi->mvp_idx[pidx], FALSE);
         pi->mmvd_idx[pidx] = c_num;
         evc_mcpy(pi->nnz_best[pidx], core->nnz, sizeof(int) * N_C);
         evc_mcpy(pi->nnz_sub_best[pidx], core->nnz_sub, sizeof(int) * N_C * MAX_SUB_TB_NUM);
@@ -3349,7 +3317,6 @@ static double analyze_bi(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_
 
 
         /* predict reference */
-#if DMVR
         evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi, pi->mv[pidx], pi->refp, pred, 0, pi->dmvr_template, pi->dmvr_ref_pred_interpolated
                , pi->dmvr_half_pred_interpolated
                , FALSE
@@ -3362,11 +3329,7 @@ static double analyze_bi(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_
                , NULL
 #endif
 #endif
-               , ctx->sps.tool_amis
-#else
-        evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi, pi->mv[pidx], pi->refp, pred
-#endif
-        );
+               , ctx->sps.tool_amis);
 
         get_org_bi(org, pred[0][Y_C], pi->s_o[Y_C], cuw, cuh, pi->org_bi);
         refi[lidx_ref] = evc_get_first_refi(core->scup, lidx_ref, ctx->map_refi, ctx->map_mv, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu, pi->mvr_idx[pidx], core->avail_lr
@@ -3472,7 +3435,6 @@ static double analyze_bi(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_
         for(i = 0; i < BI_ITER; i++)
         {
             /* predict reference */
-#if DMVR
             evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi, pi->mv[pidx], pi->refp, pred, 0, pi->dmvr_template, pi->dmvr_ref_pred_interpolated
                    , pi->dmvr_half_pred_interpolated
                    , FALSE
@@ -3485,11 +3447,7 @@ static double analyze_bi(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_
                    , NULL
 #endif
 #endif
-                   , ctx->sps.tool_amis
-#else
-            evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi, pi->mv[pidx], pi->refp, pred
-#endif
-            );
+                   , ctx->sps.tool_amis);
 
             get_org_bi(org, pred[0][Y_C], pi->s_o[Y_C], cuw, cuh, pi->org_bi);
 
@@ -3546,11 +3504,7 @@ static double analyze_bi(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_
         pi->mvd[pidx][REFP_1][MV_Y] = pi->mv[pidx][REFP_1][MV_Y] - pi->mvp_scale[REFP_1][pi->refi[pidx][REFP_1]][pi->mvp_idx[pidx][REFP_1]][MV_Y];
     }
 
-    cost = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[pidx], pi->coef[pidx], pidx, pi->mvp_idx[pidx]
-#if DMVR
-                              , FALSE
-#endif
-    );
+    cost = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[pidx], pi->coef[pidx], pidx, pi->mvp_idx[pidx], FALSE);
 
     evc_mcpy(pi->nnz_best[pidx], core->nnz, sizeof(int) * N_C);
     evc_mcpy(pi->nnz_sub_best[pidx], core->nnz_sub, sizeof(int) * N_C * MAX_SUB_TB_NUM);
@@ -3693,14 +3647,12 @@ static int pinter_init_frame(EVCE_CTX *ctx)
     size = sizeof(pel) * (PRED_NUM + 1) * 2 * N_C * MAX_CU_DIM;
     evc_mset(pi->pred, 0, size);
 
-#if DMVR
     size = sizeof(pel) * MAX_CU_DIM;
     evc_mset(pi->dmvr_template, 0, size);
 
     size = sizeof(pel) * REFP_NUM * (MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT)) *
         (MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT));
     evc_mset(pi->dmvr_ref_pred_interpolated, 0, size);
-#endif
 
     return EVC_OK;
 }
@@ -5033,11 +4985,7 @@ static double analyze_affine_bi(EVCE_CTX * ctx, EVCE_CORE * core, EVCE_PINTER * 
     else
 #endif
     {
-        cost = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[pidx], pi->coef[pidx], pidx, pi->mvp_idx[pidx]
-#if DMVR
-                                  , FALSE
-#endif
-        );
+        cost = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[pidx], pi->coef[pidx], pidx, pi->mvp_idx[pidx], FALSE);
         evc_mcpy(pi->nnz_best[pidx], core->nnz, sizeof(int) * N_C);
         evc_mcpy(pi->nnz_sub_best[pidx], core->nnz_sub, sizeof(int) * N_C * MAX_SUB_TB_NUM);
         pi->ats_inter_info_mode[pidx] = core->ats_inter_info;
@@ -5159,11 +5107,7 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
 
         if(pidx == AFF_DIR)
         {
-            cost = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[PRED_NUM], pi->coef[PRED_NUM], pidx, pi->mvp_idx[pidx]
-#if DMVR
-                                      , FALSE
-#endif
-            );
+            cost = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[PRED_NUM], pi->coef[PRED_NUM], pidx, pi->mvp_idx[pidx], FALSE);
         }
         else
         {
@@ -5717,14 +5661,12 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
     }
 #endif
 
-#if DMVR 
     if(!(core->cu_mode == MODE_SKIP)
        || ctx->sps.tool_mmvd == 0
        || ctx->sps.tool_dmvr == 0
        || ctx->sps.tool_affine == 0
        )
     {
-#endif
         for(pi->curr_mvr = 0; pi->curr_mvr < num_amvr; pi->curr_mvr++)
         {
             const int mvr_offset = pi->curr_mvr * ORG_PRED_NUM;
@@ -5822,11 +5764,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 
                 pi->mvp_idx[pidx][lidx] = mvp_idx[lidx];
 
-                cost = cost_inter[pidx] = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[PRED_NUM], pi->coef[PRED_NUM], pidx, mvp_idx
-#if DMVR
-                                                             , FALSE
-#endif
-                );
+                cost = cost_inter[pidx] = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[PRED_NUM], pi->coef[PRED_NUM], pidx, mvp_idx, FALSE);
 
                 if(cost < cost_best)
                 {
@@ -5947,9 +5885,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                 }
             }
         }
-#if DMVR 
     }
-#endif
 
     if(ctx->slice_depth < 4)
     {
@@ -6166,11 +6102,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                         if(allowed)
 #endif
                         {
-                            cost = cost_inter[pidx] = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[PRED_NUM], pi->coef[PRED_NUM], pidx, mvp_idx
-#if DMVR
-                                                                         , FALSE
-#endif
-                            );
+                            cost = cost_inter[pidx] = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[PRED_NUM], pi->coef[PRED_NUM], pidx, mvp_idx, FALSE);
 
 
                             if(cost < cost_best)
@@ -6393,11 +6325,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                             if(allowed)
 #endif
                             {
-                                cost = cost_inter[pidx] = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[PRED_NUM], pi->coef[PRED_NUM], pidx, mvp_idx
-#if DMVR
-                                                                             , FALSE
-#endif
-                                );
+                                cost = cost_inter[pidx] = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[PRED_NUM], pi->coef[PRED_NUM], pidx, mvp_idx, FALSE);
 
                                 if(cost < cost_best)
                                 {

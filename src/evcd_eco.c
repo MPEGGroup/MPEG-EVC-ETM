@@ -2539,9 +2539,7 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
 #endif
         sps->tool_affine = evc_bsr_read1(bs);
         sps->tool_amvr = evc_bsr_read1(bs);
-#if DMVR
         sps->tool_dmvr = evc_bsr_read1(bs);
-#endif
         sps->tool_mmvd = evc_bsr_read1(bs);
     }
 
@@ -2577,9 +2575,7 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
     sps->tool_amvr = evc_bsr_read1(bs);
     sps->tool_mmvd = evc_bsr_read1(bs);
     sps->tool_affine = evc_bsr_read1(bs);
-#if DMVR
     sps->tool_dmvr = evc_bsr_read1(bs);
-#endif
 #if ALF
     sps->tool_alf = evc_bsr_read1(bs);
 #endif

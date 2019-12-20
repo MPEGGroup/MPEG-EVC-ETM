@@ -5243,7 +5243,6 @@ void mv_clip(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM]
     }
 }
 
-#if DMVR
 typedef enum EVC_POINT_INDEX
 {
     CENTER = 0,
@@ -6958,9 +6957,6 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
 #endif
 #endif
             , int sps_amis_flag
-#else
-void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16 mv[REFP_NUM][MV_D], EVC_REFP(*refp)[REFP_NUM], pel pred[2][N_C][MAX_CU_DIM]
-#endif // DMVR
              )
 {
     EVC_PIC    *ref_pic;
@@ -6968,8 +6964,6 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
     pel         *p2, *p3;
 #endif
     int          qpel_gmv_x, qpel_gmv_y;
-#if !OPT_SIMD_MC_L || DMVR 
-#endif
     int          bidx = 0;
     s16          mv_t[REFP_NUM][MV_D];
     s16          mv_before_clipping[REFP_NUM][MV_D]; //store it to pass it to interpolation function for deriving correct interpolation filter
@@ -6981,7 +6975,6 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
 
     mv_clip(x, y, pic_w, pic_h, w, h, refi, mv, mv_t);
 
-#if DMVR
     int          poc0 = refp[refi[REFP_0]][REFP_0].poc;
     int          poc1 = refp[refi[REFP_1]][REFP_1].poc;
     s16          mv_refine[REFP_NUM][MV_D] = {{mv[REFP_0][MV_X], mv[REFP_0][MV_Y]},
@@ -7008,7 +7001,7 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
     apply_DMVR = apply_DMVR && w >= 8 && h >= 8;
 #endif
 
-#endif
+
 #if DMVR_FLAG
     *cu_dmvr_flag = 0;
 #endif
@@ -7035,25 +7028,20 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
         {
             evc_mc_l(mv_before_clipping[REFP_0][MV_X]<<2, mv_before_clipping[REFP_0][MV_Y]<<2, ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, w, pred[0][Y_C], w, h);
         }
-#if DMVR
+
         if(!REFI_IS_VALID(refi[REFP_1]) || !apply_DMVR || !dmvr_poc_condition)
-#endif
         {
             evc_mc_c(mv_before_clipping[REFP_0][MV_X]<<2, mv_before_clipping[REFP_0][MV_Y]<<2, ref_pic->u, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[0][U_C], w >> 1, h >> 1);
             evc_mc_c(mv_before_clipping[REFP_0][MV_X]<<2, mv_before_clipping[REFP_0][MV_Y]<<2, ref_pic->v, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[0][V_C], w >> 1, h >> 1);
         }
 #else
 
-#if DMVR
         if(!apply_DMVR)
-#endif
         {
             evc_mc_l(mv_before_clipping[REFP_0][MV_X], mv_before_clipping[REFP_0][MV_Y], ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, w, pred[0][Y_C], w, h);
         }
 
-#if DMVR
         if(!REFI_IS_VALID(refi[REFP_1]) || !apply_DMVR || !dmvr_poc_condition)
-#endif
         {
             evc_mc_c(mv_before_clipping[REFP_0][MV_X], mv_before_clipping[REFP_0][MV_Y], ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[0][U_C], w >> 1, h >> 1);
             evc_mc_c(mv_before_clipping[REFP_0][MV_X], mv_before_clipping[REFP_0][MV_Y], ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[0][V_C], w >> 1, h >> 1);
@@ -7085,25 +7073,20 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
         {
             evc_mc_l(mv_before_clipping[REFP_1][MV_X]<<2, mv_before_clipping[REFP_1][MV_Y]<<2, ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, w, pred[bidx][Y_C], w, h);
         }
-#if DMVR
+
         if(!REFI_IS_VALID(refi[REFP_0]) || !apply_DMVR || !dmvr_poc_condition)
-#endif
         {
             evc_mc_c(mv_before_clipping[REFP_1][MV_X]<<2, mv_before_clipping[REFP_1][MV_Y]<<2,ref_pic->u, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[bidx][U_C], w >> 1, h >> 1);
             evc_mc_c(mv_before_clipping[REFP_1][MV_X]<<2, mv_before_clipping[REFP_1][MV_Y]<<2,ref_pic->v, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[bidx][V_C], w >> 1, h >> 1);
         }
 #else
 
-#if DMVR
         if(!apply_DMVR)
-#endif
         {
             evc_mc_l(mv_before_clipping[REFP_1][MV_X], mv_before_clipping[REFP_1][MV_Y], ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, w, pred[bidx][Y_C], w, h);
         }
 
-#if DMVR
         if(!REFI_IS_VALID(refi[REFP_0]) || !apply_DMVR || !dmvr_poc_condition)
-#endif
         {
             evc_mc_c(mv_before_clipping[REFP_1][MV_X], mv_before_clipping[REFP_1][MV_Y],ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[bidx][U_C], w >> 1, h >> 1);
             evc_mc_c(mv_before_clipping[REFP_1][MV_X], mv_before_clipping[REFP_1][MV_Y],ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[bidx][V_C], w >> 1, h >> 1);
@@ -7114,7 +7097,6 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
 
     if(bidx == 2)
     {
-#if DMVR
         BOOL template_needs_update = FALSE;
         s32 center_cost[2] = {1 << 30, 1 << 30};
 
@@ -7144,8 +7126,6 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
           mv[REFP_1][MV_X] = inital_mv[REFP_1][MV_X];
           mv[REFP_1][MV_Y] = inital_mv[REFP_1][MV_Y];
         } //if (apply_DMVR && ((poc_c - poc0)*(poc_c - poc1) < 0))
-
-#endif // DMVR
 
 #if OPT_SIMD_MC_L
         average_16b_no_clip_sse(pred[0][Y_C], pred[1][Y_C], pred[0][Y_C], w, w, w, w, h);

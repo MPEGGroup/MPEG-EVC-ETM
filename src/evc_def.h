@@ -129,7 +129,6 @@
 #endif
 
 //inter
-#define DMVR                               1  // Decoder-side Motion Vector Refinement
 #define ADMVP                              1
 
 //loop filter
@@ -293,7 +292,6 @@
 /* MERGE (END) */
 
 /* DMVR (START) */
-#if DMVR
 #define USE_MR_SAD                         0
 #define DMVR_SUBCU                         1
 #if DMVR_SUBCU
@@ -331,7 +329,6 @@ enum SAD_POINT_INDEX
     SAD_CENTER,
     SAD_COUNT
 };
-#endif
 /* DMVR (END) */
 
 /* HISTORY (START) */
@@ -1244,9 +1241,7 @@ typedef struct _EVC_SPS
     int              tool_amvr;
     int              tool_mmvd;
     int              tool_affine;
-#if DMVR
     int              tool_dmvr;
-#endif
 #if ALF
     int              tool_alf;
 #endif

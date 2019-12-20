@@ -63,14 +63,12 @@ typedef struct _EVCD_CORE
     /* pred buffer of current CU */
     /* [1] is used for bi-pred. */
     pel            pred[2][N_C][MAX_CU_DIM];
-#if DMVR
     pel            dmvr_template[MAX_CU_DIM];
     pel            dmvr_half_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + 1) * (MAX_CU_SIZE + 1)];
     pel            dmvr_ref_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT)) * (MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT))];
 
 #if DMVR_PADDING
     pel  dmvr_padding_buf[2][N_C][PAD_BUFFER_STRIDE * PAD_BUFFER_STRIDE];
-#endif
 #endif
     /* neighbor pixel buffer for intra prediction */
     pel            nb[N_C][N_REF][MAX_CU_SIZE * 3];
@@ -101,9 +99,7 @@ typedef struct _EVCD_CORE
     u8             pims[IPD_CNT]; /* probable intra mode set*/
     /* prediction mode of current CU: INTRA, INTER, ... */
     u8             pred_mode;
-#if DMVR
     u8             DMVRenable;
-#endif
     /* log2 of cuw */
     u8             log2_cuw;
     /* log2 of cuh */

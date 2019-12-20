@@ -991,7 +991,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
             , ctx->map_tidx
 #endif
         );
-#if DMVR
+
         if (ctx->sps.tool_dmvr)
         {
             core->DMVRenable = 0;
@@ -1005,7 +1005,6 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
             if (core->affine_flag)
                 core->DMVRenable = 0;
         }
-#endif
 
         if(core->affine_flag)
         {
@@ -1047,13 +1046,10 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
                     }
                 }
             }
-#if DMVR
             evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, core->refi, core->mv, ctx->refp, core->pred, ctx->poc.poc_val, core->dmvr_template, core->dmvr_ref_pred_interpolated
                    , core->dmvr_half_pred_interpolated
                    , (core->DMVRenable == 1)
-#if DMVR
                    && ctx->sps.tool_dmvr
-#endif
 #if DMVR_PADDING
                    , core->dmvr_padding_buf
 #endif
@@ -1064,13 +1060,10 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 #endif
 #endif
                    , ctx->sps.tool_amis
-#else
-            evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, core->refi, core->mv, ctx->refp, core->pred
-#endif
             );
         }
 
-#if DMVR && HISTORY_LCU_COPY_BUG_FIX
+#if HISTORY_LCU_COPY_BUG_FIX
         evcd_set_dec_info(ctx, core
 #if ENC_DEC_TRACE
                           , 1
@@ -1097,7 +1090,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
         }
 
 #endif
-#if DMVR && !HISTORY_LCU_COPY_BUG_FIX
+#if !HISTORY_LCU_COPY_BUG_FIX
         evcd_set_dec_info(ctx, core
 #if ENC_DEC_TRACE
                           , 1

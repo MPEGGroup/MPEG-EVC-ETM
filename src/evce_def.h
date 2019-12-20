@@ -274,15 +274,12 @@ struct _EVCE_PINTER
     s32  mot_bits[REFP_NUM];
     /* temporary prediction buffer (only used for ME)*/
     pel  pred[PRED_NUM+1][2][N_C][MAX_CU_DIM];
-
-#if DMVR
     pel  dmvr_template[MAX_CU_DIM];
     pel dmvr_half_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + 1) * (MAX_CU_SIZE + 1)];
 #if DMVR_PADDING
     pel  dmvr_padding_buf[PRED_NUM][N_C][PAD_BUFFER_STRIDE * PAD_BUFFER_STRIDE];
 #endif
     pel  dmvr_ref_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT)) * (MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT))];
-#endif
 
     /* reconstruction buffer */
     pel  rec[PRED_NUM][N_C][MAX_CU_DIM];
