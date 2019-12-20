@@ -1522,11 +1522,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
     /* prediction */
     if(core->affine_flag)
     {
-        evc_affine_mc(x, y, ctx->w, ctx->h, w[0], h[0], pi->refi[pidx], pi->affine_mv[pidx], pi->refp, pred, core->affine_flag + 1
-#if EIF
-                      , core->eif_tmp_buffer
-#endif
-        );
+        evc_affine_mc(x, y, ctx->w, ctx->h, w[0], h[0], pi->refi[pidx], pi->affine_mv[pidx], pi->refp, pred, core->affine_flag + 1, core->eif_tmp_buffer);
     }
     else
     {
@@ -4589,11 +4585,7 @@ static int get_affine_mv_bits(s16 mv[VER_NUM][MV_D], s16 mvp[VER_NUM][MV_D], int
     return bits;
 }
 
-static u32 pinter_affine_me_gradient(EVCE_PINTER * pi, int x, int y, int log2_cuw, int log2_cuh, s8 * refi, int lidx, s16 mvp[VER_NUM][MV_D], s16 mv[VER_NUM][MV_D], int bi, int vertex_num
-#if EIF
-                                     , pel *tmp_buffer_for_eif
-#endif
-)
+static u32 pinter_affine_me_gradient(EVCE_PINTER * pi, int x, int y, int log2_cuw, int log2_cuh, s8 * refi, int lidx, s16 mvp[VER_NUM][MV_D], s16 mv[VER_NUM][MV_D], int bi, int vertex_num, pel *tmp_buffer_for_eif)
 {
     s16 mvt[VER_NUM][MV_D];
     s16 mvd[VER_NUM][MV_D];
@@ -4640,11 +4632,7 @@ static u32 pinter_affine_me_gradient(EVCE_PINTER * pi, int x, int y, int log2_cu
     }
 
     /* do motion compensation with start mv */
-    evc_affine_mc_l(x, y, refp->w_l, refp->h_l, cuw, cuh, mvt, refp, pred, vertex_num
-#if EIF
-                    , tmp_buffer_for_eif
-#endif
-    );
+    evc_affine_mc_l(x, y, refp->w_l, refp->h_l, cuw, cuh, mvt, refp, pred, vertex_num, tmp_buffer_for_eif);
 
     /* get mvd bits*/
     best_bits = get_affine_mv_bits(mvt, mvp, pi->num_refp, ri, vertex_num);
@@ -4757,11 +4745,7 @@ static u32 pinter_affine_me_gradient(EVCE_PINTER * pi, int x, int y, int log2_cu
         }
 
         /* do motion compensation with updated mv */
-        evc_affine_mc_l(x, y, refp->w_l, refp->h_l, cuw, cuh, mvt, refp, pred, vertex_num
-#if EIF
-                        , tmp_buffer_for_eif
-#endif
-        );
+        evc_affine_mc_l(x, y, refp->w_l, refp->h_l, cuw, cuh, mvt, refp, pred, vertex_num, tmp_buffer_for_eif);
 
         /* get mvd bits*/
         mv_bits = get_affine_mv_bits(mvt, mvp, pi->num_refp, ri, vertex_num);
@@ -4952,11 +4936,7 @@ static double analyze_affine_bi(EVCE_CTX * ctx, EVCE_CORE * core, EVCE_PINTER * 
         for(i = 0; i < AFFINE_BI_ITER; i++)
         {
             /* predict reference */
-            evc_affine_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi, pi->affine_mv[pidx], pi->refp, pred, vertex_num
-#if EIF
-                          , core->eif_tmp_buffer
-#endif
-            );
+            evc_affine_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi, pi->affine_mv[pidx], pi->refp, pred, vertex_num, core->eif_tmp_buffer);
 
             get_org_bi(org, pred[0][Y_C], pi->s_o[Y_C], cuw, cuh, pi->org_bi);
 
@@ -4970,12 +4950,7 @@ static double analyze_affine_bi(EVCE_CTX * ctx, EVCE_CORE * core, EVCE_PINTER * 
             {
                 refi[lidx_ref] = refi_cur;
                 mvp_idx = pi->mvp_idx_scale[lidx_ref][refi_cur];
-                mecost = pi->fn_affine_me(pi, x, y, log2_cuw, log2_cuh, &refi[lidx_ref], lidx_ref, \
-                                          pi->affine_mvp_scale[lidx_ref][refi_cur][mvp_idx], pi->affine_mv_scale[lidx_ref][refi_cur], 1, vertex_num
-#if EIF
-                                          , core->eif_tmp_buffer
-#endif
-                );
+                mecost = pi->fn_affine_me(pi, x, y, log2_cuw, log2_cuh, &refi[lidx_ref], lidx_ref, pi->affine_mvp_scale[lidx_ref][refi_cur][mvp_idx], pi->affine_mv_scale[lidx_ref][refi_cur], 1, vertex_num, core->eif_tmp_buffer);
 
                 // update MVP bits
                 check_best_affine_mvp(ctx, core, pi->slice_type, refi, lidx_ref, pidx, pi->affine_mvp_scale[lidx_ref][refi_cur], pi->affine_mv_scale[lidx_ref][refi_cur], pi->affine_mvd[pidx][lidx_ref], &mvp_idx, vertex_num);
@@ -5193,11 +5168,7 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
         else
         {
             assert(core->ats_inter_info == 0);
-            evc_affine_mc(x, y, ctx->w, ctx->h, cuw, cuh, mrg_list_refi[idx], mrg_list_cp_mv[idx], pi->refp, pi->pred[PRED_NUM], mrg_list_cp_num[idx]
-#if EIF
-                          , core->eif_tmp_buffer
-#endif
-            );
+            evc_affine_mc(x, y, ctx->w, ctx->h, cuw, cuh, mrg_list_refi[idx], mrg_list_cp_mv[idx], pi->refp, pi->pred[PRED_NUM], mrg_list_cp_num[idx], core->eif_tmp_buffer);
 
             cy = evce_ssd_16b(log2_cuw, log2_cuh, pi->pred[PRED_NUM][0][Y_C], y_org, cuw, pi->s_o[Y_C]);
             cu = evce_ssd_16b(log2_cuw - 1, log2_cuh - 1, pi->pred[PRED_NUM][0][U_C], u_org, cuw >> 1, pi->s_o[U_C]);
@@ -6071,11 +6042,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 
                                 for(i = 0; i < AFF_MAX_NUM_MVP; i++)
                                 {
-                                    evc_affine_mc_l(x, y, refp->w_l, refp->h_l, cuw, cuh, affine_mvp[i], refp, pred, vertex_num
-#if EIF
-                                                    , core->eif_tmp_buffer
-#endif
-                                    );
+                                    evc_affine_mc_l(x, y, refp->w_l, refp->h_l, cuw, cuh, affine_mvp[i], refp, pred, vertex_num, core->eif_tmp_buffer);
                                     mvp_temp = evce_satd_16b(log2_cuw, log2_cuh, org, pred, s_org, cuw);
                                     mebits = 1; // zero mvd flag
                                     mebits += evce_tbl_mvp_idx_bits[AFF_MAX_NUM_MVP][i]; // mvp idx
@@ -6101,11 +6068,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                                     tmp_mv_array[vertex][MV_Y] = mv_trans[refi_cur][lidx][MV_Y];
                                 }
 
-                                evc_affine_mc_l(x, y, refp->w_l, refp->h_l, cuw, cuh, tmp_mv_array, refp, pred, vertex_num
-#if EIF
-                                                , core->eif_tmp_buffer
-#endif
-                                );
+                                evc_affine_mc_l(x, y, refp->w_l, refp->h_l, cuw, cuh, tmp_mv_array, refp, pred, vertex_num, core->eif_tmp_buffer);
                                 cost_trans[lidx][refi_cur] = evce_satd_16b(log2_cuw, log2_cuh, org, pred, s_org, cuw);
                                 mebits = get_affine_mv_bits(tmp_mv_array, affine_mvp[mvp_idx[lidx]], pi->num_refp, refi_cur, vertex_num);
                                 mebits += evce_tbl_mvp_idx_bits[AFF_MAX_NUM_MVP][mvp_idx[lidx]];
@@ -6130,11 +6093,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                             }
 
                             /* affine motion search */
-                            mecost = pi->fn_affine_me(pi, x, y, log2_cuw, log2_cuh, &refi_cur, lidx, affine_mvp[mvp_idx[lidx]], affine_mv, 0, vertex_num
-#if EIF
-                                                      , core->eif_tmp_buffer
-#endif
-                            );
+                            mecost = pi->fn_affine_me(pi, x, y, log2_cuw, log2_cuh, &refi_cur, lidx, affine_mvp[mvp_idx[lidx]], affine_mv, 0, vertex_num, core->eif_tmp_buffer);
 
                             // update MVP bits
                             t0 = (lidx == 0) ? refi_cur : REFI_INVALID;
@@ -6308,11 +6267,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                                     pel s_org = pi->s_o[Y_C];
                                     for(i = 0; i < AFF_MAX_NUM_MVP; i++)
                                     {
-                                        evc_affine_mc_l(x, y, refp->w_l, refp->h_l, cuw, cuh, affine_mvp[i], refp, pred, vertex_num
-#if EIF
-                                                        , core->eif_tmp_buffer
-#endif
-                                        );
+                                        evc_affine_mc_l(x, y, refp->w_l, refp->h_l, cuw, cuh, affine_mvp[i], refp, pred, vertex_num, core->eif_tmp_buffer);
 
                                         mvp_temp = evce_satd_16b(log2_cuw, log2_cuh, org, pred, s_org, cuw);
                                         mebits = 1; // zero mvd flag
@@ -6332,11 +6287,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                                     affine_mv[1][MV_Y] = pi->affine_mv_scale[lidx][refi_cur][1][MV_Y];
                                     affine_mv[2][MV_X] = affine_mv[0][MV_X] - (affine_mv[1][MV_Y] - affine_mv[0][MV_Y]) * cuh / cuw;
                                     affine_mv[2][MV_Y] = affine_mv[0][MV_Y] + (affine_mv[1][MV_X] - affine_mv[0][MV_X]) * cuh / cuw;
-                                    evc_affine_mc_l(x, y, refp->w_l, refp->h_l, cuw, cuh, affine_mv, refp, pred, vertex_num
-#if EIF
-                                                    , core->eif_tmp_buffer
-#endif
-                                    );
+                                    evc_affine_mc_l(x, y, refp->w_l, refp->h_l, cuw, cuh, affine_mv, refp, pred, vertex_num, core->eif_tmp_buffer);
 
                                     mvp_temp = evce_satd_16b(log2_cuw, log2_cuh, org, pred, s_org, cuw);
 
@@ -6373,11 +6324,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                                 }
 
                                 /* affine motion search */
-                                mecost = pi->fn_affine_me(pi, x, y, log2_cuw, log2_cuh, &refi_cur, lidx, affine_mvp[mvp_idx[lidx]], affine_mv, 0, vertex_num
-#if EIF
-                                                          , core->eif_tmp_buffer
-#endif
-                                );
+                                mecost = pi->fn_affine_me(pi, x, y, log2_cuw, log2_cuh, &refi_cur, lidx, affine_mvp[mvp_idx[lidx]], affine_mv, 0, vertex_num, core->eif_tmp_buffer);
 
                                 // update ME bits
                                 t0 = (lidx == 0) ? refi_cur : REFI_INVALID;

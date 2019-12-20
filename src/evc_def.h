@@ -168,7 +168,6 @@
 #define MERGE                              1
 #endif
 #define MC_PRECISION_ADD                   2 
-#define EIF                                1 // Enhanced bilinear Interpolation Filter
 
 #define USE_RDOQ                           1 // Use RDOQ
 #define RDO_DBK                            1 // include DBK changes into distortion
@@ -382,23 +381,15 @@ enum SAD_POINT_INDEX
 #endif
 
 /* EIF (START) */
-#if EIF
-
 #define AFFINE_ADAPT_EIF_SIZE                                   8
-
 #if M50761_EIF_RESTRICTIONS
 #define EIF_HW_SUBBLOCK_SIZE                                    4
-
 #if EIF_NUM_FETCHED_LINES_BASIC_RESTRICTION
 #define EIF_NUM_ALLOWED_FETCHED_LINES_FOR_THE_FIRST_LINE        3
 #endif
-
 #if EIF_NEW_BILINEAR
 #define EIF_MV_PRECISION_BILINEAR                               5
 #endif
-
-#endif
-
 #endif
 /* EIF (END) */
 
@@ -1566,7 +1557,6 @@ static const int NTAPS_LUMA = 8; ///< Number of taps for luma
 static const int NTAPS_CHROMA = 4; ///< Number of taps for chroma
 #endif
 
-#if EIF
 #define EIF_MV_PRECISION_INTERNAL                                       (2 + MAX_CU_LOG2 + 0) //2 + MAX_CU_LOG2 is MV precision in regular affine
 
 #if EIF_MV_PRECISION_INTERNAL > 14 || EIF_MV_PRECISION_INTERNAL < 9
@@ -1581,8 +1571,6 @@ static const int NTAPS_CHROMA = 4; ///< Number of taps for chroma
 #if EIF_MV_PRECISION_BILINEAR < 3 
 #error "EIF_MV_PRECISION_BILINEAR is to small"
 #endif
-#endif
-
 #endif
 
 #define MAX_SUB_TB_NUM 4

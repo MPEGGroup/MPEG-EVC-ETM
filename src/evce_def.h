@@ -349,11 +349,7 @@ struct _EVCE_PINTER
     /* ME function (Full-ME or Fast-ME) */
     u32            (*fn_me)(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2_cuh, s8 *refi, int lidx, s16 mvp[MV_D], s16 mv[MV_D], int bi);
     /* AFFINE ME function (Gradient-ME) */
-    u32            (*fn_affine_me)(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2_cuh, s8 *refi, int lidx, s16 mvp[VER_NUM][MV_D], s16 mv[VER_NUM][MV_D], int bi, int vertex_num
-#if EIF
-                                   , pel *tmp
-#endif
-                                   );
+    u32            (*fn_affine_me)(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2_cuh, s8 *refi, int lidx, s16 mvp[VER_NUM][MV_D], s16 mv[VER_NUM][MV_D], int bi, int vertex_num, pel *tmp);
 };
 
 typedef struct _EVCE_PIBC EVCE_PIBC;
@@ -723,11 +719,8 @@ typedef struct _EVCE_CORE
     u32            inter_satd;
     s32            dist_cu;
     s32            dist_cu_best; //dist of the best intra mode (note: only updated in intra coding now)
-
-#if EIF
     /* temporal pixel buffer for inter prediction */
     pel            eif_tmp_buffer[(MAX_CU_SIZE + 2) * (MAX_CU_SIZE + 2)];
-#endif
 #if MERGE
     u8             au8_eval_mvp_idx[MAX_NUM_MVP];
 #endif

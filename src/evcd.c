@@ -1011,11 +1011,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
         {
             evcd_get_affine_motion(ctx, core);
 
-            evc_affine_mc(x, y, ctx->w, ctx->h, cuw, cuh, core->refi, core->affine_mv, ctx->refp, core->pred, core->affine_flag + 1
-#if EIF
-                          , core->eif_tmp_buffer
-#endif
-            );
+            evc_affine_mc(x, y, ctx->w, ctx->h, cuw, cuh, core->refi, core->affine_mv, ctx->refp, core->pred, core->affine_flag + 1, core->eif_tmp_buffer);
         }
         else
         {

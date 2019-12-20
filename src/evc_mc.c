@@ -7426,11 +7426,7 @@ void evc_derive_mv_clip_range_2D(int cuw, int cuh, int mv_scale_hor, int mv_scal
 #endif
 
 #endif
-void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 ac_mv[VER_NUM][MV_D], EVC_PIC* ref_pic, pel pred[MAX_CU_DIM], int vertex_num
-#if EIF
-                      , pel* tmp_buffer
-#endif
-                      )
+void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 ac_mv[VER_NUM][MV_D], EVC_PIC* ref_pic, pel pred[MAX_CU_DIM], int vertex_num, pel* tmp_buffer)
 {
     int qpel_gmv_x, qpel_gmv_y;
     pel *pred_y = pred;
@@ -7492,7 +7488,6 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
         dmv_ver_y = dmv_hor_x;
     }
 
-#if EIF
 #if M50761_AFFINE_ADAPT_SUB_SIZE || M50761_AFFINE_SUB_SIZE_LUT
     int b_eif = sub_w < AFFINE_ADAPT_EIF_SIZE || sub_h < AFFINE_ADAPT_EIF_SIZE;
 #if M50662_AFFINE_BANDWIDTH_CLIPMV
@@ -7556,7 +7551,7 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
       return;
     }
 #endif
-#endif
+
     int mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori;
     // get prediction block by block
     for(h = 0; h < cuh; h += sub_h)
@@ -7587,9 +7582,7 @@ void evc_affine_mc_lc( int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16
 #if M50761_AFFINE_ADAPT_SUB_SIZE
     , int sub_w, int sub_h
 #endif
-#if EIF
     , pel* tmp_buffer_for_eif
-#endif
 #if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
   , BOOL mem_band_conditions_for_eif_are_satisfied
 #endif
@@ -7649,7 +7642,6 @@ void evc_affine_mc_lc( int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16
         dmv_ver_y = dmv_hor_x;
     }
 
-#if EIF
 #if M50761_AFFINE_ADAPT_SUB_SIZE || M50761_AFFINE_SUB_SIZE_LUT
     int b_eif = sub_w < AFFINE_ADAPT_EIF_SIZE || sub_h < AFFINE_ADAPT_EIF_SIZE;
 #if M50662_AFFINE_BANDWIDTH_CLIPMV
@@ -7732,7 +7724,7 @@ void evc_affine_mc_lc( int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16
       return;
     }
 #endif
-#endif
+
     int mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori;
 
     // get prediction block by block
@@ -7773,8 +7765,6 @@ void evc_affine_mc_lc( int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16
         pred_v += (cuw * sub_h) >> 2;
     }
 }
-
-#if EIF
 
 BOOL can_mv_clipping_occurs(int block_width, int block_height, int mv0[MV_D], int d_x[MV_D], int d_y[MV_D], int mv_max[MV_D], int mv_min[MV_D])
 {
@@ -8069,15 +8059,7 @@ void evc_eif_mc(int block_width, int block_height, int x, int y, int mv_scale_ho
   evc_eif_filter(block_width, block_height, p_tmp_buf, tmp_buf_stride, p_dst, dst_stride, shifts, offsets, bit_depth);
 }
 
-
-#endif //EIF
-
-void evc_affine_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16 mv[REFP_NUM][VER_NUM][MV_D], EVC_REFP(*refp)[REFP_NUM], pel pred[2][N_C][MAX_CU_DIM], int vertex_num
-#if EIF
-                    , pel* tmp_buffer
-#endif
-
-                    )
+void evc_affine_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16 mv[REFP_NUM][VER_NUM][MV_D], EVC_REFP(*refp)[REFP_NUM], pel pred[2][N_C][MAX_CU_DIM], int vertex_num, pel* tmp_buffer)
 {
     EVC_PIC *ref_pic;
     pel      *p0, *p1, *p2, *p3;
@@ -8106,9 +8088,7 @@ void evc_affine_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REF
 #if M50761_AFFINE_ADAPT_SUB_SIZE
                           , sub_w, sub_h
 #endif
-#if EIF
                           , tmp_buffer
-#endif
 #if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
                           , mem_band_conditions_for_eif_are_satisfied
 #endif
@@ -8125,9 +8105,7 @@ void evc_affine_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REF
 #if M50761_AFFINE_ADAPT_SUB_SIZE
                           , sub_w, sub_h
 #endif
-#if EIF
                           , tmp_buffer
-#endif
 #if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
                           , mem_band_conditions_for_eif_are_satisfied
 #endif

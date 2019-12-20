@@ -154,10 +154,8 @@ typedef struct _EVCD_CORE
 
     /* ATS_INTER info (index + position)*/
     u8             ats_inter_info;
-#if EIF
     /* temporal pixel buffer for inter prediction */
     pel            eif_tmp_buffer[ (MAX_CU_SIZE + 2) * (MAX_CU_SIZE + 2) ];
-#endif
     u8             mvr_idx;
 #if DMVR_FLAG
     u8            dmvr_flag;

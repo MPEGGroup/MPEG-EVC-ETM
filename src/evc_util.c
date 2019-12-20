@@ -3521,11 +3521,8 @@ int evc_get_affine_memory_access(s16 mv[VER_NUM][MV_D], int cuw, int cuh)
     int max_y = max(mv[0][MV_Y], max(mv[1][MV_Y], max(mv[2][MV_Y] + cuh, mv[3][MV_Y] + cuh))) >> 2;
     int min_y = min(mv[0][MV_Y], min(mv[1][MV_Y], min(mv[2][MV_Y] + cuh, mv[3][MV_Y] + cuh))) >> 2;
 
-#if EIF
     return (abs(max_x - min_x) + 4) *  (abs(max_y - min_y) + 4);
-#else
-    return (abs(max_x - min_x) + 7) *  (abs(max_y - min_y) + 7);
-#endif
+
 }
 #endif
 
