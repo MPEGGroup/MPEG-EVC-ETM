@@ -320,10 +320,7 @@ void scaling_mv(int ratio, s16 mvp[MV_D], s16 mv[MV_D])
 }
 
 void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int h_scu, int scup, u16 avail, int log2_cuw, int log2_cuh, int slice_t, int real_mv[][2][3], u32 *map_scu, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME], u16 avail_lr
-#if ADMVP
-                           , EVC_HISTORY_BUFFER history_buffer, int admvp_flag
-#endif
-    , EVC_SH* sh
+    , EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh
 #if M50761_TMVP_8X8_GRID
     , int log2_max_cuwh
 #endif
@@ -338,11 +335,11 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 #if M50632_IMPROVEMENT_MMVD
     int ref_sign1 = 0;
 #endif
-    int ref_mvd_cands[8] = {1, 2, 4, 8, 16, 32, 64, 128};
-    int hor0var[MMVD_MAX_REFINE_NUM] = {0};
-    int ver0var[MMVD_MAX_REFINE_NUM] = {0};
-    int hor1var[MMVD_MAX_REFINE_NUM] = {0};
-    int ver1Var[MMVD_MAX_REFINE_NUM] = {0};
+    int ref_mvd_cands[8] = { 1, 2, 4, 8, 16, 32, 64, 128 };
+    int hor0var[MMVD_MAX_REFINE_NUM] = { 0 };
+    int ver0var[MMVD_MAX_REFINE_NUM] = { 0 };
+    int hor1var[MMVD_MAX_REFINE_NUM] = { 0 };
+    int ver1Var[MMVD_MAX_REFINE_NUM] = { 0 };
     int base_mv_idx = 0;
     int c_num = 0;
     int base_mv[25][2][3];
@@ -356,7 +353,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
     int base_mv_t[25][2][3];
     int base_type[3][MAX_NUM_MVP];
     int cur_set;
-    int total_num = MMVD_BASE_MV_NUM*MMVD_MAX_REFINE_NUM;
+    int total_num = MMVD_BASE_MV_NUM * MMVD_MAX_REFINE_NUM;
     int sld1[MMVD_BASE_MV_NUM];
     int sld2[MMVD_BASE_MV_NUM];
     int sld[MMVD_BASE_MV_NUM*MMVD_BASE_MV_NUM][2];
@@ -375,19 +372,19 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
     int small_cu = 0;
     if (cuw*cuh <= NUM_SAMPLES_BLOCK)
         small_cu = 1;
-    for(s = 0; s < MMVD_BASE_MV_NUM; s++)
+    for (s = 0; s < MMVD_BASE_MV_NUM; s++)
     {
         sld1[s] = s;
         sld2[s] = s;
     }
 
-    for(z = 0; z < MMVD_BASE_MV_NUM; z++)
+    for (z = 0; z < MMVD_BASE_MV_NUM; z++)
     {
         comp = z;
-        for(s = 0; s < MMVD_BASE_MV_NUM; s++)
+        for (s = 0; s < MMVD_BASE_MV_NUM; s++)
         {
             a = s + comp;
-            if(a >= MMVD_BASE_MV_NUM)
+            if (a >= MMVD_BASE_MV_NUM)
             {
                 a = a - MMVD_BASE_MV_NUM;
             }
@@ -396,23 +393,24 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
             c_win++;
         }
     }
-#if ADMVP
+
     if (admvp_flag == 0)
+    {
         evc_get_motion_skip_baseline(slice_t, scup, map_refi, map_mv, refp, cuw, cuh, w_scu, srefi, smvp, avail);
+    }
     else
-#endif
+    {
         evc_get_motion_merge_main(REF_SET[2][0], slice_t, scup, map_refi, map_mv, refp, cuw, cuh, w_scu, h_scu, srefi, smvp, map_scu, avail_lr
+
 #if DMVR_LAG
             , NULL
 #endif
-#if ADMVP
-            , history_buffer
-#endif
-            , 0, (EVC_REFP(*)[2])refp, sh
+            , history_buffer, 0, (EVC_REFP(*)[2])refp, sh
 #if M50761_TMVP_8X8_GRID
             , log2_max_cuwh
 #endif
         );
+    }
 
     for (z = 0; z < MAX_NUM_MVP; z++)
     {
@@ -880,7 +878,6 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
     }
 }
 
-#if ADMVP
 void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_scu, int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], u32* map_scu, u16 avail_lr, int num_mvp, int is_ibc)
 {
     int dx = 0;
@@ -1001,7 +998,6 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
         }
     }
 }
-#endif
 
 #if (DMVR_LAG == 2)
 int evc_use_refine_mv(int scup,int neb_scup, int w_scu)
@@ -1036,19 +1032,13 @@ s8 evc_get_first_refi(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[
 #if DMVR_LAG
                       , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
-#if ADMVP
-                      , EVC_HISTORY_BUFFER history_buffer
-                      , int admvp_flag
-#endif
-)
+                      , EVC_HISTORY_BUFFER history_buffer, int admvp_flag)
 {
     int neb_addr[MAX_NUM_POSSIBLE_SCAND], valid_flag[MAX_NUM_POSSIBLE_SCAND];
     s8  refi = 0, default_refi;
     s16 default_mv[MV_D];
 
-#if ADMVP
     evc_check_motion_availability(scup, cuw, cuh, w_scu, h_scu, neb_addr, valid_flag, map_scu, avail_lr, 1, 0);
-#endif
     evc_get_default_motion(neb_addr, valid_flag, 0, lidx, map_refi, map_mv, &default_refi, default_mv
 #if DMVR_LAG
                            , map_scu
@@ -1056,11 +1046,8 @@ s8 evc_get_first_refi(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[
                            , scup
                            , w_scu
 #endif
-#if ADMVP
                            , history_buffer
-                           , admvp_flag
-#endif
-    );
+                           , admvp_flag);
 
     assert(mvr_idx < 5);
     //neb-position is coupled with mvr index
@@ -1083,11 +1070,8 @@ void evc_get_default_motion(int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag
                             , int scup
                             , int w_scu
 #endif
-#if ADMVP
                             , EVC_HISTORY_BUFFER history_buffer
-                            , int admvp_flag
-#endif
-)
+                            , int admvp_flag)
 {
     int k;
     int found = 0;
@@ -1160,7 +1144,6 @@ void evc_get_default_motion(int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag
         }
     }
 
-#if ADMVP
     if(admvp_flag)
     {
         if(!found)
@@ -1194,7 +1177,6 @@ void evc_get_default_motion(int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag
                 }
             }
         }
-#endif
     }
 }
 
@@ -1204,10 +1186,7 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int poc, int scup, int lidx, s8 cur_ref
 #if DMVR_FLAG
                              , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
-#if ADMVP
-                             , EVC_HISTORY_BUFFER history_buffer
-                             , int admvp_flag
-#endif
+                             , EVC_HISTORY_BUFFER history_buffer, int admvp_flag
 )
 {
     int i, t0, poc_refi_cur;
@@ -1217,9 +1196,7 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int poc, int scup, int lidx, s8 cur_ref
     s8 default_refi;
     s16 default_mv[MV_D];
     s16 mvp_temp[MV_D];
-#if ADMVP
     evc_check_motion_availability(scup, cuw, cuh, w_scu, h_scu, neb_addr, valid_flag, map_scu, avail_lr, 1, 0);
-#endif
     evc_get_default_motion(neb_addr, valid_flag, cur_refi, lidx, map_refi, map_mv, &default_refi, default_mv
 #if DMVR_LAG
                            , map_scu
@@ -1227,11 +1204,8 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int poc, int scup, int lidx, s8 cur_ref
                            , scup
                            , w_scu
 #endif
-#if ADMVP
                            , history_buffer
-                           , admvp_flag
-#endif
-    );
+                           , admvp_flag);
 
     poc_refi_cur = refp[cur_refi][lidx].poc;
     for(i = 0; i < num_refp; i++)
@@ -1374,9 +1348,7 @@ void evc_get_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int num_re
     int neb_addr[MAX_NUM_POSSIBLE_SCAND], valid_flag[MAX_NUM_POSSIBLE_SCAND];
     s8(*map_refi_co)[REFP_NUM];
 
-#if ADMVP
     evc_check_motion_availability(scup, cuw, cuh, w_scu, h_scu, neb_addr, valid_flag, map_scu, avail_lr, 0, 0);
-#endif
 
     poc_refi_cur = refp[cur_refi][lidx].poc;
     for(i = 0; i < num_refp; i++)
@@ -1478,7 +1450,6 @@ void evc_get_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int num_re
 }
 
 #if MERGE_MVP
-#if ADMVP
 static int evc_get_right_below_scup_qc_merge(int scup, int cuw, int cuh, int w_scu, int h_scu, int bottom_right
 #if M50761_TMVP_8X8_GRID
     , int log2_max_cuwh
@@ -1564,7 +1535,6 @@ static int evc_get_right_below_scup_qc_merge_suco(int scup, int cuw, int cuh, in
     }
     return -1;
 }
-#endif
 
 static int evc_get_right_below_scup(int scup, int cuw, int cuh, int w_scu, int h_scu)
 {
@@ -1593,7 +1563,6 @@ static int evc_get_right_below_scup(int scup, int cuw, int cuh, int w_scu, int h
 }
 #endif
 
-#if ADMVP
 BOOL check_bi_applicability(int slice_type, int cuw, int cuh, int is_sps_amis)
 {
     BOOL is_applicable = FALSE;
@@ -1608,7 +1577,6 @@ BOOL check_bi_applicability(int slice_type, int cuw, int cuh, int is_sps_amis)
 
     return is_applicable;
 }
-#endif
 
 __inline static void check_redundancy(int slice_type, s16 mvp[REFP_NUM][MAX_NUM_MVP][MV_D], s8 refi[REFP_NUM][MAX_NUM_MVP], int *count)
 {
@@ -1939,8 +1907,7 @@ void evc_get_motion_skip_baseline(int slice_type, int scup, s8(*map_refi)[REFP_N
         evc_get_motion(scup, REFP_1, map_refi, map_mv, (EVC_REFP(*)[2])refp, cuw, cuh, w_scu, avail_lr, refi[REFP_1], mvp[REFP_1]);
     }
 }
-
-#if ADMVP        
+    
 void evc_clip_mv_pic(int x, int y, int maxX, int maxY, s16 mvp[REFP_NUM][MV_D])
 {
     int minXY = - PIC_PAD_SIZE_L;
@@ -1958,7 +1925,6 @@ void evc_clip_mv_pic(int x, int y, int maxX, int maxY, s16 mvp[REFP_NUM][MV_D])
 void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 poc, int scup, int c_scu, u16 w_scu, u16 h_scu, s16 mvp[REFP_NUM][MV_D]
                     , int sps_admvp_flag
 )
-#endif
 {
     s16 mvc[MV_D];
     int dpoc_co, dpoc_L0, dpoc_L1;

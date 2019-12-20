@@ -130,9 +130,7 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
     evc_bsw_write1(bs, sps->tool_amis);
     if (sps->tool_amis)
     {
-#if ADMVP
         evc_bsw_write1(bs, sps->tool_admvp);
-#endif
         evc_bsw_write1(bs, sps->tool_affine);
         evc_bsw_write1(bs, sps->tool_amvr);
         evc_bsw_write1(bs, sps->tool_dmvr);
@@ -176,9 +174,7 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
 #if ALF
     evc_bsw_write1(bs, sps->tool_alf);
 #endif
-#if ADMVP
     evc_bsw_write1(bs, sps->tool_admvp);
-#endif
     evc_bsw_write1(bs, sps->tool_eipd);
     evc_bsw_write1(bs, sps->tool_amis);
     evc_bsw_write1(bs, sps->tool_iqt);

@@ -2243,11 +2243,7 @@ static double analyze_skip_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y
 }
 static void mmvd_base_skip(EVCE_CTX *ctx, EVCE_CORE *core, int real_mv[][2][3], int log2_cuw, int log2_cuh, int slice_t, int scup
     , s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], EVC_REFP refp[REFP_NUM], int w_scu, u16 avail, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME]
-    , int h_scu, u32 *map_scu, u16 avail_lr
-#if ADMVP
-    , EVC_HISTORY_BUFFER history_buffer, int admvp_flag
-#endif
-    , EVC_SH* sh
+    , int h_scu, u32 *map_scu, u16 avail_lr, EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh
 #if M50761_TMVP_8X8_GRID
     , int log2_max_cuwh
 #endif
@@ -2304,23 +2300,24 @@ static void mmvd_base_skip(EVCE_CTX *ctx, EVCE_CORE *core, int real_mv[][2][3], 
             c_win++;
         }
     }
-#if ADMVP
+
     if (admvp_flag == 0)
+    {
         evc_get_motion_skip_baseline(slice_t, scup, map_refi, map_mv, refp, cuw, cuh, w_scu, srefi, smvp, avail);
+    }
     else
-#endif
+    {
         evc_get_motion_merge_main(REF_SET[2][0], slice_t, scup, map_refi, map_mv, refp, cuw, cuh, w_scu, h_scu, srefi, smvp, map_scu, avail_lr
+
 #if DMVR_LAG
             , NULL
 #endif
-#if ADMVP
-            , history_buffer
-#endif
-            , 0, (EVC_REFP(*)[2])refp, sh
+            , history_buffer, 0, (EVC_REFP(*)[2])refp, sh
 #if M50761_TMVP_8X8_GRID
             , log2_max_cuwh
 #endif
         );
+    }
 
     for (z = 0; z < MAX_NUM_MVP; z++)
     {
@@ -2482,24 +2479,23 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
     }
 #endif
 
-#if ADMVP
     if (ctx->sps.tool_admvp == 0)
-        evc_get_motion_skip_baseline(ctx->sh.slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, pi->refi_pred, pi->mvp, core->avail_cu
-        );
+    {
+        evc_get_motion_skip_baseline(ctx->sh.slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, pi->refi_pred, pi->mvp, core->avail_cu);
+    }
     else
-#endif
+    {
         evc_get_motion_merge_main(ctx->poc.poc_val, ctx->slice_type, core->scup, ctx->map_refi, ctx->map_mv, pi->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, pi->refi_pred, pi->mvp, ctx->map_scu, core->avail_lr
 #if DMVR_LAG
             , ctx->map_unrefined_mv
 #endif
-#if ADMVP
-            , core->history_buffer
-#endif
-            , core->ibc_flag, (EVC_REFP(*)[2])ctx->refp[0], &ctx->sh
+            , core->history_buffer, core->ibc_flag, (EVC_REFP(*)[2])ctx->refp[0], &ctx->sh
 #if M50761_TMVP_8X8_GRID
             , ctx->log2_max_cuwh
 #endif
         );
+    }
+
 #if DQP_RDO
     if(ctx->pps.cu_qp_delta_enabled_flag)
     {
@@ -2511,13 +2507,10 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
 #endif
     pi->mvp_idx[PRED_SKIP][REFP_0] = 0;
     pi->mvp_idx[PRED_SKIP][REFP_1] = 0;
-#if ADMVP
     for (idx0 = 0; idx0 < (cuw*cuh<= NUM_SAMPLES_BLOCK ? MAX_NUM_MVP_SMALL_CU:MAX_NUM_MVP); idx0++)
-#endif
     {
-#if ADMVP
         cnt = (ctx->slice_type == SLICE_B ? (cuw * cuh <= NUM_SAMPLES_BLOCK ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP) : 1);
-#endif
+
         for(idx1 = 0; idx1 < cnt; idx1++)
         {
             if(idx0 != idx1)
@@ -2636,9 +2629,8 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
     {
         assert(ctx->slice_type == SLICE_B);
         /* removes the cost above threshold and remove the duplicates */
-#if ADMVP
+
         for (idx0 = 0; idx0 < (cuw * cuh <= NUM_SAMPLES_BLOCK ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP); idx0++)
-#endif
         {
             /* removes the cost above threshold */
             if(ad_best_costs[idx0] > (cost_best * FAST_MERGE_THR))
@@ -2648,15 +2640,11 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
         }
 
         /* remove the duplicates and keep the best */
-#if ADMVP
         for (idx0 = 0; idx0 < (cuw * cuh <= NUM_SAMPLES_BLOCK ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP); idx0++)
-#endif
         {
             if(core->au8_eval_mvp_idx[idx0] == 1)
             {
-#if ADMVP
                 for (j = idx0 + 1; j < (cuw * cuh <= NUM_SAMPLES_BLOCK ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP); j++)
-#endif
                 {
                     if(core->au8_eval_mvp_idx[j] == 1)
                     {
@@ -2722,27 +2710,24 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
     cuh = (1 << log2_cuh);
     core->mmvd_flag = 0;
 
-#if ADMVP
     if (ctx->sps.tool_admvp == 0)
-        evc_get_motion_skip_baseline(ctx->sh.slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, pi->refi_pred, pi->mvp, core->avail_cu
-        );
+    {
+        evc_get_motion_skip_baseline(ctx->sh.slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, pi->refi_pred, pi->mvp, core->avail_cu);
+    }
     else
-#endif
+    {
         evc_get_motion_merge_main(ctx->poc.poc_val, ctx->slice_type, core->scup, ctx->map_refi, ctx->map_mv, pi->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, pi->refi_pred, pi->mvp, ctx->map_scu, core->avail_lr
 #if DMVR_LAG
             , ctx->map_unrefined_mv
 #endif
-#if ADMVP
-            , core->history_buffer
-#endif
-            , core->ibc_flag, (EVC_REFP(*)[2])ctx->refp[0], &ctx->sh
+            , core->history_buffer, core->ibc_flag, (EVC_REFP(*)[2])ctx->refp[0], &ctx->sh
 #if M50761_TMVP_8X8_GRID
             , ctx->log2_max_cuwh
 #endif
         );
-#if ADMVP
+    }
+
     for(idx0 = 0; idx0 < (cuw*cuh <= NUM_SAMPLES_BLOCK ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP); idx0++)
-#endif
     {
 #if MERGE
         if(0 == core->au8_eval_mvp_idx[idx0])
@@ -3297,11 +3282,7 @@ static double analyze_bi(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_
 #if DMVR_LAG
                                                       , ctx->map_unrefined_mv
 #endif
-#if ADMVP
-                                                      , core->history_buffer
-                                                      , ctx->sps.tool_admvp
-#endif
-        );
+                                                      , core->history_buffer, ctx->sps.tool_admvp);
 
         pi->mv[pidx][lidx_ref][MV_X] = pi->mvp_scale[lidx_ref][pi->refi[pidx][lidx_ref]][pi->mvp_idx[pidx][lidx_ref]][MV_X];
         pi->mv[pidx][lidx_ref][MV_Y] = pi->mvp_scale[lidx_ref][pi->refi[pidx][lidx_ref]][pi->mvp_idx[pidx][lidx_ref]][MV_Y];
@@ -3336,11 +3317,7 @@ static double analyze_bi(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_
 #if DMVR_LAG
                                             , ctx->map_unrefined_mv
 #endif
-#if ADMVP
-                                            , core->history_buffer
-                                            , ctx->sps.tool_admvp
-#endif
-        );
+                                            , core->history_buffer, ctx->sps.tool_admvp);
         refi[lidx_cnd] = REFI_INVALID;
 
         for(refi_cur = refi[lidx_ref]; refi_cur < refi[lidx_ref] + 1; refi_cur++)
@@ -5511,22 +5488,14 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
         REF_SET[2][1] = ctx->rpm.cur_num_ref_pics;
 #endif
         evc_get_mmvd_mvp_list(ctx->map_refi, ctx->refp[0], ctx->map_mv, ctx->w_scu, ctx->h_scu, core->scup, core->avail_cu, log2_cuw, log2_cuh, ctx->slice_type, real_mv, ctx->map_scu, REF_SET, core->avail_lr
-#if ADMVP
-                              , core->history_buffer, ctx->sps.tool_admvp
-#endif
-            , &ctx->sh
+                              , core->history_buffer, ctx->sps.tool_admvp, &ctx->sh
 #if M50761_TMVP_8X8_GRID
             , ctx->log2_max_cuwh
 #endif
         );
     }
-    mmvd_base_skip(ctx, core, real_mv, log2_cuw, log2_cuh, ctx->slice_type, core->scup
-        , ctx->map_refi, ctx->map_mv, ctx->refp[0], ctx->w_scu, core->avail_cu, REF_SET
-        , ctx->h_scu, ctx->map_scu, core->avail_lr
-#if ADMVP
-        , core->history_buffer, ctx->sps.tool_admvp
-#endif   
-        , &ctx->sh
+    mmvd_base_skip(ctx, core, real_mv, log2_cuw, log2_cuh, ctx->slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], ctx->w_scu, core->avail_cu, REF_SET
+        , ctx->h_scu, ctx->map_scu, core->avail_lr, core->history_buffer, ctx->sps.tool_admvp, &ctx->sh
 #if M50761_TMVP_8X8_GRID
         , ctx->log2_max_cuwh
 #endif
@@ -5694,10 +5663,8 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 #if DMVR_LAG
                                             , ctx->map_unrefined_mv
 #endif
-#if ADMVP
                                             , core->history_buffer
                                             , ctx->sps.tool_admvp
-#endif
                     );
                     mvp_idx[lidx] = 0;
 
@@ -5792,11 +5759,8 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                     pi->ats_inter_info_mode[pidx] = core->ats_inter_info;
                 }
             }
-#if ADMVP
+
             if(check_bi_applicability(pi->slice_type, cuw, cuh, ctx->sps.tool_amis) )
-#else
-            if(pi->slice_type == SLICE_B)
-#endif
             {
                 int max_num_bi = MAX_NUM_BI;
                 int pred_mode = 0;

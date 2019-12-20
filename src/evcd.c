@@ -406,7 +406,6 @@ static void get_nbr_yuv(int x, int y, int cuw, int cuh, EVCD_CTX * ctx, EVCD_COR
 #endif
 }
 
-#if ADMVP
 static void update_history_buffer_parse(EVCD_CORE *core, int slice_type)
 {
     int i;
@@ -608,7 +607,6 @@ static void update_history_buffer_parse_affine(EVCD_CORE *core, int slice_type)
     }
 }
 #endif
-#endif
 
 void evcd_get_direct_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 {
@@ -618,7 +616,7 @@ void evcd_get_direct_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 
     cuw = (1 << core->log2_cuw);
     cuh = (1 << core->log2_cuh);
-#if ADMVP
+
     if (ctx->sps.tool_admvp == 0)
     {
         evc_get_motion_skip_baseline(ctx->sh.slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, srefi, smvp, core->avail_cu
@@ -626,14 +624,11 @@ void evcd_get_direct_motion(EVCD_CTX * ctx, EVCD_CORE * core)
     }
     else
     {
-#endif
         evc_get_motion_merge_main(ctx->poc.poc_val, ctx->sh.slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, srefi, smvp, ctx->map_scu, core->avail_lr
 #if DMVR_LAG
             , ctx->map_unrefined_mv
 #endif
-#if ADMVP
             , core->history_buffer
-#endif
             , core->ibc_flag
             , (EVC_REFP(*)[2])ctx->refp[0]
             , &ctx->sh
@@ -738,10 +733,8 @@ void evcd_get_inter_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #if DMVR_LAG
                         , ctx->map_unrefined_mv
 #endif
-#if ADMVP
                         , core->history_buffer
                         , ctx->sps.tool_admvp
-#endif
                     );
                 }   
 
@@ -750,11 +743,7 @@ void evcd_get_inter_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #if DMVR_LAG
                     , ctx->map_unrefined_mv
 #endif
-#if ADMVP
-                    , core->history_buffer
-                    , ctx->sps.tool_admvp
-#endif
-                );
+                    , core->history_buffer, ctx->sps.tool_admvp);
                 core->mvp_idx[inter_dir_idx] = 0;
 
                 if (core->bi_idx == BI_FL0 + inter_dir_idx)
@@ -1070,7 +1059,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 #endif
         );
 #endif
-#if ADMVP && AFFINE_UPDATE 
+#if AFFINE_UPDATE 
 #if !M50662_AFFINE_MV_HISTORY_TABLE
         if (core->pred_mode != MODE_INTRA && !core->affine_flag && core->pred_mode != MODE_IBC
 #if M50761_CHROMA_NOT_SPLIT

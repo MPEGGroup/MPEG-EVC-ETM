@@ -1076,7 +1076,6 @@ static int copy_cu_data(EVCE_CU_DATA *dst, EVCE_CU_DATA *src, int x, int y, int 
     return EVC_OK;
 }
 
-#if ADMVP
 #if M50662_HISTORY_CTU_ROW_RESET
 int evce_hmvp_init(EVC_HISTORY_BUFFER *history_buffer)
 {
@@ -1181,7 +1180,7 @@ static int get_cu_pred_data(EVCE_CU_DATA *src, int x, int y, int log2_cuw, int l
 #endif
     return EVC_OK;
 }
-#endif
+
 #if DQP
 void get_min_max_qp(EVCE_CTX * ctx, EVCE_CORE *core, s8 * min_qp, s8 * max_qp, int * is_dqp_set, SPLIT_MODE split_mode, int cuw, int cuh, u8 qp, int x0, int y0)
 {
@@ -1812,7 +1811,6 @@ static void copy_to_cu_data(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi, s16 c
 #endif
 }
 
-#if ADMVP
 static void update_history_buffer(EVC_HISTORY_BUFFER *history_buffer, EVCE_MODE *mi, int slice_type)
 {
     int i;
@@ -2009,7 +2007,6 @@ static void update_history_buffer_affine(EVC_HISTORY_BUFFER *history_buffer, EVC
         history_buffer->currCnt++;
     }
 }
-#endif
 #endif
 
 static void update_map_scu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int src_cuw, int src_cuh)
@@ -3391,12 +3388,10 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
     }
 #endif
 
-#if ADMVP
     // stroe the previous stored history MV list to m_pSplitTempMotLUTs, backup
     EVC_HISTORY_BUFFER OrigMotLUT, TempSubMotLUT;
 
     copy_history_buffer(&OrigMotLUT, &core->m_pTempMotLUTs[log2_cuw - 2][log2_cuh - 2]);
-#endif
 
     core->avail_lr = avail_lr;
     bef_data_idx = evc_get_lr(core->avail_lr);
@@ -3488,10 +3483,8 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
 
         init_cu_data(&core->cu_data_temp[log2_cuw - 2][log2_cuh - 2], log2_cuw, log2_cuh, ctx->qp, ctx->qp, ctx->qp);
 
-#if ADMVP
         // copy previous stored history MV list to current cu
         copy_history_buffer(&core->history_buffer, &OrigMotLUT);
-#endif
 #if DQP
         ctx->sh.qp_prev_mode = core->dqp_data[log2_cuw - 2][log2_cuh - 2].prev_QP;
         best_dqp = ctx->sh.qp_prev_mode;
@@ -3531,10 +3524,8 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                 cost_temp_dqp = cost_temp;
                 init_cu_data(&core->cu_data_temp[log2_cuw - 2][log2_cuh - 2], log2_cuw, log2_cuh, ctx->qp, ctx->qp, ctx->qp);
 
-#if ADMVP
                 // copy previous stored history MV list to current cu
                 copy_history_buffer(&core->history_buffer, &OrigMotLUT);
-#endif
                 clear_map_scu(ctx, core, x0, y0, cuw, cuh);
                 cost_temp_dqp += mode_coding_unit(ctx, core, x0, y0, log2_cuw, log2_cuh, cud, mi);
 
@@ -3564,7 +3555,6 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                     if (evce_check_luma(ctx))
                     {
 #endif 
-#if ADMVP
                     // update history MV list
                     // in mode_coding_unit, ctx->fn_pinter_analyze_cu will store the best MV in mi
                     // if the cost_temp has been update above, the best MV is in mi
@@ -3594,7 +3584,6 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
 #endif       
 
                     copy_history_buffer(&core->m_pBestMotLUTs[log2_cuw - 2][log2_cuh - 2], &core->history_buffer);
-#endif        
 #if M50761_CHROMA_NOT_SPLIT
                 }
 #endif
@@ -3665,7 +3654,6 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
             if (evce_check_luma(ctx))
             {
 #endif 
-#if ADMVP
             // update history MV list
             // in mode_coding_unit, ctx->fn_pinter_analyze_cu will store the best MV in mi
             // if the cost_temp has been update above, the best MV is in mi
@@ -3695,7 +3683,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
 #endif 
 
             copy_history_buffer(&core->m_pBestMotLUTs[log2_cuw - 2][log2_cuh - 2], &core->history_buffer);
-#endif 
+
 #if M50761_CHROMA_NOT_SPLIT
             }
 #endif 
@@ -3908,10 +3896,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                             init_cu_data(&core->cu_data_temp[log2_cuw - 2][log2_cuh - 2], log2_cuw, log2_cuh, ctx->qp, ctx->qp, ctx->qp);
                             clear_map_scu(ctx, core, x0, y0, cuw, cuh);
 #endif
-
-#if ADMVP
                         copy_history_buffer(&TempSubMotLUT, &OrigMotLUT);
-#endif
 #if TRACE_ENC_CU_DATA_CHECK
                         static int counter_in[MAX_CU_LOG2 - MIN_CU_LOG2][MAX_CU_LOG2 - MIN_CU_LOG2] = { 0, };
                         counter_in[log2_cuw - MIN_CU_LOG2][log2_cuh - MIN_CU_LOG2]++;
@@ -3926,9 +3911,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                             int y_pos = split_struct.y_pos[cur_part_num];
                             int cur_cuw = split_struct.width[cur_part_num];
                             int cur_cuh = split_struct.height[cur_part_num];
-#if ADMVP
                             copy_history_buffer(&core->m_pTempMotLUTs[log2_sub_cuw - 2][log2_sub_cuh - 2], &TempSubMotLUT);
-#endif
                             if((x_pos < ctx->w) && (y_pos < ctx->h))
                             {
                                 if (part_num == 0)
@@ -3975,9 +3958,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                                 prev_log2_sub_cuw = log2_sub_cuw;
                                 prev_log2_sub_cuh = log2_sub_cuh;
 
-#if ADMVP
                                 copy_history_buffer(&TempSubMotLUT, &core->m_pBestMotLUTs[log2_sub_cuw - 2][log2_sub_cuh - 2]);
-#endif
                             }
 #if M50761_CHROMA_NOT_SPLIT
                             ctx->tree_cons = tree_cons;
@@ -4082,9 +4063,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                             SBAC_STORE(s_temp_depth, core->s_next_best[prev_log2_sub_cuw - 2][prev_log2_sub_cuh - 2]);
                             best_split_mode = split_mode;
                             best_suco_flag = suco_flag;
-#if ADMVP
                             copy_history_buffer(&core->m_pBestMotLUTs[log2_cuw - 2][log2_cuh - 2], &TempSubMotLUT);
-#endif
                         }
 #if DQP
                         }
@@ -4167,11 +4146,9 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
         }
     }
 
-#if ADMVP
     // restore the original history MV in m_pSplitTempMotLUTs to m_pTempMotLUTs
     copy_history_buffer(&core->m_pTempMotLUTs[log2_cuw - 2][log2_cuh - 2], &OrigMotLUT);
     copy_history_buffer(&core->history_buffer, &OrigMotLUT);
-#endif
 
 #if FAST_RECURSE_OPT && !FAST_RECURSE_OPT_FIX
     /* Evaluate the parent mode after recursion */
@@ -4241,7 +4218,6 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
 #endif
             );
 
-#if ADMVP
             // update history MV list
             // in mode_coding_unit, ctx->fn_pinter_analyze_cu will store the best MV in mi
             // if the cost_temp has been update above, the best MV is in mi
@@ -4258,7 +4234,6 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
 #endif
 
             copy_history_buffer(&core->m_pBestMotLUTs[log2_cuw - 2][log2_cuh - 2], &core->history_buffer);
-#endif        // #if HISTORY
         }
 
         if(split_allow[split_mode] != 0)
@@ -4534,7 +4509,6 @@ static int mode_analyze_lcu(EVCE_CTX *ctx, EVCE_CORE *core)
     init_cu_data(&core->cu_data_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], ctx->log2_max_cuwh, ctx->log2_max_cuwh, ctx->qp, ctx->qp, ctx->qp);
     init_cu_data(&core->cu_data_temp[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], ctx->log2_max_cuwh, ctx->log2_max_cuwh, ctx->qp, ctx->qp, ctx->qp);
 
-#if ADMVP
 #if M50662_HISTORY_CTU_ROW_RESET
     evce_hmvp_init(&core->m_pTempMotLUTs[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2]);
     evce_hmvp_init(&core->m_pBestMotLUTs[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2]);
@@ -4542,7 +4516,6 @@ static int mode_analyze_lcu(EVCE_CTX *ctx, EVCE_CORE *core)
     
     copy_history_buffer(&core->m_pTempMotLUTs[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], &core->history_buffer);
     copy_history_buffer(&core->m_pBestMotLUTs[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], &core->history_buffer);
-#endif
 
     evc_mset(mi->mvp_idx, 0, sizeof(u8) * REFP_NUM);
     evc_mset(mi->mvd, 0, sizeof(s16) * REFP_NUM * MV_D);
@@ -4602,9 +4575,8 @@ static int mode_analyze_lcu(EVCE_CTX *ctx, EVCE_CORE *core)
         }
     }
 #endif
-#if ADMVP
+
     copy_history_buffer(&core->history_buffer, &core->m_pBestMotLUTs[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2]);
-#endif
 
     /* Reset all coded flag for the current lcu */
     core->x_scu = PEL2SCU(core->x_pel);

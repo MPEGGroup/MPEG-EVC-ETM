@@ -121,10 +121,9 @@ typedef struct _EVCE_MODE
     s16   affine_mv[REFP_NUM][VER_NUM][MV_D];
     s16   affine_mvd[REFP_NUM][VER_NUM][MV_D];
 
-#if ADMVP
     int   cu_mode;
     u8    affine_flag;
-#endif
+
 #if M50662_AFFINE_MV_HISTORY_TABLE
 #if AFFINE_UPDATE 
     // spatial neighboring MV of affine block
@@ -666,12 +665,10 @@ typedef struct _EVCE_CORE
     u8             skip_flag;
     /* ibc flag for MODE_IBC */
     u8             ibc_flag;
-#if ADMVP
     /* history-based prediction buffer */
     EVC_HISTORY_BUFFER  m_pTempMotLUTs[MAX_CU_DEPTH][MAX_CU_DEPTH];
     EVC_HISTORY_BUFFER  m_pBestMotLUTs[MAX_CU_DEPTH][MAX_CU_DEPTH];
     EVC_HISTORY_BUFFER  history_buffer;
-#endif
     /* mmvd_flag for MODE_INTER */
     u8             mmvd_flag;
     /* affine flag for MODE_INTER */

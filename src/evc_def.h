@@ -128,9 +128,6 @@
 #endif
 #endif
 
-//inter
-#define ADMVP                              1
-
 //loop filter
 #define DBF_LONGF                          0
 #define DBF_IMPROVE                        1
@@ -163,9 +160,7 @@
 #endif
 
 //platform tools & trivial improvement
-#if ADMVP
 #define MERGE                              1
-#endif
 #define MC_PRECISION_ADD                   2 
 
 #define USE_RDOQ                           1 // Use RDOQ
@@ -332,12 +327,10 @@ enum SAD_POINT_INDEX
 /* DMVR (END) */
 
 /* HISTORY (START) */
-#if ADMVP
 #define HISTORY_LCU_COPY_BUG_FIX           1
 #define ALLOWED_CHECKED_NUM                23
 #define ALLOWED_CHECKED_AMVP_NUM           4
 #define AFFINE_UPDATE                      1
-#endif
 /* ADMVP (END) */
 
 /* ALF (START) */
@@ -606,11 +599,9 @@ extern int fp_trace_started;
 
 /* number of MVP candidates */
 #if INCREASE_MVP_NUM
-#if ADMVP
 #define MAX_NUM_MVP_SMALL_CU               4
 #define MAX_NUM_MVP                        6
 #define NUM_SAMPLES_BLOCK                  32 // 16..64
-#endif
 #define ORG_MAX_NUM_MVP                    4
 #else
 #define MAX_NUM_MVP                        4
@@ -1248,9 +1239,7 @@ typedef struct _EVC_SPS
 #if HTDF
     int              tool_htdf;
 #endif
-#if ADMVP
     int              tool_admvp;
-#endif
     int              tool_amis;
     int              tool_eipd;
     int              tool_iqt;
@@ -1504,7 +1493,6 @@ typedef enum _BLOCK_SHAPE
     NUM_BLOCK_SHAPE,
 } BLOCK_SHAPE;
 
-#if ADMVP
 /*****************************************************************************
 * history-based MV prediction buffer (slice level)
 *****************************************************************************/
@@ -1518,7 +1506,6 @@ typedef struct _EVC_HISTORY_BUFFER
     int currCnt;
     int m_maxCnt;
 } EVC_HISTORY_BUFFER;
-#endif
 
 typedef enum _CTX_NEV_IDX
 {

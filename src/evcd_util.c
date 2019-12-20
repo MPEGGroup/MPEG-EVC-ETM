@@ -792,10 +792,7 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
     cuh = (1 << core->log2_cuh);
 
     evc_get_mmvd_mvp_list(ctx->map_refi, ctx->refp[0], ctx->map_mv, ctx->w_scu, ctx->h_scu, core->scup, core->avail_cu, core->log2_cuw, core->log2_cuh, ctx->sh.slice_type, real_mv, ctx->map_scu, REF_SET, core->avail_lr
-#if ADMVP
-        , core->history_buffer, ctx->sps.tool_admvp
-#endif
-        , &ctx->sh
+        , core->history_buffer, ctx->sps.tool_admvp, &ctx->sh
 #if M50761_TMVP_8X8_GRID
         , ctx->log2_max_cuwh
 #endif
@@ -811,11 +808,8 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
         core->mv[REFP_1][MV_X] = real_mv[core->mmvd_idx][1][MV_X];
         core->mv[REFP_1][MV_Y] = real_mv[core->mmvd_idx][1][MV_Y];
     }
-#if ADMVP
+
     if ((ctx->sh.slice_type == SLICE_P) || (!check_bi_applicability(ctx->sh.slice_type, cuw, cuh, ctx->sps.tool_amis)))
-#else
-    if (ctx->sh.slice_type == SLICE_P)
-#endif
     {
         core->refi[REFP_1] = -1;
     }

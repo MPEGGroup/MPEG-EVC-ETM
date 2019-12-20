@@ -108,19 +108,13 @@ void evc_picbuf_expand(EVC_PIC *pic, int exp_l, int exp_c);
 void evc_poc_derivation(EVC_SPS sps, int tid, EVC_POC *poc);
 
 void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int h_scu, int scup, u16 avail, int cuw, int cuh, int slice_t, int real_mv[][2][3], u32 *map_scu, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME], u16 avail_lr
-#if ADMVP
-                           , EVC_HISTORY_BUFFER history_buffer, int admvp_flag
-#endif
-    , EVC_SH* sh
+                           , EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh
 #if M50761_TMVP_8X8_GRID
     , int log2_max_cuwh
 #endif
 );
 
-#if ADMVP
 void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_scu, int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], u32 *map_scu, u16 avail_lr, int num_mvp, int is_ibc);
-#endif
-
 void evc_get_default_motion(int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], s8 cur_refi, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], s8 *refi, s16 mv[MV_D]
 #if DMVR_LAG
                             , u32 *map_scu
@@ -128,21 +122,15 @@ void evc_get_default_motion(int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag
                             , int scup
                             , int w_scu
 #endif
-#if ADMVP
                             , EVC_HISTORY_BUFFER history_buffer
-                            , int admvp_flag
-#endif
-);
+                            , int admvp_flag);
 
 s8 evc_get_first_refi(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int cuw, int cuh, int w_scu, int h_scu, u32 *map_scu, u8 mvr_idx, u16 avail_lr
 #if DMVR_LAG
                       , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
-#if ADMVP
                       , EVC_HISTORY_BUFFER history_buffer
-                      , int admvp_flag
-#endif
-);
+                      , int admvp_flag);
 
 void evc_get_motion(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],
                     EVC_REFP(*refp)[REFP_NUM], int cuw, int cuh, int w_scu, u16 avail, s8 refi[MAX_NUM_MVP], s16 mvp[MAX_NUM_MVP][MV_D]);
@@ -151,9 +139,7 @@ void evc_get_motion_merge_main(int poc, int slice_type, int scup, s8(*map_refi)[
 #if DMVR_LAG
     , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
-#if ADMVP
     , EVC_HISTORY_BUFFER history_buffer
-#endif
     , u8 ibc_flag
     , EVC_REFP(*refplx)[REFP_NUM]
     , EVC_SH* sh
@@ -174,11 +160,8 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int poc, int scup, int lidx, s8 cur_ref
 #if DMVR_LAG
                              , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
-#if ADMVP
                              , EVC_HISTORY_BUFFER history_buffer
-                             , int admvp_flag
-#endif
-);
+                             , int admvp_flag);
 
 void evc_get_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int num_refp, \
                             s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
@@ -236,13 +219,8 @@ int evc_split_is_vertical(SPLIT_MODE mode);
 //! Check that mode is horizontal
 int evc_split_is_horizontal(SPLIT_MODE mode);
 
-#if ADMVP    
-void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 poc, int scup, int c_scu, u16 w_scu, u16 h_scu, s16 mvp[REFP_NUM][MV_D]
-                    , int sps_admvp_flag);
-#endif
-
+void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 poc, int scup, int c_scu, u16 w_scu, u16 h_scu, s16 mvp[REFP_NUM][MV_D], int sps_admvp_flag);
 int evc_get_avail_cu(int neb_scua[MAX_NEB2], u32 * map_cu);
-
 int evc_scan_tbl_init();
 int evc_scan_tbl_delete();
 int evc_get_split_mode(s8* split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*split_mode_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]);
@@ -379,11 +357,7 @@ void get_tu_size(u8 ats_inter_info, int log2_cuw, int log2_cuh, int* log2_tuw, i
 void get_tu_pos_offset(u8 ats_inter_info, int log2_cuw, int log2_cuh, int* x_offset, int* y_offset);
 void get_ats_inter_trs(u8 ats_inter_info, int log2_cuw, int log2_cuh, u8* ats_cu, u8* ats_tu);
 void set_cu_cbf_flags(u8 cbf_y, u8 ats_inter_info, int log2_cuw, int log2_cuh, u32 *map_scu, int w_scu);
-
-#if ADMVP
 BOOL check_bi_applicability(int slice_type, int cuw, int cuh, int is_sps_amis);
-#endif
-
 void evc_block_copy(s16 * src, int src_stride, s16 * dst, int dst_stride, int log2_copy_w, int log2_copy_h);
 
 #if M50761_CHROMA_NOT_SPLIT
