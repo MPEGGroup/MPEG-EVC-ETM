@@ -1362,7 +1362,6 @@ void evc_get_motion(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[RE
     mvp[3][MV_Y] = refp[0][lidx].map_mv[scup][0][MV_Y];
 }
 
-#if AFFINE
 void evc_get_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int num_refp, s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM],
                             int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][MV_D], s8 refi[MAX_NUM_MVP], u32* map_scu, u16 avail_lr
 #if DMVR_LAG
@@ -1477,7 +1476,6 @@ void evc_get_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int num_re
         mvp[cnt][MV_Y] = 0;
     }
 }
-#endif
 
 #if MERGE_MVP
 #if ADMVP
@@ -3022,24 +3020,22 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
     avail[2] = x_scu + scuw >= w_scu ? 0 : MCU_GET_COD(map_scu[scun[2]]);
 
     num_pos_avail = 0;
-    for(j = 0; j < 3; j++)
+    for (j = 0; j < 3; j++)
     {
-        if(avail[j])
+        if (avail[j])
         {
-          nev_info[CNID_SKIP_FLAG][j] = MCU_GET_SF(map_scu[scun[j]]);
-          nev_info[CNID_PRED_MODE][j] = MCU_GET_IF(map_scu[scun[j]]);
+            nev_info[CNID_SKIP_FLAG][j] = MCU_GET_SF(map_scu[scun[j]]);
+            nev_info[CNID_PRED_MODE][j] = MCU_GET_IF(map_scu[scun[j]]);
 
-          if (slice_type != SLICE_I)
-          {
-#if AFFINE
-            nev_info[CNID_AFFN_FLAG][j] = MCU_GET_AFF(map_scu[scun[j]]);
-#endif
-          }
+            if (slice_type != SLICE_I)
+            {
+                nev_info[CNID_AFFN_FLAG][j] = MCU_GET_AFF(map_scu[scun[j]]);
+            }
 
-          if (ibc_flag == 1)
-          {
-            nev_info[CNID_IBC_FLAG][j] = MCU_GET_IBC(map_scu[scun[j]]);
-          }
+            if (ibc_flag == 1)
+            {
+                nev_info[CNID_IBC_FLAG][j] = MCU_GET_IBC(map_scu[scun[j]]);
+            }
 
             num_pos_avail++;
         }
@@ -3102,7 +3098,6 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
                 }
             }
 #endif
-#if AFFINE
             else if(i == CNID_AFFN_FLAG)
             {
                 if(sps_cm_init_flag == 1)
@@ -3114,7 +3109,6 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
                     ctx[i] = 0;
                 }
             }
-#endif
         }
     }
 }
@@ -3500,7 +3494,6 @@ BOOL check_eif_applicability_bi( s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi[REF
 }
 #endif // Dmytro comment HW
 
-#if AFFINE
 /*******************************************/
 /* Neighbor location: Graphical indication */
 /*                                         */
@@ -4759,7 +4752,6 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
 
     return cnt_wo_padding; // return value only used for encoder
 }
-#endif
 
 void evc_get_ctx_last_pos_xy_para(int ch_type, int width, int height, int *result_offset_x, int *result_offset_y, int *result_shift_x, int *result_shift_y)
 {

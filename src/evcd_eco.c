@@ -962,7 +962,7 @@ static int evcd_eco_mvp_idx(EVC_BSR * bs, EVCD_SBAC * sbac, int sps_amis_flag)
     }
 #endif
 }
-#if AFFINE
+
 static int evcd_eco_affine_mvp_idx( EVC_BSR * bs, EVCD_SBAC * sbac )
 {
 #if AFF_MAX_NUM_MVP == 1
@@ -983,8 +983,6 @@ static int evcd_eco_affine_mvp_idx( EVC_BSR * bs, EVCD_SBAC * sbac )
 #endif
 #endif
 }
-#endif
-
 
 void evcd_eco_mmvd_data(EVCD_CTX * ctx, EVCD_CORE * core)
 {
@@ -1175,9 +1173,7 @@ int evcd_eco_coef(EVCD_CTX * ctx, EVCD_CORE * core)
     int         log2_tuw = core->log2_cuw;
     int         log2_tuh = core->log2_cuh;
 
-#if AFFINE
     b_no_cbf |= core->pred_mode == MODE_DIR && core->affine_flag;
-#endif
     b_no_cbf |= core->pred_mode == MODE_DIR_MMVD;
 #if MERGE
     b_no_cbf |= core->pred_mode == MODE_DIR;
@@ -1426,12 +1422,10 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_in
 #if ALF
         evc_eco_sbac_ctx_initialize(sbac_ctx->ctb_alf_flag, (s16*)init_ctb_alf_flag, NUM_SBAC_CTX_ALF_FLAG, slice_type, slice_qp);
 #endif
-#if AFFINE
         evc_eco_sbac_ctx_initialize(sbac_ctx->affine_flag, (s16*)init_affine_flag, NUM_SBAC_CTX_AFFINE_FLAG, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->affine_mode, (s16*)init_affine_mode, NUM_SBAC_CTX_AFFINE_MODE, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->affine_mrg, (s16*)init_affine_mrg, AFF_MAX_CAND, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->affine_mvd_flag, (s16*)init_affine_mvd_flag, NUM_SBAC_CTX_AFFINE_MVD_FLAG, slice_type, slice_qp);
-#endif
         evc_eco_sbac_ctx_initialize(sbac_ctx->skip_flag, (s16*)init_skip_flag, NUM_SBAC_CTX_SKIP_FLAG, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->ibc_flag, (s16*)init_ibc_flag, NUM_SBAC_CTX_IBC_FLAG, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_intra_cu, (s16*)init_ats_intra_cu, NUM_ATS_INTRA_CU_FLAG_CTX, slice_type, slice_qp);
@@ -1477,7 +1471,7 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_in
 #if DQP
         for (i = 0; i < NUM_DELTA_QP_CTX; i++) sbac_ctx->delta_qp[i] = PROB_INIT;
 #endif
-#if AFFINE
+
         for (i = 0; i < NUM_SBAC_CTX_AFFINE_FLAG; i++)
         {
             sbac_ctx->affine_flag[i] = PROB_INIT;
@@ -1491,7 +1485,7 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_in
 
         sbac_ctx->affine_mvd_flag[0] = PROB_INIT;
         sbac_ctx->affine_mvd_flag[1] = PROB_INIT;
-#endif
+
         for (i = 0; i < NUM_SBAC_CTX_SKIP_FLAG; i++)  sbac_ctx->skip_flag[i] = PROB_INIT;
         for (i = 0; i < NUM_SBAC_CTX_IBC_FLAG; i++) sbac_ctx->ibc_flag[i] = PROB_INIT;
         for (i = 0; i < NUM_ATS_INTRA_CU_FLAG_CTX; i++) sbac_ctx->ats_intra_cu[i] = PROB_INIT;
@@ -1880,7 +1874,6 @@ void evcd_eco_mmvd_flag(EVCD_CTX * ctx, EVCD_CORE * core)
     EVC_TRACE_STR("\n");
 }
 
-#if AFFINE
 void evcd_eco_affine_flag(EVCD_CTX * ctx, EVCD_CORE * core)
 {
     EVCD_SBAC   *sbac;
@@ -1928,7 +1921,6 @@ int evcd_eco_affine_mvd_flag(EVCD_CTX * ctx, EVCD_CORE * core, int refi)
     t0 = evcd_sbac_decode_bin(bs, sbac, &sbac->ctx.affine_mvd_flag[refi]);
     return t0;
 }
-#endif
 
 void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
 {
@@ -2107,11 +2099,9 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
     u8           bi_idx = BI_NON;
     
     core->pred_mode = MODE_INTRA;
-#if AFFINE
     core->affine_flag = 0;
     evc_mset(core->affine_bzero, 0, sizeof(int) * REFP_NUM);
     evc_mset(core->affine_mvd, 0, sizeof(s16) * REFP_NUM * 3 * MV_D);
-#endif
     core->ibc_flag = 0;
     core->mmvd_idx = 0;
     core->mvr_idx = 0;
@@ -2168,7 +2158,6 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
         }
         else
         {
-#if AFFINE 
             if (ctx->sps.tool_affine && cuw >= 8 && cuh >= 8)
             {
                 evcd_eco_affine_flag(ctx, core); /* affine_flag */
@@ -2179,7 +2168,6 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                 core->mvp_idx[0] = evcd_eco_affine_mrg_idx(bs, sbac);
             }
             else
-#endif
             {
                 core->mvp_idx[REFP_0] = evcd_eco_mvp_idx(bs, sbac, ctx->sps.tool_amis);
                 if (ctx->sps.tool_amis == 0 && ctx->sh.slice_type == SLICE_B)
@@ -2274,7 +2262,6 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                     }
                     else
                     {
-#if AFFINE
                         if (ctx->sps.tool_affine && cuw >= 8 && cuh >= 8)
                         {
                             evcd_eco_affine_flag(ctx, core); /* affine_flag */
@@ -2286,7 +2273,6 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                             core->mvp_idx[0] = evcd_eco_affine_mrg_idx(bs, sbac);
                         }
                         else
-#endif
                         {
                             core->mvp_idx[REFP_0] = evcd_eco_mvp_idx(bs, sbac, ctx->sps.tool_amis);
                             core->mvp_idx[REFP_1] = core->mvp_idx[REFP_0];
@@ -2300,7 +2286,6 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
 
                 evcd_eco_inter_pred_idc(ctx, core); /* inter_pred_idc */
 
-#if AFFINE // affine inter mode
                 if (cuw >= 16 && cuh >= 16 && ctx->sps.tool_affine && core->mvr_idx == 0)
                 {
                     evcd_eco_affine_flag(ctx, core);
@@ -2335,7 +2320,6 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                 }
                 else
                 {
-#endif
                     if (ctx->sps.tool_amis == 1 && core->inter_dir == PRED_BI)
                     {
                         core->bi_idx = evcd_eco_bi_idx(bs, sbac) + 1;
@@ -2553,9 +2537,7 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
 #if ADMVP
         sps->tool_admvp = evc_bsr_read1(bs);
 #endif
-#if AFFINE
         sps->tool_affine = evc_bsr_read1(bs);
-#endif
         sps->tool_amvr = evc_bsr_read1(bs);
 #if DMVR
         sps->tool_dmvr = evc_bsr_read1(bs);
@@ -2594,9 +2576,7 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
 #else
     sps->tool_amvr = evc_bsr_read1(bs);
     sps->tool_mmvd = evc_bsr_read1(bs);
-#if AFFINE
     sps->tool_affine = evc_bsr_read1(bs);
-#endif
 #if DMVR
     sps->tool_dmvr = evc_bsr_read1(bs);
 #endif
@@ -3291,8 +3271,6 @@ int evcd_eco_udata(EVCD_CTX * ctx, EVC_BSR * bs)
     return EVC_OK;
 }
 
-
-#if AFFINE
 int evcd_eco_affine_mrg_idx(EVC_BSR * bs, EVCD_SBAC * sbac)
 {
     int t0 = sbac_read_truncate_unary_sym(bs, sbac, sbac->ctx.affine_mrg, AFF_MAX_CAND, AFF_MAX_CAND);
@@ -3304,7 +3282,6 @@ int evcd_eco_affine_mrg_idx(EVC_BSR * bs, EVCD_SBAC * sbac)
 
     return  t0;
 }
-#endif
 
 #if GRAB_STAT
 void encd_stat_cu(int x, int y, int cuw, int cuh, int cup, void *ctx, void *core

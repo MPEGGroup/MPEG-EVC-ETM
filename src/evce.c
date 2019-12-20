@@ -362,9 +362,7 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
 
     sps->tool_amvr = ctx->cdsc.tool_amvr;
     sps->tool_mmvd = ctx->cdsc.tool_mmvd;
-#if AFFINE
     sps->tool_affine = ctx->cdsc.tool_affine;
-#endif
 #if DMVR
     sps->tool_dmvr = ctx->cdsc.tool_dmvr;
 #endif
@@ -1241,7 +1239,6 @@ int evce_ready(EVCE_CTX * ctx)
     evc_assert_gv(ctx->map_depth, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
     evc_mset(ctx->map_depth, -1, size);
 
-#if AFFINE
     if (ctx->map_affine == NULL)
     {
         size = sizeof(u32) * ctx->f_scu;
@@ -1249,7 +1246,6 @@ int evce_ready(EVCE_CTX * ctx)
         evc_assert_gv(ctx->map_affine, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
         evc_mset_x64a(ctx->map_affine, 0, size);
     }
-#endif
 
     if(ctx->map_cu_mode == NULL)
     {
@@ -1360,9 +1356,7 @@ ERR:
     evc_mfree_fast(ctx->map_block_size);
 #endif
     evc_mfree_fast(ctx->map_depth);
-#if AFFINE
     evc_mfree_fast(ctx->map_affine);
-#endif
     evc_mfree_fast(ctx->map_ats_intra_cu);
     evc_mfree_fast(ctx->map_ats_tu_h);
     evc_mfree_fast(ctx->map_ats_tu_v);
@@ -1402,9 +1396,7 @@ void evce_flush(EVCE_CTX * ctx)
     evc_mfree_fast(ctx->map_block_size);
 #endif
     evc_mfree_fast(ctx->map_depth);
-#if AFFINE
     evc_mfree_fast(ctx->map_affine);
-#endif
     evc_mfree_fast(ctx->map_ats_intra_cu);
     evc_mfree_fast(ctx->map_ats_tu_h);
     evc_mfree_fast(ctx->map_ats_tu_v);
@@ -2176,11 +2168,7 @@ int evce_enc_pic_prepare(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
     /* clear map */
     evc_mset_x64a(ctx->map_scu, 0, sizeof(u32) * ctx->f_scu);
-
-#if AFFINE
     evc_mset_x64a(ctx->map_affine, 0, sizeof(u32) * ctx->f_scu);
-#endif
-
     evc_mset_x64a(ctx->map_ats_inter, 0, sizeof(u8) * ctx->f_scu);
     evc_mset_x64a(ctx->map_cu_mode, 0, sizeof(u32) * ctx->f_scu);
 
@@ -3456,10 +3444,8 @@ int evce_create_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
         }
     }
     evce_malloc_1d((void**)&cu_data->map_scu, size_32b);
-#if AFFINE
     evce_malloc_1d((void**)&cu_data->affine_flag, size_8b);
     evce_malloc_1d((void**)&cu_data->map_affine, size_32b);
-#endif    
     evce_malloc_1d((void**)&cu_data->map_cu_mode, size_32b);
 #if !M50761_REMOVE_BLOCK_SIZE_MAP
     evce_malloc_2d((s8***)&cu_data->block_size, cu_cnt, 2, sizeof(s16));
@@ -3533,10 +3519,8 @@ int evce_delete_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
         }
     }
     evce_free_1d((void*)cu_data->map_scu);
-#if AFFINE
     evce_free_1d((void*)cu_data->affine_flag);
     evce_free_1d((void*)cu_data->map_affine);
-#endif   
     evce_free_1d((void*)cu_data->ats_intra_cu);
     evce_free_1d((void*)cu_data->ats_tu_h);
     evce_free_1d((void*)cu_data->ats_tu_v);

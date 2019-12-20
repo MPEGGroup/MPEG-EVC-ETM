@@ -118,17 +118,15 @@ typedef struct _EVCE_MODE
 
     pel  *pred_y_best;
 
-#if AFFINE
     s16   affine_mv[REFP_NUM][VER_NUM][MV_D];
     s16   affine_mvd[REFP_NUM][VER_NUM][MV_D];
-#endif
 
 #if ADMVP
     int   cu_mode;
     u8    affine_flag;
 #endif
 #if M50662_AFFINE_MV_HISTORY_TABLE
-#if AFFINE_UPDATE && AFFINE
+#if AFFINE_UPDATE 
     // spatial neighboring MV of affine block
     s8    refi_sp[REFP_NUM];
     s16   mv_sp[REFP_NUM][MV_D];
@@ -251,7 +249,6 @@ struct _EVCE_PINTER
     u8   bi_idx[PRED_NUM];
     u8   curr_bi;
     int max_search_range;
-#if AFFINE
     s16  affine_mvp_scale[REFP_NUM][MAX_NUM_ACTIVE_REF_FRAME][MAX_NUM_MVP][VER_NUM][MV_D];
     s16  affine_mv_scale[REFP_NUM][MAX_NUM_ACTIVE_REF_FRAME][VER_NUM][MV_D];
     u8   mvp_idx_scale[REFP_NUM][MAX_NUM_ACTIVE_REF_FRAME];
@@ -262,7 +259,6 @@ struct _EVCE_PINTER
 
     pel  p_error[MAX_CU_DIM];
     int  i_gradient[2][MAX_CU_DIM];
-#endif
     s16  resi[N_C][MAX_CU_DIM];
     s16  coff_save[N_C][MAX_CU_DIM];
     u8   ats_inter_info_mode[PRED_NUM];
@@ -352,14 +348,12 @@ struct _EVCE_PINTER
     int              sps_amvr_flag;
     /* ME function (Full-ME or Fast-ME) */
     u32            (*fn_me)(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2_cuh, s8 *refi, int lidx, s16 mvp[MV_D], s16 mv[MV_D], int bi);
-#if AFFINE
     /* AFFINE ME function (Gradient-ME) */
     u32            (*fn_affine_me)(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2_cuh, s8 *refi, int lidx, s16 mvp[VER_NUM][MV_D], s16 mv[VER_NUM][MV_D], int bi, int vertex_num
 #if EIF
                                    , pel *tmp
 #endif
                                    );
-#endif
 };
 
 typedef struct _EVCE_PIBC EVCE_PIBC;
@@ -562,10 +556,8 @@ typedef struct _EVCE_CU_DATA
     int *nnz[N_C];
     int *nnz_sub[N_C][4];
     u32 *map_scu;
-#if AFFINE
     u8  *affine_flag;
     u32 *map_affine;
-#endif
     u8* ats_intra_cu;
     u8* ats_tu_h;
     u8* ats_tu_v;
@@ -600,9 +592,7 @@ typedef struct _EVCE_BEF_DATA
     int    mvr_idx;
     int    bi_idx;
     s16    mmvd_idx;
-#if AFFINE
     int    affine_flag;
-#endif
     int    ats_intra_cu_idx_intra;
     int    ats_intra_cu_idx_inter;
 } EVCE_BEF_DATA;
@@ -691,10 +681,8 @@ typedef struct _EVCE_CORE
 #endif
     /* mmvd_flag for MODE_INTER */
     u8             mmvd_flag;
-#if AFFINE
     /* affine flag for MODE_INTER */
     u8             affine_flag;
-#endif
     u8             ats_intra_cu;
     u8             ats_tu;
     /* ats_inter info (index + position)*/
@@ -923,10 +911,8 @@ struct _EVCE_CTX
     s64                    dist_nofilt[N_C]; //distortion of not filtered samples
     s64                    dist_filter[N_C]; //distortion of filtered samples
 #endif
-#if AFFINE
     /* affine map (width in SCU x height in SCU) of raster scan order in a frame */
     u32                  * map_affine;
-#endif
     u32                  * map_cu_mode;
     u8                     ctx_flags[NUM_CNID];
     double                 lambda[3];

@@ -65,9 +65,7 @@ s8 evcd_eco_suco_flag(EVC_BSR *bs, EVCD_SBAC *sbac, EVCD_CTX *c, EVCD_CORE *core
     ((int)evcd_sbac_decode_bin_trm((bs), (sbac)))
 #endif
 
-#if AFFINE
 int evcd_eco_affine_mrg_idx(EVC_BSR * bs, EVCD_SBAC * sbac);
-#endif
 #if M50761_CHROMA_NOT_SPLIT
 MODE_CONS evcd_eco_mode_constr(EVCD_CTX * ctx);
 #endif

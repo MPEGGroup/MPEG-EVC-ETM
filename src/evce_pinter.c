@@ -1490,13 +1490,12 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
     get_ats_inter_info_rdo_order(core, ats_inter_avail, &num_rdo, ats_inter_info_list);
     core->ats_inter_info = 0;
 
-#if AFFINE
     if(core->affine_flag)
     {
         pi->mvr_idx[pidx] = 0;
         pi->bi_idx[pidx] = BI_NON;
     }
-#endif
+
     rec = pi->rec[pidx];
     nnz = core->nnz;
     cuw = 1 << log2_cuw;
@@ -1513,7 +1512,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
     org[U_C] = pi->o[U_C] + ((y >> 1) * pi->s_o[U_C]) + (x >> 1);
     org[V_C] = pi->o[V_C] + ((y >> 1) * pi->s_o[V_C]) + (x >> 1);
 
-#if RDO_DBK && AFFINE
+#if RDO_DBK 
     if(core->affine_flag)
     {
         is_from_mv_field = 1;
@@ -1521,7 +1520,6 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 #endif
 
     /* prediction */
-#if AFFINE
     if(core->affine_flag)
     {
         evc_affine_mc(x, y, ctx->w, ctx->h, w[0], h[0], pi->refi[pidx], pi->affine_mv[pidx], pi->refp, pred, core->affine_flag + 1
@@ -1532,7 +1530,6 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
     }
     else
     {
-#endif
 
 #if DMVR
         evc_mc(x, y, ctx->w, ctx->h, w[0], h[0], pi->refi[pidx], pi->mv[pidx], pi->refp, pred, ctx->poc.poc_val, pi->dmvr_template, pi->dmvr_ref_pred_interpolated
@@ -1552,9 +1549,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         evc_mc(x, y, ctx->w, ctx->h, w[0], h[0], pi->refi[pidx], pi->mv[pidx], pi->refp, pred
 #endif
         );
-#if AFFINE
     }
-#endif
 
     /* get residual */
     evce_diff_pred(x, y, log2_cuw, log2_cuh, pi->pic_o, pred[0], pi->resi);
@@ -1692,9 +1687,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 #endif
 
         if(1
-#if AFFINE
            && pidx != AFF_DIR
-#endif
            && pidx != PRED_DIR_MMVD
 #if MERGE
            && pidx != PRED_DIR
@@ -1729,11 +1722,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
                 pi->mvd[pidx][REFP_1][MV_Y] >>= pi->mvr_idx[pidx];
             }
 
-            evce_rdo_bit_cnt_cu_inter(ctx, core, ctx->sh.slice_type, core->scup, pi->refi[pidx], pi->mvd[pidx], coef, pidx, mvp_idx, pi->mvr_idx[pidx], pi->bi_idx[pidx]
-#if AFFINE
-                                      , pi->affine_mvd[pidx]
-#endif
-            );
+            evce_rdo_bit_cnt_cu_inter(ctx, core, ctx->sh.slice_type, core->scup, pi->refi[pidx], pi->mvd[pidx], coef, pidx, mvp_idx, pi->mvr_idx[pidx], pi->bi_idx[pidx], pi->affine_mvd[pidx]);
 
             if(IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
             {
@@ -1798,11 +1787,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
             pi->mvd[pidx][REFP_1][MV_Y] >>= pi->mvr_idx[pidx];
         }
 
-        evce_rdo_bit_cnt_cu_inter(ctx, core, ctx->sh.slice_type, core->scup, pi->refi[pidx], pi->mvd[pidx], coef, pidx, mvp_idx, pi->mvr_idx[pidx], pi->bi_idx[pidx]
-#if AFFINE
-                                  , pi->affine_mvd[pidx]
-#endif
-        );
+        evce_rdo_bit_cnt_cu_inter(ctx, core, ctx->sh.slice_type, core->scup, pi->refi[pidx], pi->mvd[pidx], coef, pidx, mvp_idx, pi->mvr_idx[pidx], pi->bi_idx[pidx], pi->affine_mvd[pidx]);
 
         if(IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
         {
@@ -1925,11 +1910,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
                 pi->mvd[pidx][REFP_1][MV_Y] >>= pi->mvr_idx[pidx];
             }
 
-            evce_rdo_bit_cnt_cu_inter(ctx, core, ctx->sh.slice_type, core->scup, pi->refi[pidx], pi->mvd[pidx], coef, pidx, mvp_idx, pi->mvr_idx[pidx], pi->bi_idx[pidx]
-#if AFFINE
-                                      , pi->affine_mvd[pidx]
-#endif
-            );
+            evce_rdo_bit_cnt_cu_inter(ctx, core, ctx->sh.slice_type, core->scup, pi->refi[pidx], pi->mvd[pidx], coef, pidx, mvp_idx, pi->mvr_idx[pidx], pi->bi_idx[pidx], pi->affine_mvd[pidx]);
 
             if(IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
             {
@@ -2009,9 +1990,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         }
 #endif
         if(ctx->sps.tool_amis == 1 && (0
-#if AFFINE
            || pidx == AFF_DIR
-#endif
            || pidx == PRED_DIR_MMVD
 #if MERGE
            || pidx == PRED_DIR
@@ -2067,11 +2046,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
             pi->mvd[pidx][REFP_1][MV_Y] >>= pi->mvr_idx[pidx];
         }
 
-        evce_rdo_bit_cnt_cu_inter(ctx, core, ctx->sh.slice_type, core->scup, pi->refi[pidx], pi->mvd[pidx], coef, pidx, mvp_idx, pi->mvr_idx[pidx], pi->bi_idx[pidx]
-#if AFFINE
-                                  , pi->affine_mvd[pidx]
-#endif
-        );
+        evce_rdo_bit_cnt_cu_inter(ctx, core, ctx->sh.slice_type, core->scup, pi->refi[pidx], pi->mvd[pidx], coef, pidx, mvp_idx, pi->mvr_idx[pidx], pi->bi_idx[pidx], pi->affine_mvd[pidx]);
 
         if(IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
         {
@@ -2106,10 +2081,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
     if (ats_inter_avail)
     {
         assert(log2_cuw <= MAX_TR_LOG2 && log2_cuh <= MAX_TR_LOG2);
-        if (ctx->sps.tool_amis == 1 && (0
-#if AFFINE
-            || pidx == AFF_DIR
-#endif
+        if (ctx->sps.tool_amis == 1 && (pidx == AFF_DIR
             || pidx == PRED_DIR_MMVD
 #if MERGE
             || pidx == PRED_DIR
@@ -3669,7 +3641,6 @@ static int pinter_init_frame(EVCE_CTX *ctx)
     size = sizeof(u8) * PRED_NUM;
     evc_mset(pi->bi_idx, 0, size);
 
-#if AFFINE
     size = sizeof(s16) * REFP_NUM * MAX_NUM_ACTIVE_REF_FRAME * MAX_NUM_MVP * VER_NUM * MV_D;
     evc_mset(pi->affine_mvp_scale, 0, size);
 
@@ -3693,7 +3664,7 @@ static int pinter_init_frame(EVCE_CTX *ctx)
 
     size = sizeof(int) * 2 * MAX_CU_DIM;
     evc_mset(pi->i_gradient, 0, size);
-#endif
+
     size = sizeof(s16) * N_C * MAX_CU_DIM;
     evc_mset(pi->resi, 0, size);
 
@@ -3808,7 +3779,6 @@ static void check_best_mvp(EVCE_CTX *ctx, EVCE_CORE *core, s32 slice_type, s8 re
     mvd[MV_Y] = mv[MV_Y] - mvp[*mvp_idx][MV_Y];
 }
 
-#if AFFINE
 static void scaled_horizontal_sobel_filter(pel *pred,
                                            int pred_stride,
                                            int *derivate,
@@ -5310,7 +5280,6 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
 
     return cost_best;
 }
-#endif
 
 static double pinter_analyze_cu_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_cuw, int log2_cuh, EVCE_MODE *mi, s16 coef[N_C][MAX_CU_DIM], pel *rec[N_C], int s_rec[N_C])
 {
@@ -5545,7 +5514,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 #if DMVR_FLAG
     int best_dmvr = 0;
 #endif
-#if AFFINE
+
     int best_affine_mode = 0;
     u8 affine_applicable = 0;
     int allow_affine = ctx->sps.tool_affine;
@@ -5561,7 +5530,6 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
     int mem = MAX_MEMORY_ACCESS_UNI * (1 << log2_cuw) * (1 << log2_cuh);
 #endif
 
-#endif
     int k;
     int REF_SET[3][MAX_NUM_ACTIVE_REF_FRAME] = {{0,0,},};
     int real_mv[MMVD_GRP_NUM * MMVD_BASE_MV_NUM * MMVD_MAX_REFINE_NUM][2][3];
@@ -5588,7 +5556,6 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
     cuw = (1 << log2_cuw);
     cuh = (1 << log2_cuh);
 
-#if AFFINE
     core->affine_flag = 0;
     if(core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][core->bef_data_idx].visit)
     {
@@ -5607,7 +5574,6 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
             save_translation_mv[i][j][MV_Y] = 0;
         }
     }
-#endif
 
     for(i = 0; i < PRED_NUM; i++)
     {
@@ -5616,9 +5582,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
         pi->bi_idx[i] = BI_NON;
     }
 
-#if AFFINE
     affine_applicable = 1;
-#endif
 
     if(ctx->sps.tool_mmvd && ((pi->slice_type == SLICE_B) || (pi->slice_type == SLICE_P)))
     {
@@ -5782,15 +5746,11 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
     }
 #endif
 
-#if DMVR && AFFINE
+#if DMVR 
     if(!(core->cu_mode == MODE_SKIP)
        || ctx->sps.tool_mmvd == 0
-#if DMVR
        || ctx->sps.tool_dmvr == 0
-#endif
-#if AFFINE
        || ctx->sps.tool_affine == 0
-#endif
        )
     {
 #endif
@@ -5860,7 +5820,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                         best_mecost = mecost;
                         refi_temp = refi_cur;
                     }
-#if AFFINE
+
                     {
                         if(pi->curr_mvr == 0)
                         {
@@ -5868,7 +5828,6 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                             save_translation_mv[lidx][refi_cur][MV_Y] = mv[MV_Y];
                         }
                     }
-#endif
                 }
 #if MODE_SAVE_LOAD_UPDATE
                 if(history_data->num_visit_save < NUM_MODE_SL_PATH && match_idx == -1)
@@ -6017,11 +5976,10 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                 }
             }
         }
-#if DMVR && AFFINE
+#if DMVR 
     }
 #endif
 
-#if AFFINE
     if(ctx->slice_depth < 4)
     {
         if(allow_affine && cuw >= 8 && cuh >= 8)
@@ -6071,10 +6029,8 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 
             if(affine_applicable && cuw >= 16 && cuh >= 16)
             {
-#if AFFINE 
                 if(!(core->cu_mode == MODE_SKIP) && !(core->cu_mode == MODE_SKIP_MMVD)) //fast skip affine
                 {
-#endif
                     /* AFFINE 4 paramters Motion Search *********************************************************/
                     core->affine_flag = 1;
                     vertex_num = 2;
@@ -6552,7 +6508,6 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
             }
         }
     }
-#endif
 
     /* reconstruct */
     for(j = 0; j < N_C; j++)
@@ -6603,7 +6558,6 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
     mi->pred_y_best = pi->pred[best_idx][0][0];
 
     /* save all cu inforamtion ********************/
-#if AFFINE // save affine information
     if(best_idx >= AFF_L0 && best_idx <= AFF_6_BI)
     {
         int vertex;
@@ -6626,7 +6580,6 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
     {
         core->affine_flag = 0;
     }
-#endif
 #if DMVR_FLAG
     core->dmvr_flag = best_dmvr;
 #endif
@@ -6669,12 +6622,11 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
         core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][core->bef_data_idx].bi_idx = mi->bi_idx;
     }
 
-#if AFFINE
     if(!core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][core->bef_data_idx].visit)
     {
         core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][core->bef_data_idx].affine_flag = best_affine_mode;
     }
-#endif
+
 #if TRACE_ADDITIONAL_FLAGS
     EVC_TRACE_COUNTER;
     EVC_TRACE_STR("Inter analyze for block [(");
@@ -6727,14 +6679,9 @@ static int pinter_set_complexity(EVCE_CTX *ctx, int complexity)
     }
 
     pi->me_level = ME_LEV_QPEL;
-
     pi->fn_me = pinter_me_epzs;
-#if AFFINE
     pi->fn_affine_me = pinter_affine_me_gradient;
-#endif
-
     pi->complexity = complexity;
-
     pi->sps_amvr_flag = ctx->cdsc.tool_amvr;
 
     return EVC_OK;

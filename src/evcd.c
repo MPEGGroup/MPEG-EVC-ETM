@@ -98,9 +98,7 @@ static void sequence_deinit(EVCD_CTX * ctx)
     evc_mfree(ctx->map_split);
     evc_mfree(ctx->map_ipm);
     evc_mfree(ctx->map_suco);
-#if AFFINE
     evc_mfree(ctx->map_affine);
-#endif
     evc_mfree(ctx->map_cu_mode);
     evc_mfree(ctx->map_ats_inter);
 #if EVC_TILE_SUPPORT
@@ -157,7 +155,6 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
         evc_mset_x64a(ctx->map_scu, 0, size);
     }
 
-#if AFFINE
     /* alloc affine SCU map */
     if (ctx->map_affine == NULL)
     {
@@ -166,7 +163,7 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
         evc_assert_gv(ctx->map_affine, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
         evc_mset_x64a(ctx->map_affine, 0, size);
     }
-#endif
+
     /* alloc cu mode SCU map */
     if(ctx->map_cu_mode == NULL)
     {
@@ -286,9 +283,7 @@ static int slice_init(EVCD_CTX * ctx, EVCD_CORE * core, EVC_SH * sh)
 
     /* clear maps */
     evc_mset_x64a(ctx->map_scu, 0, sizeof(u32) * ctx->f_scu);
-#if AFFINE
     evc_mset_x64a(ctx->map_affine, 0, sizeof(u32) * ctx->f_scu);
-#endif
     evc_mset_x64a(ctx->map_ats_inter, 0, sizeof(u8) * ctx->f_scu);
     evc_mset_x64a(ctx->map_cu_mode, 0, sizeof(u32) * ctx->f_scu);
     if(ctx->sh.slice_type == SLICE_I)
@@ -444,7 +439,7 @@ static void update_history_buffer_parse(EVCD_CORE *core, int slice_type)
     }
 }
 
-#if AFFINE_UPDATE && AFFINE
+#if AFFINE_UPDATE 
 static void update_history_buffer_parse_affine(EVCD_CORE *core, int slice_type)
 {
     int i;
@@ -781,7 +776,6 @@ void evcd_get_inter_motion(EVCD_CTX * ctx, EVCD_CORE * core)
     }
 }
 
-#if AFFINE
 void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 {
     int          cuw, cuh;
@@ -880,7 +874,6 @@ void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
         }
     }
 }
-#endif
 
 static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log2_cuw, int log2_cuh
 #if M50761_CHROMA_NOT_SPLIT
@@ -1008,14 +1001,12 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 
             if (core->inter_dir == PRED_DIR)
                 core->DMVRenable = 1;
-#if AFFINE
+
             if (core->affine_flag)
                 core->DMVRenable = 0;
-#endif
         }
 #endif
-    
-#if AFFINE
+
         if(core->affine_flag)
         {
             evcd_get_affine_motion(ctx, core);
@@ -1028,7 +1019,6 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
         }
         else
         {
-#endif
             if (core->pred_mode == MODE_SKIP)
             {
                 evcd_get_skip_motion(ctx, core);
@@ -1082,9 +1072,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
             evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, core->refi, core->mv, ctx->refp, core->pred
 #endif
             );
-#if AFFINE
         }
-#endif
 
 #if DMVR && HISTORY_LCU_COPY_BUG_FIX
         evcd_set_dec_info(ctx, core
@@ -1093,7 +1081,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 #endif
         );
 #endif
-#if AFFINE && ADMVP && AFFINE_UPDATE 
+#if ADMVP && AFFINE_UPDATE 
 #if !M50662_AFFINE_MV_HISTORY_TABLE
         if (core->pred_mode != MODE_INTRA && !core->affine_flag && core->pred_mode != MODE_IBC
 #if M50761_CHROMA_NOT_SPLIT
@@ -1112,7 +1100,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
             );
         }
 
-#endif        // #if AFFINE && ADMVP && AFFINE_UPDATE 
+#endif
 #if DMVR && !HISTORY_LCU_COPY_BUG_FIX
         evcd_set_dec_info(ctx, core
 #if ENC_DEC_TRACE

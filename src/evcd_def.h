@@ -116,10 +116,8 @@ typedef struct _EVCD_CORE
     /* QP for Chroma of current encoding MB */
     u8             qp_u;
     u8             qp_v;
-#if AFFINE
     s16            affine_mv[REFP_NUM][VER_NUM][MV_D];
     u8             affine_flag;
-#endif
 
     u8             ibc_flag;
     u8             ibc_skip_flag;
@@ -168,7 +166,7 @@ typedef struct _EVCD_CORE
     /* history-based motion vector prediction candidate list */
     EVC_HISTORY_BUFFER     history_buffer;
 #if M50662_AFFINE_MV_HISTORY_TABLE
-#if AFFINE_UPDATE && AFFINE
+#if AFFINE_UPDATE
     // spatial neighboring MV of affine block
     s8             refi_sp[REFP_NUM];
     s16            mv_sp[REFP_NUM][MV_D];
@@ -182,10 +180,8 @@ typedef struct _EVCD_CORE
     s16            mvd[REFP_NUM][MV_D];
     int            inter_dir;
     int            bi_idx;
-#if AFFINE
     int            affine_bzero[REFP_NUM];
     s16            affine_mvd[REFP_NUM][3][MV_D];
-#endif
 } EVCD_CORE;
 
 /******************************************************************************
@@ -254,9 +250,7 @@ struct _EVCD_CTX
     s8                   (* map_refi)[REFP_NUM];
     /* intra prediction modes */
     s8                    * map_ipm;
-#if AFFINE
     u32                   * map_affine;
-#endif
     /* new coding tool flag*/
     u32                   * map_cu_mode;
     u8                      ctx_flags[NUM_CNID];

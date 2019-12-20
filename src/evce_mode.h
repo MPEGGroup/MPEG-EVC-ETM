@@ -44,11 +44,7 @@ int evce_mode_create(EVCE_CTX * ctx, int complexity);
 void evce_rdo_bit_cnt_cu_intra(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s32 cup, s16 coef[N_C][MAX_CU_DIM]);
 void evce_rdo_bit_cnt_cu_intra_luma(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s32 cup, s16 coef[N_C][MAX_CU_DIM]);
 void evce_rdo_bit_cnt_cu_intra_chroma(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s32 cup, s16 coef[N_C][MAX_CU_DIM]);
-void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s32 cup, s8 refi[REFP_NUM], s16 mvd[REFP_NUM][MV_D], s16 coef[N_C][MAX_CU_DIM], int pidx, u8 * mvp_idx, u8 mvr_idx, u8 bi_idx
-#if AFFINE
-                               , s16 affine_mvd[REFP_NUM][VER_NUM][MV_D]
-#endif
-);
+void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s32 cup, s8 refi[REFP_NUM], s16 mvd[REFP_NUM][MV_D], s16 coef[N_C][MAX_CU_DIM], int pidx, u8 * mvp_idx, u8 mvr_idx, u8 bi_idx, s16 affine_mvd[REFP_NUM][VER_NUM][MV_D]);
 #if M50761_CHROMA_NOT_SPLIT
 void evce_rdo_bit_cnt_cu_inter_chroma(EVCE_CTX * ctx, EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM], int pidx);
 #endif
@@ -63,11 +59,7 @@ void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM],
 );
 void evce_rdo_bit_cnt_cu_skip(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s32 cup, int mvp_idx0, int mvp_idx1, int c_num, int tool_mmvd);
 void evce_rdo_bit_cnt_mvp(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s8 refi[REFP_NUM], s16 mvd[REFP_NUM][MV_D], int pidx, int mvp_idx);
-
-#if AFFINE
 void evce_rdo_bit_cnt_affine_mvp(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s8 refi[REFP_NUM], s16 mvd[REFP_NUM][VER_NUM][MV_D], int pidx, int mvp_idx, int vertex_num);
-#endif
-
 void evce_sbac_bit_reset(EVCE_SBAC * sbac);
 u32  evce_get_bit_number(EVCE_SBAC * sbac);
 void evce_init_bits_est();

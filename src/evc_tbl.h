@@ -123,12 +123,10 @@ extern const s16 init_cc_gtA_3[2][NUM_CTX_GTA];
 extern const s16 init_cc_scanr_x_3[2][NUM_CTX_SCANR];
 extern const s16 init_cc_scanr_y_3[2][NUM_CTX_SCANR];
 
-#if AFFINE
 extern const s16 init_affine_flag[2][NUM_SBAC_CTX_AFFINE_FLAG][1];
 extern const s16 init_affine_mode[2][NUM_SBAC_CTX_AFFINE_MODE][1];
 extern const s16 init_affine_mrg[2][AFF_MAX_CAND][1];
 extern const s16 init_affine_mvd_flag[2][NUM_SBAC_CTX_AFFINE_MVD_FLAG][1];
-#endif
 extern const s16 init_skip_flag[2][NUM_SBAC_CTX_SKIP_FLAG][1];
 extern const s16 init_ibc_flag[2][NUM_SBAC_CTX_IBC_FLAG][1];
 extern const s16 init_ats_intra_cu[2][NUM_ATS_INTRA_CU_FLAG_CTX][1];
@@ -170,12 +168,10 @@ extern const s16 init_suco_flag[2][NUM_SBAC_CTX_SUCO_FLAG][2];
 #if ALF
 extern const s16 init_ctb_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG][2];
 #endif
-#if AFFINE
 extern const s16 init_affine_flag[2][NUM_SBAC_CTX_AFFINE_FLAG][2];
 extern const s16 init_affine_mode[2][NUM_SBAC_CTX_AFFINE_MODE][2];
 extern const s16 init_affine_mrg[2][AFF_MAX_CAND][2];
 extern const s16 init_affine_mvd_flag[2][NUM_SBAC_CTX_AFFINE_MVD_FLAG][2];
-#endif
 extern const s16 init_skip_flag[2][NUM_SBAC_CTX_SKIP_FLAG][2];
 extern const s16 init_ats_intra_cu[2][NUM_ATS_INTRA_CU_FLAG_CTX][2];
 #if M50632_SIMPLIFICATION_ATS

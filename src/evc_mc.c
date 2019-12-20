@@ -7270,7 +7270,6 @@ void evc_IBC_mc(int x, int y, int log2_cuw, int log2_cuh, s16 mv[MV_D], EVC_PIC 
 #endif
 }
 
-#if AFFINE
 #if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV && !M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
 BOOL check_eif_clipMV_flag(s16 ac_mv[VER_NUM][MV_D], int d_hor[MV_D], int d_ver[MV_D], int mv_precision)
 {
@@ -8170,4 +8169,3 @@ void evc_affine_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REF
         }
     }
 }
-#endif

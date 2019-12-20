@@ -180,7 +180,6 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int poc, int scup, int lidx, s8 cur_ref
 #endif
 );
 
-#if AFFINE
 void evc_get_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int num_refp, \
                             s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
                             int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][MV_D], s8 refi_pred[MAX_NUM_MVP], u32* map_scu, u16 avail_lr
@@ -188,7 +187,6 @@ void evc_get_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int num_re
                             , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
 );
-#endif
 
 enum
 {
@@ -289,7 +287,6 @@ BOOL check_eif_applicability_uni( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, in
 );
 #endif
 
-#if AFFINE
 void evc_get_affine_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int num_refp, \
                                    s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
                                    int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][VER_NUM][MV_D], s8 refi[MAX_NUM_MVP]
@@ -314,8 +311,6 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
 
 #if !EIF_MEMORY_BANDWIDTH_RESTRICTION
 int evc_get_affine_memory_access(s16 mv[VER_NUM][MV_D], int cuw, int cuh);
-#endif
-
 #endif
 
 /* MD5 structure */

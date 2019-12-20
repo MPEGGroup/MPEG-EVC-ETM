@@ -129,7 +129,6 @@
 #endif
 
 //inter
-#define AFFINE                             1  // Affine Prediction
 #define DMVR                               1  // Decoder-side Motion Vector Refinement
 #define ADMVP                              1
 
@@ -169,9 +168,7 @@
 #define MERGE                              1
 #endif
 #define MC_PRECISION_ADD                   2 
-#if AFFINE 
 #define EIF                                1 // Enhanced bilinear Interpolation Filter
-#endif
 
 #define USE_RDOQ                           1 // Use RDOQ
 #define RDO_DBK                            1 // include DBK changes into distortion
@@ -362,7 +359,6 @@ enum SAD_POINT_INDEX
 /* ALF (END) */
 
 /* AFFINE (START) */
-#if AFFINE
  // AFFINE Constant
 #define VER_NUM                            4
 #define AFFINE_MAX_NUM_LT                  3 ///< max number of motion candidates in top-left corner
@@ -411,8 +407,6 @@ enum SAD_POINT_INDEX
 #else
 #define MAX_MEMORY_ACCESS_BI             ((8 + 7) * (8 + 7) / 64)
 #define MAX_MEMORY_ACCESS_UNI            ((8 + 7) * (4 + 7) / 32)
-#endif
-
 #endif
 /* AFFINE (END) */
 
@@ -727,7 +721,6 @@ extern int fp_trace_started;
 #define ORG_PRED_NUM                       13
 #define PRED_NUM                          (ORG_PRED_NUM * MAX_NUM_MVR)
 
-#if AFFINE
 #define START_NUM                         (ORG_PRED_NUM * MAX_NUM_MVR)
 
 #define AFF_L0                            (START_NUM)          // 5  7  42
@@ -742,7 +735,6 @@ extern int fp_trace_started;
 
 #undef PRED_NUM
 #define PRED_NUM                          (START_NUM + 8)
-#endif
 
 #define LR_00                              0
 #define LR_10                              1
@@ -910,8 +902,6 @@ typedef enum _TRANS_TYPE
     (m) = (((m)&0xFF807F80)|((sn)&0x7F)|((qp)<<16)|((i)<<15)|(1<<31))
 
 #define MCU_IS_COD_NIF(m)      ((((m)>>15) & 0x10001) == 0x10000)
-
-#if AFFINE
 /*
 - [8:9] : affine vertex number, 00: 1(trans); 01: 2(affine); 10: 3(affine); 11: 4(affine)
 */
@@ -940,7 +930,6 @@ typedef enum _TRANS_TYPE
 #define MCU_GET_AFF_LOGH(m)          (int)(((m)>>8)&0xFF)
 #define MCU_GET_AFF_XOFF(m)          (int)(((m)>>16)&0xFF)
 #define MCU_GET_AFF_YOFF(m)          (int)(((m)>>24)&0xFF)
-#endif
 
 /* set MMVD skip flag to map */
 #define MCU_SET_MMVDS(m)            (m)=((m)|(1<<2))
@@ -983,11 +972,9 @@ typedef u32 SBAC_CTX_MODEL;
 #define NUM_BI_IDX_CTX                     2
 #define NUM_MV_RES_CTX                     1       /* number of context models for motion vector difference */
 #define NUM_INTRA_DIR_CTX                  3
-#if AFFINE
 #define NUM_SBAC_CTX_AFFINE_FLAG           2
 #define NUM_SBAC_CTX_AFFINE_MODE           1
 #define NUM_SBAC_CTX_AFFINE_MRG            AFF_MAX_CAND
-#endif
 #define NUM_SBAC_CTX_RUN                   24
 #define NUM_SBAC_CTX_LAST                  2
 #define NUM_SBAC_CTX_LEVEL                 24
@@ -1028,9 +1015,7 @@ typedef struct _EVC_SBAC_CTX
 #endif
     SBAC_CTX_MODEL   refi            [NUM_REFI_CTX];
     SBAC_CTX_MODEL   mvp_idx         [NUM_MVP_IDX_CTX];
-#if AFFINE
     SBAC_CTX_MODEL   affine_mvp_idx  [NUM_AFFINE_MVP_IDX_CTX];
-#endif
     SBAC_CTX_MODEL   mvr_idx         [NUM_MVR_IDX_CTX];
     SBAC_CTX_MODEL   bi_idx          [NUM_BI_IDX_CTX];
     SBAC_CTX_MODEL   mvd             [NUM_MV_RES_CTX];
@@ -1048,12 +1033,10 @@ typedef struct _EVC_SBAC_CTX
     SBAC_CTX_MODEL   btt_split_flag  [NUM_SBAC_CTX_BTT_SPLIT_FLAG];
     SBAC_CTX_MODEL   btt_split_dir   [NUM_SBAC_CTX_BTT_SPLIT_DIR];
     SBAC_CTX_MODEL   btt_split_type  [NUM_SBAC_CTX_BTT_SPLIT_TYPE];
-#if AFFINE
     SBAC_CTX_MODEL   affine_flag     [NUM_SBAC_CTX_AFFINE_FLAG];
     SBAC_CTX_MODEL   affine_mode     [NUM_SBAC_CTX_AFFINE_MODE];
     SBAC_CTX_MODEL   affine_mrg      [NUM_SBAC_CTX_AFFINE_MRG];
     SBAC_CTX_MODEL   affine_mvd_flag [2];
-#endif
     SBAC_CTX_MODEL   suco_flag       [NUM_SBAC_CTX_SUCO_FLAG];
 #if ALF
     SBAC_CTX_MODEL   ctb_alf_flag    [NUM_SBAC_CTX_ALF_FLAG]; //todo: add *3 for every component
@@ -1269,9 +1252,7 @@ typedef struct _EVC_SPS
     int              log2_diff_max_suco_min_suco_cb_size;
     int              tool_amvr;
     int              tool_mmvd;
-#if AFFINE
     int              tool_affine;
-#endif
 #if DMVR
     int              tool_dmvr;
 #endif
@@ -1560,9 +1541,7 @@ typedef enum _CTX_NEV_IDX
 #if M50761_CHROMA_NOT_SPLIT
     CNID_MODE_CONS,
 #endif
-#if AFFINE
     CNID_AFFN_FLAG,
-#endif
     CNID_IBC_FLAG,
     NUM_CNID,
 
