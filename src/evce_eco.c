@@ -159,9 +159,7 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
     }
 
     evc_bsw_write1(bs, sps->tool_alf);
-#if HTDF
     evc_bsw_write1(bs, sps->tool_htdf);
-#endif
 #else
 
     evc_bsw_write1(bs, sps->tool_amvr);
@@ -173,9 +171,7 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
     evc_bsw_write1(bs, sps->tool_eipd);
     evc_bsw_write1(bs, sps->tool_amis);
     evc_bsw_write1(bs, sps->tool_iqt);
-#if HTDF
     evc_bsw_write1(bs, sps->tool_htdf);
-#endif
     evc_bsw_write1(bs, sps->tool_adcc);
     evc_bsw_write1(bs, sps->tool_cm_init);
     evc_bsw_write1(bs, sps->ibc_flag);

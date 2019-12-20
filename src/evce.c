@@ -361,9 +361,7 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->tool_affine = ctx->cdsc.tool_affine;
     sps->tool_dmvr = ctx->cdsc.tool_dmvr;
     sps->tool_alf = ctx->cdsc.tool_alf;
-#if HTDF
     sps->tool_htdf = ctx->cdsc.tool_htdf;
-#endif
     sps->tool_admvp = ctx->cdsc.tool_admvp;
     sps->tool_amis = ctx->cdsc.tool_amis;
     sps->tool_eipd = ctx->cdsc.tool_eipd;

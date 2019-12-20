@@ -160,10 +160,8 @@
 
 //platform tools & trivial improvement
 #define MC_PRECISION_ADD                   2 
-
 #define USE_RDOQ                           1 // Use RDOQ
 #define RDO_DBK                            1 // include DBK changes into distortion
-#define HTDF                               1 // enable Hadamard transform domain filter
 
 //fast algorithm
 #define ENC_ECU_DEPTH                      8 // for early CU termination
@@ -1215,9 +1213,7 @@ typedef struct _EVC_SPS
     int              tool_affine;
     int              tool_dmvr;
     int              tool_alf;
-#if HTDF
     int              tool_htdf;
-#endif
     int              tool_admvp;
     int              tool_amis;
     int              tool_eipd;

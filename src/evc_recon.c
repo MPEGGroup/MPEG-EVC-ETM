@@ -158,8 +158,6 @@ void evc_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pe
 
 }
 
-#if HTDF
-
 #define HTDF_LUT_QP_NUM                                   5   // num of LUTs
 #define HTDF_LUT_SIZE_LOG2                                4   // table size in bits
 #define HTDF_LUT_MIN_QP                                   20  // LUT min QP 
@@ -363,4 +361,3 @@ void evc_htdf(s16* rec, int qp, int w, int h, int s, BOOL intra_block_flag, pel*
     for (int i = 0; i < h; ++i)
         memcpy(rec + i * s, tempblock + (i + 1) * width_ext + 1, w * sizeof(rec[0]));
 }
-#endif

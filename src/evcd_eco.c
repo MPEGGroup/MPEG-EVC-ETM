@@ -2562,9 +2562,7 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
     }
 
     sps->tool_alf = evc_bsr_read1(bs);
-#if HTDF
     sps->tool_htdf = evc_bsr_read1(bs);
-#endif
 #else
     sps->tool_amvr = evc_bsr_read1(bs);
     sps->tool_mmvd = evc_bsr_read1(bs);
@@ -2575,9 +2573,7 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
     sps->tool_eipd = evc_bsr_read1(bs);
     sps->tool_amis = evc_bsr_read1(bs);
     sps->tool_iqt = evc_bsr_read1(bs);
-#if HTDF
     sps->tool_htdf = evc_bsr_read1(bs);
-#endif
     sps->tool_adcc = evc_bsr_read1(bs);
     sps->tool_cm_init = evc_bsr_read1(bs);
     sps->ibc_flag = evc_bsr_read1(bs);
