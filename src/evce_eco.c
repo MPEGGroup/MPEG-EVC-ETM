@@ -3128,7 +3128,6 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                             evce_eco_affine_mrg_idx(bs, cu_data->mvp_idx[cup][REFP_0]);
                         }
                     }
-#if MERGE
                     if(ctx->sps.tool_amis == 1 && cu_data->pred_mode[cup] == MODE_DIR
                        && !core->affine_flag
                        && cu_data->mvr_idx[cup] == 0
@@ -3136,7 +3135,6 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                     {
                         evce_eco_mvp_idx(bs, cu_data->mvp_idx[cup][REFP_0], ctx->sps.tool_amis);
                     }
-#endif
                 }
 
                 if(((cu_data->pred_mode[cup] % ORG_PRED_NUM) != MODE_DIR) && ((cu_data->pred_mode[cup] % ORG_PRED_NUM) != MODE_DIR_MMVD))
@@ -3420,7 +3418,6 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
             cu_data->pred_mode[cup] 
 #endif
             == MODE_DIR_MMVD;
-#if MERGE
         b_no_cbf |= 
 #if M50761_CHROMA_NOT_SPLIT
             core->cu_mode
@@ -3428,7 +3425,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
             cu_data->pred_mode[cup]
 #endif
             == MODE_DIR;
-#endif
+
         if(ctx->sps.tool_amis == 0)
             b_no_cbf = 0;
 #if DQP

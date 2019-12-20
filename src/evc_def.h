@@ -159,7 +159,6 @@
 #endif
 
 //platform tools & trivial improvement
-#define MERGE                              1
 #define MC_PRECISION_ADD                   2 
 
 #define USE_RDOQ                           1 // Use RDOQ
@@ -171,9 +170,7 @@
 #define ENC_ECU_ADAPTIVE                   1 // for early CU termination
 #define ENC_ECU_DEPTH_B                    8 // for early CU termination
 #define MULTI_REF_ME_STEP                  1 // for ME speed-up
-#if MERGE
 #define FAST_MERGE_THR                     1.3
-#endif
 #define ENC_SUCO_FAST_CONFIG               1  /* fast config: 1(low complexity), 2(medium complexity), 4(high_complexity) */
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -279,10 +276,8 @@
 /* DBF (END) */
 
 /* MERGE (START) */
-#if MERGE
 #define MERGE_MVP                          1
 #define INCREASE_MVP_NUM                   1
-#endif
 /* MERGE (END) */
 
 /* DMVR (START) */

@@ -694,9 +694,7 @@ typedef struct _EVCE_CORE
     EVCE_SBAC     s_curr_best[MAX_CU_DEPTH][MAX_CU_DEPTH];
     EVCE_SBAC     s_next_best[MAX_CU_DEPTH][MAX_CU_DEPTH];
     EVCE_SBAC     s_temp_best;
-#if MERGE
     EVCE_SBAC     s_temp_best_merge;
-#endif
     EVCE_SBAC     s_temp_run;
     EVCE_SBAC     s_temp_prev_comp_best;
     EVCE_SBAC     s_temp_prev_comp_run;
@@ -713,9 +711,7 @@ typedef struct _EVCE_CORE
     s32            dist_cu_best; //dist of the best intra mode (note: only updated in intra coding now)
     /* temporal pixel buffer for inter prediction */
     pel            eif_tmp_buffer[(MAX_CU_SIZE + 2) * (MAX_CU_SIZE + 2)];
-#if MERGE
     u8             au8_eval_mvp_idx[MAX_NUM_MVP];
-#endif
 #if DMVR_FLAG
     u8            dmvr_flag;
 #endif

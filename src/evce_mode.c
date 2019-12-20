@@ -441,9 +441,8 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
     int b_no_cbf = 0;
     b_no_cbf |= pidx == AFF_DIR;
     b_no_cbf |= pidx == PRED_DIR_MMVD;
-#if MERGE
     b_no_cbf |= pidx == PRED_DIR;
-#endif
+
     if(ctx->sps.tool_amis == 0)
     {
         b_no_cbf = 0;
@@ -530,12 +529,10 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
                     evce_eco_affine_mrg_idx(&core->bs_temp, mvp_idx[REFP_0]);
             }
 
-#if MERGE
             if(ctx->sps.tool_amis == 1 && pidx == PRED_DIR && !core->affine_flag && mvr_idx == 0)
             {
                 evce_eco_mvp_idx(&core->bs_temp, mvp_idx[0], ctx->sps.tool_amis);
             }
-#endif
         }
 
         if((((pidx % ORG_PRED_NUM) != PRED_DIR) && ((pidx % ORG_PRED_NUM) != PRED_DIR_MMVD)) || ((pidx >= AFF_L0) && (pidx <= AFF_6_BI) && (pidx != AFF_DIR)) )

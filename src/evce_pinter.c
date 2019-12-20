@@ -1675,9 +1675,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         if(1
            && pidx != AFF_DIR
            && pidx != PRED_DIR_MMVD
-#if MERGE
            && pidx != PRED_DIR
-#endif
            && core->ats_inter_info == 0)
         {
             /* test all zero case */
@@ -1975,13 +1973,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
             }
         }
 #endif
-        if(ctx->sps.tool_amis == 1 && (0
-           || pidx == AFF_DIR
-           || pidx == PRED_DIR_MMVD
-#if MERGE
-           || pidx == PRED_DIR
-#endif
-           ))
+        if(ctx->sps.tool_amis == 1 && (pidx == AFF_DIR || pidx == PRED_DIR_MMVD || pidx == PRED_DIR))
         {
             if (ats_inter_info_match != 0 && ats_inter_info_match != 255 && core->ats_inter_info)
             {
@@ -2067,12 +2059,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
     if (ats_inter_avail)
     {
         assert(log2_cuw <= MAX_TR_LOG2 && log2_cuh <= MAX_TR_LOG2);
-        if (ctx->sps.tool_amis == 1 && (pidx == AFF_DIR
-            || pidx == PRED_DIR_MMVD
-#if MERGE
-            || pidx == PRED_DIR
-#endif
-            ))
+        if (ctx->sps.tool_amis == 1 && (pidx == AFF_DIR || pidx == PRED_DIR_MMVD || pidx == PRED_DIR))
         {
             if (nnz_best[Y_C] + nnz_best[U_C] + nnz_best[V_C] <= 0)
             {
@@ -2457,10 +2444,8 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
 #endif
     s8           refi[REFP_NUM];
     double       cost, cost_best = MAX_COST;
-#if MERGE
     double       ad_best_costs[MAX_NUM_MVP];
     int          j;
-#endif
     int          cuw, cuh, idx0, idx1, cnt, bit_cnt;
     s64          cy, cu, cv;
     core->ats_inter_info = 0;
@@ -2472,12 +2457,10 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
 
     core->mmvd_flag = 0;
 
-#if MERGE
     for(j = 0; j < MAX_NUM_MVP; j++)
     {
         ad_best_costs[j] = MAX_COST;
     }
-#endif
 
     if (ctx->sps.tool_admvp == 0)
     {
@@ -2618,13 +2601,10 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
 #endif
                 pi->ats_inter_info_mode[PRED_SKIP] = 0;
             }
-#if MERGE
             ad_best_costs[idx0] = cost;
-#endif
         }
     }
 
-#if MERGE
     if(ctx->slice_type == SLICE_B)
     {
         assert(ctx->slice_type == SLICE_B);
@@ -2680,14 +2660,13 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
             }
         }
     }
-#endif
+
 #if DMVR_FLAG
      core->dmvr_flag = best_dmvr;
 #endif
     return cost_best;
 }
 
-#if MERGE
 static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_cuw, int log2_cuh)
 {
     EVCE_PINTER *pi = &ctx->pinter;
@@ -2729,12 +2708,11 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
 
     for(idx0 = 0; idx0 < (cuw*cuh <= NUM_SAMPLES_BLOCK ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP); idx0++)
     {
-#if MERGE
         if(0 == core->au8_eval_mvp_idx[idx0])
         {
             continue;
         }
-#endif
+
         mvp[REFP_0][MV_X] = pi->mvp[REFP_0][idx0][MV_X];
         mvp[REFP_0][MV_Y] = pi->mvp[REFP_0][idx0][MV_Y];
         mvp[REFP_1][MV_X] = pi->mvp[REFP_1][idx0][MV_X];
@@ -2847,7 +2825,6 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
 
     return cost_best;
 }
-#endif
 
 static double analyze_t_direct(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_cuw, int log2_cuh)
 {
@@ -5521,7 +5498,6 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
     }
 
     {
-#if MERGE
         cost = cost_inter[PRED_DIR] = analyze_merge(ctx, core, x, y, log2_cuw, log2_cuh);
         if(cost < cost_best)
         {
@@ -5544,17 +5520,6 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
             DQP_STORE(core->dqp_next_best[log2_cuw - 2][log2_cuh - 2], core->dqp_temp_best_merge);
 #endif
         }
-#else
-        cost = cost_inter[PRED_DIR] = analyze_t_direct(ctx, core, x, y, log2_cuw, log2_cuh);
-        if(cost < cost_best)
-        {
-            core->cu_mode = MODE_DIR;
-            best_idx = PRED_DIR;
-            cost_inter[best_idx] = cost_best = cost;
-
-            SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best);
-        }
-#endif
     }
 
     if(ctx->sps.tool_mmvd && ((pi->slice_type == SLICE_B) || (pi->slice_type == SLICE_P)))

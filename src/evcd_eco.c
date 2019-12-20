@@ -1174,11 +1174,12 @@ int evcd_eco_coef(EVCD_CTX * ctx, EVCD_CORE * core)
 
     b_no_cbf |= core->pred_mode == MODE_DIR && core->affine_flag;
     b_no_cbf |= core->pred_mode == MODE_DIR_MMVD;
-#if MERGE
     b_no_cbf |= core->pred_mode == MODE_DIR;
-#endif
-    if(ctx->sps.tool_amis == 0)
+    
+    if (ctx->sps.tool_amis == 0)
+    {
         b_no_cbf = 0;
+    }
 
     bs = &ctx->bs;
     sbac = GET_SBAC_DEC(bs);
