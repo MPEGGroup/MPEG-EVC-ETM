@@ -37,7 +37,6 @@
 #include <math.h>
 
 #define SCRIPT_REPORT              1
-#define MULT_CONFIG                1
 #define VERBOSE_NONE               VERBOSE_0
 #define VERBOSE_FRAME              VERBOSE_1
 #define VERBOSE_ALL                VERBOSE_2
@@ -1224,7 +1223,6 @@ static int get_conf(EVCE_CDSC * cdsc)
     return 0;
 }
 
-#if MULT_CONFIG
 static void print_enc_conf(EVCE_CDSC * cdsc)
 {
     /*
@@ -1259,7 +1257,6 @@ static void print_enc_conf(EVCE_CDSC * cdsc)
 #endif
     printf("\n");
 }
-#endif
 
 int check_conf(EVCE_CDSC* cdsc)
 {
@@ -1934,9 +1931,7 @@ int main(int argc, const char **argv)
         return -1;
     }
 
-#if MULT_CONFIG
     print_enc_conf(&cdsc);
-#endif
 
     if (!check_conf(&cdsc))
     {
