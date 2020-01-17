@@ -37,6 +37,11 @@
 #include "evc.h"
 #include "evc_port.h"
 
+#define M52290                                       1
+#if M52290
+#define M52290_ADCC                                  1
+#define M52290_MVCLIP_THRESH                         1
+#endif
 /* Profiles definitions */
 #define PROFILE_BASELINE                             0
 #define PROFILE_MAIN                                 1
@@ -374,7 +379,13 @@ enum SAD_POINT_INDEX
 /* EIF (END) */
 
 #if EIF_MEMORY_BANDWIDTH_RESTRICTION
+
+#if M52290_MVCLIP_THRESH
+#define MAX_MEMORY_ACCESS_BI           72
+#else
 #define MAX_MEMORY_ACCESS_BI           ( (4 + 5) * (4 + 5) )
+#endif
+
 #else
 #define MAX_MEMORY_ACCESS_BI             ((8 + 7) * (8 + 7) / 64)
 #define MAX_MEMORY_ACCESS_UNI            ((8 + 7) * (4 + 7) / 32)
@@ -438,9 +449,15 @@ typedef struct _evc_AlfFilterShape
 #define COEF_REMAIN_BIN_REDUCTION          3
 #define LAST_SIGNIFICANT_GROUPS            14
 
+#if M52290_ADCC
+#define NUM_CTX_SCANR_LUMA                 18
+#define NUM_CTX_SCANR_CHROMA               3
+#define NUM_CTX_SCANR                      (NUM_CTX_SCANR_LUMA + NUM_CTX_SCANR_CHROMA)
+#else
 #define NUM_CTX_SCANR_LUMA                 25
 #define NUM_CTX_SCANR_CHROMA               3
 #define NUM_CTX_SCANR                      (NUM_CTX_SCANR_LUMA + NUM_CTX_SCANR_CHROMA)
+#endif
 
 #define NUM_CTX_GT0_LUMA                   39  /* number of context models for luma gt0 flag */
 #define NUM_CTX_GT0_CHROMA                 8   /* number of context models for chroma gt0 flag */
