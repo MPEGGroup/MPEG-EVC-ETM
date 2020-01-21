@@ -150,8 +150,11 @@ void evc_get_motion_merge_main(int poc, int slice_type, int scup, s8(*map_refi)[
     , int log2_max_cuwh
 #endif
 );
-
+#if M52165
+void evc_get_merge_insert_mv(s8* refi_dst, s16 *mvp_dst_L0, s16 *mvp_dst_L1, s8* map_refi_src, s16* map_mv_src, int slice_type, int cuw, int cuh, int is_sps_admvp);
+#else
 void evc_get_merge_insert_mv(s8* refi_dst, s16 *mvp_dst_L0, s16 *mvp_dst_L1, s8* map_refi_src, s16* map_mv_src, int slice_type, int cuw, int cuh, int is_sps_amis);
+#endif
 
 void evc_get_motion_skip_baseline(int slice_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],
     EVC_REFP refp[REFP_NUM], int cuw, int cuh, int w_scu, s8 refi[REFP_NUM][MAX_NUM_MVP], s16 mvp[REFP_NUM][MAX_NUM_MVP][MV_D], u16 avail_lr
@@ -364,7 +367,11 @@ void get_tu_size(u8 ats_inter_info, int log2_cuw, int log2_cuh, int* log2_tuw, i
 void get_tu_pos_offset(u8 ats_inter_info, int log2_cuw, int log2_cuh, int* x_offset, int* y_offset);
 void get_ats_inter_trs(u8 ats_inter_info, int log2_cuw, int log2_cuh, u8* ats_cu, u8* ats_tu);
 void set_cu_cbf_flags(u8 cbf_y, u8 ats_inter_info, int log2_cuw, int log2_cuh, u32 *map_scu, int w_scu);
+#if M52165
+BOOL check_bi_applicability(int slice_type, int cuw, int cuh, int is_sps_admvp);
+#else
 BOOL check_bi_applicability(int slice_type, int cuw, int cuh, int is_sps_amis);
+#endif
 void evc_block_copy(s16 * src, int src_stride, s16 * dst, int dst_stride, int log2_copy_w, int log2_copy_h);
 
 #if M50761_CHROMA_NOT_SPLIT

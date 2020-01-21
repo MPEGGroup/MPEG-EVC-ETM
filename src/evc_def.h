@@ -37,6 +37,8 @@
 #include "evc.h"
 #include "evc_port.h"
 
+#define M52165                                       1
+
 #define M52166                                       1
 #if M52166
 #ifndef M52166_PARTITION //defined in evc.h
@@ -1250,7 +1252,9 @@ typedef struct _EVC_SPS
     int              tool_alf;
     int              tool_htdf;
     int              tool_admvp;
+#if !M52165
     int              tool_amis;
+#endif
     int              tool_eipd;
     int              tool_iqt;
     int              tool_cm_init;

@@ -123,7 +123,9 @@ static int  op_tool_affine        = 1; /* default on */
 static int  op_tool_dmvr          = 1; /* default on */
 static int  op_tool_alf           = 1; /* default on */
 static int  op_tool_admvp         = 1; /* default on */
+#if !M52165
 static int  op_tool_amis          = 1; /* default on */
+#endif
 static int  op_tool_htdf          = 1; /* default on */
 static int  op_tool_eipd          = 1; /* default on */
 static int  op_tool_iqt           = 1; /* default on */
@@ -223,7 +225,9 @@ typedef enum _OP_FLAGS
     OP_TOOL_ALF,
     OP_TOOL_HTDF,
     OP_TOOL_ADMVP,
+#if !M52165
     OP_TOOL_AMIS,
+#endif
     OP_TOOL_EIPD,
     OP_TOOL_IQT,
     OP_TOOL_CM_INIT,
@@ -591,11 +595,13 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_TOOL_ADMVP], &op_tool_admvp,
         "admvp on/off flag"
     },
+#if !M52165
     {
         EVC_ARGS_NO_KEY,  "amis", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_TOOL_AMIS], &op_tool_amis,
         "amis on/off flag"
     },
+#endif
     {
         EVC_ARGS_NO_KEY,  "eipd", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_TOOL_EIPD], &op_tool_eipd,
@@ -1096,7 +1102,9 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->tool_dmvr          = op_tool_dmvr;
     cdsc->tool_alf           = op_tool_alf;
     cdsc->tool_admvp         = op_tool_admvp;
+#if !M52165
     cdsc->tool_amis          = op_tool_amis;
+#endif
     cdsc->tool_htdf          = op_tool_htdf;
     cdsc->tool_eipd          = op_tool_eipd;
     cdsc->tool_iqt           = op_tool_iqt;
@@ -1272,7 +1280,9 @@ static void print_enc_conf(EVCE_CDSC * cdsc)
     printf("DMVR: %d, ",   cdsc->tool_dmvr);
     printf("ALF: %d, ",    cdsc->tool_alf);
     printf("ADMVP: %d, ",  cdsc->tool_admvp);
+#if !M52165
     printf("AMIS: %d, ",   cdsc->tool_amis);
+#endif
     printf("HTDF: %d ",    cdsc->tool_htdf);
     printf("EIPD: %d, ",   cdsc->tool_eipd);
     printf("IQT: %d, ",    cdsc->tool_iqt);
@@ -1308,7 +1318,9 @@ int check_conf(EVCE_CDSC* cdsc)
         if (cdsc->tool_htdf    == 1) { v0print("HTDF cannot be on in base profile\n"); success = 0; }
         if (cdsc->btt          == 1) { v0print("BTT cannot be on in base profile\n"); success = 0; }
         if (cdsc->suco         == 1) { v0print("SUCO cannot be on in base profile\n"); success = 0; }
+#if !M52165
         if (cdsc->tool_amis    == 1) { v0print("AMIS cannot be on in base profile\n"); success = 0; }
+#endif
         if (cdsc->tool_eipd    == 1) { v0print("EIPD cannot be on in base profile\n"); success = 0; }
         if (cdsc->tool_iqt     == 1) { v0print("IQT cannot be on in base profile\n"); success = 0; }
         if (cdsc->tool_cm_init == 1) { v0print("CM_INIT cannot be on in base profile\n"); success = 0; }
@@ -1318,7 +1330,9 @@ int check_conf(EVCE_CDSC* cdsc)
     }
     else
     {
+#if !M52165
         if (cdsc->tool_amis    == 0) { v0print("AMIS cannot be off in main profile\n"); success = 0; }
+#endif
         if (cdsc->tool_eipd    == 0) { v0print("EIPD cannot be off in main profile\n"); success = 0; }
         if (cdsc->tool_iqt     == 0) { v0print("IQT cannot be off in main profile\n"); success = 0; }
         if (cdsc->tool_cm_init == 0) { v0print("CM_INIT cannot be off in main profile\n"); success = 0; }

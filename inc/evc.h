@@ -464,7 +464,9 @@ typedef struct _EVCE_CDSC
     int            tool_alf;
     int            tool_htdf;
     int            tool_admvp;
+#if !(M52165 || 1)
     int            tool_amis;
+#endif
     int            tool_eipd;
     int            tool_iqt;
     int            tool_cm_init;

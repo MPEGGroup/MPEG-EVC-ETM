@@ -1533,7 +1533,11 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
                , pi->dmvr_mv[pidx]
 #endif
 #endif
+#if M52165
+               , ctx->sps.tool_admvp
+#else
                , ctx->sps.tool_amis
+#endif
         );
     }
 
@@ -1968,7 +1972,11 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
             }
         }
 #endif
+#if M52165
+        if(ctx->sps.tool_admvp == 1 && (pidx == AFF_DIR || pidx == PRED_DIR_MMVD || pidx == PRED_DIR))
+#else
         if(ctx->sps.tool_amis == 1 && (pidx == AFF_DIR || pidx == PRED_DIR_MMVD || pidx == PRED_DIR))
+#endif
         {
             if (ats_inter_info_match != 0 && ats_inter_info_match != 255 && core->ats_inter_info)
             {
@@ -2054,7 +2062,11 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
     if (ats_inter_avail)
     {
         assert(log2_cuw <= MAX_TR_LOG2 && log2_cuh <= MAX_TR_LOG2);
+#if M52165
+        if (ctx->sps.tool_admvp == 1 && (pidx == AFF_DIR || pidx == PRED_DIR_MMVD || pidx == PRED_DIR))
+#else
         if (ctx->sps.tool_amis == 1 && (pidx == AFF_DIR || pidx == PRED_DIR_MMVD || pidx == PRED_DIR))
+#endif
         {
             if (nnz_best[Y_C] + nnz_best[U_C] + nnz_best[V_C] <= 0)
             {
@@ -2161,7 +2173,11 @@ static double analyze_skip_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y
 
             evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi, mvp, pi->refp, pi->pred[PRED_NUM],
                    ctx->poc.poc_val, pi->dmvr_template, pi->dmvr_ref_pred_interpolated,
+#if M52165
+                   pi->dmvr_half_pred_interpolated, FALSE, pi->dmvr_padding_buf, &core->dmvr_flag, dmvr_mv, ctx->sps.tool_admvp);
+#else
                    pi->dmvr_half_pred_interpolated, FALSE, pi->dmvr_padding_buf, &core->dmvr_flag, dmvr_mv, ctx->sps.tool_amis);
+#endif
 
             cy = evce_ssd_16b(log2_cuw, log2_cuh, pi->pred[PRED_NUM][0][Y_C], y_org, cuw, pi->s_o[Y_C]);
             cu = evce_ssd_16b(log2_cuw - 1, log2_cuh - 1, pi->pred[PRED_NUM][0][U_C], u_org, cuw >> 1, pi->s_o[U_C]);
@@ -2518,7 +2534,11 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
                    , dmvr_mv
 #endif
 #endif
+#if M52165
+                   , ctx->sps.tool_admvp
+#else
                    , ctx->sps.tool_amis
+#endif
             );
 
             cy = evce_ssd_16b(log2_cuw, log2_cuh, pi->pred[PRED_NUM][0][Y_C], y_org, cuw, pi->s_o[Y_C]);
@@ -2930,7 +2950,11 @@ static double analyze_skip_mmvd(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, 
                , NULL
 #endif
 #endif
+#if M52165
+               , ctx->sps.tool_admvp
+#else
                , ctx->sps.tool_amis
+#endif
         );
         
         cy = evce_ssd_16b(log2_cuw, log2_cuh, pi->pred[PRED_NUM][0][Y_C], y_org, cuw, pi->s_o[Y_C]);
@@ -3282,7 +3306,11 @@ static double analyze_bi(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_
                , NULL
 #endif
 #endif
+#if M52165
+               , ctx->sps.tool_admvp);
+#else
                , ctx->sps.tool_amis);
+#endif
 
         get_org_bi(org, pred[0][Y_C], pi->s_o[Y_C], cuw, cuh, pi->org_bi);
         refi[lidx_ref] = evc_get_first_refi(core->scup, lidx_ref, ctx->map_refi, ctx->map_mv, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu, pi->mvr_idx[pidx], core->avail_lr
@@ -3336,7 +3364,11 @@ static double analyze_bi(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_
             pidx_cnd = PRED_L0 + mvr_offset;
         }
         pi->mvr_idx[pidx] = pi->curr_mvr;
+#if M52165
+        if(ctx->sps.tool_admvp == 1)
+#else
         if(ctx->sps.tool_amis == 1)
+#endif
         {
             pi->mvp_idx[pidx][REFP_0] = 0;
             pi->mvp_idx[pidx][REFP_1] = 0;
@@ -3396,7 +3428,11 @@ static double analyze_bi(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_
                    , NULL
 #endif
 #endif
+#if M52165
+                   , ctx->sps.tool_admvp);
+#else
                    , ctx->sps.tool_amis);
+#endif
 
             get_org_bi(org, pred[0][Y_C], pi->s_o[Y_C], cuw, cuh, pi->org_bi);
 
@@ -5728,8 +5764,11 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                     pi->ats_inter_info_mode[pidx] = core->ats_inter_info;
                 }
             }
-
+#if M52165
+            if(check_bi_applicability(pi->slice_type, cuw, cuh, ctx->sps.tool_admvp))
+#else
             if(check_bi_applicability(pi->slice_type, cuw, cuh, ctx->sps.tool_amis) )
+#endif
             {
                 int max_num_bi = MAX_NUM_BI;
                 int pred_mode = 0;
@@ -6476,8 +6515,11 @@ static int pinter_set_complexity(EVCE_CTX *ctx, int complexity)
 
     pi->search_pattern_qpel = tbl_search_pattern_qpel_8point;
     pi->search_pattern_qpel_cnt = 8;
-
+#if M52165
+    if(ctx->cdsc.tool_admvp == 0)
+#else
     if(ctx->cdsc.tool_amis == 0)
+#endif
     {
         ctx->fn_pinter_analyze_cu = pinter_analyze_cu_baseline;
     }

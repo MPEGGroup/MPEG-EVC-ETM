@@ -679,7 +679,11 @@ void evcd_get_skip_motion(EVCD_CTX * ctx, EVCD_CORE * core)
     }
     else
     {
-        if (ctx->sps.tool_amis == 0)
+#if M52165
+        if(ctx->sps.tool_admvp == 0)
+#else
+        if(ctx->sps.tool_amis == 0)
+#endif
         {
             evc_get_motion(core->scup, REFP_0, ctx->map_refi, ctx->map_mv, ctx->refp, cuw, cuh, ctx->w_scu, core->avail_cu, srefi[REFP_0], smvp[REFP_0]);
 
@@ -725,7 +729,11 @@ void evcd_get_inter_motion(EVCD_CTX * ctx, EVCD_CORE * core)
         /* 0: forward, 1: backward */
         if (((core->inter_dir + 1) >> inter_dir_idx) & 1)
         {
-            if (ctx->sps.tool_amis == 0)
+#if M52165
+            if(ctx->sps.tool_admvp == 0)
+#else
+            if(ctx->sps.tool_amis == 0)
+#endif
             {
                 evc_get_motion(core->scup, inter_dir_idx, ctx->map_refi, ctx->map_mv, ctx->refp, cuw, cuh, ctx->w_scu, core->avail_cu, refi, mvp);
                 core->mv[inter_dir_idx][MV_X] = mvp[core->mvp_idx[inter_dir_idx]][MV_X] + core->mvd[inter_dir_idx][MV_X];
@@ -1018,7 +1026,11 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
                 {
                     if (core->inter_dir == PRED_DIR)
                     {
-                        if (ctx->sps.tool_amis == 0)
+#if M52165
+                        if(ctx->sps.tool_admvp == 0)
+#else
+                        if(ctx->sps.tool_amis == 0)
+#endif
                         {
                             evc_get_mv_dir(ctx->refp[0], ctx->poc.poc_val, core->scup + ((1 << (core->log2_cuw - MIN_CU_LOG2)) - 1) + ((1 << (core->log2_cuh - MIN_CU_LOG2)) - 1) * ctx->w_scu, core->scup, ctx->w_scu, ctx->h_scu, core->mv
                                 , ctx->sps.tool_admvp
@@ -1054,7 +1066,11 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
                    , core->dmvr_mv
 #endif
 #endif
+#if M52165
+                   , ctx->sps.tool_admvp
+#else
                    , ctx->sps.tool_amis
+#endif
             );
         }
 
