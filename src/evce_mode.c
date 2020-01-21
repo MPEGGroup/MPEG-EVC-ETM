@@ -3404,7 +3404,11 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
 
     //decide allowed split modes for the current node
     //based on CU size located at boundary
+#if M52166_PARTITION
+    if (cuw > ctx->min_cuwh || cuh > ctx->min_cuwh)
+#else
     if(cuw > MIN_CU_SIZE || cuh > MIN_CU_SIZE)
+#endif
     {
         /***************************** Step 1: decide normatively allowed split modes ********************************/
         int boundary_b = boundary && (y0 + cuh > ctx->h) && !(x0 + cuw > ctx->w);
@@ -3489,7 +3493,11 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
         split_mode = NO_SPLIT;
         if(split_allow[split_mode])
         {
+#if M52166_PARTITION
+            if ((cuw > ctx->min_cuwh || cuh > ctx->min_cuwh)
+#else
             if( (cuw > MIN_CU_SIZE || cuh > MIN_CU_SIZE) 
+#endif
 #if M50761_CHROMA_NOT_SPLIT
                 && evce_check_luma(ctx)
 #endif

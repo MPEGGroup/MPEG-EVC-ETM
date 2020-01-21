@@ -37,6 +37,16 @@
 #include "evc.h"
 #include "evc_port.h"
 
+#define M52166                                       1
+#if M52166
+#ifndef M52166_PARTITION //defined in evc.h
+#define M52166_PARTITION                             1
+#endif
+#define M52166_SUCO                                  1
+#define M52166_DBF                                   1
+#define M52166_MMVD                                  1
+#endif
+
 #define M52290                                       1
 #if M52290
 #define M52290_ADCC                                  1
@@ -1214,6 +1224,13 @@ typedef struct _EVC_SPS
     int              bit_depth_chroma_minus8;
     int              sps_btt_flag;
     int              sps_suco_flag;
+#if M52166_PARTITION
+    int              log2_ctu_size_minus5;
+    int              log2_diff_ctu_min_cb_size;
+    int              log2_diff_ctu_max_14_cb_size;
+    int              log2_diff_ctu_max_tt_cb_size;
+    int              log2_diff_min_cb_min_tt_cb_size_minus2;
+#else
     int              log2_ctu_size_minus2;
     int              log2_diff_ctu_max_11_cb_size;
     int              log2_diff_max_11_min_11_cb_size;
@@ -1223,6 +1240,7 @@ typedef struct _EVC_SPS
     int              log2_diff_min_12_min_14_cb_size_minus1;
     int              log2_diff_max_11_max_tt_cb_size_minus1;
     int              log2_diff_min_11_min_tt_cb_size_minus2;
+#endif
     int              log2_diff_ctu_size_max_suco_cb_size;
     int              log2_diff_max_suco_min_suco_cb_size;
     int              tool_amvr;
@@ -1479,6 +1497,23 @@ typedef enum _BLOCK_SHAPE
     NON_SQUARE_41,
     NUM_BLOCK_SHAPE,
 } BLOCK_SHAPE;
+
+#if M52166_PARTITION
+typedef enum _BLOCK_PARAMETER
+{
+    BLOCK_11,
+    BLOCK_12,
+    BLOCK_14,
+    BLOCK_TT,
+    NUM_BLOCK_PARAMETER,
+} BLOCK_PARAMETER;
+typedef enum _BLOCK_PARAMETER_IDX
+{
+    IDX_MAX,
+    IDX_MIN,
+    NUM_BLOCK_IDX,
+} BLOCK_PARAMETER_IDX;
+#endif
 
 /*****************************************************************************
 * history-based MV prediction buffer (slice level)

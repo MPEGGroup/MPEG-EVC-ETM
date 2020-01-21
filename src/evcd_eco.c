@@ -2512,6 +2512,13 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
     sps->sps_btt_flag = (u32)evc_bsr_read1(bs);
     if (sps->sps_btt_flag)
     {
+#if M52166_PARTITION
+        sps->log2_ctu_size_minus5 = (u32)evc_bsr_read_ue(bs);
+        sps->log2_diff_ctu_min_cb_size = (u32)evc_bsr_read_ue(bs);
+        sps->log2_diff_ctu_max_14_cb_size = (u32)evc_bsr_read_ue(bs);
+        sps->log2_diff_ctu_max_tt_cb_size = (u32)evc_bsr_read_ue(bs);
+        sps->log2_diff_min_cb_min_tt_cb_size_minus2 = (u32)evc_bsr_read_ue(bs);
+#else
         sps->log2_ctu_size_minus2 = (u32)evc_bsr_read_ue(bs);
         sps->log2_diff_ctu_max_11_cb_size = (u32)evc_bsr_read_ue(bs);
         sps->log2_diff_max_11_min_11_cb_size = (u32)evc_bsr_read_ue(bs);
@@ -2521,6 +2528,7 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
         sps->log2_diff_min_12_min_14_cb_size_minus1 = (u32)evc_bsr_read_ue(bs);
         sps->log2_diff_max_11_max_tt_cb_size_minus1 = (u32)evc_bsr_read_ue(bs);
         sps->log2_diff_min_11_min_tt_cb_size_minus2 = (u32)evc_bsr_read_ue(bs);
+#endif
     }
     sps->sps_suco_flag = (u32)evc_bsr_read1(bs);
     if (sps->sps_suco_flag)

@@ -266,6 +266,16 @@ void evce_set_qp(EVCE_CTX *ctx, EVCE_CORE *core, u8 qp)
 #endif
 void evce_split_tbl_init(EVCE_CTX *ctx)
 {
+#if M52166_PARTITION
+    evc_split_tbl[BLOCK_11][IDX_MAX] = ctx->cdsc.framework_cb_max;
+    evc_split_tbl[BLOCK_11][IDX_MIN] = ctx->cdsc.framework_cb_min;
+    evc_split_tbl[BLOCK_12][IDX_MAX] = ctx->cdsc.framework_cb_max;
+    evc_split_tbl[BLOCK_12][IDX_MIN] = evc_split_tbl[BLOCK_11][IDX_MIN] + 1;
+    evc_split_tbl[BLOCK_14][IDX_MAX] = ctx->cdsc.framework_cu14_max;
+    evc_split_tbl[BLOCK_14][IDX_MIN] = evc_split_tbl[BLOCK_12][IDX_MIN] + 1;
+    evc_split_tbl[BLOCK_TT][IDX_MAX] = ctx->cdsc.framework_tris_max;
+    evc_split_tbl[BLOCK_TT][IDX_MIN] = ctx->cdsc.framework_tris_min;
+#else
     evc_split_tbl[0][0] = ctx->cdsc.framework_cu11_max;
     evc_split_tbl[0][1] = ctx->cdsc.framework_cu11_min;
     evc_split_tbl[1][0] = ctx->cdsc.framework_cu12_max;
@@ -278,6 +288,7 @@ void evce_split_tbl_init(EVCE_CTX *ctx)
     evc_split_tbl[4][1] = 0;
     evc_split_tbl[5][0] = ctx->cdsc.framework_tris_max;
     evc_split_tbl[5][1] = ctx->cdsc.framework_tris_min;
+#endif
 }
 
 #if M50761_CHROMA_NOT_SPLIT

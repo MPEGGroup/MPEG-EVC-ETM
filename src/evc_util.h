@@ -108,7 +108,10 @@ void evc_picbuf_expand(EVC_PIC *pic, int exp_l, int exp_c);
 void evc_poc_derivation(EVC_SPS sps, int tid, EVC_POC *poc);
 
 void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int h_scu, int scup, u16 avail, int cuw, int cuh, int slice_t, int real_mv[][2][3], u32 *map_scu, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME], u16 avail_lr
-                           , EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh
+#if M52166_MMVD
+    , u32 curr_ptr, u8 num_refp[REFP_NUM]
+#endif
+    , EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh
 #if M50761_TMVP_8X8_GRID
     , int log2_max_cuwh
 #endif
@@ -310,9 +313,13 @@ int evc_picbuf_signature(EVC_PIC * pic, u8 * md5_out);
 
 int evc_atomic_inc(volatile int * pcnt);
 int evc_atomic_dec(volatile int * pcnt);
-
+#if M52166_PARTITION
+#define ALLOW_SPLIT_RATIO(long_side, block_ratio) (block_ratio <= BLOCK_14 && (long_side <= evc_split_tbl[block_ratio][IDX_MAX] && long_side >= evc_split_tbl[block_ratio][IDX_MIN]) ? 1 : 0)
+#define ALLOW_SPLIT_TRI(long_side) ((long_side <= evc_split_tbl[BLOCK_TT][IDX_MAX] && long_side >= evc_split_tbl[BLOCK_TT][IDX_MIN]) ? 1 : 0)
+#else
 #define ALLOW_SPLIT_RATIO(long_side, block_ratio) (block_ratio < 5 && (long_side <= evc_split_tbl[block_ratio][0] && long_side >= evc_split_tbl[block_ratio][1]) ? 1 : 0)
 #define ALLOW_SPLIT_TRI(long_side) ((long_side <= evc_split_tbl[5][0] && long_side >= evc_split_tbl[5][1]) ? 1 : 0)
+#endif
 void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boundary, int boundary_b, int boundary_r, int log2_max_cuwh
                           , const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth
                           , int x, int y, int im_w, int im_h

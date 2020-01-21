@@ -109,6 +109,13 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
     evc_bsw_write1(bs, (u32)sps->sps_btt_flag);
     if (sps->sps_btt_flag)
     {
+#if M52166_PARTITION
+        evc_bsw_write_ue(bs, (u32)sps->log2_ctu_size_minus5);
+        evc_bsw_write_ue(bs, (u32)sps->log2_diff_ctu_min_cb_size);
+        evc_bsw_write_ue(bs, (u32)sps->log2_diff_ctu_max_14_cb_size);
+        evc_bsw_write_ue(bs, (u32)sps->log2_diff_ctu_max_tt_cb_size);
+        evc_bsw_write_ue(bs, (u32)sps->log2_diff_min_cb_min_tt_cb_size_minus2);
+#else
         evc_bsw_write_ue(bs, (u32)sps->log2_ctu_size_minus2);
         evc_bsw_write_ue(bs, (u32)sps->log2_diff_ctu_max_11_cb_size);
         evc_bsw_write_ue(bs, (u32)sps->log2_diff_max_11_min_11_cb_size);
@@ -118,6 +125,7 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
         evc_bsw_write_ue(bs, (u32)sps->log2_diff_min_12_min_14_cb_size_minus1);
         evc_bsw_write_ue(bs, (u32)sps->log2_diff_max_11_max_tt_cb_size_minus1);
         evc_bsw_write_ue(bs, (u32)sps->log2_diff_min_11_min_tt_cb_size_minus2);
+#endif
     }
     evc_bsw_write1(bs, (u32)sps->sps_suco_flag);
     if (sps->sps_suco_flag)

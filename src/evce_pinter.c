@@ -5395,7 +5395,11 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 #endif
 
     int k;
+#if M52166_MMVD
+    int REF_SET[REFP_NUM][MAX_NUM_ACTIVE_REF_FRAME] = { {0,0,}, };
+#else
     int REF_SET[3][MAX_NUM_ACTIVE_REF_FRAME] = {{0,0,},};
+#endif
     int real_mv[MMVD_GRP_NUM * MMVD_BASE_MV_NUM * MMVD_MAX_REFINE_NUM][2][3];
     int num_amvr = MAX_NUM_MVR;
 
@@ -5455,12 +5459,17 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
             REF_SET[0][k] = ctx->refp[k][0].poc;
             REF_SET[1][k] = ctx->refp[k][1].poc;
         }
+#if !M52166_MMVD
         REF_SET[2][0] = ctx->poc.poc_val;
 #if M50632_IMPROVEMENT_MMVD
         REF_SET[2][1] = ctx->rpm.cur_num_ref_pics;
 #endif
+#endif
         evc_get_mmvd_mvp_list(ctx->map_refi, ctx->refp[0], ctx->map_mv, ctx->w_scu, ctx->h_scu, core->scup, core->avail_cu, log2_cuw, log2_cuh, ctx->slice_type, real_mv, ctx->map_scu, REF_SET, core->avail_lr
-                              , core->history_buffer, ctx->sps.tool_admvp, &ctx->sh
+#if M52166_MMVD
+            , ctx->poc.poc_val, ctx->rpm.num_refp
+#endif
+            , core->history_buffer, ctx->sps.tool_admvp, &ctx->sh
 #if M50761_TMVP_8X8_GRID
             , ctx->log2_max_cuwh
 #endif
