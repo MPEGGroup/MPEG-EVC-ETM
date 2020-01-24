@@ -4732,10 +4732,16 @@ void evc_get_ctx_last_pos_xy_para(int ch_type, int width, int height, int *resul
         if (convertedWidth >= 4)
         {
             *result_offset_x += ((width >> 6) << 1) + (width >> 7);
+#if M52290_ADCC
+            *result_shift_x = 2;
+#endif
         }
         if (convertedHeight >= 4)
         {
             *result_offset_y += ((height >> 6) << 1) + (height >> 7);
+#if M52290_ADCC
+            *result_shift_y = 2;
+#endif
         }
     }
 }
