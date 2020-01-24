@@ -35,6 +35,7 @@
 #ifndef _EVC_H_
 #define _EVC_H_
 
+#define M52166_PARTITION 1
 
 #ifdef __cplusplus
 extern "C"
@@ -439,6 +440,11 @@ typedef struct _EVCE_CDSC
     int            btt;
     int            suco;
     int            add_qp_frame;
+#if M52166_PARTITION
+    int            framework_cb_max;
+    int            framework_cb_min;
+    int            framework_cu14_max;
+#else
     int            framework_ctu_size;
     int            framework_cu11_max;
     int            framework_cu11_min;
@@ -446,6 +452,7 @@ typedef struct _EVCE_CDSC
     int            framework_cu12_min;
     int            framework_cu14_max;
     int            framework_cu14_min;
+#endif
     int            framework_tris_max;
     int            framework_tris_min;
     int            framework_suco_max;
@@ -457,7 +464,9 @@ typedef struct _EVCE_CDSC
     int            tool_alf;
     int            tool_htdf;
     int            tool_admvp;
+#if !(M52165 || 1)
     int            tool_amis;
+#endif
     int            tool_eipd;
     int            tool_iqt;
     int            tool_cm_init;

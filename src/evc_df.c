@@ -454,7 +454,11 @@ static void deblock_h263_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
         {
             tbl_qp_to_st = get_tbl_qp_to_st(map_scu[w], map_scu[w - 1], \
                                             map_refi[w], map_refi[w - 1], map_mv[w], map_mv[w - 1]);
+#if M52166_DBF
+            qp = MCU_GET_QP(map_scu[w]);
+#else
             qp = MCU_GET_QP(map_scu[w - 1]);
+#endif
 
 #if M50761_CHROMA_NOT_SPLIT
             if (evc_check_luma(tree_cons))
@@ -587,16 +591,24 @@ static const u8 get_avc_bs(u32 mcu0, u32 x0, u32 y0, u32 mcu1, u32 x1, u32 y1, u
         // One of the blocks is Intra
         bs = DBF_AVC_BS_INTRA;
     }
+#if M52166_DBF
+    else if (MCU_GET_IBC(mcu0) || MCU_GET_IBC(mcu1))
+    {
+        bs = DBF_AVC_BS_INTRA;
+    }
+#endif
     else 
        if (MCU_GET_CBFL(mcu0) == 1 || MCU_GET_CBFL(mcu1) == 1)
     {
         // One of the blocks has coded residuals
         bs = DBF_AVC_BS_CODED;
     }
+#if !M52166_DBF
     else if (MCU_GET_IBC(mcu0) || MCU_GET_IBC(mcu1))
     {
          bs = DBF_AVC_BS_INTRA;
     }
+#endif
     else
     {
         EVC_PIC *refPics0[2], *refPics1[2];
@@ -1741,6 +1753,16 @@ static void deblock_avc_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int 
 
     /* vertical filtering */
 #if DBF_8_8_GRID
+#if M52166_DBF
+    if ((x_pel + cuw) % 8 == 0)
+    {
+        align_8_8_grid = 1;
+    }
+    else
+    {
+        align_8_8_grid = 0;
+    }
+#endif
     if (align_8_8_grid && x_pel > 0 && MCU_GET_COD(map_scu[-1])
 #if EVC_TILE_SUPPORT
         && (map_tidx[t_copy] == map_tidx[t1])
@@ -2007,6 +2029,16 @@ static void deblock_hevc_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
 #endif
 
 #if DBF_8_8_GRID
+#if M52166_DBF
+    if ((x_pel + cuw) % 8 == 0)
+    {
+        align_8_8_grid = 1;
+    }
+    else
+    {
+        align_8_8_grid = 0;
+    }
+#endif
     if(align_8_8_grid && x_pel + cuw < pic->w_l && MCU_GET_COD(map_scu[w]))
 #else
 #if DBF_DISABLE_SCU
@@ -2029,10 +2061,18 @@ static void deblock_hevc_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
             bs = get_bs(map_scu[w], map_scu[w - 1], map_refi[w], map_refi[w - 1], map_mv[w], map_mv[w - 1]);
             tbl_qp_to_st = get_tbl_qp_to_st(map_scu[w], map_scu[w - 1], \
                                             map_refi[w], map_refi[w - 1], map_mv[w], map_mv[w - 1]);
+#if M52166_DBF
+            qp = MCU_GET_QP(map_scu[w]);
+#else
             qp = MCU_GET_QP(map_scu[w - 1]);
+#endif
 
 #if FIX_PARALLEL_DBF
+#if M52166_DBF
+            neb_w = 1 << MCU_GET_LOGW(map_cu[w]);
+#else
             neb_w = 1 << MCU_GET_LOGW(map_cu[w - 1]);
+#endif
 #if DBF_LONGF
             if(stronger_ft)
             {

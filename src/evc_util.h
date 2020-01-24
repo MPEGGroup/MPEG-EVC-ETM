@@ -108,7 +108,10 @@ void evc_picbuf_expand(EVC_PIC *pic, int exp_l, int exp_c);
 void evc_poc_derivation(EVC_SPS sps, int tid, EVC_POC *poc);
 
 void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int h_scu, int scup, u16 avail, int cuw, int cuh, int slice_t, int real_mv[][2][3], u32 *map_scu, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME], u16 avail_lr
-                           , EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh
+#if M52166_MMVD
+    , u32 curr_ptr, u8 num_refp[REFP_NUM]
+#endif
+    , EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh
 #if M50761_TMVP_8X8_GRID
     , int log2_max_cuwh
 #endif
@@ -147,8 +150,11 @@ void evc_get_motion_merge_main(int poc, int slice_type, int scup, s8(*map_refi)[
     , int log2_max_cuwh
 #endif
 );
-
+#if M52165
+void evc_get_merge_insert_mv(s8* refi_dst, s16 *mvp_dst_L0, s16 *mvp_dst_L1, s8* map_refi_src, s16* map_mv_src, int slice_type, int cuw, int cuh, int is_sps_admvp);
+#else
 void evc_get_merge_insert_mv(s8* refi_dst, s16 *mvp_dst_L0, s16 *mvp_dst_L1, s8* map_refi_src, s16* map_mv_src, int slice_type, int cuw, int cuh, int is_sps_amis);
+#endif
 
 void evc_get_motion_skip_baseline(int slice_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],
     EVC_REFP refp[REFP_NUM], int cuw, int cuh, int w_scu, s8 refi[REFP_NUM][MAX_NUM_MVP], s16 mvp[REFP_NUM][MAX_NUM_MVP][MV_D], u16 avail_lr
@@ -310,9 +316,13 @@ int evc_picbuf_signature(EVC_PIC * pic, u8 * md5_out);
 
 int evc_atomic_inc(volatile int * pcnt);
 int evc_atomic_dec(volatile int * pcnt);
-
+#if M52166_PARTITION
+#define ALLOW_SPLIT_RATIO(long_side, block_ratio) (block_ratio <= BLOCK_14 && (long_side <= evc_split_tbl[block_ratio][IDX_MAX] && long_side >= evc_split_tbl[block_ratio][IDX_MIN]) ? 1 : 0)
+#define ALLOW_SPLIT_TRI(long_side) ((long_side <= evc_split_tbl[BLOCK_TT][IDX_MAX] && long_side >= evc_split_tbl[BLOCK_TT][IDX_MIN]) ? 1 : 0)
+#else
 #define ALLOW_SPLIT_RATIO(long_side, block_ratio) (block_ratio < 5 && (long_side <= evc_split_tbl[block_ratio][0] && long_side >= evc_split_tbl[block_ratio][1]) ? 1 : 0)
 #define ALLOW_SPLIT_TRI(long_side) ((long_side <= evc_split_tbl[5][0] && long_side >= evc_split_tbl[5][1]) ? 1 : 0)
+#endif
 void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boundary, int boundary_b, int boundary_r, int log2_max_cuwh
                           , const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth
                           , int x, int y, int im_w, int im_h
@@ -357,7 +367,11 @@ void get_tu_size(u8 ats_inter_info, int log2_cuw, int log2_cuh, int* log2_tuw, i
 void get_tu_pos_offset(u8 ats_inter_info, int log2_cuw, int log2_cuh, int* x_offset, int* y_offset);
 void get_ats_inter_trs(u8 ats_inter_info, int log2_cuw, int log2_cuh, u8* ats_cu, u8* ats_tu);
 void set_cu_cbf_flags(u8 cbf_y, u8 ats_inter_info, int log2_cuw, int log2_cuh, u32 *map_scu, int w_scu);
+#if M52165
+BOOL check_bi_applicability(int slice_type, int cuw, int cuh, int is_sps_admvp);
+#else
 BOOL check_bi_applicability(int slice_type, int cuw, int cuh, int is_sps_amis);
+#endif
 void evc_block_copy(s16 * src, int src_stride, s16 * dst, int dst_stride, int log2_copy_w, int log2_copy_h);
 
 #if M50761_CHROMA_NOT_SPLIT

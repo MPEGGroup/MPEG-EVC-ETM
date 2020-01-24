@@ -120,14 +120,25 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
 
         if (ctx->sps.sps_btt_flag)
         {
+#if M52166_PARTITION
+            ctx->max_cuwh = 1 << (sps->log2_ctu_size_minus5 + 5);
+            ctx->min_cuwh = 1 << ((sps->log2_ctu_size_minus5 + 5) - sps->log2_diff_ctu_min_cb_size);
+#else
             ctx->max_cuwh = 1 << (sps->log2_ctu_size_minus2 + 2);
+#endif
         }
         else
         {
             ctx->max_cuwh = 1 << 6;
+#if M52166_PARTITION
+            ctx->min_cuwh = 1 << 2;
+#endif
         }
 
         ctx->log2_max_cuwh = CONV_LOG2(ctx->max_cuwh);
+#if M52166_PARTITION
+        ctx->log2_min_cuwh = CONV_LOG2(ctx->min_cuwh);
+#endif
     }
 
     size = ctx->max_cuwh;
@@ -668,7 +679,11 @@ void evcd_get_skip_motion(EVCD_CTX * ctx, EVCD_CORE * core)
     }
     else
     {
-        if (ctx->sps.tool_amis == 0)
+#if M52165
+        if(ctx->sps.tool_admvp == 0)
+#else
+        if(ctx->sps.tool_amis == 0)
+#endif
         {
             evc_get_motion(core->scup, REFP_0, ctx->map_refi, ctx->map_mv, ctx->refp, cuw, cuh, ctx->w_scu, core->avail_cu, srefi[REFP_0], smvp[REFP_0]);
 
@@ -714,7 +729,11 @@ void evcd_get_inter_motion(EVCD_CTX * ctx, EVCD_CORE * core)
         /* 0: forward, 1: backward */
         if (((core->inter_dir + 1) >> inter_dir_idx) & 1)
         {
-            if (ctx->sps.tool_amis == 0)
+#if M52165
+            if(ctx->sps.tool_admvp == 0)
+#else
+            if(ctx->sps.tool_amis == 0)
+#endif
             {
                 evc_get_motion(core->scup, inter_dir_idx, ctx->map_refi, ctx->map_mv, ctx->refp, cuw, cuh, ctx->w_scu, core->avail_cu, refi, mvp);
                 core->mv[inter_dir_idx][MV_X] = mvp[core->mvp_idx[inter_dir_idx]][MV_X] + core->mvd[inter_dir_idx][MV_X];
@@ -1007,7 +1026,11 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
                 {
                     if (core->inter_dir == PRED_DIR)
                     {
-                        if (ctx->sps.tool_amis == 0)
+#if M52165
+                        if(ctx->sps.tool_admvp == 0)
+#else
+                        if(ctx->sps.tool_amis == 0)
+#endif
                         {
                             evc_get_mv_dir(ctx->refp[0], ctx->poc.poc_val, core->scup + ((1 << (core->log2_cuw - MIN_CU_LOG2)) - 1) + ((1 << (core->log2_cuh - MIN_CU_LOG2)) - 1) * ctx->w_scu, core->scup, ctx->w_scu, ctx->h_scu, core->mv
                                 , ctx->sps.tool_admvp
@@ -1043,7 +1066,11 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
                    , core->dmvr_mv
 #endif
 #endif
+#if M52165
+                   , ctx->sps.tool_admvp
+#else
                    , ctx->sps.tool_amis
+#endif
             );
         }
 
@@ -1189,8 +1216,11 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
 #if M50761_CHROMA_NOT_SPLIT
     ctx->tree_cons = tree_cons;
 #endif
-
+#if M52166_PARTITION
+    if (cuw > ctx->min_cuwh || cuh > ctx->min_cuwh)
+#else
     if(cuw > MIN_CU_SIZE || cuh > MIN_CU_SIZE)
+#endif
     {
         if(x0 + cuw <= ctx->w && y0 + cuh <= ctx->h)
         {
@@ -1217,6 +1247,52 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
         }
         else
         {
+#if M52166_PARTITION
+            int boundary = 1;
+            int boundary_b = boundary && (y0 + cuh > ctx->h) && !(x0 + cuw > ctx->w);
+            int boundary_r = boundary && (x0 + cuw > ctx->w) && !(y0 + cuh > ctx->h);
+
+            if (ctx->sps.sps_btt_flag)
+            {
+                evc_check_split_mode(split_allow, log2_cuw, log2_cuh, boundary, boundary_b, boundary_r, ctx->log2_max_cuwh
+                    , parent_split, same_layer_split, node_idx, parent_split_allow, qt_depth, btt_depth
+                    , x0, y0, ctx->w, ctx->h
+                    , NULL, ctx->sps.sps_btt_flag
+#if M50761_CHROMA_NOT_SPLIT
+                    , c->tree_cons
+#endif
+                );
+
+                if (split_allow[SPLIT_BI_VER])
+                {
+                    split_mode = SPLIT_BI_VER;
+                }
+                else if (split_allow[SPLIT_BI_HOR])
+                {
+                    split_mode = SPLIT_BI_HOR;
+                }
+                else
+                {
+                    assert(0);
+                }
+            }
+            else
+            {
+                EVC_TRACE_COUNTER;
+                EVC_TRACE_STR("x pos ");
+                EVC_TRACE_INT(core->x_pel + ((cup % (ctx->max_cuwh >> MIN_CU_LOG2) << MIN_CU_LOG2)));
+                EVC_TRACE_STR("y pos ");
+                EVC_TRACE_INT(core->y_pel + ((cup / (ctx->max_cuwh >> MIN_CU_LOG2) << MIN_CU_LOG2)));
+                EVC_TRACE_STR("width ");
+                EVC_TRACE_INT(cuw);
+                EVC_TRACE_STR("height ");
+                EVC_TRACE_INT(cuh);
+                EVC_TRACE_STR("depth ");
+                EVC_TRACE_INT(cud);
+
+                split_mode = evcd_eco_split_mode(ctx, bs, sbac, cuw, cuh, parent_split, same_layer_split, node_idx, parent_split_allow, split_allow, qt_depth, btt_depth, x0, y0);
+            }
+#else
             int boundary = !(x0 + cuw <= ctx->w && y0 + cuh <= ctx->h);
             int boundary_b = boundary && (y0 + cuh > ctx->h) && !(x0 + cuw > ctx->w);
             int boundary_r = boundary && (x0 + cuw > ctx->w) && !(y0 + cuh > ctx->h);
@@ -1340,6 +1416,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
 #endif
                 }
             }
+#endif
         }
     }
     else

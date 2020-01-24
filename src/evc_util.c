@@ -320,6 +320,9 @@ void scaling_mv(int ratio, s16 mvp[MV_D], s16 mv[MV_D])
 }
 
 void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int h_scu, int scup, u16 avail, int log2_cuw, int log2_cuh, int slice_t, int real_mv[][2][3], u32 *map_scu, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME], u16 avail_lr
+#if M52166_MMVD
+    , u32 curr_ptr, u8 num_refp[REFP_NUM]
+#endif
     , EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh
 #if M50761_TMVP_8X8_GRID
     , int log2_max_cuwh
@@ -365,7 +368,9 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
     int list0_r;
     int list1_r;
     int poc0, poc1, poc_c;
+#if !M52166_MMVD
     int poc0_t, poc1_t;
+#endif
 #if M50632_IMPROVEMENT_MMVD
     int base_mv_p[25][3][3];
 #endif
@@ -400,8 +405,11 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
     }
     else
     {
+#if M52166_MMVD
+        evc_get_motion_merge_main(curr_ptr, slice_t, scup, map_refi, map_mv, refp, cuw, cuh, w_scu, h_scu, srefi, smvp, map_scu, avail_lr
+#else
         evc_get_motion_merge_main(REF_SET[2][0], slice_t, scup, map_refi, map_mv, refp, cuw, cuh, w_scu, h_scu, srefi, smvp, map_scu, avail_lr
-
+#endif
 #if DMVR_LAG
             , NULL
 #endif
@@ -498,8 +506,11 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 #if M50632_IMPROVEMENT_MMVD
             if (slice_t == SLICE_P)
             {
+#if M52166_MMVD
+                int cur_ref_num = num_refp[REFP_0];
+#else
                 int cur_ref_num = REF_SET[2][1];
-
+#endif
                 base_type[0][k] = 1;
                 base_type[1][k] = 1;
                 base_type[2][k] = 1;
@@ -512,6 +523,18 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                 }
                 else
                 {
+#if M52166_MMVD
+                    base_mv_p[k][0][2] = base_mv_t[k][0][2];
+                    base_mv_p[k][1][2] = !base_mv_t[k][0][2];
+                    if (cur_ref_num < 3)
+                    {
+                        base_mv_p[k][2][2] = base_mv_t[k][0][2];
+                    }
+                    else
+                    {
+                        base_mv_p[k][2][2] = base_mv_t[k][0][2] < 2 ? 2 : 1;
+                    }
+#else
                     int app_idx = 0;
                     int prior_ref[2] = { -1,-1 };
                     int v;
@@ -542,6 +565,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                         app_idx++;
                         base_mv_p[k][2][2] = prior_ref[app_idx];
                     }
+#endif
                 }
 
                 if (cur_ref_num == 1)
@@ -561,15 +585,22 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                     base_mv_p[k][0][1] = base_mv_t[k][0][1];
 
                     poc0 = REF_SET[0][base_mv_p[k][0][2]];
+#if M52166_MMVD
+                    poc_c = curr_ptr;
+#else
                     poc_c = REF_SET[2][0];
+#endif
                     poc1 = REF_SET[0][base_mv_p[k][1][2]];
 
                     list0_weight = ((poc_c - poc0) << MVP_SCALING_PRECISION) / ((poc_c - poc1));
                     ref_sign = 1;
                     base_mv_p[k][1][0] = EVC_CLIP3(-32768, 32767, ref_sign * ((EVC_ABS(list0_weight * base_mv_t[k][0][0]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
                     base_mv_p[k][1][1] = EVC_CLIP3(-32768, 32767, ref_sign1 * ((EVC_ABS(list0_weight * base_mv_t[k][0][1]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
-
+#if M52166_MMVD
+                    base_mv_p[k][2][0] = base_mv_t[k][0][0] - 3;
+#else
                     base_mv_p[k][2][0] = base_mv_t[k][0][0] + 3;
+#endif
                     base_mv_p[k][2][1] = base_mv_t[k][0][1];
                 }
                 else if (cur_ref_num >= 3)
@@ -579,7 +610,11 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                     base_mv_p[k][0][2] = base_mv_p[k][0][2];
 
                     poc0 = REF_SET[0][base_mv_p[k][0][2]];
+#if M52166_MMVD
+                    poc_c = curr_ptr;
+#else
                     poc_c = REF_SET[2][0];
+#endif
                     poc1 = REF_SET[0][base_mv_p[k][1][2]];
 
                     list0_weight = ((poc_c - poc0) << MVP_SCALING_PRECISION) / ((poc_c - poc1));
@@ -588,7 +623,11 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                     base_mv_p[k][1][1] = EVC_CLIP3(-32768, 32767, ref_sign1 * ((EVC_ABS(list0_weight * base_mv_t[k][0][1]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
 
                     poc0 = REF_SET[0][base_mv_p[k][0][2]];
+#if M52166_MMVD
+                    poc_c = curr_ptr;
+#else
                     poc_c = REF_SET[2][0];
+#endif
                     poc1 = REF_SET[0][base_mv_p[k][2][2]];
 
                     list0_weight = ((poc_c - poc0) << MVP_SCALING_PRECISION) / ((poc_c - poc1));
@@ -603,7 +642,21 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
             base_type[0][k] = 1;
             base_type[1][k] = 0;
             base_type[2][k] = 2;
-
+#if M52166_MMVD
+            list0_weight = 1 << MVP_SCALING_PRECISION;
+            list1_weight = 1 << MVP_SCALING_PRECISION;
+            poc0 = REF_SET[REFP_0][list0_r];
+            poc_c = curr_ptr;
+            if ((num_refp[REFP_1] > 1) && ((REF_SET[REFP_1][1] - poc_c) == (poc_c - poc0)))
+            {
+                base_mv_t[k][1][2] = 1;
+            }
+            else
+            {
+                base_mv_t[k][1][2] = 0;
+            }
+            poc1 = REF_SET[REFP_1][base_mv_t[k][1][2]];
+#else
             poc0 = REF_SET[0][list0_r];
             poc_c = REF_SET[2][0];
             poc1_t = (poc_c - poc0) + poc_c;
@@ -627,6 +680,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                 base_mv_t[k][1][2] = 0;
                 poc1 = REF_SET[1][base_mv_t[k][1][2]];
             }
+#endif
 #if M50632_IMPROVEMENT_MMVD
             list1_weight = ((poc_c - poc1) << MVP_SCALING_PRECISION) / ((poc_c - poc0));
             if ((list1_weight * base_mv_t[k][0][0]) < 0)
@@ -662,6 +716,21 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
             base_type[0][k] = 2;
             base_type[1][k] = 0;
             base_type[2][k] = 1;
+#if M52166_MMVD
+            list0_weight = 1 << MVP_SCALING_PRECISION;
+            list1_weight = 1 << MVP_SCALING_PRECISION;
+            poc1 = REF_SET[1][list1_r];
+            poc_c = curr_ptr;
+            if ((num_refp[REFP_0] > 1) && ((REF_SET[REFP_0][1] - poc_c) == (poc_c - poc1)))
+            {
+                base_mv_t[k][0][2] = 1;
+            }
+            else
+            {
+                base_mv_t[k][0][2] = 0;
+            }
+            poc0 = REF_SET[REFP_0][base_mv_t[k][0][2]];
+#else
             poc1 = REF_SET[1][list1_r];
             poc_c = REF_SET[2][0];
             poc0_t = (poc_c - poc1) + poc_c;
@@ -685,6 +754,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                 base_mv_t[k][0][2] = 0;
                 poc0 = REF_SET[0][base_mv_t[k][0][2]];
             }
+#endif
 #if M50632_IMPROVEMENT_MMVD
             list0_weight = ((poc_c - poc0) << MVP_SCALING_PRECISION) / ((poc_c - poc1));
             if ((list0_weight * base_mv_t[k][1][0]) < 0)
@@ -793,8 +863,11 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                 {
                     poc0 = REF_SET[0][list0_r];
                     poc1 = REF_SET[1][list1_r];
+#if M52166_MMVD
+                    poc_c = curr_ptr;
+#else
                     poc_c = REF_SET[2][0];
-
+#endif
                     if ((poc0 - poc_c) * (poc_c - poc1) > 0)
                     {
                         ref_sign = -1;
@@ -813,7 +886,11 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                 {
                     poc0 = REF_SET[0][list0_r];
                     poc1 = REF_SET[1][list1_r];
+#if M52166_MMVD
+                    poc_c = curr_ptr;
+#else
                     poc_c = REF_SET[2][0];
+#endif
 
                     if (EVC_ABS(poc1 - poc_c) >= EVC_ABS(poc0 - poc_c))
                     {
@@ -891,8 +968,13 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
     
     if (avail_lr == LR_11)
     {
+#if M52166_SUCO
+        neb_addr[0] = scup + (scuh - 1) * w_scu - 1; // H
+        neb_addr[1] = scup + (scuh - 1) * w_scu + scuw; // inverse H
+#else
         neb_addr[0] = scup - 1;
         neb_addr[1] = scup + scuw;
+#endif
         neb_addr[2] = scup - w_scu;
 
         if (is_ibc)
@@ -1562,14 +1644,21 @@ static int evc_get_right_below_scup(int scup, int cuw, int cuh, int w_scu, int h
     }
 }
 #endif
-
+#if M52165
+BOOL check_bi_applicability(int slice_type, int cuw, int cuh, int is_sps_admvp)
+#else
 BOOL check_bi_applicability(int slice_type, int cuw, int cuh, int is_sps_amis)
+#endif
 {
     BOOL is_applicable = FALSE;
 
     if (slice_type == SLICE_B)
     {
-        if (!is_sps_amis || cuw + cuh > 12)
+#if M52165
+        if(!is_sps_admvp || cuw + cuh > 12)
+#else 
+        if(!is_sps_amis || cuw + cuh > 12)
+#endif
         {
             is_applicable = TRUE;
         }
@@ -1617,7 +1706,13 @@ __inline static void check_redundancy(int slice_type, s16 mvp[REFP_NUM][MAX_NUM_
     }
 }
 
-void evc_get_merge_insert_mv(s8* refi_dst, s16 *mvp_dst_L0, s16 *mvp_dst_L1, s8* map_refi_src, s16* map_mv_src, int slice_type, int cuw, int cuh, int is_sps_amis)
+void evc_get_merge_insert_mv(s8* refi_dst, s16 *mvp_dst_L0, s16 *mvp_dst_L1, s8* map_refi_src, s16* map_mv_src, int slice_type, int cuw, int cuh
+#if M52165
+                             , int is_sps_admvp
+#else 
+                             , int is_sps_amis
+#endif
+)
 {
     refi_dst[REFP_0 * MAX_NUM_MVP] = REFI_IS_VALID(map_refi_src[REFP_0]) ? map_refi_src[REFP_0] : REFI_INVALID;
     mvp_dst_L0[MV_X] = map_mv_src[REFP_0 * REFP_NUM + MV_X];
@@ -1631,7 +1726,11 @@ void evc_get_merge_insert_mv(s8* refi_dst, s16 *mvp_dst_L0, s16 *mvp_dst_L1, s8*
             mvp_dst_L1[MV_X] = map_mv_src[REFP_1 * REFP_NUM + MV_X];
             mvp_dst_L1[MV_Y] = map_mv_src[REFP_1 * REFP_NUM + MV_Y];
         }
+#if M52165
+        else if (!check_bi_applicability(slice_type, cuw, cuh, is_sps_admvp))
+#else 
         else if (!check_bi_applicability(slice_type, cuw, cuh, is_sps_amis))
+#endif
         {
             refi_dst[REFP_1 * MAX_NUM_MVP] = REFI_INVALID;
             mvp_dst_L1[MV_X] = 0;
@@ -1661,7 +1760,11 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
 )
 {
     BOOL tmpvBottomRight = 0; // Bottom first
+#if M52165
+    int is_sps_admvp = 1;
+#else 
     int is_sps_amis = 1; // assuming the function is called when amis/admvp is enabled
+#endif
     int small_cu = 0;
     if (cuw*cuh <= NUM_SAMPLES_BLOCK)
         small_cu = 1;
@@ -1708,7 +1811,11 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
                 p_map_mv_src = &(map_unrefined_mv[neb_addr[k]][0][0]);
             }
 #endif
+#if M52165
+            evc_get_merge_insert_mv(p_ref_dst, p_map_mv_dst_L0, p_map_mv_dst_L1, p_ref_src, p_map_mv_src, slice_type, cuw, cuh, is_sps_admvp);
+#else 
             evc_get_merge_insert_mv(p_ref_dst, p_map_mv_dst_L0, p_map_mv_dst_L1, p_ref_src, p_map_mv_src, slice_type, cuw, cuh, is_sps_amis);
+#endif
             check_redundancy(slice_type, mvp, refi, &cnt);
             cnt++;
         }
@@ -1743,8 +1850,11 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
             refs[1] = (availablePredIdx == 2 || availablePredIdx == 3) ? 0 : -1;
             p_ref_src = refs;
             p_map_mv_src = &(tmvp[0][0]);
-
+#if M52165
+            evc_get_merge_insert_mv(p_ref_dst, p_map_mv_dst_L0, p_map_mv_dst_L1, p_ref_src, p_map_mv_src, slice_type, cuw, cuh, is_sps_admvp);
+#else
             evc_get_merge_insert_mv(p_ref_dst, p_map_mv_dst_L0, p_map_mv_dst_L1, p_ref_src, p_map_mv_src, slice_type, cuw, cuh, is_sps_amis);
+#endif
             check_redundancy(slice_type, mvp, refi, &cnt);
             cnt++;
             tmvp_cnt_pos1 = cnt;
@@ -1778,7 +1888,11 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
                 refs[1] = (availablePredIdx == 2 || availablePredIdx == 3) ? 0 : -1;
                 p_ref_src = refs;
                 p_map_mv_src = &(tmvp[0][0]);
+#if M52165
+                evc_get_merge_insert_mv(p_ref_dst, p_map_mv_dst_L0, p_map_mv_dst_L1, p_ref_src, p_map_mv_src, slice_type, cuw, cuh, is_sps_admvp);
+#else
                 evc_get_merge_insert_mv(p_ref_dst, p_map_mv_dst_L0, p_map_mv_dst_L1, p_ref_src, p_map_mv_src, slice_type, cuw, cuh, is_sps_amis);
+#endif
 
                 check_redundancy(slice_type, mvp, refi, &cnt);
                 cnt++;
@@ -1814,7 +1928,11 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
                 refs[1] = (availablePredIdx == 2 || availablePredIdx == 3) ? 0 : -1;
                 p_ref_src = refs;
                 p_map_mv_src = &(tmvp[0][0]);
+#if M52165
+                evc_get_merge_insert_mv(p_ref_dst, p_map_mv_dst_L0, p_map_mv_dst_L1, p_ref_src, p_map_mv_src, slice_type, cuw, cuh, is_sps_admvp);
+#else
                 evc_get_merge_insert_mv(p_ref_dst, p_map_mv_dst_L0, p_map_mv_dst_L1, p_ref_src, p_map_mv_src, slice_type, cuw, cuh, is_sps_amis);
+#endif
 
                 check_redundancy(slice_type, mvp, refi, &cnt);
                 cnt++;
@@ -1838,8 +1956,11 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
             p_map_mv_dst_L1 = mvp[REFP_1][cnt];
             p_ref_src = history_buffer.history_refi_table[history_buffer.currCnt - k];
             p_map_mv_src = &(history_buffer.history_mv_table[history_buffer.currCnt - k][0][0]);
-
+#if M52165
+            evc_get_merge_insert_mv(p_ref_dst, p_map_mv_dst_L0, p_map_mv_dst_L1, p_ref_src, p_map_mv_src, slice_type, cuw, cuh, is_sps_admvp);
+#else
             evc_get_merge_insert_mv(p_ref_dst, p_map_mv_dst_L0, p_map_mv_dst_L1, p_ref_src, p_map_mv_src, slice_type, cuw, cuh, is_sps_amis);
+#endif
             check_redundancy(slice_type, mvp, refi, &cnt);
             cnt++;
             if (cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
@@ -1849,7 +1970,11 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
         }
     }
     // B slice mv combination
-    if (check_bi_applicability(slice_type, cuw, cuh, is_sps_amis))
+#if M52165
+    if(check_bi_applicability(slice_type, cuw, cuh, is_sps_admvp))
+#else
+    if(check_bi_applicability(slice_type, cuw, cuh, is_sps_amis))
+#endif
     {
         int priority_list0[MAX_NUM_MVP*MAX_NUM_MVP] = { 0, 1, 0, 2, 1, 2, 0, 3, 1, 3, 2, 3, 0, 4, 1, 4, 2, 4, 3, 4 };
         int priority_list1[MAX_NUM_MVP*MAX_NUM_MVP] = { 1, 0, 2, 0, 2, 1, 3, 0, 3, 1, 3, 2, 4, 0, 4, 1, 4, 2, 4, 3 };
@@ -1882,7 +2007,11 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
         refi[REFP_0][k] = 0;
         mvp[REFP_0][k][MV_X] = 0;
         mvp[REFP_0][k][MV_Y] = 0;
-        if (!check_bi_applicability(slice_type, cuw, cuh, is_sps_amis))
+#if M52165
+        if(!check_bi_applicability(slice_type, cuw, cuh, is_sps_admvp))
+#else
+        if(!check_bi_applicability(slice_type, cuw, cuh, is_sps_amis))
+#endif
         {
             refi[REFP_1][k] = REFI_INVALID;
             mvp[REFP_1][k][MV_X] = 0;
@@ -2661,7 +2790,7 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
     {
         split_allow[SPLIT_QUAD] = 0;
 
-#if M50761_BOUNDARY_FORCE_CLEANUP
+#if M50761_BOUNDARY_FORCE_CLEANUP && !M52166_PARTITION
         if (boundary)
         {
             if (boundary_r)
@@ -2693,6 +2822,7 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
 
         if(log2_cuw == log2_cuh)
         {
+#if !M52166_PARTITION
             if(boundary_b)
             {
 #if !M50761_BOUNDARY_FORCE_CLEANUP
@@ -2712,9 +2842,14 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
 #endif
             }
             else
+#endif
             {
                 split_allow[SPLIT_BI_HOR] = ALLOW_SPLIT_RATIO(log2_cuw, 1);
                 split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(log2_cuw, 1);
+#if M52166_PARTITION
+                split_allow[SPLIT_TRI_VER] = ALLOW_SPLIT_TRI(log2_cuw) && (log2_cuw > log2_cuh || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuw, 2)));
+                split_allow[SPLIT_TRI_HOR] = ALLOW_SPLIT_TRI(log2_cuh) && (log2_cuh > log2_cuw || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuh, 2)));
+#else
 #if M50632_SIMPLIFICATION_TT
                 split_allow[SPLIT_TRI_VER] = (log2_cuw >= log2_cuh) & ALLOW_SPLIT_TRI(log2_cuw);
                 split_allow[SPLIT_TRI_HOR] = (log2_cuh >= log2_cuw) & ALLOW_SPLIT_TRI(log2_cuh);
@@ -2722,12 +2857,14 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                 split_allow[SPLIT_TRI_VER] = ALLOW_SPLIT_RATIO(log2_cuw, 2) & ALLOW_SPLIT_TRI(log2_cuw);
                 split_allow[SPLIT_TRI_HOR] = split_allow[SPLIT_TRI_VER];
 #endif
+#endif
             }
         }
         else
         {
             if(log2_cuw > log2_cuh)
             {
+#if !M52166_PARTITION
                 if(boundary)
                 {
 #if !M50761_BOUNDARY_FORCE_CLEANUP
@@ -2757,6 +2894,7 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
 #endif
                 }
                 else
+#endif
                 {
                     split_allow[SPLIT_BI_HOR] = ALLOW_SPLIT_RATIO(log2_cuw, log2_cuw - log2_cuh + 1);
 
@@ -2768,6 +2906,10 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                     split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(long_side, ratio);
                     if(from_boundary_b && (ratio == 3 || ratio == 4))
                         split_allow[SPLIT_BI_VER] = 1;
+#if M52166_PARTITION
+                    split_allow[SPLIT_TRI_VER] = ALLOW_SPLIT_TRI(log2_cuw) && (log2_cuw > log2_cuh || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuw, 2)));
+                    split_allow[SPLIT_TRI_HOR] = ALLOW_SPLIT_TRI(log2_cuh) && (log2_cuh > log2_cuw || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuh, 2)));
+#else
 #if M50632_SIMPLIFICATION_TT
                     split_allow[SPLIT_TRI_VER] = (log2_cuw >= log2_cuh) & ALLOW_SPLIT_TRI(log2_cuw);
                     split_allow[SPLIT_TRI_HOR] = (log2_cuh >= log2_cuw) & ALLOW_SPLIT_TRI(log2_cuh);
@@ -2780,14 +2922,18 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                     split_allow[SPLIT_TRI_VER] = ALLOW_SPLIT_RATIO(long_side, ratio) & ALLOW_SPLIT_TRI(log2_cuw);
                     split_allow[SPLIT_TRI_HOR] = 0;
 #endif
+#endif
+#if !M52166_PARTITION
                     if (from_boundary_b && (log2_cuw == 7 || ratio == 3))
                     {
                         split_allow[SPLIT_TRI_VER] = 1;
                     }
+#endif
                 }
             }
             else
             {
+#if !M52166_PARTITION
                 if(boundary)
                 {
 #if !M50761_BOUNDARY_FORCE_CLEANUP
@@ -2817,6 +2963,7 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
 #endif
                 }
                 else
+#endif
                 {
                     log2_sub_cuh = log2_cuh - 1;
                     log2_sub_cuw = log2_cuw;
@@ -2824,10 +2971,15 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                     ratio = EVC_ABS(log2_sub_cuw - log2_sub_cuh);
 
                     split_allow[SPLIT_BI_HOR] = ALLOW_SPLIT_RATIO(long_side, ratio);
+#if !M52166_PARTITION
                     if(from_boundary_r && (ratio == 3 || ratio == 4))
                         split_allow[SPLIT_BI_HOR] = 1;
-
+#endif
                     split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(log2_cuh, log2_cuh - log2_cuw + 1);
+#if M52166_PARTITION
+                    split_allow[SPLIT_TRI_VER] = ALLOW_SPLIT_TRI(log2_cuw) && (log2_cuw > log2_cuh || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuw, 2)));
+                    split_allow[SPLIT_TRI_HOR] = ALLOW_SPLIT_TRI(log2_cuh) && (log2_cuh > log2_cuw || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuh, 2)));
+#else
 #if M50632_SIMPLIFICATION_TT
                     split_allow[SPLIT_TRI_VER] = (log2_cuw >= log2_cuh) & ALLOW_SPLIT_TRI(log2_cuw);
                     split_allow[SPLIT_TRI_HOR] = (log2_cuh >= log2_cuw) & ALLOW_SPLIT_TRI(log2_cuh);
@@ -2841,14 +2993,48 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
 
                     split_allow[SPLIT_TRI_HOR] = ALLOW_SPLIT_RATIO(long_side, ratio) & ALLOW_SPLIT_TRI(log2_cuh);
 #endif
+#endif
+#if !M52166_PARTITION
                     if (from_boundary_r && (log2_cuh == 7 || ratio == 3))
                     {
                         split_allow[SPLIT_TRI_HOR] = 1;
                     }
+#endif
                 }
             }
         }
     }
+#if M52166_PARTITION
+    if (boundary)
+    {
+        split_allow[NO_SPLIT] = 0;
+        split_allow[SPLIT_TRI_VER] = 0;
+        split_allow[SPLIT_TRI_HOR] = 0;
+        split_allow[SPLIT_QUAD] = 0;
+        if (boundary_r)
+        {
+            if (split_allow[SPLIT_BI_VER])
+            {
+                split_allow[SPLIT_BI_HOR] = 0;
+            }
+            else
+            {
+                split_allow[SPLIT_BI_HOR] = 1;
+            }
+        }
+        else
+        {
+            if (split_allow[SPLIT_BI_HOR])
+            {
+                split_allow[SPLIT_BI_VER] = 0;
+            }
+            else
+            {
+                split_allow[SPLIT_BI_VER] = 1;
+            }
+        }
+    }
+#endif
 #if M50761_CHROMA_NOT_SPLIT
     if (tree_cons.mode_cons == eOnlyInter)
     {
@@ -2898,10 +3084,16 @@ int evc_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lcu
 
 u8 evc_check_suco_cond(int cuw, int cuh, s8 split_mode, int boundary, u8 log2_max_cuwh, u8 suco_max_depth, u8 suco_depth)
 {
+#if M52166_SUCO
+    int suco_log2_maxsize = min((log2_max_cuwh - suco_max_depth), 6);
+    int suco_log2_minsize = max((suco_log2_maxsize - suco_depth), max(4, MIN_CU_LOG2));
+    if (EVC_MIN(cuw, cuh) < (1 << suco_log2_minsize) || EVC_MAX(cuw, cuh) > (1 << suco_log2_maxsize))
+#else
     int suco_minsize = 1 << max((log2_max_cuwh - suco_max_depth - suco_depth), MIN_CU_LOG2);
     int suco_maxsize = 1 << min((log2_max_cuwh - suco_max_depth), 6);
 
     if(EVC_MIN(cuw, cuh) < suco_minsize || EVC_MAX(cuw, cuh) > suco_maxsize)
+#endif
     {
         return 0;
     }
