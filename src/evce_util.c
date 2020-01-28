@@ -222,8 +222,13 @@ void evc_set_affine_mvf(EVCE_CTX * ctx, EVCE_CORE * core, int w, int h, s8 refi[
 
                         // 1/16 precision, 18 bits, same as MC
                         evc_mv_rounding_s32( mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, 5, 0 );
+#if AFFINE_CLIPPING_BF
+                        mv_scale_tmp_hor = EVC_CLIP3( -(1 << 17), (1 << 17) - 1, mv_scale_tmp_hor );
+                        mv_scale_tmp_ver = EVC_CLIP3( -(1 << 17), (1 << 17) - 1, mv_scale_tmp_ver );
+#else
                         mv_scale_tmp_hor = EVC_CLIP3( -(2 << 17), (2 << 17) - 1, mv_scale_tmp_hor );
                         mv_scale_tmp_ver = EVC_CLIP3( -(2 << 17), (2 << 17) - 1, mv_scale_tmp_ver );
+#endif
 
                         // 1/4 precision, 16 bits for storage
                         mv_scale_tmp_hor >>= 2;

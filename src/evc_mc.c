@@ -92,7 +92,13 @@
 
 static int g_mc_ftr = MC_FILTER_MAIN;
 #if M50662_AFFINE_BANDWIDTH_CLIPMV
+
+#if EIF_CLIPPING_REDESIGN 
+static int g_aff_mvDevBB2_125[5] = { 128, 256, 544, 1120, 2272 };
+#else
 static int g_aff_mvDevBB2_125[5] = { 64, 128, 272, 560, 1136 };
+#endif
+
 #if !M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
 static int g_aff_sizeBB2_125[5] = { 272, 544, 1088, 2176, 4352 };
 #endif
@@ -7263,7 +7269,7 @@ BOOL check_eif_clipMV_flag(s16 ac_mv[VER_NUM][MV_D], int d_hor[MV_D], int d_ver[
 }
 #endif
 
-#if M50662_AFFINE_BANDWIDTH_CLIPMV
+#if M50662_AFFINE_BANDWIDTH_CLIPMV && !EIF_CLIPPING_REDESIGN
 void evc_derive_mv_clip_range(int cuw, int cuh, int mv_scale_hor, int mv_scale_ver, int dmv_hor_x, int dmv_hor_y, int dmv_ver_x, int dmv_ver_y, int *hor_max, int *hor_min, int *ver_max, int *ver_min)
 {
     // get clip MV Range
@@ -7275,8 +7281,14 @@ void evc_derive_mv_clip_range(int cuw, int cuh, int mv_scale_hor, int mv_scale_v
     affine_center_mv_ver = mv_scale_ver + dmv_hor_y * pos_x + dmv_ver_y * pos_y;
 
     evc_mv_rounding_s32(affine_center_mv_hor, affine_center_mv_ver, &affine_center_mv_hor, &affine_center_mv_ver, 5, 0);
+
+#if AFFINE_CLIPPING_BF
+    affine_center_mv_hor = EVC_CLIP3(-(1 << 17), (1 << 17) - 1, affine_center_mv_hor);
+    affine_center_mv_ver = EVC_CLIP3(-(1 << 17), (1 << 17) - 1, affine_center_mv_ver);
+#else
     affine_center_mv_hor = EVC_CLIP3(-(2 << 17), (2 << 17) - 1, affine_center_mv_hor);
     affine_center_mv_ver = EVC_CLIP3(-(2 << 17), (2 << 17) - 1, affine_center_mv_ver);
+#endif
 
     s32 mv_hor_min, mv_ver_min, mv_hor_max, mv_ver_max;
 
@@ -7401,6 +7413,55 @@ void evc_derive_mv_clip_range_2D(int cuw, int cuh, int mv_scale_hor, int mv_scal
 #endif
 
 #endif
+
+#if EIF_CLIPPING_REDESIGN 
+
+void eif_derive_mv_clip_range( int x, int y, int cuw, int cuh, int dmv_hor[MV_D], int dmv_ver[MV_D], int mv_scale[MV_D],
+                               int pic_w, int pic_h, BOOL range_clip, int max_mv[MV_D], int min_mv[MV_D] )
+{
+  int max_mv_pic[MV_D] = { (pic_w + MAX_CU_SIZE - x - cuw - 1) << 5, (pic_h + MAX_CU_SIZE - y - cuh - 1) << 5 };             //1 for bilinear interpolation
+  int min_mv_pic[MV_D] = { (-x - MAX_CU_SIZE) << 5, (-y - MAX_CU_SIZE) << 5 };
+
+  s32 mv_center[MV_D] = { 0, 0 };
+  int pos_center[MV_D] = { cuw >> 1, cuh >> 1 };
+
+  for (int comp = MV_X; comp < MV_D; ++comp)
+  {
+    if (!range_clip)
+    {
+      max_mv[comp] = max_mv_pic[comp];
+      min_mv[comp] = min_mv_pic[comp];
+    }
+    else
+    {
+      mv_center[comp] = mv_scale[comp] + dmv_hor[comp] * pos_center[MV_X] + dmv_ver[comp] * pos_center[MV_Y];
+
+      evc_rounding_s32(mv_center[comp], mv_center + comp, 4, 0);
+
+      int mv_spread = comp == MV_X ? g_aff_mvDevBB2_125[evc_tbl_log2[cuw] - 3] : g_aff_mvDevBB2_125[evc_tbl_log2[cuh] - 3];
+
+      min_mv[comp] = mv_center[comp] - mv_spread;
+      max_mv[comp] = mv_center[comp] + mv_spread;
+
+      if (min_mv[comp] < min_mv_pic[comp])
+      {
+        min_mv[comp] = min_mv_pic[comp];
+        max_mv[comp] = min(max_mv_pic[comp], min_mv_pic[comp] + 2 * mv_spread);
+      }
+      else if (max_mv[comp] > max_mv_pic[comp])
+      {
+        max_mv[comp] = max_mv_pic[comp];
+        min_mv[comp] = max(min_mv_pic[comp], max_mv_pic[comp] - 2 * mv_spread);
+      }
+    }
+
+    max_mv[comp] = EVC_CLIP3(-(1 << 17), (1 << 17) - 1, max_mv[comp]);
+    min_mv[comp] = EVC_CLIP3(-(1 << 17), (1 << 17) - 1, min_mv[comp]);
+  }
+}
+
+#endif
+
 void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 ac_mv[VER_NUM][MV_D], EVC_PIC* ref_pic, pel pred[MAX_CU_DIM], int vertex_num, pel* tmp_buffer)
 {
     int qpel_gmv_x, qpel_gmv_y;
@@ -7498,15 +7559,29 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
 #if M50662_AFFINE_BANDWIDTH_CLIPMV
     if (b_eif)
     {
+#if EIF_CLIPPING_REDESIGN
+      int mv_scale[MV_D] = { mv_scale_hor, mv_scale_ver };
+      int max_mv[MV_D] = { 0, 0 };
+      int min_mv[MV_D] = { 0, 0 };
+
+      eif_derive_mv_clip_range( x, y, cuw, cuh, d_hor, d_ver, mv_scale, pic_w, pic_h, !mem_band_conditions_for_eif_are_satisfied, max_mv, min_mv );
+#else
 #if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
       if ( ! mem_band_conditions_for_eif_are_satisfied )
 #endif
       {
         evc_derive_mv_clip_range( cuw, cuh, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y, &hor_max, &hor_min, &ver_max, &ver_min );
       }
+#endif
 
       evc_eif_mc(cuw, cuh, x, y, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y,
-                  hor_max, ver_max, hor_min, ver_min, ref_pic->y, ref_pic->s_l, pred, cuw, tmp_buffer, bit + 2, Y_C);
+#if EIF_CLIPPING_REDESIGN
+                 max_mv[MV_X], max_mv[MV_Y], min_mv[MV_X], min_mv[MV_Y],
+#else
+                 hor_max, ver_max, hor_min, ver_min,
+#endif
+                 ref_pic->y, ref_pic->s_l, pred, cuw, tmp_buffer, bit + 2, Y_C);
+
       return;
     }
 #if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV && !M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
@@ -7536,8 +7611,13 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
             mv_scale_tmp_hor = (mv_scale_hor + dmv_hor_x * half_w + dmv_ver_x * half_h);
             mv_scale_tmp_ver = (mv_scale_ver + dmv_hor_y * half_w + dmv_ver_y * half_h);
             evc_mv_rounding_s32( mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, shift, 0 );
+#if AFFINE_CLIPPING_BF
+            mv_scale_tmp_hor = EVC_CLIP3( -(1 << 17), (1 << 17) - 1, mv_scale_tmp_hor );
+            mv_scale_tmp_ver = EVC_CLIP3( -(1 << 17), (1 << 17) - 1, mv_scale_tmp_ver );
+#else
             mv_scale_tmp_hor = EVC_CLIP3( -(2 << 17), (2 << 17) - 1, mv_scale_tmp_hor );
             mv_scale_tmp_ver = EVC_CLIP3( -(2 << 17), (2 << 17) - 1, mv_scale_tmp_ver );
+#endif
             mv_scale_tmp_ver_ori = mv_scale_tmp_ver;
             mv_scale_tmp_hor_ori = mv_scale_tmp_hor;
             // clip
@@ -7652,21 +7732,44 @@ void evc_affine_mc_lc( int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16
 #if M50662_AFFINE_BANDWIDTH_CLIPMV
     if (b_eif)
     {
+#if EIF_CLIPPING_REDESIGN
+      int mv_scale[MV_D] = { mv_scale_hor, mv_scale_ver };
+      int max_mv[MV_D] = { 0, 0 };
+      int min_mv[MV_D] = { 0, 0 };
+
+      eif_derive_mv_clip_range( x, y, cuw, cuh, d_hor, d_ver, mv_scale, pic_w, pic_h, !mem_band_conditions_for_eif_are_satisfied, max_mv, min_mv);
+#else
 #if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
       if ( !mem_band_conditions_for_eif_are_satisfied )
 #endif
       {
         evc_derive_mv_clip_range( cuw, cuh, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y, &hor_max, &hor_min, &ver_max, &ver_min );
       }
+#endif
 
-      evc_eif_mc(cuw, cuh, x, y, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y,
-          hor_max, ver_max, hor_min, ver_min, ref_pic->y, ref_pic->s_l, pred[Y_C], cuw, tmp_buffer_for_eif, bit + 2, Y_C);
+      evc_eif_mc( cuw, cuh, x, y, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y,
+#if EIF_CLIPPING_REDESIGN
+                  max_mv[MV_X], max_mv[MV_Y], min_mv[MV_X], min_mv[MV_Y],
+#else
+                  hor_max, ver_max, hor_min, ver_min,
+#endif
+                  ref_pic->y, ref_pic->s_l, pred[Y_C], cuw, tmp_buffer_for_eif, bit + 2, Y_C);
 
-      evc_eif_mc(cuw, cuh, x, y, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y,
-          hor_max, ver_max, hor_min, ver_min, ref_pic->u, ref_pic->s_c, pred[U_C], cuw >> 1, tmp_buffer_for_eif, bit + 2, U_C);
+      evc_eif_mc( cuw, cuh, x, y, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y,
+#if EIF_CLIPPING_REDESIGN
+                  max_mv[MV_X], max_mv[MV_Y], min_mv[MV_X], min_mv[MV_Y],
+#else
+                  hor_max, ver_max, hor_min, ver_min,
+#endif
+                  ref_pic->u, ref_pic->s_c, pred[U_C], cuw >> 1, tmp_buffer_for_eif, bit + 2, U_C);
 
-      evc_eif_mc(cuw, cuh, x, y, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y,
-          hor_max, ver_max, hor_min, ver_min, ref_pic->v, ref_pic->s_c, pred[V_C], cuw >> 1, tmp_buffer_for_eif, bit + 2, V_C);
+      evc_eif_mc( cuw, cuh, x, y, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y,
+#if EIF_CLIPPING_REDESIGN
+                  max_mv[MV_X], max_mv[MV_Y], min_mv[MV_X], min_mv[MV_Y],
+#else
+                  hor_max, ver_max, hor_min, ver_min,
+#endif
+                  ref_pic->v, ref_pic->s_c, pred[V_C], cuw >> 1, tmp_buffer_for_eif, bit + 2, V_C);
       return;
     }
 #if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV && !M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
@@ -7710,8 +7813,13 @@ void evc_affine_mc_lc( int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16
             mv_scale_tmp_hor = (mv_scale_hor + dmv_hor_x * half_w + dmv_ver_x * half_h);
             mv_scale_tmp_ver = (mv_scale_ver + dmv_hor_y * half_w + dmv_ver_y * half_h);
             evc_mv_rounding_s32( mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, shift, 0 );
+#if AFFINE_CLIPPING_BF
+            mv_scale_tmp_hor = EVC_CLIP3( -(1 << 17), (1 << 17) - 1, mv_scale_tmp_hor );
+            mv_scale_tmp_ver = EVC_CLIP3( -(1 << 17), (1 << 17) - 1, mv_scale_tmp_ver );
+#else                                     
             mv_scale_tmp_hor = EVC_CLIP3( -(2 << 17), (2 << 17) - 1, mv_scale_tmp_hor );
             mv_scale_tmp_ver = EVC_CLIP3( -(2 << 17), (2 << 17) - 1, mv_scale_tmp_ver );
+#endif
             mv_scale_tmp_ver_ori = mv_scale_tmp_ver;
             mv_scale_tmp_hor_ori = mv_scale_tmp_hor;
             // clip
@@ -7759,6 +7867,13 @@ BOOL can_mv_clipping_occurs(int block_width, int block_height, int mv0[MV_D], in
     mv_corners[0][1][coord] = mv[coord] + block_width  * d_x[coord];
     mv_corners[1][0][coord] = mv[coord] + block_height * d_y[coord];
     mv_corners[1][1][coord] = mv[coord] + block_width  * d_x[coord] + block_height * d_y[coord];
+
+#if EIF_CLIPPING_REDESIGN
+    mv_corners[0][0][coord] >>= 4;
+    mv_corners[0][1][coord] >>= 4;
+    mv_corners[1][0][coord] >>= 4;
+    mv_corners[1][1][coord] >>= 4;
+#endif
 
     for (int i = 0; i < 2; ++i)
       for (int j = 0; j < 2; ++j)
@@ -7823,12 +7938,20 @@ void evc_eif_bilinear_clip(int block_width, int block_height, int mv0[MV_D], int
 
     for (int x = -1; x <= block_width; ++x, tmp_mv[MV_X] += d_x[MV_X], tmp_mv[MV_Y] += d_x[MV_Y])
     {
+#if !EIF_CLIPPING_REDESIGN
       mv[MV_X] = min(mv_max[MV_X], max(mv_min[MV_X], tmp_mv[MV_X]));
       mv[MV_Y] = min(mv_max[MV_Y], max(mv_min[MV_Y], tmp_mv[MV_Y]));
+#endif
 
 #if EIF_NEW_BILINEAR
+
+#if EIF_CLIPPING_REDESIGN
+      mv[MV_X] = min( mv_max[MV_X], max(mv_min[MV_X], tmp_mv[MV_X] >> ( EIF_MV_PRECISION_INTERNAL - EIF_MV_PRECISION_BILINEAR ) ) );
+      mv[MV_Y] = min( mv_max[MV_Y], max(mv_min[MV_Y], tmp_mv[MV_Y] >> ( EIF_MV_PRECISION_INTERNAL - EIF_MV_PRECISION_BILINEAR ) ) );
+#else
       mv[MV_X] >>= ( EIF_MV_PRECISION_INTERNAL - EIF_MV_PRECISION_BILINEAR );
       mv[MV_Y] >>= ( EIF_MV_PRECISION_INTERNAL - EIF_MV_PRECISION_BILINEAR );
+#endif
 
       int xInt = x + ( mv[MV_X] >> EIF_MV_PRECISION_BILINEAR );
       int yInt = y + ( mv[MV_Y] >> EIF_MV_PRECISION_BILINEAR );
@@ -7985,10 +8108,16 @@ void evc_eif_mc(int block_width, int block_height, int x, int y, int mv_scale_ho
                     dmv_hor_y    << ( EIF_MV_PRECISION_INTERNAL - affine_mv_prec ) };
   int d_y[MV_D] = { dmv_ver_x    << ( EIF_MV_PRECISION_INTERNAL - affine_mv_prec ),
                     dmv_ver_y    << ( EIF_MV_PRECISION_INTERNAL - affine_mv_prec ) };
+
+#if EIF_CLIPPING_REDESIGN
+  int mv_max[MV_D] = { hor_max, ver_max };
+  int mv_min[MV_D] = { hor_min, ver_min };
+#else
   int mv_max[MV_D] = { hor_max   << ( EIF_MV_PRECISION_INTERNAL - (2 + MC_PRECISION_ADD)),
                        ver_max   << ( EIF_MV_PRECISION_INTERNAL - (2 + MC_PRECISION_ADD)) };
   int mv_min[MV_D] = { hor_min   << ( EIF_MV_PRECISION_INTERNAL - (2 + MC_PRECISION_ADD)),
-                         ver_min << ( EIF_MV_PRECISION_INTERNAL - (2 + MC_PRECISION_ADD)) };
+                       ver_min   << ( EIF_MV_PRECISION_INTERNAL - (2 + MC_PRECISION_ADD)) };
+#endif
   
   if (comp > Y_C)
   {
