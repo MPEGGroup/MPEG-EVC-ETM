@@ -122,7 +122,7 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
         {
 #if M52166_PARTITION
             ctx->max_cuwh = 1 << (sps->log2_ctu_size_minus5 + 5);
-            ctx->min_cuwh = 1 << ((sps->log2_ctu_size_minus5 + 5) - sps->log2_diff_ctu_min_cb_size);
+            ctx->min_cuwh = 1 << (sps->log2_min_cb_size_minus2 + 2);
 #else
             ctx->max_cuwh = 1 << (sps->log2_ctu_size_minus2 + 2);
 #endif

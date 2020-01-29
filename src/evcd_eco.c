@@ -2581,7 +2581,7 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
     {
 #if M52166_PARTITION
         sps->log2_ctu_size_minus5 = (u32)evc_bsr_read_ue(bs);
-        sps->log2_diff_ctu_min_cb_size = (u32)evc_bsr_read_ue(bs);
+        sps->log2_min_cb_size_minus2 = (u32)evc_bsr_read_ue(bs);
         sps->log2_diff_ctu_max_14_cb_size = (u32)evc_bsr_read_ue(bs);
         sps->log2_diff_ctu_max_tt_cb_size = (u32)evc_bsr_read_ue(bs);
         sps->log2_diff_min_cb_min_tt_cb_size_minus2 = (u32)evc_bsr_read_ue(bs);

@@ -1233,7 +1233,7 @@ typedef struct _EVC_SPS
     int              sps_suco_flag;
 #if M52166_PARTITION
     int              log2_ctu_size_minus5;
-    int              log2_diff_ctu_min_cb_size;
+    int              log2_min_cb_size_minus2;
     int              log2_diff_ctu_max_14_cb_size;
     int              log2_diff_ctu_max_tt_cb_size;
     int              log2_diff_min_cb_min_tt_cb_size_minus2;

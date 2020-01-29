@@ -487,7 +487,7 @@ void evcd_split_tbl_init(EVCD_CTX *ctx)
 {
 #if M52166_PARTITION
     evc_split_tbl[BLOCK_11][IDX_MAX] = ctx->log2_max_cuwh;
-    evc_split_tbl[BLOCK_11][IDX_MIN] = ctx->log2_max_cuwh - ctx->sps.log2_diff_ctu_min_cb_size;
+    evc_split_tbl[BLOCK_11][IDX_MIN] = ctx->sps.log2_min_cb_size_minus2 + 2;
     evc_split_tbl[BLOCK_12][IDX_MAX] = ctx->log2_max_cuwh;
     evc_split_tbl[BLOCK_12][IDX_MIN] = evc_split_tbl[BLOCK_11][IDX_MIN] + 1;
     evc_split_tbl[BLOCK_14][IDX_MAX] = min(ctx->log2_max_cuwh - ctx->sps.log2_diff_ctu_max_14_cb_size, 64);

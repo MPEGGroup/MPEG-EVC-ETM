@@ -346,7 +346,7 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     if(sps->profile_idc == PROFILE_MAIN)
     {
 #if M52166_PARTITION
-        sps->log2_diff_ctu_min_cb_size = ctx->log2_max_cuwh - ctx->cdsc.framework_cb_min;
+        sps->log2_min_cb_size_minus2 = ctx->cdsc.framework_cb_min - 2;
         sps->log2_diff_ctu_max_14_cb_size = min(ctx->log2_max_cuwh - ctx->cdsc.framework_cu14_max, 6);
         sps->log2_diff_ctu_max_tt_cb_size = min(ctx->log2_max_cuwh - ctx->cdsc.framework_tris_max, 6);
         sps->log2_diff_min_cb_min_tt_cb_size_minus2 = ctx->cdsc.framework_tris_min - ctx->cdsc.framework_cb_min - 2;
