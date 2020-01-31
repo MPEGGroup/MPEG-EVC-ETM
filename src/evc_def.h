@@ -1442,7 +1442,7 @@ typedef struct _EVC_POC
     /* the picture order count of the previous Tid0 picture */
     u32             prev_poc_val;
     /* the decoding order count of the previous picture */
-    u32             prev_doc_offset;
+    int             prev_doc_offset;
 } EVC_POC;
 
 /*****************************************************************************
