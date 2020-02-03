@@ -442,7 +442,7 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
             }
             if (sh->ref_pic_list_sps_flag[0])
             {
-                if (sps->num_ref_pic_lists_in_sps0)
+                if (sps->num_ref_pic_lists_in_sps0 > 1)
                 {
                     evc_bsw_write_ue(bs, sh->rpl_l0_idx);
                 }
@@ -453,13 +453,14 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
             }
 
             //L1 candidates signaling
-            if (sps->num_ref_pic_lists_in_sps1 > 0)
+            if (sps->num_ref_pic_lists_in_sps1 > 0 && pps->rpl1_idx_present_flag)
             {
                 evc_bsw_write1(bs, sh->ref_pic_list_sps_flag[1]);
             }
+
             if (sh->ref_pic_list_sps_flag[1])
             {
-                if (sps->num_ref_pic_lists_in_sps1)
+                if (sps->num_ref_pic_lists_in_sps1 > 1 && pps->rpl1_idx_present_flag)
                 {
                     evc_bsw_write_ue(bs, sh->rpl_l1_idx);
                 }
