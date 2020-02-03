@@ -3196,7 +3196,7 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
 
             if (sh->ref_pic_list_sps_flag[0])
             {
-                if (sps->num_ref_pic_lists_in_sps0)
+                if (sps->num_ref_pic_lists_in_sps0 > 1)
                 {
                     sh->rpl_l0_idx = evc_bsr_read_ue(bs);
                     memcpy(&sh->rpl_l0, &sps->rpls_l0[sh->rpl_l0_idx], sizeof(sh->rpl_l0)); //TBD: temporal workaround, consider refactoring
@@ -3210,16 +3210,31 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
             }
 
             //L1 candidates signaling
-            sh->ref_pic_list_sps_flag[1] = sps->num_ref_pic_lists_in_sps1 > 0 ? evc_bsr_read1(bs) : 0;
+            if (pps->rpl1_idx_present_flag)
+            {
+                sh->ref_pic_list_sps_flag[1] = sps->num_ref_pic_lists_in_sps1 > 0 ? evc_bsr_read1(bs) : 0;
+            }
+            else
+            {
+                sh->ref_pic_list_sps_flag[1] = sh->ref_pic_list_sps_flag[0];
+            }
 
             if (sh->ref_pic_list_sps_flag[1])
             {
-                if (sps->num_ref_pic_lists_in_sps1)
+                if (pps->rpl1_idx_present_flag)
                 {
-                    sh->rpl_l1_idx = evc_bsr_read_ue(bs);
-                    memcpy(&sh->rpl_l1, &sps->rpls_l1[sh->rpl_l1_idx], sizeof(sh->rpl_l1)); //TBD: temporal workaround, consider refactoring
-                    sh->rpl_l1.poc = sh->poc_lsb;
+                    if (sps->num_ref_pic_lists_in_sps1 > 1)
+                    {
+                        sh->rpl_l1_idx = evc_bsr_read_ue(bs);
+                    }
                 }
+                else
+                {
+                    sh->rpl_l1_idx = sh->rpl_l0_idx;
+                }
+
+                memcpy(&sh->rpl_l1, &sps->rpls_l1[sh->rpl_l1_idx], sizeof(sh->rpl_l1)); //TBD: temporal workaround, consider refactoring
+                sh->rpl_l1.poc = sh->poc_lsb;
             }
             else
             {
