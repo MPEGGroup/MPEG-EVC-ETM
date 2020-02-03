@@ -2366,10 +2366,22 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             ret = create_explicit_rpl(&ctx->rpm, sh, ctx->poc.poc_val);
             if (ret == 1)
             {
-                if (sh->rpl_l0_idx == -1)
+                if (ctx->pps.rpl1_idx_present_flag)
+                {
+                    if (sh->rpl_l0_idx == -1)
+                    {
+                        sh->ref_pic_list_sps_flag[0] = 0;
+                    }
+                    if (sh->rpl_l1_idx == -1)
+                    {
+                        sh->ref_pic_list_sps_flag[1] = 0;
+                    }
+                }
+                else
+                {
                     sh->ref_pic_list_sps_flag[0] = 0;
-                if (sh->rpl_l1_idx == -1)
                     sh->ref_pic_list_sps_flag[1] = 0;
+                }
             }
         }
 
