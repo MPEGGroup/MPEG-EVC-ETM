@@ -2374,7 +2374,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
             if (ctx->nalu.nal_unit_type_plus1 - 1 == EVC_IDR_NUT)
             {
                 sh->poc_lsb = 0;
-                ctx->poc.prev_doc_offset = 0;
+                ctx->poc.prev_doc_offset = -1;
                 ctx->poc.prev_poc_val = 0;
                 ctx->slice_ref_flag = (ctx->nalu.nuh_temporal_id == 0 || ctx->nalu.nuh_temporal_id < ctx->sps.log2_sub_gop_length);
                 ctx->poc.poc_val = 0;
