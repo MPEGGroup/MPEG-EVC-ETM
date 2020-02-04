@@ -435,7 +435,8 @@ typedef struct _EVCE_CDSC
     int            profile;
     int            level;
 #if CHROMA_QP_TABLE_SUPPORT_M50663
-    int            toolset_idc;
+    int            toolset_idc_h;
+    int            toolset_idc_l;
 #endif
     int            btt;
     int            suco;

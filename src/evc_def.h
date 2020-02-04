@@ -37,6 +37,10 @@
 #include "evc.h"
 #include "evc_port.h"
 
+#define AFFINE_CLIPPING_BF                           1 //2 << 17 -> 1 << 17
+#define HMVP_ON_AFFINE_UPDATE_BF                     1
+#define EIF_CLIPPING_REDESIGN                        1
+
 #define M52165                                       1
 
 #define M52166                                       1
@@ -88,9 +92,9 @@
 #define M50761                                       1
 #if M50761
 //chroma no split for avoiding 2x2, 2x4 and 4x2 chroma blocks
-#define M50761_CHROMA_NOT_SPLIT                    0
+#define M50761_CHROMA_NOT_SPLIT                    1
 #if M50761_CHROMA_NOT_SPLIT
-#define CHROMA_NOT_SPLIT_EXCLUDE_IBC               1    // Remove CC in the case of allowing IBC
+#define CHROMA_NOT_SPLIT_EXCLUDE_IBC               0    // Remove CC in the case of allowing IBC
 #endif
 
 #define M50761_REMOVE_BLOCK_SIZE_MAP               1
@@ -1217,7 +1221,8 @@ typedef struct _EVC_SPS
     int              profile_idc;
     int              level_idc;
 #if CHROMA_QP_TABLE_SUPPORT_M50663
-    int              toolset_idc;
+    int              toolset_idc_h;
+    int              toolset_idc_l;
 #endif
     int              chroma_format_idc;
     u16              pic_width_in_luma_samples;  
@@ -1228,7 +1233,7 @@ typedef struct _EVC_SPS
     int              sps_suco_flag;
 #if M52166_PARTITION
     int              log2_ctu_size_minus5;
-    int              log2_diff_ctu_min_cb_size;
+    int              log2_min_cb_size_minus2;
     int              log2_diff_ctu_max_14_cb_size;
     int              log2_diff_ctu_max_tt_cb_size;
     int              log2_diff_min_cb_min_tt_cb_size_minus2;
@@ -1269,11 +1274,10 @@ typedef struct _EVC_SPS
     int              max_num_ref_pics;
     u8               long_term_ref_pics_flag;
     /* HLS_RPL  */
-    int              rpl_candidates_present_flag;
     int              rpl1_same_as_rpl0_flag;
-    int              rpls_l0_num;
+    int              num_ref_pic_lists_in_sps0;
     EVC_RPL          rpls_l0[MAX_NUM_RPLS];
-    int              rpls_l1_num;
+    int              num_ref_pic_lists_in_sps1;
     EVC_RPL          rpls_l1[MAX_NUM_RPLS];
 
     int              picture_cropping_flag;
@@ -1561,9 +1565,10 @@ typedef enum _MSL_IDX
 #define DMVR_PAD_LENGTH                                        2
 #define EXTRA_PIXELS_FOR_FILTER                                7 // Maximum extraPixels required for final MC based on fiter size
 #define PAD_BUFFER_STRIDE                               ((MAX_CU_SIZE + EXTRA_PIXELS_FOR_FILTER + (DMVR_ITER_COUNT * 2)))
+#endif
+
 static const int NTAPS_LUMA = 8; ///< Number of taps for luma
 static const int NTAPS_CHROMA = 4; ///< Number of taps for chroma
-#endif
 
 #define EIF_MV_PRECISION_INTERNAL                                       (2 + MAX_CU_LOG2 + 0) //2 + MAX_CU_LOG2 is MV precision in regular affine
 

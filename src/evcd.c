@@ -122,7 +122,7 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
         {
 #if M52166_PARTITION
             ctx->max_cuwh = 1 << (sps->log2_ctu_size_minus5 + 5);
-            ctx->min_cuwh = 1 << ((sps->log2_ctu_size_minus5 + 5) - sps->log2_diff_ctu_min_cb_size);
+            ctx->min_cuwh = 1 << (sps->log2_min_cb_size_minus2 + 2);
 #else
             ctx->max_cuwh = 1 << (sps->log2_ctu_size_minus2 + 2);
 #endif
@@ -499,15 +499,24 @@ static void update_history_buffer_parse_affine(EVCD_CORE *core, int slice_type)
                     mv_scale_tmp_hor = mv_scale_hor + dmv_hor_x * pos_x + dmv_ver_x * pos_y;
                     mv_scale_tmp_ver = mv_scale_ver + dmv_hor_y * pos_x + dmv_ver_y * pos_y;
 
+#if HMVP_ON_AFFINE_UPDATE_BF
+                    evc_mv_rounding_s32(mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, 7, 0);
 
+                    mv_scale_tmp_hor = EVC_CLIP3(-(1 << 15), (1 << 15) - 1, mv_scale_tmp_hor);
+                    mv_scale_tmp_ver = EVC_CLIP3(-(1 << 15), (1 << 15) - 1, mv_scale_tmp_ver);
+#else
                     evc_mv_rounding_s32(mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, 5, 0);
+
+#if AFFINE_CLIPPING_BF
+                    mv_scale_tmp_hor = EVC_CLIP3(-(1 << 17), (1 << 17) - 1, mv_scale_tmp_hor);
+                    mv_scale_tmp_ver = EVC_CLIP3(-(1 << 17), (1 << 17) - 1, mv_scale_tmp_ver);
+#else
                     mv_scale_tmp_hor = EVC_CLIP3(-(2 << 17), (2 << 17) - 1, mv_scale_tmp_hor);
                     mv_scale_tmp_ver = EVC_CLIP3(-(2 << 17), (2 << 17) - 1, mv_scale_tmp_ver);
-
-
+#endif
                     mv_scale_tmp_hor >>= 2;
                     mv_scale_tmp_ver >>= 2;
-
+#endif
                     core->mv_sp[lidx][MV_X] = mv_scale_tmp_hor;
                     core->mv_sp[lidx][MV_Y] = mv_scale_tmp_ver;
                     core->refi_sp[lidx] = core->refi[lidx];
@@ -578,14 +587,23 @@ static void update_history_buffer_parse_affine(EVCD_CORE *core, int slice_type)
                     mv_scale_tmp_hor = mv_scale_hor + dmv_hor_x * pos_x + dmv_ver_x * pos_y;
                     mv_scale_tmp_ver = mv_scale_ver + dmv_hor_y * pos_x + dmv_ver_y * pos_y;
 
-
+#if HMVP_ON_AFFINE_UPDATE_BF
+                    evc_mv_rounding_s32(mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, 7, 0);
+                    mv_scale_tmp_hor = EVC_CLIP3(-(1 << 15), (1 << 15) - 1, mv_scale_tmp_hor);
+                    mv_scale_tmp_ver = EVC_CLIP3(-(1 << 15), (1 << 15) - 1, mv_scale_tmp_ver);
+#else
                     evc_mv_rounding_s32(mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, 5, 0);
+#if AFFINE_CLIPPING_BF
+                    mv_scale_tmp_hor = EVC_CLIP3(-(1 << 17), (1 << 17) - 1, mv_scale_tmp_hor);
+                    mv_scale_tmp_ver = EVC_CLIP3(-(1 << 17), (1 << 17) - 1, mv_scale_tmp_ver);
+#else
                     mv_scale_tmp_hor = EVC_CLIP3(-(2 << 17), (2 << 17) - 1, mv_scale_tmp_hor);
                     mv_scale_tmp_ver = EVC_CLIP3(-(2 << 17), (2 << 17) - 1, mv_scale_tmp_ver);
+#endif
 
                     mv_scale_tmp_hor >>= 2;
                     mv_scale_tmp_ver >>= 2;
-
+#endif
                     core->mv_sp[lidx][MV_X] = mv_scale_tmp_hor;
                     core->mv_sp[lidx][MV_Y] = mv_scale_tmp_ver;
                     core->refi_sp[lidx] = core->refi[lidx];
@@ -1259,7 +1277,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
                     , x0, y0, ctx->w, ctx->h
                     , NULL, ctx->sps.sps_btt_flag
 #if M50761_CHROMA_NOT_SPLIT
-                    , c->tree_cons
+                    , ctx->tree_cons
 #endif
                 );
 
@@ -2483,7 +2501,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     else if (nalu->nal_unit_type_plus1 - 1 == EVC_SEI_NUT)
     {
 
-        ret = evcd_eco_udata(ctx, bs);
+        ret = evcd_eco_sei(ctx, bs);
 
         if (ctx->pic_sign_exist)
         {

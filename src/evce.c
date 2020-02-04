@@ -312,7 +312,8 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->pic_width_in_luma_samples = ctx->param.w;
     sps->pic_height_in_luma_samples = ctx->param.h;
 #if CHROMA_QP_TABLE_SUPPORT_M50663
-    sps->toolset_idc = (int)2097151; // x1FFFFF value.
+    sps->toolset_idc_h = 0x7FFFF;
+    sps->toolset_idc_l = 0;
     sps->bit_depth_luma_minus8 = ctx->cdsc.out_bit_depth - 8;
     sps->bit_depth_chroma_minus8 = ctx->cdsc.out_bit_depth - 8;
     sps->chroma_format_idc = 1; // YCbCr 4:2:0
@@ -345,7 +346,7 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     if(sps->profile_idc == PROFILE_MAIN)
     {
 #if M52166_PARTITION
-        sps->log2_diff_ctu_min_cb_size = ctx->log2_max_cuwh - ctx->cdsc.framework_cb_min;
+        sps->log2_min_cb_size_minus2 = ctx->cdsc.framework_cb_min - 2;
         sps->log2_diff_ctu_max_14_cb_size = min(ctx->log2_max_cuwh - ctx->cdsc.framework_cu14_max, 6);
         sps->log2_diff_ctu_max_tt_cb_size = min(ctx->log2_max_cuwh - ctx->cdsc.framework_tris_max, 6);
         sps->log2_diff_min_cb_min_tt_cb_size_minus2 = ctx->cdsc.framework_tris_min - ctx->cdsc.framework_cb_min - 2;
@@ -407,16 +408,14 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
 
     if (!sps->tool_rpl)
     {
-        sps->rpls_l0_num = 0;
-        sps->rpls_l1_num = 0;
-        sps->rpl_candidates_present_flag = 0;
+        sps->num_ref_pic_lists_in_sps0 = 0;
+        sps->num_ref_pic_lists_in_sps1 = 0;
         sps->rpl1_same_as_rpl0_flag = 0;
     }
     else
     {
-        sps->rpls_l0_num = ctx->cdsc.rpls_l0_cfg_num;
-        sps->rpls_l1_num = ctx->cdsc.rpls_l1_cfg_num;
-        sps->rpl_candidates_present_flag = 1;
+        sps->num_ref_pic_lists_in_sps0 = ctx->cdsc.rpls_l0_cfg_num;
+        sps->num_ref_pic_lists_in_sps1 = ctx->cdsc.rpls_l1_cfg_num;
         sps->rpl1_same_as_rpl0_flag = 0;
     }
 
@@ -2208,7 +2207,7 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
 
         evce_eco_nalu(bs, sei_nalu);
 
-        ret = evce_eco_udata(ctx, bs);
+        ret = evce_eco_sei(ctx, bs);
         evc_assert_rv(ret == EVC_OK, ret);
 
         evc_bsw_deinit(bs);
@@ -2343,10 +2342,22 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             ret = create_explicit_rpl(&ctx->rpm, sh, ctx->poc.poc_val);
             if (ret == 1)
             {
-                if (sh->rpl_l0_idx == -1)
+                if (ctx->pps.rpl1_idx_present_flag)
+                {
+                    if (sh->rpl_l0_idx == -1)
+                    {
+                        sh->ref_pic_list_sps_flag[0] = 0;
+                    }
+                    if (sh->rpl_l1_idx == -1)
+                    {
+                        sh->ref_pic_list_sps_flag[1] = 0;
+                    }
+                }
+                else
+                {
                     sh->ref_pic_list_sps_flag[0] = 0;
-                if (sh->rpl_l1_idx == -1)
                     sh->ref_pic_list_sps_flag[1] = 0;
+                }
             }
         }
 

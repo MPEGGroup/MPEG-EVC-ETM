@@ -96,7 +96,8 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
 #if CHROMA_QP_TABLE_SUPPORT_M50663
     evc_bsw_write(bs, (u32)sps->profile_idc, 8);
     evc_bsw_write(bs, (u32)sps->level_idc, 8);
-    evc_bsw_write(bs, (u32)sps->toolset_idc, 32);
+    evc_bsw_write(bs, (u32)sps->toolset_idc_h, 32);
+    evc_bsw_write(bs, (u32)sps->toolset_idc_l, 32);
 #else
     evc_bsw_write(bs, (u32)sps->profile_idc, 7);
     evc_bsw_write(bs, (u32)sps->level_idc, 8);
@@ -111,7 +112,7 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
     {
 #if M52166_PARTITION
         evc_bsw_write_ue(bs, (u32)sps->log2_ctu_size_minus5);
-        evc_bsw_write_ue(bs, (u32)sps->log2_diff_ctu_min_cb_size);
+        evc_bsw_write_ue(bs, (u32)sps->log2_min_cb_size_minus2);
         evc_bsw_write_ue(bs, (u32)sps->log2_diff_ctu_max_14_cb_size);
         evc_bsw_write_ue(bs, (u32)sps->log2_diff_ctu_max_tt_cb_size);
         evc_bsw_write_ue(bs, (u32)sps->log2_diff_min_cb_min_tt_cb_size_minus2);
@@ -222,22 +223,17 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
     else
     {
         evc_bsw_write1(bs, sps->long_term_ref_pics_flag);
-        evc_bsw_write1(bs, sps->rpl_candidates_present_flag);
+        evc_bsw_write1(bs, sps->rpl1_same_as_rpl0_flag);
 
-        if (sps->rpl_candidates_present_flag)
+        evc_bsw_write_ue(bs, (u32)sps->num_ref_pic_lists_in_sps0);
+        for (int i = 0; i < sps->num_ref_pic_lists_in_sps0; ++i)
+            evce_eco_rlp(bs, &sps->rpls_l0[i]);
+
+        if (!sps->rpl1_same_as_rpl0_flag)
         {
-            evc_bsw_write1(bs, sps->rpl1_same_as_rpl0_flag);
-
-            evc_bsw_write_ue(bs, (u32)sps->rpls_l0_num);
-            for (int i = 0; i < sps->rpls_l0_num; ++i)
-                evce_eco_rlp(bs, &sps->rpls_l0[i]);
-
-            if (!sps->rpl1_same_as_rpl0_flag)
-            {
-                evc_bsw_write_ue(bs, (u32)sps->rpls_l1_num);
-                for (int i = 0; i < sps->rpls_l1_num; ++i)
-                    evce_eco_rlp(bs, &sps->rpls_l1[i]);
-            }
+                evc_bsw_write_ue(bs, (u32)sps->num_ref_pic_lists_in_sps1);
+                for (int i = 0; i < sps->num_ref_pic_lists_in_sps1; ++i)
+                evce_eco_rlp(bs, &sps->rpls_l1[i]);
         }
     }
 
@@ -282,21 +278,10 @@ int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps)
     evc_bsw_write_ue(bs, (u32)pps->pps_seq_parameter_set_id);
     evc_bsw_write_ue(bs, (u32)pps->num_ref_idx_default_active_minus1[0]);
     evc_bsw_write_ue(bs, (u32)pps->num_ref_idx_default_active_minus1[1]);
-
-    if (sps->tool_rpl)
-    {
-        if (sps->long_term_ref_pics_flag)
-        {
-            evc_bsw_write_ue(bs, (u32)pps->additional_lt_poc_lsb_len);
-        }
-
-        if (sps->rpl_candidates_present_flag)
-        {
-            evc_bsw_write1(bs, pps->rpl1_idx_present_flag);
-        }
-    }
-    
+    evc_bsw_write_ue(bs, (u32)pps->additional_lt_poc_lsb_len);
+    evc_bsw_write1(bs, pps->rpl1_idx_present_flag);
     evc_bsw_write1(bs, pps->single_tile_in_pic_flag);
+
     if (!pps->single_tile_in_pic_flag)
     {
         evc_bsw_write_ue(bs, (u32)pps->num_tile_columns_minus1);
@@ -451,13 +436,13 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
         if (sps->tool_rpl)
         {
             //L0 candidates signaling
-            if (sps->rpl_candidates_present_flag)
+            if (sps->num_ref_pic_lists_in_sps0 > 0)
             {
                 evc_bsw_write1(bs, sh->ref_pic_list_sps_flag[0]);
             }
             if (sh->ref_pic_list_sps_flag[0])
             {
-                if (sps->rpls_l0_num)
+                if (sps->num_ref_pic_lists_in_sps0 > 1)
                 {
                     evc_bsw_write_ue(bs, sh->rpl_l0_idx);
                 }
@@ -468,13 +453,14 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
             }
 
             //L1 candidates signaling
-            if (sps->rpl_candidates_present_flag)
+            if (sps->num_ref_pic_lists_in_sps1 > 0 && pps->rpl1_idx_present_flag)
             {
                 evc_bsw_write1(bs, sh->ref_pic_list_sps_flag[1]);
             }
+
             if (sh->ref_pic_list_sps_flag[1])
             {
-                if (sps->rpls_l1_num)
+                if (sps->num_ref_pic_lists_in_sps1 > 1 && pps->rpl1_idx_present_flag)
                 {
                     evc_bsw_write_ue(bs, sh->rpl_l1_idx);
                 }
@@ -537,40 +523,42 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
     return EVC_OK;
 }
 
-int evce_eco_udata(EVCE_CTX * ctx, EVC_BSW * bs)
+int evce_eco_signature(EVCE_CTX * ctx, EVC_BSW * bs)
 {
-    int ret, i;
-
-    /* should be aligned before adding user data */
-    evc_assert_rv(EVC_BSW_IS_BYTE_ALIGN(bs), EVC_ERR_UNKNOWN);
-
-    /* picture signature */
     if (ctx->param.use_pic_sign)
     {
+        int i, ret, hash_size = 16;
         u8 pic_sign[16];
-
-        /* should be aligned before adding user data */
-        evc_assert_rv(EVC_BSW_IS_BYTE_ALIGN(bs), EVC_ERR_UNKNOWN);
 
         /* get picture signature */
         ret = evc_picbuf_signature(PIC_CURR(ctx), pic_sign);
         evc_assert_rv(ret == EVC_OK, ret);
 
-        /* write user data type */
         evc_bsw_write(bs, EVC_UD_PIC_SIGNATURE, 8);
+        evc_bsw_write(bs, hash_size, 8);
 
-        /* embed signature (HASH) to bitstream */
-        for (i = 0; i < 16; i++)
+        for (i = 0; i < hash_size; i++)
         {
             evc_bsw_write(bs, pic_sign[i], 8);
         }
     }
-    /* write end of user data syntax */
-    evc_bsw_write(bs, EVC_UD_END, 8);
 
     return EVC_OK;
 }
 
+int evce_eco_sei(EVCE_CTX * ctx, EVC_BSW * bs)
+{
+    evc_assert_rv(EVC_BSW_IS_BYTE_ALIGN(bs), EVC_ERR_UNKNOWN);
+
+    evce_eco_signature(ctx, bs);
+
+    while (!EVC_BSW_IS_BYTE_ALIGN(bs))
+    {
+        evc_bsw_write1(bs, 0);
+    }
+
+    return EVC_OK;
+}
 
 static void evc_bsw_write_est(EVCE_SBAC *sbac, u32 byte, int len)
 {
@@ -2278,7 +2266,7 @@ void evce_eco_inter_dir(EVC_BSW *bs, s8 refi[REFP_NUM]
         assert(check_bi_applicability(slice_type, cuw, cuh, is_sps_amis));
 #endif
 #endif
-        evce_sbac_encode_bin(1, sbac, sbac->ctx.inter_dir + 1, bs);
+        evce_sbac_encode_bin(0, sbac, sbac->ctx.inter_dir + 1, bs);
         EVC_TRACE_INT(PRED_BI);
     }
     else
@@ -2291,7 +2279,7 @@ void evce_eco_inter_dir(EVC_BSW *bs, s8 refi[REFP_NUM]
 #endif
 #endif
         {
-            evce_sbac_encode_bin(0, sbac, sbac->ctx.inter_dir + 1, bs);
+            evce_sbac_encode_bin(1, sbac, sbac->ctx.inter_dir + 1, bs);
         }
 
         if(REFI_IS_VALID(refi[REFP_0])) /* PRED_L0 */

@@ -244,6 +244,11 @@ u16 evc_check_nev_avail(int x_scu, int y_scu, int cuw, int cuh, int w_scu, int h
 void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u32* map_scu, u32* map_cu_mode, u8* ctx, u8 slice_type, int sps_cm_init_flag, u8 ibc_flag, u8 ibc_log_max_size);
 
 void evc_mv_rounding_s32( s32 hor, int ver, s32 * rounded_hor, s32 * rounded_ver, s32 right_shift, int left_shift );
+
+#if EIF_CLIPPING_REDESIGN
+void evc_rounding_s32(s32 comp, s32 *rounded_comp, int right_shift, int left_shift);
+#endif
+
 #if M50761_AFFINE_ADAPT_SUB_SIZE
 void derive_affine_subblock_size_bi( s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi[REFP_NUM], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num
 #if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
