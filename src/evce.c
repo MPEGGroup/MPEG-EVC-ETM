@@ -66,7 +66,11 @@ static const s8 tbl_poc_gop_offset[5][15] =
     { -8,   -12, -14,  -15,  -13,  -10,  -11,   -9,   -4,   -6,   -7,   -5,   -2,   -3,   -1}   /* gop_size = 16 */
 };
 
+#if LD_CONFIG_CHANGE
+static const s8 tbl_slice_depth_P_orig[GOP_P] = { FRM_DEPTH_4,  FRM_DEPTH_3,  FRM_DEPTH_4,  FRM_DEPTH_2, FRM_DEPTH_4,  FRM_DEPTH_3, FRM_DEPTH_4,  FRM_DEPTH_1 };
+#else
 static const s8 tbl_slice_depth_P_orig[GOP_P] = { FRM_DEPTH_3,  FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_1 };
+#endif
 
 static const s8 tbl_slice_depth_P[5][16] =
 {
@@ -512,6 +516,19 @@ QP_ADAPT_PARAM qp_adapt_param_ra[8] =
     { 8, -7.1444, 0.3000},
 };
 
+#if LD_CONFIG_CHANGE
+QP_ADAPT_PARAM qp_adapt_param_ld[8] =
+{
+    {-1,  0.0000, 0.0000 },
+    { 1,  0.0000, 0.0000 },
+    { 4, -6.5000, 0.2590 },
+    { 4, -6.5000, 0.2590 },
+    { 5, -6.5000, 0.2590 },
+    { 5, -6.5000, 0.2590 },
+    { 5, -6.5000, 0.2590 },
+    { 5, -6.5000, 0.2590 },
+};
+#else
 QP_ADAPT_PARAM qp_adapt_param_ld[8] =
 {
     {-1,  0.0000, 0.0000},
@@ -523,6 +540,7 @@ QP_ADAPT_PARAM qp_adapt_param_ld[8] =
     { 8, -6.5000, 0.2590},
     { 9, -6.5000, 0.2590},
 };
+#endif
 
 QP_ADAPT_PARAM qp_adapt_param_ai[8] =
 {
@@ -541,8 +559,13 @@ static void select_assign_rpl_for_sh(EVCE_CTX *ctx, EVC_SH *sh)
 {
     //TBD: when NALU types are implemented; if the current picture is an IDR, simply return without doing the rest of the codes for this function
 
+#if LD_CONFIG_CHANGE
+    /* introduce this variable for LD reason. The predefined RPL in the cfg file is made assuming GOP size is 4 for LD configuration*/
+    int gopSize = (ctx->param.gop_size == 1) ? GOP_P : ctx->param.gop_size;
+#else
     /* introduce this variable for LD reason. The predefined RPL in the cfg file is made assuming GOP size is 4 for LD configuration*/
     int gopSize = (ctx->param.gop_size == 1) ? 4 : ctx->param.gop_size;
+#endif
 
     //Assume it the pic is in the normal GOP first. Normal GOP here means it is not the first (few) GOP in the beginning of the bitstream
     sh->rpl_l0_idx = sh->rpl_l1_idx = -1;
@@ -757,6 +780,7 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
     double qp;
     int qp_l_i;
     int qp_c_i;
+
     QP_ADAPT_PARAM *qp_adapt_param = ctx->param.max_b_frames == 0 ?
         (ctx->param.i_period == 1 ? qp_adapt_param_ai : qp_adapt_param_ld) : qp_adapt_param_ra;
 
