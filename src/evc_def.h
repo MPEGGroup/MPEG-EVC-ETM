@@ -37,6 +37,28 @@
 #include "evc.h"
 #include "evc_port.h"
 
+#define QC_ADD_ADDB_FLAG                       0         // Operational but, some minor clean up needed, currently slice level signaling is disabled by mistake
+#define QC_ADD_DRA_FLAG                        1
+#define QC_DRA                                 1
+
+#if QC_DRA
+#define QC_DRA_LUT_SUBSAMPLE_TWO                     0 
+#define DBF_CLIP_FIX                                 1
+#define HDR_MD5_CHECK                                1
+#endif
+
+#define ETM_HDR_METRIC                                 1
+#if ETM_HDR_METRIC
+#define NB_REF_WHITE                                 3
+#define DEG275                                         4.7996554429844
+#define DEG30                                         0.523598775598299
+#define DEG6                                         0.1047197551196598
+#define DEG63                                         1.099557428756428
+#define DEG25                                         0.436332
+#endif
+
+
+
 #define LD_CONFIG_CHANGE                             1
 
 #define AFFINE_CLIPPING_BF                           1 //2 << 17 -> 1 << 17
@@ -639,7 +661,12 @@ extern int fp_trace_started;
 #define EXTRA_FRAME                        MAX_NUM_ACTIVE_REF_FRAME
 
 /* maximum picture buffer size */
+#if QC_DRA
+#define DRA_FRAME 1
+#define MAX_PB_SIZE                       (MAX_NUM_REF_PICS + EXTRA_FRAME + DRA_FRAME)
+#else
 #define MAX_PB_SIZE                       (MAX_NUM_REF_PICS + EXTRA_FRAME)
+#endif
 
 #define MAX_NUM_TILES_ROW                  22
 #define MAX_NUM_TILES_COL                  20
@@ -1256,6 +1283,9 @@ typedef struct _EVC_SPS
     int              tool_mmvd;
     int              tool_affine;
     int              tool_dmvr;
+#if QC_ADD_ADDB_FLAG
+    int              tool_addb;
+#endif
     int              tool_alf;
     int              tool_htdf;
     int              tool_admvp;
@@ -1296,6 +1326,12 @@ typedef struct _EVC_SPS
     u8               ibc_flag;                   /* 1 bit : flag of enabling IBC or not */
     int              ibc_log_max_size;           /* log2 max ibc size */
     int              vui_parameters_present_flag;
+#if QC_DRA
+    void* p_signalledDRAParams;
+#if QC_ADD_DRA_FLAG
+    int tool_dra;
+#endif
+#endif
 } EVC_SPS;
 
 /*****************************************************************************
@@ -1604,5 +1640,7 @@ enum TQC_RUN {
 #include "evc_picman.h"
 #include "evc_mc.h"
 #include "evc_img.h"
+
+#include "evc_dra.h"
 
 #endif /* _EVC_DEF_H_ */

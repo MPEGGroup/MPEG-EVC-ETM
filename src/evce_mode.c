@@ -2944,8 +2944,11 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
     u8 do_filter = 0;
     u8 ats_inter_idx = get_ats_inter_idx(ats_inter_info);
     u8 ats_inter_pos = get_ats_inter_pos(ats_inter_info);
-
+#if QC_ADD_ADDB_FLAG
+    if ((ctx->sps.tool_addb) && (ctx->sh.deblocking_filter_on))
+#else
     if(ctx->sh.deblocking_filter_on)
+#endif
     {
         do_filter = 1;
     }

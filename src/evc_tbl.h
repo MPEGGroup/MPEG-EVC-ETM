@@ -207,6 +207,24 @@ extern const int g_min_in_group[LAST_SIGNIFICANT_GROUPS];
 extern const int g_group_idx[MAX_TR_SIZE];
 extern const int g_go_rice_range[MAX_GR_ORDER_RESIDUAL];
 extern const int g_go_rice_para_coeff[32];
+
+#if HDR_MD5_CHECK
+extern int g_lumaInvScaleLUT[DRA_LUT_MAXSIZE];               // LUT for luma and correspionding QP offset
+extern double g_chromaInvScaleLUT[2][DRA_LUT_MAXSIZE];               // LUT for chroma scales 
+extern int g_intChromaInvScaleLUT[2][DRA_LUT_MAXSIZE];               // LUT for chroma scales 
+
+extern u8 g_pic_sign[16];
+extern u8 g_pic_sign_dec_sig[16];
+#endif
+#if ETM_HDR_METRIC
+extern const double g_UCF_Filters[8][4][15];
+extern const double g_color_trans[3][3];
+extern const float  g_RGB2XYZ_REC[5][9];
+#endif
+#if QC_DRA
+extern const int g_dra_chroma_qp_offset_tbl[NUM_CHROMA_QP_OFFSET_LOG];
+extern const int g_dra_exp_nom_v2[NUM_CHROMA_QP_SCALE_EXP];
+#endif
 #ifdef __cplusplus
 }
 #endif

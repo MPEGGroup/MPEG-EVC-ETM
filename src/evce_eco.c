@@ -38,6 +38,10 @@
 #include "wrapper.h"
 #include "enc_alf_wrapper.h"
 
+#if QC_DRA
+#include "evc_util.h"
+#endif
+
 #if GRAB_STAT
 #include "evc_debug.h"
 #endif
@@ -172,7 +176,12 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
     {
         evc_bsw_write1(bs, sps->tool_ats);
     }
-
+#if QC_ADD_ADDB_FLAG
+    evc_bsw_write1(bs, sps->tool_addb);
+#endif
+#if QC_ADD_DRA_FLAG
+    evc_bsw_write1(bs, sps->tool_dra);
+#endif
     evc_bsw_write1(bs, sps->tool_alf);
     evc_bsw_write1(bs, sps->tool_htdf);
 #else
@@ -181,6 +190,12 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
     evc_bsw_write1(bs, sps->tool_mmvd);
     evc_bsw_write1(bs, sps->tool_affine);
     evc_bsw_write1(bs, sps->tool_dmvr);
+#if QC_ADD_ADDB_FLAG
+    evc_bsw_write1(bs, sps->tool_addb);
+#endif
+#if QC_ADD_DRA_FLAG
+    evc_bsw_write1(bs, sps->tool_dra);
+#endif
     evc_bsw_write1(bs, sps->tool_alf);
     evc_bsw_write1(bs, sps->tool_admvp);
     evc_bsw_write1(bs, sps->tool_eipd);
@@ -257,6 +272,50 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
                 evc_bsw_write(bs, sps->chroma_qp_table_struct.delta_qp_in_val_minus1[i][j], 6);
                 evc_bsw_write_se(bs, (u32)sps->chroma_qp_table_struct.delta_qp_out_val[i][j]);
             }
+        }
+    }
+#endif
+#if QC_DRA
+#if QC_ADD_DRA_FLAG
+    int signal_dra_flag = sps->tool_dra;
+    ((SignalledParamsDRA*)sps->p_signalledDRAParams)->m_signal_dra_flag = sps->tool_dra;
+#else
+    int signal_dra_flag = (sps->p_signalledDRAParams != NULL) ? 1 : 0;
+#endif
+#if !QC_ADD_DRA_FLAG
+    evc_bsw_write1(bs, signal_dra_flag);
+#endif
+    if (signal_dra_flag)
+    {
+        SignalledParamsDRA* p_dra_param = (SignalledParamsDRA*)sps->p_signalledDRAParams;
+        if (signal_dra_flag)
+        {
+            evc_bsw_write(bs, (u32)p_dra_param->m_numFracBitsScale, 4);
+            evc_bsw_write(bs, (u32)p_dra_param->m_numIntBitsScale, 4);
+            evc_bsw_write_ue(bs, (u32)p_dra_param->m_numRanges);
+            evc_bsw_write1(bs, p_dra_param->m_equalRangesFlag);
+            evc_bsw_write(bs, (u32)p_dra_param->m_inRanges[0], QC_IN_RANGE_NUM_BITS); // delta_luma_dqp_change_point
+            if (p_dra_param->m_equalRangesFlag == TRUE)
+            {
+                evc_bsw_write_se(bs, (u32)p_dra_param->m_deltaVal);
+            }
+            else
+            {
+                for (int i = 1; i <= p_dra_param->m_numRanges; i++)
+                {
+                    evc_bsw_write(bs, (u32)(p_dra_param->m_inRanges[i] - p_dra_param->m_inRanges[i - 1]), QC_IN_RANGE_NUM_BITS);
+                }
+            }
+
+            int numBits = p_dra_param->m_numFracBitsScale + p_dra_param->m_numIntBitsScale;
+            for (int i = 0; i < p_dra_param->m_numRanges; i++)
+            {
+                evc_bsw_write(bs, p_dra_param->m_intDraScales[i], numBits);
+            }
+
+            evc_bsw_write(bs, p_dra_param->m_intScaleCbDRA, numBits);
+            evc_bsw_write(bs, p_dra_param->m_intScaleCrDRA, numBits);
+            evc_bsw_write_se(bs, (u32)p_dra_param->m_baseLumaQP);
         }
     }
 #endif
@@ -498,8 +557,9 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
             }
         }
     }
-
+#if !QC_ADD_ADDB_FLAG
     evc_bsw_write1(bs, sh->deblocking_filter_on);
+#endif
     evc_bsw_write_se(bs, sh->sh_deblock_alpha_offset);
     evc_bsw_write_se(bs, sh->sh_deblock_beta_offset);
     evc_bsw_write(bs, sh->qp, 6);
@@ -540,6 +600,16 @@ int evce_eco_signature(EVCE_CTX * ctx, EVC_BSW * bs)
         for (i = 0; i < hash_size; i++)
         {
             evc_bsw_write(bs, pic_sign[i], 8);
+#if HDR_MD5_CHECK
+#if QC_ADD_DRA_FLAG
+            if (ctx->sps.tool_dra)
+            {
+#endif
+                evc_bsw_write(bs, g_pic_sign[i], 8);
+#if QC_ADD_DRA_FLAG
+            }
+#endif
+#endif
         }
     }
 
@@ -559,7 +629,247 @@ int evce_eco_sei(EVCE_CTX * ctx, EVC_BSW * bs)
 
     return EVC_OK;
 }
+#if HDR_MD5_CHECK
+static void __imgb_cpy_plane(void *src, void *dst, int bw, int h, int s_src,
+    int s_dst)
+{
+    int i;
+    unsigned char *s, *d;
 
+    s = (unsigned char*)src;
+    d = (unsigned char*)dst;
+
+    for (i = 0; i < h; i++)
+    {
+        memcpy(d, s, bw);
+        s += s_src;
+        d += s_dst;
+    }
+}
+#define IFVCA_CLIP(n,min,max) (((n)>(max))? (max) : (((n)<(min))? (min) : (n)))
+static void imgb_conv_8b_to_16b(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
+    int shift)
+{
+    int i, j, k;
+
+    unsigned char * s;
+    short         * d;
+
+    for (i = 0; i < 3; i++)
+    {
+        s = imgb_src->a[i];
+        d = imgb_dst->a[i];
+
+        for (j = 0; j < imgb_src->h[i]; j++)
+        {
+            for (k = 0; k < imgb_src->w[i]; k++)
+            {
+                d[k] = (short)(s[k] << shift);
+            }
+            s = s + imgb_src->s[i];
+            d = (short*)(((unsigned char *)d) + imgb_dst->s[i]);
+        }
+    }
+}
+
+static void imgb_conv_16b_to_8b(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
+    int shift)
+{
+
+    int i, j, k, t0, add;
+
+    short         * s;
+    unsigned char * d;
+
+    add = 1 << (shift - 1);
+
+    for (i = 0; i < 3; i++)
+    {
+        s = imgb_src->a[i];
+        d = imgb_dst->a[i];
+
+        for (j = 0; j < imgb_src->h[i]; j++)
+        {
+            for (k = 0; k < imgb_src->w[i]; k++)
+            {
+                t0 = ((s[k] + add) >> shift);
+                d[k] = (unsigned char)(IFVCA_CLIP(t0, 0, 255));
+
+            }
+            s = (short*)(((unsigned char *)s) + imgb_src->s[i]);
+            d = d + imgb_dst->s[i];
+        }
+    }
+}
+static void imgb_cpy(EVC_IMGB * dst, EVC_IMGB * src)
+{
+    int i, bd;
+
+    if (src->cs == dst->cs)
+    {
+        if (src->cs == EVC_COLORSPACE_YUV420_10LE) bd = 2;
+        else bd = 1;
+
+        for (i = 0; i < src->np; i++)
+        {
+            __imgb_cpy_plane(src->a[i], dst->a[i], bd*src->w[i], src->h[i],
+                src->s[i], dst->s[i]);
+        }
+    }
+    else if (src->cs == EVC_COLORSPACE_YUV420 &&
+        dst->cs == EVC_COLORSPACE_YUV420_10LE)
+    {
+        imgb_conv_8b_to_16b(dst, src, 2);
+    }
+    else if (src->cs == EVC_COLORSPACE_YUV420_10LE &&
+        dst->cs == EVC_COLORSPACE_YUV420)
+    {
+        imgb_conv_16b_to_8b(dst, src, 2);
+    }
+    else
+    {
+        printf("ERROR: unsupported image copy\n");
+        return;
+    }
+    for (i = 0; i < 4; i++)
+    {
+        dst->ts[i] = src->ts[i];
+    }
+}
+static void imgb_free1(EVC_IMGB * imgb)
+{
+    int i;
+    for (i = 0; i < EVC_IMGB_MAX_PLANE; i++)
+    {
+        if (imgb->baddr[i]) free(imgb->baddr[i]);
+    }
+    free(imgb);
+}
+
+EVC_IMGB * imgb_alloc1(int w, int h, int cs)
+{
+    int i;
+    EVC_IMGB * imgb;
+
+    imgb = (EVC_IMGB *)malloc(sizeof(EVC_IMGB));
+    if (imgb == NULL)
+    {
+        printf("cannot create image buffer\n");
+        return NULL;
+    }
+    memset(imgb, 0, sizeof(EVC_IMGB));
+
+    if (cs == EVC_COLORSPACE_YUV420)
+    {
+        for (i = 0; i < 3; i++)
+        {
+            imgb->w[i] = imgb->aw[i] = imgb->s[i] = w;
+            imgb->h[i] = imgb->ah[i] = imgb->e[i] = h;
+            imgb->bsize[i] = imgb->s[i] * imgb->e[i];
+
+            imgb->a[i] = imgb->baddr[i] = malloc(imgb->bsize[i]);
+            if (imgb->a[i] == NULL)
+            {
+                printf("cannot allocate picture buffer\n");
+                return NULL;
+            }
+
+            if (i == 0)
+            {
+                w = (w + 1) >> 1; h = (h + 1) >> 1;
+            }
+        }
+        imgb->np = 3;
+    }
+    else if (cs == EVC_COLORSPACE_YUV420_10LE)
+    {
+        for (i = 0; i < 3; i++)
+        {
+            imgb->w[i] = imgb->aw[i] = w;
+            imgb->s[i] = w * sizeof(short);
+            imgb->h[i] = imgb->ah[i] = imgb->e[i] = h;
+            imgb->bsize[i] = imgb->s[i] * imgb->e[i];
+
+            imgb->a[i] = imgb->baddr[i] = malloc(imgb->bsize[i]);
+            if (imgb->a[i] == NULL)
+            {
+                printf("cannot allocate picture buffer\n");
+                return NULL;
+            }
+
+            if (i == 0)
+            {
+                w = (w + 1) >> 1; h = (h + 1) >> 1;
+            }
+        }
+        imgb->np = 3;
+    }
+#if ETM_HDR_METRIC
+    else if (cs == EVC_COLORSPACE_YUV444_10LE)
+    {
+        for (i = 0; i < 3; i++)
+        {
+            imgb->w[i] = imgb->aw[i] = w;
+            imgb->s[i] = w * sizeof(float);
+            imgb->h[i] = imgb->ah[i] = imgb->e[i] = h;
+            imgb->bsize[i] = imgb->s[i] * imgb->e[i];
+
+            imgb->a[i] = imgb->baddr[i] = malloc(imgb->bsize[i]);
+            if (imgb->a[i] == NULL)
+            {
+                printf("cannot allocate picture buffer\n");
+                return NULL;
+            }
+        }
+        imgb->np = 3;
+    }
+#endif
+    else
+    {
+        printf("unsupported color space\n");
+        if (imgb)free(imgb);
+        return NULL;
+    }
+
+    imgb->cs = cs;
+    return imgb;
+}
+int evce_eco_udata_hdr(EVCE_CTX * ctx, EVC_BSW * bs)
+{
+    int ret;
+    EVC_IMGB *imgb_hdr_md5 = NULL;
+    WCGDDRAControl* control_rda_md5 = malloc(sizeof(WCGDDRAControl));
+    memcpy(&(control_rda_md5->m_lumaInvScaleLUT[0]), g_lumaInvScaleLUT, DRA_LUT_MAXSIZE * sizeof(int));
+    memcpy(&(control_rda_md5->m_chromaInvScaleLUT[0][0]), g_chromaInvScaleLUT, 2 * DRA_LUT_MAXSIZE * sizeof(double));
+    memcpy(&(control_rda_md5->m_intChromaInvScaleLUT[0][0]), g_intChromaInvScaleLUT, 2 * DRA_LUT_MAXSIZE * sizeof(int));
+    //    control_rda_md5->m_chromaInvScaleLUT[0][0] = 
+    imgb_hdr_md5 = imgb_alloc1(PIC_CURR(ctx)->imgb->w[0], PIC_CURR(ctx)->imgb->h[0],
+        EVC_COLORSPACE_YUV420_10LE);
+    //    if (EVC_OK != evce_get_inbuf(ctx->id, &imgb_hdr_md5))
+    {
+        //        printf("Cannot initialize buffer for HDR MD5 computation\n");
+        //        return -1;
+    }
+    imgb_cpy(imgb_hdr_md5, PIC_CURR(ctx)->imgb);  // store copy of the reconstructed picture in DPB
+    evc_apply_dra_chroma_plane(imgb_hdr_md5, imgb_hdr_md5, control_rda_md5, 1, TRUE/*backwardMapping == false*/);
+    evc_apply_dra_chroma_plane(imgb_hdr_md5, imgb_hdr_md5, control_rda_md5, 2, TRUE /*backwardMapping == false*/);
+    evc_apply_dra_luma_plane(imgb_hdr_md5, imgb_hdr_md5, control_rda_md5, 0, TRUE /*backwardMapping == false*/);
+    /* should be aligned before adding user data */
+    evc_assert_rv(EVC_BSW_IS_BYTE_ALIGN(bs), EVC_ERR_UNKNOWN);
+
+    /* picture signature */
+    if (ctx->param.use_pic_sign)
+    {
+        /* get picture signature */
+        ret = evc_md5_imgb(imgb_hdr_md5, g_pic_sign);
+        //        ret = evc_picbuf_signature(PIC_CURR(ctx), pic_sign);
+        evc_assert_rv(ret == EVC_OK, ret);
+    }
+    //    imgb_hdr_md5->release(imgb_hdr_md5);
+    imgb_free1(imgb_hdr_md5);
+    return EVC_OK;
+}
+#endif
 static void evc_bsw_write_est(EVCE_SBAC *sbac, u32 byte, int len)
 {
     sbac->bitcounter += len;

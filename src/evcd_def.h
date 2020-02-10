@@ -332,6 +332,9 @@ struct _EVCD_CTX
 #if M50761_CHROMA_NOT_SPLIT
     TREE_CONS               tree_cons;
 #endif
+#if QC_DRA
+    void * p_draParams;
+#endif
 };
 
 /* prototypes of internal functions */

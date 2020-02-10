@@ -2641,7 +2641,12 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
     {
         sps->tool_ats = evc_bsr_read1(bs);
     }
-
+#if QC_ADD_ADDB_FLAG
+    sps->tool_addb = evc_bsr_read1(bs);
+#endif
+#if QC_ADD_DRA_FLAG
+    sps->tool_dra = evc_bsr_read1(bs);
+#endif
     sps->tool_alf = evc_bsr_read1(bs);
     sps->tool_htdf = evc_bsr_read1(bs);
 #else
@@ -2649,6 +2654,9 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
     sps->tool_mmvd = evc_bsr_read1(bs);
     sps->tool_affine = evc_bsr_read1(bs);
     sps->tool_dmvr = evc_bsr_read1(bs);
+#if QC_ADD_ADDB_FLAG
+    sps->tool_addb = evc_bsr_read1(bs);
+#endif
     sps->tool_alf = evc_bsr_read1(bs);
     sps->tool_admvp = evc_bsr_read1(bs);
     sps->tool_eipd = evc_bsr_read1(bs);
@@ -2734,7 +2742,53 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
         }
     }
 #endif
+#if QC_DRA
+    WCGDDRAControl * p_dra_param_complete = (WCGDDRAControl*)sps->p_signalledDRAParams;
+    SignalledParamsDRA* p_dra_param = &(p_dra_param_complete->m_signalledDRA);
+    u32 value;
+#if QC_ADD_DRA_FLAG
+    p_dra_param->m_signal_dra_flag = sps->tool_dra;
+#else
+    p_dra_param->m_signal_dra_flag = evc_bsr_read1(bs);
+#endif
+    if (p_dra_param->m_signal_dra_flag == 1)
+    {
+        p_dra_param->m_numFracBitsScale = evc_bsr_read(bs, 4);
+        p_dra_param->m_numIntBitsScale = evc_bsr_read(bs, 4);
+        p_dra_param->m_numRanges = evc_bsr_read_ue(bs);
+        p_dra_param->m_equalRangesFlag = evc_bsr_read1(bs);
+        p_dra_param->m_inRanges[0] = evc_bsr_read(bs, QC_IN_RANGE_NUM_BITS);
+        if (p_dra_param->m_equalRangesFlag == TRUE)
+        {
+            p_dra_param->m_deltaVal = evc_bsr_read_se(bs);
+            for (int i = 1; i <= p_dra_param->m_numRanges; i++)
+            {
+                p_dra_param->m_inRanges[i] = p_dra_param->m_deltaVal + p_dra_param->m_inRanges[i - 1];
+            }
+        }
+        else
+        {
 
+            for (int i = 1; i <= p_dra_param->m_numRanges; i++)
+            {
+                value = evc_bsr_read(bs, QC_IN_RANGE_NUM_BITS);
+                p_dra_param->m_inRanges[i] = value + p_dra_param->m_inRanges[i - 1];
+            }
+        }
+        int numBits = p_dra_param->m_numFracBitsScale + p_dra_param->m_numIntBitsScale;
+
+        for (int i = 0; i < p_dra_param->m_numRanges; i++)
+        {
+            value = evc_bsr_read(bs, numBits);
+            p_dra_param->m_intDraScales[i] = value;
+        }
+        value = evc_bsr_read(bs, numBits);
+        p_dra_param->m_intScaleCbDRA = value;
+        value = evc_bsr_read(bs, numBits);
+        p_dra_param->m_intScaleCrDRA = value;
+        p_dra_param->m_baseLumaQP = evc_bsr_read_se(bs);
+    }
+#endif
     sps->vui_parameters_present_flag = evc_bsr_read1(bs);
     if (sps->vui_parameters_present_flag)
         evcd_eco_vui(bs); //To be implemented
@@ -3275,8 +3329,9 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
             }
         }
     }
-
+#if !QC_ADD_ADDB_FLAG
     sh->deblocking_filter_on = evc_bsr_read1(bs);
+#endif
     sh->sh_deblock_alpha_offset = evc_bsr_read_se(bs);
     sh->sh_deblock_beta_offset = evc_bsr_read_se(bs);
     sh->qp = evc_bsr_read(bs, 6);
@@ -3317,6 +3372,16 @@ int evcd_eco_sei(EVCD_CTX * ctx, EVC_BSR * bs)
         for (i = 0; i < payload_size; i++)
         {
             ctx->pic_sign[i] = evc_bsr_read(bs, 8);
+#if HDR_MD5_CHECK
+#if QC_ADD_DRA_FLAG
+            if (ctx->sps.tool_dra)
+            {
+#endif
+                g_pic_sign_dec_sig[i] = evc_bsr_read(bs, 8);
+#if QC_ADD_DRA_FLAG
+            }
+#endif
+#endif
         }
         ctx->pic_sign_exist = 1;
         break;

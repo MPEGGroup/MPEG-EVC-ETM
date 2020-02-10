@@ -56,6 +56,9 @@ int evce_eco_aps(EVC_BSW * bs, EVC_APS * aps);
 int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut);
 int evce_eco_signature(EVCE_CTX * ctx, EVC_BSW * bs);
 int evce_eco_sei(EVCE_CTX * ctx, EVC_BSW * bs);
+#if HDR_MD5_CHECK
+int evce_eco_udata_hdr(EVCE_CTX * ctx, EVC_BSW * bs);
+#endif
 int evce_eco_pred_mode(EVC_BSW * bs, u8 pred_mode, int ctx);
 int evce_eco_ibc(EVC_BSW * bs, u8 pred_mode_ibc_flag, int ctx);
 int evce_eco_mvd(EVC_BSW * bs, s16 mvd[MV_D]);

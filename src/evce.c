@@ -241,7 +241,9 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
     param->fps            = cdsc->fps;
     param->i_period       = cdsc->iperiod;
     param->f_ifrm         = 0;
+#if    !QC_ADD_ADDB_FLAG
     param->use_deblock    = 1;  
+#endif
     param->deblock_alpha_offset = cdsc->deblock_aplha_offset;
     param->deblock_beta_offset = cdsc->deblock_beta_offset;
     param->qp_max         = MAX_QUANT;
@@ -377,6 +379,12 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->tool_mmvd = ctx->cdsc.tool_mmvd;
     sps->tool_affine = ctx->cdsc.tool_affine;
     sps->tool_dmvr = ctx->cdsc.tool_dmvr;
+#if QC_ADD_ADDB_FLAG
+    sps->tool_addb = ctx->cdsc.tool_addb;
+#endif
+#if QC_ADD_DRA_FLAG
+    sps->tool_dra = ctx->cdsc.tool_dra;
+#endif
     sps->tool_alf = ctx->cdsc.tool_alf;
     sps->tool_htdf = ctx->cdsc.tool_htdf;
     sps->tool_admvp = ctx->cdsc.tool_admvp;
@@ -436,6 +444,9 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     {
         evce_copy_chroma_qp_mapping_params(&(sps->chroma_qp_table_struct), &(ctx->cdsc.chroma_qp_table_struct));
     }
+#endif
+#if QC_DRA
+    sps->p_signalledDRAParams = ctx->p_signalledDRAParams;
 #endif
 }
 
@@ -793,7 +804,9 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
 
     sh->slice_type = ctx->slice_type;
     sh->no_output_of_prior_pics_flag = 0;
+#if !QC_ADD_ADDB_FLAG
     sh->deblocking_filter_on = (ctx->param.use_deblock) ? 1 : 0;
+#endif
     sh->sh_deblock_alpha_offset = ctx->param.deblock_alpha_offset;
     sh->sh_deblock_beta_offset = ctx->param.deblock_beta_offset;
     sh->single_tile_in_slice_flag = 1;
@@ -2645,7 +2658,12 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     }
 #endif
     /* deblocking filter */
+#if QC_ADD_ADDB_FLAG
+    sh->deblocking_filter_on = ctx->sps.tool_addb;
+    if (sh->deblocking_filter_on)
+#else
     if(ctx->param.use_deblock)
+#endif
     {
 #if EVC_TILE_SUPPORT
         for (int i = sh->first_tile_id; i <= sh->last_tile_id; i++)
@@ -2666,7 +2684,17 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         ret = ctx->fn_alf(ctx, PIC_MODE(ctx), sh, aps);
         evc_assert_rv(ret == EVC_OK, ret);
     }
-
+#if HDR_MD5_CHECK
+#if QC_ADD_DRA_FLAG
+    if (ctx->sps.tool_dra)
+    {
+#endif
+        ret = evce_eco_udata_hdr(ctx, bs);
+        evc_assert_rv(ret == EVC_OK, ret);
+#if QC_ADD_DRA_FLAG
+    }
+#endif
+#endif
     /* Bit-stream re-writing (START) */
     evc_bsw_init(&ctx->bs, (u8*)bitb->addr, bitb->bsize, NULL);
 #if TRACE_START_POC
@@ -3076,14 +3104,19 @@ void evce_delete(EVCE id)
 
     evc_scan_tbl_delete();
 }
-
+#if QC_DRA
+int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat, void *p_signalledDRA)
+#else
 int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
+#endif
 {
     EVCE_CTX * ctx;
 
     EVCE_ID_TO_CTX_RV(id, ctx, EVC_ERR_INVALID_ARGUMENT);
     evc_assert_rv(ctx->fn_enc_header, EVC_ERR_UNEXPECTED);
-
+#if QC_DRA
+    ctx->p_signalledDRAParams = p_signalledDRA;
+#endif
     /* update BSB */
     bitb->err = 0;
 
@@ -3302,11 +3335,13 @@ int evce_config(EVCE id, int cfg, void * buf, int * size)
             evc_assert_rv(t0 <= MAX_QUANT, EVC_ERR_INVALID_ARGUMENT);
             ctx->param.qp_max = t0;
             break;
+#if    !QC_ADD_ADDB_FLAG
         case EVCE_CFG_SET_USE_DEBLOCK:
             evc_assert_rv(*size == sizeof(int), EVC_ERR_INVALID_ARGUMENT);
             t0 = *((int *)buf);
             ctx->param.use_deblock = t0;
             break;
+#endif
         case EVCE_CFG_SET_DEBLOCK_A_OFFSET:
             evc_assert_rv(*size == sizeof(int), EVC_ERR_INVALID_ARGUMENT);
             t0 = *((int *)buf);
@@ -3348,10 +3383,12 @@ int evce_config(EVCE id, int cfg, void * buf, int * size)
             *((EVC_IMGB **)buf) = imgb;
             imgb->addref(imgb);
             break;
+#if    !QC_ADD_ADDB_FLAG
         case EVCE_CFG_GET_USE_DEBLOCK:
             evc_assert_rv(*size == sizeof(int), EVC_ERR_INVALID_ARGUMENT);
             *((int *)buf) = ctx->param.use_deblock;
             break;
+#endif
         case EVCE_CFG_GET_CLOSED_GOP:
             evc_assert_rv(*size == sizeof(int), EVC_ERR_INVALID_ARGUMENT);
             *((int *)buf) = ctx->param.use_closed_gop;

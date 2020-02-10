@@ -1266,6 +1266,17 @@ static void deblock_scu_avc_line_luma(pel *buf, int stride, u8 bs, u8 alpha, u8 
 #endif
             }
         }
+#if DBF_CLIP_FIX
+        int pel_max = (1 << BIT_DEPTH) - 1;
+        p_out[0] = EVC_CLIP3(0, pel_max, p_out[0]);
+        q_out[0] = EVC_CLIP3(0, pel_max, q_out[0]);
+        p_out[1] = EVC_CLIP3(0, pel_max, p_out[1]);
+        q_out[1] = EVC_CLIP3(0, pel_max, q_out[1]);
+        p_out[2] = EVC_CLIP3(0, pel_max, p_out[2]);
+        q_out[2] = EVC_CLIP3(0, pel_max, q_out[2]);
+        p_out[3] = EVC_CLIP3(0, pel_max, p_out[3]);
+        q_out[3] = EVC_CLIP3(0, pel_max, q_out[3]);
+#endif
         deblock_avc_set_pq(buf, stride, p_out, q_out, DBF_LENGTH);
     }
 #if TRACE_DBF
@@ -1334,6 +1345,13 @@ static void deblock_scu_avc_line_chroma(pel *buf, int stride, u8 bs, u8 alpha, u
             EVC_TRACE_INT(delta0);
 #endif
         }
+#if DBF_CLIP_FIX
+        int pel_max = (1 << BIT_DEPTH) - 1;
+        p_out[0] = EVC_CLIP3(0, pel_max, p_out[0]);
+        q_out[0] = EVC_CLIP3(0, pel_max, q_out[0]);
+        p_out[1] = EVC_CLIP3(0, pel_max, p_out[1]);
+        q_out[1] = EVC_CLIP3(0, pel_max, q_out[1]);
+#endif
         deblock_avc_set_pq(buf, stride, p_out, q_out, DBF_LENGTH_CHROMA);
     }
 #if TRACE_DBF

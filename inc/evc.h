@@ -35,13 +35,31 @@
 #ifndef _EVC_H_
 #define _EVC_H_
 
-#define M52166_PARTITION 1
+#define QC_DRA 1
+#define QC_ADD_DRA_FLAG                    1
+#define QC_ADD_ADDB_FLAG                0
+#define M52166_PARTITION                1
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-       
+      
+#if QC_DRA
+#define QC_SCALE_NUMFBITS     9   // # frac. bits for scale (Y/Cb/Cr)
+#define QC_INVSCALE_NUMFBITS  9   // # frac. bits for inv. scale (Y/Cb/Cr)
+#define QC_OFFSET_NUMFBITS    7   // # frac. bits for offset (Y/Cb/Cr)
+#define QC_IN_RANGE_NUM_BITS     10  // # bits of input
+#define DRA_LUT_MAXSIZE 1024
+
+#if QC_DRA_LUT_SUBSAMPLE_TWO
+#define NUM_CHROMA_QP_OFFSET_LOG              65
+#else
+#define NUM_CHROMA_QP_OFFSET_LOG              130
+#endif
+#define NUM_CHROMA_QP_SCALE_EXP               25
+#endif
+
 #define CHROMA_QP_TABLE_SUPPORT_M50663  1
 #if CHROMA_QP_TABLE_SUPPORT_M50663 
 #define MAX_QP_TABLE_SIZE               58   
@@ -174,7 +192,9 @@ extern "C"
 #define EVCE_CFG_GET_FPS                (605)
 #define EVCE_CFG_GET_I_PERIOD           (608)
 #define EVCE_CFG_GET_BU_SIZE            (609)
+#if !QC_ADD_ADDB_FLAG
 #define EVCE_CFG_GET_USE_DEBLOCK        (610)
+#endif
 #define EVCE_CFG_GET_CLOSED_GOP         (611)
 #define EVCE_CFG_GET_HIERARCHICAL_GOP   (612)
 #define EVCE_CFG_GET_DEBLOCK_A_OFFSET   (613)
@@ -462,6 +482,9 @@ typedef struct _EVCE_CDSC
     int            tool_mmvd;
     int            tool_affine;
     int            tool_dmvr;
+#if QC_ADD_ADDB_FLAG
+    int            tool_addb;
+#endif
     int            tool_alf;
     int            tool_htdf;
     int            tool_admvp;
@@ -493,6 +516,13 @@ typedef struct _EVCE_CDSC
 #endif
 #if CHROMA_QP_TABLE_SUPPORT_M50663
     EVC_CHROMA_TABLE chroma_qp_table_struct;
+#endif
+
+#if QC_DRA
+    void * m_DRAMappingApp; 
+#if QC_ADD_DRA_FLAG
+    int tool_dra;
+#endif
 #endif
     EVC_RPL rpls_l0[MAX_NUM_RPLS];
     EVC_RPL rpls_l1[MAX_NUM_RPLS];
@@ -537,7 +567,11 @@ typedef void  * EVCD;
 
 EVCD evcd_create(EVCD_CDSC * cdsc, int * err);
 void evcd_delete(EVCD id);
+#if QC_DRA
+int evcd_decode(EVCD id, EVC_BITB * bitb, EVCD_STAT * stat, void * p_draParams);
+#else
 int evcd_decode(EVCD id, EVC_BITB * bitb, EVCD_STAT * stat);
+#endif
 int evcd_pull(EVCD id, EVC_IMGB ** img);
 int evcd_config(EVCD id, int cfg, void * buf, int * size);
 
@@ -551,7 +585,11 @@ EVCE evce_create(EVCE_CDSC * cdsc, int * err);
 void evce_delete(EVCE id);
 int evce_push(EVCE id, EVC_IMGB * imgb);
 int evce_encode(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat);
+#if QC_DRA
+int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat, void *p_signalledDRA);
+#else
 int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat);
+#endif
 int evce_encode_pps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat);
 int evce_get_inbuf(EVCE id, EVC_IMGB ** imgb);
 int evce_config(EVCE id, int cfg, void * buf, int * size);

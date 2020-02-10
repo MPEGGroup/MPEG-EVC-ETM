@@ -85,7 +85,11 @@
 #define ME_LEV_QPEL              3
 
 /* maximum inbuf count */
+#if QC_DRA
+#define EVCE_MAX_INBUF_CNT      34
+#else
 #define EVCE_MAX_INBUF_CNT      33
+#endif
 
 /* maximum cost value */
 #define MAX_COST                (1.7e+308)
@@ -446,10 +450,14 @@ typedef struct _EVCE_PARAM
        - 0: Disable deblocking filter
        - 1: Enable deblocking filter
     */
+#if    !QC_ADD_ADDB_FLAG
     int                 use_deblock;
+#endif
     int                 deblock_alpha_offset;
     int                 deblock_beta_offset;
+#if    !QC_ADD_ADDB_FLAG
     int                 use_alf;
+#endif
     /* I-frame period */
     int                 i_period;
     /* force I-frame */
@@ -993,6 +1001,9 @@ struct _EVCE_CTX
     void                  * pf;
 #if M50761_CHROMA_NOT_SPLIT
     TREE_CONS            tree_cons;                //!< Tree status
+#endif
+#if QC_DRA
+    void* p_signalledDRAParams;
 #endif
 };
 

@@ -37,6 +37,7 @@ CXXSRCS = $(DIR_SRC)/EncAdaptiveLoopFilter.cpp \
           $(DIR_SRC)/evce_ibc_hashmap.cpp \
 	  
 CSRCS = $(DIR_SRC)/evc_alf.c \
+		$(DIR_SRC)/evc_dra.c \
 		$(DIR_SRC)/evc.c \
 		$(DIR_SRC)/evc_img.c \
 		$(DIR_SRC)/evc_ipred.c \

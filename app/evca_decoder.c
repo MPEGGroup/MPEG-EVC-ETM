@@ -36,6 +36,7 @@
 #include "../src/evc_def.h"
 #include "evca_util.h"
 #include "evca_args.h"
+#include "../src/evc_dra.h"
 
 #define VERBOSE_NONE               VERBOSE_0
 #define VERBOSE_FRAME              VERBOSE_1
@@ -299,6 +300,14 @@ int main(int argc, const char **argv)
     int                w, h;
     FILE             * fp_bs = NULL;
 
+#if QC_DRA
+    EVC_IMGB          *imgb_dra = NULL;
+    WCGDDRAControl g_dra_control;
+    WCGDDRAControl *p_g_dra_control = &g_dra_control;
+    p_g_dra_control->m_chromaQPModel.m_draChromaCbQpOffset = 0;
+    p_g_dra_control->m_chromaQPModel.m_draChromaCrQpOffset = 0;
+#endif
+
 #if DECODING_TIME_TEST
     clk_beg = evc_clk_get();
 #endif
@@ -386,7 +395,11 @@ int main(int argc, const char **argv)
             clk_beg = evc_clk_get();
 #endif
             /* main decoding block */
+#if QC_DRA
+            ret = evcd_decode(id, &bitb, &stat, (void*)(p_g_dra_control));
+#else
             ret = evcd_decode(id, &bitb, &stat);
+#endif
 
             if(EVC_FAILED(ret))
             {
@@ -442,7 +455,41 @@ int main(int argc, const char **argv)
                         return -1;
                     }
                 }
+#if QC_DRA
+#if QC_ADD_DRA_FLAG
+                if (p_g_dra_control->m_signalledDRA.m_signal_dra_flag)
+                {
+#endif
+                    evcd_initDRA(p_g_dra_control);
+#if QC_ADD_DRA_FLAG
+                }
+                if (p_g_dra_control->m_signalledDRA.m_signal_dra_flag)
+                {
+#else
+                    if (1)
+                    {
+#endif
+                    int align[EVC_IMGB_MAX_PLANE] = { MIN_CU_SIZE, MIN_CU_SIZE >> 1, MIN_CU_SIZE >> 1 };
+                    int pad[EVC_IMGB_MAX_PLANE] = { 0, 0, 0, };
+                    imgb_dra = evc_imgb_create(w, h, EVC_COLORSPACE_YUV420_10LE, 0, pad, align);
+                    if (imgb_dra == NULL)
+                    {
+                        v0print("Cannot get original image buffer (DRA)\n");
+                        return -1;
+                    }
+                    imgb_cpy(imgb_dra, imgb);
+                    evc_apply_dra_chroma_plane(imgb, imgb, p_g_dra_control, 1, TRUE);
+                    evc_apply_dra_chroma_plane(imgb, imgb, p_g_dra_control, 2, TRUE);
+                    evc_apply_dra_luma_plane(imgb, imgb, p_g_dra_control, 0, TRUE);
+                    write_dec_img(id, op_fname_out, imgb, imgb_t);
+                    imgb_cpy(imgb, imgb_dra);
+                    imgb_dra->release(imgb_dra);
+                }
+                else
+                    write_dec_img(id, op_fname_out, imgb, imgb_t);
+#else
                 write_dec_img(id, op_fname_out, imgb, imgb_t);
+#endif
             }
             imgb->release(imgb);
             pic_cnt++;
