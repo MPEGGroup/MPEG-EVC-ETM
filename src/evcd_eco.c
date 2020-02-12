@@ -3329,9 +3329,7 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
             }
         }
     }
-#if !QC_ADD_ADDB_FLAG
     sh->deblocking_filter_on = evc_bsr_read1(bs);
-#endif
     sh->sh_deblock_alpha_offset = evc_bsr_read_se(bs);
     sh->sh_deblock_beta_offset = evc_bsr_read_se(bs);
     sh->qp = evc_bsr_read(bs, 6);

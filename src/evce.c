@@ -241,9 +241,7 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
     param->fps            = cdsc->fps;
     param->i_period       = cdsc->iperiod;
     param->f_ifrm         = 0;
-#if    !QC_ADD_ADDB_FLAG
     param->use_deblock    = 1;  
-#endif
     param->deblock_alpha_offset = cdsc->deblock_aplha_offset;
     param->deblock_beta_offset = cdsc->deblock_beta_offset;
     param->qp_max         = MAX_QUANT;
@@ -804,9 +802,7 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
 
     sh->slice_type = ctx->slice_type;
     sh->no_output_of_prior_pics_flag = 0;
-#if !QC_ADD_ADDB_FLAG
     sh->deblocking_filter_on = (ctx->param.use_deblock) ? 1 : 0;
-#endif
     sh->sh_deblock_alpha_offset = ctx->param.deblock_alpha_offset;
     sh->sh_deblock_beta_offset = ctx->param.deblock_beta_offset;
     sh->single_tile_in_slice_flag = 1;
@@ -1584,6 +1580,9 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
 #endif
+#if QC_ADD_ADDB_FLAG
+					, ctx->sps.tool_addb
+#endif
                 );
                 evc_deblock_cu_hor(pic, x, y + MAX_TR_SIZE, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, 
 #if M50761_DMVR_SIMP_DEBLOCK
@@ -1597,6 +1596,9 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
+#endif
+#if QC_ADD_ADDB_FLAG
+					, ctx->sps.tool_addb
 #endif
                 );
             }
@@ -1614,6 +1616,9 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
+#endif
+#if QC_ADD_ADDB_FLAG
+					, ctx->sps.tool_addb
 #endif
                 );
             }
@@ -1639,6 +1644,9 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
 #endif
+#if QC_ADD_ADDB_FLAG
+					, ctx->sps.tool_addb
+#endif
                 );
                 evc_deblock_cu_ver(pic, x + MAX_TR_SIZE, y, cuw >> 1, cuh, ctx->map_scu, ctx->map_refi,
 #if M50761_DMVR_SIMP_DEBLOCK
@@ -1656,6 +1664,9 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
+#endif
+#if QC_ADD_ADDB_FLAG
+					, ctx->sps.tool_addb
 #endif
                 );
             }
@@ -1677,6 +1688,9 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
+#endif
+#if QC_ADD_ADDB_FLAG
+					, ctx->sps.tool_addb
 #endif
                 );
             }
@@ -2658,12 +2672,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     }
 #endif
     /* deblocking filter */
-#if QC_ADD_ADDB_FLAG
-    sh->deblocking_filter_on = ctx->sps.tool_addb;
-    if (sh->deblocking_filter_on)
-#else
     if(ctx->param.use_deblock)
-#endif
     {
 #if EVC_TILE_SUPPORT
         for (int i = sh->first_tile_id; i <= sh->last_tile_id; i++)
@@ -3335,13 +3344,11 @@ int evce_config(EVCE id, int cfg, void * buf, int * size)
             evc_assert_rv(t0 <= MAX_QUANT, EVC_ERR_INVALID_ARGUMENT);
             ctx->param.qp_max = t0;
             break;
-#if    !QC_ADD_ADDB_FLAG
         case EVCE_CFG_SET_USE_DEBLOCK:
             evc_assert_rv(*size == sizeof(int), EVC_ERR_INVALID_ARGUMENT);
             t0 = *((int *)buf);
             ctx->param.use_deblock = t0;
             break;
-#endif
         case EVCE_CFG_SET_DEBLOCK_A_OFFSET:
             evc_assert_rv(*size == sizeof(int), EVC_ERR_INVALID_ARGUMENT);
             t0 = *((int *)buf);
@@ -3383,12 +3390,10 @@ int evce_config(EVCE id, int cfg, void * buf, int * size)
             *((EVC_IMGB **)buf) = imgb;
             imgb->addref(imgb);
             break;
-#if    !QC_ADD_ADDB_FLAG
         case EVCE_CFG_GET_USE_DEBLOCK:
             evc_assert_rv(*size == sizeof(int), EVC_ERR_INVALID_ARGUMENT);
             *((int *)buf) = ctx->param.use_deblock;
             break;
-#endif
         case EVCE_CFG_GET_CLOSED_GOP:
             evc_assert_rv(*size == sizeof(int), EVC_ERR_INVALID_ARGUMENT);
             *((int *)buf) = ctx->param.use_closed_gop;

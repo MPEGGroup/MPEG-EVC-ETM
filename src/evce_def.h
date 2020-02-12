@@ -450,9 +450,7 @@ typedef struct _EVCE_PARAM
        - 0: Disable deblocking filter
        - 1: Enable deblocking filter
     */
-#if    !QC_ADD_ADDB_FLAG
     int                 use_deblock;
-#endif
     int                 deblock_alpha_offset;
     int                 deblock_beta_offset;
 #if    !QC_ADD_ADDB_FLAG

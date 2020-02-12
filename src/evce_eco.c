@@ -557,9 +557,7 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
             }
         }
     }
-#if !QC_ADD_ADDB_FLAG
     evc_bsw_write1(bs, sh->deblocking_filter_on);
-#endif
     evc_bsw_write_se(bs, sh->sh_deblock_alpha_offset);
     evc_bsw_write_se(bs, sh->sh_deblock_beta_offset);
     evc_bsw_write(bs, sh->qp, 6);

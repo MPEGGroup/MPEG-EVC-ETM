@@ -37,7 +37,7 @@
 #include "evc.h"
 #include "evc_port.h"
 
-#define QC_ADD_ADDB_FLAG                       0         // Operational but, some minor clean up needed, currently slice level signaling is disabled by mistake
+#define QC_ADD_ADDB_FLAG                       1         // Operational but, some minor clean up needed, currently slice level signaling is disabled by mistake
 #define QC_ADD_DRA_FLAG                        1
 #define QC_DRA                                 1
 
@@ -49,6 +49,7 @@
 
 #define ETM_HDR_METRIC                                 1
 #if ETM_HDR_METRIC
+#define ETM_HDR_REPORT_METRIC_FLAG					 1
 #define NB_REF_WHITE                                 3
 #define DEG275                                         4.7996554429844
 #define DEG30                                         0.523598775598299

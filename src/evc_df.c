@@ -2140,8 +2140,36 @@ void evc_deblock_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
 #if EVC_TILE_SUPPORT
     , u8* map_tidx
 #endif
+#if QC_ADD_ADDB_FLAG
+	, int tool_addb
+#endif
 )
 {
+#if QC_ADD_ADDB_FLAG
+	if (tool_addb)
+	{
+		deblock_avc_cu_hor(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu, log2_max_cuwh, refp
+			, ats_inter_mode
+#if M50761_CHROMA_NOT_SPLIT
+			, tree_cons
+#endif
+#if EVC_TILE_SUPPORT
+			, map_tidx
+#endif
+		);
+}
+	else
+	{
+		deblock_h263_cu_hor(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu
+#if M50761_CHROMA_NOT_SPLIT
+			, tree_cons
+#endif
+#if EVC_TILE_SUPPORT
+			, map_tidx
+#endif
+		);
+	}
+#else
 #if DBF == DBF_HEVC
     deblock_hevc_cu_hor(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu
 #if M50761_CHROMA_NOT_SPLIT
@@ -2168,6 +2196,7 @@ void evc_deblock_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
 #endif
     );
 #endif
+#endif
 }
 
 void evc_deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u32 *map_scu, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int log2_max_cuwh
@@ -2182,8 +2211,43 @@ void evc_deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
 #if EVC_TILE_SUPPORT
     , u8* map_tidx
 #endif
+#if QC_ADD_ADDB_FLAG
+	, int tool_addb
+#endif
 )
 {
+#if QC_ADD_ADDB_FLAG
+	if (tool_addb)
+	{
+		deblock_avc_cu_ver(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu, log2_max_cuwh
+#if FIX_PARALLEL_DBF
+			, map_cu
+#endif
+			, refp
+			, ats_inter_mode
+#if M50761_CHROMA_NOT_SPLIT
+			, tree_cons
+#endif
+#if EVC_TILE_SUPPORT
+			, map_tidx
+#endif
+		);
+}
+	else
+	{
+		deblock_h263_cu_ver(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu
+#if FIX_PARALLEL_DBF
+			, map_cu
+#endif
+#if M50761_CHROMA_NOT_SPLIT
+			, tree_cons
+#endif
+#if EVC_TILE_SUPPORT
+			, map_tidx
+#endif
+		);
+	}
+#else
 #if DBF == DBF_HEVC
     deblock_hevc_cu_ver(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu
 #if FIX_PARALLEL_DBF
@@ -2220,6 +2284,6 @@ void evc_deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
 #endif
     );
 #endif
-
+#endif
 }
 

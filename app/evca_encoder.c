@@ -175,7 +175,9 @@ static char op_dra_chroma_cb_scale[256] = "1.0";
 static char op_dra_chroma_cr_scale[256] = "1.0";
 static char op_dra_hist_norm[256] = "1.0";
 #endif
-
+#if ETM_HDR_REPORT_METRIC_FLAG
+static int  op_hdr_metric_report = 0;
+#endif
 static char  op_rpl0[MAX_NUM_RPLS][256];
 static char  op_rpl1[MAX_NUM_RPLS][256];
 
@@ -259,6 +261,9 @@ typedef enum _OP_FLAGS
     OP_TOOL_ATS,
     OP_CONSTRAINED_INTRA_PRED,
     OP_TOOL_DBFOFFSET,
+#if ETM_HDR_REPORT_METRIC_FLAG
+	OP_HDR_METRIC_REPORT,
+#endif
 #if EVC_TILE_SUPPORT
     OP_TILE_UNIFORM_SPACING,
     OP_NUM_TILE_COLUMNS_MINUS1,
@@ -708,6 +713,13 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_TOOL_DBFOFFSET], &op_deblock_beta_offset,
         "AVC Deblocking filter offset for beta"
     },
+#if ETM_HDR_REPORT_METRIC_FLAG
+	{
+		EVC_ARGS_NO_KEY,  "hdr_metric", EVC_ARGS_VAL_TYPE_INTEGER,
+		&op_flag[OP_HDR_METRIC_REPORT], &op_hdr_metric_report,
+		"hdr matric report on/off flag"
+	},
+#endif
 #if EVC_TILE_SUPPORT
     {
         EVC_ARGS_NO_KEY,  "tile_uniform_spacing", EVC_ARGS_VAL_TYPE_INTEGER,
@@ -1291,6 +1303,9 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->constrained_intra_pred = op_constrained_intra_pred;
     cdsc->deblock_aplha_offset = op_deblock_alpha_offset;
     cdsc->deblock_beta_offset = op_deblock_beta_offset;
+#if ETM_HDR_REPORT_METRIC_FLAG
+	cdsc->tool_hdr_metric = op_hdr_metric_report;
+#endif
 #if QC_ADD_DRA_FLAG
     cdsc->tool_dra = op_dra_enable_flag;
 #endif
@@ -1641,7 +1656,9 @@ static void print_stat_init(void)
     }
     print("---------------------------------------------------------------------------------------\n");
 #if ETM_HDR_METRIC
-    if (1)//(op_flag[OP_DRA_ENABLE_FLAG])
+#if ETM_HDR_REPORT_METRIC_FLAG
+	if (op_hdr_metric_report)
+#endif
     {
         print("POC   Tid   Ftype   QP   PSNR-Y    PSNR-U    PSNR-V    wPSNR-Y   wPSNR-U   wPSNR-V   DeltaE100   PSNRL100   Bits      EncT(ms)  ");
     }
@@ -1683,10 +1700,8 @@ static void print_config(EVCE id)
     print("\tQP                       = %d\n", v);
 
     print("\tframes                   = %d\n", op_max_frm_num);
-#if !QC_ADD_ADDB_FLAG
     evce_config(id, EVCE_CFG_GET_USE_DEBLOCK, (void *)(&v), &s);
     print("\tdeblocking filter        = %s\n", v? "enabled": "disabled");
-#endif
     evce_config(id, EVCE_CFG_GET_CLOSED_GOP, (void *)(&v), &s);
     print("\tGOP type                 = %s\n", v? "closed": "open");
 
@@ -2658,9 +2673,22 @@ void print_psnr(EVCE_STAT * stat, double * psnr, double ms_ssim, int bitrate, EV
         break;
     }
 #if ETM_HDR_METRIC
+#if ETM_HDR_REPORT_METRIC_FLAG
+	if (op_hdr_metric_report)
+	{
+#endif
     v1print("%-7d%-5d(%c)     %-5d%-10.4f%-10.4f%-10.4f%-10.4f%-10.4f%-10.4f%-10.4f %-10.4f %-10d%-10d%-12.7f", \
         stat->poc, stat->tid, stype, stat->qp, psnr[0], psnr[1], psnr[2], wpsnr[0], wpsnr[1], wpsnr[2], deltaE[0], psnrL[0], \
         bitrate, evc_clk_msec(clk_end), ms_ssim);
+#if ETM_HDR_REPORT_METRIC_FLAG
+	}
+	else
+	{
+		v1print("%-7d%-5d(%c)     %-5d%-10.4f%-10.4f%-10.4f%-10d%-10d%-12.7f", \
+			stat->poc, stat->tid, stype, stat->qp, psnr[0], psnr[1], psnr[2], \
+			bitrate, evc_clk_msec(clk_end), ms_ssim);
+	}
+#endif
 #else
     v1print("%-7d%-5d(%c)     %-5d%-10.4f%-10.4f%-10.4f%-10d%-10d%-12.7f", \
         stat->poc, stat->tid, stype, stat->qp, psnr[0], psnr[1], psnr[2], \
@@ -3054,16 +3082,23 @@ int main(int argc, const char **argv)
                 return -1;
             }
 #if ETM_HDR_METRIC
-            if (cal_wpsnr(ilist_org, ilist_t->imgb, ilist_t->ts, wpsnr))
-            {
-                v0print("cannot calculate wPSNR\n");
-                return -1;
-            }
-            if (cal_hdr_metric(ilist_org, ilist_t->imgb, ilist_t->ts, deltaE, psnrL))
-            {
-                v0print("cannot calculate DeltaE100 or PSNRL100\n");
-                return -1;
-            }
+#if ETM_HDR_REPORT_METRIC_FLAG
+			if (op_hdr_metric_report)
+			{
+#endif
+				if (cal_wpsnr(ilist_org, ilist_t->imgb, ilist_t->ts, wpsnr))
+				{
+					v0print("cannot calculate wPSNR\n");
+					return -1;
+				}
+				if (cal_hdr_metric(ilist_org, ilist_t->imgb, ilist_t->ts, deltaE, psnrL))
+				{
+					v0print("cannot calculate DeltaE100 or PSNRL100\n");
+					return -1;
+				}
+#if ETM_HDR_REPORT_METRIC_FLAG
+			}
+#endif
 #endif
 #if QC_DRA
 #if QC_ADD_DRA_FLAG
@@ -3173,12 +3208,19 @@ int main(int argc, const char **argv)
     v1print("  PSNR V(dB)       : %-5.4f\n", psnr_avg[2]);
     v1print("  MsSSIM_Y         : %-8.7f\n", ms_ssim_avg);
 #if ETM_HDR_METRIC
-    v1print("  wPSNR Y(dB)      : %-5.4f\n", wpsnr_avg[0]);
-    v1print("  wPSNR U(dB)      : %-5.4f\n", wpsnr_avg[1]);
-    v1print("  wPSNR V(dB)      : %-5.4f\n", wpsnr_avg[2]);
+#if ETM_HDR_REPORT_METRIC_FLAG
+	if (op_hdr_metric_report)
+	{
+#endif
+		v1print("  wPSNR Y(dB)      : %-5.4f\n", wpsnr_avg[0]);
+		v1print("  wPSNR U(dB)      : %-5.4f\n", wpsnr_avg[1]);
+		v1print("  wPSNR V(dB)      : %-5.4f\n", wpsnr_avg[2]);
 
-    v1print("  deltaE100 Y(dB)  : %-5.4f\n", deltaE_avg);
-    v1print("  PSNRL100 U(dB)   : %-5.4f\n", psnrL_avg);
+		v1print("  deltaE100 Y(dB)  : %-5.4f\n", deltaE_avg);
+		v1print("  PSNRL100 U(dB)   : %-5.4f\n", psnrL_avg);
+#if ETM_HDR_REPORT_METRIC_FLAG
+	}
+#endif
 #endif
     v1print("  Total bits(bits) : %-.0f\n", bitrate*8);
     bitrate *= (cdsc.fps * 8);
@@ -3188,8 +3230,20 @@ int main(int argc, const char **argv)
 
 #if SCRIPT_REPORT
 #if ETM_HDR_METRIC
-    v1print("  Labeles\t: br,kbps\tPSNR,Y\tPSNR,U\tPSNR,V\twPSNR,Y\twPSNR,U\twPSNR,V\tDeltaE100 PSNRL100\t\n");
-    v1print("  Summary\t: %-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t %-5.4f\t\n", bitrate, psnr_avg[0], psnr_avg[1], psnr_avg[2], wpsnr_avg[0], wpsnr_avg[1], wpsnr_avg[2], deltaE_avg, psnrL_avg);
+#if ETM_HDR_REPORT_METRIC_FLAG
+	if (op_hdr_metric_report)
+	{
+#endif
+		v1print("  Labeles\t: br,kbps\tPSNR,Y\tPSNR,U\tPSNR,V\twPSNR,Y\twPSNR,U\twPSNR,V\tDeltaE100 PSNRL100\t\n");
+		v1print("  Summary\t: %-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t %-5.4f\t\n", bitrate, psnr_avg[0], psnr_avg[1], psnr_avg[2], wpsnr_avg[0], wpsnr_avg[1], wpsnr_avg[2], deltaE_avg, psnrL_avg);
+#if ETM_HDR_REPORT_METRIC_FLAG
+	}
+	else
+	{
+		v1print("  Labeles:\t: br,kbps\tPSNR,Y\tPSNR,U\tPSNR,V\t\n");
+		v1print("  Summary\t: %-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\n", bitrate, psnr_avg[0], psnr_avg[1], psnr_avg[2]);
+	}
+#endif
 #else
     v1print("  Labeles:\t: br,kbps\tPSNR,Y\tPSNR,U\tPSNR,V\t\n");
     v1print("  Summary\t: %-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\n", bitrate, psnr_avg[0], psnr_avg[1], psnr_avg[2]);

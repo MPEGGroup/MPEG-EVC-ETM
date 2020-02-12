@@ -377,9 +377,6 @@ int main(int argc, const char **argv)
                 case EVC_SPS_NUT:
                     ret = evcd_eco_sps(bsr, sps);
                     evc_assert_rv(EVC_SUCCEEDED(ret), ret);
-#if QC_ADD_ADDB_FLAG
-                    sh->deblocking_filter_on = sps->tool_addb;
-#endif
                     sh->alf_on = sps->tool_alf;
                     sh->mmvd_group_enable_flag = sps->tool_mmvd;
                     if (!bs_num)

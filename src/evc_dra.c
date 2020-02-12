@@ -1078,6 +1078,12 @@ int evc_correctLocalChromaScale_lut2(WCGDDRAControl *p_DRAMapping, int intScaleL
 	int localChromaQPShift2 = localQPi - Qp0 - qpDraIntAdj;
 
 	int draChromaQpShift = localChromaQPShift2 - localChromaQPShift1;
+	if (qpDraFracAdj < 0)
+	{
+		draChromaQpShift -= 1;
+		qpDraFracAdj = (1 << 9) + qpDraFracAdj;
+	}
+
 	assert(abs(draChromaQpShift) < ((NUM_CHROMA_QP_SCALE_EXP + 1) >> 1));
 
 	int draChromaScaleShift = g_dra_exp_nom_v2[draChromaQpShift + TABLE0_SHIFT];

@@ -1682,6 +1682,9 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
 #endif
+#if QC_ADD_ADDB_FLAG
+					, ctx->sps.tool_addb
+#endif
                 );
                 evc_deblock_cu_hor(pic, x, y + MAX_TR_SIZE, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi,
 #if M50761_DMVR_SIMP_DEBLOCK
@@ -1695,6 +1698,9 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
+#endif
+#if QC_ADD_ADDB_FLAG
+					, ctx->sps.tool_addb
 #endif
                 );
             }
@@ -1712,6 +1718,9 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
+#endif
+#if QC_ADD_ADDB_FLAG
+					, ctx->sps.tool_addb
 #endif
                 );
             }
@@ -1737,6 +1746,9 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
 #endif
+#if QC_ADD_ADDB_FLAG
+					, ctx->sps.tool_addb
+#endif
                 );
                 evc_deblock_cu_ver(pic, x + MAX_TR_SIZE, y, cuw >> 1, cuh, ctx->map_scu, ctx->map_refi,
 #if M50761_DMVR_SIMP_DEBLOCK
@@ -1754,6 +1766,9 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
+#endif
+#if QC_ADD_ADDB_FLAG
+					, ctx->sps.tool_addb
 #endif
                 );
             }
@@ -1775,6 +1790,9 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
+#endif
+#if QC_ADD_ADDB_FLAG
+					, ctx->sps.tool_addb
 #endif
                 );
             }
@@ -2422,9 +2440,6 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
 #if GRAB_STAT
         enc_stat_header(ctx->w, ctx->h);
-#endif
-#if QC_ADD_ADDB_FLAG
-        sh->deblocking_filter_on = sps->tool_addb;
 #endif
         //TDB: check if should be here
         sh->alf_on = sps->tool_alf;

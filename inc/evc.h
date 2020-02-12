@@ -35,9 +35,10 @@
 #ifndef _EVC_H_
 #define _EVC_H_
 
+#define ETM_HDR_REPORT_METRIC_FLAG	    1
 #define QC_DRA 1
 #define QC_ADD_DRA_FLAG                    1
-#define QC_ADD_ADDB_FLAG                0
+#define QC_ADD_ADDB_FLAG                1
 #define M52166_PARTITION                1
 
 #ifdef __cplusplus
@@ -192,9 +193,7 @@ extern "C"
 #define EVCE_CFG_GET_FPS                (605)
 #define EVCE_CFG_GET_I_PERIOD           (608)
 #define EVCE_CFG_GET_BU_SIZE            (609)
-#if !QC_ADD_ADDB_FLAG
 #define EVCE_CFG_GET_USE_DEBLOCK        (610)
-#endif
 #define EVCE_CFG_GET_CLOSED_GOP         (611)
 #define EVCE_CFG_GET_HIERARCHICAL_GOP   (612)
 #define EVCE_CFG_GET_DEBLOCK_A_OFFSET   (613)
@@ -523,6 +522,9 @@ typedef struct _EVCE_CDSC
 #if QC_ADD_DRA_FLAG
     int tool_dra;
 #endif
+#endif
+#if ETM_HDR_REPORT_METRIC_FLAG
+	int tool_hdr_metric;
 #endif
     EVC_RPL rpls_l0[MAX_NUM_RPLS];
     EVC_RPL rpls_l1[MAX_NUM_RPLS];
