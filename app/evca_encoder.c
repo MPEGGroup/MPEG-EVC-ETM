@@ -2676,20 +2676,15 @@ void print_psnr(EVCE_STAT * stat, double * psnr, double ms_ssim, int bitrate, EV
     v1print("%-7d%-5d(%c)     %-5d%-10.4f%-10.4f%-10.4f%-10.4f%-10.4f%-10.4f%-10.4f %-10.4f %-10d%-10d%-12.7f", \
         stat->poc, stat->tid, stype, stat->qp, psnr[0], psnr[1], psnr[2], wpsnr[0], wpsnr[1], wpsnr[2], deltaE[0], psnrL[0], \
         bitrate, evc_clk_msec(clk_end), ms_ssim);
-#if ETM_HDR_REPORT_METRIC_FLAG
+
 	}
 	else
+#endif
 	{
 		v1print("%-7d%-5d(%c)     %-5d%-10.4f%-10.4f%-10.4f%-10d%-10d%-12.7f", \
 			stat->poc, stat->tid, stype, stat->qp, psnr[0], psnr[1], psnr[2], \
 			bitrate, evc_clk_msec(clk_end), ms_ssim);
 	}
-#endif
-#else
-    v1print("%-7d%-5d(%c)     %-5d%-10.4f%-10.4f%-10.4f%-10d%-10d%-12.7f", \
-        stat->poc, stat->tid, stype, stat->qp, psnr[0], psnr[1], psnr[2], \
-        bitrate, evc_clk_msec(clk_end), ms_ssim);
-#endif
     for(i=0; i < 2; i++)
     {
         v1print("[L%d ", i);
@@ -3095,9 +3090,6 @@ int main(int argc, const char **argv)
                 return -1;
             }
 #if ETM_HDR_METRIC
-#if ETM_HDR_REPORT_METRIC_FLAG
-			if (op_hdr_metric_report)
-#endif
 			{
 				if (cal_wpsnr(ilist_org, ilist_t->imgb, ilist_t->ts, wpsnr))
 				{
@@ -3245,14 +3237,11 @@ int main(int argc, const char **argv)
 		v1print("  Summary\t: %-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t %-5.4f\t\n", bitrate, psnr_avg[0], psnr_avg[1], psnr_avg[2], wpsnr_avg[0], wpsnr_avg[1], wpsnr_avg[2], deltaE_avg, psnrL_avg);
 	}
 	else
+#endif
 	{
 		v1print("  Labeles:\t: br,kbps\tPSNR,Y\tPSNR,U\tPSNR,V\t\n");
 		v1print("  Summary\t: %-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\n", bitrate, psnr_avg[0], psnr_avg[1], psnr_avg[2]);
 	}
-#else
-    v1print("  Labeles:\t: br,kbps\tPSNR,Y\tPSNR,U\tPSNR,V\t\n");
-    v1print("  Summary\t: %-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\n", bitrate, psnr_avg[0], psnr_avg[1], psnr_avg[2]);
-#endif
 #endif
     v1print("=======================================================================================\n");
     v1print("Encoded frame count               = %d\n", (int)pic_ocnt);
