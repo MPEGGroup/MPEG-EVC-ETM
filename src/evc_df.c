@@ -527,7 +527,7 @@ const u8 sm_beta_table[MAX_QP + 1] =
 };
 #endif
 
-#if DBF == DBF_AVC
+#if (DBF == DBF_AVC) || QC_ADD_ADDB_FLAG
 static const u8 compare_mvs(const int mv0[2], const int mv1[2])
 {
     // Return 1 if vetors difference less then 1 pixel
@@ -1076,7 +1076,7 @@ static void deblock_scu_hevc_ver(pel *buf, int qp, int stride, int is_luma, u8 b
 }
 #endif
 
-#if DBF == DBF_AVC
+#if (DBF == DBF_AVC) || QC_ADD_ADDB_FLAG
 static void deblock_avc_get_pq(pel *buf, int offset, pel* p, pel* q, int size)
 {
     // p and q has DBF_LENGTH elements
@@ -2141,34 +2141,34 @@ void evc_deblock_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
     , u8* map_tidx
 #endif
 #if QC_ADD_ADDB_FLAG
-	, int tool_addb
+    , int tool_addb
 #endif
 )
 {
 #if QC_ADD_ADDB_FLAG
-	if (tool_addb)
-	{
-		deblock_avc_cu_hor(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu, log2_max_cuwh, refp
-			, ats_inter_mode
+    if (tool_addb)
+    {
+        deblock_avc_cu_hor(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu, log2_max_cuwh, refp
+            , ats_inter_mode
 #if M50761_CHROMA_NOT_SPLIT
-			, tree_cons
+            , tree_cons
 #endif
 #if EVC_TILE_SUPPORT
-			, map_tidx
+            , map_tidx
 #endif
-		);
+        );
 }
-	else
-	{
-		deblock_h263_cu_hor(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu
+    else
+    {
+        deblock_h263_cu_hor(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu
 #if M50761_CHROMA_NOT_SPLIT
-			, tree_cons
+            , tree_cons
 #endif
 #if EVC_TILE_SUPPORT
-			, map_tidx
+            , map_tidx
 #endif
-		);
-	}
+        );
+    }
 #else
 #if DBF == DBF_HEVC
     deblock_hevc_cu_hor(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu
@@ -2212,41 +2212,41 @@ void evc_deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
     , u8* map_tidx
 #endif
 #if QC_ADD_ADDB_FLAG
-	, int tool_addb
+    , int tool_addb
 #endif
 )
 {
 #if QC_ADD_ADDB_FLAG
-	if (tool_addb)
-	{
-		deblock_avc_cu_ver(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu, log2_max_cuwh
+    if (tool_addb)
+    {
+        deblock_avc_cu_ver(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu, log2_max_cuwh
 #if FIX_PARALLEL_DBF
-			, map_cu
+            , map_cu
 #endif
-			, refp
-			, ats_inter_mode
+            , refp
+            , ats_inter_mode
 #if M50761_CHROMA_NOT_SPLIT
-			, tree_cons
+            , tree_cons
 #endif
 #if EVC_TILE_SUPPORT
-			, map_tidx
+            , map_tidx
 #endif
-		);
+        );
 }
-	else
-	{
-		deblock_h263_cu_ver(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu
+    else
+    {
+        deblock_h263_cu_ver(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu
 #if FIX_PARALLEL_DBF
-			, map_cu
+            , map_cu
 #endif
 #if M50761_CHROMA_NOT_SPLIT
-			, tree_cons
+            , tree_cons
 #endif
 #if EVC_TILE_SUPPORT
-			, map_tidx
+            , map_tidx
 #endif
-		);
-	}
+        );
+    }
 #else
 #if DBF == DBF_HEVC
     deblock_hevc_cu_ver(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu

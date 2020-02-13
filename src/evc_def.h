@@ -37,8 +37,7 @@
 #include "evc.h"
 #include "evc_port.h"
 
-#define QC_ADD_ADDB_FLAG                       1         // Operational but, some minor clean up needed, currently slice level signaling is disabled by mistake
-#define QC_ADD_DRA_FLAG                        1
+#define QC_ADD_ADDB_FLAG                       1 
 #define QC_DRA                                 1
 
 #if QC_DRA
@@ -445,6 +444,9 @@ enum SAD_POINT_INDEX
 
 #define APS_MAX_NUM                        32
 #define APS_MAX_NUM_IN_BITS                5 
+#if QC_DRA
+#define APS_TYPE_ID_BITS                   3
+#endif
 
 // The structure below must be aligned to identical structure in evc_alf.c!
 typedef struct _evc_AlfFilterShape
@@ -1328,10 +1330,7 @@ typedef struct _EVC_SPS
     int              ibc_log_max_size;           /* log2 max ibc size */
     int              vui_parameters_present_flag;
 #if QC_DRA
-    void* p_signalledDRAParams;
-#if QC_ADD_DRA_FLAG
     int tool_dra;
-#endif
 #endif
 } EVC_SPS;
 
@@ -1361,6 +1360,11 @@ typedef struct _EVC_PPS
 #if DQP
     int cu_qp_delta_enabled_flag;
     int cu_qp_delta_area;
+#endif
+#if QC_DRA
+    int pic_dra_enabled_present_flag;
+    int pic_dra_enabled_flag;
+    int pic_dra_aps_id;
 #endif
 } EVC_PPS;
 
@@ -1396,6 +1400,35 @@ typedef struct _evc_AlfSliceParam
 
 } evc_AlfSliceParam;
 
+typedef struct _evc_SignalledALFParam
+{
+    BOOL isCtbAlfOn;
+
+    BOOL                         enabledFlag[3];                                          // alf_slice_enable_flag, alf_chroma_idc
+    int                          lumaFilterType;                                          // filter_type_flag
+    BOOL                         chromaCtbPresentFlag;                                    // alf_chroma_ctb_present_flag
+    short                        chromaCoeff[MAX_NUM_ALF_CHROMA_COEFF];                   // alf_coeff_chroma[i]
+    short                        filterCoeffDeltaIdx[MAX_NUM_ALF_CLASSES];                // filter_coeff_delta[i]
+    BOOL                         filterCoeffFlag[MAX_NUM_ALF_CLASSES];                    // filter_coefficient_flag[i]
+    int                          numLumaFilters;                                          // number_of_filters_minus1 + 1
+    BOOL                         coeffDeltaFlag;                                          // alf_coefficients_delta_flag
+    BOOL                         coeffDeltaPredModeFlag;                                  // coeff_delta_pred_mode_flag
+
+    int fixedFilterPattern;
+    int fixedFilterIdx[MAX_NUM_ALF_CLASSES];
+    int prevIdx;
+
+} evc_SignalledALFParam;
+
+#if QC_DRA
+typedef struct _EVC_APS_GEN
+{
+    int signal_flag;
+    int                               aps_type_id;                    // adaptation_parameter_set_type_id
+    int                               aps_id;                    // adaptation_parameter_set_id
+    void * aps_data;
+} EVC_APS_GEN;
+#endif
 typedef struct _EVC_APS
 {
     int                               aps_id;                    // adaptation_parameter_set_id

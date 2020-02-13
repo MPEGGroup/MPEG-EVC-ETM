@@ -35,9 +35,7 @@
 #include <math.h>
 
 #if QC_DRA
-
-/*  The following function are used for encoder side only */
-double getQP2ScaleDRA(int cbQP) {
+double evce_getQP2ScaleDRA(int cbQP) {
     double scaleDRA = 1.0;
     scaleDRA = exp(((double)(cbQP) / 6)*log(2.0));
     return scaleDRA;
@@ -50,7 +48,7 @@ double evce_getCbScaleDRA(DRAChromaOffControl *p_dra_chroma_control, int l_iQP) 
     int cbQP = (int)(chromaQp + (chromaQp < 0 ? -0.5 : 0.5));
     cbQP = EVC_CLIP3(-12, 12, min(0, cbQP) + p_dra_chroma_control->m_draChromaCbQpOffset);
     cbQP = cbQP - p_dra_chroma_control->m_draChromaCbQpOffset;
-    scaleCbDRA = getQP2ScaleDRA(cbQP);
+    scaleCbDRA = evce_getQP2ScaleDRA(cbQP);
     scaleCbDRA = 1 / scaleCbDRA;  // chroma QP Offset is added to luma, which equialent of reduced scale factor 1/x
     return    scaleCbDRA;
 }
@@ -63,7 +61,7 @@ double evce_getCrScaleDRA(DRAChromaOffControl *p_dra_chroma_control, int l_iQP) 
     int crQP = (int)(chromaQp + (chromaQp < 0 ? -0.5 : 0.5));
     crQP = EVC_CLIP3(-12, 12, min(0, crQP) + p_dra_chroma_control->m_draChromaCrQpOffset);
     crQP = crQP - p_dra_chroma_control->m_draChromaCrQpOffset;
-    scaleCrDRA = getQP2ScaleDRA(crQP);
+    scaleCrDRA = evce_getQP2ScaleDRA(crQP);
     scaleCrDRA = 1 / scaleCrDRA;  
     return    scaleCrDRA;
 }
@@ -115,7 +113,7 @@ void evce_zoomInRangeLUT(WCGDDRAControl *p_DRAMapping, int sdrFlag) {
     return;
 }
 
-int getScaleDRA2QP(double scaleDra) {
+int evce_getScaleDRA2QP(double scaleDra) {
     int QP = 0;
     double value = 0;
     value = log(scaleDra)*6.0 / log(2.0);
@@ -123,7 +121,7 @@ int getScaleDRA2QP(double scaleDra) {
     return QP;
 }
 
-double getScaleDRA2QPd(double scaleDra) {
+double evce_getScaleDRA2QPd(double scaleDra) {
     double QP = 0;
     double value = 0;
     value = log(scaleDra)*6.0 / log(2.0);
@@ -131,7 +129,7 @@ double getScaleDRA2QPd(double scaleDra) {
     return QP;
 }
 
-double getQP2ScaleDRAd(double cbQP) {
+double evce_getQP2ScaleDRAd(double cbQP) {
     double scaleDRA = 1.0;
     scaleDRA = exp(((double)(cbQP) / 6)*log(2.0));
     return scaleDRA;
@@ -193,7 +191,7 @@ float getVal(quantParamDRA *p_quantParamEntry)
 }
 int getFracBits(quantParamDRA *p_quantParamEntry) { return p_quantParamEntry->m_numFracBits; }
 int getTotBits(quantParamDRA *p_quantParamEntry) { return p_quantParamEntry->m_numTotBits; }
-void rshiftNoRound(quantParamDRA *valueThis, int const val)  
+void rshiftNoRound(quantParamDRA *valueThis, int const val) 
 {
     valueThis->m_value >>= val;
     valueThis->m_numFracBits -= val;
@@ -305,6 +303,75 @@ void setFracBits(quantParamDRA *valueThis, int const nBits)
         valueThis->m_numTotBits = estBits;
     }
 }
+int getDraRangeIdx_gen(WCGDDRAControl *p_DRAMapping, int sample, int *chromaRanges, int numRanges) {
+    int rangeIdx = -1;
+    for (int i = 0; i < numRanges; i++)
+    {
+        if (sample < chromaRanges[i + 1])
+        {
+            rangeIdx = i;
+            break;
+        }
+    }
+    if (rangeIdx == -1)
+        rangeIdx = numRanges - 1;
+    return EVC_CLIP(rangeIdx, 0, numRanges - 1);
+}
+
+int correctLocalChromaScale_lut2(WCGDDRAControl *p_DRAMapping, int intScaleLumaDra, int chId)
+{
+    int l_array[NUM_CHROMA_QP_OFFSET_LOG];
+    memcpy(l_array, g_dra_chroma_qp_offset_tbl, NUM_CHROMA_QP_OFFSET_LOG * sizeof(int));
+    int SCALE_OFFSET = 1 << QC_SCALE_NUMFBITS;
+    int TABLE0_SHIFT = NUM_CHROMA_QP_SCALE_EXP >> 1;
+    int outChromaScale = 1;
+
+    int localQPi;
+    int Qp0, Qp1;
+    int scaleDraInt = 1;
+    int qpDraFrac = 0;
+    scaleDraInt = (chId == 1) ? p_DRAMapping->m_intScaleCbDRA * intScaleLumaDra : p_DRAMapping->m_intScaleCrDRA * intScaleLumaDra;
+
+    int localChromaQPShift1 = p_DRAMapping->m_chromaQPModel.m_baseLumaQP - (getScaledChromaQP2(chId, p_DRAMapping->m_chromaQPModel.m_baseLumaQP));
+
+    int qpDraInt = 0;
+    int OutofRange = -1;
+    int scaleDraInt9 = (scaleDraInt + (1 << 8)) >> 9;
+    int i = getDraRangeIdx_gen(p_DRAMapping, scaleDraInt9, l_array, NUM_CHROMA_QP_OFFSET_LOG - 1 ) + 1;
+    qpDraInt = i - 81;
+    localQPi = p_DRAMapping->m_chromaQPModel.m_baseLumaQP - qpDraInt;
+    Qp0 = getScaledChromaQP2(chId, localQPi);
+    Qp1 = getScaledChromaQP2(chId, (localQPi + 1));
+
+    int interpolationNum = scaleDraInt9 - g_dra_chroma_qp_offset_tbl[i - 1];
+    int interpolationDenom = g_dra_chroma_qp_offset_tbl[i] - g_dra_chroma_qp_offset_tbl[i - 1];
+    qpDraFrac = SCALE_OFFSET * (interpolationDenom - interpolationNum) / interpolationDenom;
+
+    int qpChDec = (Qp1 - Qp0) * qpDraFrac;
+    int    qpDraFracAdj = qpChDec % (1 << 9);
+    int qpDraIntAdj = (qpChDec >> 9);
+
+    qpDraFracAdj = qpDraFrac - qpDraFracAdj;
+    int localChromaQPShift2 = localQPi - Qp0 - qpDraIntAdj;
+
+    int draChromaQpShift = localChromaQPShift2 - localChromaQPShift1;
+    if (qpDraFracAdj < 0)
+    {
+        draChromaQpShift -= 1;
+        qpDraFracAdj = (1 << 9) + qpDraFracAdj;
+    }
+    assert(abs(draChromaQpShift) < ((NUM_CHROMA_QP_SCALE_EXP + 1) >> 1));
+
+    int draChromaScaleShift = g_dra_exp_nom_v2[draChromaQpShift + TABLE0_SHIFT];
+    int draChromaScaleShiftFrac;
+    if (draChromaQpShift >= 0)
+        draChromaScaleShiftFrac = g_dra_exp_nom_v2[draChromaQpShift + 1 + TABLE0_SHIFT] - g_dra_exp_nom_v2[draChromaQpShift + TABLE0_SHIFT];
+    else
+        draChromaScaleShiftFrac = g_dra_exp_nom_v2[draChromaQpShift + TABLE0_SHIFT] - g_dra_exp_nom_v2[draChromaQpShift - 1 + TABLE0_SHIFT];
+
+    outChromaScale = draChromaScaleShift + ((draChromaScaleShiftFrac * qpDraFracAdj + (1 << (QC_SCALE_NUMFBITS - 1))) >> QC_SCALE_NUMFBITS);
+    return (scaleDraInt * outChromaScale + (1 << 17)) >> 18;
+}
 
 int correctLocalChromaScale_lut(WCGDDRAControl *p_DRAMapping, double scaleLumaDra, int chId)
 {
@@ -327,7 +394,7 @@ int correctLocalChromaScale_lut(WCGDDRAControl *p_DRAMapping, double scaleLumaDr
     int ChromaQPoffsetD = 0;
     if (chId == 1)
     {
-        scaleDra = p_DRAMapping->m_scaleCbDRA * scaleLumaDra;
+        scaleDra = p_DRAMapping->m_scaleCbDRA * scaleLumaDra; 
         l_genChromaOffset = p_DRAMapping->m_chromaQPModel.m_draChromaCbQpOffset;
     }
     else if (chId == 2)
@@ -395,7 +462,7 @@ int correctLocalChromaScale_lut(WCGDDRAControl *p_DRAMapping, double scaleLumaDr
     int qpChDecInt = (qpChDec >> 9) + (ChromaQPoffsetD >= qpChDecDec ? 0 : 1);
     qpChDecDec = ChromaQPoffsetD >= qpChDecDec ? (ChromaQPoffsetD - qpChDecDec) : ((1 << QC_SCALE_NUMFBITS) + ChromaQPoffsetD - qpChDecDec);
     int localChromaQPShift2 = localQPi - qpChroma1Output - qpChDecInt;
-    assert(abs(localChromaQPShift2 - localChromaQPShift1) < ((NUM_CHROMA_QP_SCALE_EXP + 1) >> 1));
+    assert(abs(localChromaQPShift2 - localChromaQPShift1) < ((NUM_CHROMA_QP_SCALE_EXP + 1) >> 1)); 
     int outChromaScaleInt = g_dra_exp_nom_v2[localChromaQPShift2 - localChromaQPShift1 + (NUM_CHROMA_QP_SCALE_EXP >> 1)];
     outChromaScale = outChromaScaleInt + ((localChromaQPShift2 - localChromaQPShift1 >= 0)
         ? (((g_dra_exp_nom_v2[localChromaQPShift2 - localChromaQPShift1 + (NUM_CHROMA_QP_SCALE_EXP >> 1) + 1]
@@ -443,6 +510,74 @@ void evce_compensateChromaShiftTable(WCGDDRAControl *p_DRAMapping) {
 
         p_DRAMapping->m_atfChromaDraScales[0][i] /= (1 << 9);
         p_DRAMapping->m_atfChromaDraScales[1][i] /= (1 << 9);
+    }
+}
+
+void evc_compensateChromaShiftTableInt(WCGDDRAControl *p_DRAMapping) {
+    for (int i = 0; i < p_DRAMapping->m_atfNumRanges; i++) {
+        p_DRAMapping->m_atfIntChromaDraScales[0][i] = correctLocalChromaScale_lut2(p_DRAMapping, p_DRAMapping->m_atfIntDraScales[i], 1);
+        p_DRAMapping->m_atfIntChromaDraScales[1][i] = correctLocalChromaScale_lut2(p_DRAMapping, p_DRAMapping->m_atfIntDraScales[i], 2);
+        p_DRAMapping->m_atfIntChromaInvDraScales[0][i] = (1 << 18) / p_DRAMapping->m_atfIntChromaDraScales[0][i];
+        p_DRAMapping->m_atfIntChromaInvDraScales[1][i] = (1 << 18) / p_DRAMapping->m_atfIntChromaDraScales[1][i];
+        p_DRAMapping->m_atfChromaDraScales[0][i] = p_DRAMapping->m_atfIntChromaDraScales[0][i] / (1 << 9);
+        p_DRAMapping->m_atfChromaDraScales[1][i] = p_DRAMapping->m_atfIntChromaDraScales[1][i] / (1 << 9);
+    }
+}
+
+
+
+void evc_buildDraLumaLut2(WCGDDRAControl *p_DRAMapping)
+{
+    for (int i = 0; i < DRA_LUT_MAXSIZE; i++)
+    {
+        int rangeIdxY = getDraRangeIdx_gen(p_DRAMapping, i, p_DRAMapping->m_atfIntOutRanges, p_DRAMapping->m_atfNumRanges);
+        int value = (int)((i * p_DRAMapping->m_atfIntInvDraScales[rangeIdxY] + (1 << 9)) >> 10);
+        value = ((p_DRAMapping->m_atfIntInvDraOffsets[rangeIdxY] << 2) + value + (1 << 8)) >> 9;
+        value = EVC_CLIP(value, 0, DRA_LUT_MAXSIZE - 1);
+        p_DRAMapping->m_lumaInvScaleLUT[i] = value;
+    }
+}
+void evc_buildDraChromaLut(WCGDDRAControl *p_DRAMapping)
+{
+    for (int i = 0; i < DRA_LUT_MAXSIZE; i++)
+    {
+        p_DRAMapping->m_intChromaScaleLUT[0][i] = p_DRAMapping->m_intChromaScaleLUT[1][i] = 1;
+        p_DRAMapping->m_intChromaInvScaleLUT[0][i] = p_DRAMapping->m_intChromaScaleLUT[1][i] = 1;
+    }
+    {
+
+        int chromaMultRanges2[33 + 1];
+        int chromaMultScale[33 + 1];
+        int chromaMultOffset[33 + 1];
+        for (int ch = 0; ch < 2; ch++)
+        {
+
+            chromaMultRanges2[0] = p_DRAMapping->m_atfIntOutRanges[0];
+            chromaMultScale[0] = 0;
+            chromaMultOffset[0] = (int)(p_DRAMapping->m_atfIntChromaInvDraScales[ch][0]);
+            for (int i = 1; i < p_DRAMapping->m_atfNumRanges + 1; i++)
+            {
+                chromaMultRanges2[i] = (int)((p_DRAMapping->m_atfIntOutRanges[i - 1] + p_DRAMapping->m_atfIntOutRanges[i]) / 2);
+            }
+
+            for (int i = 1; i < p_DRAMapping->m_atfNumRanges; i++)
+            {
+                int deltaRange = chromaMultRanges2[i + 1] - chromaMultRanges2[i];
+                chromaMultOffset[i] = p_DRAMapping->m_atfIntChromaInvDraScales[ch][i - 1];
+                int deltaScale = p_DRAMapping->m_atfIntChromaInvDraScales[ch][i] - chromaMultOffset[i];
+                chromaMultScale[i] = (int)(((deltaScale << QC_IN_RANGE_NUM_BITS) + (deltaRange >> 1)) / deltaRange);
+            }
+            chromaMultScale[p_DRAMapping->m_atfNumRanges] = 0;
+            chromaMultOffset[p_DRAMapping->m_atfNumRanges] = p_DRAMapping->m_atfIntChromaInvDraScales[ch][p_DRAMapping->m_atfNumRanges - 1];
+
+            for (int i = 0; i < DRA_LUT_MAXSIZE; i++)
+            {
+                int rangeIdx = getDraRangeIdx_gen(p_DRAMapping, i, chromaMultRanges2, p_DRAMapping->m_atfNumRanges + 1);
+                int runI = i - chromaMultRanges2[rangeIdx];
+                int runS = (chromaMultScale[rangeIdx] * runI + (1 << (QC_IN_RANGE_NUM_BITS - 1))) >> QC_IN_RANGE_NUM_BITS;
+                p_DRAMapping->m_intChromaInvScaleLUT[ch][i] = chromaMultOffset[rangeIdx] + runS;
+            }
+        }
     }
 }
 
@@ -507,7 +642,7 @@ void evce_buildDraLut(WCGDDRAControl *p_DRAMapping, BOOL useFixedPt)
 
             if (p_DRAMapping->m_lumaScaleLUT[j] > l_maxOutLumaCodeword)
             {
-                p_DRAMapping->m_lumaScaleLUT[j] = l_maxOutLumaCodeword;
+                p_DRAMapping->m_lumaScaleLUT[j] = l_maxOutLumaCodeword; 
             }
 
             prec_quantize_entry_d(&temp1, p_DRAMapping->m_atfChromaDraScales[0][p_DRAMapping->m_atfNumRanges - 1], QC_SCALE_NUMFBITS, QC_SCALE_NUMFBITS);
@@ -922,6 +1057,7 @@ void quatnizeParamsDRA(WCGDDRAControl *p_DRAMapping)
 
 void setSignalledParamsDRA(WCGDDRAControl *p_DRAMapping)
 {
+    p_DRAMapping->m_signalledDRA.m_signal_dra_flag = p_DRAMapping->m_flagEnabled;
     int numPivotPoints = p_DRAMapping->m_atfNumRanges + 1;
     p_DRAMapping->m_signalledDRA.m_numFracBitsScale = p_DRAMapping->m_numFracBitsScale;
     p_DRAMapping->m_signalledDRA.m_numIntBitsScale = p_DRAMapping->m_numIntBitsScale;
@@ -936,7 +1072,7 @@ void setSignalledParamsDRA(WCGDDRAControl *p_DRAMapping)
     {
         p_DRAMapping->m_signalledDRA.m_intDraScales[i] = p_DRAMapping->m_atfIntDraScales[i];
     }
-    assert(QC_SCALE_NUMFBITS >= p_DRAMapping->m_numFracBitsScale);
+    assert(QC_SCALE_NUMFBITS >= p_DRAMapping->m_numFracBitsScale); 
     p_DRAMapping->m_signalledDRA.m_intScaleCbDRA = p_DRAMapping->m_intScaleCbDRA >> (QC_SCALE_NUMFBITS - p_DRAMapping->m_numFracBitsScale);
     p_DRAMapping->m_signalledDRA.m_intScaleCrDRA = p_DRAMapping->m_intScaleCrDRA >> (QC_SCALE_NUMFBITS - p_DRAMapping->m_numFracBitsScale);
 
@@ -945,7 +1081,7 @@ void setSignalledParamsDRA(WCGDDRAControl *p_DRAMapping)
 
 void evce_updateDRA(WCGDDRAControl *p_DRAMapping, int sdrFlag) {
 
-    evce_constructDra(p_DRAMapping, sdrFlag, 0, FALSE);
+    evce_constructDra(p_DRAMapping, sdrFlag, 0, FALSE); 
     evce_zoomInRangeLUT(p_DRAMapping, FALSE);
     normalizeHistogramLUT(p_DRAMapping, 0, 1, TRUE);
     quatnizeParamsDRA(p_DRAMapping);
@@ -957,6 +1093,16 @@ void evce_updateDRA(WCGDDRAControl *p_DRAMapping, int sdrFlag) {
 
     // Produce inverse DRA from signalled parameters
     evcd_initDRA(p_DRAMapping);
+    for (int ch = 0; ch < 2; ch++)
+    {
+        for (int i = 0; i < DRA_LUT_MAXSIZE; i++)
+        {
+            int value1 = 1 << (QC_SCALE_NUMFBITS + QC_INVSCALE_NUMFBITS);
+            int value3 = p_DRAMapping->m_intChromaInvScaleLUT[ch][p_DRAMapping->m_lumaScaleLUT[i]];
+            int temp = (int)(value1 + (value3 / 2)) / value3;
+            p_DRAMapping->m_intChromaScaleLUT[ch][i] = temp;
+        }
+    }
     return;
 }
 
@@ -1018,162 +1164,15 @@ void evce_initDRA(WCGDDRAControl *p_DRAMapping, int totalChangePoints, int *luma
     p_DRAMapping->m_atfInRanges[p_DRAMapping->m_atfNumRanges] = inRanges[p_DRAMapping->m_atfNumRanges];
     p_DRAMapping->m_atfOutRanges[p_DRAMapping->m_atfNumRanges] = outRanges[p_DRAMapping->m_atfNumRanges];
 
-    evce_constructDra(p_DRAMapping, configID, 1, TRUE);
+    evce_constructDra(p_DRAMapping, configID, 1, TRUE); 
 
     return;
 }
 
-
-/*  Normative decoder side functinos are below  */
-
-int evc_getDraRangeIdx_gen(WCGDDRAControl *p_DRAMapping, int sample, int *chromaRanges, int numRanges) {
-	int rangeIdx = -1;
-	for (int i = 0; i < numRanges; i++)
-	{
-		if (sample < chromaRanges[i + 1])
-		{
-			rangeIdx = i;
-			break;
-		}
-	}
-	if (rangeIdx == -1)
-		rangeIdx = numRanges - 1;
-	return EVC_CLIP(rangeIdx, 0, numRanges - 1);
-}
-
-int evc_correctLocalChromaScale_lut2(WCGDDRAControl *p_DRAMapping, int intScaleLumaDra, int chId)
-{
-	int l_array[NUM_CHROMA_QP_OFFSET_LOG];
-	memcpy(l_array, g_dra_chroma_qp_offset_tbl, NUM_CHROMA_QP_OFFSET_LOG * sizeof(int));
-	int SCALE_OFFSET = 1 << QC_SCALE_NUMFBITS;
-	int TABLE0_SHIFT = NUM_CHROMA_QP_SCALE_EXP >> 1;
-	int outChromaScale = 1;
-
-	int localQPi;
-	int Qp0, Qp1;
-	int scaleDraInt = 1;
-	int qpDraFrac = 0;
-	scaleDraInt = (chId == 1) ? p_DRAMapping->m_intScaleCbDRA * intScaleLumaDra : p_DRAMapping->m_intScaleCrDRA * intScaleLumaDra;
-
-	int localChromaQPShift1 = p_DRAMapping->m_chromaQPModel.m_baseLumaQP - (getScaledChromaQP2(chId, p_DRAMapping->m_chromaQPModel.m_baseLumaQP));
-
-	int qpDraInt = 0;
-	int OutofRange = -1;
-	int scaleDraInt9 = (scaleDraInt + (1 << 8)) >> 9;
-	int i = evc_getDraRangeIdx_gen(p_DRAMapping, scaleDraInt9, l_array, NUM_CHROMA_QP_OFFSET_LOG - 1 ) + 1;
-	qpDraInt = i - 81;
-	localQPi = p_DRAMapping->m_chromaQPModel.m_baseLumaQP - qpDraInt;
-	Qp0 = getScaledChromaQP2(chId, localQPi);
-	Qp1 = getScaledChromaQP2(chId, (localQPi + 1));
-
-	int interpolationNum = scaleDraInt9 - g_dra_chroma_qp_offset_tbl[i - 1];
-	int interpolationDenom = g_dra_chroma_qp_offset_tbl[i] - g_dra_chroma_qp_offset_tbl[i - 1];
-	qpDraFrac = SCALE_OFFSET * (interpolationDenom - interpolationNum) / interpolationDenom;
-
-	int qpChDec = (Qp1 - Qp0) * qpDraFrac;
-	int	qpDraFracAdj = qpChDec % (1 << 9);
-	int qpDraIntAdj = (qpChDec >> 9);
-
-	qpDraFracAdj = qpDraFrac - qpDraFracAdj;
-	int localChromaQPShift2 = localQPi - Qp0 - qpDraIntAdj;
-
-	int draChromaQpShift = localChromaQPShift2 - localChromaQPShift1;
-	if (qpDraFracAdj < 0)
-	{
-		draChromaQpShift -= 1;
-		qpDraFracAdj = (1 << 9) + qpDraFracAdj;
-	}
-
-	assert(abs(draChromaQpShift) < ((NUM_CHROMA_QP_SCALE_EXP + 1) >> 1));
-
-	int draChromaScaleShift = g_dra_exp_nom_v2[draChromaQpShift + TABLE0_SHIFT];
-	int draChromaScaleShiftFrac;
-	if (draChromaQpShift >= 0)
-		draChromaScaleShiftFrac = g_dra_exp_nom_v2[draChromaQpShift + 1 + TABLE0_SHIFT] - g_dra_exp_nom_v2[draChromaQpShift + TABLE0_SHIFT];
-	else
-		draChromaScaleShiftFrac = g_dra_exp_nom_v2[draChromaQpShift + TABLE0_SHIFT] - g_dra_exp_nom_v2[draChromaQpShift - 1 + TABLE0_SHIFT];
-
-	outChromaScale = draChromaScaleShift + ((draChromaScaleShiftFrac * qpDraFracAdj + (1 << (QC_SCALE_NUMFBITS - 1))) >> QC_SCALE_NUMFBITS);
-	return (scaleDraInt * outChromaScale + (1 << 17)) >> 18;
-}
-
-void evc_compensateChromaShiftTableInt(WCGDDRAControl *p_DRAMapping) {
-    for (int i = 0; i < p_DRAMapping->m_atfNumRanges; i++) {
-        p_DRAMapping->m_atfIntChromaDraScales[0][i] = evc_correctLocalChromaScale_lut2(p_DRAMapping, p_DRAMapping->m_atfIntDraScales[i], 1);
-        p_DRAMapping->m_atfIntChromaDraScales[1][i] = evc_correctLocalChromaScale_lut2(p_DRAMapping, p_DRAMapping->m_atfIntDraScales[i], 2);
-        p_DRAMapping->m_atfChromaDraScales[0][i] = p_DRAMapping->m_atfIntChromaDraScales[0][i] / (1 << 9);
-        p_DRAMapping->m_atfChromaDraScales[1][i] = p_DRAMapping->m_atfIntChromaDraScales[1][i] / (1 << 9);
-    }
-}
-
-void evc_buildDraLumaLut2(WCGDDRAControl *p_DRAMapping)
-{
-    for (int i = 0; i < DRA_LUT_MAXSIZE; i++)
-    {
-        int rangeIdxY = evc_getDraRangeIdx_gen(p_DRAMapping, i, p_DRAMapping->m_atfIntOutRanges, p_DRAMapping->m_atfNumRanges);
-        int value = (int)((i * p_DRAMapping->m_atfIntInvDraScales[rangeIdxY] + (1 << 9)) >> 10);
-        value = ((p_DRAMapping->m_atfIntInvDraOffsets[rangeIdxY] << 2) + value + (1 << 8)) >> 9;
-        value = EVC_CLIP(value, 0, DRA_LUT_MAXSIZE - 1);
-        p_DRAMapping->m_lumaInvScaleLUT[i] = value;
-    }
-}
-
-void evc_buildDraChromaLut(WCGDDRAControl *p_DRAMapping)
-{
-    for (int i = 0; i < DRA_LUT_MAXSIZE; i++)
-    {
-        p_DRAMapping->m_intChromaScaleLUT[0][i] = p_DRAMapping->m_intChromaScaleLUT[1][i] = 1;
-        p_DRAMapping->m_intChromaInvScaleLUT[0][i] = p_DRAMapping->m_intChromaScaleLUT[1][i] = 1;
-    }
-    {
-
-        int chromaMultRanges2[33 + 1];
-        int chromaMultScale[33 + 1];
-        int chromaMultOffset[33 + 1];
-        for (int ch = 0; ch < 2; ch++)
-        {
-            chromaMultRanges2[0] = p_DRAMapping->m_atfInRanges[0];
-            chromaMultScale[0] = 0;
-            chromaMultOffset[0] = (int)(p_DRAMapping->m_atfIntChromaDraScales[ch][0]);
-            for (int i = 1; i < p_DRAMapping->m_atfNumRanges + 1; i++)
-            {
-                chromaMultRanges2[i] = (int)((p_DRAMapping->m_atfInRanges[i - 1] + p_DRAMapping->m_atfInRanges[i]) / 2);
-            }
-
-            for (int i = 1; i < p_DRAMapping->m_atfNumRanges; i++)
-            {
-                int deltaRange = chromaMultRanges2[i + 1] - chromaMultRanges2[i];
-                chromaMultOffset[i] = p_DRAMapping->m_atfIntChromaDraScales[ch][i - 1];
-                int deltaScale = p_DRAMapping->m_atfIntChromaDraScales[ch][i] - chromaMultOffset[i];
-                chromaMultScale[i] = (int)(((deltaScale << QC_IN_RANGE_NUM_BITS) + (deltaRange >> 1)) / deltaRange);
-            }
-            chromaMultScale[p_DRAMapping->m_atfNumRanges] = 0;
-            chromaMultOffset[p_DRAMapping->m_atfNumRanges] = p_DRAMapping->m_atfIntChromaDraScales[ch][p_DRAMapping->m_atfNumRanges - 1];
-
-            for (int i = 0; i < DRA_LUT_MAXSIZE; i++)
-            {
-                int rangeIdx = evc_getDraRangeIdx_gen(p_DRAMapping, i, chromaMultRanges2, p_DRAMapping->m_atfNumRanges + 1);
-                int runI = i - chromaMultRanges2[rangeIdx];
-                int runS = (chromaMultScale[rangeIdx] * runI + (1 << (QC_IN_RANGE_NUM_BITS - 1))) >> QC_IN_RANGE_NUM_BITS;
-                p_DRAMapping->m_intChromaScaleLUT[ch][i] = chromaMultOffset[rangeIdx] + runS;
-            }
-        }
-
-        for (int ch = 0; ch < 2; ch++)
-        {
-            for (int i = 0; i < DRA_LUT_MAXSIZE; i++)
-            {
-                int value1 = 1 << (QC_SCALE_NUMFBITS + QC_INVSCALE_NUMFBITS);
-                int value3 = p_DRAMapping->m_intChromaScaleLUT[ch][p_DRAMapping->m_lumaInvScaleLUT[i]];
-                int temp = (int)(value1 + (value3 / 2)) / value3;
-                p_DRAMapping->m_intChromaInvScaleLUT[ch][i] = temp;
-            }
-        }
-    }
-}
-
+ /* Decoder side functions are listed below: */
 void evcd_getSignalledParamsDRA(WCGDDRAControl *p_DRAMapping)
 {
+    p_DRAMapping->m_flagEnabled = p_DRAMapping->m_signalledDRA.m_signal_dra_flag;
     p_DRAMapping->m_chromaQPModel.m_baseLumaQP = p_DRAMapping->m_signalledDRA.m_baseLumaQP;
     p_DRAMapping->m_atfNumRanges = p_DRAMapping->m_signalledDRA.m_numRanges;
     p_DRAMapping->m_numFracBitsScale = p_DRAMapping->m_signalledDRA.m_numFracBitsScale;
@@ -1181,7 +1180,7 @@ void evcd_getSignalledParamsDRA(WCGDDRAControl *p_DRAMapping)
 
     p_DRAMapping->m_intScaleCbDRA = p_DRAMapping->m_signalledDRA.m_intScaleCbDRA;
     p_DRAMapping->m_intScaleCrDRA = p_DRAMapping->m_signalledDRA.m_intScaleCrDRA;
-	for (int i = 0; i < p_DRAMapping->m_atfNumRanges; i++)
+    for (int i = 0; i < p_DRAMapping->m_atfNumRanges; i++)
     {
         p_DRAMapping->m_atfIntDraScales[i] = p_DRAMapping->m_signalledDRA.m_intDraScales[i];
     }
@@ -1213,10 +1212,10 @@ void evcd_constructDra(WCGDDRAControl *p_DRAMapping)
         int invScale2;
         invScale2 = (int)(((1 << (NUM_MULT_BITS + 1))) / p_DRAMapping->m_atfIntDraScales[i] + 1) >> 1;
         p_DRAMapping->m_atfIntInvDraScales[i] = invScale2;
-        int invScale3 = (int)(((1 << (10 + NUM_MULT_BITS))) / p_DRAMapping->m_atfIntDraScales[i]);  
+        int invScale3 = (int)(((1 << (10 + NUM_MULT_BITS))) / p_DRAMapping->m_atfIntDraScales[i]); 
         p_DRAMapping->m_atfIntInvDraScales[i] = invScale3;
 
-        int diffVal2 = p_DRAMapping->m_atfIntOutRanges[i + 1] * invScale2;
+        int diffVal2 = p_DRAMapping->m_atfIntOutRanges[i + 1] * invScale2; 
         p_DRAMapping->m_atfIntInvDraOffsets[i] = ((p_DRAMapping->m_atfInRanges[i + 1] << NUM_MULT_BITS) - diffVal2 + (1 << 10)) >> 11;
     }
 
@@ -1226,17 +1225,14 @@ void evcd_constructDra(WCGDDRAControl *p_DRAMapping)
     }
     return;
 }
-
 void evcd_initDRA(WCGDDRAControl *p_DRAMapping) {
     evcd_getSignalledParamsDRA(p_DRAMapping);
-    evcd_constructDra(p_DRAMapping);
-    evc_compensateChromaShiftTableInt(p_DRAMapping);
-    evc_buildDraLumaLut2(p_DRAMapping);
-    evc_buildDraChromaLut(p_DRAMapping);
+    evcd_constructDra(p_DRAMapping); 
+    evc_compensateChromaShiftTableInt(p_DRAMapping); 
+    evc_buildDraLumaLut2(p_DRAMapping); 
+    evc_buildDraChromaLut(p_DRAMapping); 
 }
 
-
-/*  Sample processing functions */
 void evc_apply_dra_luma_plane(EVC_IMGB * dst, EVC_IMGB * src, WCGDDRAControl *p_DRAMapping, int planeId, int backwardMap)
 {
     short* srcPlane;
@@ -1266,6 +1262,7 @@ void evc_apply_dra_luma_plane(EVC_IMGB * dst, EVC_IMGB * src, WCGDDRAControl *p_
         }
     }
 }
+
 void evc_apply_dra_chroma_plane(EVC_IMGB * dst, EVC_IMGB * src, WCGDDRAControl *p_DRAMapping, int planeId, int backwardMap)
 {
     int roundOffset = 1 << (QC_INVSCALE_NUMFBITS - 1);
@@ -1280,7 +1277,7 @@ void evc_apply_dra_chroma_plane(EVC_IMGB * dst, EVC_IMGB * src, WCGDDRAControl *
     short* dstPlane;
     short refValue, srcValue, dstValue;
     int i, k, j;
-    int cShift = (planeId == 0) ? 0 : 1; 
+    int cShift = (planeId == 0) ? 0 : 1;
 
     for (i = planeId; i <= planeId; i++)
     {
@@ -1298,7 +1295,6 @@ void evc_apply_dra_chroma_plane(EVC_IMGB * dst, EVC_IMGB * src, WCGDDRAControl *
                 refValue = (refValue < 0) ? 0 : refValue;
                 srcValue = srcPlane[k];
                 dstValue = dstPlane[k];
-#if QC_DRA
                 srcValue = srcValue - 512;
                 offsetValue = srcValue;
                 if (backwardMap == TRUE)
@@ -1315,20 +1311,39 @@ void evc_apply_dra_chroma_plane(EVC_IMGB * dst, EVC_IMGB * src, WCGDDRAControl *
                     offsetValue *= -1;
                 }
                 dstValue = 512 + offsetValue;
-#else
-                if (backwardMap == TRUE)
-                    scale = (double)(p_DRAMapping->m_chromaInvScaleLUT[i - 1][refValue]);
-                else
-                    scale = (double)(p_DRAMapping->m_chromaScaleLUT[i - 1][refValue]);
 
-                srcValue = srcValue - 512;
-                dstValue = 512 + ((srcValue) >= 0 ? ((int)((double)srcValue * scale + 0.5)) : ((int)((double)srcValue * scale - 0.5)));
-#endif
                 dstPlane[k] = dstValue;
             }
             refPlane = (short*)((unsigned char *)refPlane + (dst->s[0] << cShift));
             srcPlane = (short*)((unsigned char *)srcPlane + src->s[i]);
             dstPlane = (short*)((unsigned char *)dstPlane + dst->s[i]);
+        }
+    }
+}
+
+void evc_resetApsGenReadBuffer(EVC_APS_GEN *p_aps_gen_array) {
+    p_aps_gen_array->aps_type_id = 0; // ALF
+    p_aps_gen_array->aps_id = -1;
+    p_aps_gen_array->signal_flag = 0;
+    (p_aps_gen_array + 1)->aps_type_id = 1; // DRA
+    (p_aps_gen_array + 1)->aps_id = -1;
+    (p_aps_gen_array + 1)->signal_flag = 0;
+}
+
+void evc_addDraApsToBuffer(SignalledParamsDRA* p_g_dra_control_array, EVC_APS_GEN *p_aps_gen_array) {
+    int dra_id = (p_aps_gen_array + 1)->aps_id;
+    assert((dra_id >-2) && (dra_id < 31));
+    if (dra_id != -1)
+    {
+        SignalledParamsDRA* pDraBuffer = p_g_dra_control_array + dra_id;
+        SignalledParamsDRA* pDraSrc = (SignalledParamsDRA*)((p_aps_gen_array + 1)->aps_data);
+        if (pDraBuffer->m_signal_dra_flag == -1)
+        {
+            memcpy(pDraBuffer, pDraSrc, sizeof(SignalledParamsDRA));
+            (p_aps_gen_array + 1)->aps_id = -1;
+        }
+        else {
+            printf("New DRA APS information ignored. APS ID was used earlier, new APS entity must contain identical content.\n");
         }
     }
 }

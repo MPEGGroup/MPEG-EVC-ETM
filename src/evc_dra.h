@@ -78,23 +78,9 @@ typedef struct _SignalledParamsDRA
     int m_intScaleCrDRA;
     int m_intDraScales[33 - 1];
 }SignalledParamsDRA;
-typedef struct _InputDRAControl
-{
-    int dra_qp_y;
-    int dra_qp_u;
-    int dra_qp_v;
-    int pic_cnt;
-    double m_draHistNorm;
-    int m_atfNumRanges;
-    int m_numFracBitsScale;
-    int m_numIntBitsScale;
-    DRAScaleMapping m_draScaleMap;
-    DRAChromaOffControl m_chromaQPModel;
-}InputDRAControl;
 
 typedef struct _WCGDDRAControl
 {
-    int pic_cnt;
     BOOL m_flagEnabled;
     DRAScaleMapping m_draScaleMap;
     DRAChromaOffControl m_chromaQPModel;
@@ -114,6 +100,7 @@ typedef struct _WCGDDRAControl
     int m_atfIntInvDraScales[33 - 1];
     int m_atfIntInvDraOffsets[33 - 1];
     int m_atfIntChromaDraScales[2][33 - 1];
+    int m_atfIntChromaInvDraScales[2][33 - 1];
 
     int m_intChromaScaleLUT[2][DRA_LUT_MAXSIZE];               // LUT for chroma scales 
     int m_intChromaInvScaleLUT[2][DRA_LUT_MAXSIZE];               // LUT for chroma scales 
@@ -156,6 +143,8 @@ void evce_initDRA(WCGDDRAControl *p_DRAMapping, int totalChangePoints, int *luma
 BOOL evce_analyzeInputPic(WCGDDRAControl *p_DRAMapping);
 void evc_apply_dra_luma_plane(EVC_IMGB * dst, EVC_IMGB * src, WCGDDRAControl *p_DRAMapping, int planeId, int backwardMap);
 void evc_apply_dra_chroma_plane(EVC_IMGB * dst, EVC_IMGB * src, WCGDDRAControl *p_DRAMapping, int planeId, int backwardMap);
+void evc_addDraApsToBuffer(SignalledParamsDRA* p_g_dra_control_array, EVC_APS_GEN *p_aps_gen_array);
+void evc_resetApsGenReadBuffer(EVC_APS_GEN *p_aps_gen_array);
 #endif
 
 #endif /* _EVC_DRA_H_ */

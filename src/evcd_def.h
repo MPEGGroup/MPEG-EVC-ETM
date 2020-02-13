@@ -210,6 +210,10 @@ struct _EVCD_CTX
     /* adaptation parameter set */
     EVC_APS                 aps;
     u8                      aps_temp;
+#if QC_DRA
+    void * p_pps_draParams;
+    void                 *void_aps_gen_array; 
+#endif
     /* current decoded (decoding) picture buffer */
     EVC_PIC               * pic;
     /* SBAC */
@@ -331,9 +335,6 @@ struct _EVCD_CTX
     void                  * pf;
 #if M50761_CHROMA_NOT_SPLIT
     TREE_CONS               tree_cons;
-#endif
-#if QC_DRA
-    void * p_draParams;
 #endif
 };
 

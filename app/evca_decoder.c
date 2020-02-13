@@ -302,10 +302,28 @@ int main(int argc, const char **argv)
 
 #if QC_DRA
     EVC_IMGB          *imgb_dra = NULL;
-    WCGDDRAControl g_dra_control;
-    WCGDDRAControl *p_g_dra_control = &g_dra_control;
-    p_g_dra_control->m_chromaQPModel.m_draChromaCbQpOffset = 0;
-    p_g_dra_control->m_chromaQPModel.m_draChromaCrQpOffset = 0;
+    // global CVS buffer for DRA control
+    SignalledParamsDRA g_dra_control_array[32];
+    // local PU buffer for 2 types of APS data: ALF and DRA
+    evc_AlfSliceParam g_alf_control;
+    evc_AlfSliceParam *p_g_alf_control = &g_alf_control;
+
+    WCGDDRAControl g_dra_control_effective;
+    WCGDDRAControl g_dra_control_read;
+    WCGDDRAControl *p_g_dra_control_read = &g_dra_control_read;
+
+    // Structure to keep 2 types of APS to read at PU
+    EVC_APS_GEN aps_gen_array[2];
+    EVC_APS_GEN *p_aps_gen_array = &(aps_gen_array[0]);
+
+    for (int i = 0; i < 32; i++)
+    {
+        g_dra_control_array[i].m_signal_dra_flag = -1;
+    }
+    g_dra_control_read.m_signalledDRA.m_signal_dra_flag = 0;
+    aps_gen_array[0].aps_data = (void*)p_g_alf_control;
+    aps_gen_array[1].aps_data = (void*)(&(g_dra_control_read.m_signalledDRA));
+    evc_resetApsGenReadBuffer(p_aps_gen_array);
 #endif
 
 #if DECODING_TIME_TEST
@@ -370,14 +388,14 @@ int main(int argc, const char **argv)
 
     while(1)
     {
-        if(state == STATE_DECODING)
+        if (state == STATE_DECODING)
         {
             evc_mset(&stat, 0, sizeof(EVCD_STAT));
 
             bs_size = read_nalu(fp_bs, &bs_read_pos, bs_buf);
             int nalu_size_field_in_bytes = 4;
 
-            if(bs_size <= 0)
+            if (bs_size <= 0)
             {
                 state = STATE_BUMPING;
                 v1print("bumping process starting...\n");
@@ -386,7 +404,7 @@ int main(int argc, const char **argv)
 
             bs_read_pos += (nalu_size_field_in_bytes + bs_size);
             stat.read += nalu_size_field_in_bytes;
-            bitb.addr  = bs_buf;
+            bitb.addr = bs_buf;
             bitb.ssize = bs_size;
             bitb.bsize = MAX_BS_BUF;
 
@@ -396,7 +414,26 @@ int main(int argc, const char **argv)
 #endif
             /* main decoding block */
 #if QC_DRA
-            ret = evcd_decode(id, &bitb, &stat, (void*)(p_g_dra_control));
+            ret = evcd_decode(id, &bitb, &stat, (void*)(p_aps_gen_array));
+
+            // check if new DRA APS recieved, update buffer
+            if ((p_aps_gen_array + 1)->aps_id != -1)
+            {
+                evc_addDraApsToBuffer(&(g_dra_control_array[0]), p_aps_gen_array);
+            }
+            // Assigned effective DRA controls as specified by PPS
+            int pps_dra_id = evcd_get_pps_dra_id(id);
+            if ((pps_dra_id > -1) && (pps_dra_id < 32))
+            {
+                memcpy(&(g_dra_control_effective.m_signalledDRA), &(g_dra_control_array[pps_dra_id]), sizeof(SignalledParamsDRA));
+                g_dra_control_effective.m_flagEnabled = 1;
+                evcd_assign_pps_draParam(id, &(g_dra_control_effective.m_signalledDRA));
+            }
+            else
+            {
+                g_dra_control_effective.m_flagEnabled = 0;
+                g_dra_control_effective.m_signalledDRA.m_signal_dra_flag = 0;
+            }
 #else
             ret = evcd_decode(id, &bitb, &stat);
 #endif
@@ -456,19 +493,12 @@ int main(int argc, const char **argv)
                     }
                 }
 #if QC_DRA
-#if QC_ADD_DRA_FLAG
-                if (p_g_dra_control->m_signalledDRA.m_signal_dra_flag)
+                if (g_dra_control_effective.m_flagEnabled)
                 {
-#endif
-                    evcd_initDRA(p_g_dra_control);
-#if QC_ADD_DRA_FLAG
+                    evcd_initDRA(&g_dra_control_effective);
                 }
-                if (p_g_dra_control->m_signalledDRA.m_signal_dra_flag)
+                if (g_dra_control_effective.m_flagEnabled)
                 {
-#else
-                    if (1)
-                    {
-#endif
                     int align[EVC_IMGB_MAX_PLANE] = { MIN_CU_SIZE, MIN_CU_SIZE >> 1, MIN_CU_SIZE >> 1 };
                     int pad[EVC_IMGB_MAX_PLANE] = { 0, 0, 0, };
                     imgb_dra = evc_imgb_create(w, h, EVC_COLORSPACE_YUV420_10LE, 0, pad, align);
@@ -478,9 +508,9 @@ int main(int argc, const char **argv)
                         return -1;
                     }
                     imgb_cpy(imgb_dra, imgb);
-                    evc_apply_dra_chroma_plane(imgb, imgb, p_g_dra_control, 1, TRUE);
-                    evc_apply_dra_chroma_plane(imgb, imgb, p_g_dra_control, 2, TRUE);
-                    evc_apply_dra_luma_plane(imgb, imgb, p_g_dra_control, 0, TRUE);
+                    evc_apply_dra_chroma_plane(imgb, imgb, &g_dra_control_effective, 1, TRUE/*backwardMapping == true*/);
+                    evc_apply_dra_chroma_plane(imgb, imgb, &g_dra_control_effective, 2, TRUE /*backwardMapping == true*/);
+                    evc_apply_dra_luma_plane(imgb, imgb, &g_dra_control_effective, 0, TRUE /*backwardMapping == true*/);
                     write_dec_img(id, op_fname_out, imgb, imgb_t);
                     imgb_cpy(imgb, imgb_dra);
                     imgb_dra->release(imgb_dra);

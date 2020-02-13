@@ -3159,7 +3159,7 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
             , ctx->map_tidx
 #endif
 #if QC_ADD_ADDB_FLAG
-			, ctx->sps.tool_addb
+            , ctx->sps.tool_addb
 #endif
         );
 
@@ -3187,7 +3187,7 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
             , ctx->map_tidx
 #endif
 #if QC_ADD_ADDB_FLAG
-			, ctx->sps.tool_addb
+            , ctx->sps.tool_addb
 #endif
         );
 

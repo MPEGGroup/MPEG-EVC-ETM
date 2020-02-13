@@ -52,6 +52,9 @@ void ence_stat_cu(int x, int y, int cuw, int cuh, int cup, void *ctx, void *core
 int evce_eco_nalu(EVC_BSW * bs, EVC_NALU nalu);
 int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps);
 int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps);
+#if QC_DRA
+int evce_eco_aps_gen(EVC_BSW * bs, EVC_APS_GEN * aps);
+#endif
 int evce_eco_aps(EVC_BSW * bs, EVC_APS * aps);
 int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut);
 int evce_eco_signature(EVCE_CTX * ctx, EVC_BSW * bs);
@@ -130,7 +133,12 @@ void setAlfFilterShape(evc_AlfFilterShape *  alfShape, int shapeSize);
 int evc_lengthGolomb(int coeffVal, int k);
 int evc_getGolombKMin(evc_AlfFilterShape *  alfShape, int numFilters, int *kMinTab, int bitsCoeffScan[m_MAX_SCAN_VAL][m_MAX_EXP_GOLOMB]);
 void evc_alfGolombEncode(EVC_BSW * bs, int coeff, int kMinTab);
+#if QC_DRA
+int evce_eco_dra_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps);
+int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps);
+#else
 int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS * aps);
+#endif
 int evce_eco_alf_sh_param(EVC_BSW * bs, EVC_SH * sh);
 #if M50761_BUGFIX_ENCSIDE_IBC
 void evce_eco_ibc_flag(EVC_BSW * bs, int flag, int ctx);

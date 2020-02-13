@@ -776,6 +776,9 @@ struct _EVCE_CTX
     /* picture parameter set */
     EVC_PPS                pps;
     /* adaptation parameter set */
+#if QC_DRA
+    EVC_APS_GEN                *aps_gen_array[2];
+#endif
     EVC_APS                aps;
     u8                     aps_counter;
     u8                     aps_temp;
@@ -999,9 +1002,6 @@ struct _EVCE_CTX
     void                  * pf;
 #if M50761_CHROMA_NOT_SPLIT
     TREE_CONS            tree_cons;                //!< Tree status
-#endif
-#if QC_DRA
-    void* p_signalledDRAParams;
 #endif
 };
 

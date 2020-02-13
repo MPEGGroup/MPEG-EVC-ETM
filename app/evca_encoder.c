@@ -714,11 +714,11 @@ static EVC_ARGS_OPTION options[] = \
         "AVC Deblocking filter offset for beta"
     },
 #if ETM_HDR_REPORT_METRIC_FLAG
-	{
-		EVC_ARGS_NO_KEY,  "hdr_metric", EVC_ARGS_VAL_TYPE_INTEGER,
-		&op_flag[OP_HDR_METRIC_REPORT], &op_hdr_metric_report,
-		"hdr matric report on/off flag"
-	},
+    {
+        EVC_ARGS_NO_KEY,  "hdr_metric", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_HDR_METRIC_REPORT], &op_hdr_metric_report,
+        "hdr matric report on/off flag"
+    },
 #endif
 #if EVC_TILE_SUPPORT
     {
@@ -1304,9 +1304,9 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->deblock_aplha_offset = op_deblock_alpha_offset;
     cdsc->deblock_beta_offset = op_deblock_beta_offset;
 #if ETM_HDR_REPORT_METRIC_FLAG
-	cdsc->tool_hdr_metric = op_hdr_metric_report;
+    cdsc->tool_hdr_metric = op_hdr_metric_report;
 #endif
-#if QC_ADD_DRA_FLAG
+#if QC_DRA
     cdsc->tool_dra = op_dra_enable_flag;
 #endif
 #if EVC_TILE_SUPPORT
@@ -1550,11 +1550,9 @@ static void print_enc_conf(EVCE_CDSC * cdsc)
     printf("ChromaQPTable: %d ", cdsc->chroma_qp_table_struct.chroma_qp_table_present_flag);
 #endif
 #if QC_DRA
-#if QC_ADD_DRA_FLAG
     printf("DRA: %d ", cdsc->tool_dra);
 #else
     printf("DRA: %d ", ((WCGDDRAControl *)cdsc->m_DRAMappingApp)->m_flagEnabled);
-#endif
 #endif
     printf("\n");
 }
@@ -1657,7 +1655,7 @@ static void print_stat_init(void)
     print("---------------------------------------------------------------------------------------\n");
 #if ETM_HDR_METRIC
 #if ETM_HDR_REPORT_METRIC_FLAG
-	if (op_hdr_metric_report)
+    if (op_hdr_metric_report)
 #endif
     {
         print("POC   Tid   Ftype   QP   PSNR-Y    PSNR-U    PSNR-V    wPSNR-Y   wPSNR-U   wPSNR-V   DeltaE100   PSNRL100   Bits      EncT(ms)  ");
@@ -2618,16 +2616,12 @@ static int write_rec(IMGB_LIST *list, EVC_MTIME *ts)
             if(op_flag[OP_FLAG_FNAME_REC])
             {
 #if QC_DRA
-#if QC_ADD_DRA_FLAG
                 if (p_DRAMapping->m_signalledDRA.m_signal_dra_flag)
                 {
-#endif
                     evc_apply_dra_chroma_plane(list[i].imgb, list[i].imgb, p_DRAMapping, 1, TRUE/*backwardMapping == false*/);
                     evc_apply_dra_chroma_plane(list[i].imgb, list[i].imgb, p_DRAMapping, 2, TRUE /*backwardMapping == false*/);
                     evc_apply_dra_luma_plane(list[i].imgb, list[i].imgb, p_DRAMapping, 0, TRUE /*backwardMapping == false*/);
-#if QC_ADD_DRA_FLAG
                 }
-#endif
 #endif
                 if(imgb_write(op_fname_rec, list[i].imgb))
                 {
@@ -2755,7 +2749,27 @@ int main(int argc, const char **argv)
     EVC_IMGB          *imgb_dra = NULL;
     WCGDDRAControl g_dra_control;
     WCGDDRAControl *p_g_dra_control = &g_dra_control;
+    p_g_dra_control->m_signalledDRA.m_signal_dra_flag = -1;
     cdsc.m_DRAMappingApp = (void*)p_g_dra_control;  // To be re-asign to the cdsc storage after cdsc structure is reset in get_conf().
+
+    // global CVS buffer for 2 types of APS data: ALF and DRA
+    SignalledParamsDRA g_dra_control_array[32];
+    for (int i = 0; i < 32; i++)
+    {
+        g_dra_control_array[i].m_signal_dra_flag = -1;
+    }
+
+    // local PU buffer for 2 types of APS data: ALF and DRA
+    evc_AlfSliceParam g_alf_control;
+    evc_AlfSliceParam *p_g_alf_control = &g_alf_control;
+
+    // Structure to keep 2 types of APS to read at PU
+    EVC_APS_GEN aps_gen_array[2];
+    EVC_APS_GEN *p_aps_gen_array = aps_gen_array;
+
+    aps_gen_array[0].aps_data = (void*)p_g_alf_control;
+    aps_gen_array[1].aps_data = (void*)&(p_g_dra_control->m_signalledDRA);
+    evc_resetApsGenReadBuffer(p_aps_gen_array);
 #endif
     IMGB_LIST           ilist_org[MAX_BUMP_FRM_CNT];
     IMGB_LIST           ilist_rec[MAX_BUMP_FRM_CNT];
@@ -2869,18 +2883,19 @@ int main(int argc, const char **argv)
     bitb.bsize = MAX_BS_BUF;
 
 #if QC_DRA
-#if QC_ADD_DRA_FLAG
     if (cdsc.tool_dra)
     {
-#endif
         evce_initDRA(p_g_dra_control, 0, NULL, NULL);
         evce_analyzeInputPic(p_g_dra_control);
-#if QC_ADD_DRA_FLAG
+        if (aps_gen_array[1].aps_id < 31)
+        {
+            aps_gen_array[1].signal_flag = 1;
+            aps_gen_array[1].aps_id = 0;  // initial DRA APS
+        }
     }
 #endif
-#endif
 #if QC_DRA
-    ret = evce_encode_sps(id, &bitb, &stat, (void*)(&(p_g_dra_control->m_signalledDRA)));
+    ret = evce_encode_sps(id, &bitb, &stat, (void *)aps_gen_array);
 #else
     ret = evce_encode_sps(id, &bitb, &stat);
 #endif
@@ -2985,9 +3000,7 @@ int main(int argc, const char **argv)
             /* copy original image to encoding buffer */
             imgb_cpy(imgb_enc, ilist_t->imgb);
 #if QC_DRA
-#if QC_ADD_DRA_FLAG
-            if (cdsc.tool_dra)
-#endif
+            if (evce_get_pps_dra_flag(id))
             {
                 /* get encodng buffer */
                 evc_apply_dra_chroma_plane(imgb_enc, imgb_enc, p_g_dra_control, 1, FALSE);
@@ -3007,9 +3020,11 @@ int main(int argc, const char **argv)
             pic_icnt++;
         }
 #if HDR_MD5_CHECK
-        memcpy(g_lumaInvScaleLUT, &(p_g_dra_control->m_lumaInvScaleLUT[0]), DRA_LUT_MAXSIZE * sizeof(int));
-        memcpy(g_chromaInvScaleLUT, &(p_g_dra_control->m_chromaInvScaleLUT[0][0]), 2 * DRA_LUT_MAXSIZE * sizeof(double));
-        memcpy(g_intChromaInvScaleLUT, &(p_g_dra_control->m_intChromaInvScaleLUT[0][0]), 2 * DRA_LUT_MAXSIZE * sizeof(int));
+        if (evce_get_pps_dra_flag(id)) {
+            memcpy(g_lumaInvScaleLUT, &(p_g_dra_control->m_lumaInvScaleLUT[0]), DRA_LUT_MAXSIZE * sizeof(int));
+            memcpy(g_chromaInvScaleLUT, &(p_g_dra_control->m_chromaInvScaleLUT[0][0]), 2 * DRA_LUT_MAXSIZE * sizeof(double));
+            memcpy(g_intChromaInvScaleLUT, &(p_g_dra_control->m_intChromaInvScaleLUT[0][0]), 2 * DRA_LUT_MAXSIZE * sizeof(int));
+        }
 #endif
         /* encoding */
         clk_beg = evc_clk_get();
@@ -3058,10 +3073,8 @@ int main(int argc, const char **argv)
                 return -1;
             }
 #if QC_DRA
-#if QC_ADD_DRA_FLAG
-            if (cdsc.tool_dra)
+            if (evce_get_pps_dra_flag(id))
             {
-#endif
                 if (EVC_OK != evce_get_inbuf(id, &imgb_dra))
                 {
                     v0print("Cannot get original image buffer (DRA)\n");
@@ -3071,9 +3084,7 @@ int main(int argc, const char **argv)
                 evc_apply_dra_chroma_plane(ilist_t->imgb, ilist_t->imgb, p_g_dra_control, 1, TRUE/*backwardMapping == false*/);
                 evc_apply_dra_chroma_plane(ilist_t->imgb, ilist_t->imgb, p_g_dra_control, 2, TRUE /*backwardMapping == false*/);
                 evc_apply_dra_luma_plane(ilist_t->imgb, ilist_t->imgb, p_g_dra_control, 0, TRUE /*backwardMapping == false*/);
-#if QC_ADD_DRA_FLAG
             }
-#endif
 #endif
             /* calculate PSNR */
             if(cal_psnr(ilist_org, ilist_t->imgb, ilist_t->ts, psnr, &ms_ssim))
@@ -3082,10 +3093,8 @@ int main(int argc, const char **argv)
                 return -1;
             }
 #if ETM_HDR_METRIC
-#if ETM_HDR_REPORT_METRIC_FLAG
 			if (op_hdr_metric_report)
 			{
-#endif
 				if (cal_wpsnr(ilist_org, ilist_t->imgb, ilist_t->ts, wpsnr))
 				{
 					v0print("cannot calculate wPSNR\n");
@@ -3096,20 +3105,14 @@ int main(int argc, const char **argv)
 					v0print("cannot calculate DeltaE100 or PSNRL100\n");
 					return -1;
 				}
-#if ETM_HDR_REPORT_METRIC_FLAG
 			}
 #endif
-#endif
 #if QC_DRA
-#if QC_ADD_DRA_FLAG
             if (cdsc.tool_dra)
             {
-#endif
                 imgb_cpy(ilist_t->imgb, imgb_dra);// recover copy of the reconstructed picture for DPB
                 imgb_enc->release(imgb_dra);
-#if QC_ADD_DRA_FLAG
             }
-#endif
             if (write_rec(ilist_rec, &pic_ocnt, p_g_dra_control))
 #else
             /* store reconstructed image */
@@ -3208,19 +3211,15 @@ int main(int argc, const char **argv)
     v1print("  PSNR V(dB)       : %-5.4f\n", psnr_avg[2]);
     v1print("  MsSSIM_Y         : %-8.7f\n", ms_ssim_avg);
 #if ETM_HDR_METRIC
-#if ETM_HDR_REPORT_METRIC_FLAG
 	if (op_hdr_metric_report)
 	{
-#endif
 		v1print("  wPSNR Y(dB)      : %-5.4f\n", wpsnr_avg[0]);
 		v1print("  wPSNR U(dB)      : %-5.4f\n", wpsnr_avg[1]);
 		v1print("  wPSNR V(dB)      : %-5.4f\n", wpsnr_avg[2]);
 
 		v1print("  deltaE100 Y(dB)  : %-5.4f\n", deltaE_avg);
 		v1print("  PSNRL100 U(dB)   : %-5.4f\n", psnrL_avg);
-#if ETM_HDR_REPORT_METRIC_FLAG
 	}
-#endif
 #endif
     v1print("  Total bits(bits) : %-.0f\n", bitrate*8);
     bitrate *= (cdsc.fps * 8);
@@ -3230,20 +3229,16 @@ int main(int argc, const char **argv)
 
 #if SCRIPT_REPORT
 #if ETM_HDR_METRIC
-#if ETM_HDR_REPORT_METRIC_FLAG
 	if (op_hdr_metric_report)
 	{
-#endif
 		v1print("  Labeles\t: br,kbps\tPSNR,Y\tPSNR,U\tPSNR,V\twPSNR,Y\twPSNR,U\twPSNR,V\tDeltaE100 PSNRL100\t\n");
 		v1print("  Summary\t: %-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t %-5.4f\t\n", bitrate, psnr_avg[0], psnr_avg[1], psnr_avg[2], wpsnr_avg[0], wpsnr_avg[1], wpsnr_avg[2], deltaE_avg, psnrL_avg);
-#if ETM_HDR_REPORT_METRIC_FLAG
 	}
 	else
 	{
 		v1print("  Labeles:\t: br,kbps\tPSNR,Y\tPSNR,U\tPSNR,V\t\n");
 		v1print("  Summary\t: %-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\n", bitrate, psnr_avg[0], psnr_avg[1], psnr_avg[2]);
 	}
-#endif
 #else
     v1print("  Labeles:\t: br,kbps\tPSNR,Y\tPSNR,U\tPSNR,V\t\n");
     v1print("  Summary\t: %-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\n", bitrate, psnr_avg[0], psnr_avg[1], psnr_avg[2]);
