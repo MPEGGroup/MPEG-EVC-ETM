@@ -1656,6 +1656,8 @@ static void print_stat_init(void)
 #if ETM_HDR_METRIC
 #if ETM_HDR_REPORT_METRIC_FLAG
     if (op_hdr_metric_report)
+#else
+	if (1)
 #endif
     {
         print("POC   Tid   Ftype   QP   PSNR-Y    PSNR-U    PSNR-V    wPSNR-Y   wPSNR-U   wPSNR-V   DeltaE100   PSNRL100   Bits      EncT(ms)  ");
@@ -3093,7 +3095,9 @@ int main(int argc, const char **argv)
                 return -1;
             }
 #if ETM_HDR_METRIC
+#if ETM_HDR_REPORT_METRIC_FLAG
 			if (op_hdr_metric_report)
+#endif
 			{
 				if (cal_wpsnr(ilist_org, ilist_t->imgb, ilist_t->ts, wpsnr))
 				{
@@ -3211,7 +3215,9 @@ int main(int argc, const char **argv)
     v1print("  PSNR V(dB)       : %-5.4f\n", psnr_avg[2]);
     v1print("  MsSSIM_Y         : %-8.7f\n", ms_ssim_avg);
 #if ETM_HDR_METRIC
+#if ETM_HDR_REPORT_METRIC_FLAG
 	if (op_hdr_metric_report)
+#endif
 	{
 		v1print("  wPSNR Y(dB)      : %-5.4f\n", wpsnr_avg[0]);
 		v1print("  wPSNR U(dB)      : %-5.4f\n", wpsnr_avg[1]);
@@ -3229,7 +3235,11 @@ int main(int argc, const char **argv)
 
 #if SCRIPT_REPORT
 #if ETM_HDR_METRIC
+#if ETM_HDR_REPORT_METRIC_FLAG
 	if (op_hdr_metric_report)
+#else
+	if (1)
+#endif
 	{
 		v1print("  Labeles\t: br,kbps\tPSNR,Y\tPSNR,U\tPSNR,V\twPSNR,Y\twPSNR,U\twPSNR,V\tDeltaE100 PSNRL100\t\n");
 		v1print("  Summary\t: %-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t %-5.4f\t\n", bitrate, psnr_avg[0], psnr_avg[1], psnr_avg[2], wpsnr_avg[0], wpsnr_avg[1], wpsnr_avg[2], deltaE_avg, psnrL_avg);
