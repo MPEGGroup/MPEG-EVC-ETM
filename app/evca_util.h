@@ -443,24 +443,24 @@ EVC_IMGB * imgb_alloc(int w, int h, int cs)
         imgb->np = 3;
     }
 #if ETM_HDR_METRIC
-	else if (cs == EVC_COLORSPACE_YUV444_10LE)
-	{
-		for (i = 0; i < 3; i++)
-		{
-			imgb->w[i] = imgb->aw[i] = w;
-			imgb->s[i] = w * sizeof(float);
-			imgb->h[i] = imgb->ah[i] = imgb->e[i] = h;
-			imgb->bsize[i] = imgb->s[i] * imgb->e[i];
+    else if (cs == EVC_COLORSPACE_YUV444_10LE)
+    {
+        for (i = 0; i < 3; i++)
+        {
+            imgb->w[i] = imgb->aw[i] = w;
+            imgb->s[i] = w * sizeof(float);
+            imgb->h[i] = imgb->ah[i] = imgb->e[i] = h;
+            imgb->bsize[i] = imgb->s[i] * imgb->e[i];
 
-			imgb->a[i] = imgb->baddr[i] = malloc(imgb->bsize[i]);
-			if (imgb->a[i] == NULL)
-			{
-				v0print("cannot allocate picture buffer\n");
-				return NULL;
-			}
-		}
-		imgb->np = 3;
-	}
+            imgb->a[i] = imgb->baddr[i] = malloc(imgb->bsize[i]);
+            if (imgb->a[i] == NULL)
+            {
+                v0print("cannot allocate picture buffer\n");
+                return NULL;
+            }
+        }
+        imgb->np = 3;
+    }
 #endif
     else
     {

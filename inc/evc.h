@@ -35,8 +35,8 @@
 #ifndef _EVC_H_
 #define _EVC_H_
 
-#define ETM_HDR_REPORT_METRIC_FLAG	    1
-#define QC_DRA 1
+#define ETM_HDR_REPORT_METRIC_FLAG      1
+#define QC_DRA                          1
 #define QC_ADD_ADDB_FLAG                1
 #define M52166_PARTITION                1
 
@@ -521,7 +521,7 @@ typedef struct _EVCE_CDSC
     int tool_dra;
 #endif
 #if ETM_HDR_REPORT_METRIC_FLAG
-	int tool_hdr_metric;
+    int tool_hdr_metric;
 #endif
     EVC_RPL rpls_l0[MAX_NUM_RPLS];
     EVC_RPL rpls_l1[MAX_NUM_RPLS];
