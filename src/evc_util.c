@@ -3053,9 +3053,6 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
         int cuh = 1 << log2_cuh;
         for (int mode = SPLIT_BI_VER; mode < SPLIT_QUAD; ++mode)
             split_allow[mode] &= evc_get_mode_cons_by_split(mode, cuw, cuh) == eAll;
-
-        if (sps_btt_flag)
-            split_allow[SPLIT_QUAD] &= evc_get_mode_cons_by_split(SPLIT_QUAD, cuw, cuh) == eAll;
     }
 #endif
 }
@@ -5425,10 +5422,7 @@ void evc_split_get_part_structure(int split_mode, int x0, int y0, int cuw, int c
     split_struct->cup[0] = cup;
 #if M50761_CHROMA_NOT_SPLIT
     split_struct->tree_cons = tree_cons;
-    if (!tree_cons.changed && !evc_tree_split_allowed(cuw, cuh, split_mode))
-    {
-        split_struct->tree_cons.changed = TRUE;
-    }
+    split_struct->tree_cons.changed = tree_cons.mode_cons == eAll && !evc_is_chroma_split_allowed( cuw, cuh, split_mode );
 #endif
 
     switch(split_mode)
@@ -5935,12 +5929,10 @@ u8 evc_check_chroma_split_allowed(int luma_width, int luma_height)
 }
 
 
-u8 evc_tree_split_allowed(int w, int h, SPLIT_MODE split)
+u8 evc_is_chroma_split_allowed(int w, int h, SPLIT_MODE split)
 {
     switch (split)
     {
-    case SPLIT_QUAD:
-        return evc_check_chroma_split_allowed(w >> 1, h >> 1);
     case SPLIT_BI_VER:
         return evc_check_chroma_split_allowed(w >> 1, h);
     case SPLIT_BI_HOR:
@@ -5950,10 +5942,9 @@ u8 evc_tree_split_allowed(int w, int h, SPLIT_MODE split)
     case SPLIT_TRI_HOR:
         return evc_check_chroma_split_allowed(w, h >> 2);
     default:
-        evc_assert(0);
+        evc_assert(!"This check is for BTT only");
         return 0;
     }
-
 }
 
 enum TQC_RUN evc_get_run(enum TQC_RUN run_list, TREE_CONS tree_cons)
@@ -6028,7 +6019,7 @@ void evc_set_tree_mode(TREE_CONS* dest, MODE_CONS mode)
 
 BOOL evc_signal_mode_cons(TREE_CONS* parent, TREE_CONS* cur_split)
 {
-    return !parent->changed && cur_split->changed;
+    return parent->mode_cons == eAll && cur_split->changed;
 }
 
 MODE_CONS evc_get_mode_cons_by_split(SPLIT_MODE split_mode, int cuw, int cuh)
@@ -6049,12 +6040,8 @@ MODE_CONS evc_get_mode_cons_by_split(SPLIT_MODE split_mode, int cuw, int cuh)
     case SPLIT_TRI_VER:
         small_cuw >>= 2;
         break;
-    case SPLIT_QUAD:
-        small_cuw >>= 1;
-        small_cuh >>= 1;
-        break;
     default:
-        evc_assert(0);
+        evc_assert(!"For BTT only");
     }
     return (small_cuh == 4 && small_cuw == 4) ? eOnlyIntra : eAll;
 }

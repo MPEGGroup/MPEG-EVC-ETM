@@ -390,7 +390,7 @@ void evc_block_copy(s16 * src, int src_stride, s16 * dst, int dst_stride, int lo
 
 #if M50761_CHROMA_NOT_SPLIT
 u8 evc_check_chroma_split_allowed(int luma_width, int luma_height);
-u8 evc_tree_split_allowed(int w, int h, SPLIT_MODE split);
+u8 evc_is_chroma_split_allowed(int w, int h, SPLIT_MODE split);
 int evc_get_luma_cup(int x_scu, int y_scu, int cu_w_scu, int cu_h_scu, int w_scu);
 enum TQC_RUN evc_get_run(enum TQC_RUN run_list, TREE_CONS tree_cons);
 u8 evc_check_luma(TREE_CONS tree_cons);
