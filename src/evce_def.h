@@ -41,9 +41,7 @@
 
 /* support RDOQ */
 #define SCALE_BITS               15    /* Inherited from TMuC, pressumably for fractional bit estimates in RDOQ */
-#if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
 #define ERR_SCALE_PRECISION_BITS 20
-#endif
 /* EVC encoder magic code */
 #define EVCE_MAGIC_CODE         0x45565945 /* EVYE */
 
