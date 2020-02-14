@@ -210,6 +210,7 @@ void evc_split_get_part_structure(int split_mode, int x0, int y0, int cuw, int c
     , TREE_CONS tree_cons /*, u8 slice_type */
 #endif
 );
+void evc_split_get_part_structure_d( int split_mode, int x0, int y0, int cuw, int cuh, int cup, int cud, int log2_culine, EVC_SPLIT_STRUCT* split_struct ); //TODO: Tim: remove after full refactoring
 //! Get array of split modes tried sequentially in RDO
 void evc_split_get_split_rdo_order(int cuw, int cuh, SPLIT_MODE splits[MAX_SPLIT_NUM]);
 //! Get split direction. Quad will return vertical direction.

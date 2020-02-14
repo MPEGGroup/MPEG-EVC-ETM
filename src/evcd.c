@@ -1480,11 +1480,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
     {
         EVC_SPLIT_STRUCT split_struct;
         
-        evc_split_get_part_structure(split_mode, x0, y0, cuw, cuh, cup, cud, ctx->log2_max_cuwh - MIN_CU_LOG2, &split_struct
-#if M50761_CHROMA_NOT_SPLIT
-            ,  evc_get_default_tree_cons() /*, ctx->tgh.tile_group_type */ /*TODO: remove it*/
-#endif
-        );
+        evc_split_get_part_structure_d(split_mode, x0, y0, cuw, cuh, cup, cud, ctx->log2_max_cuwh - MIN_CU_LOG2, &split_struct );
 #if M50761_CHROMA_NOT_SPLIT
         TREE_CONS_NEW tree_cons_for_childs = tree_cons;
 
@@ -1599,19 +1595,16 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
     {
         EVC_SPLIT_STRUCT split_struct;
         int suco_order[SPLIT_MAX_PART_COUNT];
-        evc_split_get_part_structure(split_mode, x, y, cuw, cuh, cup, cud, ctx->log2_max_cuwh - MIN_CU_LOG2, &split_struct
+        evc_split_get_part_structure_d(split_mode, x, y, cuw, cuh, cup, cud, ctx->log2_max_cuwh - MIN_CU_LOG2, &split_struct);
 #if M50761_CHROMA_NOT_SPLIT
-            , tree_cons /*, ctx->tgh.tile_group_type */
-#endif
-        );
-#if M50761_CHROMA_NOT_SPLIT
-        BOOL mode_cons_changed = evc_signal_mode_cons(&ctx->tree_cons, &split_struct.tree_cons)
-#if CHROMA_NOT_SPLIT_EXCLUDE_IBC
-            && !ctx->sps.ibc_flag
-#endif
-            ;
+        split_struct.tree_cons = tree_cons;
+
+        BOOL mode_cons_changed = FALSE;
+
         if (split_mode != SPLIT_QUAD )       // Only for main profile
         {
+            mode_cons_changed = tree_cons.mode_cons == eAll && !evc_is_chroma_split_allowed( cuw, cuh, split_mode );
+
             if (mode_cons_changed)
             {
                 MODE_CONS mode = evcd_derive_mode_cons(ctx, PEL2SCU(x) + PEL2SCU(y) * ctx->w_scu);
@@ -1624,6 +1617,8 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
             split_struct.tree_cons = evc_get_default_tree_cons();
             mode_cons_changed = FALSE;
         }
+
+        tree_cons.changed = mode_cons_changed;
 #endif
 
         evc_split_get_suco_order(evc_split_is_vertical(split_mode) ? suco_flag : 0, split_mode, suco_order);
