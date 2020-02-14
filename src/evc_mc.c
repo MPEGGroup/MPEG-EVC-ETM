@@ -7250,26 +7250,7 @@ void evc_IBC_mc(int x, int y, int log2_cuw, int log2_cuh, s16 mv[MV_D], EVC_PIC 
 #endif
 }
 
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV && !M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
-BOOL check_eif_clipMV_flag(s16 ac_mv[VER_NUM][MV_D], int d_hor[MV_D], int d_ver[MV_D], int mv_precision)
-{
-
-#if EIF_FORBID_NON_CONTINUOUS_MEMORY_ACCESS
-    if (d_ver[MV_Y] < -1 << mv_precision)
-        return FALSE;
-#endif
-
-#if EIF_NUM_FETCHED_LINES_BASIC_RESTRICTION
-    if ((max(0, d_ver[MV_Y]) + abs(d_hor[MV_Y])) * (1 + EIF_HW_SUBBLOCK_SIZE) > (EIF_NUM_ALLOWED_FETCHED_LINES_FOR_THE_FIRST_LINE - 2) << mv_precision)
-        return FALSE;
-#endif
-
-    return TRUE;
-}
-#endif
-
 #if EIF_CLIPPING_REDESIGN 
-
 void eif_derive_mv_clip_range(int x, int y, int cuw, int cuh, int dmv_hor[MV_D], int dmv_ver[MV_D], int mv_scale[MV_D],
     int pic_w, int pic_h, BOOL range_clip, int max_mv[MV_D], int min_mv[MV_D])
 {
@@ -7383,10 +7364,6 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
     int d_hor[MV_D] = { dmv_hor_x, dmv_hor_y }, d_ver[MV_D] = { dmv_ver_x, dmv_ver_y };
     int mv_precision = MAX_CU_LOG2 + MC_PRECISION_ADD;
     BOOL clipMV = FALSE;
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV && !M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW   // to be updated by HW
-    //clipMV = b_eif && check_eif_clipMV_flag(ac_mv, d_hor, d_ver, mv_precision);
-    clipMV = check_eif_clipMV_flag(ac_mv, d_hor, d_ver, mv_precision);
-#endif
 #else
     int b_eif = 0;
     int mv_w = max(abs(ac_mv[1][MV_X] - ac_mv[0][MV_X]), abs(ac_mv[1][MV_Y] - ac_mv[0][MV_Y]));
@@ -7436,15 +7413,6 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
 
         return;
     }
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV && !M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
-    else if (clipMV)
-    {
-        evc_derive_mv_clip_range_2D(cuw, cuh, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y, &hor_max, &hor_min, &ver_max, &ver_min, vertex_num, ac_mv);
-        evc_eif_mc(cuw, cuh, x, y, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y,
-            hor_max, ver_max, hor_min, ver_min, ref_pic->y, ref_pic->s_l, pred, cuw, tmp_buffer, bit + 2, Y_C);
-        return;
-    }
-#endif
 
     int mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori;
     // get prediction block by block
@@ -7546,11 +7514,6 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
     int d_hor[MV_D] = { dmv_hor_x, dmv_hor_y }, d_ver[MV_D] = { dmv_ver_x, dmv_ver_y };
     int mv_precision = MAX_CU_LOG2 + MC_PRECISION_ADD;
     BOOL clipMV = FALSE;
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV && !M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW  // to be updated by HW
-    //clipMV = b_eif && check_eif_clipMV_flag(ac_mv, d_hor, d_ver, mv_precision);
-    clipMV = check_eif_clipMV_flag(ac_mv, d_hor, d_ver, mv_precision);
-#endif
-
 #else
     int b_eif = 0;
     int mv_w = max(abs(ac_mv[1][MV_X] - ac_mv[0][MV_X]), abs(ac_mv[1][MV_Y] - ac_mv[0][MV_Y]));
@@ -7615,22 +7578,6 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
             ref_pic->v, ref_pic->s_c, pred[V_C], cuw >> 1, tmp_buffer_for_eif, bit + 2, V_C);
         return;
     }
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV && !M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
-    else if (clipMV)
-    {
-        evc_derive_mv_clip_range_2D(cuw, cuh, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y, &hor_max, &hor_min, &ver_max, &ver_min, vertex_num, ac_mv);
-
-        evc_eif_mc(cuw, cuh, x, y, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y,
-            hor_max, ver_max, hor_min, ver_min, ref_pic->y, ref_pic->s_l, pred[Y_C], cuw, tmp_buffer_for_eif, bit + 2, Y_C);
-
-        evc_eif_mc(cuw, cuh, x, y, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y,
-            hor_max, ver_max, hor_min, ver_min, ref_pic->u, ref_pic->s_c, pred[U_C], cuw >> 1, tmp_buffer_for_eif, bit + 2, U_C);
-
-        evc_eif_mc(cuw, cuh, x, y, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y,
-            hor_max, ver_max, hor_min, ver_min, ref_pic->v, ref_pic->s_c, pred[V_C], cuw >> 1, tmp_buffer_for_eif, bit + 2, V_C);
-        return;
-    }
-#endif
 
     int mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori;
 
