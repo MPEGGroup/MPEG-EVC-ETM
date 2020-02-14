@@ -3062,12 +3062,11 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
                     ctx->map_mv[k][REFP_0][MV_Y] = mv[REFP_0][MV_Y];
                     ctx->map_mv[k][REFP_1][MV_X] = mv[REFP_1][MV_X];
                     ctx->map_mv[k][REFP_1][MV_Y] = mv[REFP_1][MV_Y];
-#if M50761_DMVR_SIMP_DEBLOCK
+
                     ctx->map_unrefined_mv[k][REFP_0][MV_X] = mv[REFP_0][MV_X];
                     ctx->map_unrefined_mv[k][REFP_0][MV_Y] = mv[REFP_0][MV_Y];
                     ctx->map_unrefined_mv[k][REFP_1][MV_X] = mv[REFP_1][MV_X];
                     ctx->map_unrefined_mv[k][REFP_1][MV_Y] = mv[REFP_1][MV_Y];
-#endif
                 }
 #if DQP
                 if(ctx->pps.cu_qp_delta_enabled_flag)

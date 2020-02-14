@@ -1555,11 +1555,7 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
             if (cuh > MAX_TR_SIZE)
             {
                 evc_deblock_cu_hor(pic, x, y              , cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, 
-#if M50761_DMVR_SIMP_DEBLOCK
                   ctx->map_unrefined_mv
-#else
-                  ctx->map_mv
-#endif
                   , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
                   , ctx->tree_cons
@@ -1571,12 +1567,9 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                     , ctx->sps.tool_addb
 #endif
                 );
+
                 evc_deblock_cu_hor(pic, x, y + MAX_TR_SIZE, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi,
-#if M50761_DMVR_SIMP_DEBLOCK
                   ctx->map_unrefined_mv
-#else
-                  ctx->map_mv
-#endif
                   , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0            
 #if M50761_CHROMA_NOT_SPLIT
                   , ctx->tree_cons
@@ -1592,11 +1585,7 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
             else
             {
                 evc_deblock_cu_hor(pic, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi,
-#if M50761_DMVR_SIMP_DEBLOCK
                   ctx->map_unrefined_mv
-#else
-                  ctx->map_mv
-#endif
                   , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
                   , ctx->tree_cons
@@ -1614,13 +1603,7 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
         {
             if (cuw > MAX_TR_SIZE)
             {
-                evc_deblock_cu_ver(pic, x,               y, cuw >> 1, cuh, ctx->map_scu, ctx->map_refi,
-#if M50761_DMVR_SIMP_DEBLOCK
-                  ctx->map_unrefined_mv
-#else
-                  ctx->map_mv
-#endif
-                  , ctx->w_scu, ctx->log2_max_cuwh
+                evc_deblock_cu_ver(pic, x, y, cuw >> 1, cuh, ctx->map_scu, ctx->map_refi, ctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh
 #if FIX_PARALLEL_DBF
                   , ctx->map_cu_mode
 #endif
@@ -1635,13 +1618,7 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                     , ctx->sps.tool_addb
 #endif
                 );
-                evc_deblock_cu_ver(pic, x + MAX_TR_SIZE, y, cuw >> 1, cuh, ctx->map_scu, ctx->map_refi,
-#if M50761_DMVR_SIMP_DEBLOCK
-                  ctx->map_unrefined_mv
-#else
-                  ctx->map_mv
-#endif
-                  , ctx->w_scu, ctx->log2_max_cuwh
+                evc_deblock_cu_ver(pic, x + MAX_TR_SIZE, y, cuw >> 1, cuh, ctx->map_scu, ctx->map_refi, ctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh
 #if FIX_PARALLEL_DBF
                   , ctx->map_cu_mode
 #endif
@@ -1659,13 +1636,7 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
             }
             else
             {
-                evc_deblock_cu_ver(pic, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi,
-#if M50761_DMVR_SIMP_DEBLOCK
-                  ctx->map_unrefined_mv
-#else
-                  ctx->map_mv
-#endif
-                  , ctx->w_scu, ctx->log2_max_cuwh
+                evc_deblock_cu_ver(pic, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi, ctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh
 #if FIX_PARALLEL_DBF
                   , ctx->map_cu_mode
 #endif
@@ -1719,7 +1690,7 @@ int evcd_deblock_h263(EVCD_CTX * ctx
         {
             k1 = i + j * ctx->w_scu;
             MCU_CLR_COD(ctx->map_scu[k1]);
-#if M50761_DMVR_SIMP_DEBLOCK
+
             if (!MCU_GET_DMVRF(ctx->map_scu[k1]))
             {
                 ctx->map_unrefined_mv[k1][REFP_0][MV_X] = ctx->map_mv[k1][REFP_0][MV_X];
@@ -1727,7 +1698,6 @@ int evcd_deblock_h263(EVCD_CTX * ctx
                 ctx->map_unrefined_mv[k1][REFP_1][MV_X] = ctx->map_mv[k1][REFP_1][MV_X];
                 ctx->map_unrefined_mv[k1][REFP_1][MV_Y] = ctx->map_mv[k1][REFP_1][MV_Y];
             }
-#endif
         }
     }
 
@@ -1769,14 +1739,13 @@ int evcd_deblock_h263(EVCD_CTX * ctx
     for(k = 0; k < ctx->f_scu; k++)
     {
         MCU_CLR_COD(ctx->map_scu[k]);
-#if M50761_DMVR_SIMP_DEBLOCK
+
         if (!MCU_GET_DMVRF(ctx->map_scu[k])) {
           ctx->map_unrefined_mv[k][REFP_0][MV_X] = ctx->map_mv[k][REFP_0][MV_X];
           ctx->map_unrefined_mv[k][REFP_0][MV_Y] = ctx->map_mv[k][REFP_0][MV_Y];
           ctx->map_unrefined_mv[k][REFP_1][MV_X] = ctx->map_mv[k][REFP_1][MV_X];
           ctx->map_unrefined_mv[k][REFP_1][MV_Y] = ctx->map_mv[k][REFP_1][MV_Y];
         }
-#endif
     }
 
     /* horizontal filtering */
