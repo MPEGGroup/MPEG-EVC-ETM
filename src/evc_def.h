@@ -91,7 +91,6 @@
 //MPEG 128 adoptions
 #define M50662                                       1
 #if M50662
-#define M50662_AFFINE_ALTERNATIVE_SCANNING_ORDER     1
 #define M50662_AFFINE_MV_HISTORY_TABLE               1
 #define M50662_LUMA_CHROMA_SEPARATE_APS              1
 #define M50662_HISTORY_CTU_ROW_RESET                 1
