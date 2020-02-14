@@ -1188,10 +1188,8 @@ static int copy_history_buffer(EVC_HISTORY_BUFFER *dst, EVC_HISTORY_BUFFER *src)
 }
 
 static int get_cu_pred_data(EVCE_CU_DATA *src, int x, int y, int log2_cuw, int log2_cuh, int log2_cus, int cud, EVCE_MODE *mi
-#if M50662_AFFINE_MV_HISTORY_TABLE
 #if AFFINE_UPDATE 
                             , EVCE_CTX *ctx, EVCE_CORE *core
-#endif
 #endif
 )
 {
@@ -1891,11 +1889,7 @@ static void update_history_buffer(EVC_HISTORY_BUFFER *history_buffer, EVCE_MODE 
 }
 
 #if AFFINE_UPDATE
-static void update_history_buffer_affine(EVC_HISTORY_BUFFER *history_buffer, EVCE_MODE *mi, int slice_type
-#if M50662_AFFINE_MV_HISTORY_TABLE
-    , EVCE_CORE *core
-#endif
-)
+static void update_history_buffer_affine(EVC_HISTORY_BUFFER *history_buffer, EVCE_MODE *mi, int slice_type, EVCE_CORE *core)
 {
     int i;
     if(history_buffer->currCnt == history_buffer->m_maxCnt)
@@ -1908,7 +1902,6 @@ static void update_history_buffer_affine(EVC_HISTORY_BUFFER *history_buffer, EVC
             history_buffer->history_cu_table[i - 1] = history_buffer->history_cu_table[i];
 #endif
         }
-#if M50662_AFFINE_MV_HISTORY_TABLE
         if(mi->affine_flag)
         {
             mi->mv_sp[REFP_0][MV_X] = 0;
@@ -1984,7 +1977,6 @@ static void update_history_buffer_affine(EVC_HISTORY_BUFFER *history_buffer, EVC
             }
         }
         else
-#endif
         {
             evc_mcpy(history_buffer->history_mv_table[history_buffer->currCnt - 1], mi->mv, REFP_NUM * MV_D * sizeof(s16));
             evc_mcpy(history_buffer->history_refi_table[history_buffer->currCnt - 1], mi->refi, REFP_NUM * sizeof(s8));
@@ -1995,7 +1987,6 @@ static void update_history_buffer_affine(EVC_HISTORY_BUFFER *history_buffer, EVC
     }
     else
     {
-#if M50662_AFFINE_MV_HISTORY_TABLE
         if(mi->affine_flag)
         {
             mi->mv_sp[REFP_0][MV_X] = 0;
@@ -2068,7 +2059,6 @@ static void update_history_buffer_affine(EVC_HISTORY_BUFFER *history_buffer, EVC
             }
         }
         else
-#endif
         {
             evc_mcpy(history_buffer->history_mv_table[history_buffer->currCnt], mi->mv, REFP_NUM * MV_D * sizeof(s16));
             evc_mcpy(history_buffer->history_refi_table[history_buffer->currCnt], mi->refi, REFP_NUM * sizeof(s8));
@@ -3668,25 +3658,15 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                     // if the cost_temp has been update above, the best MV is in mi
 
                     get_cu_pred_data(&core->cu_data_best[log2_cuw - 2][log2_cuh - 2], 0, 0, log2_cuw, log2_cuh, log2_cuw, cud, mi
-#if !M49023_ADMVP_IMPROVE || M50662_AFFINE_MV_HISTORY_TABLE
 #if AFFINE_UPDATE 
                         , ctx, core
-#endif
 #endif
                     );
 
 #if AFFINE_UPDATE 
-#if M49023_ADMVP_IMPROVE && !M50662_AFFINE_MV_HISTORY_TABLE
-                    if (mi->cu_mode != MODE_INTRA && !mi->affine_flag && mi->cu_mode != MODE_IBC )
-#else
                     if (mi->cu_mode != MODE_INTRA && mi->cu_mode != MODE_IBC)
-#endif
                     {
-                        update_history_buffer_affine(&core->history_buffer, mi, ctx->slice_type
-#if M50662_AFFINE_MV_HISTORY_TABLE
-                            , core
-#endif
-                        );
+                        update_history_buffer_affine(&core->history_buffer, mi, ctx->slice_type, core);
                     }
 
 #endif       
@@ -3767,25 +3747,15 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
             // if the cost_temp has been update above, the best MV is in mi
 
             get_cu_pred_data(&core->cu_data_best[log2_cuw - 2][log2_cuh - 2], 0, 0, log2_cuw, log2_cuh, log2_cuw, cud, mi
-#if M50662_AFFINE_MV_HISTORY_TABLE
 #if AFFINE_UPDATE 
                 , ctx, core
-#endif
 #endif
             );
 
 #if AFFINE_UPDATE 
-#if !M50662_AFFINE_MV_HISTORY_TABLE
-            if (mi->cu_mode != MODE_INTRA && !mi->affine_flag && mi->cu_mode != MODE_IBC)
-#else
             if (mi->cu_mode != MODE_INTRA && mi->cu_mode != MODE_IBC)
-#endif
             {
-                update_history_buffer_affine(&core->history_buffer, mi, ctx->slice_type
-#if M50662_AFFINE_MV_HISTORY_TABLE
-                    , core
-#endif
-                );
+                update_history_buffer_affine(&core->history_buffer, mi, ctx->slice_type, core);
             }
 
 #endif 

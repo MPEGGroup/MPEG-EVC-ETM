@@ -451,7 +451,6 @@ static void update_history_buffer_parse_affine(EVCD_CORE *core, int slice_type)
             core->history_buffer.history_cu_table[i - 1] = core->history_buffer.history_cu_table[i];
 #endif
         }
-#if M50662_AFFINE_MV_HISTORY_TABLE
         if(core->affine_flag)
         {
             core->mv_sp[REFP_0][MV_X] = 0;
@@ -528,7 +527,6 @@ static void update_history_buffer_parse_affine(EVCD_CORE *core, int slice_type)
             }
         }
         else
-#endif
         {
             evc_mcpy(core->history_buffer.history_mv_table[core->history_buffer.currCnt - 1], core->mv, REFP_NUM * MV_D * sizeof(s16));
             evc_mcpy(core->history_buffer.history_refi_table[core->history_buffer.currCnt - 1], core->refi, REFP_NUM * sizeof(s8));
@@ -539,7 +537,6 @@ static void update_history_buffer_parse_affine(EVCD_CORE *core, int slice_type)
     }
     else
     {
-#if M50662_AFFINE_MV_HISTORY_TABLE
         if(core->affine_flag)
         {
             core->mv_sp[REFP_0][MV_X] = 0;
@@ -611,7 +608,6 @@ static void update_history_buffer_parse_affine(EVCD_CORE *core, int slice_type)
             }
         }
         else
-#endif
         {
             evc_mcpy(core->history_buffer.history_mv_table[core->history_buffer.currCnt], core->mv, REFP_NUM * MV_D * sizeof(s16));
             evc_mcpy(core->history_buffer.history_refi_table[core->history_buffer.currCnt], core->refi, REFP_NUM * sizeof(s8));
@@ -1091,19 +1087,11 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
         );
 #endif
 #if AFFINE_UPDATE 
-#if !M50662_AFFINE_MV_HISTORY_TABLE
-        if (core->pred_mode != MODE_INTRA && !core->affine_flag && core->pred_mode != MODE_IBC
-#if M50761_CHROMA_NOT_SPLIT
-            && evcd_check_luma(ctx)
-#endif
-            )
-#else
         if (core->pred_mode != MODE_INTRA && core->pred_mode != MODE_IBC
 #if M50761_CHROMA_NOT_SPLIT
             && evcd_check_luma(ctx)
 #endif
             )
-#endif
         {
             update_history_buffer_parse_affine(core, ctx->sh.slice_type
             );

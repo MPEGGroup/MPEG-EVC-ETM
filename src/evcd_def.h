@@ -159,12 +159,10 @@ typedef struct _EVCD_CORE
 
     /* history-based motion vector prediction candidate list */
     EVC_HISTORY_BUFFER     history_buffer;
-#if M50662_AFFINE_MV_HISTORY_TABLE
 #if AFFINE_UPDATE
     // spatial neighboring MV of affine block
     s8             refi_sp[REFP_NUM];
     s16            mv_sp[REFP_NUM][MV_D];
-#endif
 #endif
 #if TRACE_ENC_CU_DATA
     u64            trace_idx;
