@@ -96,25 +96,6 @@
 #if M50761_CHROMA_NOT_SPLIT
 #define CHROMA_NOT_SPLIT_EXCLUDE_IBC               0    // Remove CC in the case of allowing IBC
 #endif
-
-
-
-
-
-
-
-
-
-
-
-                                                   
-#define M50761_EIF_RESTRICTIONS                    1
-#if M50761_EIF_RESTRICTIONS  
-#define EIF_NEW_BILINEAR                           1
-#define EIF_MEMORY_BANDWIDTH_RESTRICTION           1
-#define EIF_NUM_FETCHED_LINES_BASIC_RESTRICTION    1
-#define EIF_FORBID_NON_CONTINUOUS_MEMORY_ACCESS    1
-#endif
 #endif
 
 #define M50631_IMPROVEMENT_ADCC                      1
@@ -369,20 +350,12 @@ enum SAD_POINT_INDEX
 
 /* EIF (START) */
 #define AFFINE_ADAPT_EIF_SIZE                                   8
-#if M50761_EIF_RESTRICTIONS
 #define EIF_HW_SUBBLOCK_SIZE                                    4
-#if EIF_NUM_FETCHED_LINES_BASIC_RESTRICTION
 #define EIF_NUM_ALLOWED_FETCHED_LINES_FOR_THE_FIRST_LINE        3
-#endif
-#if EIF_NEW_BILINEAR
 #define EIF_MV_PRECISION_BILINEAR                               5
-#endif
-#endif
 #define BOUNDING_BLOCK_MARGIN                                   7
 #define MEMORY_BANDWIDTH_THRESHOLD                              (8 + 2 + BOUNDING_BLOCK_MARGIN) / 8
 /* EIF (END) */
-
-#if EIF_MEMORY_BANDWIDTH_RESTRICTION
 
 #if M52290_MVCLIP_THRESH
 #define MAX_MEMORY_ACCESS_BI           72
@@ -390,10 +363,6 @@ enum SAD_POINT_INDEX
 #define MAX_MEMORY_ACCESS_BI           ( (4 + 5) * (4 + 5) )
 #endif
 
-#else
-#define MAX_MEMORY_ACCESS_BI             ((8 + 7) * (8 + 7) / 64)
-#define MAX_MEMORY_ACCESS_UNI            ((8 + 7) * (4 + 7) / 32)
-#endif
 /* AFFINE (END) */
 
 /* ALF (START) */
@@ -1598,14 +1567,12 @@ static const int NTAPS_CHROMA = 4; ///< Number of taps for chroma
 #error "Invalid EIF_MV_PRECISION_INTERNAL"
 #endif
 
-#if EIF_NEW_BILINEAR
 #if EIF_MV_PRECISION_BILINEAR > EIF_MV_PRECISION_INTERNAL
 #error "EIF_MV_PRECISION_BILINEAR should be less than EIF_MV_PRECISION_INTERNAL"
 #endif
 
 #if EIF_MV_PRECISION_BILINEAR < 3 
 #error "EIF_MV_PRECISION_BILINEAR is to small"
-#endif
 #endif
 
 #define MAX_SUB_TB_NUM 4

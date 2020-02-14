@@ -138,7 +138,6 @@ static const s8 tbl_bl_mc_l_coeff[4][2] =
 #endif
 };
 
-#if EIF_NEW_BILINEAR
 static const s16 tbl_bl_eif_32_phases_mc_l_coeff[32][2] =
 {
   { 64, 0  },
@@ -174,7 +173,6 @@ static const s16 tbl_bl_eif_32_phases_mc_l_coeff[32][2] =
   { 4,  60 },
   { 2,  62 }
 };
-#endif
 
 #if X86_SSE
 #define SSE_MC_FILTER_L_8PEL(src, s_src, dst, add, shift, coef, clip, min, max)\
@@ -7579,15 +7577,7 @@ void evc_eif_bilinear_clip(int block_width, int block_height, int mv0[MV_D], int
 {
     int mv[MV_D] = { mv0[MV_X], mv0[MV_Y] };
 
-#if EIF_NEW_BILINEAR
     const pel fracMask = (1 << EIF_MV_PRECISION_BILINEAR) - 1;
-#else
-    const char mv_precision = EIF_MV_PRECISION_INTERNAL;
-    const pel one = 1 << EIF_MV_PRECISION_INTERNAL;
-    const pel fracMask = one - 1;
-
-    int a[2][2] = { { 0, 0 },{ 0, 0 }, };
-#endif
 
     pel* p_buf = p_dst;
 
@@ -7604,8 +7594,6 @@ void evc_eif_bilinear_clip(int block_width, int block_height, int mv0[MV_D], int
             mv[MV_Y] = min(mv_max[MV_Y], max(mv_min[MV_Y], tmp_mv[MV_Y]));
 #endif
 
-#if EIF_NEW_BILINEAR
-
 #if EIF_CLIPPING_REDESIGN
             mv[MV_X] = min(mv_max[MV_X], max(mv_min[MV_X], tmp_mv[MV_X] >> (EIF_MV_PRECISION_INTERNAL - EIF_MV_PRECISION_BILINEAR)));
             mv[MV_Y] = min(mv_max[MV_Y], max(mv_min[MV_Y], tmp_mv[MV_Y] >> (EIF_MV_PRECISION_INTERNAL - EIF_MV_PRECISION_BILINEAR)));
@@ -7616,17 +7604,11 @@ void evc_eif_bilinear_clip(int block_width, int block_height, int mv0[MV_D], int
 
             int xInt = x + (mv[MV_X] >> EIF_MV_PRECISION_BILINEAR);
             int yInt = y + (mv[MV_Y] >> EIF_MV_PRECISION_BILINEAR);
-#else
-            int xInt = x + (mv[MV_X] >> EIF_MV_PRECISION_INTERNAL);
-            int yInt = y + (mv[MV_Y] >> EIF_MV_PRECISION_INTERNAL);
-#endif
 
             pel xFrac = mv[MV_X] & fracMask;
             pel yFrac = mv[MV_Y] & fracMask;
 
             pel* r = p_ref + yInt * ref_stride + xInt;
-
-#if EIF_NEW_BILINEAR
 
 #if EIF_MV_PRECISION_BILINEAR == 4
             pel s1 = MAC_BL_NN_S1(tbl_bl_mc_l_coeff[xFrac], r[0], r[1]);
@@ -7647,42 +7629,15 @@ void evc_eif_bilinear_clip(int block_width, int block_height, int mv0[MV_D], int
 
             p_buf[x + 1] = (tmpDoublePel + offsets[1]) >> shifts[1];
 #endif
-
-#else
-
-            pel tmp = (r[0] * (one - xFrac) + offsets[0]) >> shifts[0];
-            a[0][0] = tmp * (one - yFrac);
-
-            tmp = (r[1] * xFrac + offsets[0]) >> shifts[0];
-            a[0][1] = tmp * (one - yFrac);
-
-            tmp = (r[0 + ref_stride] * (one - xFrac) + offsets[0]) >> shifts[0];
-            a[1][0] = tmp * yFrac;
-
-            tmp = (r[1 + ref_stride] * xFrac + offsets[0]) >> shifts[0];
-            a[1][1] = tmp * yFrac;
-
-            pel b = (a[0][0] + a[0][1] + a[1][0] + a[1][1] + offsets[1]) >> shifts[1];
-
-            p_buf[x + 1] = b;
-#endif
         }
     }
 }
 
 void evc_eif_bilinear_no_clip(int block_width, int block_height, int mv0[MV_D], int d_x[MV_D], int d_y[MV_D], pel* p_ref, int ref_stride, pel* p_dst, int dst_stride, int shifts[4], int offsets[4])
 {
-#if EIF_NEW_BILINEAR
     int mv[MV_D] = { mv0[MV_X], mv0[MV_Y] };
 
     const pel fracMask = (1 << EIF_MV_PRECISION_BILINEAR) - 1;
-#else
-    const char mv_precision = EIF_MV_PRECISION_INTERNAL;
-    const pel one = 1 << EIF_MV_PRECISION_INTERNAL;
-    const pel fracMask = one - 1;
-
-    int a[2][2] = { { 0, 0 },{ 0, 0 }, };
-#endif
 
     pel* p_buf = p_dst;
 
@@ -7694,8 +7649,6 @@ void evc_eif_bilinear_no_clip(int block_width, int block_height, int mv0[MV_D], 
 
         for (int x = -1; x <= block_width; ++x, tmp_mv[MV_X] += d_x[MV_X], tmp_mv[MV_Y] += d_x[MV_Y])
         {
-
-#if EIF_NEW_BILINEAR
             mv[MV_X] = tmp_mv[MV_X] >> (EIF_MV_PRECISION_INTERNAL - EIF_MV_PRECISION_BILINEAR);
             mv[MV_Y] = tmp_mv[MV_Y] >> (EIF_MV_PRECISION_INTERNAL - EIF_MV_PRECISION_BILINEAR);
 
@@ -7704,17 +7657,8 @@ void evc_eif_bilinear_no_clip(int block_width, int block_height, int mv0[MV_D], 
 
             pel xFrac = mv[MV_X] & fracMask;
             pel yFrac = mv[MV_Y] & fracMask;
-#else
-            int xInt = x + (tmp_mv[MV_X] >> EIF_MV_PRECISION_INTERNAL);
-            int yInt = y + (tmp_mv[MV_Y] >> EIF_MV_PRECISION_INTERNAL);
-
-            pel xFrac = tmp_mv[MV_X] & fracMask;
-            pel yFrac = tmp_mv[MV_Y] & fracMask;
-#endif
 
             pel* r = p_ref + yInt * ref_stride + xInt;
-
-#if EIF_NEW_BILINEAR
 
 #if EIF_MV_PRECISION_BILINEAR == 4
             pel s1 = MAC_BL_NN_S1(tbl_bl_mc_l_coeff[xFrac], r[0], r[1]);
@@ -7734,24 +7678,6 @@ void evc_eif_bilinear_no_clip(int block_width, int block_height, int mv0[MV_D], 
             double_pel tmpDoublePel = tmpPel * xFrac + ((tmpPel2 * yFrac) << (EIF_MV_PRECISION_BILINEAR - shifts[0])) + (r[0] << (2 * EIF_MV_PRECISION_BILINEAR - shifts[0]));
 
             p_buf[x + 1] = (tmpDoublePel + offsets[1]) >> shifts[1];
-#endif
-
-#else
-            pel tmp = (r[0] * (one - xFrac) + offsets[0]) >> shifts[0];
-            a[0][0] = tmp * (one - yFrac);
-
-            tmp = (r[1] * xFrac + offsets[0]) >> shifts[0];
-            a[0][1] = tmp * (one - yFrac);
-
-            tmp = (r[0 + ref_stride] * (one - xFrac) + offsets[0]) >> shifts[0];
-            a[1][0] = tmp * yFrac;
-
-            tmp = (r[1 + ref_stride] * xFrac + offsets[0]) >> shifts[0];
-            a[1][1] = tmp * yFrac;
-
-            pel b = (a[0][0] + a[0][1] + a[1][0] + a[1][1] + offsets[1]) >> shifts[1];
-
-            p_buf[x + 1] = b;
 #endif
         }
     }
@@ -7798,17 +7724,12 @@ void evc_eif_mc(int block_width, int block_height, int x, int y, int mv_scale_ho
 
     assert(bit_depth < 16);
 
-#if EIF_NEW_BILINEAR
-
 #if EIF_MV_PRECISION_BILINEAR == 4 || EIF_MV_PRECISION_BILINEAR == 5
     int shifts[4] = { 0, 0, max(bit_depth + 5 - 16, 0), 6 - max(bit_depth + 5 - 16, 0) };
 #else
     int shifts[4] = { bit_depth + EIF_MV_PRECISION_BILINEAR - 13, EIF_MV_PRECISION_BILINEAR + 1, 4, 14 - bit_depth }; //4 -- number of bits in 10 ; all pels are positive after bilinear interpolation
 #endif
 
-#else
-    int shifts[4] = { bit_depth + EIF_MV_PRECISION_INTERNAL - 15, EIF_MV_PRECISION_INTERNAL + 2, 4, 15 - bit_depth }; //4 -- number of bits in 10 ; all pels are positive after bilinear interpolation
-#endif
     int offsets[4] = { 0, 0, 0, 0 };
 
     for (int i = 0; i < 4; ++i)

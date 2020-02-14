@@ -3383,16 +3383,11 @@ void calculate_bounding_box_size( int w, int h, s16 ac_mv[VER_NUM][MV_D], int d_
 
 BOOL check_eif_num_fetched_lines_restrictions( s16 ac_mv[VER_NUM][MV_D], int d_hor[MV_D], int d_ver[MV_D], int mv_precision )
 {
-  
-#if EIF_FORBID_NON_CONTINUOUS_MEMORY_ACCESS
   if ( d_ver[MV_Y] < -1 << mv_precision )
     return FALSE;
-#endif
 
-#if EIF_NUM_FETCHED_LINES_BASIC_RESTRICTION
   if( ( max( 0, d_ver[MV_Y] ) + abs( d_hor[MV_Y] ) ) * ( 1 + EIF_HW_SUBBLOCK_SIZE ) > ( EIF_NUM_ALLOWED_FETCHED_LINES_FOR_THE_FIRST_LINE - 2 ) << mv_precision )
     return FALSE;
-#endif
 
   return TRUE;
 }
@@ -3408,16 +3403,12 @@ BOOL check_eif_applicability_uni( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, in
 
   calculate_affine_motion_model_parameters( ac_mv, cuw, cuh, vertex_num, d_hor, d_ver, mv_additional_precision );
 
-#if EIF_MEMORY_BANDWIDTH_RESTRICTION
   *mem_band_conditions_are_satisfied = FALSE;
 
   int bounding_box_w = 0, bounding_box_h = 0;
   calculate_bounding_box_size( EIF_HW_SUBBLOCK_SIZE, EIF_HW_SUBBLOCK_SIZE, ac_mv, d_hor, d_ver, mv_precision, &bounding_box_w, &bounding_box_h );
 
   *mem_band_conditions_are_satisfied = bounding_box_w * bounding_box_h <= MAX_MEMORY_ACCESS_BI;
-#else
-  *mem_band_conditions_are_satisfied = TRUE;
-#endif
 
   if (!check_eif_num_fetched_lines_restrictions(ac_mv, d_hor, d_ver, mv_precision))
   {
@@ -3472,20 +3463,6 @@ BOOL check_eif_applicability_bi(s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi[REFP
 
 #define SAME_MV(MV0, MV1) ((MV0[MV_X] == MV1[MV_X]) && (MV0[MV_Y] == MV1[MV_Y]))
 #define SAME_MVF(refi0, vx0, vy0, refi1, vx1, vy1)   ((refi0 == refi1) && (vx0 == vx1) && (vy0 == vy1))
-
-#if !EIF_MEMORY_BANDWIDTH_RESTRICTION
-int evc_get_affine_memory_access(s16 mv[VER_NUM][MV_D], int cuw, int cuh)
-{
-    int max_x = max(mv[0][MV_X], max(mv[1][MV_X] + cuw, max(mv[2][MV_X], mv[3][MV_X] + cuw))) >> 2;
-    int min_x = min(mv[0][MV_X], min(mv[1][MV_X] + cuw, min(mv[2][MV_X], mv[3][MV_X] + cuw))) >> 2;
-
-    int max_y = max(mv[0][MV_Y], max(mv[1][MV_Y], max(mv[2][MV_Y] + cuh, mv[3][MV_Y] + cuh))) >> 2;
-    int min_y = min(mv[0][MV_Y], min(mv[1][MV_Y], min(mv[2][MV_Y] + cuh, mv[3][MV_Y] + cuh))) >> 2;
-
-    return (abs(max_x - min_x) + 4) *  (abs(max_y - min_y) + 4);
-
-}
-#endif
 
 int evc_derive_affine_constructed_candidate(int poc, EVC_REFP (*refp)[REFP_NUM], int cuw, int cuh, int cp_valid[VER_NUM], s16 cp_mv[REFP_NUM][VER_NUM][MV_D], int cp_refi[REFP_NUM][VER_NUM], int cp_idx[VER_NUM], int model_idx, int ver_num, s16 mrg_list_cp_mv[AFF_MAX_CAND][REFP_NUM][VER_NUM][MV_D], s8 mrg_list_refi[AFF_MAX_CAND][REFP_NUM], int *mrg_idx, int mrg_list_cp_num[AFF_MAX_CAND])
 {

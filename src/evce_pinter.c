@@ -4790,11 +4790,6 @@ static double analyze_affine_bi(EVCE_CTX * ctx, EVCE_CORE * core, EVCE_PINTER * 
     int         vertex;
     int         mebits;
 
-#if !EIF_MEMORY_BANDWIDTH_RESTRICTION
-    int         memory_access[REFP_NUM];
-    int         mem = MAX_MEMORY_ACCESS_BI * (1 << log2_cuw) * (1 << log2_cuh);
-#endif
-
     core->ats_inter_info = 0;
 
     {
@@ -4947,20 +4942,8 @@ static double analyze_affine_bi(EVCE_CTX * ctx, EVCE_CORE * core, EVCE_PINTER * 
             pi->affine_mv[pidx][i][3][MV_X] = pi->affine_mv[pidx][i][0][MV_X] - (pi->affine_mv[pidx][i][1][MV_Y] + pi->affine_mv[pidx][i][0][MV_Y]) * cuh / cuh;
             pi->affine_mv[pidx][i][3][MV_Y] = pi->affine_mv[pidx][i][0][MV_Y] + (pi->affine_mv[pidx][i][1][MV_X] + pi->affine_mv[pidx][i][0][MV_X]) * cuh / cuh;
         }
-
-#if !EIF_MEMORY_BANDWIDTH_RESTRICTION
-        memory_access[i] = evc_get_affine_memory_access(pi->affine_mv[pidx][i], cuw, cuh);
-#endif
-
     }
 
-#if !EIF_MEMORY_BANDWIDTH_RESTRICTION
-    if(memory_access[0] > mem || memory_access[1] > mem)
-    {
-        return MAX_COST;
-    }
-    else
-#endif
     {
         cost = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[pidx], pi->coef[pidx], pidx, pi->mvp_idx[pidx], FALSE);
         evc_mcpy(pi->nnz_best[pidx], core->nnz, sizeof(int) * N_C);
@@ -5012,10 +4995,6 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
 
     for(idx = 0; idx < mrg_cnt; idx++)
     {
-#if !EIF_MEMORY_BANDWIDTH_RESTRICTION
-        int memory_access[REFP_NUM];
-        int allowed = 1;
-#endif
         int i;
         for ( i = 0; i < REFP_NUM; i++ )
         {
@@ -5033,37 +5012,8 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
                     mrg_list_cp_mv[idx][i][3][MV_X] = mrg_list_cp_mv[idx][i][1][MV_X] - (mrg_list_cp_mv[idx][i][1][MV_Y] - mrg_list_cp_mv[idx][i][0][MV_Y]) * (s16)cuh / (s16)cuw;
                     mrg_list_cp_mv[idx][i][3][MV_Y] = mrg_list_cp_mv[idx][i][1][MV_Y] + (mrg_list_cp_mv[idx][i][1][MV_X] - mrg_list_cp_mv[idx][i][0][MV_X]) * (s16)cuh / (s16)cuw;
                 }
-
-#if !EIF_MEMORY_BANDWIDTH_RESTRICTION
-                memory_access[i] = evc_get_affine_memory_access( mrg_list_cp_mv[idx][i], cuw, cuh );
-#endif
-
             }
         }
-
-#if !EIF_MEMORY_BANDWIDTH_RESTRICTION
-        if ( REFI_IS_VALID( mrg_list_refi[idx][0] ) && REFI_IS_VALID( mrg_list_refi[idx][1] ) )
-        {
-            int mem = MAX_MEMORY_ACCESS_BI * cuw * cuh;
-            if ( memory_access[0] > mem || memory_access[1] > mem )
-            {
-                allowed = 0;
-            }
-        }
-        else
-        {
-            int valid_idx = REFI_IS_VALID( mrg_list_refi[idx][0] ) ? 0 : 1;
-            int mem = MAX_MEMORY_ACCESS_UNI * cuw * cuh;
-            if ( memory_access[valid_idx] > mem )
-            {
-                allowed = 0;
-            }
-        }
-        if ( !allowed )
-        {
-            continue;
-        }
-#endif
 
         // set motion information for MC
         core->affine_flag = mrg_list_cp_num[idx] - 1;
@@ -5412,12 +5362,6 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
     u32 cost_trans[REFP_NUM][MAX_NUM_ACTIVE_REF_FRAME];
     s16 mv_trans[MAX_NUM_ACTIVE_REF_FRAME][REFP_NUM][MV_D];
     s16 tmp_mv_array[VER_NUM][MV_D];
-
-#if !EIF_MEMORY_BANDWIDTH_RESTRICTION
-    int memory_access;
-    int allowed = 1;
-    int mem = MAX_MEMORY_ACCESS_UNI * (1 << log2_cuw) * (1 << log2_cuh);
-#endif
 
     int k;
 #if M52166_MMVD
@@ -6047,17 +5991,6 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                         affine_mv[3][MV_X] = affine_mv[1][MV_X] - (affine_mv[1][MV_Y] - affine_mv[0][MV_Y]) * cuh / cuw;
                         affine_mv[3][MV_Y] = affine_mv[1][MV_Y] + (affine_mv[1][MV_X] - affine_mv[0][MV_X]) * cuh / cuw;
 
-#if !EIF_MEMORY_BANDWIDTH_RESTRICTION
-                        allowed = 1;
-
-                        memory_access = evc_get_affine_memory_access(affine_mv, cuw, cuh);
-                        if(memory_access > mem)
-                        {
-                            allowed = 0;
-                        }
-
-                        if(allowed)
-#endif
                         {
                             cost = cost_inter[pidx] = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[PRED_NUM], pi->coef[PRED_NUM], pidx, mvp_idx, FALSE);
 
@@ -6271,16 +6204,6 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                             affine_mv[3][MV_X] = affine_mv[1][MV_X] + affine_mv[2][MV_X] - affine_mv[0][MV_X];
                             affine_mv[3][MV_Y] = affine_mv[1][MV_Y] + affine_mv[2][MV_Y] - affine_mv[0][MV_Y];
 
-#if !EIF_MEMORY_BANDWIDTH_RESTRICTION
-                            allowed = 1;
-                            memory_access = evc_get_affine_memory_access(affine_mv, cuw, cuh);
-                            if(memory_access > mem)
-                            {
-                                allowed = 0;
-                            }
-
-                            if(allowed)
-#endif
                             {
                                 cost = cost_inter[pidx] = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[PRED_NUM], pi->coef[PRED_NUM], pidx, mvp_idx, FALSE);
 

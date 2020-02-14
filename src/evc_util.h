@@ -246,11 +246,8 @@ void evc_rounding_s32(s32 comp, s32 *rounded_comp, int right_shift, int left_shi
 void derive_affine_subblock_size_bi( s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi[REFP_NUM], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num, BOOL*mem_band_conditions_for_eif_are_satisfied);
 void derive_affine_subblock_size( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num, BOOL*mem_band_conditions_for_eif_are_satisfied);
 
-#if M50761_EIF_RESTRICTIONS
 BOOL check_eif_applicability_bi( s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi[REFP_NUM], int cuw, int cuh, int vertex_num, BOOL* mem_band_conditions_are_satisfied);
-
 BOOL check_eif_applicability_uni( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int vertex_num, BOOL* mem_band_conditions_are_satisfied);
-#endif
 
 void evc_get_affine_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int num_refp, \
                                    s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
@@ -271,10 +268,6 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
     , u16 avail_lr
     , EVC_SH * sh
 );
-
-#if !EIF_MEMORY_BANDWIDTH_RESTRICTION
-int evc_get_affine_memory_access(s16 mv[VER_NUM][MV_D], int cuw, int cuh);
-#endif
 
 /* MD5 structure */
 typedef struct _EVC_MD5
