@@ -360,7 +360,7 @@ int evc_tbl_qp_chroma_ajudst_base[MAX_QP_TABLE_SIZE] =
 };
 
 int* evc_tbl_qp_chroma_ajudst;
-#if CHROMA_QP_TABLE_SUPPORT_M50663
+
 // ChromaQP offset for U and V components
 int evc_tbl_qp_chroma_dynamic_ext[2][MAX_QP_TABLE_SIZE_EXT] = { { 0 }, {0} };
 int *p_evc_tbl_qp_chroma_dynamic_ext[2] = { &(evc_tbl_qp_chroma_dynamic_ext[0][0]) , &(evc_tbl_qp_chroma_dynamic_ext[1][0]) };
@@ -415,8 +415,6 @@ void evc_derived_chroma_qp_mapping_tables(EVC_CHROMA_TABLE *structChromaQP)
         memcpy(&(p_evc_tbl_qp_chroma_dynamic[1][-qpBdOffsetC]), &(p_evc_tbl_qp_chroma_dynamic[0][-qpBdOffsetC]), MAX_QP_TABLE_SIZE_EXT * sizeof(int));
     }
 }
-
-#endif
 
 #if CTX_REPRESENTATION_IMPROVEMENT
 const s16 init_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG][1] = {

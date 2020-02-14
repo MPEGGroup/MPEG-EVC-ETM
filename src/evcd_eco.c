@@ -1251,14 +1251,8 @@ int evcd_eco_coef(EVCD_CTX * ctx, EVCD_CORE * core)
 
                     qp_i_cb = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_u));
                     qp_i_cr = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_v));
-
-#if CHROMA_QP_TABLE_SUPPORT_M50663
                     core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][qp_i_cb] + 6 * (BIT_DEPTH - 8);
                     core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][qp_i_cr] + 6 * (BIT_DEPTH - 8);
-#else
-                    core->qp_u = evc_tbl_qp_chroma_ajudst[qp_i_cb] + 6 * (BIT_DEPTH - 8);
-                    core->qp_v = evc_tbl_qp_chroma_ajudst[qp_i_cr] + 6 * (BIT_DEPTH - 8);
-#endif
                 }
 #endif
                 if (ctx->sps.tool_ats && cbf[Y_C] && (core->log2_cuw <= 5 && core->log2_cuh <= 5) && is_intra)
@@ -2234,13 +2228,9 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
 
             qp_i_cb = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_u));
             qp_i_cr = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_v));
-#if CHROMA_QP_TABLE_SUPPORT_M50663
+
             core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][qp_i_cb] + 6 * (BIT_DEPTH - 8);
             core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][qp_i_cr] + 6 * (BIT_DEPTH - 8);
-#else
-            core->qp_u = evc_tbl_qp_chroma_ajudst[qp_i_cb] + 6 * (BIT_DEPTH - 8);
-            core->qp_v = evc_tbl_qp_chroma_ajudst[qp_i_cr] + 6 * (BIT_DEPTH - 8);
-#endif
         }
         else
         {
@@ -2252,13 +2242,8 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
             qp_i_cb = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_u));
             qp_i_cr = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_v));
 
-#if CHROMA_QP_TABLE_SUPPORT_M50663
             core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][qp_i_cb] + 6 * (BIT_DEPTH - 8);
             core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][qp_i_cr] + 6 * (BIT_DEPTH - 8);
-#else
-            core->qp_u = evc_tbl_qp_chroma_ajudst[qp_i_cb] + 6 * (BIT_DEPTH - 8);
-            core->qp_v = evc_tbl_qp_chroma_ajudst[qp_i_cr] + 6 * (BIT_DEPTH - 8);
-#endif
         }
 #endif
     }
@@ -2562,15 +2547,10 @@ int evcd_eco_vui(EVC_BSR * bs)
 int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
 {
     sps->sps_seq_parameter_set_id = (u32)evc_bsr_read_ue(bs);
-#if CHROMA_QP_TABLE_SUPPORT_M50663
     sps->profile_idc = evc_bsr_read(bs, 8);
     sps->level_idc = evc_bsr_read(bs, 8);
     sps->toolset_idc_h = evc_bsr_read(bs, 32);
     sps->toolset_idc_l = evc_bsr_read(bs, 32);
-#else
-    sps->profile_idc = evc_bsr_read(bs, 7);
-    sps->level_idc = evc_bsr_read(bs, 8);
-#endif
     sps->chroma_format_idc = (u32)evc_bsr_read_ue(bs);
     sps->pic_width_in_luma_samples = (u32)evc_bsr_read_ue(bs);
     sps->pic_height_in_luma_samples = (u32)evc_bsr_read_ue(bs);
@@ -2727,7 +2707,7 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
         sps->picture_crop_top_offset = (u32)evc_bsr_read_ue(bs);
         sps->picture_crop_bottom_offset = (u32)evc_bsr_read_ue(bs);
     }
-#if CHROMA_QP_TABLE_SUPPORT_M50663
+
     sps->chroma_qp_table_struct.chroma_qp_table_present_flag = evc_bsr_read1(bs);
     if (sps->chroma_qp_table_struct.chroma_qp_table_present_flag)
     {
@@ -2741,7 +2721,7 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
             }
         }
     }
-#endif
+
     sps->vui_parameters_present_flag = evc_bsr_read1(bs);
     if (sps->vui_parameters_present_flag)
         evcd_eco_vui(bs); //To be implemented

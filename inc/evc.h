@@ -60,11 +60,9 @@ extern "C"
 #define NUM_CHROMA_QP_SCALE_EXP               25
 #endif
 
-#define CHROMA_QP_TABLE_SUPPORT_M50663  1
-#if CHROMA_QP_TABLE_SUPPORT_M50663 
 #define MAX_QP_TABLE_SIZE               58   
 #define MAX_QP_TABLE_SIZE_EXT           70   
-#endif
+
 #define USE_TILE_GROUP_DQP              1
 #define DQP_CFG                         1
 #define EVC_TILE_SUPPORT                1
@@ -384,7 +382,6 @@ typedef struct _EVC_RPL
     char pic_type;
 } EVC_RPL;
 
-#if CHROMA_QP_TABLE_SUPPORT_M50663
 /* chromaQP table structure to be signalled in SPS*/
 typedef struct _EVC_CHROMA_TABLE
 {
@@ -395,7 +392,6 @@ typedef struct _EVC_CHROMA_TABLE
     int             delta_qp_in_val_minus1[2][MAX_QP_TABLE_SIZE];
     int             delta_qp_out_val[2][MAX_QP_TABLE_SIZE];
 } EVC_CHROMA_TABLE;
-#endif
 
 /*****************************************************************************
  * description for creating of encoder
@@ -452,10 +448,8 @@ typedef struct _EVCE_CDSC
     int            out_bit_depth;
     int            profile;
     int            level;
-#if CHROMA_QP_TABLE_SUPPORT_M50663
     int            toolset_idc_h;
     int            toolset_idc_l;
-#endif
     int            btt;
     int            suco;
     int            add_qp_frame;
@@ -512,10 +506,7 @@ typedef struct _EVCE_CDSC
     int            num_slice_in_pic;
     int            slice_boundary_array[2 * 600];
 #endif
-#if CHROMA_QP_TABLE_SUPPORT_M50663
     EVC_CHROMA_TABLE chroma_qp_table_struct;
-#endif
-
 #if QC_DRA
     void * m_DRAMappingApp; 
     int tool_dra;

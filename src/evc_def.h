@@ -89,8 +89,6 @@
 #define AFFINE_TMVP_SPEC_CONDITION_ALIGN             1
 
 //MPEG 128 adoptions
-#define CHROMA_QP_TABLE_SUPPORT_M50663               1
-
 #define M50662                                       1
 #if M50662
 #define M50662_AFFINE_IBC_TMVP_SUCO_FIX              1
@@ -1251,10 +1249,8 @@ typedef struct _EVC_SPS
     int              sps_seq_parameter_set_id;
     int              profile_idc;
     int              level_idc;
-#if CHROMA_QP_TABLE_SUPPORT_M50663
     int              toolset_idc_h;
     int              toolset_idc_l;
-#endif
     int              chroma_format_idc;
     u16              pic_width_in_luma_samples;  
     u16              pic_height_in_luma_samples; 
@@ -1322,9 +1318,7 @@ typedef struct _EVC_SPS
 #if DQP
     int              dquant_flag;              /*1 specifies the improved delta qp signaling processes is used*/
 #endif
-#if CHROMA_QP_TABLE_SUPPORT_M50663
     EVC_CHROMA_TABLE chroma_qp_table_struct;
-#endif
     u8               ibc_flag;                   /* 1 bit : flag of enabling IBC or not */
     int              ibc_log_max_size;           /* log2 max ibc size */
     int              vui_parameters_present_flag;

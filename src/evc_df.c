@@ -322,13 +322,8 @@ static void deblock_h263_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
             if (evc_check_chroma(tree_cons))
             {
 #endif
-#if CHROMA_QP_TABLE_SUPPORT_M50663
             deblock_scu_hor_chroma(u + (t >> 1), p_evc_tbl_qp_chroma_dynamic[0][qp], s_c, 0, tbl_qp_to_st);
             deblock_scu_hor_chroma(v + (t >> 1), p_evc_tbl_qp_chroma_dynamic[1][qp], s_c, 0, tbl_qp_to_st);
-#else
-            deblock_scu_hor_chroma(u + (t >> 1), evc_tbl_qp_chroma_ajudst[qp], s_c, 0, tbl_qp_to_st);
-            deblock_scu_hor_chroma(v + (t >> 1), evc_tbl_qp_chroma_ajudst[qp], s_c, 0, tbl_qp_to_st);
-#endif
 #if M50761_CHROMA_NOT_SPLIT
             }
 #endif
@@ -413,13 +408,8 @@ static void deblock_h263_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
             if (evc_check_chroma(tree_cons))
             {
 #endif
-#if CHROMA_QP_TABLE_SUPPORT_M50663
                 deblock_scu_ver_chroma(u, p_evc_tbl_qp_chroma_dynamic[0][qp], s_c, 0, tbl_qp_to_st);
                 deblock_scu_ver_chroma(v, p_evc_tbl_qp_chroma_dynamic[1][qp], s_c, 0, tbl_qp_to_st);
-#else
-                deblock_scu_ver_chroma(u, evc_tbl_qp_chroma_ajudst[qp], s_c, 0, tbl_qp_to_st);
-                deblock_scu_ver_chroma(v, evc_tbl_qp_chroma_ajudst[qp], s_c, 0, tbl_qp_to_st);
-#endif
 #if M50761_CHROMA_NOT_SPLIT
             }
 #endif
@@ -470,13 +460,8 @@ static void deblock_h263_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
             if (evc_check_chroma(tree_cons))
             {
 #endif
-#if CHROMA_QP_TABLE_SUPPORT_M50663
                 deblock_scu_ver_chroma(u, p_evc_tbl_qp_chroma_dynamic[0][qp], s_c, 0, tbl_qp_to_st);
                 deblock_scu_ver_chroma(v, p_evc_tbl_qp_chroma_dynamic[1][qp], s_c, 0, tbl_qp_to_st);
-#else
-                deblock_scu_ver_chroma(u, evc_tbl_qp_chroma_ajudst[qp], s_c, 0, tbl_qp_to_st);
-                deblock_scu_ver_chroma(v, evc_tbl_qp_chroma_ajudst[qp], s_c, 0, tbl_qp_to_st);
-#endif
 #if M50761_CHROMA_NOT_SPLIT
             }
 #endif
@@ -1536,7 +1521,6 @@ static void deblock_avc_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int 
                 if (evc_check_chroma(tree_cons))
                 {
 #endif
-#if CHROMA_QP_TABLE_SUPPORT_M50663
                     t >>= 1;
                     indexA = get_avc_index(p_evc_tbl_qp_chroma_dynamic[0][qp], pic->pic_deblock_alpha_offset);
                     indexB = get_avc_index(p_evc_tbl_qp_chroma_dynamic[0][qp], pic->pic_deblock_beta_offset);
@@ -1553,20 +1537,6 @@ static void deblock_avc_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int 
                     c1 = CLIP_TAB[indexA][bs_cur] << bitdepth_scale;
                     c0 = c1 + 1;
                     deblock_scu_avc_hor_chroma(v + t, s_c, bs_cur, alpha, beta, c0);
-#else
-                indexA = get_avc_index(evc_tbl_qp_chroma_ajudst[qp], pic->pic_deblock_alpha_offset);            //! \todo Add offset for IndexA
-                indexB = get_avc_index(evc_tbl_qp_chroma_ajudst[qp], pic->pic_deblock_beta_offset);            //! \todo Add offset for IndexB
-
-                alpha = ALPHA_TABLE[indexA] << bitdepth_scale;
-                beta = BETA_TABLE[indexB] << bitdepth_scale;
-                c1 = CLIP_TAB[indexA][bs_cur] << bitdepth_scale;
-
-                t >>= 1;
-
-                c0 = c1 + 1;
-                deblock_scu_avc_hor_chroma(u + t, s_c, bs_cur, alpha, beta, c0);
-                deblock_scu_avc_hor_chroma(v + t, s_c, bs_cur, alpha, beta, c0);
-#endif
 #if M50761_CHROMA_NOT_SPLIT
                 }
 #endif
@@ -1654,7 +1624,6 @@ static void deblock_avc_cu_ver_yuv(EVC_PIC *pic, int x_pel, int y_pel, int log2_
             if (evc_check_chroma(tree_cons))
             {
 #endif
-#if CHROMA_QP_TABLE_SUPPORT_M50663
                 indexA = get_avc_index(p_evc_tbl_qp_chroma_dynamic[0][qp], pic->pic_deblock_alpha_offset);
                 indexB = get_avc_index(p_evc_tbl_qp_chroma_dynamic[0][qp], pic->pic_deblock_beta_offset);
 
@@ -1672,17 +1641,6 @@ static void deblock_avc_cu_ver_yuv(EVC_PIC *pic, int x_pel, int y_pel, int log2_
                 c1 = CLIP_TAB[indexA][bs_cur] << bitdepth_scale;
                 c0 = c1 + 1;
                 deblock_scu_avc_ver_chroma(v, s_c, bs_cur, alpha, beta, c0);
-#else
-            indexA = get_avc_index(evc_tbl_qp_chroma_ajudst[qp], pic->pic_deblock_alpha_offset);            //! \todo Add offset for IndexA
-            indexB = get_avc_index(evc_tbl_qp_chroma_ajudst[qp], pic->pic_deblock_beta_offset);            //! \todo Add offset for IndexB
-
-            alpha = ALPHA_TABLE[indexA] << bitdepth_scale;
-            beta = BETA_TABLE[indexB] << bitdepth_scale;
-            c1 = CLIP_TAB[indexA][bs_cur] << bitdepth_scale;
-            c0 = c1 + 1;
-            deblock_scu_avc_ver_chroma(u, s_c, bs_cur, alpha, beta, c0);
-            deblock_scu_avc_ver_chroma(v, s_c, bs_cur, alpha, beta, c0);
-#endif
 #if M50761_CHROMA_NOT_SPLIT
             }
 #endif

@@ -97,15 +97,10 @@ int evce_eco_vui(EVC_BSW * bs)
 int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
 {
     evc_bsw_write_ue(bs, (u32)sps->sps_seq_parameter_set_id);
-#if CHROMA_QP_TABLE_SUPPORT_M50663
     evc_bsw_write(bs, (u32)sps->profile_idc, 8);
     evc_bsw_write(bs, (u32)sps->level_idc, 8);
     evc_bsw_write(bs, (u32)sps->toolset_idc_h, 32);
     evc_bsw_write(bs, (u32)sps->toolset_idc_l, 32);
-#else
-    evc_bsw_write(bs, (u32)sps->profile_idc, 7);
-    evc_bsw_write(bs, (u32)sps->level_idc, 8);
-#endif
     evc_bsw_write_ue(bs, (u32)sps->chroma_format_idc);
     evc_bsw_write_ue(bs, (u32)sps->pic_width_in_luma_samples);
     evc_bsw_write_ue(bs, (u32)sps->pic_height_in_luma_samples);
@@ -260,7 +255,7 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
         evc_bsw_write_ue(bs, (u32)sps->picture_crop_top_offset);
         evc_bsw_write_ue(bs, (u32)sps->picture_crop_bottom_offset);
     }
-#if CHROMA_QP_TABLE_SUPPORT_M50663
+
     evc_bsw_write1(bs, sps->chroma_qp_table_struct.chroma_qp_table_present_flag);
     if (sps->chroma_qp_table_struct.chroma_qp_table_present_flag)
     {
@@ -274,7 +269,7 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
             }
         }
     }
-#endif
+
     evc_bsw_write1(bs, sps->vui_parameters_present_flag);
     if (sps->vui_parameters_present_flag)
         evce_eco_vui(bs); //To be implemented

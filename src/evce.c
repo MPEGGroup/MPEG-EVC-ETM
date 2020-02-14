@@ -179,7 +179,6 @@ static void core_free(EVCE_CORE * core)
     evc_mfree_fast(core);
 }
 
-#if CHROMA_QP_TABLE_SUPPORT_M50663
 void evce_copy_chroma_qp_mapping_params(EVC_CHROMA_TABLE *dst, EVC_CHROMA_TABLE *src)
 {
     dst->chroma_qp_table_present_flag = src->chroma_qp_table_present_flag;
@@ -190,7 +189,6 @@ void evce_copy_chroma_qp_mapping_params(EVC_CHROMA_TABLE *dst, EVC_CHROMA_TABLE 
     memcpy(&(dst->delta_qp_in_val_minus1), &(src->delta_qp_in_val_minus1), sizeof(int) * 2 * MAX_QP_TABLE_SIZE);
     memcpy(&(dst->delta_qp_out_val), &(src->delta_qp_out_val), sizeof(int) * 2 * MAX_QP_TABLE_SIZE);
 }
-#endif
 
 static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
 {
@@ -273,7 +271,7 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
     {
         evc_tbl_qp_chroma_ajudst = evc_tbl_qp_chroma_ajudst_main;
     }
-#if CHROMA_QP_TABLE_SUPPORT_M50663
+
     if (cdsc->chroma_qp_table_struct.chroma_qp_table_present_flag)
     {
         evc_derived_chroma_qp_mapping_tables(&(cdsc->chroma_qp_table_struct));
@@ -283,7 +281,6 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
         memcpy(&(evc_tbl_qp_chroma_dynamic_ext[0][6 * (BIT_DEPTH - 8)]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
         memcpy(&(evc_tbl_qp_chroma_dynamic_ext[1][6 * (BIT_DEPTH - 8)]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
     }
-#endif
 
 #if EVC_TILE_SUPPORT    
     param->tile_columns = cdsc->tile_columns;
@@ -315,13 +312,11 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->level_idc = ctx->cdsc.level;
     sps->pic_width_in_luma_samples = ctx->param.w;
     sps->pic_height_in_luma_samples = ctx->param.h;
-#if CHROMA_QP_TABLE_SUPPORT_M50663
     sps->toolset_idc_h = 0x7FFFF;
     sps->toolset_idc_l = 0;
     sps->bit_depth_luma_minus8 = ctx->cdsc.out_bit_depth - 8;
     sps->bit_depth_chroma_minus8 = ctx->cdsc.out_bit_depth - 8;
     sps->chroma_format_idc = 1; // YCbCr 4:2:0
-#endif
     sps->ibc_flag = (ctx->param.use_ibc_flag) ? 1 : 0;
     sps->ibc_log_max_size = IBC_MAX_CU_LOG2;
     sps->log2_max_pic_order_cnt_lsb_minus4 = POC_LSB_BIT - 4;
@@ -437,12 +432,11 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
 #if DQP
     sps->dquant_flag = ctx->cdsc.profile == 0 ? 0 : 1;                 /*Baseline : Active SPSs shall have sps_dquant_flag equal to 0 only*/
 #endif
-#if CHROMA_QP_TABLE_SUPPORT_M50663
+
     if (ctx->cdsc.chroma_qp_table_struct.chroma_qp_table_present_flag)
     {
         evce_copy_chroma_qp_mapping_params(&(sps->chroma_qp_table_struct), &(ctx->cdsc.chroma_qp_table_struct));
     }
-#endif
 }
 
 static void set_pps(EVCE_CTX * ctx, EVC_PPS * pps)
@@ -864,17 +858,9 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
 
     qp_l_i = sh->qp;
     ctx->lambda[0] = 0.57 * pow(2.0, (qp_l_i - 12.0) / 3.0);
-#if CHROMA_QP_TABLE_SUPPORT_M50663
     qp_c_i = p_evc_tbl_qp_chroma_dynamic[0][sh->qp_u];
-#else
-    qp_c_i = evc_tbl_qp_chroma_ajudst[sh->qp_u];
-#endif
     ctx->dist_chroma_weight[0] = pow(2.0, (qp_l_i - qp_c_i) / 3.0);
-#if CHROMA_QP_TABLE_SUPPORT_M50663
     qp_c_i = p_evc_tbl_qp_chroma_dynamic[1][sh->qp_v];
-#else
-    qp_c_i = evc_tbl_qp_chroma_ajudst[sh->qp_v];
-#endif
     ctx->dist_chroma_weight[1] = pow(2.0, (qp_l_i - qp_c_i) / 3.0);
     ctx->lambda[1] = ctx->lambda[0] / ctx->dist_chroma_weight[0];
     ctx->lambda[2] = ctx->lambda[0] / ctx->dist_chroma_weight[1];
@@ -2478,13 +2464,8 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     }
 
     core->qp_y = ctx->sh.qp + 6 * (BIT_DEPTH - 8);
-#if CHROMA_QP_TABLE_SUPPORT_M50663
     core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][sh->qp_u] + 6 * (BIT_DEPTH - 8);
     core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][sh->qp_v] + 6 * (BIT_DEPTH - 8);
-#else
-    core->qp_u = evc_tbl_qp_chroma_ajudst[sh->qp_u] + 6 * (BIT_DEPTH - 8);
-    core->qp_v = evc_tbl_qp_chroma_ajudst[sh->qp_v] + 6 * (BIT_DEPTH - 8);
-#endif
 #if M50662_HISTORY_CTU_ROW_RESET
     ret = evce_hmvp_init(&(core->history_buffer));
     evc_assert_rv(ret == EVC_OK, ret);

@@ -155,14 +155,12 @@ static int  op_num_slice_in_pic_minus1 = 0;     // default 1
 static char op_slice_boundary_array[2 * 600];   // Max. slices can be 600 for the highest level 6.2
 #endif
 
-#if CHROMA_QP_TABLE_SUPPORT_M50663
 static int  op_chroma_qp_table_present_flag = 0;
 static char op_chroma_qp_num_points_in_table[256] = {0};
 static char op_chroma_qp_delta_in_val_cb[256] = {0};
 static char op_chroma_qp_delta_out_val_cb[256] = { 0 };
 static char op_chroma_qp_delta_in_val_cr[256] = { 0 };
 static char op_chroma_qp_delta_out_val_cr[256] = { 0 };
-#endif
 
 #if QC_DRA
 static int  op_dra_enable_flag = 0;
@@ -273,15 +271,12 @@ typedef enum _OP_FLAGS
     OP_NUM_SLICE_IN_PIC_MINUS1,
     OP_SLICE_BOUNDARY_ARRAY,
 #endif
-#if CHROMA_QP_TABLE_SUPPORT_M50663
     OP_CHROMA_QP_TABLE_PRESENT_FLAG,
     OP_CHROMA_QP_NUM_POINTS_IN_TABLE,
     OP_CHROMA_QP_DELTA_IN_VAL_CB,
     OP_CHROMA_QP_DELTA_OUT_VAL_CB,
     OP_CHROMA_QP_DELTA_IN_VAL_CR,
     OP_CHROMA_QP_DELTA_OUT_VAL_CR,
-#endif
-
 #if QC_DRA
     OP_DRA_ENABLE_FLAG,
     OP_DRA_NUMBER_RANGES,
@@ -293,7 +288,6 @@ typedef enum _OP_FLAGS
     OP_DRA_CHROMA_CR_SCALE,
     OP_DRA_HIST_NORM,
 #endif
-
     OP_FLAG_RPL0_0,
     OP_FLAG_RPL0_1,
     OP_FLAG_RPL0_2,
@@ -757,7 +751,6 @@ static EVC_ARGS_OPTION options[] = \
         "Array of Slice Boundaries"
     },
 #endif
-#if CHROMA_QP_TABLE_SUPPORT_M50663
     {
         EVC_ARGS_NO_KEY,  "chroma_qp_table_present_flag", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_CHROMA_QP_TABLE_PRESENT_FLAG], &op_chroma_qp_table_present_flag,
@@ -788,7 +781,6 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_CHROMA_QP_DELTA_OUT_VAL_CR], &op_chroma_qp_delta_out_val_cr,
         "Array of input pivot points for Cr"
     },
-#endif
 
 #if QC_DRA
         {
@@ -1159,7 +1151,6 @@ static char get_pic_type(char * in)
     return type;
 }
 
-#if CHROMA_QP_TABLE_SUPPORT_M50663
 static void evca_parse_chroma_qp_mapping_params(EVC_CHROMA_TABLE *dst_struct, EVC_CHROMA_TABLE *src_struct)
 {
     int qpBdOffsetC = 6 * (BIT_DEPTH - 8);
@@ -1205,7 +1196,6 @@ static void evca_parse_chroma_qp_mapping_params(EVC_CHROMA_TABLE *dst_struct, EV
         }
     }
 }
-#endif
 
 #if QC_DRA
 static int get_conf(EVCE_CDSC * cdsc, void *p_dra_struct_void)
@@ -1356,7 +1346,6 @@ static int get_conf(EVCE_CDSC * cdsc)
         } while (1);
     }
 #endif
-#if CHROMA_QP_TABLE_SUPPORT_M50663
     EVC_CHROMA_TABLE l_chroma_qp_table;
     memset(&l_chroma_qp_table, 0, sizeof(EVC_CHROMA_TABLE));
 
@@ -1419,7 +1408,6 @@ static int get_conf(EVCE_CDSC * cdsc)
     }
 #if !QC_DRA
     evca_parse_chroma_qp_mapping_params(&(cdsc->chroma_qp_table_struct), &l_chroma_qp_table);  // parse input params and create chroma_qp_table_struct structure
-#endif
 #endif
     for (int i = 0; i < MAX_NUM_RPLS && op_rpl0[i][0] != 0; ++i)
     {
@@ -1546,9 +1534,7 @@ static void print_enc_conf(EVCE_CDSC * cdsc)
     printf("Number of Tile Columns: %d, ", cdsc->tile_columns);
     printf("Number of Tile  Rows: %d ", cdsc->tile_rows);
 #endif
-#if CHROMA_QP_TABLE_SUPPORT_M50663
     printf("ChromaQPTable: %d ", cdsc->chroma_qp_table_struct.chroma_qp_table_present_flag);
-#endif
 #if QC_DRA
     printf("DRA: %d ", cdsc->tool_dra);
 #else

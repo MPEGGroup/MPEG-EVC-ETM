@@ -248,7 +248,6 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
         evc_tbl_qp_chroma_ajudst = evc_tbl_qp_chroma_ajudst_main;
     }
 
-#if CHROMA_QP_TABLE_SUPPORT_M50663
     if (sps->chroma_qp_table_struct.chroma_qp_table_present_flag)
     {
         evc_derived_chroma_qp_mapping_tables(&(sps->chroma_qp_table_struct));
@@ -258,7 +257,6 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
         memcpy(&(evc_tbl_qp_chroma_dynamic_ext[0][6 * (BIT_DEPTH - 8)]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
         memcpy(&(evc_tbl_qp_chroma_dynamic_ext[1][6 * (BIT_DEPTH - 8)]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
     }
-#endif
 
     return EVC_OK;
 ERR:
@@ -279,13 +277,8 @@ static int slice_init(EVCD_CTX * ctx, EVCD_CORE * core, EVC_SH * sh)
     core->x_pel = 0;
     core->y_pel = 0;
     core->qp_y = sh->qp + 6 * (BIT_DEPTH - 8);
-#if CHROMA_QP_TABLE_SUPPORT_M50663
     core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][sh->qp_u] + 6 * (BIT_DEPTH - 8);
     core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][sh->qp_v] + 6 * (BIT_DEPTH - 8);
-#else
-    core->qp_u = evc_tbl_qp_chroma_ajudst[sh->qp_u] + 6 * (BIT_DEPTH - 8);
-    core->qp_v = evc_tbl_qp_chroma_ajudst[sh->qp_v] + 6 * (BIT_DEPTH - 8);
-#endif
 
     /* clear maps */
     evc_mset_x64a(ctx->map_scu, 0, sizeof(u32) * ctx->f_scu);
