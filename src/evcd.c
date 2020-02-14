@@ -1291,39 +1291,6 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
             int boundary_b = boundary && (y0 + cuh > ctx->h) && !(x0 + cuw > ctx->w);
             int boundary_r = boundary && (x0 + cuw > ctx->w) && !(y0 + cuh > ctx->h);
 
-#if M50761_BOUNDARY_FORCE_CLEANUP
-            split_mode = NO_SPLIT;
-            if (ctx->sps.sps_btt_flag)
-            {
-                if (boundary)
-                {
-                    if (boundary_r)
-                    {
-                        // right side
-                        if (log2_cuh >= (2 + log2_cuw))
-                        {
-                            split_mode = SPLIT_BI_HOR;
-                        }
-                        else
-                        {
-                            split_mode = SPLIT_BI_VER;
-                        }
-                    }
-                    else
-                    {
-                        // Bottom and right-bottom corner
-                        if (log2_cuw >= (2 + log2_cuh))
-                        {
-                            split_mode = SPLIT_BI_VER;
-                        }
-                        else
-                        {
-                            split_mode = SPLIT_BI_HOR;
-                        }
-                    }
-                }
-            }
-#endif
             if(cuw == cuh)
             {
                 if(!ctx->sps.sps_btt_flag)
@@ -1342,72 +1309,14 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
 
                     split_mode = evcd_eco_split_mode(ctx, bs, sbac, cuw, cuh, parent_split, same_layer_split, node_idx, parent_split_allow, split_allow, qt_depth, btt_depth, x0, y0);
                 }
-#if !M50761_BOUNDARY_FORCE_CLEANUP
-                else if(boundary_b)
-                {
-                    split_mode = SPLIT_BI_HOR;
-                }
-                else if(boundary_r)
-                {
-                    split_mode = SPLIT_BI_VER;
-                }
-                else if(!boundary_b && !boundary_r)
-                {
-                    split_mode = SPLIT_QUAD;
-                }
-#endif
             }
             else
             {
                 if(cuw > cuh)
                 {
-#if !M50761_BOUNDARY_FORCE_CLEANUP
-                    if(boundary_b)
-                    {
-                        if (log2_cuw == 7 && log2_cuh == 6)
-                        {
-                            split_mode = SPLIT_BI_VER;
-                        }
-                        else
-                        {
-                            split_mode = SPLIT_BI_HOR;
-                        }
-
-                    }
-                    else if(boundary_r)
-                    {
-                        split_mode = SPLIT_BI_VER;
-                    }
-                    else
-                    {
-                        assert(0);
-
-                    }
-#endif
                 }
                 else
                 {
-#if !M50761_BOUNDARY_FORCE_CLEANUP
-                    if(boundary_b)
-                    {
-                        split_mode = SPLIT_BI_HOR;
-                    }
-                    else if(boundary_r)
-                    {
-                        if (log2_cuw == 6 && log2_cuh == 7)
-                        {
-                            split_mode = SPLIT_BI_HOR;
-                        }
-                        else
-                        {
-                            split_mode = SPLIT_BI_VER;
-                        }
-                    }
-                    else
-                    {
-                        assert(0);
-                    }
-#endif
                 }
             }
 #endif

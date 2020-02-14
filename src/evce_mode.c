@@ -2274,11 +2274,7 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 #if AQS
     u16 avail_cu_rec;
 #endif
-
-#if M50761_BOUNDARY_FORCE_CLEANUP
     evc_assert(abs(log2_cuw - log2_cuh) <= 2);
-#endif
-
     mode_cu_init(ctx, core, x, y, log2_cuw, log2_cuh, cud);
 #if M50761_CHROMA_NOT_SPLIT
 #if M52165

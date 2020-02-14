@@ -2752,7 +2752,7 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
     {
         split_allow[SPLIT_QUAD] = 0;
 
-#if M50761_BOUNDARY_FORCE_CLEANUP && !M52166_PARTITION
+#if !M52166_PARTITION
         if (boundary)
         {
             if (boundary_r)
@@ -2787,21 +2787,12 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
 #if !M52166_PARTITION
             if(boundary_b)
             {
-#if !M50761_BOUNDARY_FORCE_CLEANUP
-                split_allow[SPLIT_BI_HOR] = 1;
-#endif
             }
             else if(boundary_r)
             {
-#if !M50761_BOUNDARY_FORCE_CLEANUP
-                split_allow[SPLIT_BI_VER] = 1;
-#endif
             }
             else if(boundary && !boundary_b && !boundary_r)
             {
-#if !M50761_BOUNDARY_FORCE_CLEANUP
-                split_allow[SPLIT_QUAD] = 1;
-#endif
             }
             else
 #endif
@@ -2829,31 +2820,6 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
 #if !M52166_PARTITION
                 if(boundary)
                 {
-#if !M50761_BOUNDARY_FORCE_CLEANUP
-                    log2_sub_cuw = log2_cuw - 1;
-                    log2_sub_cuh = log2_cuh;
-                    long_side = log2_sub_cuw > log2_sub_cuh ? log2_sub_cuw : log2_sub_cuh;
-                    ratio = EVC_ABS(log2_sub_cuw - log2_sub_cuh);
-                    if(boundary_b)
-                    {
-                        if (log2_cuw == 7 && log2_cuh == 6)
-                        {
-                            split_allow[SPLIT_BI_VER] = 1;
-                        }
-                        else
-                        {
-                            split_allow[SPLIT_BI_HOR] = 1;
-                        }
-                    }
-                    else if(boundary_r)
-                    {
-                        split_allow[SPLIT_BI_VER] = 1;
-                    }
-                    else
-                    {
-                        assert(0);
-                    }
-#endif
                 }
                 else
 #endif
@@ -2898,31 +2864,6 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
 #if !M52166_PARTITION
                 if(boundary)
                 {
-#if !M50761_BOUNDARY_FORCE_CLEANUP
-                    log2_sub_cuh = log2_cuh - 1;
-                    log2_sub_cuw = log2_cuw;
-                    long_side = log2_sub_cuw > log2_sub_cuh ? log2_sub_cuw : log2_sub_cuh;
-                    ratio = EVC_ABS(log2_sub_cuw - log2_sub_cuh);
-                    if(boundary_b)
-                    {
-                        split_allow[SPLIT_BI_HOR] = 1;
-                    }
-                    else if(boundary_r)
-                    {
-                        if (log2_cuw == 6 && log2_cuh == 7)
-                        {
-                            split_allow[SPLIT_BI_HOR] = 1;
-                        }
-                        else
-                        {
-                            split_allow[SPLIT_BI_VER] = 1;
-                        }
-                    }
-                    else
-                    {
-                        assert(0);
-                    }
-#endif
                 }
                 else
 #endif
