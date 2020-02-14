@@ -111,11 +111,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 #if M52166_MMVD
     , u32 curr_ptr, u8 num_refp[REFP_NUM]
 #endif
-    , EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh
-#if M50761_TMVP_8X8_GRID
-    , int log2_max_cuwh
-#endif
-);
+    , EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh, int log2_max_cuwh);
 
 void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_scu, int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], u32 *map_scu, u16 avail_lr, int num_mvp, int is_ibc);
 void evc_get_default_motion(int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], s8 cur_refi, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], s8 *refi, s16 mv[MV_D]
@@ -146,9 +142,7 @@ void evc_get_motion_merge_main(int poc, int slice_type, int scup, s8(*map_refi)[
     , u8 ibc_flag
     , EVC_REFP(*refplx)[REFP_NUM]
     , EVC_SH* sh
-#if M50761_TMVP_8X8_GRID
     , int log2_max_cuwh
-#endif
 );
 #if M52165
 void evc_get_merge_insert_mv(s8* refi_dst, s16 *mvp_dst_L0, s16 *mvp_dst_L1, s8* map_refi_src, s16* map_mv_src, int slice_type, int cuw, int cuh, int is_sps_admvp);

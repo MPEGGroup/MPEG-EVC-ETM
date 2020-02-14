@@ -323,11 +323,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 #if M52166_MMVD
     , u32 curr_ptr, u8 num_refp[REFP_NUM]
 #endif
-    , EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh
-#if M50761_TMVP_8X8_GRID
-    , int log2_max_cuwh
-#endif
-)
+    , EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh, int log2_max_cuwh)
 {
     int idx0, idx1, cnt;
     int ref_mvd = 0;
@@ -413,11 +409,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 #if DMVR_LAG
             , NULL
 #endif
-            , history_buffer, 0, (EVC_REFP(*)[2])refp, sh
-#if M50761_TMVP_8X8_GRID
-            , log2_max_cuwh
-#endif
-        );
+            , history_buffer, 0, (EVC_REFP(*)[2])refp, sh, log2_max_cuwh);
     }
 
     for (z = 0; z < MAX_NUM_MVP; z++)
@@ -1532,11 +1524,7 @@ void evc_get_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int num_re
 }
 
 #if MERGE_MVP
-static int evc_get_right_below_scup_qc_merge(int scup, int cuw, int cuh, int w_scu, int h_scu, int bottom_right
-#if M50761_TMVP_8X8_GRID
-    , int log2_max_cuwh
-#endif
-)
+static int evc_get_right_below_scup_qc_merge(int scup, int cuw, int cuh, int w_scu, int h_scu, int bottom_right, int log2_max_cuwh)
 {
     int scuw = cuw >> MIN_CU_LOG2;
     int scuh = cuh >> MIN_CU_LOG2;
@@ -1548,38 +1536,24 @@ static int evc_get_right_below_scup_qc_merge(int scup, int cuw, int cuh, int w_s
     {
         if (y_scu + 1 >= h_scu)
             return -1;
-#if M50761_TMVP_8X8_GRID
         else if ( ((y_scu + 1) << MIN_CU_LOG2 >> log2_max_cuwh) != (y_scu << MIN_CU_LOG2 >> log2_max_cuwh) )
             return -1; // check same CTU row, align to spec
         else
             return ((y_scu + 1) >> 1 << 1) * w_scu + (x_scu >> 1 << 1);
-#else
-        else
-            return (y_scu + 1)*w_scu + x_scu;
-#endif
     }
     else if (bottom_right == 1)        // fetch bottom-to-right sample
     {
         if (x_scu + 1 >= w_scu)
             return -1;
-#if M50761_TMVP_8X8_GRID
         else if ( ((x_scu + 1) << MIN_CU_LOG2 >> log2_max_cuwh) != (x_scu << MIN_CU_LOG2 >> log2_max_cuwh) )
             return -1; // check same CTU column, align to spec
         else
             return (y_scu >> 1 << 1) * w_scu + ((x_scu + 1) >> 1 << 1);
-#else
-        else
-            return y_scu*w_scu + (x_scu + 1);
-#endif
     }
     return -1;
 }
 
-static int evc_get_right_below_scup_qc_merge_suco(int scup, int cuw, int cuh, int w_scu, int h_scu, int bottom_right
-#if M50761_TMVP_8X8_GRID
-    , int log2_max_cuwh
-#endif
-)
+static int evc_get_right_below_scup_qc_merge_suco(int scup, int cuw, int cuh, int w_scu, int h_scu, int bottom_right, int log2_max_cuwh)
 {
     int scuw = cuw >> MIN_CU_LOG2;
     int scuh = cuh >> MIN_CU_LOG2;
@@ -1591,29 +1565,19 @@ static int evc_get_right_below_scup_qc_merge_suco(int scup, int cuw, int cuh, in
     {
         if ( y_scu + 1 >= h_scu )
             return -1;
-#if M50761_TMVP_8X8_GRID
         else if ( ((y_scu + 1) << MIN_CU_LOG2 >> log2_max_cuwh) != (y_scu << MIN_CU_LOG2 >> log2_max_cuwh) )
             return -1; // check same CTU row, align to spec
         else
             return ((y_scu + 1) >> 1 << 1) * w_scu + ((x_scu + 1) >> 1 << 1);  // bottom sample
-#else
-        else
-            return (y_scu + 1)*w_scu + x_scu + 1;  // bottom sample
-#endif
     }
     else if (bottom_right == 1)        // fetch bottom-to-left sample
     {
         if (x_scu < 0)
             return -1;
-#if M50761_TMVP_8X8_GRID
         else if ( ((x_scu + 1) << MIN_CU_LOG2 >> log2_max_cuwh) != (x_scu << MIN_CU_LOG2 >> log2_max_cuwh) )
             return -1; // check same CTU column, align to spec
         else
             return (y_scu >> 1 << 1) * w_scu + (x_scu >> 1 << 1);
-#else
-        else
-            return y_scu * w_scu + x_scu;
-#endif
     }
     return -1;
 }
@@ -1754,9 +1718,7 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
     , u8 ibc_flag
     , EVC_REFP(*refplx)[REFP_NUM]
     , EVC_SH* sh
-#if M50761_TMVP_8X8_GRID
     , int log2_max_cuwh
-#endif
 )
 {
     BOOL tmpvBottomRight = 0; // Bottom first

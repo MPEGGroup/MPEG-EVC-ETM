@@ -825,11 +825,7 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #if M52166_MMVD
         , ctx->poc.poc_val, ctx->dpm.num_refp
 #endif
-        , core->history_buffer, ctx->sps.tool_admvp, &ctx->sh
-#if M50761_TMVP_8X8_GRID
-        , ctx->log2_max_cuwh
-#endif
-    );
+        , core->history_buffer, ctx->sps.tool_admvp, &ctx->sh, ctx->log2_max_cuwh);
 
     core->mv[REFP_0][MV_X] = real_mv[core->mmvd_idx][0][MV_X];
     core->mv[REFP_0][MV_Y] = real_mv[core->mmvd_idx][0][MV_Y];

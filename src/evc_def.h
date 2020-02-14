@@ -97,7 +97,6 @@
 #define CHROMA_NOT_SPLIT_EXCLUDE_IBC               0    // Remove CC in the case of allowing IBC
 #endif
 
-#define M50761_TMVP_8X8_GRID                       1
 #define M50761_BOUNDARY_FORCE_CLEANUP              1
 
 #define M50761_DMVR_SIMP_SPATIAL_MV                1 //unrefined MVs are used for spatial prediction

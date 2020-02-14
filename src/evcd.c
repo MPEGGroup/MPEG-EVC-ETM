@@ -645,10 +645,7 @@ void evcd_get_direct_motion(EVCD_CTX * ctx, EVCD_CORE * core)
             , core->ibc_flag
             , (EVC_REFP(*)[2])ctx->refp[0]
             , &ctx->sh
-#if M50761_TMVP_8X8_GRID
-            , ctx->log2_max_cuwh
-#endif
-        );
+            , ctx->log2_max_cuwh);
     }
 
     core->refi[REFP_0] = srefi[REFP_0][core->mvp_idx[REFP_0]];

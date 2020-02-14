@@ -2241,10 +2241,7 @@ static double analyze_skip_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y
 }
 static void mmvd_base_skip(EVCE_CTX *ctx, EVCE_CORE *core, int real_mv[][2][3], int log2_cuw, int log2_cuh, int slice_t, int scup
                            , s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], EVC_REFP refp[REFP_NUM], int w_scu, u16 avail, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME]
-                           , int h_scu, u32 *map_scu, u16 avail_lr, EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh
-#if M50761_TMVP_8X8_GRID
-                           , int log2_max_cuwh
-#endif
+                           , int h_scu, u32 *map_scu, u16 avail_lr, EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh, int log2_max_cuwh
 #if M52166_MMVD
                            , u32 curr_ptr
 #endif
@@ -2316,11 +2313,7 @@ static void mmvd_base_skip(EVCE_CTX *ctx, EVCE_CORE *core, int real_mv[][2][3], 
 #if DMVR_LAG
                                   , NULL
 #endif
-                                  , history_buffer, 0, (EVC_REFP(*)[2])refp, sh
-#if M50761_TMVP_8X8_GRID
-                                  , log2_max_cuwh
-#endif
-        );
+                                  , history_buffer, 0, (EVC_REFP(*)[2])refp, sh, log2_max_cuwh);
     }
 
     for (z = 0; z < MAX_NUM_MVP; z++)
@@ -2490,11 +2483,7 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
 #if DMVR_LAG
             , ctx->map_unrefined_mv
 #endif
-            , core->history_buffer, core->ibc_flag, (EVC_REFP(*)[2])ctx->refp[0], &ctx->sh
-#if M50761_TMVP_8X8_GRID
-            , ctx->log2_max_cuwh
-#endif
-        );
+            , core->history_buffer, core->ibc_flag, (EVC_REFP(*)[2])ctx->refp[0], &ctx->sh, ctx->log2_max_cuwh);
     }
 
 #if DQP_RDO
@@ -2721,11 +2710,7 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
 #if DMVR_LAG
             , ctx->map_unrefined_mv
 #endif
-            , core->history_buffer, core->ibc_flag, (EVC_REFP(*)[2])ctx->refp[0], &ctx->sh
-#if M50761_TMVP_8X8_GRID
-            , ctx->log2_max_cuwh
-#endif
-        );
+            , core->history_buffer, core->ibc_flag, (EVC_REFP(*)[2])ctx->refp[0], &ctx->sh, ctx->log2_max_cuwh);
     }
 
     for(idx0 = 0; idx0 < (cuw*cuh <= NUM_SAMPLES_BLOCK ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP); idx0++)
@@ -5509,17 +5494,10 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 #if M52166_MMVD
             , ctx->poc.poc_val, ctx->rpm.num_refp
 #endif
-            , core->history_buffer, ctx->sps.tool_admvp, &ctx->sh
-#if M50761_TMVP_8X8_GRID
-            , ctx->log2_max_cuwh
-#endif
-        );
+            , core->history_buffer, ctx->sps.tool_admvp, &ctx->sh, ctx->log2_max_cuwh);
     }
     mmvd_base_skip(ctx, core, real_mv, log2_cuw, log2_cuh, ctx->slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], ctx->w_scu, core->avail_cu, REF_SET
-                   , ctx->h_scu, ctx->map_scu, core->avail_lr, core->history_buffer, ctx->sps.tool_admvp, &ctx->sh
-#if M50761_TMVP_8X8_GRID
-                   , ctx->log2_max_cuwh
-#endif
+                   , ctx->h_scu, ctx->map_scu, core->avail_lr, core->history_buffer, ctx->sps.tool_admvp, &ctx->sh, ctx->log2_max_cuwh
 #if M52166_MMVD
                    , ctx->poc.poc_val
 #endif
