@@ -4308,12 +4308,6 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
 
     //-------------------  control point based affine MVP  -------------------//
     {
-#if !M50761_TMVP_ALIGN_SPEC 
-        s8(*map_refi_co)[REFP_NUM];
-        int dpoc_co = 0;
-        int ratio_tmvp = 1;
-#endif
-
         s16 cp_mv[REFP_NUM][VER_NUM][MV_D];
         int cp_refi[REFP_NUM][VER_NUM];
         int cp_valid[VER_NUM];
@@ -4529,69 +4523,45 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
         }
         else
         {
-#if M50761_TMVP_ALIGN_SPEC
-        s32 isSameCtuLine = ((y_scu + scuh) << MIN_CU_LOG2 >> log2_max_cuwh) == (y_scu << MIN_CU_LOG2 >> log2_max_cuwh);
-        valid_flag_rb[0] = x_scu + scuw < w_scu && y_scu + scuh < h_scu && isSameCtuLine;
+            s32 isSameCtuLine = ((y_scu + scuh) << MIN_CU_LOG2 >> log2_max_cuwh) == (y_scu << MIN_CU_LOG2 >> log2_max_cuwh);
+            valid_flag_rb[0] = x_scu + scuw < w_scu && y_scu + scuh < h_scu && isSameCtuLine;
 
-        if ( valid_flag_rb[0] )
-        {
-            s16 tmvp[REFP_NUM][MV_D];
-            s8 availablePredIdx = 0;
+            if (valid_flag_rb[0])
+            {
+                s16 tmvp[REFP_NUM][MV_D];
+                s8 availablePredIdx = 0;
 
-            neb_addr_rb[0] = ((x_scu + scuw) >> 1 << 1) + ((y_scu + scuh) >> 1 << 1) * w_scu; // 8x8 grid
-            evc_get_mv_collocated( refp, poc, neb_addr_rb[0], scup, w_scu, h_scu, tmvp, &availablePredIdx, sh );
+                neb_addr_rb[0] = ((x_scu + scuw) >> 1 << 1) + ((y_scu + scuh) >> 1 << 1) * w_scu; // 8x8 grid
+                evc_get_mv_collocated(refp, poc, neb_addr_rb[0], scup, w_scu, h_scu, tmvp, &availablePredIdx, sh);
 
-            if ( (availablePredIdx == 1) || (availablePredIdx == 3) )
-            {
-                cp_refi[0][3] = 0;
-                cp_mv[0][3][MV_X] = tmvp[REFP_0][MV_X];
-                cp_mv[0][3][MV_Y] = tmvp[REFP_0][MV_Y];
-            }
-            else
-            {
-                cp_refi[0][3] = REFI_INVALID;
-                cp_mv[0][3][MV_X] = 0;
-                cp_mv[0][3][MV_Y] = 0;
-            }
-
-            if ( ((availablePredIdx == 2) || (availablePredIdx == 3)) && slice_type == SLICE_B )
-            {
-                cp_refi[1][3] = 0;
-                cp_mv[1][3][MV_X] = tmvp[REFP_1][MV_X];
-                cp_mv[1][3][MV_Y] = tmvp[REFP_1][MV_Y];
-            }
-            else
-            {
-                cp_refi[1][3] = REFI_INVALID;
-                cp_mv[1][3][MV_X] = 0;
-                cp_mv[1][3][MV_Y] = 0;
-            }
-        }
-#else
-        neb_addr_rb[0] = scup + w_scu * scuh + scuw;     // Col
-        valid_flag_rb[0] = x_scu + scuw < w_scu && y_scu + scuh < h_scu;
-
-        if (valid_flag_rb[0])
-        {
-            map_refi_co = refp[0][REFP_1].map_refi; // col picture is ref idx 0 and list 1
-            for (lidx = 0; lidx < REFP_NUM; lidx++)
-            {
-                if(slice_type == SLICE_B && REFI_IS_VALID(map_refi_co[neb_addr_rb[0]][lidx]))
+                if ((availablePredIdx == 1) || (availablePredIdx == 3))
                 {
-                    dpoc_co = refp[0][REFP_1].poc - refp[0][REFP_1].list_poc[map_refi_co[neb_addr_rb[0]][lidx]];
-                    if (dpoc_co == 0)
-                    {
-                        break;
-                    }
+                    cp_refi[0][3] = 0;
+                    cp_mv[0][3][MV_X] = tmvp[REFP_0][MV_X];
+                    cp_mv[0][3][MV_Y] = tmvp[REFP_0][MV_Y];
+                }
+                else
+                {
+                    cp_refi[0][3] = REFI_INVALID;
+                    cp_mv[0][3][MV_X] = 0;
+                    cp_mv[0][3][MV_Y] = 0;
+                }
 
-                    ratio_tmvp = (int)((poc - refp[0][REFP_1].poc) << MVP_SCALING_PRECISION) / dpoc_co;
-                    cp_refi[lidx][3] = 0; // ref idx
-                    scaling_mv(ratio_tmvp, refp[0][REFP_1].map_mv[neb_addr_rb[0]][lidx], cp_mv[lidx][3]);   //SEMIH:this is temporal MV, it is ok.
+                if (((availablePredIdx == 2) || (availablePredIdx == 3)) && slice_type == SLICE_B)
+                {
+                    cp_refi[1][3] = 0;
+                    cp_mv[1][3][MV_X] = tmvp[REFP_1][MV_X];
+                    cp_mv[1][3][MV_Y] = tmvp[REFP_1][MV_Y];
+                }
+                else
+                {
+                    cp_refi[1][3] = REFI_INVALID;
+                    cp_mv[1][3][MV_X] = 0;
+                    cp_mv[1][3][MV_Y] = 0;
                 }
             }
         }
-#endif
-        }
+
         if (REFI_IS_VALID(cp_refi[REFP_0][3]) || REFI_IS_VALID(cp_refi[REFP_1][3]))
         {
             cp_valid[3] = 1;

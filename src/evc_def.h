@@ -104,7 +104,7 @@
 
 
 
-#define M50761_TMVP_ALIGN_SPEC                     1
+
 #define M50761_AFFINE_ADAPT_SUB_SIZE               1
 #define M50761_AFFINE_SUB_SIZE_LUT                 1
                                                    
