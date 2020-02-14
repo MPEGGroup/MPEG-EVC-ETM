@@ -3262,7 +3262,6 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 
     evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init, ctx->param.use_ibc_flag, ctx->sps.ibc_log_max_size);
 
-#if FIX_IBC_PRED_MODE_4x4
 #if M52165
     if (ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2)
 #else
@@ -3271,7 +3270,6 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
     {
         evc_assert(cu_data->pred_mode[cup] == MODE_INTRA || cu_data->pred_mode[cup] == MODE_IBC);
     }
-#endif
     
     if (core->skip_flag == 0)
     {
@@ -3362,12 +3360,10 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 #if M50761_CHROMA_NOT_SPLIT
             if (evce_check_all_preds(ctx))
 #endif
-#if FIX_IBC_PRED_MODE_4x4
 #if M52165
             if (!(ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
 #else
             if (!(ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
-#endif
 #endif
             evce_eco_pred_mode(bs, 
 #if M50761_CHROMA_NOT_SPLIT
@@ -3384,12 +3380,10 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                 cu_data->pred_mode[cup]
 #endif
                 != MODE_INTRA)
-#if FIX_IBC_PRED_MODE_4x4
 #if M52165
                 || (ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2)
 #else
                 || (ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2)
-#endif
 #endif
                 )
 #if M50761_CHROMA_NOT_SPLIT

@@ -464,7 +464,6 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
 
     if(slice_type != SLICE_I)
     {
-#if FIX_IBC_PRED_MODE_4x4
 #if M52165
         if (ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2)
 #else
@@ -473,7 +472,6 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
         {
             evc_assert(0);
         }
-#endif
         evce_sbac_encode_bin(0, &core->s_temp_run, core->s_temp_run.ctx.skip_flag + ctx->ctx_flags[CNID_SKIP_FLAG], &core->bs_temp); /* skip_flag */
 #if M50761_CHROMA_NOT_SPLIT
         if (evce_check_all_preds(ctx))

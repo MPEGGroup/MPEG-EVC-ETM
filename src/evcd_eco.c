@@ -1967,7 +1967,6 @@ void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
             else
             {
 #endif
-#if FIX_IBC_PRED_MODE_4x4
 #if M52165
                 if (ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2)
 #else
@@ -1978,15 +1977,12 @@ void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
                 }
                 else
                 {
-#endif
                     core->pred_mode = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.pred_mode + ctx->ctx_flags[CNID_PRED_MODE]) ? MODE_INTRA : MODE_INTER;
                     EVC_TRACE_COUNTER;
                     EVC_TRACE_STR("pred mode ");
                     EVC_TRACE_INT(core->pred_mode);
                     EVC_TRACE_STR("\n");
-#if FIX_IBC_PRED_MODE_4x4
                 }
-#endif
 #if M50761_CHROMA_NOT_SPLIT
             }
 #endif
@@ -1994,12 +1990,10 @@ void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
 #if M50761_CHROMA_NOT_SPLIT
                 || evcd_check_only_intra(ctx)
 #endif
-#if FIX_IBC_PRED_MODE_4x4
 #if M52165
                 || (ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2)
 #else
                 || (ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2)
-#endif
 #endif
                 )
 #if M50761_CHROMA_NOT_SPLIT
