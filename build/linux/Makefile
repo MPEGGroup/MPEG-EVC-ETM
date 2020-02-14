@@ -35,39 +35,39 @@ ARFLAGS = r
 
 CXXSRCS = $(DIR_SRC)/EncAdaptiveLoopFilter.cpp \
           $(DIR_SRC)/evce_ibc_hashmap.cpp \
-      
+	  
 CSRCS = $(DIR_SRC)/evc_alf.c \
-        $(DIR_SRC)/evc_dra.c \
-        $(DIR_SRC)/evc.c \
-        $(DIR_SRC)/evc_img.c \
-        $(DIR_SRC)/evc_ipred.c \
-        $(DIR_SRC)/evc_mc.c \
-        $(DIR_SRC)/evc_recon.c \
-        $(DIR_SRC)/evc_tbl.c \
-        $(DIR_SRC)/evc_util.c \
-        $(DIR_SRC)/evc_itdq.c \
-        $(DIR_SRC)/evc_df.c \
-        $(DIR_SRC)/evc_picman.c \
-        $(DIR_SRC)/evcd.c \
-        $(DIR_SRC)/evcd_eco.c \
-        $(DIR_SRC)/evcd_util.c \
-        $(DIR_SRC)/evcd_bsr.c \
-        $(DIR_SRC)/evce.c \
-        $(DIR_SRC)/evce_eco.c \
-        $(DIR_SRC)/evce_mode.c \
-        $(DIR_SRC)/evce_pinter.c \
-        $(DIR_SRC)/evce_pintra.c \
-        $(DIR_SRC)/evce_tq.c \
-        $(DIR_SRC)/evce_util.c \
-        $(DIR_SRC)/evce_tbl.c \
-        $(DIR_SRC)/evce_bsw.c \
-        $(DIR_SRC)/evce_sad.c \
-        $(DIR_SRC)/evce_pibc.c \
-        
+		$(DIR_SRC)/evc_dra.c \
+		$(DIR_SRC)/evc.c \
+		$(DIR_SRC)/evc_img.c \
+		$(DIR_SRC)/evc_ipred.c \
+		$(DIR_SRC)/evc_mc.c \
+		$(DIR_SRC)/evc_recon.c \
+		$(DIR_SRC)/evc_tbl.c \
+		$(DIR_SRC)/evc_util.c \
+		$(DIR_SRC)/evc_itdq.c \
+		$(DIR_SRC)/evc_df.c \
+		$(DIR_SRC)/evc_picman.c \
+		$(DIR_SRC)/evcd.c \
+		$(DIR_SRC)/evcd_eco.c \
+		$(DIR_SRC)/evcd_util.c \
+		$(DIR_SRC)/evcd_bsr.c \
+		$(DIR_SRC)/evce.c \
+		$(DIR_SRC)/evce_eco.c \
+		$(DIR_SRC)/evce_mode.c \
+		$(DIR_SRC)/evce_pinter.c \
+		$(DIR_SRC)/evce_pintra.c \
+		$(DIR_SRC)/evce_tq.c \
+		$(DIR_SRC)/evce_util.c \
+		$(DIR_SRC)/evce_tbl.c \
+		$(DIR_SRC)/evce_bsw.c \
+		$(DIR_SRC)/evce_sad.c \
+		$(DIR_SRC)/evce_pibc.c \
+		
 
-CSRCS_APP =    $(DIR_APP)/evca_encoder.c \
-            $(DIR_APP)/evca_decoder.c \
-            $(DIR_APP)/evca_bitstream_merge.c
+CSRCS_APP =	$(DIR_APP)/evca_encoder.c \
+			$(DIR_APP)/evca_decoder.c \
+			$(DIR_APP)/evca_bitstream_merge.c
 
 OBJS = $(subst .c,.o,$(subst $(DIR_SRC)/,,$(CSRCS)))
 HEADS = $(subst .c,.h,$(subst $(DIR_SRC)/,,$(CSRCS)))
@@ -77,26 +77,26 @@ CXXHEADS = $(subst .cpp,.h,$(subst $(DIR_SRC)/,,$(CXXSRCS)))
 all: RELEASE
 
 RELEASE: Makefile $(CSRCS) $(CXXHEADS) $(CXXOBJS) $(OBJS)
-    $(MKDIR) $(DIR_LIB)
-    $(AR) $(ARFLAGS) $(DIR_LIB)/libevc.a *.o
-    $(MKDIR) $(DIR_BIN)
-    $(CC) -o $(DIR_BIN)/evca_encoder $(CFLAGS) $(DIR_APP)/evca_encoder.c $(LDFLAGS)
-    $(CC) -o $(DIR_BIN)/evca_decoder $(CFLAGS) $(DIR_APP)/evca_decoder.c $(LDFLAGS)
-    $(CC) -o $(DIR_BIN)/evca_bitstream_merge $(CFLAGS) $(DIR_APP)/evca_bitstream_merge.c $(LDFLAGS)
+	$(MKDIR) $(DIR_LIB)
+	$(AR) $(ARFLAGS) $(DIR_LIB)/libevc.a *.o
+	$(MKDIR) $(DIR_BIN)
+	$(CC) -o $(DIR_BIN)/evca_encoder $(CFLAGS) $(DIR_APP)/evca_encoder.c $(LDFLAGS)
+	$(CC) -o $(DIR_BIN)/evca_decoder $(CFLAGS) $(DIR_APP)/evca_decoder.c $(LDFLAGS)
+	$(CC) -o $(DIR_BIN)/evca_bitstream_merge $(CFLAGS) $(DIR_APP)/evca_bitstream_merge.c $(LDFLAGS)
 
 .PHONY: clean
 clean:
-    $(RM) $(OBJS) $(CXXOBJS) $(DIR_LIB) $(DIR_BIN) *.o *.s *.i *.ii *.d
+	$(RM) $(OBJS) $(CXXOBJS) $(DIR_LIB) $(DIR_BIN) *.o *.s *.i *.ii *.d
 
 .PHONY: $(CXXHEADS) $(HEADS)
 
 %.o: $(DIR_SRC)/%.c $(DIR_DEP)/%.d
-    $(CC) $(DEPFLAGS) -c -o $(subst $(DIR_SRC)/,,$@) $(CFLAGS) $<
-    $(POSTCOMPILE)
+	$(CC) $(DEPFLAGS) -c -o $(subst $(DIR_SRC)/,,$@) $(CFLAGS) $<
+	$(POSTCOMPILE)
 
 %.o: $(DIR_SRC)/%.cpp $(DIR_DEP)/%.d
-    $(CXX) $(DEPFLAGS) -c -o $(subst $(DIR_SRC)/,,$@) $(CXXFLAGS) $<
-    $(POSTCOMPILE)
+	$(CXX) $(DEPFLAGS) -c -o $(subst $(DIR_SRC)/,,$@) $(CXXFLAGS) $<
+	$(POSTCOMPILE)
 
 $(DIR_DEP)/%.d: ;
 .PRECIOUS: $(DIR_DEP)/%.d
