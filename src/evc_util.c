@@ -4041,7 +4041,6 @@ void evc_get_affine_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int
             refi[cnt_lb] = map_refi[neb_addr_lb[k]][lidx];
             if(refi[cnt_lb] == cur_refi)
             {
-#if M50761_DMVR_BUGFIX_REFINED_MV_RESTRICTION
               if (MCU_GET_DMVRF(map_scu[neb_addr_lb[k]]))
               {
                 mvp_cand_lb[cnt_lb][MV_X] = map_unrefined_mv[neb_addr_lb[k]][lidx][MV_X];
@@ -4052,11 +4051,6 @@ void evc_get_affine_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int
                 mvp_cand_lb[cnt_lb][MV_X] = map_mv[neb_addr_lb[k]][lidx][MV_X];
                 mvp_cand_lb[cnt_lb][MV_Y] = map_mv[neb_addr_lb[k]][lidx][MV_Y];
               }
-#else
-
-                mvp_cand_lb[cnt_lb][MV_X] = map_mv[neb_addr_lb[k]][lidx][MV_X];
-                mvp_cand_lb[cnt_lb][MV_Y] = map_mv[neb_addr_lb[k]][lidx][MV_Y];
-#endif
                 cnt_lb++;
                 break;
             }
@@ -4083,7 +4077,6 @@ void evc_get_affine_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int
             refi[cnt_rb] = map_refi[neb_addr_rb[k]][lidx];
             if (refi[cnt_rb] == cur_refi)
             {
-#if M50761_DMVR_BUGFIX_REFINED_MV_RESTRICTION
               if (MCU_GET_DMVRF(map_scu[neb_addr_rb[k]]))
               {
                 mvp_cand_rb[cnt_rb][MV_X] = map_unrefined_mv[neb_addr_rb[k]][lidx][MV_X];
@@ -4094,10 +4087,6 @@ void evc_get_affine_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int
                 mvp_cand_rb[cnt_rb][MV_X] = map_mv[neb_addr_rb[k]][lidx][MV_X];
                 mvp_cand_rb[cnt_rb][MV_Y] = map_mv[neb_addr_rb[k]][lidx][MV_Y];
               }
-#else
-                mvp_cand_rb[cnt_rb][MV_X] = map_mv[neb_addr_rb[k]][lidx][MV_X];
-                mvp_cand_rb[cnt_rb][MV_Y] = map_mv[neb_addr_rb[k]][lidx][MV_Y];
-#endif
                 cnt_rb++;
                 break;
             }
@@ -4439,7 +4428,6 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
                     for (lidx = 0; lidx < REFP_NUM; lidx++)
                     {
                         cp_refi[lidx][2] = map_refi[neb_addr_lb[k]][lidx];
-#if M50761_DMVR_BUGFIX_REFINED_MV_RESTRICTION
                         if (MCU_GET_DMVRF(map_scu[neb_addr_lb[k]]))
                         {
                             cp_mv[lidx][2][MV_X] = map_unrefined_mv[neb_addr_lb[k]][lidx][MV_X];
@@ -4450,11 +4438,6 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
                             cp_mv[lidx][2][MV_X] = map_mv[neb_addr_lb[k]][lidx][MV_X];
                             cp_mv[lidx][2][MV_Y] = map_mv[neb_addr_lb[k]][lidx][MV_Y];
                         }
-#else
-
-                        cp_mv[lidx][2][MV_X] = map_mv[neb_addr_lb[k]][lidx][MV_X];
-                        cp_mv[lidx][2][MV_Y] = map_mv[neb_addr_lb[k]][lidx][MV_Y];
-#endif
                     }
                     cp_valid[2] = 1;
                     break;
@@ -4528,7 +4511,7 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
                     {
 
                         cp_refi[lidx][3] = map_refi[neb_addr_rb[k]][lidx];
-#if M50761_DMVR_BUGFIX_REFINED_MV_RESTRICTION
+
                         if (MCU_GET_DMVRF(map_scu[neb_addr_rb[k]]))
                         {
                           cp_mv[lidx][3][MV_X] = map_unrefined_mv[neb_addr_rb[k]][lidx][MV_X];
@@ -4539,10 +4522,6 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
                           cp_mv[lidx][3][MV_X] = map_mv[neb_addr_rb[k]][lidx][MV_X];
                           cp_mv[lidx][3][MV_Y] = map_mv[neb_addr_rb[k]][lidx][MV_Y];
                         }
-#else
-                        cp_mv[lidx][3][MV_X] = map_mv[neb_addr_rb[k]][lidx][MV_X];
-                        cp_mv[lidx][3][MV_Y] = map_mv[neb_addr_rb[k]][lidx][MV_Y];
-#endif
                     }
                     break;
                 }

@@ -97,7 +97,6 @@
 #define CHROMA_NOT_SPLIT_EXCLUDE_IBC               0    // Remove CC in the case of allowing IBC
 #endif
 
-#define M50761_DMVR_BUGFIX_REFINED_MV_RESTRICTION  1 
 #define M50761_DMVR_SIMP_DEBLOCK                   1 //unrefined MVs are used for DBF
 #define M50761_DMVR_SIMP_SUBPUPAD                  1 //sub PU padding 
 #define M50761_DMVR_RESTRICT_SMALL_BLOCKS          1 //apply DMVR for blocks with w >=8 && h >= 8
