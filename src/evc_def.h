@@ -97,7 +97,8 @@
 #define CHROMA_NOT_SPLIT_EXCLUDE_IBC               0    // Remove CC in the case of allowing IBC
 #endif
 
-#define M50761_DMVR_SIMP_SUBPUPAD                  1 //sub PU padding 
+
+
 #define M50761_DMVR_RESTRICT_SMALL_BLOCKS          1 //apply DMVR for blocks with w >=8 && h >= 8
 
 #define REMOVE_BI_INTERDIR                         1   // Remove signalling part of Inter dir flag

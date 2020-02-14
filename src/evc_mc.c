@@ -6517,47 +6517,32 @@ void padding(pel *ptr, int iStride, int iWidth, int iHeight, int PadLeftsize, in
     }
 }
 
-void prefetch_for_mc(int x, int y,
-#if M50761_DMVR_SIMP_SUBPUPAD
-    int pu_x, int pu_y, int pu_w, int pu_h,
-#endif
+void prefetch_for_mc(int x, int y,int pu_x, int pu_y, int pu_w, int pu_h,
     int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16(*mv)[MV_D], EVC_REFP(*refp)[REFP_NUM]
-    , int iteration
-    , pel dmvr_padding_buf[REFP_NUM][N_C][PAD_BUFFER_STRIDE * PAD_BUFFER_STRIDE]
-)
+    , int iteration, pel dmvr_padding_buf[REFP_NUM][N_C][PAD_BUFFER_STRIDE * PAD_BUFFER_STRIDE])
 {
     s16          mv_temp[REFP_NUM][MV_D];
-#if M50761_DMVR_SIMP_SUBPUPAD
+
     int l_w = pu_w, l_h = pu_h;
     int c_w = pu_w >> 1, c_h = pu_h >> 1;
     int topleft_x_offset = pu_x - x;
     int topleft_y_offset = pu_y - y;
-#else
-    int l_w = w, l_h = h; //SEMIH: sub-pu width and height
-    int c_w = w >> 1, c_h = h >> 1;//SEMIH: sub-pu width and height
-#endif
 
     int num_extra_pixel_left_for_filter;
     for (int i = 0; i < REFP_NUM; ++i)
     {
         int filtersize = NTAPS_LUMA;
         num_extra_pixel_left_for_filter = ((filtersize >> 1) - 1);
-#if M50761_DMVR_SIMP_SUBPUPAD
+
         int offset = (DMVR_ITER_COUNT + topleft_y_offset) * PAD_BUFFER_STRIDE + topleft_x_offset + DMVR_ITER_COUNT;
-#else
-        int offset = ((DMVR_ITER_COUNT) * (PAD_BUFFER_STRIDE + 1)); //SEMIH: add here the sub-pu offset
-#endif
         int padsize = DMVR_PAD_LENGTH;
         int          qpel_gmv_x, qpel_gmv_y;
         EVC_PIC    *ref_pic;
         mv_clip_only_one_ref_dmvr(x, y, pic_w, pic_h, w, h, mv[i], mv_temp[i]);
-#if M50761_DMVR_SIMP_SUBPUPAD
+
         qpel_gmv_x = ((pu_x << 2) + mv_temp[i][MV_X]) << 2;
         qpel_gmv_y = ((pu_y << 2) + mv_temp[i][MV_Y]) << 2;
-#else
-        qpel_gmv_x = ((x << 2) + mv_temp[i][MV_X]) << 2;  //SEMIH: add here the sub-pu offset 
-        qpel_gmv_y = ((y << 2) + mv_temp[i][MV_Y]) << 2;  //SEMIH: add here the sub-pu offset
-#endif
+
         ref_pic = refp[refi[i]][i].pic;
         pel *ref = ref_pic->y + ((qpel_gmv_y >> 4) - num_extra_pixel_left_for_filter) * ref_pic->s_l +
             (qpel_gmv_x >> 4) - num_extra_pixel_left_for_filter;
@@ -6571,12 +6556,8 @@ void prefetch_for_mc(int x, int y,
         // chroma
         filtersize = NTAPS_CHROMA;
         num_extra_pixel_left_for_filter = ((filtersize >> 1) - 1);
-#if M50761_DMVR_SIMP_SUBPUPAD
+
         offset = (DMVR_ITER_COUNT + (topleft_y_offset >> 1)) * PAD_BUFFER_STRIDE + (topleft_x_offset >> 1) + DMVR_ITER_COUNT;
-#else
-        offset = (DMVR_ITER_COUNT);
-        offset = offset * (PAD_BUFFER_STRIDE + 1); //SEMIH: add here the sub-pu offset
-#endif
         padsize = DMVR_PAD_LENGTH >> 1;
 
         ref = ref_pic->u + ((qpel_gmv_y >> 5) - 1) * ref_pic->s_c + (qpel_gmv_x >> 5) - 1;
@@ -6893,20 +6874,12 @@ void processDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_
     }
 
     // produce padded buffer for exact MC
-#if DMVR_PADDING
-#if !M50761_DMVR_SIMP_SUBPUPAD
-    prefetch_for_mc(x, y, pic_w, pic_h, w, h, refi, starting_mv, refp, iteration, dmvr_padding_buf);
-#endif
-#endif
-
     num = 0;
     for (int startY = 0, subPuStartY = y; subPuStartY < (y + h); subPuStartY = subPuStartY + dy, startY += dy)
     {
         for (int startX = 0, subPuStartX = x; subPuStartX < (x + w); subPuStartX = subPuStartX + dx, startX += dx)
         {
-#if M50761_DMVR_SIMP_SUBPUPAD
             prefetch_for_mc(x, y, subPuStartX, subPuStartY, dx, dy, pic_w, pic_h, w, h, refi, starting_mv, refp, iteration, dmvr_padding_buf);
-#endif
 #if DMVR_SUBCU
             s16 dmvr_mv[REFP_NUM][MV_D] = { { sub_pu_L0[num][MV_X], sub_pu_L0[num][MV_Y] },
                                             { sub_pu_L1[num][MV_X], sub_pu_L1[num][MV_Y] }
