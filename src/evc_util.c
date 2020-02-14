@@ -3287,11 +3287,7 @@ void evc_rounding_s32(s32 comp, s32 *rounded_comp, int right_shift, int left_shi
 #endif
 
 #if M50761_AFFINE_ADAPT_SUB_SIZE
-void derive_affine_subblock_size_bi( s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi[REFP_NUM], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
-  , BOOL* mem_band_conditions_for_eif_are_satisfied
-#endif
-)
+void derive_affine_subblock_size_bi( s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi[REFP_NUM], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num, BOOL* mem_band_conditions_for_eif_are_satisfied)
 {
     int w = cuw;
     int h = cuh;
@@ -3389,11 +3385,7 @@ void derive_affine_subblock_size_bi( s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi
         }
     }
 
-    int apply_eif = check_eif_applicability_bi( ac_mv, refi, cuw, cuh, vertex_num
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
-      , mem_band_conditions_for_eif_are_satisfied
-#endif
-    );
+    int apply_eif = check_eif_applicability_bi( ac_mv, refi, cuw, cuh, vertex_num, mem_band_conditions_for_eif_are_satisfied);
 
     if ( !apply_eif )
     {
@@ -3403,11 +3395,7 @@ void derive_affine_subblock_size_bi( s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi
 }
 #endif
 
-void derive_affine_subblock_size( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
-  , BOOL* mem_band_conditions_for_eif_are_satisfied
-#endif
-)
+void derive_affine_subblock_size( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num, BOOL* mem_band_conditions_for_eif_are_satisfied)
 {
     int w = cuw;
     int h = cuh;
@@ -3496,11 +3484,7 @@ void derive_affine_subblock_size( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, in
     *sub_w = w;
     *sub_h = h;
 
-    int apply_eif = check_eif_applicability_uni( ac_mv, cuw, cuh, vertex_num
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
-    , mem_band_conditions_for_eif_are_satisfied 
-#endif
-    );
+    int apply_eif = check_eif_applicability_uni( ac_mv, cuw, cuh, vertex_num, mem_band_conditions_for_eif_are_satisfied);
 
     if ( !apply_eif )
     {
@@ -3573,11 +3557,7 @@ BOOL check_eif_num_fetched_lines_restrictions( s16 ac_mv[VER_NUM][MV_D], int d_h
   return TRUE;
 }
 
-BOOL check_eif_applicability_uni( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int vertex_num
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
-  , BOOL* mem_band_conditions_are_satisfied
-#endif
-  )
+BOOL check_eif_applicability_uni( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int vertex_num, BOOL* mem_band_conditions_are_satisfied)
 {
   assert( mem_band_conditions_are_satisfied );
 
@@ -3588,7 +3568,6 @@ BOOL check_eif_applicability_uni( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, in
 
   calculate_affine_motion_model_parameters( ac_mv, cuw, cuh, vertex_num, d_hor, d_ver, mv_additional_precision );
 
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
 #if EIF_MEMORY_BANDWIDTH_RESTRICTION
   *mem_band_conditions_are_satisfied = FALSE;
 
@@ -3599,57 +3578,41 @@ BOOL check_eif_applicability_uni( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, in
 #else
   *mem_band_conditions_are_satisfied = TRUE;
 #endif
-#endif
 
-  if ( !check_eif_num_fetched_lines_restrictions( ac_mv, d_hor, d_ver, mv_precision ) )
-    return FALSE;
-
-#if EIF_MEMORY_BANDWIDTH_RESTRICTION && !M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
-  int bounding_box_w = 0, bounding_box_h = 0;
-  calculate_bounding_box_size( EIF_HW_SUBBLOCK_SIZE, EIF_HW_SUBBLOCK_SIZE, ac_mv, d_hor, d_ver, mv_precision, &bounding_box_w, &bounding_box_h );
-
-  if ( bounding_box_w * bounding_box_h > MAX_MEMORY_ACCESS_BI )
-    return FALSE;
-#endif
+  if (!check_eif_num_fetched_lines_restrictions(ac_mv, d_hor, d_ver, mv_precision))
+  {
+      return FALSE;
+  }
 
   return TRUE;
 }
 
-BOOL check_eif_applicability_bi( s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi[REFP_NUM], int cuw, int cuh, int vertex_num
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
-  , BOOL* mem_band_conditions_are_satisfied
-#endif
-)
+BOOL check_eif_applicability_bi(s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi[REFP_NUM], int cuw, int cuh, int vertex_num, BOOL* mem_band_conditions_are_satisfied)
 {
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
-  if( mem_band_conditions_are_satisfied )
-    *mem_band_conditions_are_satisfied = TRUE;
-#endif
-
-  int mv_additional_precision = MAX_CU_LOG2;
-  int mv_precision = 2 + mv_additional_precision;
-
-  for ( int lidx = 0; lidx <= PRED_L1; lidx++ )
-  {
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
-    if ( REFI_IS_VALID( refi[lidx] ) )
+    if (mem_band_conditions_are_satisfied)
     {
-      BOOL mem_band_conditions_are_satisfied_lx = FALSE;
-      BOOL is_eif_applicable = check_eif_applicability_uni( ac_mv[lidx], cuw, cuh, vertex_num, &mem_band_conditions_are_satisfied_lx );
-
-      if ( mem_band_conditions_are_satisfied )
-        *mem_band_conditions_are_satisfied &= mem_band_conditions_are_satisfied_lx;
-
-      if ( !is_eif_applicable )
-        return FALSE;
+        *mem_band_conditions_are_satisfied = TRUE;
     }
-#else
-    if ( REFI_IS_VALID( refi[lidx] ) && !check_eif_applicability_uni( ac_mv[lidx], cuw, cuh, vertex_num ) )
-      return FALSE;
-#endif
-  }
 
-  return TRUE;
+    int mv_additional_precision = MAX_CU_LOG2;
+    int mv_precision = 2 + mv_additional_precision;
+
+    for (int lidx = 0; lidx <= PRED_L1; lidx++)
+    {
+        if (REFI_IS_VALID(refi[lidx]))
+        {
+            BOOL mem_band_conditions_are_satisfied_lx = FALSE;
+            BOOL is_eif_applicable = check_eif_applicability_uni(ac_mv[lidx], cuw, cuh, vertex_num, &mem_band_conditions_are_satisfied_lx);
+
+            if (mem_band_conditions_are_satisfied)
+                *mem_band_conditions_are_satisfied &= mem_band_conditions_are_satisfied_lx;
+
+            if (!is_eif_applicable)
+                return FALSE;
+        }
+    }
+
+    return TRUE;
 }
 
 /*******************************************/

@@ -137,10 +137,7 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
                       , int sub_w, int sub_h
 #endif
                       , pel* tmp_buffer
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
-                      , BOOL mem_band_conditions_for_eif_are_satisfied
-#endif
-);
+                      , BOOL mem_band_conditions_for_eif_are_satisfied);
 
 void evc_eif_mc(int block_width, int block_height, int x, int y, int mv_scale_hor, int mv_scale_ver, int dmv_hor_x, int dmv_hor_y, int dmv_ver_x, int dmv_ver_y,
                 int hor_max, int ver_max, int hor_min, int ver_min, pel* p_ref, int ref_stride, pel *p_dst, int dst_stride, pel* p_tmp_buf, char affine_mv_prec, s8 comp);

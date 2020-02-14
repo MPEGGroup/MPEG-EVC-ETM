@@ -91,7 +91,6 @@
 //MPEG 128 adoptions
 #define M50662                                       1
 #if M50662
-#define M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW 1
 #define FIX_AFFINE_CLIP                              1
 
 #endif

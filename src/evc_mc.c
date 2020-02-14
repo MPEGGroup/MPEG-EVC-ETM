@@ -98,10 +98,6 @@ static int g_aff_mvDevBB2_125[5] = { 128, 256, 544, 1120, 2272 };
 static int g_aff_mvDevBB2_125[5] = { 64, 128, 272, 560, 1136 };
 #endif
 
-#if !M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
-static int g_aff_sizeBB2_125[5] = { 272, 544, 1088, 2176, 4352 };
-#endif
-
 #if MC_PRECISION_ADD
 #if OPT_SIMD_MC_BL
 static const s16 tbl_bl_mc_l_coeff[4 << MC_PRECISION_ADD][2] =
@@ -7320,27 +7316,15 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
     int hor_max, hor_min, ver_max, ver_min;
 
     // get clip MV Range
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
     hor_max = (pic_w + MAX_CU_SIZE - x - cuw) << mc_prec;
     ver_max = (pic_h + MAX_CU_SIZE - y - cuh) << mc_prec;
-#else
-    hor_max = (pic_w + MAX_CU_SIZE - x - cuw + 1) << mc_prec;
-    ver_max = (pic_h + MAX_CU_SIZE - y - cuh + 1) << mc_prec;
-#endif
-
     hor_min = (-MAX_CU_SIZE - x) << mc_prec;
     ver_min = (-MAX_CU_SIZE - y) << mc_prec;
 
     // get sub block size
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
     BOOL mem_band_conditions_for_eif_are_satisfied = FALSE;
-#endif
 
-    derive_affine_subblock_size(ac_mv, cuw, cuh, &sub_w, &sub_h, vertex_num
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
-        , &mem_band_conditions_for_eif_are_satisfied
-#endif
-    );
+    derive_affine_subblock_size(ac_mv, cuw, cuh, &sub_w, &sub_h, vertex_num, &mem_band_conditions_for_eif_are_satisfied);
 
     half_w = sub_w >> 1;
     half_h = sub_h >> 1;
@@ -7395,9 +7379,7 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
 
         eif_derive_mv_clip_range(x, y, cuw, cuh, d_hor, d_ver, mv_scale, pic_w, pic_h, !mem_band_conditions_for_eif_are_satisfied, max_mv, min_mv);
 #else
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
         if (!mem_band_conditions_for_eif_are_satisfied)
-#endif
         {
             evc_derive_mv_clip_range(cuw, cuh, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y, &hor_max, &hor_min, &ver_max, &ver_min);
         }
@@ -7450,9 +7432,7 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
     , int sub_w, int sub_h
 #endif
     , pel* tmp_buffer_for_eif
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
     , BOOL mem_band_conditions_for_eif_are_satisfied
-#endif
 )
 {
     int qpel_gmv_x, qpel_gmv_y;
@@ -7478,13 +7458,8 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
     int hor_max, hor_min, ver_max, ver_min;
 
     // get clip MV Range
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
     hor_max = (pic_w + MAX_CU_SIZE - x - cuw) << mc_prec;
     ver_max = (pic_h + MAX_CU_SIZE - y - cuh) << mc_prec;
-#else
-    hor_max = (pic_w + MAX_CU_SIZE - x - cuw + 1) << mc_prec;
-    ver_max = (pic_h + MAX_CU_SIZE - y - cuh + 1) << mc_prec;
-#endif
     hor_min = (-MAX_CU_SIZE - x) << mc_prec;
     ver_min = (-MAX_CU_SIZE - y) << mc_prec;
 
@@ -7545,9 +7520,7 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
 
         eif_derive_mv_clip_range(x, y, cuw, cuh, d_hor, d_ver, mv_scale, pic_w, pic_h, !mem_band_conditions_for_eif_are_satisfied, max_mv, min_mv);
 #else
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
         if (!mem_band_conditions_for_eif_are_satisfied)
-#endif
         {
             evc_derive_mv_clip_range(cuw, cuh, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y, &hor_max, &hor_min, &ver_max, &ver_min);
         }
@@ -7949,15 +7922,9 @@ void evc_affine_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REF
     // derive sub-block size
     int sub_w = 4, sub_h = 4;
 
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
     BOOL mem_band_conditions_for_eif_are_satisfied = FALSE;
-#endif
 
-    derive_affine_subblock_size_bi(mv, refi, w, h, &sub_w, &sub_h, vertex_num
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
-        , &mem_band_conditions_for_eif_are_satisfied
-#endif
-    );
+    derive_affine_subblock_size_bi(mv, refi, w, h, &sub_w, &sub_h, vertex_num, &mem_band_conditions_for_eif_are_satisfied);
 #endif
 
     if (REFI_IS_VALID(refi[REFP_0]))
@@ -7968,11 +7935,7 @@ void evc_affine_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REF
 #if M50761_AFFINE_ADAPT_SUB_SIZE
             , sub_w, sub_h
 #endif
-            , tmp_buffer
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
-            , mem_band_conditions_for_eif_are_satisfied
-#endif
-        );
+            , tmp_buffer, mem_band_conditions_for_eif_are_satisfied);
 
         bidx++;
     }
@@ -7986,9 +7949,7 @@ void evc_affine_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REF
             , sub_w, sub_h
 #endif
             , tmp_buffer
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
             , mem_band_conditions_for_eif_are_satisfied
-#endif
         );
 
         bidx++;
