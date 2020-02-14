@@ -2462,10 +2462,9 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     core->qp_y = ctx->sh.qp + 6 * (BIT_DEPTH - 8);
     core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][sh->qp_u] + 6 * (BIT_DEPTH - 8);
     core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][sh->qp_v] + 6 * (BIT_DEPTH - 8);
-#if M50662_HISTORY_CTU_ROW_RESET
+
     ret = evce_hmvp_init(&(core->history_buffer));
     evc_assert_rv(ret == EVC_OK, ret);
-#endif
 
 #if !EVC_TILE_SUPPORT    
     /* initialize entropy coder */
@@ -2527,13 +2526,13 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             /* initialize structures *****************************************/
             ret = ctx->fn_mode_init_lcu(ctx, core);
             evc_assert_rv(ret == EVC_OK, ret);
-#if M50662_HISTORY_CTU_ROW_RESET
+
             if (core->x_pel == 0)
             {
                 ret = evce_hmvp_init(&(core->history_buffer));
                 evc_assert_rv(ret == EVC_OK, ret);
             }
-#endif
+
             /* mode decision *************************************************/
             SBAC_LOAD(core->s_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], *GET_SBAC_ENC(bs));
             core->s_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2].is_bitcount = 1;
@@ -2595,13 +2594,13 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         /* initialize structures *****************************************/
         ret = ctx->fn_mode_init_lcu(ctx, core);
         evc_assert_rv(ret == EVC_OK, ret);
-#if M50662_HISTORY_CTU_ROW_RESET
+
         if (core->x_pel == 0)
         {
             ret = evce_hmvp_init(&(core->history_buffer));
             evc_assert_rv(ret == EVC_OK, ret);
         }
-#endif
+
         /* mode decision *************************************************/
         SBAC_LOAD(core->s_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], *GET_SBAC_ENC(bs));
         core->s_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2].is_bitcount = 1;

@@ -285,16 +285,17 @@ static int slice_init(EVCD_CTX * ctx, EVCD_CORE * core, EVC_SH * sh)
     evc_mset_x64a(ctx->map_affine, 0, sizeof(u32) * ctx->f_scu);
     evc_mset_x64a(ctx->map_ats_inter, 0, sizeof(u8) * ctx->f_scu);
     evc_mset_x64a(ctx->map_cu_mode, 0, sizeof(u32) * ctx->f_scu);
+    
     if(ctx->sh.slice_type == SLICE_I)
     {
         ctx->last_intra_poc = ctx->poc.poc_val;
     }
-#if M50662_HISTORY_CTU_ROW_RESET
+
     evcd_hmvp_init(core);
-#endif
+
     return EVC_OK;
 }
-#if M50662_HISTORY_CTU_ROW_RESET
+
 static int evcd_hmvp_init(EVCD_CORE * core)
 {
     evc_mset(core->history_buffer.history_mv_table, 0, ALLOWED_CHECKED_NUM * REFP_NUM * MV_D * sizeof(s16));
@@ -309,7 +310,6 @@ static int evcd_hmvp_init(EVCD_CORE * core)
     core->history_buffer.m_maxCnt = ALLOWED_CHECKED_NUM;
     return core->history_buffer.currCnt;
 }
-#endif
 
 static void make_stat(EVCD_CTX * ctx, int btype, EVCD_STAT * stat)
 {
@@ -2102,13 +2102,13 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
             int same_layer_split[4];
             int split_allow[6] = { 0, 0, 0, 0, 0, 1 };
             evc_assert_rv(core->lcu_num < ctx->f_lcu, EVC_ERR_UNEXPECTED);
-#if M50662_HISTORY_CTU_ROW_RESET
+
             if (core->x_pel == 0)
             {
                 ret = evcd_hmvp_init(core);
                 evc_assert_rv(ret == EVC_OK, ret);
             }
-#endif
+
             /* invoke coding_tree() recursion */
             evc_mset(core->split_mode, 0, sizeof(s8) * MAX_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
 
@@ -2161,13 +2161,13 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
         int same_layer_split[4];
         int split_allow[6] = {0, 0, 0, 0, 0, 1};
         evc_assert_rv(core->lcu_num < ctx->f_lcu, EVC_ERR_UNEXPECTED);
-#if M50662_HISTORY_CTU_ROW_RESET
+
         if (core->x_pel == 0)
         {
             ret = evcd_hmvp_init(core);
             evc_assert_rv(ret == EVC_OK, ret);
         }
-#endif
+
         /* invoke coding_tree() recursion */
         evc_mset(core->split_mode, 0, sizeof(s8) * MAX_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
         evc_AlfSliceParam* alfSliceParam = &(ctx->sh.alf_sh_param);

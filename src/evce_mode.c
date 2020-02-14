@@ -1132,7 +1132,6 @@ static int copy_cu_data(EVCE_CU_DATA *dst, EVCE_CU_DATA *src, int x, int y, int 
     return EVC_OK;
 }
 
-#if M50662_HISTORY_CTU_ROW_RESET
 int evce_hmvp_init(EVC_HISTORY_BUFFER *history_buffer)
 {
     evc_mset(history_buffer->history_mv_table, 0, ALLOWED_CHECKED_NUM * REFP_NUM * MV_D * sizeof(s16));
@@ -1151,7 +1150,7 @@ int evce_hmvp_init(EVC_HISTORY_BUFFER *history_buffer)
 
     return EVC_OK;
 }
-#endif
+
 static int init_history_buffer(EVC_HISTORY_BUFFER *history_buffer)
 {
     evc_mset(history_buffer->history_mv_table,   0, ALLOWED_CHECKED_NUM * REFP_NUM * MV_D * sizeof(s16));
@@ -4587,10 +4586,8 @@ static int mode_analyze_lcu(EVCE_CTX *ctx, EVCE_CORE *core)
     init_cu_data(&core->cu_data_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], ctx->log2_max_cuwh, ctx->log2_max_cuwh, ctx->qp, ctx->qp, ctx->qp);
     init_cu_data(&core->cu_data_temp[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], ctx->log2_max_cuwh, ctx->log2_max_cuwh, ctx->qp, ctx->qp, ctx->qp);
 
-#if M50662_HISTORY_CTU_ROW_RESET
     evce_hmvp_init(&core->m_pTempMotLUTs[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2]);
     evce_hmvp_init(&core->m_pBestMotLUTs[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2]);
-#endif 
     
     copy_history_buffer(&core->m_pTempMotLUTs[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], &core->history_buffer);
     copy_history_buffer(&core->m_pBestMotLUTs[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], &core->history_buffer);
