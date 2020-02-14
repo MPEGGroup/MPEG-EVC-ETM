@@ -1479,6 +1479,13 @@ typedef struct _TREE_CONS
     TREE_TYPE       tree_type;
     MODE_CONS       mode_cons;
 } TREE_CONS;
+
+typedef struct _TREE_CONS_NEW
+{
+    TREE_TYPE       tree_type;
+    MODE_CONS       mode_cons;
+} TREE_CONS_NEW;
+
 #endif
 /*****************************************************************************
  * for binary and triple tree structure

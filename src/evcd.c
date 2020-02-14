@@ -898,13 +898,13 @@ void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 
 static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log2_cuw, int log2_cuh
 #if M50761_CHROMA_NOT_SPLIT
-    , TREE_CONS tree_cons
+    , TREE_CONS_NEW tree_cons
 #endif
 )
 {
     int ret, cuw, cuh;
 #if M50761_CHROMA_NOT_SPLIT
-    ctx->tree_cons = tree_cons;
+    ctx->tree_cons = ( TREE_CONS ) { FALSE, tree_cons.tree_type, tree_cons.mode_cons }; //TODO: for further refactoring
 #endif
     core->log2_cuw = log2_cuw;
     core->log2_cuh = log2_cuh;
@@ -1217,7 +1217,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
                          , int cu_qp_delta_code
 #endif
 #if M50761_CHROMA_NOT_SPLIT
-    , TREE_CONS tree_cons //TODO: refactor it: only predMode constraint is needed
+    , TREE_CONS_NEW tree_cons //TODO: refactor it: only predMode constraint is needed
 #endif
 )
 {
@@ -1232,7 +1232,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
     cuw = 1 << log2_cuw;
     cuh = 1 << log2_cuh;
 #if M50761_CHROMA_NOT_SPLIT
-    ctx->tree_cons = tree_cons; //TODO: remove it from ctx
+    ctx->tree_cons = ( TREE_CONS ) { FALSE, tree_cons.tree_type, tree_cons.mode_cons };    //TODO: for further refactoring; //TODO: remove it from ctx
 #endif
 #if M52166_PARTITION
     if (cuw > ctx->min_cuwh || cuh > ctx->min_cuwh)
@@ -1480,11 +1480,11 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
         
         evc_split_get_part_structure(split_mode, x0, y0, cuw, cuh, cup, cud, ctx->log2_max_cuwh - MIN_CU_LOG2, &split_struct
 #if M50761_CHROMA_NOT_SPLIT
-            ,  tree_cons /*, ctx->tgh.tile_group_type */ /*TODO: remove it*/
+            ,  evc_get_default_tree_cons() /*, ctx->tgh.tile_group_type */ /*TODO: remove it*/
 #endif
         );
 #if M50761_CHROMA_NOT_SPLIT
-        split_struct.tree_cons = tree_cons;
+        split_struct.tree_cons = ( TREE_CONS ) { FALSE, tree_cons.tree_type, tree_cons.mode_cons }; //TODO: for further refactoring
 
         BOOL mode_constraint_changed = FALSE;
 
@@ -1530,7 +1530,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
                     , cu_qp_delta_code
 #endif
 #if M50761_CHROMA_NOT_SPLIT
-                                     , split_struct.tree_cons
+                    , (TREE_CONS_NEW) { split_struct.tree_cons.tree_type, split_struct.tree_cons.mode_cons } /*TODO: further refactor it*/
 #endif
                 );
                 evc_assert_g(ret == EVC_OK, ERR);
@@ -1542,7 +1542,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
         {
             evc_assert(evc_check_only_intra(split_struct.tree_cons));
 
-            TREE_CONS local_tree_cons = { TRUE, TREE_C, eOnlyIntra };
+            TREE_CONS_NEW local_tree_cons = { TREE_C, eOnlyIntra };
             ret = evcd_eco_unit( ctx, core, x0, y0, log2_cuw, log2_cuh , local_tree_cons );
             evc_assert_g(ret == EVC_OK, ERR);
         }
@@ -2134,7 +2134,7 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
                 , 0
 #endif
 #if M50761_CHROMA_NOT_SPLIT
-                , evc_get_default_tree_cons()
+                , ( TREE_CONS_NEW ) { TREE_LC, eAll }/*TODO: further refactor it*/
 #endif
             );
             evc_assert_g(EVC_SUCCEEDED(ret), ERR);
