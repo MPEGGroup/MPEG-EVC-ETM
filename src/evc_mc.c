@@ -6960,13 +6960,7 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
     apply_DMVR = apply_DMVR && dmvr_poc_condition;
     apply_DMVR = apply_DMVR && (REFI_IS_VALID(refi[REFP_0]) && REFI_IS_VALID(refi[REFP_1]));
     apply_DMVR = apply_DMVR && !(refp[refi[REFP_0]][REFP_0].pic->poc == refp[refi[REFP_1]][REFP_1].pic->poc &&  mv_t[REFP_0][MV_X] == mv_t[REFP_1][MV_X] && mv_t[REFP_0][MV_Y] == mv_t[REFP_1][MV_Y]);
-
-#if !M50761_DMVR_RESTRICT_SMALL_BLOCKS
-    apply_DMVR = apply_DMVR && (!((w == 4 && h <= 8) || (w <= 8 && h == 4)));
-#else
     apply_DMVR = apply_DMVR && w >= 8 && h >= 8;
-#endif
-
 
 #if DMVR_FLAG
     *cu_dmvr_flag = 0;
