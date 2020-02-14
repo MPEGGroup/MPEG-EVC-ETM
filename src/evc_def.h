@@ -97,8 +97,6 @@
 #define CHROMA_NOT_SPLIT_EXCLUDE_IBC               0    // Remove CC in the case of allowing IBC
 #endif
 
-#define M50761_BUGFIX_UV_SIZE                      1
-
 #define M50761_HTDF_BLOCK_SIZE_64                  1
 #define M50761_TMVP_8X8_GRID                       1
 #define M50761_BOUNDARY_FORCE_CLEANUP              1
