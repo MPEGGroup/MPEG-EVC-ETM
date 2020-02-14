@@ -35,6 +35,10 @@
 #include "evca_util.h"
 #include "evca_args.h"
 #include <math.h>
+#if QC_DRA
+#include "../src/evc_dra.h"
+#include "../src/evc_util.h"
+#endif
 
 #define SCRIPT_REPORT              1
 #define VERBOSE_NONE               VERBOSE_0
@@ -121,6 +125,9 @@ static int  op_tool_amvr          = 1; /* default on */
 static int  op_tool_mmvd          = 1; /* default on */
 static int  op_tool_affine        = 1; /* default on */
 static int  op_tool_dmvr          = 1; /* default on */
+#if QC_ADD_ADDB_FLAG
+static int  op_tool_addb          = 1; /* default on */
+#endif
 static int  op_tool_alf           = 1; /* default on */
 static int  op_tool_admvp         = 1; /* default on */
 #if !M52165
@@ -150,13 +157,27 @@ static char op_slice_boundary_array[2 * 600];   // Max. slices can be 600 for th
 
 #if CHROMA_QP_TABLE_SUPPORT_M50663
 static int  op_chroma_qp_table_present_flag = 0;
-static char op_chroma_qp_num_points_in_table[2] = {0};
-static char op_chroma_qp_delta_in_val_cb[MAX_QP_TABLE_SIZE_EXT] = {0};
-static char op_chroma_qp_delta_out_val_cb[MAX_QP_TABLE_SIZE_EXT] = { 0 };
-static char op_chroma_qp_delta_in_val_cr[MAX_QP_TABLE_SIZE_EXT] = { 0 };
-static char op_chroma_qp_delta_out_val_cr[MAX_QP_TABLE_SIZE_EXT] = { 0 };
+static char op_chroma_qp_num_points_in_table[256] = {0};
+static char op_chroma_qp_delta_in_val_cb[256] = {0};
+static char op_chroma_qp_delta_out_val_cb[256] = { 0 };
+static char op_chroma_qp_delta_in_val_cr[256] = { 0 };
+static char op_chroma_qp_delta_out_val_cr[256] = { 0 };
 #endif
 
+#if QC_DRA
+static int  op_dra_enable_flag = 0;
+static int  op_dra_number_ranges = 0;
+static char op_dra_range[256] = { 0 };
+static char op_dra_scale[256] = { 0 };
+static char op_dra_chroma_qp_scale[256] = "1.0";
+static char op_dra_chroma_qp_offset[256] = "0.0";
+static char op_dra_chroma_cb_scale[256] = "1.0";
+static char op_dra_chroma_cr_scale[256] = "1.0";
+static char op_dra_hist_norm[256] = "1.0";
+#endif
+#if ETM_HDR_REPORT_METRIC_FLAG
+static int  op_hdr_metric_report = 0;
+#endif
 static char  op_rpl0[MAX_NUM_RPLS][256];
 static char  op_rpl1[MAX_NUM_RPLS][256];
 
@@ -222,6 +243,9 @@ typedef enum _OP_FLAGS
     OP_TOOL_MMVD,
     OP_TOOL_AFFINE,
     OP_TOOL_DMVR,
+#if QC_ADD_ADDB_FLAG
+    OP_TOOL_ADDB,
+#endif
     OP_TOOL_ALF,
     OP_TOOL_HTDF,
     OP_TOOL_ADMVP,
@@ -237,6 +261,9 @@ typedef enum _OP_FLAGS
     OP_TOOL_ATS,
     OP_CONSTRAINED_INTRA_PRED,
     OP_TOOL_DBFOFFSET,
+#if ETM_HDR_REPORT_METRIC_FLAG
+	OP_HDR_METRIC_REPORT,
+#endif
 #if EVC_TILE_SUPPORT
     OP_TILE_UNIFORM_SPACING,
     OP_NUM_TILE_COLUMNS_MINUS1,
@@ -254,6 +281,19 @@ typedef enum _OP_FLAGS
     OP_CHROMA_QP_DELTA_IN_VAL_CR,
     OP_CHROMA_QP_DELTA_OUT_VAL_CR,
 #endif
+
+#if QC_DRA
+    OP_DRA_ENABLE_FLAG,
+    OP_DRA_NUMBER_RANGES,
+    OP_DRA_RANGE,
+    OP_DRA_SCALE,
+    OP_DRA_CHROMA_QP_SCALE,
+    OP_DRA_CHROMA_QP_OFFSET,
+    OP_DRA_CHROMA_CB_SCALE,
+    OP_DRA_CHROMA_CR_SCALE,
+    OP_DRA_HIST_NORM,
+#endif
+
     OP_FLAG_RPL0_0,
     OP_FLAG_RPL0_1,
     OP_FLAG_RPL0_2,
@@ -594,6 +634,13 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_TOOL_DMVR], &op_tool_dmvr,
         "dmvr on/off flag"
     },
+#if QC_ADD_ADDB_FLAG
+    {
+        EVC_ARGS_NO_KEY,  "addb", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_TOOL_ADDB], &op_tool_addb,
+        "addb on/off flag"
+    },
+#endif
     {
         EVC_ARGS_NO_KEY,  "alf", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_TOOL_ALF], &op_tool_alf,
@@ -666,6 +713,13 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_TOOL_DBFOFFSET], &op_deblock_beta_offset,
         "AVC Deblocking filter offset for beta"
     },
+#if ETM_HDR_REPORT_METRIC_FLAG
+    {
+        EVC_ARGS_NO_KEY,  "hdr_metric", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_HDR_METRIC_REPORT], &op_hdr_metric_report,
+        "hdr matric report on/off flag"
+    },
+#endif
 #if EVC_TILE_SUPPORT
     {
         EVC_ARGS_NO_KEY,  "tile_uniform_spacing", EVC_ARGS_VAL_TYPE_INTEGER,
@@ -735,6 +789,55 @@ static EVC_ARGS_OPTION options[] = \
         "Array of input pivot points for Cr"
     },
 #endif
+
+#if QC_DRA
+        {
+            EVC_ARGS_NO_KEY,  "dra_enable_flag", EVC_ARGS_VAL_TYPE_INTEGER,
+            &op_flag[OP_DRA_ENABLE_FLAG], &op_dra_enable_flag,
+            "op_dra_enable_flag"
+        },
+    {
+        EVC_ARGS_NO_KEY,  "dra_number_ranges", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_DRA_NUMBER_RANGES], &op_dra_number_ranges,
+        "Number of DRA ranges"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "dra_range", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_DRA_RANGE], &op_dra_range,
+        "Array of dra ranges"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "dra_scale", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_DRA_SCALE], &op_dra_scale,
+        "Array of input dra ranges"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "dra_chroma_qp_scale", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_DRA_CHROMA_QP_SCALE], &op_dra_chroma_qp_scale,
+        "op_dra_chroma_qp_scale value"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "dra_chroma_qp_offset", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_DRA_CHROMA_QP_OFFSET], &op_dra_chroma_qp_offset ,
+        "op_dra_chroma_qp_offset"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "dra_chroma_cb_scale", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_DRA_CHROMA_CB_SCALE], &op_dra_chroma_cb_scale,
+        "op_dra_chroma_cb_scale"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "dra_chroma_cr_scale", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_DRA_CHROMA_CR_SCALE], &op_dra_chroma_cr_scale,
+        "op_dra_chroma_cr_scale"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "dra_hist_norm", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_DRA_HIST_NORM], &op_dra_hist_norm,
+        "op_dra_hist_norm"
+    },
+#endif
+
     {
         EVC_ARGS_NO_KEY,  "RPL0_0", EVC_ARGS_VAL_TYPE_STRING,
         &op_flag[OP_FLAG_RPL0_0], &op_rpl0[0],
@@ -1104,7 +1207,11 @@ static void evca_parse_chroma_qp_mapping_params(EVC_CHROMA_TABLE *dst_struct, EV
 }
 #endif
 
+#if QC_DRA
+static int get_conf(EVCE_CDSC * cdsc, void *p_dra_struct_void)
+#else
 static int get_conf(EVCE_CDSC * cdsc)
+#endif
 {
     memset(cdsc, 0, sizeof(EVCE_CDSC));
 
@@ -1177,6 +1284,9 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->tool_mmvd          = op_tool_mmvd;
     cdsc->tool_affine        = op_tool_affine;
     cdsc->tool_dmvr          = op_tool_dmvr;
+#if QC_ADD_ADDB_FLAG
+    cdsc->tool_addb          = op_tool_addb;
+#endif
     cdsc->tool_alf           = op_tool_alf;
     cdsc->tool_admvp         = op_tool_admvp;
 #if !M52165
@@ -1193,7 +1303,12 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->constrained_intra_pred = op_constrained_intra_pred;
     cdsc->deblock_aplha_offset = op_deblock_alpha_offset;
     cdsc->deblock_beta_offset = op_deblock_beta_offset;
-  
+#if ETM_HDR_REPORT_METRIC_FLAG
+    cdsc->tool_hdr_metric = op_hdr_metric_report;
+#endif
+#if QC_DRA
+    cdsc->tool_dra = op_dra_enable_flag;
+#endif
 #if EVC_TILE_SUPPORT
     cdsc->tile_uniform_spacing_flag = op_tile_uniform_spacing;
     cdsc->tile_columns = op_num_tile_columns_minus1 + 1;
@@ -1297,8 +1412,14 @@ static int get_conf(EVCE_CDSC * cdsc)
             } while (1);
             evc_assert(l_chroma_qp_table.num_points_in_qp_table_minus1[1] + 1 == j);
         }
+#if QC_DRA
+        evca_parse_chroma_qp_mapping_params(&(cdsc->chroma_qp_table_struct), &l_chroma_qp_table);  // parse input params and create chroma_qp_table_struct structure
+        evc_derived_chroma_qp_mapping_tables(&(cdsc->chroma_qp_table_struct));
+#endif
     }
+#if !QC_DRA
     evca_parse_chroma_qp_mapping_params(&(cdsc->chroma_qp_table_struct), &l_chroma_qp_table);  // parse input params and create chroma_qp_table_struct structure
+#endif
 #endif
     for (int i = 0; i < MAX_NUM_RPLS && op_rpl0[i][0] != 0; ++i)
     {
@@ -1340,7 +1461,54 @@ static int get_conf(EVCE_CDSC * cdsc)
         cdsc->rpls_l1[i].ref_pic_num = j;
         ++cdsc->rpls_l1_cfg_num;
     }
+#if QC_DRA
+    {
+        cdsc->m_DRAMappingApp = p_dra_struct_void;
+        WCGDDRAControl *p_dra_control = ((WCGDDRAControl*)cdsc->m_DRAMappingApp);
+        p_dra_control->m_flagEnabled = op_dra_enable_flag;
+        if (p_dra_control->m_flagEnabled)
+        {
+            p_dra_control->m_draHistNorm = atof(strtok(op_dra_hist_norm, " "));
+            p_dra_control->m_draHistNorm = p_dra_control->m_draHistNorm == 0 ? 1 : p_dra_control->m_draHistNorm;
+            p_dra_control->m_atfNumRanges = op_dra_number_ranges;
 
+            p_dra_control->m_draScaleMap.m_draScaleMapY[0][0] = atoi(strtok(op_dra_range, " "));
+            int j = 1;
+            do
+            {
+                char* val = strtok(NULL, " \r");
+                if (!val)
+                    break;
+                p_dra_control->m_draScaleMap.m_draScaleMapY[j++][0] = atoi(val);
+            } while (1);
+            evc_assert(p_dra_control->m_atfNumRanges == j);
+
+            p_dra_control->m_draScaleMap.m_draScaleMapY[0][1] = atof(strtok(op_dra_scale, " "));
+            j = 1;
+            do
+            {
+                char* val = strtok(NULL, " \r");
+                if (!val)
+                    break;
+                p_dra_control->m_draScaleMap.m_draScaleMapY[j++][1] = atof(val);
+            } while (1);
+            evc_assert(p_dra_control->m_atfNumRanges == j);
+            p_dra_control->m_draScaleMap.m_draScaleMapY[p_dra_control->m_atfNumRanges][0] = 1024;
+            p_dra_control->m_draScaleMap.m_draScaleMapY[p_dra_control->m_atfNumRanges][1] = p_dra_control->m_draScaleMap.m_draScaleMapY[p_dra_control->m_atfNumRanges - 1][1];
+        }
+
+        p_dra_control->m_chromaQPModel.m_baseLumaQP = cdsc->qp;
+        p_dra_control->m_chromaQPModel.m_draChromaCbQpOffset = cdsc->cb_qp_offset;
+        p_dra_control->m_chromaQPModel.m_draChromaCrQpOffset = cdsc->cr_qp_offset;
+        p_dra_control->m_chromaQPModel.enabled = 1;
+        p_dra_control->m_chromaQPModel.chromaCbQpScale = atof(op_dra_chroma_cb_scale);
+        p_dra_control->m_chromaQPModel.chromaCrQpScale = atof(op_dra_chroma_cr_scale);
+        p_dra_control->m_chromaQPModel.chromaQpScale = atof(op_dra_chroma_qp_scale);
+        p_dra_control->m_chromaQPModel.chromaQpOffset = atof(op_dra_chroma_qp_offset);
+        p_dra_control->m_numFracBitsScale = QC_SCALE_NUMFBITS;
+        p_dra_control->m_numIntBitsScale = 4;
+    }
+#endif
     return 0;
 }
 
@@ -1355,6 +1523,9 @@ static void print_enc_conf(EVCE_CDSC * cdsc)
     printf("MMVD: %d, ",   cdsc->tool_mmvd);
     printf("AFFINE: %d, ", cdsc->tool_affine);
     printf("DMVR: %d, ",   cdsc->tool_dmvr);
+#if QC_ADD_ADDB_FLAG
+    printf("ADDB: %d, ",   cdsc->tool_addb);
+#endif
     printf("ALF: %d, ",    cdsc->tool_alf);
     printf("ADMVP: %d, ",  cdsc->tool_admvp);
 #if !M52165
@@ -1378,6 +1549,11 @@ static void print_enc_conf(EVCE_CDSC * cdsc)
 #if CHROMA_QP_TABLE_SUPPORT_M50663
     printf("ChromaQPTable: %d ", cdsc->chroma_qp_table_struct.chroma_qp_table_present_flag);
 #endif
+#if QC_DRA
+    printf("DRA: %d ", cdsc->tool_dra);
+#else
+    printf("DRA: %d ", ((WCGDDRAControl *)cdsc->m_DRAMappingApp)->m_flagEnabled);
+#endif
     printf("\n");
 }
 
@@ -1391,6 +1567,9 @@ int check_conf(EVCE_CDSC* cdsc)
         if (cdsc->tool_affine  == 1) { v0print("Affine cannot be on in base profile\n"); success = 0; }
         if (cdsc->tool_dmvr    == 1) { v0print("DMVR cannot be on in base profile\n"); success = 0; }
         if (cdsc->tool_admvp   == 1) { v0print("ADMVP cannot be on in base profile\n"); success = 0; }
+#if QC_ADD_ADDB_FLAG
+        if (cdsc->tool_addb    == 1) { v0print("ADDB cannot be on in base profile\n"); success = 0; }
+#endif
         if (cdsc->tool_alf     == 1) { v0print("ALF cannot be on in base profile\n"); success = 0; }
         if (cdsc->tool_htdf    == 1) { v0print("HTDF cannot be on in base profile\n"); success = 0; }
         if (cdsc->btt          == 1) { v0print("BTT cannot be on in base profile\n"); success = 0; }
@@ -1474,7 +1653,22 @@ static void print_stat_init(void)
         print("  Output YUV file         : %s \n", op_fname_rec);
     }
     print("---------------------------------------------------------------------------------------\n");
+#if ETM_HDR_METRIC
+#if ETM_HDR_REPORT_METRIC_FLAG
+    if (op_hdr_metric_report)
+#else
+	if (1)
+#endif
+    {
+        print("POC   Tid   Ftype   QP   PSNR-Y    PSNR-U    PSNR-V    wPSNR-Y   wPSNR-U   wPSNR-V   DeltaE100   PSNRL100   Bits      EncT(ms)  ");
+    }
+    else
+    {
+        print("POC   Tid   Ftype   QP   PSNR-Y    PSNR-U    PSNR-V    Bits      EncT(ms)  ");
+    }
+#else
     print("POC   Tid   Ftype   QP   PSNR-Y    PSNR-U    PSNR-V    Bits      EncT(ms)  ");
+#endif
     print("MS-SSIM     ");
     print("Ref. List\n");
 
@@ -1506,10 +1700,8 @@ static void print_config(EVCE id)
     print("\tQP                       = %d\n", v);
 
     print("\tframes                   = %d\n", op_max_frm_num);
-
     evce_config(id, EVCE_CFG_GET_USE_DEBLOCK, (void *)(&v), &s);
     print("\tdeblocking filter        = %s\n", v? "enabled": "disabled");
-
     evce_config(id, EVCE_CFG_GET_CLOSED_GOP, (void *)(&v), &s);
     print("\tGOP type                 = %s\n", v? "closed": "open");
 
@@ -1571,7 +1763,83 @@ static void find_psnr_8bit(EVC_IMGB * org, EVC_IMGB * rec, double psnr[3])
         psnr[i] = (mse[i]==0.0) ? 100. : fabs( 10*log10(((255*255)/mse[i])) );
     }
 }
+#if ETM_HDR_METRIC
+double getWPSNRLumaLevelWeight(short pel)
+{
+    double x = (double)pel;
+    double y;
+    { // set SDR weight table
+        y = 0.015*x - 1.5 - 6;   // this is the Equation used to derive the luma qp LUT for HDR in MPEG HDR anchor3.2 (JCTCX-X1020)
+        y = y < -3 ? -3 : (y > 6 ? 6 : y);
+    }
 
+    return pow(2.0, y / 3.0);      // or power(10, dQp/10)      they are almost equal
+}
+static void find_wpsnr_10bit(EVC_IMGB * org, EVC_IMGB * rec, double wpsnr[3])
+{
+    double uiTotalDiffWPSNR, uiTotalDiffWPSNR_avg;
+    short *o, *r;
+    short *o_luma = (short*)org->a[0];
+    int i, j, k;
+
+    for (i = 0; i < org->np; i++)
+    {
+        o = (short*)org->a[i];
+        r = (short*)rec->a[i];
+        uiTotalDiffWPSNR = 0.0;
+        uiTotalDiffWPSNR_avg = 0.0;
+        for (j = 0; j < org->h[i]; j++)
+        {
+            for (k = 0; k < org->w[i]; k++)
+            {
+                double temp = (o[k] - r[k]);
+                double dW = getWPSNRLumaLevelWeight(o_luma[k << (i == 0 ? 0 : 1)]);
+                uiTotalDiffWPSNR += dW * temp * temp;
+            }
+
+            o = (short*)((unsigned char *)o + org->s[i]);
+            r = (short*)((unsigned char *)r + rec->s[i]);
+            o_luma = (short*)((unsigned char *)o_luma + (org->s[0] << (i == 0 ? 0 : 1)));
+        }
+        o_luma = (short*)org->a[0];
+        uiTotalDiffWPSNR_avg = uiTotalDiffWPSNR / (org->w[i] * org->h[i]);
+        wpsnr[i] = (uiTotalDiffWPSNR_avg == 0.0) ? 100. : fabs(10 * log10(((255 * 255 * 16) / uiTotalDiffWPSNR_avg)));
+    }
+}
+
+static void find_wpsnr_8bit(EVC_IMGB * org, EVC_IMGB * rec, double wpsnr[3])
+{
+    double uiTotalDiffWPSNR, uiTotalDiffWPSNR_avg;
+    short *o, *r;
+    short *o_luma = (short*)org->a[0];
+    int i, j, k;
+
+    for (i = 0; i < org->np; i++)
+    {
+        o = (short*)org->a[i];
+        r = (short*)rec->a[i];
+        uiTotalDiffWPSNR = 0.0;
+        uiTotalDiffWPSNR_avg = 0.0;
+        for (j = 0; j < org->h[i]; j++)
+        {
+            for (k = 0; k < org->w[i]; k++)
+            {
+                double temp = (o[k] - r[k]);
+                double dW = getWPSNRLumaLevelWeight(o_luma[k << (i == 0 ? 0 : 1)] << 2);
+                uiTotalDiffWPSNR += dW * temp * temp;
+            }
+
+            o = (short*)((unsigned char *)o + org->s[i]);
+            r = (short*)((unsigned char *)r + rec->s[i]);
+            o_luma = (short*)((unsigned char *)o_luma + org->s[0]);
+        }
+        o_luma = (short*)org->a[0];
+        uiTotalDiffWPSNR_avg = uiTotalDiffWPSNR / (org->w[i] * org->h[i]);
+        wpsnr[i] = (uiTotalDiffWPSNR_avg == 0.0) ? 100. : fabs(10 * log10(((255 * 255) / uiTotalDiffWPSNR_avg)));
+    }
+}
+
+#endif
 const double gaussian_filter[11][11] =
 {
     {0.000001,0.000008,0.000037,0.000112,0.000219,0.000274,0.000219,0.000112,0.000037,0.000008,0.000001},
@@ -1915,14 +2183,431 @@ static int cal_psnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts,
                 find_ms_ssim(imgb_t, imgb_rec, ms_ssim, 8);
                 imgb_free(imgb_t);
             }
+#if !ETM_HDR_METRIC
             imgblist_inp[i].used = 0;
+#endif
             return 0;
         }
     }
     return -1;
 }
+#if ETM_HDR_METRIC
+static int cal_wpsnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts, double wpsnr[3])
+{
+    int            i;
+    EVC_IMGB     *imgb_t = NULL;
 
+    /* calculate wPSNR */
+    wpsnr[0] = wpsnr[1] = wpsnr[2] = 0;
+
+    for (i = 0; i < MAX_BUMP_FRM_CNT; i++)
+    {
+        if (imgblist_inp[i].ts == ts && imgblist_inp[i].used == 1)
+        {
+            if (op_out_bit_depth == op_in_bit_depth)
+            {
+                if (op_out_bit_depth == 10)
+                {
+                    find_wpsnr_10bit(imgblist_inp[i].imgb, imgb_rec, wpsnr);
+                }
+                else /* if(op_out_bit_depth == 8) */
+                {
+                    find_wpsnr_8bit(imgblist_inp[i].imgb, imgb_rec, wpsnr);
+                }
+            }
+            else if (op_out_bit_depth == 10)
+            {
+                imgb_t = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                    EVC_COLORSPACE_YUV420_10LE);
+                imgb_cpy(imgb_t, imgblist_inp[i].imgb);
+
+                find_wpsnr_10bit(imgb_t, imgb_rec, wpsnr);
+                imgb_free(imgb_t);
+            }
+            else /* if(op_out_bit_depth == 8) */
+            {
+                imgb_t = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                    EVC_COLORSPACE_YUV420);
+                imgb_cpy(imgb_t, imgblist_inp[i].imgb);
+                find_wpsnr_8bit(imgb_t, imgb_rec, wpsnr);
+                imgb_free(imgb_t);
+            }
+            //            imgblist_inp[i].used = 0;
+            return 0;
+        }
+    }
+    return -1;
+}
+float filterVertical(const short *inp, const float *filter, int pos_y, int width, int height, float minValue, float maxValue, int numberOfTaps, int positionOffset, float floatOffset, float floatScale)
+{
+    int i;
+    float value = 0.0;
+    for (i = 0; i < numberOfTaps; i++) {
+        value += filter[i] * inp[min(max(pos_y + i - positionOffset, 0), height) * width];
+    }
+    return (value + floatOffset) * floatScale;
+}
+float filterHorizontal(const float *inp, const float *filter, int pos_x, int width, float minValue, float maxValue, int numberOfTaps, int positionOffset, float floatOffset, float floatScale)
+{
+    int i;
+    float value = 0.0;
+    for (i = 0; i < numberOfTaps; i++) {
+        value += filter[i] * inp[min(max(pos_x + i - positionOffset, 0), width)];
+    }
+    return (value + floatOffset) * floatScale;
+}
+void filter(float *out, const short *inp, int width, int height, float minValue, float maxValue)
+{
+    int i, j;
+    int inp_width = width >> 1;
+    int inputHeight = height >> 1;
+    int size = sizeof(float) * width * height;
+    float *floatData = (float *)evc_malloc(size);
+
+    int method = 1;
+    int filter = method - 1;
+    int phase = 0; // for filter floatFilter_ver0
+    int index = 0;
+    int numberOfTaps_ver0 = (int)g_UCF_Filters[filter][phase][index];
+
+    size = sizeof(float) * numberOfTaps_ver0;
+    float *floatFilter_ver0 = (float *)evc_malloc(size);
+    for (index = 1; index <= numberOfTaps_ver0; index++) {
+        floatFilter_ver0[index - 1] = (float)g_UCF_Filters[filter][phase][index];
+    }
+    index = numberOfTaps_ver0 + 1;
+    //    int outShift_ver0 = (int)g_UCF_Filters[filter][phase][index];
+    int outShift_ver0 = 8;
+    float floatOffset_ver0 = 0.0f;
+    float floatScale_ver0 = 1.0f / ((float)(1 << outShift_ver0));
+    int positionOffset_ver0 = (numberOfTaps_ver0 + 1) >> 1;
+
+    phase = 2; // for filter floatFilter_ver1
+    index = 0;
+    int numberOfTaps_ver1 = (int)g_UCF_Filters[filter][phase][index];
+
+    size = sizeof(float) * numberOfTaps_ver1;
+    float *floatFilter_ver1 = (float *)evc_malloc(size);
+    for (index = 1; index <= numberOfTaps_ver1; index++) {
+        floatFilter_ver1[index - 1] = (float)g_UCF_Filters[filter][phase][index];
+    }
+    index = numberOfTaps_ver1 + 1;
+    //int outShift_ver1 = (int)g_UCF_Filters[filter][phase][index];
+    int outShift_ver1 = 8;
+    float floatOffset_ver1 = 0.0f;
+    float floatScale_ver1 = 1.0f / ((float)(1 << outShift_ver1));
+    int positionOffset_ver1 = (numberOfTaps_ver1 + 1) >> 1;
+
+    for (j = 0; j < inputHeight; j++) {
+        for (i = 0; i < inp_width; i++) {
+            floatData[(2 * j) * inp_width + i] = filterVertical(&inp[i], floatFilter_ver0, j, inp_width, inputHeight - 1, 0.0, 0.0, numberOfTaps_ver0, positionOffset_ver0, floatOffset_ver0, floatScale_ver0);
+            floatData[(2 * j + 1) * inp_width + i] = filterVertical(&inp[i], floatFilter_ver1, j + 1, inp_width, inputHeight - 1, 0.0, 0.0, numberOfTaps_ver1, positionOffset_ver1, floatOffset_ver1, floatScale_ver1);
+        }
+    }
+    // hor ver filters are identical
+    float* floatFilter_hor0 = floatFilter_ver0;
+    int numberOfTaps_hor0 = numberOfTaps_ver0;
+    float floatOffset_hor0 = floatOffset_ver0;
+    float floatScale_hor0 = floatScale_ver0;
+    int positionOffset_hor0 = positionOffset_ver0;
+
+    float* floatFilter_hor1 = floatFilter_ver1;
+    int numberOfTaps_hor1 = numberOfTaps_ver1;
+    float floatOffset_hor1 = floatOffset_ver1;
+    float floatScale_hor1 = floatScale_ver1;
+    int positionOffset_hor1 = positionOffset_ver1;
+
+    for (j = 0; j < height; j++) {
+        for (i = 0; i < inp_width; i++) {
+            out[j * width + 2 * i] = filterHorizontal(&floatData[j * inp_width], floatFilter_hor0, i, inp_width - 1, minValue, maxValue, numberOfTaps_hor0, positionOffset_hor0, floatOffset_hor0, floatScale_hor0);
+            out[j * width + 2 * i + 1] = filterHorizontal(&floatData[j * inp_width], floatFilter_hor1, i + 1, inp_width - 1, minValue, maxValue, numberOfTaps_hor1, positionOffset_hor1, floatOffset_hor1, floatScale_hor1);
+        }
+    }
+}
+void process1(EVC_IMGB* out, EVC_IMGB* inp)
+{
+    float m_minPelValue[3], m_midPelValue[3], m_maxPelValue[3];
+    for (int c = 0; c < inp->np; c++) {
+        m_minPelValue[c] = 0;
+        m_midPelValue[c] = (float)(1 << (op_out_bit_depth - 1));
+        m_maxPelValue[c] = (float)((1 << op_out_bit_depth) - 1);
+    }
+    //    memcpy(out->a[0], inp->a[0], out->w[0] * out->h[0] * sizeof(short));
+    for (int i = 0; i < out->w[0] * out->h[0]; i++)
+    {
+        *((float*)(out->a[0]) + i) = (float)(*((short*)(inp->a[0]) + i));
+    }
+    for (int c = 1; c < inp->np; c++) {
+        filter((float*)out->a[c], (short*)inp->a[c], out->w[0], out->h[0], m_minPelValue[c], m_maxPelValue[c]);
+    }
+}
+double trueLab(double r)
+{
+    return (r >= 0.008856) ? pow(r, 1.0 / 3.0) : (7.78704 * r + 0.137931);
+}
+void xyz2TrueLab(double srcX, double srcY, double srcZ, double *dstL, double *dstA, double *dstB, double invYn, double invXn, double invZn)
+{
+    double yLab = trueLab(srcY * invYn);
+
+    *dstL = 116.0 *  yLab - 16.0;
+    *dstA = 500.0 * (trueLab(srcX * invXn) - yLab);
+    *dstB = 200.0 * (yLab - trueLab(srcZ * invZn));
+}
+double deltaE2000(double lRef, double aStarRef, double bStarRef, double lIn, double aStarIn, double bStarIn)
+{
+    // Compute C
+    const double cRef = sqrt(aStarRef * aStarRef + bStarRef * bStarRef);
+    const double cIn = sqrt(aStarIn  * aStarIn + bStarIn * bStarIn);
+
+    // these variables are not used but left here as reference
+    const double lPRef = lRef;
+    const double lPIn = lIn;
+
+    // Calculate G
+    const double cm = (cRef + cIn) / 2.0;
+    const double g = 0.5 * (1.0 - sqrt(pow(cm, 7.0) / (pow(cm, 7.0) + pow(25.0, 7.0))));
+
+    const double aPRef = (1.0 + g) * aStarRef;
+    const double aPIn = (1.0 + g) * aStarIn;
+
+    // these variables are not used but left here as reference
+    const double bPRef = bStarRef;
+    const double bPIn = bStarIn;
+
+    const double cPRef = sqrt(aPRef * aPRef + bPRef * bPRef);
+    const double cPIn = sqrt(aPIn  * aPIn + bPIn * bPIn);
+
+    double hPRef = atan2(bPRef, aPRef);
+    double hPIn = atan2(bPIn, aPIn);
+
+    // Calculate deltaL_p , deltaC_p , deltaH_p;
+    double deltaLp = lPRef - lPIn;
+    double deltaCp = cPRef - cPIn;
+    double deltaHp = 2.0 * sqrt(cPRef * cPIn) * sin((hPRef - hPIn) / 2.0);
+
+
+    //Calculate deltaE2000
+    double lpm = (lPRef + lPIn) / 2.0;
+    double cpm = (cPRef + cPIn) / 2.0;
+    double hpm = (hPRef + hPIn) / 2.0;
+
+    double rC = 2.0 * sqrt(pow(cpm, 7.0) / (pow(cpm, 7.0) + pow(25.0, 7.0)));
+    double deltaTheta = DEG30 * exp(-((hpm - DEG275) / DEG25) * ((hpm - DEG275) / DEG25));
+    double rT = -sin(2.0 * deltaTheta) * rC;
+    double t = 1.0 - 0.17 * cos(hpm - DEG30) + 0.24 * cos(2.0 * hpm) + 0.32 * cos(3.0 * hpm + DEG6) - 0.20 * cos(4.0 * hpm - DEG63);
+    double sH = 1.0 + (0.015 * cpm * t);
+    double sC = 1.0 + (0.045 * cpm);
+    double sL = 1.0 + (0.015 * (lpm - 50.0) * (lpm - 50.0) / sqrt(20.0 + (lpm - 50.0) * (lpm - 50.0)));
+    double deltaLpSL = deltaLp / sL;
+    double deltaCpSC = deltaCp / sC;
+    double deltaHpSH = deltaHp / sH;
+
+    return sqrt(deltaLpSL * deltaLpSL + deltaCpSC * deltaCpSC + deltaHpSH * deltaHpSH + rT * deltaCpSC * deltaHpSH);
+}
+double getDeltaE2000(double x, double y, double z, double xRec, double yRec, double zRec, double invYn, double invXn, double invZn)
+{
+    double l, a, b, lRec, aRec, bRec;
+
+    xyz2TrueLab(x, y, z, &l, &a, &b, invYn, invXn, invZn);
+    xyz2TrueLab(xRec, yRec, zRec, &lRec, &aRec, &bRec, invYn, invXn, invZn);
+
+    return deltaE2000(l, a, b, lRec, aRec, bRec);
+}
+static inline double dMax(double a, double b) {
+    return ((a) > (b)) ? (a) : (b);
+}
+static inline double dAbs(double x) {
+    return ((x) < 0) ? -(x) : (x);
+}
+void computeMetric(EVC_IMGB* inp0, EVC_IMGB* inp1, double deltaE[3], double psnrL[3])
+{
+    double x0, y0, z0, x1, y1, z1;
+    double meanDeltaL = 0.0;
+    double deltaE_temp = 0.0;
+    double currentDeltaE = 0.0, maxDeltaE = 0.0;
+    double whitePointDeltaE[3] = { 100.0, 1000.0, 5000.0 };
+    double DeltaError[3];
+    {
+        const float *rec0RGB2XYZ = &g_RGB2XYZ_REC[1][0];
+        const float *rec1RGB2XYZ = &g_RGB2XYZ_REC[1][0];
+        for (int wRef = 0; wRef < NB_REF_WHITE; wRef++) {
+            deltaE_temp = 0.0;
+            meanDeltaL = 0.0;
+
+            double invYn = 1.0 / whitePointDeltaE[wRef];
+            double invXn = invYn / 0.95047;
+            double invZn = invYn / 1.08883;
+
+            float *floatImg0Comp0 = inp0->a[0];
+            float *floatImg0Comp1 = inp0->a[1];
+            float *floatImg0Comp2 = inp0->a[2];
+            float *floatImg1Comp0 = inp1->a[0];
+            float *floatImg1Comp1 = inp1->a[1];
+            float *floatImg1Comp2 = inp1->a[2];
+            // floating point data
+            for (int i = 0; i < (inp0->w[0] * inp0->h[0]); i++) {
+                // =================  Method 2 : RGB to XYZ followed by PQ curve on XYZ, followed by X'Y'Z' to Y'DzDx ================
+                // RGB to XYZ conversion
+                x0 = (rec0RGB2XYZ[0] * (double)(*floatImg0Comp0) + rec0RGB2XYZ[1] * (double)(*floatImg0Comp1) + rec0RGB2XYZ[2] * (double)(*floatImg0Comp2));
+                y0 = (rec0RGB2XYZ[3] * (double)(*floatImg0Comp0) + rec0RGB2XYZ[4] * (double)(*floatImg0Comp1) + rec0RGB2XYZ[5] * (double)(*floatImg0Comp2));
+                z0 = (rec0RGB2XYZ[6] * (double)(*floatImg0Comp0++) + rec0RGB2XYZ[7] * (double)(*floatImg0Comp1++) + rec0RGB2XYZ[8] * (double)(*floatImg0Comp2++));
+
+                x1 = (rec1RGB2XYZ[0] * (double)(*floatImg1Comp0) + rec1RGB2XYZ[1] * (double)(*floatImg1Comp1) + rec1RGB2XYZ[2] * (double)(*floatImg1Comp2));
+                y1 = (rec1RGB2XYZ[3] * (double)(*floatImg1Comp0) + rec1RGB2XYZ[4] * (double)(*floatImg1Comp1) + rec1RGB2XYZ[5] * (double)(*floatImg1Comp2));
+                z1 = (rec1RGB2XYZ[6] * (double)(*floatImg1Comp0++) + rec1RGB2XYZ[7] * (double)(*floatImg1Comp1++) + rec1RGB2XYZ[8] * (double)(*floatImg1Comp2++));
+                currentDeltaE = getDeltaE2000(x0, y0, z0, x1, y1, z1, invYn, invXn, invZn);
+                maxDeltaE = dMax(maxDeltaE, currentDeltaE);
+                deltaE_temp += currentDeltaE;
+                meanDeltaL += dAbs(116.0 *  (trueLab(y0 * invYn) - trueLab(y1 * invYn)));
+            }
+
+            DeltaError[wRef] = deltaE_temp / (double)(inp0->w[0] * inp0->h[0]);
+            deltaE[wRef] = 10.0 * log10(10000.00 / DeltaError[wRef]);
+            meanDeltaL /= (double)(inp0->w[0] * inp0->h[0]);
+            psnrL[wRef] = 10.0 * log10(10000.00 / meanDeltaL);
+            //m_PsnrLStats[wRef].updateStats(m_PsnrL[wRef]);
+        }
+    }
+}
+
+void process2(EVC_IMGB* out, const EVC_IMGB* inp) {
+
+    // Current condition to perform this is that Frames are of same size and in 4:4:4
+    // Can add more code to do the interpolation on the fly (and save memory/improve speed),
+    // but this keeps our code more flexible for now.
+    float *red = inp->a[0];
+    float *green = inp->a[1];
+    float *blue = inp->a[2];
+
+    // First convert all components as per the described transform process 
+    for (int i = 0; i < inp->w[0] * inp->h[0]; i++) {
+        *(((float*)out->a[0]) + i) = (float)(g_color_trans[0][0] * (double)red[i] + g_color_trans[0][1] * (double)green[i] + g_color_trans[0][2] * (double)blue[i]);
+        *(((float*)out->a[1]) + i) = (float)(g_color_trans[1][0] * (double)red[i] + g_color_trans[1][1] * (double)green[i] + g_color_trans[1][2] * (double)blue[i]);
+        *(((float*)out->a[2]) + i) = (float)(g_color_trans[2][0] * (double)red[i] + g_color_trans[2][1] * (double)green[i] + g_color_trans[2][2] * (double)blue[i]);
+    }
+}
+static inline float fMin(float a, float b) {
+    return ((a) < (b)) ? (a) : (b);
+}
+
+static inline float fMax(float a, float b) {
+    return ((a) > (b)) ? (a) : (b);
+}
+static inline float fClip(float x, float low, float high) {
+    x = fMax(x, low);
+    x = fMin(x, high);
+
+    return x;
+}
+void convertComponent(const float *iComp, float *oComp, int compSize, double weight, const unsigned short offset, float minValue, float maxValue) {
+    for (int i = 0; i < compSize; i++) {
+        *oComp++ = fClip((float)((weight * (double)(*iComp++ - offset))), minValue, maxValue);
+    }
+}
+static inline double dMin(double a, double b) {
+    return ((a) < (b)) ? (a) : (b);
+}
+static inline double dClip(double x, double low, double high) {
+    x = dMax(x, low);
+    x = dMin(x, high);
+
+    return x;
+}
+double forward2(double value) {
+    value = dClip(value, 0, 1.0);
+    double m1 = 0.15930175781250000;
+    double m2 = 78.8437500;
+    double c1 = 0.83593750000000000;
+    double c2 = 18.851562500000000;
+    double c3 = 18.687500000000000;
+    double tempValue = pow(value, (1.0 / m2));
+    return (pow(dMax(0.0, (tempValue - c1)) / (c2 - c3 * tempValue), (1.0 / m1)));
+}
+void forward(EVC_IMGB* out, const EVC_IMGB* inp, long long size)
+{
+    for (int k = 0; k < 3; k++)
+    {
+        for (int i = 0; i < size; i++) {
+            // ideally, we should remove the double cast. However, we are currently keeping compatibility with the old code
+            *(((float*)out->a[k]) + i) = (float)(10000.00 * (double)((float)forward2((double)(*(((float*)inp->a[k]) + i)))));
+        }
+    }
+}
+static int cal_hdr_metric(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts, double deltaE[3], double psnrL[3])
+{
+    int          i;
+    EVC_IMGB     *imgb_ori_p1 = NULL;
+    EVC_IMGB     *imgb_ori = NULL;
+    EVC_IMGB     *imgb_rec_p1 = NULL;
+    EVC_IMGB     *imgb_ori_p2 = NULL;
+    EVC_IMGB     *imgb_rec_p2 = NULL;
+    EVC_IMGB     *imgb_ori_p3 = NULL;
+    EVC_IMGB     *imgb_rec_p3 = NULL;
+    EVC_IMGB     *imgb_ori_p4 = NULL;
+    EVC_IMGB     *imgb_rec_p4 = NULL;
+    for (i = 0; i < MAX_BUMP_FRM_CNT; i++)
+    {
+        if (imgblist_inp[i].ts == ts && imgblist_inp[i].used == 1)
+        {
+            imgb_ori_p1 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                EVC_COLORSPACE_YUV444_10LE);
+            imgb_rec_p1 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                EVC_COLORSPACE_YUV444_10LE);
+            imgb_ori = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                EVC_COLORSPACE_YUV420_10LE);
+            imgb_cpy(imgb_ori, imgblist_inp[i].imgb);
+            process1(imgb_ori_p1, imgb_ori); // convert from 420 to 444
+            process1(imgb_rec_p1, imgb_rec);
+            imgb_ori_p2 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                EVC_COLORSPACE_YUV444_10LE);
+            imgb_rec_p2 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                EVC_COLORSPACE_YUV444_10LE);
+            convertComponent(imgb_ori_p1->a[0], imgb_ori_p2->a[0], (imgb_rec->w[0] * imgb_rec->h[0]), 1.0 / ((1 << (10 - 8)) * 219.0), (1 << (10 - 4)), 0.0f, 1.0f);
+            convertComponent(imgb_ori_p1->a[1], imgb_ori_p2->a[1], (imgb_rec->w[0] * imgb_rec->h[0]), 1.0 / ((1 << (10 - 8)) * 224.0), (1 << (10 - 1)), -0.5f, 0.5f);
+            convertComponent(imgb_ori_p1->a[2], imgb_ori_p2->a[2], (imgb_rec->w[0] * imgb_rec->h[0]), 1.0 / ((1 << (10 - 8)) * 224.0), (1 << (10 - 1)), -0.5f, 0.5f);
+
+            convertComponent(imgb_rec_p1->a[0], imgb_rec_p2->a[0], (imgb_rec->w[0] * imgb_rec->h[0]), 1.0 / ((1 << (10 - 8)) * 219.0), (1 << (10 - 4)), 0.0f, 1.0f);
+            convertComponent(imgb_rec_p1->a[1], imgb_rec_p2->a[1], (imgb_rec->w[0] * imgb_rec->h[0]), 1.0 / ((1 << (10 - 8)) * 224.0), (1 << (10 - 1)), -0.5f, 0.5f);
+            convertComponent(imgb_rec_p1->a[2], imgb_rec_p2->a[2], (imgb_rec->w[0] * imgb_rec->h[0]), 1.0 / ((1 << (10 - 8)) * 224.0), (1 << (10 - 1)), -0.5f, 0.5f);
+
+            imgb_ori_p3 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                EVC_COLORSPACE_YUV444_10LE);
+            imgb_rec_p3 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                EVC_COLORSPACE_YUV444_10LE);
+
+            process2(imgb_ori_p3, imgb_ori_p2); // convert from YUV to RGB
+            process2(imgb_rec_p3, imgb_rec_p2);
+
+            imgb_ori_p4 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                EVC_COLORSPACE_YUV444_10LE);
+            imgb_rec_p4 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                EVC_COLORSPACE_YUV444_10LE);
+
+            forward(imgb_ori_p4, imgb_ori_p3, (imgb_rec->w[0] * imgb_rec->h[0]));
+            forward(imgb_rec_p4, imgb_rec_p3, (imgb_rec->w[0] * imgb_rec->h[0]));
+
+            computeMetric(imgb_ori_p4, imgb_rec_p4, deltaE, psnrL);
+            imgblist_inp[i].used = 0;
+            imgb_free(imgb_ori);
+            imgb_free(imgb_ori_p1);
+            imgb_free(imgb_rec_p1);
+            imgb_free(imgb_ori_p2);
+            imgb_free(imgb_rec_p2);
+            imgb_free(imgb_ori_p3);
+            imgb_free(imgb_rec_p3);
+            imgb_free(imgb_ori_p4);
+            imgb_free(imgb_rec_p4);
+            return 0;
+        }
+    }
+    return -1;
+}
+#endif
+#if QC_DRA
+static int write_rec(IMGB_LIST *list, EVC_MTIME *ts, WCGDDRAControl *p_DRAMapping)
+#else
 static int write_rec(IMGB_LIST *list, EVC_MTIME *ts)
+#endif
 {
     int i;
 
@@ -1932,6 +2617,14 @@ static int write_rec(IMGB_LIST *list, EVC_MTIME *ts)
         {
             if(op_flag[OP_FLAG_FNAME_REC])
             {
+#if QC_DRA
+                if (p_DRAMapping->m_signalledDRA.m_signal_dra_flag)
+                {
+                    evc_apply_dra_chroma_plane(list[i].imgb, list[i].imgb, p_DRAMapping, 1, TRUE/*backwardMapping == false*/);
+                    evc_apply_dra_chroma_plane(list[i].imgb, list[i].imgb, p_DRAMapping, 2, TRUE /*backwardMapping == false*/);
+                    evc_apply_dra_luma_plane(list[i].imgb, list[i].imgb, p_DRAMapping, 0, TRUE /*backwardMapping == false*/);
+                }
+#endif
                 if(imgb_write(op_fname_rec, list[i].imgb))
                 {
                     v0print("cannot write reconstruction image\n");
@@ -1946,7 +2639,13 @@ static int write_rec(IMGB_LIST *list, EVC_MTIME *ts)
     return 0;
 }
 
-void print_psnr(EVCE_STAT * stat, double * psnr, double ms_ssim, int bitrate, EVC_CLK clk_end)
+void print_psnr(EVCE_STAT * stat, double * psnr, double ms_ssim, int bitrate, EVC_CLK clk_end
+#if ETM_HDR_METRIC
+    , double *wpsnr
+    , double *deltaE
+    , double *psnrL
+#endif
+)
 {
     char  stype;
     int i, j;
@@ -1969,10 +2668,23 @@ void print_psnr(EVCE_STAT * stat, double * psnr, double ms_ssim, int bitrate, EV
         stype = 'U';
         break;
     }
-
-    v1print("%-7d%-5d(%c)     %-5d%-10.4f%-10.4f%-10.4f%-10d%-10d%-12.7f", \
-        stat->poc, stat->tid, stype, stat->qp, psnr[0], psnr[1], psnr[2], \
+#if ETM_HDR_METRIC
+#if ETM_HDR_REPORT_METRIC_FLAG
+	if (op_hdr_metric_report)
+	{
+#endif
+    v1print("%-7d%-5d(%c)     %-5d%-10.4f%-10.4f%-10.4f%-10.4f%-10.4f%-10.4f%-10.4f %-10.4f %-10d%-10d%-12.7f", \
+        stat->poc, stat->tid, stype, stat->qp, psnr[0], psnr[1], psnr[2], wpsnr[0], wpsnr[1], wpsnr[2], deltaE[0], psnrL[0], \
         bitrate, evc_clk_msec(clk_end), ms_ssim);
+
+	}
+	else
+#endif
+	{
+		v1print("%-7d%-5d(%c)     %-5d%-10.4f%-10.4f%-10.4f%-10d%-10d%-12.7f", \
+			stat->poc, stat->tid, stype, stat->qp, psnr[0], psnr[1], psnr[2], \
+			bitrate, evc_clk_msec(clk_end), ms_ssim);
+	}
     for(i=0; i < 2; i++)
     {
         v1print("[L%d ", i);
@@ -2017,6 +2729,45 @@ int main(int argc, const char **argv)
     double              psnr_avg[3] = {0,};
     double              ms_ssim = 0;
     double              ms_ssim_avg = 0;
+#if ETM_HDR_METRIC
+    double              wpsnr[3] = { 0, };
+    double              wpsnr_avg[3] = { 0, };
+    double deltaE[NB_REF_WHITE];
+    double psnrL[NB_REF_WHITE];
+    for (int i = 0; i < NB_REF_WHITE; i++)
+    {
+        deltaE[i] = 0.0;
+        psnrL[i] = 0.0;
+    }
+    double deltaE_avg = 0.0;
+    double psnrL_avg = 0.0;
+#endif
+#if QC_DRA
+    EVC_IMGB          *imgb_dra = NULL;
+    WCGDDRAControl g_dra_control;
+    WCGDDRAControl *p_g_dra_control = &g_dra_control;
+    p_g_dra_control->m_signalledDRA.m_signal_dra_flag = -1;
+    cdsc.m_DRAMappingApp = (void*)p_g_dra_control;  // To be re-asign to the cdsc storage after cdsc structure is reset in get_conf().
+
+    // global CVS buffer for 2 types of APS data: ALF and DRA
+    SignalledParamsDRA g_dra_control_array[32];
+    for (int i = 0; i < 32; i++)
+    {
+        g_dra_control_array[i].m_signal_dra_flag = -1;
+    }
+
+    // local PU buffer for 2 types of APS data: ALF and DRA
+    evc_AlfSliceParam g_alf_control;
+    evc_AlfSliceParam *p_g_alf_control = &g_alf_control;
+
+    // Structure to keep 2 types of APS to read at PU
+    EVC_APS_GEN aps_gen_array[2];
+    EVC_APS_GEN *p_aps_gen_array = aps_gen_array;
+
+    aps_gen_array[0].aps_data = (void*)p_g_alf_control;
+    aps_gen_array[1].aps_data = (void*)&(p_g_dra_control->m_signalledDRA);
+    evc_resetApsGenReadBuffer(p_aps_gen_array);
+#endif
     IMGB_LIST           ilist_org[MAX_BUMP_FRM_CNT];
     IMGB_LIST           ilist_rec[MAX_BUMP_FRM_CNT];
     IMGB_LIST          *ilist_t = NULL;
@@ -2076,7 +2827,11 @@ int main(int argc, const char **argv)
     }
 
     /* read configurations and set values for create descriptor */
-    if(get_conf(&cdsc))
+#if QC_DRA
+    if (get_conf(&cdsc, (void*)p_g_dra_control))
+#else
+    if (get_conf(&cdsc))
+#endif
     {
         print_usage();
         return -1;
@@ -2124,7 +2879,23 @@ int main(int argc, const char **argv)
     bitb.addr = bs_buf;
     bitb.bsize = MAX_BS_BUF;
 
+#if QC_DRA
+    if (cdsc.tool_dra)
+    {
+        evce_initDRA(p_g_dra_control, 0, NULL, NULL);
+        evce_analyzeInputPic(p_g_dra_control);
+        if (aps_gen_array[1].aps_id < 31)
+        {
+            aps_gen_array[1].signal_flag = 1;
+            aps_gen_array[1].aps_id = 0;  // initial DRA APS
+        }
+    }
+#endif
+#if QC_DRA
+    ret = evce_encode_sps(id, &bitb, &stat, (void *)aps_gen_array);
+#else
     ret = evce_encode_sps(id, &bitb, &stat);
+#endif
     if(EVC_FAILED(ret))
     {
         v0print("cannot encode SPS\n");
@@ -2225,7 +2996,15 @@ int main(int argc, const char **argv)
             }
             /* copy original image to encoding buffer */
             imgb_cpy(imgb_enc, ilist_t->imgb);
-
+#if QC_DRA
+            if (evce_get_pps_dra_flag(id))
+            {
+                /* get encodng buffer */
+                evc_apply_dra_chroma_plane(imgb_enc, imgb_enc, p_g_dra_control, 1, FALSE);
+                evc_apply_dra_chroma_plane(imgb_enc, imgb_enc, p_g_dra_control, 2, FALSE);
+                evc_apply_dra_luma_plane(imgb_enc, imgb_enc, p_g_dra_control, 0, FALSE);
+            }
+#endif
             /* push image to encoder */
             ret = evce_push(id, imgb_enc);
             if(EVC_FAILED(ret))
@@ -2237,7 +3016,13 @@ int main(int argc, const char **argv)
             imgb_enc->release(imgb_enc);
             pic_icnt++;
         }
-
+#if HDR_MD5_CHECK
+        if (evce_get_pps_dra_flag(id)) {
+            memcpy(g_lumaInvScaleLUT, &(p_g_dra_control->m_lumaInvScaleLUT[0]), DRA_LUT_MAXSIZE * sizeof(int));
+            memcpy(g_chromaInvScaleLUT, &(p_g_dra_control->m_chromaInvScaleLUT[0][0]), 2 * DRA_LUT_MAXSIZE * sizeof(double));
+            memcpy(g_intChromaInvScaleLUT, &(p_g_dra_control->m_intChromaInvScaleLUT[0][0]), 2 * DRA_LUT_MAXSIZE * sizeof(int));
+        }
+#endif
         /* encoding */
         clk_beg = evc_clk_get();
 
@@ -2284,15 +3069,51 @@ int main(int argc, const char **argv)
                 v0print("cannot put reconstructed image to list\n");
                 return -1;
             }
-
+#if QC_DRA
+            if (evce_get_pps_dra_flag(id))
+            {
+                if (EVC_OK != evce_get_inbuf(id, &imgb_dra))
+                {
+                    v0print("Cannot get original image buffer (DRA)\n");
+                    return -1;
+                }
+                imgb_cpy(imgb_dra, ilist_t->imgb);  // store copy of the reconstructed picture in DPB
+                evc_apply_dra_chroma_plane(ilist_t->imgb, ilist_t->imgb, p_g_dra_control, 1, TRUE/*backwardMapping == false*/);
+                evc_apply_dra_chroma_plane(ilist_t->imgb, ilist_t->imgb, p_g_dra_control, 2, TRUE /*backwardMapping == false*/);
+                evc_apply_dra_luma_plane(ilist_t->imgb, ilist_t->imgb, p_g_dra_control, 0, TRUE /*backwardMapping == false*/);
+            }
+#endif
             /* calculate PSNR */
             if(cal_psnr(ilist_org, ilist_t->imgb, ilist_t->ts, psnr, &ms_ssim))
             {
                 v0print("cannot calculate PSNR\n");
                 return -1;
             }
+#if ETM_HDR_METRIC
+			{
+				if (cal_wpsnr(ilist_org, ilist_t->imgb, ilist_t->ts, wpsnr))
+				{
+					v0print("cannot calculate wPSNR\n");
+					return -1;
+				}
+				if (cal_hdr_metric(ilist_org, ilist_t->imgb, ilist_t->ts, deltaE, psnrL))
+				{
+					v0print("cannot calculate DeltaE100 or PSNRL100\n");
+					return -1;
+				}
+			}
+#endif
+#if QC_DRA
+            if (cdsc.tool_dra)
+            {
+                imgb_cpy(ilist_t->imgb, imgb_dra);// recover copy of the reconstructed picture for DPB
+                imgb_enc->release(imgb_dra);
+            }
+            if (write_rec(ilist_rec, &pic_ocnt, p_g_dra_control))
+#else
             /* store reconstructed image */
-            if(write_rec(ilist_rec, &pic_ocnt))
+            if (write_rec(ilist_rec, &pic_ocnt))
+#endif
             {
                 v0print("cannot write reconstruction image\n");
                 return -1;
@@ -2300,12 +3121,24 @@ int main(int argc, const char **argv)
 
             if(is_first_enc)
             {
-                print_psnr(&stat, psnr, ms_ssim, (stat.write - stat.sei_size + (int)bitrate) << 3, clk_end);
+                print_psnr(&stat, psnr, ms_ssim, (stat.write - stat.sei_size + (int)bitrate) << 3, clk_end
+#if ETM_HDR_METRIC
+                    , wpsnr
+                    , deltaE
+                    , psnrL
+#endif
+                );
                 is_first_enc = 0;
             }
             else
             {
-                print_psnr(&stat, psnr, ms_ssim, (stat.write - stat.sei_size) << 3, clk_end);
+                print_psnr(&stat, psnr, ms_ssim, (stat.write - stat.sei_size) << 3, clk_end
+#if ETM_HDR_METRIC
+                    , wpsnr
+                    , deltaE
+                    , psnrL
+#endif
+                );
             }
 
             bitrate += (stat.write - stat.sei_size);
@@ -2313,6 +3146,11 @@ int main(int argc, const char **argv)
             {
                 ms_ssim_avg += ms_ssim;
             }
+#if ETM_HDR_METRIC
+            for (i = 0; i < 3; i++) wpsnr_avg[i] += wpsnr[i];
+            deltaE_avg += deltaE[0];
+            psnrL_avg += psnrL[0];
+#endif
             /* release recon buffer */
             if (imgb_rec)
             {
@@ -2340,7 +3178,11 @@ int main(int argc, const char **argv)
     /* store remained reconstructed pictures in output list */
     while(pic_icnt - pic_ocnt > 0)
     {
+#if QC_DRA
+        write_rec(ilist_rec, &pic_ocnt, p_g_dra_control);
+#else
         write_rec(ilist_rec, &pic_ocnt);
+#endif
     }
     if(pic_icnt != pic_ocnt)
     {
@@ -2353,11 +3195,30 @@ int main(int argc, const char **argv)
     psnr_avg[1] /= pic_ocnt;
     psnr_avg[2] /= pic_ocnt;
     ms_ssim_avg  /= pic_ocnt;
-
+#if ETM_HDR_METRIC
+    wpsnr_avg[0] /= pic_ocnt;
+    wpsnr_avg[1] /= pic_ocnt;
+    wpsnr_avg[2] /= pic_ocnt;
+    deltaE_avg /= pic_ocnt;
+    psnrL_avg /= pic_ocnt;
+#endif
     v1print("  PSNR Y(dB)       : %-5.4f\n", psnr_avg[0]);
     v1print("  PSNR U(dB)       : %-5.4f\n", psnr_avg[1]);
     v1print("  PSNR V(dB)       : %-5.4f\n", psnr_avg[2]);
     v1print("  MsSSIM_Y         : %-8.7f\n", ms_ssim_avg);
+#if ETM_HDR_METRIC
+#if ETM_HDR_REPORT_METRIC_FLAG
+	if (op_hdr_metric_report)
+#endif
+	{
+		v1print("  wPSNR Y(dB)      : %-5.4f\n", wpsnr_avg[0]);
+		v1print("  wPSNR U(dB)      : %-5.4f\n", wpsnr_avg[1]);
+		v1print("  wPSNR V(dB)      : %-5.4f\n", wpsnr_avg[2]);
+
+		v1print("  deltaE100 Y(dB)  : %-5.4f\n", deltaE_avg);
+		v1print("  PSNRL100 U(dB)   : %-5.4f\n", psnrL_avg);
+	}
+#endif
     v1print("  Total bits(bits) : %-.0f\n", bitrate*8);
     bitrate *= (cdsc.fps * 8);
     bitrate /= pic_ocnt;
@@ -2365,8 +3226,22 @@ int main(int argc, const char **argv)
     v1print("  bitrate(kbps)    : %-5.4f\n", bitrate);
 
 #if SCRIPT_REPORT
-    v1print("  Labeles:\t: br,kbps\tPSNR,Y\tPSNR,U\tPSNR,V\t\n");
-    v1print("  Summary\t: %-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\n", bitrate, psnr_avg[0], psnr_avg[1], psnr_avg[2]);
+#if ETM_HDR_METRIC
+#if ETM_HDR_REPORT_METRIC_FLAG
+	if (op_hdr_metric_report)
+#else
+	if (1)
+#endif
+	{
+		v1print("  Labeles\t: br,kbps\tPSNR,Y\tPSNR,U\tPSNR,V\twPSNR,Y\twPSNR,U\twPSNR,V\tDeltaE100 PSNRL100\t\n");
+		v1print("  Summary\t: %-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t %-5.4f\t\n", bitrate, psnr_avg[0], psnr_avg[1], psnr_avg[2], wpsnr_avg[0], wpsnr_avg[1], wpsnr_avg[2], deltaE_avg, psnrL_avg);
+	}
+	else
+#endif
+	{
+		v1print("  Labeles:\t: br,kbps\tPSNR,Y\tPSNR,U\tPSNR,V\t\n");
+		v1print("  Summary\t: %-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\n", bitrate, psnr_avg[0], psnr_avg[1], psnr_avg[2]);
+	}
 #endif
     v1print("=======================================================================================\n");
     v1print("Encoded frame count               = %d\n", (int)pic_ocnt);

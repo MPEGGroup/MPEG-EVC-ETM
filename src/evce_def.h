@@ -85,7 +85,11 @@
 #define ME_LEV_QPEL              3
 
 /* maximum inbuf count */
+#if QC_DRA
+#define EVCE_MAX_INBUF_CNT      34
+#else
 #define EVCE_MAX_INBUF_CNT      33
+#endif
 
 /* maximum cost value */
 #define MAX_COST                (1.7e+308)
@@ -449,7 +453,9 @@ typedef struct _EVCE_PARAM
     int                 use_deblock;
     int                 deblock_alpha_offset;
     int                 deblock_beta_offset;
+#if    !QC_ADD_ADDB_FLAG
     int                 use_alf;
+#endif
     /* I-frame period */
     int                 i_period;
     /* force I-frame */
@@ -770,6 +776,9 @@ struct _EVCE_CTX
     /* picture parameter set */
     EVC_PPS                pps;
     /* adaptation parameter set */
+#if QC_DRA
+    EVC_APS_GEN                *aps_gen_array[2];
+#endif
     EVC_APS                aps;
     u8                     aps_counter;
     u8                     aps_temp;

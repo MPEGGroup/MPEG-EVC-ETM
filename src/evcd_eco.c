@@ -2641,7 +2641,12 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
     {
         sps->tool_ats = evc_bsr_read1(bs);
     }
-
+#if QC_ADD_ADDB_FLAG
+    sps->tool_addb = evc_bsr_read1(bs);
+#endif
+#if QC_DRA
+    sps->tool_dra = evc_bsr_read1(bs);
+#endif
     sps->tool_alf = evc_bsr_read1(bs);
     sps->tool_htdf = evc_bsr_read1(bs);
 #else
@@ -2649,6 +2654,9 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
     sps->tool_mmvd = evc_bsr_read1(bs);
     sps->tool_affine = evc_bsr_read1(bs);
     sps->tool_dmvr = evc_bsr_read1(bs);
+#if QC_ADD_ADDB_FLAG
+    sps->tool_addb = evc_bsr_read1(bs);
+#endif
     sps->tool_alf = evc_bsr_read1(bs);
     sps->tool_admvp = evc_bsr_read1(bs);
     sps->tool_eipd = evc_bsr_read1(bs);
@@ -2734,7 +2742,6 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
         }
     }
 #endif
-
     sps->vui_parameters_present_flag = evc_bsr_read1(bs);
     if (sps->vui_parameters_present_flag)
         evcd_eco_vui(bs); //To be implemented
@@ -2790,6 +2797,15 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps)
         }
     }
 
+#if QC_DRA
+    if (sps->tool_dra)
+    {
+        pps->pic_dra_enabled_present_flag = evc_bsr_read1(bs);
+        pps->pic_dra_enabled_flag = evc_bsr_read1(bs);
+        pps->pic_dra_aps_id = evc_bsr_read(bs, APS_TYPE_ID_BITS);
+    }
+#endif
+
     pps->arbitrary_slice_present_flag = evc_bsr_read1(bs);
     pps->constrained_intra_pred_flag = evc_bsr_read1(bs);  
 
@@ -2808,7 +2824,53 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps)
 
     return EVC_OK;
 }
+#if QC_DRA
+int evcd_eco_aps_gen(EVC_BSR * bs, EVC_APS_GEN * aps)
+{
+    int aps_id = evc_bsr_read(bs, APS_MAX_NUM_IN_BITS); // parse APS ID
+    int aps_type_id = evc_bsr_read(bs, APS_TYPE_ID_BITS); // parse APS Type ID
+    if (aps_type_id == 0)
+    {
+        EVC_APS_GEN *g_aps = aps ;
+        g_aps->aps_id = aps_id;
+        g_aps->aps_type_id = aps_type_id;
 
+        EVC_APS local_alf_aps;
+        evcd_eco_alf_aps_param(bs, &local_alf_aps); // parse ALF filter parameter (except ALF map)
+        evc_AlfSliceParam * p_alf_data = &(local_alf_aps.alf_aps_param);
+        evc_AlfSliceParam * p_aps_data = (evc_AlfSliceParam *)(aps->aps_data);
+        memcpy(p_aps_data, p_alf_data, sizeof(evc_AlfSliceParam));
+    }
+    else if (aps_type_id == 1)
+    {
+        EVC_APS_GEN *g_aps = aps + 1;
+        g_aps->aps_id = aps_id;
+        g_aps->aps_type_id = aps_type_id;
+
+        evcd_eco_dra_aps_param(bs, g_aps); // parse ALF filter parameter (except ALF map)
+    }
+    else
+        printf("This version of ETM doesn't support APS Type %d\n", aps->aps_type_id);
+
+    u8 aps_extension_flag = evc_bsr_read1(bs);
+    assert(aps_extension_flag == 0);
+    if (aps_extension_flag)
+    {
+        while (0/*more_rbsp_data()*/)
+        {
+            u8 aps_extension_data_flag = evc_bsr_read1(bs);
+        }
+    }
+
+    while (!EVC_BSR_IS_BYTE_ALIGN(bs))
+    {
+        evc_bsr_read1(bs);
+    }
+
+
+    return EVC_OK;
+}
+#else
 int evcd_eco_aps(EVC_BSR * bs, EVC_APS * aps)
 {
     aps->aps_id = evc_bsr_read(bs, APS_MAX_NUM_IN_BITS); // parse APS ID
@@ -2834,6 +2896,7 @@ int evcd_eco_aps(EVC_BSR * bs, EVC_APS * aps)
 
     return EVC_OK;
 }
+#endif
 
 int evcd_truncatedUnaryEqProb(EVC_BSR * bs, const int maxSymbol)
 {
@@ -2984,7 +3047,50 @@ int evcd_eco_alf_filter(EVC_BSR * bs, evc_AlfSliceParam* alfSliceParam, const BO
 
     return EVC_OK;
 }
+#if QC_DRA
+int evcd_eco_dra_aps_param(EVC_BSR * bs, EVC_APS_GEN * aps)
+{
+    int value;
+    SignalledParamsDRA *p_dra_param = (SignalledParamsDRA *)aps->aps_data;
+    p_dra_param->m_numFracBitsScale = evc_bsr_read(bs, 4);
+    p_dra_param->m_numIntBitsScale = evc_bsr_read(bs, 4);
+    p_dra_param->m_numRanges = evc_bsr_read_ue(bs);
+    p_dra_param->m_equalRangesFlag = evc_bsr_read1(bs);
+    p_dra_param->m_inRanges[0] = evc_bsr_read(bs, QC_IN_RANGE_NUM_BITS);
+    if (p_dra_param->m_equalRangesFlag == TRUE)
+    {
+        p_dra_param->m_deltaVal = evc_bsr_read_se(bs);
+        for (int i = 1; i <= p_dra_param->m_numRanges; i++)
+        {
+            p_dra_param->m_inRanges[i] = p_dra_param->m_deltaVal + p_dra_param->m_inRanges[i - 1];
+        }
+    }
+    else
+    {
 
+        for (int i = 1; i <= p_dra_param->m_numRanges; i++)
+        {
+            value = evc_bsr_read(bs, QC_IN_RANGE_NUM_BITS);
+            p_dra_param->m_inRanges[i] = value + p_dra_param->m_inRanges[i - 1];
+        }
+    }
+    int numBits = p_dra_param->m_numFracBitsScale + p_dra_param->m_numIntBitsScale;
+
+    for (int i = 0; i < p_dra_param->m_numRanges; i++)
+    {
+        value = evc_bsr_read(bs, numBits);
+        p_dra_param->m_intDraScales[i] = value;
+    }
+    value = evc_bsr_read(bs, numBits);
+    p_dra_param->m_intScaleCbDRA = value;
+    value = evc_bsr_read(bs, numBits);
+    p_dra_param->m_intScaleCrDRA = value;
+    p_dra_param->m_baseLumaQP = evc_bsr_read_se(bs);
+
+
+    return EVC_OK;
+}
+#endif
 int evcd_eco_alf_aps_param(EVC_BSR * bs, EVC_APS * aps)
 {
     evc_AlfSliceParam* alfSliceParam = &(aps->alf_aps_param);
@@ -3275,7 +3381,6 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
             }
         }
     }
-
     sh->deblocking_filter_on = evc_bsr_read1(bs);
     sh->sh_deblock_alpha_offset = evc_bsr_read_se(bs);
     sh->sh_deblock_beta_offset = evc_bsr_read_se(bs);
@@ -3317,6 +3422,12 @@ int evcd_eco_sei(EVCD_CTX * ctx, EVC_BSR * bs)
         for (i = 0; i < payload_size; i++)
         {
             ctx->pic_sign[i] = evc_bsr_read(bs, 8);
+#if HDR_MD5_CHECK
+            if (ctx->sps.tool_dra)
+            {
+                g_pic_sign_dec_sig[i] = evc_bsr_read(bs, 8);
+            }
+#endif
         }
         ctx->pic_sign_exist = 1;
         break;

@@ -37,6 +37,28 @@
 #include "evc.h"
 #include "evc_port.h"
 
+#define QC_ADD_ADDB_FLAG                       1 
+#define QC_DRA                                 1
+
+#if QC_DRA
+#define QC_DRA_LUT_SUBSAMPLE_TWO                     0 
+#define DBF_CLIP_FIX                                 1
+#define HDR_MD5_CHECK                                1
+#endif
+
+#define ETM_HDR_METRIC                                 1
+#if ETM_HDR_METRIC
+#define ETM_HDR_REPORT_METRIC_FLAG					 1
+#define NB_REF_WHITE                                 3
+#define DEG275                                         4.7996554429844
+#define DEG30                                         0.523598775598299
+#define DEG6                                         0.1047197551196598
+#define DEG63                                         1.099557428756428
+#define DEG25                                         0.436332
+#endif
+
+
+
 #define LD_CONFIG_CHANGE                             1
 
 #define AFFINE_CLIPPING_BF                           1 //2 << 17 -> 1 << 17
@@ -422,6 +444,9 @@ enum SAD_POINT_INDEX
 
 #define APS_MAX_NUM                        32
 #define APS_MAX_NUM_IN_BITS                5 
+#if QC_DRA
+#define APS_TYPE_ID_BITS                   3
+#endif
 
 // The structure below must be aligned to identical structure in evc_alf.c!
 typedef struct _evc_AlfFilterShape
@@ -639,7 +664,12 @@ extern int fp_trace_started;
 #define EXTRA_FRAME                        MAX_NUM_ACTIVE_REF_FRAME
 
 /* maximum picture buffer size */
+#if QC_DRA
+#define DRA_FRAME 1
+#define MAX_PB_SIZE                       (MAX_NUM_REF_PICS + EXTRA_FRAME + DRA_FRAME)
+#else
 #define MAX_PB_SIZE                       (MAX_NUM_REF_PICS + EXTRA_FRAME)
+#endif
 
 #define MAX_NUM_TILES_ROW                  22
 #define MAX_NUM_TILES_COL                  20
@@ -1256,6 +1286,9 @@ typedef struct _EVC_SPS
     int              tool_mmvd;
     int              tool_affine;
     int              tool_dmvr;
+#if QC_ADD_ADDB_FLAG
+    int              tool_addb;
+#endif
     int              tool_alf;
     int              tool_htdf;
     int              tool_admvp;
@@ -1296,6 +1329,9 @@ typedef struct _EVC_SPS
     u8               ibc_flag;                   /* 1 bit : flag of enabling IBC or not */
     int              ibc_log_max_size;           /* log2 max ibc size */
     int              vui_parameters_present_flag;
+#if QC_DRA
+    int tool_dra;
+#endif
 } EVC_SPS;
 
 /*****************************************************************************
@@ -1324,6 +1360,11 @@ typedef struct _EVC_PPS
 #if DQP
     int cu_qp_delta_enabled_flag;
     int cu_qp_delta_area;
+#endif
+#if QC_DRA
+    int pic_dra_enabled_present_flag;
+    int pic_dra_enabled_flag;
+    int pic_dra_aps_id;
 #endif
 } EVC_PPS;
 
@@ -1359,6 +1400,35 @@ typedef struct _evc_AlfSliceParam
 
 } evc_AlfSliceParam;
 
+typedef struct _evc_SignalledALFParam
+{
+    BOOL isCtbAlfOn;
+
+    BOOL                         enabledFlag[3];                                          // alf_slice_enable_flag, alf_chroma_idc
+    int                          lumaFilterType;                                          // filter_type_flag
+    BOOL                         chromaCtbPresentFlag;                                    // alf_chroma_ctb_present_flag
+    short                        chromaCoeff[MAX_NUM_ALF_CHROMA_COEFF];                   // alf_coeff_chroma[i]
+    short                        filterCoeffDeltaIdx[MAX_NUM_ALF_CLASSES];                // filter_coeff_delta[i]
+    BOOL                         filterCoeffFlag[MAX_NUM_ALF_CLASSES];                    // filter_coefficient_flag[i]
+    int                          numLumaFilters;                                          // number_of_filters_minus1 + 1
+    BOOL                         coeffDeltaFlag;                                          // alf_coefficients_delta_flag
+    BOOL                         coeffDeltaPredModeFlag;                                  // coeff_delta_pred_mode_flag
+
+    int fixedFilterPattern;
+    int fixedFilterIdx[MAX_NUM_ALF_CLASSES];
+    int prevIdx;
+
+} evc_SignalledALFParam;
+
+#if QC_DRA
+typedef struct _EVC_APS_GEN
+{
+    int signal_flag;
+    int                               aps_type_id;                    // adaptation_parameter_set_type_id
+    int                               aps_id;                    // adaptation_parameter_set_id
+    void * aps_data;
+} EVC_APS_GEN;
+#endif
 typedef struct _EVC_APS
 {
     int                               aps_id;                    // adaptation_parameter_set_id
@@ -1604,5 +1674,7 @@ enum TQC_RUN {
 #include "evc_picman.h"
 #include "evc_mc.h"
 #include "evc_img.h"
+
+#include "evc_dra.h"
 
 #endif /* _EVC_DEF_H_ */

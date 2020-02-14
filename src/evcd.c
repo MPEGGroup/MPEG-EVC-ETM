@@ -1682,6 +1682,9 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
 #endif
+#if QC_ADD_ADDB_FLAG
+                    , ctx->sps.tool_addb
+#endif
                 );
                 evc_deblock_cu_hor(pic, x, y + MAX_TR_SIZE, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi,
 #if M50761_DMVR_SIMP_DEBLOCK
@@ -1695,6 +1698,9 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
+#endif
+#if QC_ADD_ADDB_FLAG
+                    , ctx->sps.tool_addb
 #endif
                 );
             }
@@ -1712,6 +1718,9 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
+#endif
+#if QC_ADD_ADDB_FLAG
+                    , ctx->sps.tool_addb
 #endif
                 );
             }
@@ -1737,6 +1746,9 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
 #endif
+#if QC_ADD_ADDB_FLAG
+                    , ctx->sps.tool_addb
+#endif
                 );
                 evc_deblock_cu_ver(pic, x + MAX_TR_SIZE, y, cuw >> 1, cuh, ctx->map_scu, ctx->map_refi,
 #if M50761_DMVR_SIMP_DEBLOCK
@@ -1754,6 +1766,9 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
+#endif
+#if QC_ADD_ADDB_FLAG
+                    , ctx->sps.tool_addb
 #endif
                 );
             }
@@ -1775,6 +1790,9 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
+#endif
+#if QC_ADD_ADDB_FLAG
+                    , ctx->sps.tool_addb
 #endif
                 );
             }
@@ -2254,18 +2272,131 @@ void evcd_flush(EVCD_CTX * ctx)
     }
 }
 
+#if HDR_MD5_CHECK
+static void __imgb_cpy_plane(void *src, void *dst, int bw, int h, int s_src,
+    int s_dst)
+{
+    int i;
+    unsigned char *s, *d;
+
+    s = (unsigned char*)src;
+    d = (unsigned char*)dst;
+
+    for (i = 0; i < h; i++)
+    {
+        memcpy(d, s, bw);
+        s += s_src;
+        d += s_dst;
+    }
+}
+#define IFVCA_CLIP(n,min,max) (((n)>(max))? (max) : (((n)<(min))? (min) : (n)))
+static void imgb_conv_8b_to_16b(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
+    int shift)
+{
+    int i, j, k;
+
+    unsigned char * s;
+    short         * d;
+
+    for (i = 0; i < 3; i++)
+    {
+        s = imgb_src->a[i];
+        d = imgb_dst->a[i];
+
+        for (j = 0; j < imgb_src->h[i]; j++)
+        {
+            for (k = 0; k < imgb_src->w[i]; k++)
+            {
+                d[k] = (short)(s[k] << shift);
+            }
+            s = s + imgb_src->s[i];
+            d = (short*)(((unsigned char *)d) + imgb_dst->s[i]);
+        }
+    }
+}
+
+static void imgb_conv_16b_to_8b(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
+    int shift)
+{
+
+    int i, j, k, t0, add;
+
+    short         * s;
+    unsigned char * d;
+
+    add = 1 << (shift - 1);
+
+    for (i = 0; i < 3; i++)
+    {
+        s = imgb_src->a[i];
+        d = imgb_dst->a[i];
+
+        for (j = 0; j < imgb_src->h[i]; j++)
+        {
+            for (k = 0; k < imgb_src->w[i]; k++)
+            {
+                t0 = ((s[k] + add) >> shift);
+                d[k] = (unsigned char)(IFVCA_CLIP(t0, 0, 255));
+
+            }
+            s = (short*)(((unsigned char *)s) + imgb_src->s[i]);
+            d = d + imgb_dst->s[i];
+        }
+    }
+}
+static void imgb_cpy(EVC_IMGB * dst, EVC_IMGB * src)
+{
+    int i, bd;
+
+    if (src->cs == dst->cs)
+    {
+        if (src->cs == EVC_COLORSPACE_YUV420_10LE) bd = 2;
+        else bd = 1;
+
+        for (i = 0; i < src->np; i++)
+        {
+            __imgb_cpy_plane(src->a[i], dst->a[i], bd*src->w[i], src->h[i],
+                src->s[i], dst->s[i]);
+        }
+    }
+    else if (src->cs == EVC_COLORSPACE_YUV420 &&
+        dst->cs == EVC_COLORSPACE_YUV420_10LE)
+    {
+        imgb_conv_8b_to_16b(dst, src, 2);
+    }
+    else if (src->cs == EVC_COLORSPACE_YUV420_10LE &&
+        dst->cs == EVC_COLORSPACE_YUV420)
+    {
+        imgb_conv_16b_to_8b(dst, src, 2);
+    }
+    else
+    {
+        printf("ERROR: unsupported image copy\n");
+        return;
+    }
+    for (i = 0; i < 4; i++)
+    {
+        dst->ts[i] = src->ts[i];
+    }
+}
+#endif
+
 int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 {
     EVC_BSR  *bs = &ctx->bs;
     EVC_SPS  *sps = &ctx->sps;
     EVC_PPS  *pps = &ctx->pps;
-    EVC_APS  *aps = &ctx->aps;
+#if QC_DRA
+    EVC_APS_GEN  aps_gen;
+    EVC_APS_GEN  *p_aps_gen = &aps_gen;
+    EVC_APS_GEN  *aps_array = (EVC_APS_GEN  *)(ctx->void_aps_gen_array);
+#endif
+    EVC_APS *aps = &ctx->aps;
     EVC_SH   *sh = &ctx->sh;
     EVC_NALU *nalu = &ctx->nalu;
     int        ret;
 
     ret = EVC_OK;
-
     /* set error status */
     ctx->bs_err = bitb->err;
 #if TRACE_START_POC
@@ -2312,7 +2443,6 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 #if GRAB_STAT
         enc_stat_header(ctx->w, ctx->h);
 #endif
-
         //TDB: check if should be here
         sh->alf_on = sps->tool_alf;
 
@@ -2325,10 +2455,60 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     }
     else if (nalu->nal_unit_type_plus1 - 1 == EVC_APS_NUT)
     {
-        aps->alf_aps_param.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
-        memset(aps->alf_aps_param.alfCtuEnableFlag, 0, N_C * ctx->f_lcu * sizeof(u8));
+#if QC_DRA
+        evc_AlfSliceParam alfControl;
+        alfControl.isCtbAlfOn = 0;
+        SignalledParamsDRA draControl;
+        draControl.m_signal_dra_flag = 0;
+        EVC_APS_GEN local_aps_gen[2];
+        EVC_APS_GEN *p_local_aps_gen = local_aps_gen;
+        local_aps_gen[0].aps_id = -1; // flag, aps not used yet
+        local_aps_gen[0].aps_data = (void*)&alfControl;
+        local_aps_gen[1].aps_id = -1; // flag, aps not used yet
+        local_aps_gen[1].aps_data = (void*)&draControl;
+
+        ret = evcd_eco_aps_gen(bs, p_local_aps_gen);
+        evc_assert_rv(EVC_SUCCEEDED(ret), ret);
+
+        if( (local_aps_gen[0].aps_id != -1) && (local_aps_gen[1].aps_id == -1))
+        {
+            EVC_APS_GEN *p_l_aps = p_local_aps_gen;
+            EVC_APS_GEN *p_g_aps = aps_array;
+            // store in the new buffer
+            p_g_aps->aps_type_id = p_l_aps->aps_type_id;
+            p_g_aps->aps_id = p_l_aps->aps_id;
+
+            evc_AlfSliceParam * p_alf_paramSrc = (evc_AlfSliceParam *)(p_l_aps->aps_data);
+            evc_AlfSliceParam * p_alf_paramDst = (evc_AlfSliceParam *)(p_g_aps->aps_data);
+
+            p_alf_paramSrc->prevIdx = p_g_aps->aps_id;
+            memcpy(p_alf_paramDst, p_alf_paramSrc, sizeof(evc_AlfSliceParam));
+
+            // store in the old buffer
+            aps->aps_id = p_l_aps->aps_id;
+            aps->alf_aps_param.prevIdx = p_l_aps->aps_id;
+            p_alf_paramDst = &(aps->alf_aps_param);
+            memcpy(p_alf_paramDst, p_alf_paramSrc, sizeof(evc_AlfSliceParam));
+            store_dec_aps_to_buffer(ctx);
+        }
+        else if ((local_aps_gen[1].aps_id != -1) && (local_aps_gen[0].aps_id == -1)){
+            EVC_APS_GEN *p_l_aps = p_local_aps_gen+1;
+            EVC_APS_GEN *p_g_aps = aps_array + 1;
+            // store in the new buffer
+            p_g_aps->aps_type_id = p_l_aps->aps_type_id;
+            p_g_aps->aps_id = p_l_aps->aps_id;
+
+            SignalledParamsDRA * p_alf_paramSrc = (SignalledParamsDRA *)(p_l_aps->aps_data);
+            SignalledParamsDRA * p_alf_paramDst = (SignalledParamsDRA *)(p_g_aps->aps_data);
+            memcpy(p_alf_paramDst, p_alf_paramSrc, sizeof(SignalledParamsDRA));
+        }
+        else
+            printf("This version of ETM doesnot support APS type\n");
+#else
         ret = evcd_eco_aps(bs, aps);
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
+        aps->alf_aps_param.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
+        memset(aps->alf_aps_param.alfCtuEnableFlag, 0, N_C * ctx->f_lcu * sizeof(u8));
         aps->alf_aps_param.prevIdx = aps->aps_id;
 #if M50662_LUMA_CHROMA_SEPARATE_APS
         aps->alf_aps_param.prevIdxComp[0] = aps->aps_id_y;
@@ -2336,6 +2516,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 #endif
         store_dec_aps_to_buffer(ctx);
         ctx->aps_temp = 0;
+#endif
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
     }
     else if (nalu->nal_unit_type_plus1 - 1 < EVC_SPS_NUT)
@@ -2482,7 +2663,42 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
             ret = ctx->fn_alf(ctx,  ctx->pic);
             evc_assert_rv(EVC_SUCCEEDED(ret), ret);
         }
-
+#if HDR_MD5_CHECK
+#if QC_DRA
+        if (ctx->sps.tool_dra)
+        {
+#endif
+        int ret;
+        EVC_IMGB *imgb_hdr_md5 = NULL;
+        WCGDDRAControl l_dra_control;
+#if QC_DRA
+        WCGDDRAControl *local_g_dra_control = &l_dra_control;
+        SignalledParamsDRA* p_pps_draParams = (SignalledParamsDRA*)ctx->p_pps_draParams;
+        memcpy(&(local_g_dra_control->m_signalledDRA), p_pps_draParams, sizeof(SignalledParamsDRA));
+#else
+        WCGDDRAControl *local_g_dra_control = (WCGDDRAControl *)ctx->p_draParams;
+#endif
+        evcd_initDRA(local_g_dra_control);
+        int align[EVC_IMGB_MAX_PLANE] = { MIN_CU_SIZE, MIN_CU_SIZE >> 1, MIN_CU_SIZE >> 1 };
+        int pad[EVC_IMGB_MAX_PLANE] = { 0, 0, 0, };
+        imgb_hdr_md5 = evc_imgb_create(ctx->w, ctx->h, EVC_COLORSPACE_YUV420_10LE, 0, pad, align);
+        if (imgb_hdr_md5 == NULL)
+        {
+            printf("Cannot get original image buffer (DRA)\n");
+            return -1;
+        }
+            imgb_cpy(imgb_hdr_md5, ctx->pic->imgb);  // store copy of the reconstructed picture in DPB
+            evc_apply_dra_chroma_plane(imgb_hdr_md5, imgb_hdr_md5, local_g_dra_control, 1, TRUE);
+            evc_apply_dra_chroma_plane(imgb_hdr_md5, imgb_hdr_md5, local_g_dra_control, 2, TRUE);
+            evc_apply_dra_luma_plane(imgb_hdr_md5, imgb_hdr_md5, local_g_dra_control, 0, TRUE );
+        /* execute MD5 digest here */
+        ret = evc_md5_imgb(imgb_hdr_md5, g_pic_sign);
+        evc_assert_rv(EVC_SUCCEEDED(ret), ret);
+        imgb_hdr_md5->release(imgb_hdr_md5);
+#if QC_DRA
+        }
+#endif
+#endif
 #if USE_DRAW_PARTITION_DEC
         evcd_draw_partition(ctx, ctx->pic);
 #endif
@@ -2685,12 +2901,35 @@ int evcd_config(EVCD id, int cfg, void * buf, int * size)
     }
     return EVC_OK;
 }
+#if QC_DRA
+int evcd_get_pps_dra_id(EVCD id)
+{
+    EVCD_CTX *ctx;
+    EVCD_ID_TO_CTX_RV(id, ctx, EVC_ERR_INVALID_ARGUMENT);
+    return ctx->pps.pic_dra_aps_id;
+}
 
+int evcd_assign_pps_draParam(EVCD id, void * p_draParams)
+{
+    EVCD_CTX *ctx;
+    EVCD_ID_TO_CTX_RV(id, ctx, EVC_ERR_INVALID_ARGUMENT);
+    ctx->p_pps_draParams = (SignalledParamsDRA*)p_draParams;
+    return ctx->pps.pic_dra_aps_id;
+}
+
+int evcd_decode(EVCD id, EVC_BITB * bitb, EVCD_STAT * stat, void * p_draParams)
+#else
 int evcd_decode(EVCD id, EVC_BITB * bitb, EVCD_STAT * stat)
+#endif
 {
     EVCD_CTX *ctx;
 
     EVCD_ID_TO_CTX_RV(id, ctx, EVC_ERR_INVALID_ARGUMENT);
+#if QC_DRA
+    ctx->void_aps_gen_array = p_draParams;
+#else
+    ctx->p_draParams = p_draParams;
+#endif
     evc_assert_rv(ctx->fn_dec_cnk, EVC_ERR_UNEXPECTED);
 
     return ctx->fn_dec_cnk(ctx, bitb, stat);

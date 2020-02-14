@@ -2944,7 +2944,6 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
     u8 do_filter = 0;
     u8 ats_inter_idx = get_ats_inter_idx(ats_inter_info);
     u8 ats_inter_pos = get_ats_inter_pos(ats_inter_info);
-
     if(ctx->sh.deblocking_filter_on)
     {
         do_filter = 1;
@@ -3159,6 +3158,9 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
 #if EVC_TILE_SUPPORT
             , ctx->map_tidx
 #endif
+#if QC_ADD_ADDB_FLAG
+            , ctx->sps.tool_addb
+#endif
         );
 
         //clean coded flag in between two directional filtering (not necessary here)
@@ -3183,6 +3185,9 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
 #endif
 #if EVC_TILE_SUPPORT
             , ctx->map_tidx
+#endif
+#if QC_ADD_ADDB_FLAG
+            , ctx->sps.tool_addb
 #endif
         );
 
