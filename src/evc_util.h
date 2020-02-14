@@ -403,7 +403,6 @@ u8 evc_check_all_preds(TREE_CONS tree_cons);
 //u8 evc_get_cur_tree(TREE_CONS tree_cons);       // Return current tree type: 0 - luma (or dual) and 1 - chroma.
 TREE_CONS evc_get_default_tree_cons();
 void evc_set_tree_mode(TREE_CONS* dest, MODE_CONS mode);
-BOOL evc_signal_mode_cons(TREE_CONS* parent, TREE_CONS* cur_split);
 MODE_CONS evc_get_mode_cons_by_split(SPLIT_MODE split_mode, int cuw, int cuh);
 #endif
 

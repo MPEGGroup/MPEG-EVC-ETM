@@ -6130,11 +6130,6 @@ void evc_set_tree_mode(TREE_CONS* dest, MODE_CONS mode)
     }
 }
 
-BOOL evc_signal_mode_cons(TREE_CONS* parent, TREE_CONS* cur_split)
-{
-    return parent->mode_cons == eAll && cur_split->changed;
-}
-
 MODE_CONS evc_get_mode_cons_by_split(SPLIT_MODE split_mode, int cuw, int cuh)
 {
     int small_cuw = cuw;

@@ -1576,7 +1576,7 @@ ERR:
 
 static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, int cuh, int cud, int cup, int is_hor
 #if M50761_CHROMA_NOT_SPLIT
-    , TREE_CONS tree_cons 
+    , TREE_CONS_NEW tree_cons 
 #endif
 )
 {
@@ -1585,7 +1585,7 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
     s8  suco_flag = 0;
 
 #if M50761_CHROMA_NOT_SPLIT
-    ctx->tree_cons = tree_cons;
+    ctx->tree_cons = ( TREE_CONS ) { FALSE, tree_cons.tree_type, tree_cons.mode_cons };
 #endif
     lcu_num = (x >> ctx->log2_max_cuwh) + (y >> ctx->log2_max_cuwh) * ctx->w_lcu;
     evc_get_split_mode(&split_mode, cud, cup, cuw, cuh, ctx->max_cuwh, ctx->map_split[lcu_num]);
@@ -1597,7 +1597,7 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
         int suco_order[SPLIT_MAX_PART_COUNT];
         evc_split_get_part_structure_d(split_mode, x, y, cuw, cuh, cup, cud, ctx->log2_max_cuwh - MIN_CU_LOG2, &split_struct);
 #if M50761_CHROMA_NOT_SPLIT
-        split_struct.tree_cons = tree_cons;
+        TREE_CONS_NEW tree_constrain_for_child = tree_cons;
 
         BOOL mode_cons_changed = FALSE;
 
@@ -1607,18 +1607,16 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 
             if (mode_cons_changed)
             {
-                MODE_CONS mode = evcd_derive_mode_cons(ctx, PEL2SCU(x) + PEL2SCU(y) * ctx->w_scu);
-                evc_set_tree_mode(&split_struct.tree_cons, mode);
+                tree_constrain_for_child.mode_cons = evcd_derive_mode_cons(ctx, PEL2SCU(x) + PEL2SCU(y) * ctx->w_scu);
+                tree_constrain_for_child.tree_type = tree_constrain_for_child.mode_cons == eOnlyIntra ? TREE_L : TREE_LC;
             }
         }
         else
         {
             // In base profile we have small chroma blocks
-            split_struct.tree_cons = evc_get_default_tree_cons();
+            tree_constrain_for_child = (TREE_CONS_NEW) { TREE_LC, eAll };
             mode_cons_changed = FALSE;
         }
-
-        tree_cons.changed = mode_cons_changed;
 #endif
 
         evc_split_get_suco_order(evc_split_is_vertical(split_mode) ? suco_flag : 0, split_mode, suco_order);
@@ -1634,18 +1632,20 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
             {
                 deblock_tree(ctx, pic, x_pos, y_pos, sub_cuw, sub_cuh, split_struct.cud[cur_part_num], split_struct.cup[cur_part_num], is_hor
 #if M50761_CHROMA_NOT_SPLIT
-                    , split_struct.tree_cons 
+                    , tree_constrain_for_child
 #endif
                 );
             }
-#if M50761_CHROMA_NOT_SPLIT
-            ctx->tree_cons = tree_cons;
-#endif
         }
+
 #if M50761_CHROMA_NOT_SPLIT
-        if (mode_cons_changed && !evc_check_all(split_struct.tree_cons))
+        ctx->tree_cons = ( TREE_CONS ) { FALSE, tree_cons.tree_type, tree_cons.mode_cons }; //TODO:Tim could it be removed? tree_constrain_for_child?
+#endif
+
+#if M50761_CHROMA_NOT_SPLIT
+        if ( mode_cons_changed && tree_constrain_for_child.mode_cons == eOnlyIntra )
         {
-            ctx->tree_cons = split_struct.tree_cons;
+            ctx->tree_cons.mode_cons = eOnlyIntra;
             ctx->tree_cons.tree_type = TREE_C;
             split_mode = NO_SPLIT;
         }
@@ -1779,7 +1779,7 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
         }
     }
 #if M50761_CHROMA_NOT_SPLIT
-    ctx->tree_cons = tree_cons;
+    ctx->tree_cons = ( TREE_CONS ) { FALSE, tree_cons.tree_type, tree_cons.mode_cons }; //TODO:Tim further refactor //TODO:Tim could it be removed? tree_constrain_for_child?
 #endif
 }
 
@@ -1833,7 +1833,7 @@ int evcd_deblock_h263(EVCD_CTX * ctx
         {
             deblock_tree(ctx, ctx->pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 1
 #if M50761_CHROMA_NOT_SPLIT
-                , evc_get_default_tree_cons()
+                , ( TREE_CONS_NEW ) {TREE_LC, eAll}
 #endif
             );
         }
@@ -1854,7 +1854,7 @@ int evcd_deblock_h263(EVCD_CTX * ctx
         {
             deblock_tree(ctx, ctx->pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 0
 #if M50761_CHROMA_NOT_SPLIT
-                , evc_get_default_tree_cons()
+                , ( TREE_CONS_NEW ) {TREE_LC, eAll}
 #endif
             );
         }
