@@ -1845,19 +1845,15 @@ int evce_alf_aps(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh, EVC_APS* aps)
         if (aps->alf_aps_param.temporalAlfFlag)
         {
             aps->aps_id = sh->alf_sh_param.prevIdx;
-#if M50662_LUMA_CHROMA_SEPARATE_APS
             sh->aps_id_y = sh->alf_sh_param.prevIdxComp[0];
             sh->aps_id_ch = sh->alf_sh_param.prevIdxComp[1];
-#endif
             sh->aps_signaled = aps->aps_id;
         }
         else
         {
             aps->aps_id = alf_aps_get_current_alf_idx();
-#if M50662_LUMA_CHROMA_SEPARATE_APS
             sh->aps_id_y = aps->aps_id;
             sh->aps_id_ch = aps->aps_id;
-#endif
             sh->aps_signaled = aps->aps_id;
         }
     }

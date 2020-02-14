@@ -2489,10 +2489,8 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         aps->alf_aps_param.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
         memset(aps->alf_aps_param.alfCtuEnableFlag, 0, N_C * ctx->f_lcu * sizeof(u8));
         aps->alf_aps_param.prevIdx = aps->aps_id;
-#if M50662_LUMA_CHROMA_SEPARATE_APS
         aps->alf_aps_param.prevIdxComp[0] = aps->aps_id_y;
         aps->alf_aps_param.prevIdxComp[1] = aps->aps_id_ch;
-#endif
         store_dec_aps_to_buffer(ctx);
         ctx->aps_temp = 0;
 #endif

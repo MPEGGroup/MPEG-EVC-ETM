@@ -171,15 +171,12 @@ void alf_aps_enc_opt_process(EncAdaptiveLoopFilter* p, const double* lambdas, EV
     }
 
     iAlfSliceParam->prevIdx = alfSliceParam.prevIdx;
-#if M50662_LUMA_CHROMA_SEPARATE_APS
     iAlfSliceParam->prevIdxComp[0] = alfSliceParam.prevIdxComp[0];
     iAlfSliceParam->prevIdxComp[1] = alfSliceParam.prevIdxComp[1];
-#endif
     iAlfSliceParam->tLayer = alfSliceParam.tLayer;
     iAlfSliceParam->temporalAlfFlag = BOOL(alfSliceParam.temporalAlfFlag);
     iAlfSliceParam->resetALFBufferFlag = BOOL(alfSliceParam.resetALFBufferFlag);
     iAlfSliceParam->store2ALFBufferFlag = BOOL(alfSliceParam.store2ALFBufferFlag);
-
 }
 
 u8 alf_aps_get_current_alf_idx()
@@ -210,14 +207,11 @@ void AlfSliceParam_reset(AlfSliceParam* p)
   memset(p->fixedFilterIdx, 0, sizeof(p->fixedFilterIdx));
   p->temporalAlfFlag = false;
   p->prevIdx = 0;
-#if M50662_LUMA_CHROMA_SEPARATE_APS
   p->prevIdxComp[0] = 0;
   p->prevIdxComp[1] = 0;
-#endif
   p->tLayer = 0;
   p->resetALFBufferFlag = false;
   p->store2ALFBufferFlag = false;
-  
   p->m_filterPoc = INT_MAX;  // store POC value for which filter was produced
   p->m_minIdrPoc = INT_MAX;  // Minimal of 2 IDR POC available for current coded nalu  (to identify availability of this filter for temp prediction)
   p->m_maxIdrPoc = INT_MAX;  // Max of 2 IDR POC available for current coded nalu  (to identify availability of this filter for temp prediction)
@@ -264,10 +258,9 @@ void EncAdaptiveLoopFilter::create(const int picWidth, const int picHeight, cons
 
   m_alfSliceParamTemp.alfCtuEnableFlag = (u8 *)malloc(N_C * m_numCTUsInPic * sizeof(u8));
   memset(m_alfSliceParamTemp.alfCtuEnableFlag, 0, N_C * m_numCTUsInPic * sizeof(u8));
-#if M50662_LUMA_CHROMA_SEPARATE_APS
+
   m_ctuEnableFlagTmpLuma = (u8 *)malloc(N_C * m_numCTUsInPic * sizeof(u8));
   memset(m_ctuEnableFlagTmpLuma, 0, N_C * m_numCTUsInPic * sizeof(u8));
-#endif
 
   for (int compIdx = 0; compIdx < MAX_NUM_COMPONENT; compIdx++)
   {
@@ -334,11 +327,12 @@ void EncAdaptiveLoopFilter::destroy()
       m_alfCovarianceFrame[channelIdx] = nullptr;
     }
   }
+
   free(m_alfSliceParamTemp.alfCtuEnableFlag);
-#if M50662_LUMA_CHROMA_SEPARATE_APS
   free(m_ctuEnableFlagTmpLuma);
+
   m_ctuEnableFlagTmpLuma = nullptr;
-#endif
+
   for (int compIdx = 0; compIdx < MAX_NUM_COMPONENT; compIdx++)
   {
     if (m_ctuEnableFlagTmp[compIdx])
@@ -528,11 +522,8 @@ void EncAdaptiveLoopFilter::Enc_ALFProcess(CodingStructure& cs, const double *la
   if (ctx->slice_type != SLICE_I)
   {
     deriveStatsForFiltering(&orgYuv, &recLuma);
-#if M50662_LUMA_CHROMA_SEPARATE_APS
     alfTemporalEncoderAPSComponent(cs, alfSliceParam);
-#else
-    alfTemporalEncoderAPS(cs, alfSliceParam);
-#endif
+
     m_resetALFBufferFlag = false; 
     alfSliceParam->resetALFBufferFlag = false;
     if( alfSliceParam->temporalAlfFlag ) {
@@ -1047,7 +1038,7 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
     }
   }
 }
-#if M50662_LUMA_CHROMA_SEPARATE_APS
+
 void EncAdaptiveLoopFilter::alfTemporalEncoderAPSComponent(CodingStructure& cs, AlfSliceParam* alfSliceParam)
 {
     EVCE_CTX* ctx = (EVCE_CTX*)cs.pCtx;
@@ -1218,7 +1209,7 @@ void EncAdaptiveLoopFilter::alfTemporalEncoderAPSComponent(CodingStructure& cs, 
     copyCtuEnableFlag(m_ctuEnableFlag, m_ctuEnableFlagTmp, CHANNEL_TYPE_LUMA);
     copyCtuEnableFlag(m_ctuEnableFlag, m_ctuEnableFlagTmp, CHANNEL_TYPE_CHROMA);
 }
-#endif
+
 void EncAdaptiveLoopFilter::alfTemporalEncoderAPS(CodingStructure& cs, AlfSliceParam* alfSliceParam)
 {
     if (!alfSliceParam->enabledFlag[COMPONENT_Y])

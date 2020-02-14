@@ -3079,10 +3079,8 @@ int evcd_eco_alf_aps_param(EVC_BSR * bs, EVC_APS * aps)
     alfSliceParam->store2ALFBufferFlag = 0;
     alfSliceParam->temporalAlfFlag = 0;
     alfSliceParam->prevIdx = 0;
-#if M50662_LUMA_CHROMA_SEPARATE_APS
     alfSliceParam->prevIdxComp[0] = 0;
     alfSliceParam->prevIdxComp[1] = 0;
-#endif
     alfSliceParam->tLayer = 0;
     alfSliceParam->isCtbAlfOn = 0;
     memset(alfSliceParam->enabledFlag, 0, 3 * sizeof(BOOL));
@@ -3174,10 +3172,8 @@ int evcd_eco_alf_sh_param(EVC_BSR * bs, EVC_SH * sh)
     evc_AlfSliceParam* alfSliceParam = &(sh->alf_sh_param);
 
     //AlfSliceParam reset
-#if M50662_LUMA_CHROMA_SEPARATE_APS
     alfSliceParam->prevIdxComp[0] = 0;
     alfSliceParam->prevIdxComp[1] = 0;
-#endif
     alfSliceParam->resetALFBufferFlag = 0;
     alfSliceParam->store2ALFBufferFlag = 0;
     alfSliceParam->temporalAlfFlag = 0;
@@ -3259,12 +3255,8 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
         sh->alf_on = evc_bsr_read1(bs);
         if (sh->alf_on)
         {
-#if M50662_LUMA_CHROMA_SEPARATE_APS
             sh->aps_id_y = evc_bsr_read(bs, 5);
             sh->aps_id_ch = evc_bsr_read(bs, 5);
-#else
-            sh->aps_signaled = evc_bsr_read(bs, 5); // parse APS ID in tile group header
-#endif
             evcd_eco_alf_sh_param(bs, sh); // parse ALF map
         }
     }

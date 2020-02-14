@@ -91,7 +91,6 @@
 //MPEG 128 adoptions
 #define M50662                                       1
 #if M50662
-#define M50662_LUMA_CHROMA_SEPARATE_APS              1
 #define M50662_HISTORY_CTU_ROW_RESET                 1
 
 #define M50662_AFFINE_BANDWIDTH_CLIPMV               1  // MV clipping of m50662
@@ -1377,9 +1376,7 @@ typedef struct _evc_AlfSliceParam
     int tLayer;
     BOOL temporalAlfFlag;
     int prevIdx;
-#if M50662_LUMA_CHROMA_SEPARATE_APS
     int prevIdxComp[2];
-#endif
     BOOL resetALFBufferFlag;
     BOOL store2ALFBufferFlag;
 
@@ -1417,10 +1414,8 @@ typedef struct _EVC_APS_GEN
 typedef struct _EVC_APS
 {
     int                               aps_id;                    // adaptation_parameter_set_id
-#if M50662_LUMA_CHROMA_SEPARATE_APS
     int aps_id_y;
     int aps_id_ch;
-#endif
     evc_AlfSliceParam          alf_aps_param;              // alf data
 } EVC_APS;
 
@@ -1469,10 +1464,8 @@ typedef struct _EVC_SH
     u8               ctb_alf_on;
     u16              num_ctb;
     int              aps_signaled;
-#if M50662_LUMA_CHROMA_SEPARATE_APS
     int              aps_id_y;
     int              aps_id_ch;
-#endif
     EVC_APS*         aps;
     evc_AlfSliceParam alf_sh_param;
 } EVC_SH;
