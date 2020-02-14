@@ -105,7 +105,7 @@
 
 
 
-#define M50761_AFFINE_ADAPT_SUB_SIZE               1
+
 #define M50761_AFFINE_SUB_SIZE_LUT                 1
                                                    
 #define M50761_EIF_RESTRICTIONS                    1

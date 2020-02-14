@@ -243,9 +243,7 @@ void evc_mv_rounding_s32( s32 hor, int ver, s32 * rounded_hor, s32 * rounded_ver
 void evc_rounding_s32(s32 comp, s32 *rounded_comp, int right_shift, int left_shift);
 #endif
 
-#if M50761_AFFINE_ADAPT_SUB_SIZE
 void derive_affine_subblock_size_bi( s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi[REFP_NUM], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num, BOOL*mem_band_conditions_for_eif_are_satisfied);
-#endif
 void derive_affine_subblock_size( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num, BOOL*mem_band_conditions_for_eif_are_satisfied);
 
 #if M50761_EIF_RESTRICTIONS

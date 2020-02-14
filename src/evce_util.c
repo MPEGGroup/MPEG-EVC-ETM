@@ -143,7 +143,6 @@ void evc_set_affine_mvf(EVCE_CTX * ctx, EVCE_CORE * core, int w, int h, s8 refi[
         map_refi += w_scu;
     }
 
-#if M50761_AFFINE_ADAPT_SUB_SIZE
     // derive sub-block size
     int sub_w = 4, sub_h = 4;
     derive_affine_subblock_size_bi( mv, refi, core->cuw, core->cuh, &sub_w, &sub_h, vertex_num, NULL);
@@ -152,7 +151,6 @@ void evc_set_affine_mvf(EVCE_CTX * ctx, EVCE_CORE * core, int w, int h, s8 refi[
     int   sub_h_in_scu = PEL2SCU( sub_h );
     int   half_w = sub_w >> 1;
     int   half_h = sub_h >> 1;
-#endif
 
     for (lidx = 0; lidx < REFP_NUM; lidx++)
     {
@@ -178,16 +176,6 @@ void evc_set_affine_mvf(EVCE_CTX * ctx, EVCE_CORE * core, int w, int h, s8 refi[
                 dmv_ver_x = -dmv_hor_y;                                          // deltaMvVer
                 dmv_ver_y = dmv_hor_x;
             }
-
-#if !M50761_AFFINE_ADAPT_SUB_SIZE
-            // derive sub-block size
-            int sub_w = 4, sub_h = 4;
-            derive_affine_subblock_size( mv[lidx], core->cuw, core->cuh, &sub_w, &sub_h, vertex_num );
-            int   sub_w_in_scu = PEL2SCU( sub_w );
-            int   sub_h_in_scu = PEL2SCU( sub_h );
-            int   half_w = sub_w >> 1;
-            int   half_h = sub_h >> 1;
-#endif
 
             for ( int h = 0; h < h_cu; h += sub_h_in_scu )
             {
