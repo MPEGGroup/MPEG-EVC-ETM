@@ -3208,7 +3208,6 @@ void derive_affine_subblock_size_bi( s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi
     {
         if ( REFI_IS_VALID( refi[l] ) )
         {
-#if M50761_AFFINE_SUB_SIZE_LUT
             int dmv_hor_x, dmv_ver_x, dmv_hor_y, dmv_ver_y;
 
             // convert to 2^(storeBit + bit) precision
@@ -3252,36 +3251,7 @@ void derive_affine_subblock_size_bi( s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi
             {
               h = sub_lut[mv_wy - 1];
             }
-#else
-            mv_wx = max( abs( ac_mv[l][1][MV_X] - ac_mv[l][0][MV_X] ), abs( ac_mv[l][1][MV_Y] - ac_mv[l][0][MV_Y] ) );
-            if ( mv_wx )
-            {
-                w = max( (int)((cuw >> mc_prec_add) / mv_wx), 1 );
-                while ( cuw % w )
-                {
-                    w--;
-                }
-                w = max( AFFINE_MIN_BLOCK_SIZE, w );
-            }
 
-            if ( vertex_num == 2 )
-            {
-                h = min( w, cuh );
-            }
-            else
-            {
-                mv_wy = max( abs( ac_mv[l][2][MV_X] - ac_mv[l][0][MV_X] ), abs( ac_mv[l][2][MV_Y] - ac_mv[l][0][MV_Y] ) );
-                if ( mv_wy )
-                {
-                    h = max( (int)((cuh >> mc_prec_add) / mv_wy), 1 );
-                    while ( cuh % h )
-                    {
-                        h--;
-                    }
-                    h = max( AFFINE_MIN_BLOCK_SIZE, h );
-                }
-            }
-#endif
             *sub_w = min( *sub_w, w );
             *sub_h = min( *sub_h, h );
         }
@@ -3307,7 +3277,6 @@ void derive_affine_subblock_size( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, in
 #endif
     int mv_wx, mv_wy;
 
-#if M50761_AFFINE_SUB_SIZE_LUT
     int dmv_hor_x, dmv_ver_x, dmv_hor_y, dmv_ver_y;
 
     // convert to 2^(storeBit + bit) precision
@@ -3351,36 +3320,6 @@ void derive_affine_subblock_size( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, in
     {
       h = sub_lut[mv_wy - 1];
     }
-#else
-    mv_wx = max( abs( ac_mv[1][MV_X] - ac_mv[0][MV_X] ), abs( ac_mv[1][MV_Y] - ac_mv[0][MV_Y] ) );
-    if ( mv_wx )
-    {
-        w = max( (int)((cuw >> mc_prec_add) / mv_wx), 1 );
-        while ( cuw % w )
-        {
-            w--;
-        }
-        w = max( AFFINE_MIN_BLOCK_SIZE, w );
-    }
-
-    if ( vertex_num == 2 )
-    {
-        h = min( w, cuh );
-    }
-    else
-    {
-        mv_wy = max( abs( ac_mv[2][MV_X] - ac_mv[0][MV_X] ), abs( ac_mv[2][MV_Y] - ac_mv[0][MV_Y] ) );
-        if ( mv_wy )
-        {
-            h = max( (int)((cuh >> mc_prec_add) / mv_wy), 1 );
-            while ( cuh % h )
-            {
-                h--;
-            }
-            h = max( AFFINE_MIN_BLOCK_SIZE, h );
-        }
-    }
-#endif
 
     *sub_w = w;
     *sub_h = h;
