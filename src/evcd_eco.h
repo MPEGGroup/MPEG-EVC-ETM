@@ -53,7 +53,11 @@ int evcd_eco_sei(EVCD_CTX * ctx, EVC_BSR * bs);
 void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_init_flag);
 int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core);
 
-s8 evcd_eco_split_mode(EVCD_CTX * ctx, EVC_BSR *bs, EVCD_SBAC *sbac, int cuw, int cuh, const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int* curr_split_allow, int qt_depth, int btt_depth, int x, int y);
+s8 evcd_eco_split_mode(EVCD_CTX * ctx, EVC_BSR *bs, EVCD_SBAC *sbac, int cuw, int cuh, const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int* curr_split_allow, int qt_depth, int btt_depth, int x, int y
+#if M50761_CHROMA_NOT_SPLIT
+    , MODE_CONS mode_cons
+#endif
+);
 s8 evcd_eco_suco_flag(EVC_BSR *bs, EVCD_SBAC *sbac, EVCD_CTX *c, EVCD_CORE *core, int cuw, int cuh, s8 split_mode, int boundary, u8 log2_max_cuwh, int parent_suco);
 #define evcd_eco_slice_end_flag(bs, sbac) \
     ((int)evcd_sbac_decode_bin_trm((bs), (sbac)))
@@ -65,7 +69,7 @@ s8 evcd_eco_suco_flag(EVC_BSR *bs, EVCD_SBAC *sbac, EVCD_CTX *c, EVCD_CORE *core
 
 int evcd_eco_affine_mrg_idx(EVC_BSR * bs, EVCD_SBAC * sbac);
 #if M50761_CHROMA_NOT_SPLIT
-MODE_CONS evcd_eco_mode_constr(EVCD_CTX * ctx);
+MODE_CONS evcd_eco_mode_constr( EVC_BSR *bs, u8 ctx_num );
 #endif
 
 #if GRAB_STAT

@@ -1217,7 +1217,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
                          , int cu_qp_delta_code
 #endif
 #if M50761_CHROMA_NOT_SPLIT
-    , TREE_CONS_NEW tree_cons //TODO: refactor it: only predMode constraint is needed
+                         , TREE_CONS_NEW tree_cons //TODO: refactor it: only predMode constraint is needed
 #endif
 )
 {
@@ -1231,9 +1231,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
 
     cuw = 1 << log2_cuw;
     cuh = 1 << log2_cuh;
-#if M50761_CHROMA_NOT_SPLIT
-    ctx->tree_cons = ( TREE_CONS ) { FALSE, tree_cons.tree_type, tree_cons.mode_cons };    //TODO: for further refactoring; //TODO: remove it from ctx
-#endif
+
 #if M52166_PARTITION
     if (cuw > ctx->min_cuwh || cuh > ctx->min_cuwh)
 #else
@@ -1256,7 +1254,11 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
                 EVC_TRACE_STR("depth ");
                 EVC_TRACE_INT(cud);
 
-                split_mode = evcd_eco_split_mode(ctx, bs, sbac, cuw, cuh, parent_split, same_layer_split, node_idx, parent_split_allow, split_allow, qt_depth, btt_depth, x0, y0);
+                split_mode = evcd_eco_split_mode(ctx, bs, sbac, cuw, cuh, parent_split, same_layer_split, node_idx, parent_split_allow, split_allow, qt_depth, btt_depth, x0, y0
+#if M50761_CHROMA_NOT_SPLIT
+                                                , tree_cons.mode_cons
+#endif
+                                                );
             }
             else
             {
@@ -1277,7 +1279,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
                     , x0, y0, ctx->w, ctx->h
                     , NULL, ctx->sps.sps_btt_flag
 #if M50761_CHROMA_NOT_SPLIT
-                    , ctx->tree_cons.mode_cons
+                    , tree_cons.mode_cons
 #endif
                 );
 
@@ -1308,7 +1310,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
                 EVC_TRACE_STR("depth ");
                 EVC_TRACE_INT(cud);
 
-                split_mode = evcd_eco_split_mode(ctx, bs, sbac, cuw, cuh, parent_split, same_layer_split, node_idx, parent_split_allow, split_allow, qt_depth, btt_depth, x0, y0);
+                split_mode = evcd_eco_split_mode(ctx, bs, sbac, cuw, cuh, parent_split, same_layer_split, node_idx, parent_split_allow, split_allow, qt_depth, btt_depth, x0, y0, eAll);
             }
 #else
             int boundary = !(x0 + cuw <= ctx->w && y0 + cuh <= ctx->h);
@@ -1504,7 +1506,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
 
                     evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init, ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size);
 
-                    tree_cons_for_childs.mode_cons = evcd_eco_mode_constr(ctx);
+                    tree_cons_for_childs.mode_cons = evcd_eco_mode_constr( &ctx->bs, ctx->ctx_flags[CNID_MODE_CONS] );
                 }
                 tree_cons_for_childs.tree_type = tree_cons_for_childs.mode_cons == eOnlyIntra ? TREE_L : TREE_LC;
             }

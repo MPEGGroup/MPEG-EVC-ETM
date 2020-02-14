@@ -1710,7 +1710,11 @@ void evcd_eco_inter_pred_idc(EVCD_CTX * ctx, EVCD_CORE * core)
 }
 
 s8 evcd_eco_split_mode(EVCD_CTX * c, EVC_BSR *bs, EVCD_SBAC *sbac, int cuw, int cuh, const int parent_split, int* same_layer_split,
-                        const int node_idx, const int* parent_split_allow, int* curr_split_allow, int qt_depth, int btt_depth, int x, int y)
+                        const int node_idx, const int* parent_split_allow, int* curr_split_allow, int qt_depth, int btt_depth, int x, int y
+#if M50761_CHROMA_NOT_SPLIT
+                       , MODE_CONS mode_cons
+#endif
+)
 {
     int sps_cm_init_flag = sbac->ctx.sps_cm_init_flag;
     s8 split_mode = NO_SPLIT;
@@ -1741,7 +1745,7 @@ s8 evcd_eco_split_mode(EVCD_CTX * c, EVC_BSR *bs, EVCD_SBAC *sbac, int cuw, int 
                           , x, y, c->w, c->h
                           , NULL, c->sps.sps_btt_flag
 #if M50761_CHROMA_NOT_SPLIT
-        , c->tree_cons.mode_cons
+        , mode_cons
 #endif
     );
 
@@ -2101,16 +2105,14 @@ void evcd_eco_cu_skip_flag(EVCD_CTX * ctx, EVCD_CORE * core)
 }
 
 #if M50761_CHROMA_NOT_SPLIT
-MODE_CONS evcd_eco_mode_constr(EVCD_CTX * ctx)
+MODE_CONS evcd_eco_mode_constr( EVC_BSR *bs, u8 ctx_num )
 {
     EVCD_SBAC   *sbac;
-    EVC_BSR     *bs;
     u32          t0;
 
-    bs = &ctx->bs;
     sbac = GET_SBAC_DEC(bs);
 
-    t0 = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.mode_cons + ctx->ctx_flags[CNID_MODE_CONS]);
+    t0 = evcd_sbac_decode_bin( bs, sbac, sbac->ctx.mode_cons + ctx_num );
     EVC_TRACE_COUNTER;
     EVC_TRACE_STR("mode_constr ");
     EVC_TRACE_INT(t0);
