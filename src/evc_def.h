@@ -57,8 +57,6 @@
 #define DEG25                                         0.436332
 #endif
 
-
-
 #define LD_CONFIG_CHANGE                             1
 
 #define AFFINE_CLIPPING_BF                           1 //2 << 17 -> 1 << 17
