@@ -342,7 +342,7 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                           , int x, int y, int im_w, int im_h
                           , u8* remaining_split, int sps_btt_flag
 #if M50761_CHROMA_NOT_SPLIT
-                          , TREE_CONS tree_cons
+                          , MODE_CONS mode_cons
 #endif
 );
 

@@ -1741,7 +1741,7 @@ s8 evcd_eco_split_mode(EVCD_CTX * c, EVC_BSR *bs, EVCD_SBAC *sbac, int cuw, int 
                           , x, y, c->w, c->h
                           , NULL, c->sps.sps_btt_flag
 #if M50761_CHROMA_NOT_SPLIT
-        , c->tree_cons
+        , c->tree_cons.mode_cons
 #endif
     );
 

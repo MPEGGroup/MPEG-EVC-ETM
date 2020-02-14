@@ -2712,7 +2712,7 @@ int evce_eco_split_mode(EVC_BSW *bs, EVCE_CTX *c, EVCE_CORE *core, int cud, int 
                          , x, y, c->w, c->h
                          , NULL, c->sps.sps_btt_flag
 #if M50761_CHROMA_NOT_SPLIT
-        , c->tree_cons
+        , c->tree_cons.mode_cons
 #endif
     );
 

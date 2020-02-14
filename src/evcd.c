@@ -1277,7 +1277,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
                     , x0, y0, ctx->w, ctx->h
                     , NULL, ctx->sps.sps_btt_flag
 #if M50761_CHROMA_NOT_SPLIT
-                    , ctx->tree_cons
+                    , ctx->tree_cons.mode_cons
 #endif
                 );
 
