@@ -1416,9 +1416,6 @@ static void evce_eco_skip_flag(EVC_BSW * bs, int flag, int ctx)
     EVC_TRACE_STR("\n");
 }
 
-#if !M50761_BUGFIX_ENCSIDE_IBC
-static 
-#endif
 void evce_eco_ibc_flag(EVC_BSW * bs, int flag, int ctx)
 {
   EVCE_SBAC *sbac;

@@ -140,9 +140,7 @@ int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps);
 int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS * aps);
 #endif
 int evce_eco_alf_sh_param(EVC_BSW * bs, EVC_SH * sh);
-#if M50761_BUGFIX_ENCSIDE_IBC
 void evce_eco_ibc_flag(EVC_BSW * bs, int flag, int ctx);
-#endif
 #ifdef __cplusplus
 }
 #endif

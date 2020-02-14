@@ -173,7 +173,7 @@ void evce_rdo_bit_cnt_cu_intra_luma(EVCE_CTX *ctx, EVCE_CORE *core, s32 slice_ty
         evce_sbac_encode_bin(0, sbac, core->s_temp_run.ctx.skip_flag + ctx->ctx_flags[CNID_SKIP_FLAG], &core->bs_temp); /* skip_flag */
         evce_eco_pred_mode(&core->bs_temp, MODE_INTRA, ctx->ctx_flags[CNID_PRED_MODE]);
     }
-#if M50761_BUGFIX_ENCSIDE_IBC
+
     if (((slice_type == SLICE_I)
 #if M50761_CHROMA_NOT_SPLIT
         || evce_check_only_intra(ctx)
@@ -186,7 +186,6 @@ void evce_rdo_bit_cnt_cu_intra_luma(EVCE_CTX *ctx, EVCE_CORE *core, s32 slice_ty
     {
         evce_eco_ibc_flag(&core->bs_temp, 0, ctx->ctx_flags[CNID_IBC_FLAG]);
     }
-#endif
 
     if (ctx->sps.tool_eipd)
     {
@@ -267,7 +266,7 @@ void evce_rdo_bit_cnt_cu_intra(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
         evce_sbac_encode_bin(0, sbac, core->s_temp_run.ctx.skip_flag + ctx->ctx_flags[CNID_SKIP_FLAG], &core->bs_temp); /* skip_flag */
         evce_eco_pred_mode(&core->bs_temp, MODE_INTRA, ctx->ctx_flags[CNID_PRED_MODE]);
     }
-#if M50761_BUGFIX_ENCSIDE_IBC
+
     if ( ((slice_type == SLICE_I)
 #if M50761_CHROMA_NOT_SPLIT
         || evce_check_only_intra(ctx) 
@@ -280,7 +279,6 @@ void evce_rdo_bit_cnt_cu_intra(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
     {
         evce_eco_ibc_flag(&core->bs_temp, 0, ctx->ctx_flags[CNID_IBC_FLAG]);
     }
-#endif
 
     if (ctx->sps.tool_eipd)
     {
@@ -393,7 +391,7 @@ void evce_rdo_bit_cnt_cu_ibc(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s
   s16 coef[N_C][MAX_CU_DIM], u8 mvp_idx, u8 ibc_flag)
 {
   int b_no_cbf = 0;
-#if M50761_BUGFIX_ENCSIDE_IBC
+
   if (slice_type != SLICE_I 
 #if M50761_CHROMA_NOT_SPLIT
       && evce_check_all_preds(ctx)
@@ -403,7 +401,6 @@ void evce_rdo_bit_cnt_cu_ibc(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s
       evce_sbac_encode_bin(0, &core->s_temp_run, core->s_temp_run.ctx.skip_flag + ctx->ctx_flags[CNID_SKIP_FLAG], &core->bs_temp); /* skip_flag */
       evce_eco_pred_mode(&core->bs_temp, MODE_INTER, ctx->ctx_flags[CNID_PRED_MODE]);
   }
-#endif
 
   if ((!(core->skip_flag == 1 && slice_type == SLICE_I)
 #if M50761_CHROMA_NOT_SPLIT
@@ -482,7 +479,7 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
         if (evce_check_all_preds(ctx))
 #endif
         evce_eco_pred_mode(&core->bs_temp, MODE_INTER, ctx->ctx_flags[CNID_PRED_MODE]);
-#if M50761_BUGFIX_ENCSIDE_IBC
+
         if (
 #if M50761_CHROMA_NOT_SPLIT
             !evce_check_only_inter(ctx) &&
@@ -495,7 +492,6 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
 
             evce_eco_ibc_flag(&core->bs_temp, 0, ctx->ctx_flags[CNID_IBC_FLAG]);
         }
-#endif
 
         if(ctx->sps.tool_amvr)
         {

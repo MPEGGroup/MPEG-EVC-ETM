@@ -97,7 +97,6 @@
 #define CHROMA_NOT_SPLIT_EXCLUDE_IBC               0    // Remove CC in the case of allowing IBC
 #endif
 
-#define M50761_BUGFIX_ENCSIDE_IBC                  1
 #define M50761_BUGFIX_UV_SIZE                      1
 
 #define M50761_HTDF_BLOCK_SIZE_64                  1
