@@ -91,7 +91,6 @@
 //MPEG 128 adoptions
 #define M50662                                       1
 #if M50662
-#define M50662_IBC_MAX_BLOCK_SIZE_FIX                1
 #define M50662_AFFINE_ALTERNATIVE_SCANNING_ORDER     1
 #define M50662_AFFINE_MV_HISTORY_TABLE               1
 #define M50662_LUMA_CHROMA_SEPARATE_APS              1
@@ -832,11 +831,7 @@ extern int fp_trace_started;
 #define INTRA_MPM_NUM                      2
 #define INTRA_PIMS_NUM                     8
 
-#if M50662_IBC_MAX_BLOCK_SIZE_FIX
 #define IBC_MAX_CU_LOG2                      6 /* max block size for ibc search in unit of log2 */
-#else
-#define IBC_MAX_CU_LOG2                      4 /* max block size for ibc search in unit of log2 */
-#endif
 //#define IBC_MAX_CAND_SIZE                    (1 << IBC_MAX_CU_LOG2)
 
 /*****************************************************************************
