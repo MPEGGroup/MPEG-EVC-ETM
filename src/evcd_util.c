@@ -362,17 +362,10 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
                 map_mv[j][REFP_1][MV_X] = core->mv[REFP_1][MV_X];
                 map_mv[j][REFP_1][MV_Y] = core->mv[REFP_1][MV_Y];
 #if DMVR_LAG
-#if M50761_DMVR_SIMP_SPATIAL_MV
                 map_unrefined_mv[j][REFP_0][MV_X] = core->mv[REFP_0][MV_X];
                 map_unrefined_mv[j][REFP_0][MV_Y] = core->mv[REFP_0][MV_Y];
                 map_unrefined_mv[j][REFP_1][MV_X] = core->mv[REFP_1][MV_X];
                 map_unrefined_mv[j][REFP_1][MV_Y] = core->mv[REFP_1][MV_Y];
-#else
-                map_unrefined_mv[j][REFP_0][MV_X] = SHRT_MAX;
-                map_unrefined_mv[j][REFP_0][MV_Y] = SHRT_MAX;
-                map_unrefined_mv[j][REFP_1][MV_X] = SHRT_MAX;
-                map_unrefined_mv[j][REFP_1][MV_Y] = SHRT_MAX;
-#endif
 #endif
 
             }

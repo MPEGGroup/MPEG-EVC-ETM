@@ -97,7 +97,6 @@
 #define CHROMA_NOT_SPLIT_EXCLUDE_IBC               0    // Remove CC in the case of allowing IBC
 #endif
 
-#define M50761_DMVR_SIMP_SPATIAL_MV                1 //unrefined MVs are used for spatial prediction
 #define M50761_DMVR_BUGFIX_REFINED_MV_RESTRICTION  1 
 #define M50761_DMVR_SIMP_DEBLOCK                   1 //unrefined MVs are used for DBF
 #define M50761_DMVR_SIMP_SUBPUPAD                  1 //sub PU padding 
@@ -298,11 +297,7 @@
 #define DMVR_SUBCU_SIZE                    16
 #endif
 #define DMVR_PADDING                       1
-#if M50761_DMVR_SIMP_SPATIAL_MV
 #define DMVR_LAG                           1 /* 0 - refined MV used only for MC, 1- refined MV used for deblocking and TMVP, 2 -  refined MV used for spatial neighbors as per lag2 CTB pipeline*/
-#else
-#define DMVR_LAG                           2 /* 0 - refined MV used only for MC, 1- refined MV used for deblocking and TMVP, 2 -  refined MV used for spatial neighbors as per lag2 CTB pipeline*/
-#endif
 #if DMVR_LAG
 #define DMVR_FLAG                          1
 #endif

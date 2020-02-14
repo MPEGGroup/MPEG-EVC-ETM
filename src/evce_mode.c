@@ -4510,17 +4510,10 @@ static void update_to_ctx_map(EVCE_CTX *ctx, EVCE_CORE *core)
                 }
                 else
                 {
-#if M50761_DMVR_SIMP_SPATIAL_MV
                   map_unrefined_mv[ctx_idx + j][REFP_0][MV_X] = cu_data->mv[core_idx + j][REFP_0][MV_X];
                   map_unrefined_mv[ctx_idx + j][REFP_0][MV_Y] = cu_data->mv[core_idx + j][REFP_0][MV_Y];
                   map_unrefined_mv[ctx_idx + j][REFP_1][MV_X] = cu_data->mv[core_idx + j][REFP_1][MV_X];
                   map_unrefined_mv[ctx_idx + j][REFP_1][MV_Y] = cu_data->mv[core_idx + j][REFP_1][MV_Y];
-#else
-                  map_unrefined_mv[ctx_idx + j][REFP_0][MV_X] = SHRT_MAX;
-                  map_unrefined_mv[ctx_idx + j][REFP_0][MV_Y] = SHRT_MAX;
-                  map_unrefined_mv[ctx_idx + j][REFP_1][MV_X] = SHRT_MAX;
-                  map_unrefined_mv[ctx_idx + j][REFP_1][MV_Y] = SHRT_MAX;
-#endif
                 }
 #endif
             }
