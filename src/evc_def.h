@@ -92,24 +92,9 @@
 #define M50761                                       1
 #if M50761
 //chroma no split for avoiding 2x2, 2x4 and 4x2 chroma blocks
-#define M50761_CHROMA_NOT_SPLIT                    1
+#define M50761_CHROMA_NOT_SPLIT                      1
 #if M50761_CHROMA_NOT_SPLIT
-#define CHROMA_NOT_SPLIT_EXCLUDE_IBC               0    // Remove CC in the case of allowing IBC
-#endif
-#endif
-
-#define M50632_IMPROVEMENT                           1
-#if M50632_IMPROVEMENT
-#define M50632_SIMPLIFICATION_TT                     1
-#define M50632_SIMPLIFICATION_ATS                    1
-#define M50632_IMPROVEMENT_MMVD                      1
-#define M50632_IMPROVEMENT_SPS                       1
-#define M50632_IMPROVEMENT_BASELINE                  1
-
-#if M50632_IMPROVEMENT_BASELINE
-#define CTX_MODEL_FOR_RESIDUAL_IN_BASE               0
-#else
-#define CTX_MODEL_FOR_RESIDUAL_IN_BASE               1
+#define CHROMA_NOT_SPLIT_EXCLUDE_IBC                 0    // Remove CC in the case of allowing IBC
 #endif
 #endif
 
@@ -937,13 +922,8 @@ typedef u32 SBAC_CTX_MODEL;
 #define NUM_DELTA_QP_CTX                   1
 #endif
 
-#if M50632_SIMPLIFICATION_ATS
 #define NUM_ATS_INTRA_CU_FLAG_CTX          1
 #define NUM_ATS_INTRA_TU_FLAG_CTX          1
-#else
-#define NUM_ATS_INTRA_CU_FLAG_CTX          8
-#define NUM_ATS_INTRA_TU_FLAG_CTX          2
-#endif
 #define NUM_SBAC_CTX_ATS_INTER_INFO        7
 /* context models for arithemetic coding */
 typedef struct _EVC_SBAC_CTX
@@ -993,12 +973,7 @@ typedef struct _EVC_SBAC_CTX
 #endif
     int              sps_cm_init_flag;
     SBAC_CTX_MODEL   ats_intra_cu          [NUM_ATS_INTRA_CU_FLAG_CTX];
-#if M50632_SIMPLIFICATION_ATS
     SBAC_CTX_MODEL   ats_tu[NUM_ATS_INTRA_TU_FLAG_CTX];
-#else
-    SBAC_CTX_MODEL   ats_tu_h        [NUM_ATS_INTRA_TU_FLAG_CTX];
-    SBAC_CTX_MODEL   ats_tu_v        [NUM_ATS_INTRA_TU_FLAG_CTX];
-#endif
     SBAC_CTX_MODEL   ats_inter_info  [NUM_SBAC_CTX_ATS_INTER_INFO];
 } EVC_SBAC_CTX;
 

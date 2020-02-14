@@ -1554,13 +1554,8 @@ int evce_rdoq_run_length_cc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, 
     {
         u32 blk_pos = scan[scan_pos];
         u32 level;
-#if CTX_MODEL_FOR_RESIDUAL_IN_BASE
-        int ctx_run = ((EVC_MIN(prev_level - 1, 5)) << 1) + (ch_type == Y_C ? 0 : 12);
-        int ctx_level = ((EVC_MIN(prev_level - 1, 5)) << 1) + (ch_type == Y_C ? 0 : 12);
-#else
         int ctx_run = sps_cm_init_flag == 1 ? ((EVC_MIN(prev_level - 1, 5)) << 1) + (ch_type == Y_C ? 0 : 12) : (ch_type == Y_C ? 0 : 2);
         int ctx_level = sps_cm_init_flag == 1 ? ((EVC_MIN(prev_level - 1, 5)) << 1) + (ch_type == Y_C ? 0 : 12) : (ch_type == Y_C ? 0 : 2);
-#endif
 
         level = get_coded_level_rl(&d64_uncoded_cost, &d64_coded_cost, tmp_level_double[blk_pos], EVC_ABS(tmp_coef[blk_pos]), run, ctx_run, ctx_level, q_bits, err_scale, lambda);
         tmp_dst_coef[blk_pos] = tmp_coef[blk_pos] < 0 ? -(s32)(level) : level;

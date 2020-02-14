@@ -133,7 +133,7 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
         evc_bsw_write_ue(bs, (u32)sps->log2_diff_ctu_size_max_suco_cb_size);
         evc_bsw_write_ue(bs, (u32)sps->log2_diff_max_suco_min_suco_cb_size);
     }
-#if M50632_IMPROVEMENT_SPS
+
 #if M52165
     evc_bsw_write1(bs, sps->tool_admvp);
     if (sps->tool_admvp)
@@ -179,35 +179,6 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
 #endif
     evc_bsw_write1(bs, sps->tool_alf);
     evc_bsw_write1(bs, sps->tool_htdf);
-#else
-
-    evc_bsw_write1(bs, sps->tool_amvr);
-    evc_bsw_write1(bs, sps->tool_mmvd);
-    evc_bsw_write1(bs, sps->tool_affine);
-    evc_bsw_write1(bs, sps->tool_dmvr);
-#if QC_ADD_ADDB_FLAG
-    evc_bsw_write1(bs, sps->tool_addb);
-#endif
-#if QC_DRA
-    evc_bsw_write1(bs, sps->tool_dra);
-#endif
-    evc_bsw_write1(bs, sps->tool_alf);
-    evc_bsw_write1(bs, sps->tool_admvp);
-    evc_bsw_write1(bs, sps->tool_eipd);
-#if !M52165
-    evc_bsw_write1(bs, sps->tool_amis);
-#endif
-    evc_bsw_write1(bs, sps->tool_iqt);
-    evc_bsw_write1(bs, sps->tool_htdf);
-    evc_bsw_write1(bs, sps->tool_adcc);
-    evc_bsw_write1(bs, sps->tool_cm_init);
-    evc_bsw_write1(bs, sps->ibc_flag);
-    if (sps->ibc_flag)
-    {
-        evc_bsw_write_ue(bs, (u32)(sps->ibc_log_max_size - 2));
-    }
-    evc_bsw_write1(bs, sps->tool_ats);
-#endif
     evc_bsw_write1(bs, sps->tool_rpl);
     evc_bsw_write1(bs, sps->tool_pocs);
 #if DQP
@@ -461,12 +432,10 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
     {
         evc_bsw_write1(bs, sh->mmvd_group_enable_flag);
     }
-#if M50632_IMPROVEMENT_MMVD
     else if (sps->tool_mmvd && (sh->slice_type == SLICE_P))
     {
         evc_bsw_write1(bs, sh->mmvd_group_enable_flag);
     }
-#endif
 
     if (sps->tool_alf)
     {
@@ -1217,12 +1186,7 @@ void evce_sbac_reset(EVCE_SBAC *sbac, u8 slice_type, u8 slice_qp, int sps_cm_ini
         evc_eco_sbac_ctx_initialize(sbac_ctx->skip_flag, (s16*)init_skip_flag, NUM_SBAC_CTX_SKIP_FLAG, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->ibc_flag, (s16*)init_ibc_flag, NUM_SBAC_CTX_IBC_FLAG, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_intra_cu, (s16*)init_ats_intra_cu, NUM_ATS_INTRA_CU_FLAG_CTX, slice_type, slice_qp);
-#if M50632_SIMPLIFICATION_ATS
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_tu, (s16*)init_ats_tu, NUM_ATS_INTRA_TU_FLAG_CTX, slice_type, slice_qp);
-#else
-        evc_eco_sbac_ctx_initialize(sbac_ctx->ats_tu_h, (s16*)init_ats_tu_h, NUM_ATS_INTRA_TU_FLAG_CTX, slice_type, slice_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->ats_tu_v, (s16*)init_ats_tu_v, NUM_ATS_INTRA_TU_FLAG_CTX, slice_type, slice_qp);
-#endif
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_inter_info, (s16*)init_ats_inter_info, NUM_SBAC_CTX_ATS_INTER_INFO, slice_type, slice_qp);
     }
     else // (sps_cm_init_flag == 0)
@@ -1278,12 +1242,7 @@ void evce_sbac_reset(EVCE_SBAC *sbac, u8 slice_type, u8 slice_qp, int sps_cm_ini
         for (i = 0; i < NUM_SBAC_CTX_SKIP_FLAG; i++) sbac_ctx->skip_flag[i] = PROB_INIT;
         for (i = 0; i < NUM_SBAC_CTX_IBC_FLAG; i++) sbac_ctx->ibc_flag[i] = PROB_INIT;
         for (i = 0; i < NUM_ATS_INTRA_CU_FLAG_CTX; i++) sbac_ctx->ats_intra_cu[i] = PROB_INIT;
-#if M50632_SIMPLIFICATION_ATS
         for (i = 0; i < NUM_ATS_INTRA_TU_FLAG_CTX; i++) sbac_ctx->ats_tu[i] = PROB_INIT;
-#else
-        for (i = 0; i < NUM_ATS_INTRA_TU_FLAG_CTX; i++) sbac_ctx->ats_tu_h[i] = PROB_INIT;
-        for (i = 0; i < NUM_ATS_INTRA_TU_FLAG_CTX; i++) sbac_ctx->ats_tu_v[i] = PROB_INIT;
-#endif
         for (i = 0; i < NUM_SBAC_CTX_ATS_INTER_INFO; i++) sbac_ctx->ats_inter_info[i] = PROB_INIT;
     }
 }
@@ -1478,11 +1437,7 @@ void evce_eco_run_length_cc(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int 
         {
             level = EVC_ABS16(coef_cur);
             sign = (coef_cur > 0) ? 0 : 1;
-#if CTX_MODEL_FOR_RESIDUAL_IN_BASE
-            t0 = ((EVC_MIN(prev_level - 1, 5)) << 1) + (ch_type == Y_C ? 0 : 12);
-#else
             t0 = sbac->ctx.sps_cm_init_flag == 1 ? ((EVC_MIN(prev_level - 1, 5)) << 1) + (ch_type == Y_C ? 0 : 12) : (ch_type == Y_C ? 0 : 2);
-#endif
 
             /* Run coding */
             sbac_write_unary_sym(run, 2, sbac, sbac_ctx->run + t0, bs);
@@ -1833,11 +1788,8 @@ static int evce_eco_ats_intra_cu(EVC_BSW *bs, u8 ats_intra_cu, u8 ctx)
 {
     EVCE_SBAC *sbac;
     sbac = GET_SBAC_ENC(bs);
-#if M50632_SIMPLIFICATION_ATS
     sbac_encode_bin_ep(ats_intra_cu, sbac, bs);
-#else
-    evce_sbac_encode_bin(ats_intra_cu, sbac, sbac->ctx.ats_intra_cu + ctx, bs);
-#endif
+
     EVC_TRACE_COUNTER;
     EVC_TRACE_STR("ats intra CU ");
     EVC_TRACE_INT(ats_intra_cu);
@@ -1850,11 +1802,8 @@ static int evce_eco_ats_tu_h(EVC_BSW *bs, u8 ats_tu_h, u8 ctx)
 {
     EVCE_SBAC *sbac;
     sbac = GET_SBAC_ENC(bs);
-#if M50632_SIMPLIFICATION_ATS
     evce_sbac_encode_bin(ats_tu_h, sbac, sbac->ctx.ats_tu + ctx, bs);
-#else
-    evce_sbac_encode_bin(ats_tu_h, sbac, sbac->ctx.ats_tu_h + ctx, bs);
-#endif
+
     EVC_TRACE_COUNTER;
     EVC_TRACE_STR("ats intra tuH ");
     EVC_TRACE_INT(ats_tu_h);
@@ -1867,11 +1816,8 @@ static int evce_eco_ats_tu_v(EVC_BSW *bs, u8 ats_tu_v, u8 ctx)
 {
     EVCE_SBAC *sbac;
     sbac = GET_SBAC_ENC(bs);
-#if M50632_SIMPLIFICATION_ATS
     evce_sbac_encode_bin(ats_tu_v, sbac, sbac->ctx.ats_tu + ctx, bs);
-#else
-    evce_sbac_encode_bin(ats_tu_v, sbac, sbac->ctx.ats_tu_v + ctx, bs);
-#endif
+
     EVC_TRACE_COUNTER;
     EVC_TRACE_STR("ats intra tuV ");
     EVC_TRACE_INT(ats_tu_v);
@@ -2214,20 +2160,12 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
 #endif
             )
             {
-#if M50632_SIMPLIFICATION_ATS
                 evce_eco_ats_intra_cu(bs, ats_intra_cu, 0);
-#else
-                evce_eco_ats_intra_cu(bs, ats_intra_cu, sbac->ctx.sps_cm_init_flag == 1 ? ((log2_cuw > log2_cuh) ? log2_cuw : log2_cuh) - MIN_CU_LOG2 : 0);
-#endif
+
                 if (ats_intra_cu)
                 {
-#if M50632_SIMPLIFICATION_ATS
                     evce_eco_ats_tu_h(bs, (ats_tu >> 1), 0);
                     evce_eco_ats_tu_v(bs, (ats_tu & 1), 0);
-#else
-                    evce_eco_ats_tu_h(bs, (ats_tu >> 1), is_intra);
-                    evce_eco_ats_tu_v(bs, (ats_tu & 1), is_intra);
-#endif
                 }
             }
 
