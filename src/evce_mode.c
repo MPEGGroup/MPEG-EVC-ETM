@@ -1055,10 +1055,6 @@ static int copy_cu_data(EVCE_CU_DATA *dst, EVCE_CU_DATA *src, int x, int y, int 
                 evc_mcpy(dst->nnz_sub[k][i] + idx_dst, src->nnz_sub[k][i] + idx_src, size);
             }
         }
-#if !M50761_REMOVE_BLOCK_SIZE_MAP
-        size = cuw_scu * sizeof(s16) * 2;
-        evc_mcpy(*(dst->block_size + idx_dst), *(src->block_size + idx_src), size);
-#endif
 
 #if TRACE_ENC_CU_DATA
         size = cuw_scu * sizeof(dst->trace_idx[0]);
@@ -1676,10 +1672,6 @@ static void copy_to_cu_data(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi, s16 c
                 }
             }
 #endif
-#if !M50761_REMOVE_BLOCK_SIZE_MAP
-            cu_data->block_size[idx + i][0] = core->cuw;
-            cu_data->block_size[idx + i][1] = core->cuh;
-#endif
             cu_data->depth[idx + i] = core->cud;
             cu_data->ats_intra_cu[idx + i] = core->ats_intra_cu;
             cu_data->ats_tu_h[idx + i] = core->ats_tu >> 1;
@@ -2077,11 +2069,6 @@ static void update_map_scu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int src
 #endif
     s8 (*map_refi)[REFP_NUM] = 0;
     s8 **src_map_refi = NULL;
-#if !M50761_REMOVE_BLOCK_SIZE_MAP
-    s16(*map_block_size)[2] = 0;
-    s16 **src_block_size = NULL;
-    int   size_block_size;
-#endif
     s8   *map_depth = 0, *src_depth = 0;
     int   size_depth;
     int   w, h, i, size, size_ipm, size_mv, size_refi;
@@ -2107,10 +2094,6 @@ static void update_map_scu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int src
 
     map_refi = ctx->map_refi + scu_y * ctx->w_scu + scu_x;
     src_map_refi = core->cu_data_best[log2_src_cuw - 2][log2_src_cuh - 2].refi;
-#if !M50761_REMOVE_BLOCK_SIZE_MAP
-    map_block_size = ctx->map_block_size + scu_y * ctx->w_scu + scu_x;
-    src_block_size = core->cu_data_best[log2_src_cuw - 2][log2_src_cuh - 2].block_size;
-#endif
     map_depth = ctx->map_depth + scu_y * ctx->w_scu + scu_x;
     src_depth = core->cu_data_best[log2_src_cuw - 2][log2_src_cuh - 2].depth;
 #if DMVR_LAG
@@ -2146,25 +2129,14 @@ static void update_map_scu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int src
     size_ipm = sizeof(u8) * w;
     size_mv = sizeof(s16) * w * REFP_NUM * MV_D;
     size_refi = sizeof(s8) * w * REFP_NUM;
-#if !M50761_REMOVE_BLOCK_SIZE_MAP
-    size_block_size = sizeof(s16) * w * 2;
-#endif
     size_depth = sizeof(s8) * w;
 
     for(i = 0; i < h; i++)
     {
         evc_mcpy(map_scu, src_map_scu, size);
         evc_mcpy(map_ipm, src_map_ipm, size_ipm);
-
         evc_mcpy(map_mv, src_map_mv, size_mv);
-#if !M50761_REMOVE_BLOCK_SIZE_MAP
-        evc_mcpy(map_block_size, *(src_block_size), size_block_size);
-#endif
         evc_mcpy(map_refi, *(src_map_refi), size_refi);
-#if !M50761_REMOVE_BLOCK_SIZE_MAP
-        map_block_size += ctx->w_scu;
-        src_block_size += (src_cuw >> MIN_CU_LOG2);
-#endif
 #if DMVR_LAG
         evc_mcpy(map_unrefined_mv, src_map_unrefined_mv, size_mv);
 #endif

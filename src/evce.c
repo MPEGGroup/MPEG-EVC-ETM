@@ -1272,12 +1272,7 @@ int evce_ready(EVCE_CTX * ctx)
         evc_assert_gv(ctx->map_ipm, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
         evc_mset(ctx->map_ipm, -1, size);
     }
-#if !M50761_REMOVE_BLOCK_SIZE_MAP
-    size = sizeof(s16) * ctx->f_scu * 2;
-    ctx->map_block_size = evc_malloc_fast(size);
-    evc_assert_gv(ctx->map_block_size, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
-    evc_mset(ctx->map_block_size, -1, size);
-#endif
+
     size = sizeof(s8) * ctx->f_scu;
     ctx->map_depth = evc_malloc_fast(size);
     evc_assert_gv(ctx->map_depth, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
@@ -1396,9 +1391,6 @@ ERR:
     }
     evc_mfree_fast(ctx->map_cu_data);
     evc_mfree_fast(ctx->map_ipm);
-#if !M50761_REMOVE_BLOCK_SIZE_MAP
-    evc_mfree_fast(ctx->map_block_size);
-#endif
     evc_mfree_fast(ctx->map_depth);
     evc_mfree_fast(ctx->map_affine);
     evc_mfree_fast(ctx->map_ats_intra_cu);
@@ -1436,9 +1428,6 @@ void evce_flush(EVCE_CTX * ctx)
     }
     evc_mfree_fast(ctx->map_cu_data);
     evc_mfree_fast(ctx->map_ipm);
-#if !M50761_REMOVE_BLOCK_SIZE_MAP
-    evc_mfree_fast(ctx->map_block_size);
-#endif
     evc_mfree_fast(ctx->map_depth);
     evc_mfree_fast(ctx->map_affine);
     evc_mfree_fast(ctx->map_ats_intra_cu);
@@ -3556,9 +3545,6 @@ int evce_create_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
     evce_malloc_1d((void**)&cu_data->affine_flag, size_8b);
     evce_malloc_1d((void**)&cu_data->map_affine, size_32b);
     evce_malloc_1d((void**)&cu_data->map_cu_mode, size_32b);
-#if !M50761_REMOVE_BLOCK_SIZE_MAP
-    evce_malloc_2d((s8***)&cu_data->block_size, cu_cnt, 2, sizeof(s16));
-#endif
     evce_malloc_1d((void**)&cu_data->depth, size_8b);
 
     for(i = 0; i < N_C; i++)
@@ -3635,10 +3621,8 @@ int evce_delete_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
     evce_free_1d((void*)cu_data->ats_tu_v);
     evce_free_1d((void*)cu_data->ats_inter_info);
     evce_free_1d((void*)cu_data->map_cu_mode);
-#if !M50761_REMOVE_BLOCK_SIZE_MAP
-    evce_free_2d((void**)cu_data->block_size);
-#endif
     evce_free_1d((void*)cu_data->depth);
+
     for (i = 0; i < N_C; i++)
     {
         evce_free_1d((void*)cu_data->coef[i]);

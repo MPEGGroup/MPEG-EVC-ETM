@@ -561,11 +561,7 @@ typedef struct _EVCE_CU_DATA
     u8* ats_tu_v;
     u8  *ats_inter_info;
     u32 *map_cu_mode;
-#if !M50761_REMOVE_BLOCK_SIZE_MAP
-    s16 **block_size;
-#endif
     s8  *depth;
-
     s16 *coef[N_C]; 
     pel *reco[N_C]; 
 #if TRACE_ENC_CU_DATA
@@ -896,11 +892,7 @@ struct _EVCE_CTX
     s8                  (* map_refi)[REFP_NUM];
     /* map for intra pred mode */
     s8                   * map_ipm;
-#if !M50761_REMOVE_BLOCK_SIZE_MAP
-    s16                 (* map_block_size)[2];
-#endif
     s8                   * map_depth;
-
 #if RDO_DBK
     EVC_PIC              * pic_dbk;          //one picture that arranges cu pixels and neighboring pixels for deblocking (just to match the interface of deblocking functions)
     s64                    delta_dist[N_C];  //delta distortion from filtering (negative values mean distortion reduced)
