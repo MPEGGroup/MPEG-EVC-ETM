@@ -813,9 +813,7 @@ void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
             , ctx->map_unrefined_mv
 #endif
             , core->avail_lr
-#if M50761_TMVP_ALIGN_SPEC || M50662_AFFINE_IBC_TMVP_SUCO_FIX
             , &ctx->sh
-#endif
         );
 
         core->affine_flag = vertex_num[core->mvp_idx[0]] - 1;

@@ -5020,10 +5020,7 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
                                              , ctx->map_unrefined_mv
 #endif
                                              , core->avail_lr
-#if M50761_TMVP_ALIGN_SPEC || M50662_AFFINE_IBC_TMVP_SUCO_FIX
-                                             , &ctx->sh
-#endif
-    );
+                                             , &ctx->sh    );
 
     if(mrg_cnt == 0)
         return MAX_COST;

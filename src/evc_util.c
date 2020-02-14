@@ -4091,15 +4091,9 @@ void evc_get_affine_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int
     neb_addr_lt[0] = scup - 1;          // LE
     neb_addr_lt[1] = scup - w_scu;      // UP
     neb_addr_lt[2] = scup - w_scu - 1;  // B2
-#if M50662_AFFINE_IBC_TMVP_SUCO_FIX
     valid_flag_lt[0] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lt[0]]) && !MCU_GET_IF(map_scu[neb_addr_lt[0]]) && !MCU_GET_IBC(map_scu[neb_addr_lt[0]]);
     valid_flag_lt[1] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lt[1]]) && !MCU_GET_IF(map_scu[neb_addr_lt[1]]) && !MCU_GET_IBC(map_scu[neb_addr_lt[1]]);
     valid_flag_lt[2] = x_scu > 0 && y_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lt[2]]) && !MCU_GET_IF(map_scu[neb_addr_lt[2]]) && !MCU_GET_IBC(map_scu[neb_addr_lt[2]]);
-#else
-    valid_flag_lt[0] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lt[0]]) && !MCU_GET_IF(map_scu[neb_addr_lt[0]]);
-    valid_flag_lt[1] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lt[1]]) && !MCU_GET_IF(map_scu[neb_addr_lt[1]]);
-    valid_flag_lt[2] = x_scu > 0 && y_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lt[2]]) && !MCU_GET_IF(map_scu[neb_addr_lt[2]]);
-#endif
 #endif
 
     for(k = 0; k < AFFINE_MAX_NUM_LT; k++)
@@ -4146,20 +4140,11 @@ void evc_get_affine_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int
 #else
     neb_addr_rt[0] = scup - w_scu + scuw - 1;     // B1
     neb_addr_rt[1] = scup - w_scu + scuw;         // B0
-#if M50662_AFFINE_IBC_TMVP_SUCO_FIX
     valid_flag_rt[0] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr_rt[0]]) && !MCU_GET_IF(map_scu[neb_addr_rt[0]]) && !MCU_GET_IBC(map_scu[neb_addr_rt[0]]);
     valid_flag_rt[1] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr_rt[1]]) && !MCU_GET_IF(map_scu[neb_addr_rt[1]]) && !MCU_GET_IBC(map_scu[neb_addr_rt[1]]);
-#else
-    valid_flag_rt[0] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr_rt[0]]) && !MCU_GET_IF(map_scu[neb_addr_rt[0]]);
-    valid_flag_rt[1] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr_rt[1]]) && !MCU_GET_IF(map_scu[neb_addr_rt[1]]);
-#endif
 #endif
     neb_addr_rt[2] = scup + scuw;
-#if M50662_AFFINE_IBC_TMVP_SUCO_FIX
     valid_flag_rt[2] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr_rt[2]]) && !MCU_GET_IF(map_scu[neb_addr_rt[2]]) && !MCU_GET_IBC(map_scu[neb_addr_rt[2]]);
-#else
-    valid_flag_rt[2] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr_rt[2]]) && !MCU_GET_IF(map_scu[neb_addr_rt[2]]);
-#endif
 
     for(k = 0; k < AFFINE_MAX_NUM_RT; k++)
     {
@@ -4199,13 +4184,9 @@ void evc_get_affine_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int
 
     neb_addr_lb[0] = scup + w_scu * scuh - 1;        // A0
     neb_addr_lb[1] = scup + w_scu * (scuh - 1) - 1;  // A1
-#if M50662_AFFINE_IBC_TMVP_SUCO_FIX
+
     valid_flag_lb[0] = x_scu > 0 && y_scu + scuh < h_scu && MCU_GET_COD(map_scu[neb_addr_lb[0]]) && !MCU_GET_IF(map_scu[neb_addr_lb[0]]) && !MCU_GET_IBC(map_scu[neb_addr_lb[0]]);
     valid_flag_lb[1] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lb[1]]) && !MCU_GET_IF(map_scu[neb_addr_lb[1]]) && !MCU_GET_IBC(map_scu[neb_addr_lb[1]]);
-#else
-    valid_flag_lb[0] = x_scu > 0 && y_scu + scuh < h_scu && MCU_GET_COD(map_scu[neb_addr_lb[0]]) && !MCU_GET_IF(map_scu[neb_addr_lb[0]]);
-    valid_flag_lb[1] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lb[1]]) && !MCU_GET_IF(map_scu[neb_addr_lb[1]]);
-#endif
 
     for(k = 0; k < AFFINE_MAX_NUM_LB; k++)
     {
@@ -4245,13 +4226,9 @@ void evc_get_affine_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int
 
     neb_addr_rb[0] = scup + w_scu * scuh + scuw;
     neb_addr_rb[1] = scup + w_scu * (scuh - 1) + scuw;
-#if M50662_AFFINE_IBC_TMVP_SUCO_FIX
+
     valid_flag_rb[0] = x_scu + scuw < w_scu && y_scu + scuh < h_scu && MCU_GET_COD(map_scu[neb_addr_rb[0]]) && !MCU_GET_IF(map_scu[neb_addr_rb[0]]) && !MCU_GET_IBC(map_scu[neb_addr_rb[0]]);
     valid_flag_rb[1] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr_rb[1]]) && !MCU_GET_IF(map_scu[neb_addr_rb[1]]) && !MCU_GET_IF(map_scu[neb_addr_rb[1]]);
-#else
-    valid_flag_rb[0] = x_scu + scuw < w_scu && y_scu + scuh < h_scu && MCU_GET_COD(map_scu[neb_addr_rb[0]]) && !MCU_GET_IF(map_scu[neb_addr_rb[0]]);
-    valid_flag_rb[1] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr_rb[1]]) && !MCU_GET_IF(map_scu[neb_addr_rb[1]]);
-#endif
 
     for (k = 0; k < AFFINE_MAX_NUM_RB; k++)
     {
@@ -4386,9 +4363,7 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
                                    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
     , u16 avail_lr
-#if M50761_TMVP_ALIGN_SPEC || M50662_AFFINE_IBC_TMVP_SUCO_FIX
     , EVC_SH * sh
-#endif
 )
 {
     int lidx, i, k;
@@ -4397,10 +4372,8 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
     int scuw = cuw >> MIN_CU_LOG2;
     int scuh = cuh >> MIN_CU_LOG2;
     int cnt = 0;
-#if M50662_AFFINE_IBC_TMVP_SUCO_FIX
     s16 tmvp[REFP_NUM][MV_D];
     s8  availablePredIdx = 0;
-#endif
     //-------------------  Model based affine MVP  -------------------//
     {
         int neb_addr[5];
@@ -4500,7 +4473,7 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
 
     //-------------------  control point based affine MVP  -------------------//
     {
-#if !M50761_TMVP_ALIGN_SPEC || !M50662_AFFINE_IBC_TMVP_SUCO_FIX
+#if !M50761_TMVP_ALIGN_SPEC 
         s8(*map_refi_co)[REFP_NUM];
         int dpoc_co = 0;
         int ratio_tmvp = 1;
@@ -4545,15 +4518,10 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
         neb_addr_lt[0] = scup - 1;          // LE
         neb_addr_lt[1] = scup - w_scu;      // UP
         neb_addr_lt[2] = scup - w_scu - 1;  // B2
-#if M50662_AFFINE_IBC_TMVP_SUCO_FIX
+
         valid_flag_lt[0] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lt[0]]) && !MCU_GET_IF(map_scu[neb_addr_lt[0]]) && !MCU_GET_IBC(map_scu[neb_addr_lt[0]]);
         valid_flag_lt[1] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lt[1]]) && !MCU_GET_IF(map_scu[neb_addr_lt[1]]) && !MCU_GET_IBC(map_scu[neb_addr_lt[1]]);
         valid_flag_lt[2] = x_scu > 0 && y_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lt[2]]) && !MCU_GET_IF(map_scu[neb_addr_lt[2]]) && !MCU_GET_IBC(map_scu[neb_addr_lt[2]]);
-#else
-        valid_flag_lt[0] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lt[0]]) && !MCU_GET_IF(map_scu[neb_addr_lt[0]]);
-        valid_flag_lt[1] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lt[1]]) && !MCU_GET_IF(map_scu[neb_addr_lt[1]]);
-        valid_flag_lt[2] = x_scu > 0 && y_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lt[2]]) && !MCU_GET_IF(map_scu[neb_addr_lt[2]]);
-#endif
 #endif
         for (k = 0; k < AFFINE_MAX_NUM_LT; k++)
         {
@@ -4593,20 +4561,11 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
         neb_addr_rt[0] = scup - w_scu + scuw - 1;     // B1
         neb_addr_rt[1] = scup - w_scu + scuw;         // B0
 
-#if M50662_AFFINE_IBC_TMVP_SUCO_FIX
         valid_flag_rt[0] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr_rt[0]]) && !MCU_GET_IF(map_scu[neb_addr_rt[0]]) && !MCU_GET_IBC(map_scu[neb_addr_rt[0]]);
         valid_flag_rt[1] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr_rt[1]]) && !MCU_GET_IF(map_scu[neb_addr_rt[1]]) && !MCU_GET_IBC(map_scu[neb_addr_rt[1]]);
-#else
-        valid_flag_rt[0] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr_rt[0]]) && !MCU_GET_IF(map_scu[neb_addr_rt[0]]);
-        valid_flag_rt[1] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr_rt[1]]) && !MCU_GET_IF(map_scu[neb_addr_rt[1]]);
-#endif
 #endif
         neb_addr_rt[2] = scup + scuw;                 // RIGHT
-#if M50662_AFFINE_IBC_TMVP_SUCO_FIX
         valid_flag_rt[2] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr_rt[2]]) && !MCU_GET_IF(map_scu[neb_addr_rt[2]]) && !MCU_GET_IBC(map_scu[neb_addr_rt[2]]);
-#else
-        valid_flag_rt[2] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr_rt[2]]) && !MCU_GET_IF(map_scu[neb_addr_rt[2]]);
-#endif
 
         for (k = 0; k < AFFINE_MAX_NUM_RT; k++)
         {
@@ -4636,49 +4595,41 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
         }
 
         //-------------------  LB  -------------------//
-#if M50662_AFFINE_IBC_TMVP_SUCO_FIX
         if (avail_lr == LR_10 || avail_lr == LR_11)
         {
-#endif
-        neb_addr_lb[0] = scup + w_scu * scuh - 1;        // A0
-        neb_addr_lb[1] = scup + w_scu * (scuh - 1) - 1;  // A1
-#if M50662_AFFINE_IBC_TMVP_SUCO_FIX
-        valid_flag_lb[0] = x_scu > 0 && y_scu + scuh < h_scu && MCU_GET_COD(map_scu[neb_addr_lb[0]]) && !MCU_GET_IF(map_scu[neb_addr_lb[0]]) && !MCU_GET_IBC(map_scu[neb_addr_lb[0]]);
-        valid_flag_lb[1] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lb[1]]) && !MCU_GET_IF(map_scu[neb_addr_lb[1]]) && !MCU_GET_IBC(map_scu[neb_addr_lb[1]]);
-#else
-        valid_flag_lb[0] = x_scu > 0 && y_scu + scuh < h_scu && MCU_GET_COD(map_scu[neb_addr_lb[0]]) && !MCU_GET_IF(map_scu[neb_addr_lb[0]]);
-        valid_flag_lb[1] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lb[1]]) && !MCU_GET_IF(map_scu[neb_addr_lb[1]]);
-#endif
+            neb_addr_lb[0] = scup + w_scu * scuh - 1;        // A0
+            neb_addr_lb[1] = scup + w_scu * (scuh - 1) - 1;  // A1
+            valid_flag_lb[0] = x_scu > 0 && y_scu + scuh < h_scu && MCU_GET_COD(map_scu[neb_addr_lb[0]]) && !MCU_GET_IF(map_scu[neb_addr_lb[0]]) && !MCU_GET_IBC(map_scu[neb_addr_lb[0]]);
+            valid_flag_lb[1] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lb[1]]) && !MCU_GET_IF(map_scu[neb_addr_lb[1]]) && !MCU_GET_IBC(map_scu[neb_addr_lb[1]]);
 
-        for (k = 0; k < AFFINE_MAX_NUM_LB; k++)
-        {
-            if (valid_flag_lb[k])
+            for (k = 0; k < AFFINE_MAX_NUM_LB; k++)
             {
-                for (lidx = 0; lidx < REFP_NUM; lidx++)
+                if (valid_flag_lb[k])
                 {
-                    cp_refi[lidx][2] = map_refi[neb_addr_lb[k]][lidx];
+                    for (lidx = 0; lidx < REFP_NUM; lidx++)
+                    {
+                        cp_refi[lidx][2] = map_refi[neb_addr_lb[k]][lidx];
 #if M50761_DMVR_BUGFIX_REFINED_MV_RESTRICTION
-                    if (MCU_GET_DMVRF(map_scu[neb_addr_lb[k]]))
-                    {
-                      cp_mv[lidx][2][MV_X] = map_unrefined_mv[neb_addr_lb[k]][lidx][MV_X];
-                      cp_mv[lidx][2][MV_Y] = map_unrefined_mv[neb_addr_lb[k]][lidx][MV_Y];
-                    }
-                    else
-                    {
-                      cp_mv[lidx][2][MV_X] = map_mv[neb_addr_lb[k]][lidx][MV_X];
-                      cp_mv[lidx][2][MV_Y] = map_mv[neb_addr_lb[k]][lidx][MV_Y];
-                    }
+                        if (MCU_GET_DMVRF(map_scu[neb_addr_lb[k]]))
+                        {
+                            cp_mv[lidx][2][MV_X] = map_unrefined_mv[neb_addr_lb[k]][lidx][MV_X];
+                            cp_mv[lidx][2][MV_Y] = map_unrefined_mv[neb_addr_lb[k]][lidx][MV_Y];
+                        }
+                        else
+                        {
+                            cp_mv[lidx][2][MV_X] = map_mv[neb_addr_lb[k]][lidx][MV_X];
+                            cp_mv[lidx][2][MV_Y] = map_mv[neb_addr_lb[k]][lidx][MV_Y];
+                        }
 #else
 
-                    cp_mv[lidx][2][MV_X] = map_mv[neb_addr_lb[k]][lidx][MV_X];
-                    cp_mv[lidx][2][MV_Y] = map_mv[neb_addr_lb[k]][lidx][MV_Y];
+                        cp_mv[lidx][2][MV_X] = map_mv[neb_addr_lb[k]][lidx][MV_X];
+                        cp_mv[lidx][2][MV_Y] = map_mv[neb_addr_lb[k]][lidx][MV_Y];
 #endif
+                    }
+                    cp_valid[2] = 1;
+                    break;
                 }
-                cp_valid[2] = 1;
-                break;
             }
-        }
-#if M50662_AFFINE_IBC_TMVP_SUCO_FIX
         }
         else
         {
@@ -4689,7 +4640,6 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
 #else
             valid_flag_lb[0] = x_scu > 0 && y_scu + scuh < h_scu;
 #endif
-#if M50662_AFFINE_IBC_TMVP_SUCO_FIX
             if (valid_flag_lb[0])
             {
 #if AFFINE_TMVP_SPEC_CONDITION_ALIGN
@@ -4730,46 +4680,15 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
             {
                 cp_valid[2] = 1;
             }
-#else
-            if (valid_flag_lb[0])
-            {
-                map_refi_co = refp[0][REFP_1].map_refi; // col picture is ref idx 0 and list 1
-                for (lidx = 0; lidx < REFP_NUM; lidx++)
-                {
-                    if (REFI_IS_VALID(map_refi_co[neb_addr_lb[0]][lidx]))
-                    {
-                        dpoc_co = refp[0][REFP_1].poc - refp[0][REFP_1].list_poc[map_refi_co[neb_addr_lb[0]][lidx]];
-                        if (dpoc_co == 0)
-                        {
-                            break;
-                        }
-
-                        ratio_tmvp = (int)((poc - refp[0][REFP_1].poc) << MVP_SCALING_PRECISION) / dpoc_co;
-                        cp_refi[lidx][2] = 0; // ref idx
-                        scaling_mv(ratio_tmvp, refp[0][REFP_1].map_mv[neb_addr_lb[0]][lidx], cp_mv[lidx][2]);
-                        cp_valid[2] = 1;
-                    }
-                }
-            }
-#endif
         }
-#endif
+
         //-------------------  RB  -------------------//
         if (avail_lr == LR_01 || avail_lr == LR_11)
         {
             neb_addr_rb[0] = scup + w_scu * scuh + scuw;
-#if M50662_AFFINE_IBC_TMVP_SUCO_FIX
             valid_flag_rb[0] = x_scu + scuw < w_scu && y_scu + scuh < h_scu && MCU_GET_COD(map_scu[neb_addr_rb[0]]) && !MCU_GET_IF(map_scu[neb_addr_rb[0]]) && !MCU_GET_IBC(map_scu[neb_addr_rb[0]]);
-#else
-            valid_flag_rb[0] = x_scu + scuw < w_scu && y_scu + scuh < h_scu && MCU_GET_COD(map_scu[neb_addr_rb[0]]) && !MCU_GET_IF(map_scu[neb_addr_rb[0]]);
-#endif
-
             neb_addr_rb[1] = scup + w_scu * (scuh - 1) + scuw;
-#if M50662_AFFINE_IBC_TMVP_SUCO_FIX
             valid_flag_rb[1] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr_rb[1]]) && !MCU_GET_IF(map_scu[neb_addr_rb[1]]) && !MCU_GET_IBC(map_scu[neb_addr_rb[1]]);
-#else
-            valid_flag_rb[1] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr_rb[1]]) && !MCU_GET_IF(map_scu[neb_addr_rb[1]]);
-#endif
 
             for (k = 0; k < AFFINE_MAX_NUM_RB; k++)
             {

@@ -293,9 +293,7 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
                                    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
     , u16 avail_lr
-#if M50761_TMVP_ALIGN_SPEC || M50662_AFFINE_IBC_TMVP_SUCO_FIX
     , EVC_SH * sh
-#endif
 );
 
 #if !EIF_MEMORY_BANDWIDTH_RESTRICTION
