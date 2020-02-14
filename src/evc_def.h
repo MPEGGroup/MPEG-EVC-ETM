@@ -89,12 +89,6 @@
 #define AFFINE_TMVP_SPEC_CONDITION_ALIGN             1
 
 //MPEG 128 adoptions
-#define M50662                                       1
-#if M50662
-#define FIX_AFFINE_CLIP                              1
-
-#endif
-
 #define M50761                                       1
 #if M50761
 //chroma no split for avoiding 2x2, 2x4 and 4x2 chroma blocks
