@@ -89,7 +89,6 @@
 #define AFFINE_TMVP_SPEC_CONDITION_ALIGN             1
 
 //MPEG 128 adoptions
-#define ALF_TILES_SUPPORT_M50663                     1
 #define CHROMA_QP_TABLE_SUPPORT_M50663               1
 
 #define M50662                                       1

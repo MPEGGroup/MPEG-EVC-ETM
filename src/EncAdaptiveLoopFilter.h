@@ -270,8 +270,6 @@ private:
   void setEnableFlag(AlfSliceParam* alfSlicePara, ChannelType channel, uint8_t** ctuFlags);
   void setCtuEnableFlag(uint8_t** ctuFlags, ChannelType channel, uint8_t val);
   void copyCtuEnableFlag(uint8_t** ctuFlagsDst, uint8_t** ctuFlagsSrc, ChannelType channel);
-#if ALF_TILES_SUPPORT_M50663
   void tile_boundary_check(int* availableL, int* availableR, int* availableT, int* availableB, const int width, const int height, int xPos, int yPos, int x_l, int x_r, int y_l, int y_r);
-#endif
 };
 #endif

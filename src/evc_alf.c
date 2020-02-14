@@ -412,7 +412,7 @@ const int m_classToFilterMapping[MAX_NUM_ALF_CLASSES][ALF_FIXED_FILTER_NUM] =
   { 8,  13,  36,  42,  45,  46,  51,  53,  54,  57,  58,  59,  60,  61,  62,  63 },
   { 8,  13,  20,  27,  36,  38,  42,  46,  52,  53,  56,  57,  59,  61,  62,  63 },
 };
-#if ALF_TILES_SUPPORT_M50663
+
 void tile_boundary_check(int* availableL, int* availableR, int* availableT, int* availableB, const int width, const int height, int xPos, int yPos, int x_l, int x_r, int y_l, int y_r)
 {
     if (xPos == x_l)
@@ -432,7 +432,7 @@ void tile_boundary_check(int* availableL, int* availableR, int* availableT, int*
     else
         *availableB = 1;
 }
-#endif
+
 void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSliceParam)
 {
   if (!alfSliceParam->enabledFlag[COMPONENT_Y] && !alfSliceParam->enabledFlag[COMPONENT_Cb] && !alfSliceParam->enabledFlag[COMPONENT_Cr])
@@ -498,7 +498,6 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
       copy_and_extend_tile(recLuma1_tile, s1, recoYuv1_tile, cs->pPic->s_c, (w_tile >> 1), (h_tile >> 1), m);
       copy_and_extend_tile(recLuma2_tile, s1, recoYuv2_tile, cs->pPic->s_c, (w_tile >> 1), (h_tile >> 1), m);
 
-#if ALF_TILES_SUPPORT_M50663
       int l_zero_offset = (MAX_CU_SIZE + m + m) * m + m;
       int l_stride = MAX_CU_SIZE + 2 * (MAX_ALF_FILTER_LENGTH >> 1);
       pel l_buffer[(MAX_CU_SIZE + 2 * (MAX_ALF_FILTER_LENGTH >> 1)) *(MAX_CU_SIZE + 2 * (MAX_ALF_FILTER_LENGTH >> 1))];
@@ -509,14 +508,13 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
       pel l_buffer_cr[((MAX_CU_SIZE >> 1) + 2 * (MAX_ALF_FILTER_LENGTH >> 1)) *((MAX_CU_SIZE >> 1) + 2 * (MAX_ALF_FILTER_LENGTH >> 1))];
       pel *p_buffer_cr = l_buffer_cr + l_zero_offset_chroma;
       pel *p_buffer_cb = l_buffer_cb + l_zero_offset_chroma;
-#endif
+
       for (int yPos = y_l; yPos < y_r; yPos += ctx->max_cuwh)
       {
           for (int xPos = x_l; xPos < x_r; xPos += ctx->max_cuwh)
           {
               const int width = (xPos + ctx->max_cuwh > cs->pPic->w_l) ? (cs->pPic->w_l - xPos) : ctx->max_cuwh;
               const int height = (yPos + ctx->max_cuwh > cs->pPic->h_l) ? (cs->pPic->h_l - yPos) : ctx->max_cuwh;
-#if ALF_TILES_SUPPORT_M50663
               int availableL, availableR, availableT, availableB;
               availableL = availableR = availableT = availableB = 1;
               if (!(ctx->pps.loop_filter_across_tiles_enabled_flag))
@@ -560,25 +558,16 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
                   else
                       memcpy(p_buffer + dstPos, p_buffer + dstPos - (2 * (i - height - m) + 2) * l_stride, sizeof(pel) * stride);
               }
-#endif
+
               if (m_ctuEnableFlag[COMPONENT_Y][ctuIdx])
               {
-#if ALF_TILES_SUPPORT_M50663
                   Area blk = { 0, 0, width, height };
-#else
-                  Area blk = { xPos, yPos, width, height };
-#endif
                   {
-#if ALF_TILES_SUPPORT_M50663
                       deriveClassification(m_classifier, p_buffer, l_stride, &blk);
                       p->m_filter7x7Blk(m_classifier, recYuv + xPos + yPos * (cs->pPic->s_l), cs->pPic->s_l, p_buffer, l_stride, &blk, COMPONENT_Y, m_coeffFinal, &(m_clpRngs.comp[COMPONENT_Y]));
-#else
-                      deriveClassification(m_classifier, tmpYuv, s, &blk);
-                      p->m_filter7x7Blk(m_classifier, recYuv, cs->pPic->s_l, tmpYuv, s, &blk, COMPONENT_Y, m_coeffFinal, &(m_clpRngs.comp[COMPONENT_Y]));
-#endif
                   }
               }
-#if ALF_TILES_SUPPORT_M50663
+
               for (int i = m; i < ((height >> 1) + m); i++) {
                   int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
                   int srcPos_offset = (xPos >> 1) + (yPos >> 1) * s1;
@@ -637,7 +626,7 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
                   else
                       memcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos - (2 * (i - (height >> 1) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
               }
-#endif
+
               for (int compIdx = 1; compIdx < MAX_NUM_COMPONENT; compIdx++)
               {
                   ComponentID compID = (ComponentID)(compIdx);
@@ -646,15 +635,9 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
 
                   if (alfSliceParam->enabledFlag[compIdx] && m_ctuEnableFlag[compIdx][ctuIdx])
                   {
-#if ALF_TILES_SUPPORT_M50663
                       Area blk = { 0, 0, width >> chromaScaleX, height >> chromaScaleY };
                       p->m_filter5x5Blk(m_classifier, recYuv1 + (xPos >> 1) + (yPos >> 1) * (cs->pPic->s_c), cs->pPic->s_c, p_buffer_cb, l_stride_chroma, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
                       p->m_filter5x5Blk(m_classifier, recYuv2 + (xPos >> 1) + (yPos >> 1) * (cs->pPic->s_c), cs->pPic->s_c, p_buffer_cr, l_stride_chroma, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
-#else
-                      Area blk = { xPos >> chromaScaleX, yPos >> chromaScaleY, width >> chromaScaleX, height >> chromaScaleY };
-                      p->m_filter5x5Blk(m_classifier, recYuv1, cs->pPic->s_c, tmpYuv1, s1, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
-                      p->m_filter5x5Blk(m_classifier, recYuv2, cs->pPic->s_c, tmpYuv2, s1, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
-#endif
                   }
               }
               x_loc++;
@@ -1064,11 +1047,7 @@ void filterBlk_7(AlfClassifier** classifier, pel * recDst, const int dstStride, 
   const int endWidth = blk->x + blk->width;
 
   const Pel* src = recSrc;
-#if ALF_TILES_SUPPORT_M50663
   Pel* dst = recDst;
-#else
-  Pel* dst = recDst + startHeight * dstStride;
-#endif
 
   const Pel *pImgYPad0, *pImgYPad1, *pImgYPad2, *pImgYPad3, *pImgYPad4, *pImgYPad5, *pImgYPad6;
   const Pel *pImg0, *pImg1, *pImg2, *pImg3, *pImg4, *pImg5, *pImg6;
@@ -1093,22 +1072,14 @@ void filterBlk_7(AlfClassifier** classifier, pel * recDst, const int dstStride, 
   int srcStride2 = srcStride * clsSizeY;
 
   Pel filterCoeff[MAX_NUM_ALF_LUMA_COEFF];
-#if ALF_TILES_SUPPORT_M50663
   pImgYPad0 = src;
-#else
-  pImgYPad0 = src + startHeight * srcStride + startWidth;
-#endif
   pImgYPad1 = pImgYPad0 + srcStride;
   pImgYPad2 = pImgYPad0 - srcStride;
   pImgYPad3 = pImgYPad1 + srcStride;
   pImgYPad4 = pImgYPad2 - srcStride;
   pImgYPad5 = pImgYPad3 + srcStride;
   pImgYPad6 = pImgYPad4 - srcStride;
-#if ALF_TILES_SUPPORT_M50663
   Pel* pRec0 = dst;
-#else
-  Pel* pRec0 = dst + startWidth;
-#endif
   Pel* pRec1 = pRec0 + dstStride;
 
   for (int i = 0; i < endHeight - startHeight; i += clsSizeY)
@@ -1203,11 +1174,7 @@ void filterBlk_5(AlfClassifier** classifier, pel * recDst, const int dstStride, 
   const int endWidth = blk->x + blk->width;
 
   const Pel* src = recSrc;
-#if ALF_TILES_SUPPORT_M50663
   Pel* dst = recDst;
-#else
-  Pel* dst = recDst + startHeight * dstStride;
-#endif
 
   const Pel *pImgYPad0, *pImgYPad1, *pImgYPad2, *pImgYPad3, *pImgYPad4;
   const Pel *pImg0, *pImg1, *pImg2, *pImg3, *pImg4;
@@ -1232,20 +1199,12 @@ void filterBlk_5(AlfClassifier** classifier, pel * recDst, const int dstStride, 
   int srcStride2 = srcStride * clsSizeY;
 
   Pel filterCoeff[MAX_NUM_ALF_LUMA_COEFF];
-#if ALF_TILES_SUPPORT_M50663
   pImgYPad0 = src;
-#else
-  pImgYPad0 = src + startHeight * srcStride + startWidth;
-#endif
   pImgYPad1 = pImgYPad0 + srcStride;
   pImgYPad2 = pImgYPad0 - srcStride;
   pImgYPad3 = pImgYPad1 + srcStride;
   pImgYPad4 = pImgYPad2 - srcStride;
-#if ALF_TILES_SUPPORT_M50663
   Pel* pRec0 = dst;
-#else
-  Pel* pRec0 = dst + startWidth;
-#endif
   Pel* pRec1 = pRec0 + dstStride;
 
   for (int i = 0; i < endHeight - startHeight; i += clsSizeY)

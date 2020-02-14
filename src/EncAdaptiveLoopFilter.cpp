@@ -773,7 +773,7 @@ void EncAdaptiveLoopFilter::alfEncoder( CodingStructure& cs, AlfSliceParam* alfS
   
   copyCtuEnableFlag(m_ctuEnableFlag, m_ctuEnableFlagTmp, channel);
 }
-#if ALF_TILES_SUPPORT_M50663
+
 void EncAdaptiveLoopFilter::tile_boundary_check(int* availableL, int* availableR, int* availableT, int* availableB, const int width, const int height, int xPos, int yPos, int x_l, int x_r, int y_l, int y_r)
 {
     if (xPos == x_l)
@@ -793,7 +793,7 @@ void EncAdaptiveLoopFilter::tile_boundary_check(int* availableL, int* availableR
     else
         *availableB = 1;
 }
-#endif
+
 void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam* alfSliceParam, const pel * orgUnitBuf, const int oStride, pel * recExtBuf, int recStride, const ComponentID compID
 #if EVC_TILE_SUPPORT
     , int tile_idx, int col_bd2
@@ -836,7 +836,6 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
       assert(0);
   }
 
-#if ALF_TILES_SUPPORT_M50663
   const int m = MAX_ALF_FILTER_LENGTH >> 1;
   int l_zero_offset = (MAX_CU_SIZE + m + m) * m + m;
   int l_stride = MAX_CU_SIZE + 2 * m;
@@ -848,8 +847,7 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
   pel l_buffer_cr[((MAX_CU_SIZE >> 1) + 2 * m) *((MAX_CU_SIZE >> 1) + 2 * m)];
   pel *p_buffer_cr = l_buffer_cr + l_zero_offset_chroma;
   pel *p_buffer_cb = l_buffer_cb + l_zero_offset_chroma;
-#endif
-
+  
   {
     if (alfSliceParam->enabledFlag[compID])
     {
@@ -875,7 +873,7 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
 #endif
           const int width = (xPos + ctx->max_cuwh > recPic->w_l) ? (recPic->w_l - xPos) : ctx->max_cuwh;
           const int height = (yPos + ctx->max_cuwh > recPic->h_l) ? (recPic->h_l - yPos) : ctx->max_cuwh;
-#if ALF_TILES_SUPPORT_M50663
+
           int availableL, availableR, availableT, availableB;
           availableL = availableR = availableT = availableB = 1;
           if (!(ctx->pps.loop_filter_across_tiles_enabled_flag))
@@ -1002,12 +1000,7 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
                       memcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos - (2 * (i - (height >> 1) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
               }
           }
-#endif
-#if ALF_TILES_SUPPORT_M50663
           Area blk = { 0, 0, width >> chromaScaleX, height >> chromaScaleY };
-#else
-          Area blk = { xPos >> chromaScaleX, yPos >> chromaScaleY, width >> chromaScaleX, height >> chromaScaleY };
-#endif
 
           if (m_ctuEnableFlag[compID][ctuIdx])
           {
@@ -1016,7 +1009,6 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
 
               if (filterType == ALF_FILTER_5)
               {
-#if ALF_TILES_SUPPORT_M50663
                   if (compID == COMPONENT_Cb)
                   {
                       m_AdaptiveLoopFilter.m_filter5x5Blk(m_classifier, recBuf + (xPos >> 1) + (yPos >> 1) * recPic->s_c, recPic->s_c, p_buffer_cb, l_stride_chroma, &blk, compID, coeff, &(m_clpRngs.comp[(int)compID]));
@@ -1025,18 +1017,11 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
                   {
                       m_AdaptiveLoopFilter.m_filter5x5Blk(m_classifier, recBuf + (xPos >> 1) + (yPos >> 1) * recPic->s_c, recPic->s_c, p_buffer_cr, l_stride_chroma, &blk, compID, coeff, &(m_clpRngs.comp[(int)compID]));
                   }
-#else
-                  m_AdaptiveLoopFilter.m_filter5x5Blk(m_classifier, recBuf, stride, recExtBuf, recStride, &blk, compID, coeff, &(m_clpRngs.comp[(int)compID]));
-#endif
               }
               else if (filterType == ALF_FILTER_7)
               {
-#if ALF_TILES_SUPPORT_M50663
                   deriveClassification(m_classifier, p_buffer, l_stride, &blk);
                   m_AdaptiveLoopFilter.m_filter7x7Blk(m_classifier, recBuf + xPos + yPos * (recPic->s_l), recPic->s_l, p_buffer, l_stride, &blk, compID, coeff, &(m_clpRngs.comp[(int)compID]));
-#else
-                  m_AdaptiveLoopFilter.m_filter7x7Blk(m_classifier, recBuf, stride, recExtBuf, recStride, &blk, compID, coeff, &(m_clpRngs.comp[(int)compID]));
-#endif
               }
               else
               {

@@ -493,9 +493,9 @@ static void set_pps(EVCE_CTX * ctx, EVC_PPS * pps)
             pps->tile_row_height_minus1[pps->num_tile_rows_minus1] -= (pps->tile_row_height_minus1[i] + 1);
         }
     }
-#if ALF_TILES_SUPPORT_M50663
+
     pps->loop_filter_across_tiles_enabled_flag = 0;
-#endif
+
 #if QC_DRA
     if (ctx->sps.tool_dra)
     {
