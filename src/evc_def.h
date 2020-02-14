@@ -101,7 +101,7 @@
 
 
 
-#define REMOVE_BI_INTERDIR                         1   // Remove signalling part of Inter dir flag
+
 #define FIX_IBC_PRED_MODE_4x4                      1   // Remove signalling of pred.mode flag for blocks 4x4 if IBC is on
 
 #define M50761_TMVP_ALIGN_SPEC                     1

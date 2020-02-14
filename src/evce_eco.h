@@ -108,12 +108,10 @@ int evce_eco_affine_mvp_idx(EVC_BSW *bs, int mvp_idx);
 int evce_eco_mvd(EVC_BSW *bs, s16 mvd[MV_D]);
 int evce_eco_refi(EVC_BSW * bs, int num_refp, int refi);
 void evce_eco_inter_dir(EVC_BSW * bs, s8 refi[REFP_NUM]
-#if REMOVE_BI_INTERDIR
 #if M52165
                         , int slice_type, int cuw, int cuh, int is_sps_admvp
 #else
                         , int slice_type, int cuw, int cuh, int is_sps_amis
-#endif
 #endif
 );
 void evce_eco_inter_t_direct(EVC_BSW *bs, int t_direct_flag);

@@ -561,12 +561,10 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
         if((((pidx % ORG_PRED_NUM) != PRED_DIR) && ((pidx % ORG_PRED_NUM) != PRED_DIR_MMVD)) || ((pidx >= AFF_L0) && (pidx <= AFF_6_BI) && (pidx != AFF_DIR)) )
         {
             evce_eco_inter_dir(&core->bs_temp, refi
-#if REMOVE_BI_INTERDIR
 #if M52165
                 , slice_type, 1 << core->log2_cuw, 1 << core->log2_cuh, ctx->sps.tool_admvp
 #else
                 , slice_type, 1 << core->log2_cuw, 1 << core->log2_cuh, ctx->sps.tool_amis
-#endif
 #endif
             );
 

@@ -2537,12 +2537,10 @@ int evce_eco_mmvd_info(EVC_BSW *bs, int mvp_idx, int type)
 }
 
 void evce_eco_inter_dir(EVC_BSW *bs, s8 refi[REFP_NUM]
-#if REMOVE_BI_INTERDIR
 #if M52165
                         , int slice_type, int cuw, int cuh, int is_sps_admvp
 #else
                         , int slice_type, int cuw, int cuh, int is_sps_amis
-#endif
 #endif
 )
 {
@@ -2553,24 +2551,20 @@ void evce_eco_inter_dir(EVC_BSW *bs, s8 refi[REFP_NUM]
 
     if(REFI_IS_VALID(refi[REFP_0]) && REFI_IS_VALID(refi[REFP_1])) /* PRED_BI */
     {
-#if REMOVE_BI_INTERDIR
 #if M52165
         assert(check_bi_applicability(slice_type, cuw, cuh, is_sps_admvp));
 #else
         assert(check_bi_applicability(slice_type, cuw, cuh, is_sps_amis));
-#endif
 #endif
         evce_sbac_encode_bin(0, sbac, sbac->ctx.inter_dir + 1, bs);
         EVC_TRACE_INT(PRED_BI);
     }
     else
     {
-#if REMOVE_BI_INTERDIR
 #if M52165
         if (check_bi_applicability(slice_type, cuw, cuh, is_sps_admvp))
 #else
         if (check_bi_applicability(slice_type, cuw, cuh, is_sps_amis))
-#endif
 #endif
         {
             evce_sbac_encode_bin(1, sbac, sbac->ctx.inter_dir + 1, bs);
@@ -3489,12 +3483,10 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                 if(((cu_data->pred_mode[cup] % ORG_PRED_NUM) != MODE_DIR) && ((cu_data->pred_mode[cup] % ORG_PRED_NUM) != MODE_DIR_MMVD))
                 {
                     evce_eco_inter_dir(bs, cu_data->refi[cup]
-#if REMOVE_BI_INTERDIR
 #if M52165
                                        , slice_type, cuw, cuh, ctx->sps.tool_admvp
 #else
                                        , slice_type, cuw, cuh, ctx->sps.tool_amis
-#endif
 #endif
                     );
 
