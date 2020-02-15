@@ -3052,6 +3052,7 @@ int evcd_eco_dra_aps_param(EVC_BSR * bs, EVC_APS_GEN * aps)
 {
     int value;
     SignalledParamsDRA *p_dra_param = (SignalledParamsDRA *)aps->aps_data;
+    p_dra_param->m_signal_dra_flag = 1;
     p_dra_param->m_numFracBitsScale = evc_bsr_read(bs, 4);
     p_dra_param->m_numIntBitsScale = evc_bsr_read(bs, 4);
     p_dra_param->m_numRanges = evc_bsr_read_ue(bs);
