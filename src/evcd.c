@@ -1217,7 +1217,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
                          , int cu_qp_delta_code
 #endif
 #if M50761_CHROMA_NOT_SPLIT
-                         , TREE_CONS_NEW tree_cons //TODO: refactor it: only predMode constraint is needed
+                         , MODE_CONS mode_cons
 #endif
 )
 {
@@ -1256,7 +1256,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
 
                 split_mode = evcd_eco_split_mode(ctx, bs, sbac, cuw, cuh, parent_split, same_layer_split, node_idx, parent_split_allow, split_allow, qt_depth, btt_depth, x0, y0
 #if M50761_CHROMA_NOT_SPLIT
-                                                , tree_cons.mode_cons
+                                                , mode_cons
 #endif
                                                 );
             }
@@ -1279,7 +1279,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
                     , x0, y0, ctx->w, ctx->h
                     , NULL, ctx->sps.sps_btt_flag
 #if M50761_CHROMA_NOT_SPLIT
-                    , tree_cons.mode_cons
+                    , mode_cons
 #endif
                 );
 
@@ -1482,18 +1482,18 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
         
         evc_split_get_part_structure_d(split_mode, x0, y0, cuw, cuh, cup, cud, ctx->log2_max_cuwh - MIN_CU_LOG2, &split_struct );
 #if M50761_CHROMA_NOT_SPLIT
-        TREE_CONS_NEW tree_cons_for_childs = tree_cons;
+        MODE_CONS mode_cons_for_child = mode_cons;
 
         BOOL mode_constraint_changed = FALSE;
 
         if ( ctx->sps.sps_btt_flag )       // Only for main profile
         {
-            mode_constraint_changed = tree_cons.mode_cons == eAll && !evc_is_chroma_split_allowed( cuw, cuh, split_mode );
+            mode_constraint_changed = mode_cons == eAll && !evc_is_chroma_split_allowed( cuw, cuh, split_mode );
 
             if ( mode_constraint_changed )
             {
                 if ( ctx->sh.slice_type == SLICE_I || evc_get_mode_cons_by_split( split_mode, cuw, cuh ) == eOnlyIntra )
-                    tree_cons_for_childs.mode_cons = eOnlyIntra;
+                    mode_cons_for_child = eOnlyIntra;
                 else
                 {
                     //corresponds to needSignalPredModeConstraintTypeFlag equal to 1 branch in spec
@@ -1502,9 +1502,8 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
 
                     evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init, ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size);
 
-                    tree_cons_for_childs.mode_cons = evcd_eco_mode_constr( &ctx->bs, ctx->ctx_flags[CNID_MODE_CONS] );
+                    mode_cons_for_child = evcd_eco_mode_constr( &ctx->bs, ctx->ctx_flags[CNID_MODE_CONS] );
                 }
-                tree_cons_for_childs.tree_type = tree_cons_for_childs.mode_cons == eOnlyIntra ? TREE_L : TREE_LC;
             }
         }
 #endif
@@ -1528,7 +1527,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
                     , cu_qp_delta_code
 #endif
 #if M50761_CHROMA_NOT_SPLIT
-                    , tree_cons_for_childs
+                    , mode_cons_for_child
 #endif
                 );
                 evc_assert_g(ret == EVC_OK, ERR);
@@ -1536,7 +1535,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
         }
 
 #if M50761_CHROMA_NOT_SPLIT
-        if ( mode_constraint_changed && tree_cons_for_childs.mode_cons == eOnlyIntra )
+        if ( mode_constraint_changed && mode_cons_for_child == eOnlyIntra )
         {
             TREE_CONS_NEW local_tree_cons = { TREE_C, eOnlyIntra };
             ret = evcd_eco_unit( ctx, core, x0, y0, log2_cuw, log2_cuh , local_tree_cons );
@@ -1551,19 +1550,17 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
 #endif
 
 #if M50761_CHROMA_NOT_SPLIT
-        assert( tree_cons.tree_type == ( tree_cons.mode_cons == eOnlyIntra ? TREE_L : TREE_LC ) );
-        assert( tree_cons.mode_cons != eOnlyInter || !( ctx->sps.sps_btt_flag && log2_cuw == 2 && log2_cuh == 2 ) );
+        TREE_TYPE tree_type = mode_cons == eOnlyIntra ? TREE_L : TREE_LC;
 
-        if ( tree_cons.mode_cons == eAll &&
-             ( ctx->sh.slice_type == SLICE_I ) || ( ctx->sps.sps_btt_flag && log2_cuw == 2 && log2_cuh == 2 ) )
-        {
-          tree_cons.mode_cons = eOnlyIntra;
-        }
+        assert( mode_cons != eOnlyInter || !( ctx->sps.sps_btt_flag && log2_cuw == 2 && log2_cuh == 2 ) );
+
+        if ( ( ctx->sh.slice_type == SLICE_I ) || ( ctx->sps.sps_btt_flag && log2_cuw == 2 && log2_cuh == 2 ) )
+          mode_cons = eOnlyIntra;
 #endif
 
         ret = evcd_eco_unit(ctx, core, x0, y0, log2_cuw, log2_cuh
 #if M50761_CHROMA_NOT_SPLIT
-            , tree_cons
+            , ( TREE_CONS_NEW ) { tree_type, mode_cons }
 #endif
         );
         evc_assert_g(ret == EVC_OK, ERR);
@@ -2129,7 +2126,7 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
                 , 0
 #endif
 #if M50761_CHROMA_NOT_SPLIT
-                , ( TREE_CONS_NEW ) { TREE_LC, eAll }/*TODO: further refactor it*/
+                , eAll
 #endif
             );
             evc_assert_g(EVC_SUCCEEDED(ret), ERR);
