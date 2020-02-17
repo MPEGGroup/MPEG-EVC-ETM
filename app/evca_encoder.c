@@ -2199,31 +2199,69 @@ static int cal_wpsnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts
     }
     return -1;
 }
-float filterVertical(const short *inp, const float *filter, int pos_y, int width, int height, float minValue, float maxValue, int numberOfTaps, int positionOffset, float floatOffset, float floatScale)
+static inline float fAbs(float x) {
+    return ((x) < 0) ? -(x) : (x);
+}
+static inline float fSign(float x) {
+    return ((x) < 0.0) ? -1.0f : 1.0f;
+}
+static inline float floor_float(float x) {
+    return (fSign(x) * (float)((int)((fAbs(x)))));
+}
+static inline float fRound(float x) {
+    return (fSign(x) * floor_float((fAbs(x) + 0.5f)));
+}
+static inline int iMin(int a, int b) {
+    return ((a) < (b)) ? (a) : (b);
+}
+
+static inline int iMax(int a, int b) {
+    return ((a) > (b)) ? (a) : (b);
+}
+static inline int iClip(int x, int low, int high) {
+    x = iMax(x, low);
+    x = iMin(x, high);
+
+    return x;
+}
+static inline float fMin(float a, float b) {
+    return ((a) < (b)) ? (a) : (b);
+}
+
+static inline float fMax(float a, float b) {
+    return ((a) > (b)) ? (a) : (b);
+}
+static inline float fClip(float x, float low, float high) {
+    x = fMax(x, low);
+    x = fMin(x, high);
+
+    return x;
+}
+int filterVertical(const short *inp, const int *filter, int pos_y, int width, int height, int minValue, int maxValue, int numberOfTaps, int positionOffset, int floatOffset, int floatScale)
 {
     int i;
-    float value = 0.0;
+    int value = 0;
     for (i = 0; i < numberOfTaps; i++) {
-        value += filter[i] * inp[min(max(pos_y + i - positionOffset, 0), height) * width];
+        value += filter[i] * inp[iClip(pos_y + i - positionOffset, 0, height) * width];
     }
-    return (value + floatOffset) * floatScale;
+    return (value + floatOffset) >> floatScale;
 }
-float filterHorizontal(const float *inp, const float *filter, int pos_x, int width, float minValue, float maxValue, int numberOfTaps, int positionOffset, float floatOffset, float floatScale)
+int filterHorizontal(const int *inp, const int *filter, int pos_x, int width, int minValue, int maxValue, int numberOfTaps, int positionOffset, int floatOffset, int floatScale)
 {
     int i;
-    float value = 0.0;
+    long value = 0;
     for (i = 0; i < numberOfTaps; i++) {
-        value += filter[i] * inp[min(max(pos_x + i - positionOffset, 0), width)];
+        value += (long)filter[i] * (long)inp[iClip(pos_x + i - positionOffset, 0, width)];
     }
-    return (value + floatOffset) * floatScale;
+    return (int)((value + floatOffset) >> floatScale);
 }
-void filter(float *out, const short *inp, int width, int height, float minValue, float maxValue)
+void filter(int *out, const short *inp, int width, int height, int minValue, int maxValue)
 {
     int i, j;
     int inp_width = width >> 1;
     int inputHeight = height >> 1;
-    int size = sizeof(float) * width * height;
-    float *floatData = (float *)evc_malloc(size);
+    long size = sizeof(int) * width * height;
+    int *floatData = (int *)evc_malloc(size);
 
     int method = 1;
     int filter = method - 1;
@@ -2231,51 +2269,53 @@ void filter(float *out, const short *inp, int width, int height, float minValue,
     int index = 0;
     int numberOfTaps_ver0 = (int)g_UCF_Filters[filter][phase][index];
 
-    size = sizeof(float) * numberOfTaps_ver0;
-    float *floatFilter_ver0 = (float *)evc_malloc(size);
+    size = sizeof(int) * numberOfTaps_ver0;
+    int *floatFilter_ver0 = (int *)evc_malloc(size);
     for (index = 1; index <= numberOfTaps_ver0; index++) {
-        floatFilter_ver0[index - 1] = (float)g_UCF_Filters[filter][phase][index];
+        float filter_coeff = (float)g_UCF_Filters[filter][phase][index];
+        floatFilter_ver0[index - 1] = (int)(fRound(filter_coeff));
     }
+
     index = numberOfTaps_ver0 + 1;
     //    int outShift_ver0 = (int)g_UCF_Filters[filter][phase][index];
-    int outShift_ver0 = 8;
-    float floatOffset_ver0 = 0.0f;
-    float floatScale_ver0 = 1.0f / ((float)(1 << outShift_ver0));
+    int floatOffset_ver0 = 0;
+    int floatScale_ver0 = 0;
     int positionOffset_ver0 = (numberOfTaps_ver0 + 1) >> 1;
 
     phase = 2; // for filter floatFilter_ver1
     index = 0;
     int numberOfTaps_ver1 = (int)g_UCF_Filters[filter][phase][index];
 
-    size = sizeof(float) * numberOfTaps_ver1;
-    float *floatFilter_ver1 = (float *)evc_malloc(size);
+    size = sizeof(int) * numberOfTaps_ver1;
+    int *floatFilter_ver1 = (int *)evc_malloc(size);
     for (index = 1; index <= numberOfTaps_ver1; index++) {
-        floatFilter_ver1[index - 1] = (float)g_UCF_Filters[filter][phase][index];
+        float filter_coeff = (float)g_UCF_Filters[filter][phase][index];
+        floatFilter_ver1[index - 1] = (int)fRound(filter_coeff);
     }
+
     index = numberOfTaps_ver1 + 1;
     //int outShift_ver1 = (int)g_UCF_Filters[filter][phase][index];
-    int outShift_ver1 = 8;
-    float floatOffset_ver1 = 0.0f;
-    float floatScale_ver1 = 1.0f / ((float)(1 << outShift_ver1));
+    int floatOffset_ver1 = 0;
+    int floatScale_ver1 = 0;
     int positionOffset_ver1 = (numberOfTaps_ver1 + 1) >> 1;
 
     for (j = 0; j < inputHeight; j++) {
         for (i = 0; i < inp_width; i++) {
-            floatData[(2 * j) * inp_width + i] = filterVertical(&inp[i], floatFilter_ver0, j, inp_width, inputHeight - 1, 0.0, 0.0, numberOfTaps_ver0, positionOffset_ver0, floatOffset_ver0, floatScale_ver0);
-            floatData[(2 * j + 1) * inp_width + i] = filterVertical(&inp[i], floatFilter_ver1, j + 1, inp_width, inputHeight - 1, 0.0, 0.0, numberOfTaps_ver1, positionOffset_ver1, floatOffset_ver1, floatScale_ver1);
+            floatData[(2 * j) * inp_width + i] = filterVertical(&inp[i], floatFilter_ver0, j, inp_width, inputHeight - 1, 0, 0, numberOfTaps_ver0, positionOffset_ver0, floatOffset_ver0, floatScale_ver0);
+            floatData[(2 * j + 1) * inp_width + i] = filterVertical(&inp[i], floatFilter_ver1, j + 1, inp_width, inputHeight - 1, 0, 0, numberOfTaps_ver1, positionOffset_ver1, floatOffset_ver1, floatScale_ver1);
         }
     }
     // hor ver filters are identical
-    float* floatFilter_hor0 = floatFilter_ver0;
+    int* floatFilter_hor0 = floatFilter_ver0;
     int numberOfTaps_hor0 = numberOfTaps_ver0;
-    float floatOffset_hor0 = floatOffset_ver0;
-    float floatScale_hor0 = floatScale_ver0;
+    int floatOffset_hor0 = 1 << 15;
+    int floatScale_hor0 = 16;
     int positionOffset_hor0 = positionOffset_ver0;
 
-    float* floatFilter_hor1 = floatFilter_ver1;
+    int* floatFilter_hor1 = floatFilter_ver1;
     int numberOfTaps_hor1 = numberOfTaps_ver1;
-    float floatOffset_hor1 = floatOffset_ver1;
-    float floatScale_hor1 = floatScale_ver1;
+    int floatOffset_hor1 = 1 << 15;
+    int floatScale_hor1 = 16;
     int positionOffset_hor1 = positionOffset_ver1;
 
     for (j = 0; j < height; j++) {
@@ -2284,22 +2324,26 @@ void filter(float *out, const short *inp, int width, int height, float minValue,
             out[j * width + 2 * i + 1] = filterHorizontal(&floatData[j * inp_width], floatFilter_hor1, i + 1, inp_width - 1, minValue, maxValue, numberOfTaps_hor1, positionOffset_hor1, floatOffset_hor1, floatScale_hor1);
         }
     }
+    evc_mfree(floatData);
+    evc_mfree(floatFilter_ver0);
+    evc_mfree(floatFilter_ver1);
 }
 void process1(EVC_IMGB* out, EVC_IMGB* inp)
 {
-    float m_minPelValue[3], m_midPelValue[3], m_maxPelValue[3];
+    int m_minPelValue[3], m_midPelValue[3], m_maxPelValue[3];
     for (int c = 0; c < inp->np; c++) {
         m_minPelValue[c] = 0;
-        m_midPelValue[c] = (float)(1 << (op_out_bit_depth - 1));
-        m_maxPelValue[c] = (float)((1 << op_out_bit_depth) - 1);
+        m_midPelValue[c] = (1 << (op_out_bit_depth - 1));
+        m_maxPelValue[c] = ((1 << op_out_bit_depth) - 1);
     }
+
     //    memcpy(out->a[0], inp->a[0], out->w[0] * out->h[0] * sizeof(short));
     for (int i = 0; i < out->w[0] * out->h[0]; i++)
     {
-        *((float*)(out->a[0]) + i) = (float)(*((short*)(inp->a[0]) + i));
+        *((int*)(out->a[0]) + i) = (*((short*)(inp->a[0]) + i));
     }
     for (int c = 1; c < inp->np; c++) {
-        filter((float*)out->a[c], (short*)inp->a[c], out->w[0], out->h[0], m_minPelValue[c], m_maxPelValue[c]);
+        filter((int*)out->a[c], (short*)inp->a[c], out->w[0], out->h[0], m_minPelValue[c], m_maxPelValue[c]);
     }
 }
 double trueLab(double r)
@@ -2436,31 +2480,23 @@ void process2(EVC_IMGB* out, const EVC_IMGB* inp) {
     // Current condition to perform this is that Frames are of same size and in 4:4:4
     // Can add more code to do the interpolation on the fly (and save memory/improve speed),
     // but this keeps our code more flexible for now.
-    float *red = inp->a[0];
-    float *green = inp->a[1];
-    float *blue = inp->a[2];
+
+    float *red = (float*)inp->a[0];
+    float *green = (float*)inp->a[1];
+    float *blue = (float*)inp->a[2];
+    float min = 0.0;
+    float max = 1.0;
 
     // First convert all components as per the described transform process 
     for (int i = 0; i < inp->w[0] * inp->h[0]; i++) {
-        *(((float*)out->a[0]) + i) = (float)(g_color_trans[0][0] * (double)red[i] + g_color_trans[0][1] * (double)green[i] + g_color_trans[0][2] * (double)blue[i]);
-        *(((float*)out->a[1]) + i) = (float)(g_color_trans[1][0] * (double)red[i] + g_color_trans[1][1] * (double)green[i] + g_color_trans[1][2] * (double)blue[i]);
-        *(((float*)out->a[2]) + i) = (float)(g_color_trans[2][0] * (double)red[i] + g_color_trans[2][1] * (double)green[i] + g_color_trans[2][2] * (double)blue[i]);
+        *(((float*)out->a[0]) + i) = fClip((float)(g_color_trans[0][0] * (double)red[i] + g_color_trans[0][1] * (double)green[i] + g_color_trans[0][2] * (double)blue[i]), min, max);
+        *(((float*)out->a[1]) + i) = fClip((float)(g_color_trans[1][0] * (double)red[i] + g_color_trans[1][1] * (double)green[i] + g_color_trans[1][2] * (double)blue[i]), min, max);
+        *(((float*)out->a[2]) + i) = fClip((float)(g_color_trans[2][0] * (double)red[i] + g_color_trans[2][1] * (double)green[i] + g_color_trans[2][2] * (double)blue[i]), min, max);
     }
 }
-static inline float fMin(float a, float b) {
-    return ((a) < (b)) ? (a) : (b);
-}
 
-static inline float fMax(float a, float b) {
-    return ((a) > (b)) ? (a) : (b);
-}
-static inline float fClip(float x, float low, float high) {
-    x = fMax(x, low);
-    x = fMin(x, high);
-
-    return x;
-}
-void convertComponent(const float *iComp, float *oComp, int compSize, double weight, const unsigned short offset, float minValue, float maxValue) {
+void convertComponent(const int *iComp, float *oComp, int compSize, double weight, const unsigned short offset, float minValue, float maxValue)
+{
     for (int i = 0; i < compSize; i++) {
         *oComp++ = fClip((float)((weight * (double)(*iComp++ - offset))), minValue, maxValue);
     }
@@ -2523,14 +2559,13 @@ static int cal_hdr_metric(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTI
                 EVC_COLORSPACE_YUV444_10LE);
             imgb_rec_p2 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
                 EVC_COLORSPACE_YUV444_10LE);
-            convertComponent(imgb_ori_p1->a[0], imgb_ori_p2->a[0], (imgb_rec->w[0] * imgb_rec->h[0]), 1.0 / ((1 << (10 - 8)) * 219.0), (1 << (10 - 4)), 0.0f, 1.0f);
-            convertComponent(imgb_ori_p1->a[1], imgb_ori_p2->a[1], (imgb_rec->w[0] * imgb_rec->h[0]), 1.0 / ((1 << (10 - 8)) * 224.0), (1 << (10 - 1)), -0.5f, 0.5f);
-            convertComponent(imgb_ori_p1->a[2], imgb_ori_p2->a[2], (imgb_rec->w[0] * imgb_rec->h[0]), 1.0 / ((1 << (10 - 8)) * 224.0), (1 << (10 - 1)), -0.5f, 0.5f);
+            convertComponent((int*)imgb_ori_p1->a[0], (float*)imgb_ori_p2->a[0], (imgb_rec->w[0] * imgb_rec->h[0]), 1.0 / ((1 << (10 - 8)) * 219.0), (const short)(1 << (10 - 4)), 0.0f, 1.0f);
+            convertComponent((int*)imgb_ori_p1->a[1], (float*)imgb_ori_p2->a[1], (imgb_rec->w[0] * imgb_rec->h[0]), 1.0 / ((1 << (10 - 8)) * 224.0), (const short)(1 << (10 - 1)), -0.5f, 0.5f);
+            convertComponent((int*)imgb_ori_p1->a[2], (float*)imgb_ori_p2->a[2], (imgb_rec->w[0] * imgb_rec->h[0]), 1.0 / ((1 << (10 - 8)) * 224.0), (const short)(1 << (10 - 1)), -0.5f, 0.5f);
 
-            convertComponent(imgb_rec_p1->a[0], imgb_rec_p2->a[0], (imgb_rec->w[0] * imgb_rec->h[0]), 1.0 / ((1 << (10 - 8)) * 219.0), (1 << (10 - 4)), 0.0f, 1.0f);
-            convertComponent(imgb_rec_p1->a[1], imgb_rec_p2->a[1], (imgb_rec->w[0] * imgb_rec->h[0]), 1.0 / ((1 << (10 - 8)) * 224.0), (1 << (10 - 1)), -0.5f, 0.5f);
-            convertComponent(imgb_rec_p1->a[2], imgb_rec_p2->a[2], (imgb_rec->w[0] * imgb_rec->h[0]), 1.0 / ((1 << (10 - 8)) * 224.0), (1 << (10 - 1)), -0.5f, 0.5f);
-
+            convertComponent((int*)imgb_rec_p1->a[0], (float*)imgb_rec_p2->a[0], (imgb_rec->w[0] * imgb_rec->h[0]), 1.0 / ((1 << (10 - 8)) * 219.0), (const short)(1 << (10 - 4)), 0.0f, 1.0f);
+            convertComponent((int*)imgb_rec_p1->a[1], (float*)imgb_rec_p2->a[1], (imgb_rec->w[0] * imgb_rec->h[0]), 1.0 / ((1 << (10 - 8)) * 224.0), (const short)(1 << (10 - 1)), -0.5f, 0.5f);
+            convertComponent((int*)imgb_rec_p1->a[2], (float*)imgb_rec_p2->a[2], (imgb_rec->w[0] * imgb_rec->h[0]), 1.0 / ((1 << (10 - 8)) * 224.0), (const short)(1 << (10 - 1)), -0.5f, 0.5f);
             imgb_ori_p3 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
                 EVC_COLORSPACE_YUV444_10LE);
             imgb_rec_p3 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
