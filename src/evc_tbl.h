@@ -199,7 +199,7 @@ extern int g_intChromaInvScaleLUT[2][DRA_LUT_MAXSIZE];               // LUT for 
 extern u8 g_pic_sign[16];
 extern u8 g_pic_sign_dec_sig[16];
 #endif
-#if ETM_HDR_METRIC
+#if HDR_METRIC
 extern const double g_UCF_Filters[8][4][15];
 extern const double g_color_trans[3][3];
 extern const float  g_RGB2XYZ_REC[5][9];

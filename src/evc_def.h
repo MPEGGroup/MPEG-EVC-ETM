@@ -52,11 +52,7 @@
 //MPEG 128 adoptions
 #define M50761                                       1
 #if M50761
-//chroma no split for avoiding 2x2, 2x4 and 4x2 chroma blocks
-#define M50761_CHROMA_NOT_SPLIT                      1
-#if M50761_CHROMA_NOT_SPLIT
-#define CHROMA_NOT_SPLIT_EXCLUDE_IBC                 0    // Remove CC in the case of allowing IBC
-#endif
+#define M50761_CHROMA_NOT_SPLIT                      1 //chroma no split for avoiding 2x2, 2x4 and 4x2 chroma blocks
 #endif
 
 #if M52223

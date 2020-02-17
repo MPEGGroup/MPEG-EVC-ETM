@@ -1369,11 +1369,8 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
 #endif
         );
 #if M50761_CHROMA_NOT_SPLIT
-        BOOL mode_cons_changed = evc_signal_mode_cons(&ctx->tree_cons, &split_struct.tree_cons)
-#if CHROMA_NOT_SPLIT_EXCLUDE_IBC
-            && !ctx->sps.ibc_flag
-#endif
-            ;
+        BOOL mode_cons_changed = evc_signal_mode_cons(&ctx->tree_cons, &split_struct.tree_cons);
+
         if (split_mode != SPLIT_QUAD)       // Only for main profile
         {
             if (mode_cons_changed)
@@ -1487,11 +1484,8 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
         );
 #if M50761_CHROMA_NOT_SPLIT
-        BOOL mode_cons_changed = evc_signal_mode_cons(&ctx->tree_cons, &split_struct.tree_cons)
-#if CHROMA_NOT_SPLIT_EXCLUDE_IBC
-            && !ctx->sps.ibc_flag
-#endif
-            ;
+        BOOL mode_cons_changed = evc_signal_mode_cons(&ctx->tree_cons, &split_struct.tree_cons);
+
         if (split_mode != SPLIT_QUAD )       // Only for main profile
         {
             if (mode_cons_changed)

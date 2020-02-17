@@ -2266,9 +2266,6 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 #else
     if (log2_cuw == 2 && log2_cuh == 2 && ctx->sps.tool_amis
 #endif
-#if CHROMA_NOT_SPLIT_EXCLUDE_IBC
-        && !ctx->sps.ibc_flag
-#endif
         )
     {
         // Check only in main profile
@@ -2280,9 +2277,6 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 #else
     if (((log2_cuw + log2_cuh) == 5 && ctx->sps.tool_amis) 
 #endif
-#if CHROMA_NOT_SPLIT_EXCLUDE_IBC
-        && !ctx->sps.ibc_flag
-#endif
         )
     {
         evc_assert(!evce_check_all_preds(ctx));
@@ -2292,17 +2286,9 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
         }
     }
 #if M52165
-    if (!ctx->sps.tool_admvp
-#if CHROMA_NOT_SPLIT_EXCLUDE_IBC
-        || (ctx->sps.tool_admvp && ctx->sps.ibc_flag)
-#endif
-        )
+    if (!ctx->sps.tool_admvp)
 #else
-    if (!ctx->sps.tool_amis
-#if CHROMA_NOT_SPLIT_EXCLUDE_IBC
-        || (ctx->sps.tool_amis && ctx->sps.ibc_flag)
-#endif
-        )
+    if (!ctx->sps.tool_amis)
 #endif
     {
         evc_assert(evce_check_all(ctx));
@@ -3410,9 +3396,6 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
 #else
     if (log2_cuw == 2 && log2_cuh == 2 && (evce_check_luma(ctx) || evce_check_all(ctx)) && ctx->sps.tool_amis
 #endif
-#if CHROMA_NOT_SPLIT_EXCLUDE_IBC
-        && !ctx->sps.ibc_flag
-#endif
         )
     {
         // Check only for main profile
@@ -3818,11 +3801,8 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                         split_struct.tree_cons = evc_get_default_tree_cons();
                     }
 
-                    BOOL mode_cons_changed = evc_signal_mode_cons(&ctx->tree_cons, &split_struct.tree_cons)
-#if CHROMA_NOT_SPLIT_EXCLUDE_IBC
-                        && !ctx->sps.ibc_flag
-#endif
-                        ;
+                    BOOL mode_cons_changed = evc_signal_mode_cons(&ctx->tree_cons, &split_struct.tree_cons);
+
                     BOOL mode_cons_signal = mode_cons_changed && (ctx->sh.slice_type != SLICE_I) && (evc_get_mode_cons_by_split(split_mode, cuw, cuh) == eAll);
                     for (int mode_num = 0; mode_num < (mode_cons_signal ? 2 : 1); ++mode_num)
                     {

@@ -1120,7 +1120,7 @@ int g_intChromaInvScaleLUT[2][DRA_LUT_MAXSIZE];               // LUT for chroma 
 u8 g_pic_sign[16];
 u8 g_pic_sign_dec_sig[16];
 #endif
-#if ETM_HDR_METRIC
+#if HDR_METRIC
 const double g_UCF_Filters[8][4][15] = {
   { // UF_F0
     { 2.0,   0.0, +256.0,                +128.0, 8.0},
