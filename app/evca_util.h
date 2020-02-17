@@ -442,7 +442,7 @@ EVC_IMGB * imgb_alloc(int w, int h, int cs)
         }
         imgb->np = 3;
     }
-#if ETM_HDR_METRIC
+#if HDR_METRIC
     else if (cs == EVC_COLORSPACE_YUV444_10LE)
     {
         for (i = 0; i < 3; i++)
