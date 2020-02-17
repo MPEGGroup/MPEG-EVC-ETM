@@ -61,16 +61,21 @@ int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16])
     {
         return EVC_ERR_BAD_CRC;
     }
+
 #if HDR_MD5_CHECK
     /* execute HDR MD5 digest here */
-    if (memcmp(g_pic_sign_dec_sig, g_pic_sign, 16) != 0)
+    u8 zero_array[16] = {0};
+    if (memcmp(g_pic_sign_dec_sig, zero_array, 16)) //workaround to avoid writing HDR-related stuff when HDR metric is disabled. TBD in a better way.
     {
-        printf("HDR md5 mismatch,\t");
-        exit(-999);
-    }
-    else
-    {
-        printf("HDR md5 check OK,\t");
+        if (memcmp(g_pic_sign_dec_sig, g_pic_sign, 16) != 0)
+        {
+            printf("HDR md5 mismatch,\t");
+            exit(-999);
+        }
+        else
+        {
+            printf("HDR md5 check OK,\t");
+        }
     }
 #endif
     return EVC_OK;
