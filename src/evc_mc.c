@@ -6916,12 +6916,7 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
     , s16 dmvr_mv[MAX_CU_CNT_IN_LCU][REFP_NUM][MV_D]
 #endif
 #endif
-#if M52165
-    , int sps_admvp_flag
-#else
-    , int sps_amis_flag
-#endif
-)
+    , int sps_admvp_flag)
 {
     EVC_PIC    *ref_pic;
 #if !OPT_SIMD_MC_L
@@ -6963,11 +6958,7 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
 #if DMVR_FLAG
     *cu_dmvr_flag = 0;
 #endif
-#if M52165
     if (sps_admvp_flag == 1)
-#else
-    if (sps_amis_flag == 1)
-#endif
     {
         g_mc_ftr = MC_FILTER_MAIN;
     }
