@@ -1086,7 +1086,7 @@ s16 evc_tbl_inv_tr32[NUM_TRANS_TYPE][32][32];
 s16 evc_tbl_inv_tr64[NUM_TRANS_TYPE][64][64];
 s16 evc_tbl_inv_tr128[NUM_TRANS_TYPE][128][128];
 
-#if (DBF == DBF_AVC) || QC_ADD_ADDB_FLAG
+#if (DBF == DBF_AVC) || ADDB_FLAG_FIX
 const u8 ALPHA_TABLE[52] = { 0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,4,4,5,6,  7,8,9,10,12,13,15,17,  20,22,25,28,32,36,40,45,  50,56,63,71,80,90,101,113,  127,144,162,182,203,226,255,255 };
 const u8 BETA_TABLE[52] = { 0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,2,2,2,3,  3,3,3, 4, 4, 4, 6, 6,   7, 7, 8, 8, 9, 9,10,10,  11,11,12,12,13,13, 14, 14,   15, 15, 16, 16, 17, 17, 18, 18 };
 const u8 CLIP_TAB[52][5] =
@@ -1207,7 +1207,7 @@ const float g_RGB2XYZ_REC[5][9] =
   }
 };
 #endif
-#if QC_DRA
+#if M52291_HDR_DRA
 // input to table is in the range 0<input<256, as a result of multiplication of 2 scales with max value of <16.
 #if QC_DRA_LUT_SUBSAMPLE_TWO
 const int g_dra_chroma_qp_offset_tbl[NUM_CHROMA_QP_OFFSET_LOG] =  // Approximation of Log function at accuracy 1<<9 bits

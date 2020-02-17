@@ -37,7 +37,7 @@
 #include "evc_def.h"
 #include <stdlib.h>
 
-#if QC_DRA
+#if M52291_HDR_DRA
 typedef struct _quantParamDRA {
 
     int m_value;  // Currently 32 bit is considered sufficient

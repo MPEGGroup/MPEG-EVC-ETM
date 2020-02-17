@@ -512,7 +512,7 @@ const u8 sm_beta_table[MAX_QP + 1] =
 };
 #endif
 
-#if (DBF == DBF_AVC) || QC_ADD_ADDB_FLAG
+#if (DBF == DBF_AVC) || ADDB_FLAG_FIX
 static const u8 compare_mvs(const int mv0[2], const int mv1[2])
 {
     // Return 1 if vetors difference less then 1 pixel
@@ -1061,7 +1061,7 @@ static void deblock_scu_hevc_ver(pel *buf, int qp, int stride, int is_luma, u8 b
 }
 #endif
 
-#if (DBF == DBF_AVC) || QC_ADD_ADDB_FLAG
+#if (DBF == DBF_AVC) || ADDB_FLAG_FIX
 static void deblock_avc_get_pq(pel *buf, int offset, pel* p, pel* q, int size)
 {
     // p and q has DBF_LENGTH elements
@@ -2098,12 +2098,12 @@ void evc_deblock_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
 #if EVC_TILE_SUPPORT
     , u8* map_tidx
 #endif
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
     , int tool_addb
 #endif
 )
 {
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
     if (tool_addb)
     {
         deblock_avc_cu_hor(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu, log2_max_cuwh, refp
@@ -2169,12 +2169,12 @@ void evc_deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
 #if EVC_TILE_SUPPORT
     , u8* map_tidx
 #endif
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
     , int tool_addb
 #endif
 )
 {
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
     if (tool_addb)
     {
         deblock_avc_cu_ver(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu, log2_max_cuwh

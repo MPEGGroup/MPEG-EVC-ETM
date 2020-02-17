@@ -36,8 +36,8 @@
 #define _EVC_H_
 
 #define ETM_HDR_REPORT_METRIC_FLAG      1
-#define QC_DRA                          1
-#define QC_ADD_ADDB_FLAG                1
+#define M52291_HDR_DRA                          1
+#define ADDB_FLAG_FIX                1
 #define M52166_PARTITION                1
 
 #ifdef __cplusplus
@@ -45,7 +45,7 @@ extern "C"
 {
 #endif
       
-#if QC_DRA
+#if M52291_HDR_DRA
 #define QC_SCALE_NUMFBITS     9   // # frac. bits for scale (Y/Cb/Cr)
 #define QC_INVSCALE_NUMFBITS  9   // # frac. bits for inv. scale (Y/Cb/Cr)
 #define QC_OFFSET_NUMFBITS    7   // # frac. bits for offset (Y/Cb/Cr)
@@ -474,7 +474,7 @@ typedef struct _EVCE_CDSC
     int            tool_mmvd;
     int            tool_affine;
     int            tool_dmvr;
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
     int            tool_addb;
 #endif
     int            tool_alf;
@@ -507,7 +507,7 @@ typedef struct _EVCE_CDSC
     int            slice_boundary_array[2 * 600];
 #endif
     EVC_CHROMA_TABLE chroma_qp_table_struct;
-#if QC_DRA
+#if M52291_HDR_DRA
     void * m_DRAMappingApp; 
     int tool_dra;
 #endif
@@ -557,7 +557,7 @@ typedef void  * EVCD;
 
 EVCD evcd_create(EVCD_CDSC * cdsc, int * err);
 void evcd_delete(EVCD id);
-#if QC_DRA
+#if M52291_HDR_DRA
 int evcd_get_pps_dra_id(EVCD id);
 int evcd_assign_pps_draParam(EVCD id, void * p_draParams);
 int evcd_decode(EVCD id, EVC_BITB * bitb, EVCD_STAT * stat, void * p_draParams);
@@ -577,7 +577,7 @@ EVCE evce_create(EVCE_CDSC * cdsc, int * err);
 void evce_delete(EVCE id);
 int evce_push(EVCE id, EVC_IMGB * imgb);
 int evce_encode(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat);
-#if QC_DRA
+#if M52291_HDR_DRA
 int evce_get_pps_dra_flag(EVCE id);
 int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat, void *p_signalledDRA);
 #else

@@ -46,7 +46,7 @@ u32 evcd_sbac_decode_bin_trm(EVC_BSR *bs, EVCD_SBAC *sbac);
 int evcd_eco_nalu(EVC_BSR * bs, EVC_NALU * nalu);
 int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps);
 int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps);
-#if QC_DRA
+#if M52291_HDR_DRA
 int evcd_eco_aps_gen(EVC_BSR * bs, EVC_APS_GEN * aps);
 int evcd_eco_dra_aps_param(EVC_BSR * bs, EVC_APS_GEN * aps);
 #endif

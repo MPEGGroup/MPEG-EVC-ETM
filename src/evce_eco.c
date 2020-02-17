@@ -38,7 +38,7 @@
 #include "wrapper.h"
 #include "enc_alf_wrapper.h"
 
-#if QC_DRA
+#if M52291_HDR_DRA
 #include "evc_util.h"
 #endif
 
@@ -171,10 +171,10 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
     {
         evc_bsw_write1(bs, sps->tool_ats);
     }
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
     evc_bsw_write1(bs, sps->tool_addb);
 #endif
-#if QC_DRA
+#if M52291_HDR_DRA
     evc_bsw_write1(bs, sps->tool_dra);
 #endif
     evc_bsw_write1(bs, sps->tool_alf);
@@ -296,7 +296,7 @@ int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps)
         }
     }
 
-#if QC_DRA
+#if M52291_HDR_DRA
     if (sps->tool_dra)
     {
         evc_bsw_write1(bs, pps->pic_dra_enabled_present_flag);
@@ -322,7 +322,7 @@ int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps)
 
     return EVC_OK;
 }
-#if QC_DRA
+#if M52291_HDR_DRA
 int evce_eco_aps_gen(EVC_BSW * bs, EVC_APS_GEN * aps)
 {
     evc_bsw_write(bs, aps->aps_id, APS_MAX_NUM_IN_BITS); // signal APS ID
@@ -4181,7 +4181,7 @@ void evce_eco_alf_filter(EVC_BSW * bs, evc_AlfSliceParam asp, const BOOL isChrom
         }
     }
 }
-#if QC_DRA
+#if M52291_HDR_DRA
 int evce_eco_dra_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps)
 {
     SignalledParamsDRA *p_dra_param = (SignalledParamsDRA *)aps->aps_data;
@@ -4215,7 +4215,7 @@ int evce_eco_dra_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps)
     return EVC_OK;
 }
 #endif
-#if QC_DRA
+#if M52291_HDR_DRA
 int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps)
 {
     evc_AlfSliceParam *p_alfSliceParam = (evc_AlfSliceParam *)aps->aps_data;

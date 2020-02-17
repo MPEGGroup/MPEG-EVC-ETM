@@ -35,7 +35,7 @@
 #include "evca_util.h"
 #include "evca_args.h"
 #include <math.h>
-#if QC_DRA
+#if M52291_HDR_DRA
 #include "../src/evc_dra.h"
 #include "../src/evc_util.h"
 #endif
@@ -125,7 +125,7 @@ static int  op_tool_amvr          = 1; /* default on */
 static int  op_tool_mmvd          = 1; /* default on */
 static int  op_tool_affine        = 1; /* default on */
 static int  op_tool_dmvr          = 1; /* default on */
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
 static int  op_tool_addb          = 1; /* default on */
 #endif
 static int  op_tool_alf           = 1; /* default on */
@@ -162,7 +162,7 @@ static char op_chroma_qp_delta_out_val_cb[256] = { 0 };
 static char op_chroma_qp_delta_in_val_cr[256] = { 0 };
 static char op_chroma_qp_delta_out_val_cr[256] = { 0 };
 
-#if QC_DRA
+#if M52291_HDR_DRA
 static int  op_dra_enable_flag = 0;
 static int  op_dra_number_ranges = 0;
 static char op_dra_range[256] = { 0 };
@@ -241,7 +241,7 @@ typedef enum _OP_FLAGS
     OP_TOOL_MMVD,
     OP_TOOL_AFFINE,
     OP_TOOL_DMVR,
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
     OP_TOOL_ADDB,
 #endif
     OP_TOOL_ALF,
@@ -277,7 +277,7 @@ typedef enum _OP_FLAGS
     OP_CHROMA_QP_DELTA_OUT_VAL_CB,
     OP_CHROMA_QP_DELTA_IN_VAL_CR,
     OP_CHROMA_QP_DELTA_OUT_VAL_CR,
-#if QC_DRA
+#if M52291_HDR_DRA
     OP_DRA_ENABLE_FLAG,
     OP_DRA_NUMBER_RANGES,
     OP_DRA_RANGE,
@@ -628,7 +628,7 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_TOOL_DMVR], &op_tool_dmvr,
         "dmvr on/off flag"
     },
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
     {
         EVC_ARGS_NO_KEY,  "addb", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_TOOL_ADDB], &op_tool_addb,
@@ -782,7 +782,7 @@ static EVC_ARGS_OPTION options[] = \
         "Array of input pivot points for Cr"
     },
 
-#if QC_DRA
+#if M52291_HDR_DRA
         {
             EVC_ARGS_NO_KEY,  "dra_enable_flag", EVC_ARGS_VAL_TYPE_INTEGER,
             &op_flag[OP_DRA_ENABLE_FLAG], &op_dra_enable_flag,
@@ -1197,7 +1197,7 @@ static void evca_parse_chroma_qp_mapping_params(EVC_CHROMA_TABLE *dst_struct, EV
     }
 }
 
-#if QC_DRA
+#if M52291_HDR_DRA
 static int get_conf(EVCE_CDSC * cdsc, void *p_dra_struct_void)
 #else
 static int get_conf(EVCE_CDSC * cdsc)
@@ -1274,7 +1274,7 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->tool_mmvd          = op_tool_mmvd;
     cdsc->tool_affine        = op_tool_affine;
     cdsc->tool_dmvr          = op_tool_dmvr;
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
     cdsc->tool_addb          = op_tool_addb;
 #endif
     cdsc->tool_alf           = op_tool_alf;
@@ -1296,7 +1296,7 @@ static int get_conf(EVCE_CDSC * cdsc)
 #if ETM_HDR_REPORT_METRIC_FLAG
     cdsc->tool_hdr_metric = op_hdr_metric_report;
 #endif
-#if QC_DRA
+#if M52291_HDR_DRA
     cdsc->tool_dra = op_dra_enable_flag;
 #endif
 #if EVC_TILE_SUPPORT
@@ -1401,12 +1401,12 @@ static int get_conf(EVCE_CDSC * cdsc)
             } while (1);
             evc_assert(l_chroma_qp_table.num_points_in_qp_table_minus1[1] + 1 == j);
         }
-#if QC_DRA
+#if M52291_HDR_DRA
         evca_parse_chroma_qp_mapping_params(&(cdsc->chroma_qp_table_struct), &l_chroma_qp_table);  // parse input params and create chroma_qp_table_struct structure
         evc_derived_chroma_qp_mapping_tables(&(cdsc->chroma_qp_table_struct));
 #endif
     }
-#if !QC_DRA
+#if !M52291_HDR_DRA
     evca_parse_chroma_qp_mapping_params(&(cdsc->chroma_qp_table_struct), &l_chroma_qp_table);  // parse input params and create chroma_qp_table_struct structure
 #endif
     for (int i = 0; i < MAX_NUM_RPLS && op_rpl0[i][0] != 0; ++i)
@@ -1449,7 +1449,7 @@ static int get_conf(EVCE_CDSC * cdsc)
         cdsc->rpls_l1[i].ref_pic_num = j;
         ++cdsc->rpls_l1_cfg_num;
     }
-#if QC_DRA
+#if M52291_HDR_DRA
     {
         cdsc->m_DRAMappingApp = p_dra_struct_void;
         WCGDDRAControl *p_dra_control = ((WCGDDRAControl*)cdsc->m_DRAMappingApp);
@@ -1511,7 +1511,7 @@ static void print_enc_conf(EVCE_CDSC * cdsc)
     printf("MMVD: %d, ",   cdsc->tool_mmvd);
     printf("AFFINE: %d, ", cdsc->tool_affine);
     printf("DMVR: %d, ",   cdsc->tool_dmvr);
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
     printf("ADDB: %d, ",   cdsc->tool_addb);
 #endif
     printf("ALF: %d, ",    cdsc->tool_alf);
@@ -1535,7 +1535,7 @@ static void print_enc_conf(EVCE_CDSC * cdsc)
     printf("Number of Tile  Rows: %d ", cdsc->tile_rows);
 #endif
     printf("ChromaQPTable: %d ", cdsc->chroma_qp_table_struct.chroma_qp_table_present_flag);
-#if QC_DRA
+#if M52291_HDR_DRA
     printf("DRA: %d ", cdsc->tool_dra);
 #else
     printf("DRA: %d ", ((WCGDDRAControl *)cdsc->m_DRAMappingApp)->m_flagEnabled);
@@ -1553,7 +1553,7 @@ int check_conf(EVCE_CDSC* cdsc)
         if (cdsc->tool_affine  == 1) { v0print("Affine cannot be on in base profile\n"); success = 0; }
         if (cdsc->tool_dmvr    == 1) { v0print("DMVR cannot be on in base profile\n"); success = 0; }
         if (cdsc->tool_admvp   == 1) { v0print("ADMVP cannot be on in base profile\n"); success = 0; }
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
         if (cdsc->tool_addb    == 1) { v0print("ADDB cannot be on in base profile\n"); success = 0; }
 #endif
         if (cdsc->tool_alf     == 1) { v0print("ALF cannot be on in base profile\n"); success = 0; }
@@ -2589,7 +2589,7 @@ static int cal_hdr_metric(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTI
     return -1;
 }
 #endif
-#if QC_DRA
+#if M52291_HDR_DRA
 static int write_rec(IMGB_LIST *list, EVC_MTIME *ts, WCGDDRAControl *p_DRAMapping)
 #else
 static int write_rec(IMGB_LIST *list, EVC_MTIME *ts)
@@ -2603,7 +2603,7 @@ static int write_rec(IMGB_LIST *list, EVC_MTIME *ts)
         {
             if(op_flag[OP_FLAG_FNAME_REC])
             {
-#if QC_DRA
+#if M52291_HDR_DRA
                 if (p_DRAMapping->m_signalledDRA.m_signal_dra_flag)
                 {
                     evc_apply_dra_chroma_plane(list[i].imgb, list[i].imgb, p_DRAMapping, 1, TRUE/*backwardMapping == false*/);
@@ -2728,7 +2728,7 @@ int main(int argc, const char **argv)
     double deltaE_avg = 0.0;
     double psnrL_avg = 0.0;
 #endif
-#if QC_DRA
+#if M52291_HDR_DRA
     EVC_IMGB          *imgb_dra = NULL;
     WCGDDRAControl g_dra_control;
     WCGDDRAControl *p_g_dra_control = &g_dra_control;
@@ -2813,7 +2813,7 @@ int main(int argc, const char **argv)
     }
 
     /* read configurations and set values for create descriptor */
-#if QC_DRA
+#if M52291_HDR_DRA
     if (get_conf(&cdsc, (void*)p_g_dra_control))
 #else
     if (get_conf(&cdsc))
@@ -2865,7 +2865,7 @@ int main(int argc, const char **argv)
     bitb.addr = bs_buf;
     bitb.bsize = MAX_BS_BUF;
 
-#if QC_DRA
+#if M52291_HDR_DRA
     if (cdsc.tool_dra)
     {
         evce_initDRA(p_g_dra_control, 0, NULL, NULL);
@@ -2877,7 +2877,7 @@ int main(int argc, const char **argv)
         }
     }
 #endif
-#if QC_DRA
+#if M52291_HDR_DRA
     ret = evce_encode_sps(id, &bitb, &stat, (void *)aps_gen_array);
 #else
     ret = evce_encode_sps(id, &bitb, &stat);
@@ -2982,7 +2982,7 @@ int main(int argc, const char **argv)
             }
             /* copy original image to encoding buffer */
             imgb_cpy(imgb_enc, ilist_t->imgb);
-#if QC_DRA
+#if M52291_HDR_DRA
             if (evce_get_pps_dra_flag(id))
             {
                 /* get encodng buffer */
@@ -3055,7 +3055,7 @@ int main(int argc, const char **argv)
                 v0print("cannot put reconstructed image to list\n");
                 return -1;
             }
-#if QC_DRA
+#if M52291_HDR_DRA
             if (evce_get_pps_dra_flag(id))
             {
                 if (EVC_OK != evce_get_inbuf(id, &imgb_dra))
@@ -3089,7 +3089,7 @@ int main(int argc, const char **argv)
                 }
             }
 #endif
-#if QC_DRA
+#if M52291_HDR_DRA
             if (cdsc.tool_dra)
             {
                 imgb_cpy(ilist_t->imgb, imgb_dra);// recover copy of the reconstructed picture for DPB
@@ -3164,7 +3164,7 @@ int main(int argc, const char **argv)
     /* store remained reconstructed pictures in output list */
     while(pic_icnt - pic_ocnt > 0)
     {
-#if QC_DRA
+#if M52291_HDR_DRA
         write_rec(ilist_rec, &pic_ocnt, p_g_dra_control);
 #else
         write_rec(ilist_rec, &pic_ocnt);

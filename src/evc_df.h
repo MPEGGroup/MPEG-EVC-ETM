@@ -47,7 +47,7 @@ extern "C"
 #if EVC_TILE_SUPPORT
     , u8* map_tidx
 #endif
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
      , int tool_addb
 #endif
 );
@@ -63,7 +63,7 @@ void evc_deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
 #if EVC_TILE_SUPPORT
     , u8 *map_tidx
 #endif
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
     , int tool_addb
 #endif
 );

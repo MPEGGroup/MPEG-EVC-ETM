@@ -1563,7 +1563,7 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
 #endif
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
                     , ctx->sps.tool_addb
 #endif
                 );
@@ -1577,7 +1577,7 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
 #endif
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
                     , ctx->sps.tool_addb
 #endif
                 );
@@ -1593,7 +1593,7 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
 #endif
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
                     , ctx->sps.tool_addb
 #endif
                 );
@@ -1614,7 +1614,7 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
 #endif
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
                     , ctx->sps.tool_addb
 #endif
                 );
@@ -1629,7 +1629,7 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
 #endif
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
                     , ctx->sps.tool_addb
 #endif
                 );
@@ -1647,7 +1647,7 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
 #endif
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
                     , ctx->sps.tool_addb
 #endif
                 );
@@ -2240,7 +2240,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     EVC_BSR  *bs = &ctx->bs;
     EVC_SPS  *sps = &ctx->sps;
     EVC_PPS  *pps = &ctx->pps;
-#if QC_DRA
+#if M52291_HDR_DRA
     EVC_APS_GEN  aps_gen;
     EVC_APS_GEN  *p_aps_gen = &aps_gen;
     EVC_APS_GEN  *aps_array = (EVC_APS_GEN  *)(ctx->void_aps_gen_array);
@@ -2309,7 +2309,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     }
     else if (nalu->nal_unit_type_plus1 - 1 == EVC_APS_NUT)
     {
-#if QC_DRA
+#if M52291_HDR_DRA
         evc_AlfSliceParam alfControl;
         alfControl.isCtbAlfOn = 0;
         SignalledParamsDRA draControl;
@@ -2516,14 +2516,14 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
             evc_assert_rv(EVC_SUCCEEDED(ret), ret);
         }
 #if HDR_MD5_CHECK
-#if QC_DRA
+#if M52291_HDR_DRA
         if (ctx->sps.tool_dra)
         {
 #endif
         int ret;
         EVC_IMGB *imgb_hdr_md5 = NULL;
         WCGDDRAControl l_dra_control;
-#if QC_DRA
+#if M52291_HDR_DRA
         WCGDDRAControl *local_g_dra_control = &l_dra_control;
         SignalledParamsDRA* p_pps_draParams = (SignalledParamsDRA*)ctx->p_pps_draParams;
         memcpy(&(local_g_dra_control->m_signalledDRA), p_pps_draParams, sizeof(SignalledParamsDRA));
@@ -2547,7 +2547,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         ret = evc_md5_imgb(imgb_hdr_md5, g_pic_sign);
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
         imgb_hdr_md5->release(imgb_hdr_md5);
-#if QC_DRA
+#if M52291_HDR_DRA
         }
 #endif
 #endif
@@ -2753,7 +2753,7 @@ int evcd_config(EVCD id, int cfg, void * buf, int * size)
     }
     return EVC_OK;
 }
-#if QC_DRA
+#if M52291_HDR_DRA
 int evcd_get_pps_dra_id(EVCD id)
 {
     EVCD_CTX *ctx;
@@ -2777,7 +2777,7 @@ int evcd_decode(EVCD id, EVC_BITB * bitb, EVCD_STAT * stat)
     EVCD_CTX *ctx;
 
     EVCD_ID_TO_CTX_RV(id, ctx, EVC_ERR_INVALID_ARGUMENT);
-#if QC_DRA
+#if M52291_HDR_DRA
     ctx->void_aps_gen_array = p_draParams;
 #else
     ctx->p_draParams = p_draParams;

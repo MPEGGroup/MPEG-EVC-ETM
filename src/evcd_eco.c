@@ -2567,10 +2567,10 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
     {
         sps->tool_ats = evc_bsr_read1(bs);
     }
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
     sps->tool_addb = evc_bsr_read1(bs);
 #endif
-#if QC_DRA
+#if M52291_HDR_DRA
     sps->tool_dra = evc_bsr_read1(bs);
 #endif
     sps->tool_alf = evc_bsr_read1(bs);
@@ -2698,7 +2698,7 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps)
         }
     }
 
-#if QC_DRA
+#if M52291_HDR_DRA
     if (sps->tool_dra)
     {
         pps->pic_dra_enabled_present_flag = evc_bsr_read1(bs);
@@ -2725,7 +2725,7 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps)
 
     return EVC_OK;
 }
-#if QC_DRA
+#if M52291_HDR_DRA
 int evcd_eco_aps_gen(EVC_BSR * bs, EVC_APS_GEN * aps)
 {
     int aps_id = evc_bsr_read(bs, APS_MAX_NUM_IN_BITS); // parse APS ID
@@ -2948,7 +2948,7 @@ int evcd_eco_alf_filter(EVC_BSR * bs, evc_AlfSliceParam* alfSliceParam, const BO
 
     return EVC_OK;
 }
-#if QC_DRA
+#if M52291_HDR_DRA
 int evcd_eco_dra_aps_param(EVC_BSR * bs, EVC_APS_GEN * aps)
 {
     int value;

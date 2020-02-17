@@ -37,54 +37,17 @@
 #include "evc.h"
 #include "evc_port.h"
 
-#define QC_ADD_ADDB_FLAG                       1 
-#define QC_DRA                                 1
-
-#if QC_DRA
-#define QC_DRA_LUT_SUBSAMPLE_TWO                     0 
-#define DBF_CLIP_FIX                                 1
-#define HDR_MD5_CHECK                                1
-#endif
-
-#define ETM_HDR_METRIC                                 1
-#if ETM_HDR_METRIC
-#define ETM_HDR_REPORT_METRIC_FLAG                     1
-#define NB_REF_WHITE                                 3
-#define DEG275                                         4.7996554429844
-#define DEG30                                         0.523598775598299
-#define DEG6                                         0.1047197551196598
-#define DEG63                                         1.099557428756428
-#define DEG25                                         0.436332
-#endif
-
+//bug fixes and platform changes to be applied
+#define ADDB_FLAG_FIX                                1 
+#define HDR_METRIC                                   1
 #define LD_CONFIG_CHANGE                             1
 
-#define AFFINE_CLIPPING_BF                           1 //2 << 17 -> 1 << 17
-#define HMVP_ON_AFFINE_UPDATE_BF                     1
-#define EIF_CLIPPING_REDESIGN                        1
-
+//MPEG 129 adoptions
+#define M52291_HDR_DRA                               1
 #define M52165                                       1
-
 #define M52166                                       1
-#if M52166
-#ifndef M52166_PARTITION //defined in evc.h
-#define M52166_PARTITION                             1
-#endif
-#define M52166_SUCO                                  1
-#define M52166_DBF                                   1
-#define M52166_MMVD                                  1
-#endif
-
 #define M52290                                       1
-#if M52290
-#define M52290_ADCC                                  1
-#define M52290_MVCLIP_THRESH                         1
-#endif
-/* Profiles definitions */
-#define PROFILE_BASELINE                             0
-#define PROFILE_MAIN                                 1
-
-#define AFFINE_TMVP_SPEC_CONDITION_ALIGN             1
+#define M52223                                       1
 
 //MPEG 128 adoptions
 #define M50761                                       1
@@ -96,48 +59,76 @@
 #endif
 #endif
 
+#if M52223
+#define AFFINE_CLIPPING_BF                           1 //2 << 17 -> 1 << 17
+#define HMVP_ON_AFFINE_UPDATE_BF                     1
+#define EIF_CLIPPING_REDESIGN                        1
+#endif
+
+#if M52166
+#ifndef M52166_PARTITION //defined in evc.h
+#define M52166_PARTITION                             1
+#endif
+#define M52166_SUCO                                  1
+#define M52166_DBF                                   1
+#define M52166_MMVD                                  1
+#endif
+
+#if M52290
+#define M52290_ADCC                                  1
+#define M52290_MVCLIP_THRESH                         1
+#endif
+
+
+
+/* Profiles definitions */
+#define PROFILE_BASELINE                             0
+#define PROFILE_MAIN                                 1
+
+#define AFFINE_TMVP_SPEC_CONDITION_ALIGN             1
+
 //loop filter
-#define DBF_LONGF                          0
-#define DBF_IMPROVE                        1
-#define DBF                                2  // Deblocking filter: 0 - without DBF, 1 - h.263, 2 - AVC, 3 - HEVC   !!! NOTE: THE SWITCH MAY BE BROKEN !!!
+#define DBF_LONGF                                    0
+#define DBF_IMPROVE                                  1
+#define DBF                                          2  // Deblocking filter: 0 - without DBF, 1 - h.263, 2 - AVC, 3 - HEVC   !!! NOTE: THE SWITCH MAY BE BROKEN !!!
 
 //TILE support
-#define TILE_SUPPORT                       1
+#define TILE_SUPPORT                                 1
 #if     TILE_SUPPORT
-#define EVC_TILE_SUPPORT                   1
+#define EVC_TILE_SUPPORT                             1
 #endif
 
 //fast algorithm
-#define FAST_RECURSE_OPT                   1
-#define FAST_RECURSE_OPT_FIX               1 
-#define FAST_ALG_EXT                       0
+#define FAST_RECURSE_OPT                             1
+#define FAST_RECURSE_OPT_FIX                         1 
+#define FAST_ALG_EXT                                 0
 #if FAST_ALG_EXT
-#define MODE_SAVE_LOAD_UPDATE              1 // improve mode save load
-#define ET_ME_REFIDX1                      1 // skip ME of one ref pic based on mvd of ref pic 0
-#define ET_AMVP                            1 // skip AMVP based on skip/merge cost
-#define ET_BY_RDC_CHILD_SPLIT              0 // early termination of split based on RD cost & child split (10% EncT)
+#define MODE_SAVE_LOAD_UPDATE                        1 // improve mode save load
+#define ET_ME_REFIDX1                                1 // skip ME of one ref pic based on mvd of ref pic 0
+#define ET_AMVP                                      1 // skip AMVP based on skip/merge cost
+#define ET_BY_RDC_CHILD_SPLIT                        0 // early termination of split based on RD cost & child split (10% EncT)
 #endif
 
-#define DQP_EVC                            1
+#define DQP_EVC                                      1
 #if DQP_EVC
-#define DQP                                1
-#define DQP_RDO                            1
-#define GET_QP(qp,dqp)                     ((qp + dqp + 52) % 52)
-#define GET_LUMA_QP(qp)                    (qp + 6 * (BIT_DEPTH - 8))
+#define DQP                                          1
+#define DQP_RDO                                      1
+#define GET_QP(qp,dqp)                               ((qp + dqp + 52) % 52)
+#define GET_LUMA_QP(qp)                              (qp + 6 * (BIT_DEPTH - 8))
 #endif
 
 //platform tools & trivial improvement
-#define MC_PRECISION_ADD                   2 
-#define USE_RDOQ                           1 // Use RDOQ
-#define RDO_DBK                            1 // include DBK changes into distortion
+#define MC_PRECISION_ADD                             2 
+#define USE_RDOQ                                     1 // Use RDOQ
+#define RDO_DBK                                      1 // include DBK changes into distortion
 
 //fast algorithm
-#define ENC_ECU_DEPTH                      8 // for early CU termination
-#define ENC_ECU_ADAPTIVE                   1 // for early CU termination
-#define ENC_ECU_DEPTH_B                    8 // for early CU termination
-#define MULTI_REF_ME_STEP                  1 // for ME speed-up
-#define FAST_MERGE_THR                     1.3
-#define ENC_SUCO_FAST_CONFIG               1  /* fast config: 1(low complexity), 2(medium complexity), 4(high_complexity) */
+#define ENC_ECU_DEPTH                                8 // for early CU termination
+#define ENC_ECU_ADAPTIVE                             1 // for early CU termination
+#define ENC_ECU_DEPTH_B                              8 // for early CU termination
+#define MULTI_REF_ME_STEP                            1 // for ME speed-up
+#define FAST_MERGE_THR                               1.3
+#define ENC_SUCO_FAST_CONFIG                         1  /* fast config: 1(low complexity), 2(medium complexity), 4(high_complexity) */
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -145,19 +136,19 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 #if X86_SSE
-#define OPT_SIMD_MC_L                      1
-#define OPT_SIMD_MC_C                      1
-#define OPT_SIMD_MC_BL                     1
-#define OPT_SIMD_SAD                       1
-#define OPT_SIMD_HAD_SAD                   1
-#define OPT_SIMD_DMVR_MR_SAD               1
+#define OPT_SIMD_MC_L                                1
+#define OPT_SIMD_MC_C                                1
+#define OPT_SIMD_MC_BL                               1
+#define OPT_SIMD_SAD                                 1
+#define OPT_SIMD_HAD_SAD                             1
+#define OPT_SIMD_DMVR_MR_SAD                         1
 #else
-#define OPT_SIMD_MC_L                      0
-#define OPT_SIMD_MC_C                      0 
-#define OPT_SIMD_MC_BL                     0
-#define OPT_SIMD_SAD                       0
-#define OPT_SIMD_HAD_SAD                   0
-#define OPT_SIMD_DMVR_MR_SAD               0
+#define OPT_SIMD_MC_L                                0
+#define OPT_SIMD_MC_C                                0 
+#define OPT_SIMD_MC_BL                               0
+#define OPT_SIMD_SAD                                 0
+#define OPT_SIMD_HAD_SAD                             0
+#define OPT_SIMD_DMVR_MR_SAD                         0
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -353,7 +344,7 @@ enum SAD_POINT_INDEX
 
 #define APS_MAX_NUM                        32
 #define APS_MAX_NUM_IN_BITS                5 
-#if QC_DRA
+#if M52291_HDR_DRA
 #define APS_TYPE_ID_BITS                   3
 #endif
 
@@ -432,6 +423,24 @@ typedef struct _evc_AlfFilterShape
 #define IBC_FAST_METHOD_BUFFERBV             0X01
 #define IBC_FAST_METHOD_ADAPTIVE_SEARCHRANGE 0X02
 /* IBC (END) */
+
+/* HDR (START) */
+#if M52291_HDR_DRA
+#define QC_DRA_LUT_SUBSAMPLE_TWO           0 
+#define DBF_CLIP_FIX                       1
+#define HDR_MD5_CHECK                      1
+#endif
+
+#if HDR_METRIC
+#define ETM_HDR_REPORT_METRIC_FLAG         1
+#define NB_REF_WHITE                       3
+#define DEG275                             4.7996554429844
+#define DEG30                              0.523598775598299
+#define DEG6                               0.1047197551196598
+#define DEG63                              1.099557428756428
+#define DEG25                              0.436332
+#endif
+/* HDR (END) */
 
 /* Common routines (START) */
 #define max(x, y) (((x) > (y)) ? (x) : (y))
@@ -573,7 +582,7 @@ extern int fp_trace_started;
 #define EXTRA_FRAME                        MAX_NUM_ACTIVE_REF_FRAME
 
 /* maximum picture buffer size */
-#if QC_DRA
+#if M52291_HDR_DRA
 #define DRA_FRAME 1
 #define MAX_PB_SIZE                       (MAX_NUM_REF_PICS + EXTRA_FRAME + DRA_FRAME)
 #else
@@ -1179,7 +1188,7 @@ typedef struct _EVC_SPS
     int              tool_mmvd;
     int              tool_affine;
     int              tool_dmvr;
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
     int              tool_addb;
 #endif
     int              tool_alf;
@@ -1220,7 +1229,7 @@ typedef struct _EVC_SPS
     u8               ibc_flag;                   /* 1 bit : flag of enabling IBC or not */
     int              ibc_log_max_size;           /* log2 max ibc size */
     int              vui_parameters_present_flag;
-#if QC_DRA
+#if M52291_HDR_DRA
     int tool_dra;
 #endif
 } EVC_SPS;
@@ -1252,7 +1261,7 @@ typedef struct _EVC_PPS
     int cu_qp_delta_enabled_flag;
     int cu_qp_delta_area;
 #endif
-#if QC_DRA
+#if M52291_HDR_DRA
     int pic_dra_enabled_present_flag;
     int pic_dra_enabled_flag;
     int pic_dra_aps_id;
@@ -1309,7 +1318,7 @@ typedef struct _evc_SignalledALFParam
 
 } evc_SignalledALFParam;
 
-#if QC_DRA
+#if M52291_HDR_DRA
 typedef struct _EVC_APS_GEN
 {
     int signal_flag;

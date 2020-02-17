@@ -300,7 +300,7 @@ int main(int argc, const char **argv)
     int                w, h;
     FILE             * fp_bs = NULL;
 
-#if QC_DRA
+#if M52291_HDR_DRA
     EVC_IMGB          *imgb_dra = NULL;
     // global CVS buffer for DRA control
     SignalledParamsDRA g_dra_control_array[32];
@@ -413,7 +413,7 @@ int main(int argc, const char **argv)
             clk_beg = evc_clk_get();
 #endif
             /* main decoding block */
-#if QC_DRA
+#if M52291_HDR_DRA
             ret = evcd_decode(id, &bitb, &stat, (void*)(p_aps_gen_array));
 
             // check if new DRA APS recieved, update buffer
@@ -492,7 +492,7 @@ int main(int argc, const char **argv)
                         return -1;
                     }
                 }
-#if QC_DRA
+#if M52291_HDR_DRA
                 if (g_dra_control_effective.m_flagEnabled)
                 {
                     evcd_initDRA(&g_dra_control_effective);

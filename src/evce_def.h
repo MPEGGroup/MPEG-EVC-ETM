@@ -83,7 +83,7 @@
 #define ME_LEV_QPEL              3
 
 /* maximum inbuf count */
-#if QC_DRA
+#if M52291_HDR_DRA
 #define EVCE_MAX_INBUF_CNT      34
 #else
 #define EVCE_MAX_INBUF_CNT      33
@@ -449,7 +449,7 @@ typedef struct _EVCE_PARAM
     int                 use_deblock;
     int                 deblock_alpha_offset;
     int                 deblock_beta_offset;
-#if    !QC_ADD_ADDB_FLAG
+#if    !ADDB_FLAG_FIX
     int                 use_alf;
 #endif
     /* I-frame period */
@@ -768,7 +768,7 @@ struct _EVCE_CTX
     /* picture parameter set */
     EVC_PPS                pps;
     /* adaptation parameter set */
-#if QC_DRA
+#if M52291_HDR_DRA
     EVC_APS_GEN                *aps_gen_array[2];
 #endif
     EVC_APS                aps;
