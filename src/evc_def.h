@@ -52,7 +52,13 @@
 //MPEG 128 adoptions
 #define M50761                                       1
 #if M50761
+
 #define M50761_CHROMA_NOT_SPLIT                      1 //chroma no split for avoiding 2x2, 2x4 and 4x2 chroma blocks
+
+#if M50761_CHROMA_NOT_SPLIT
+#define M50761_CHROMA_NOT_SPLIT_CLEANUP              1
+#endif
+
 #endif
 
 #if M52223
@@ -83,7 +89,6 @@
 
 #define AFFINE_TMVP_SPEC_CONDITION_ALIGN             1
 
-#define M50761_CHROMA_NOT_SPLIT_CLEANUP            1
 //loop filter
 #define DBF_LONGF                                    0
 #define DBF_IMPROVE                                  1

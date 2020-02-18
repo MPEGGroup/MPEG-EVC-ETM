@@ -1874,6 +1874,7 @@ int evcd_eco_affine_mvd_flag(EVCD_CTX * ctx, EVCD_CORE * core, int refi)
     return t0;
 }
 
+#if !M50761_CHROMA_NOT_SPLIT_CLEANUP
 void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
 {
     EVCD_SBAC   *sbac;
@@ -1980,6 +1981,114 @@ void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
             core->pred_mode = MODE_INTRA;
         }
 }
+#else
+void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
+{
+    EVCD_SBAC   *sbac;
+    EVC_BSR     *bs;
+    int          cuw, cuh;
+    cuw = (1 << core->log2_cuw);
+    cuh = (1 << core->log2_cuh);
+    bs = &ctx->bs;
+    sbac = GET_SBAC_DEC(bs);
+
+    /* get pred_mode */
+    if (ctx->sh.slice_type != SLICE_I && !(!ctx->sps.ibc_flag && ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
+    {
+#if M50761_CHROMA_NOT_SPLIT
+        if (!evcd_check_all_preds(ctx))
+            core->pred_mode = evcd_check_only_inter(ctx) ? MODE_INTER : MODE_INTRA;
+        else
+        {
+#endif
+            if (ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2)
+            {
+                core->pred_mode = MODE_INTRA;
+            }
+            else
+            {
+                core->pred_mode = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.pred_mode + ctx->ctx_flags[CNID_PRED_MODE]) ? MODE_INTRA : MODE_INTER;
+                EVC_TRACE_COUNTER;
+                EVC_TRACE_STR("pred mode ");
+                EVC_TRACE_INT(core->pred_mode);
+                EVC_TRACE_STR("\n");
+            }
+#if M50761_CHROMA_NOT_SPLIT
+        }
+#endif
+        if ((core->pred_mode != MODE_INTRA
+#if M50761_CHROMA_NOT_SPLIT
+            || evcd_check_only_intra(ctx)
+#endif
+            || (ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2)
+            )
+#if M50761_CHROMA_NOT_SPLIT
+            && evcd_check_luma(ctx) && !evcd_check_only_inter(ctx)
+#endif
+
+            && ctx->sps.ibc_flag && core->log2_cuw <= ctx->sps.ibc_log_max_size && core->log2_cuh <= ctx->sps.ibc_log_max_size)
+        {
+            if (evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ibc_flag + ctx->ctx_flags[CNID_IBC_FLAG])) /* is ibc mode? */
+            {
+                core->pred_mode = MODE_IBC;
+                core->ibc_flag = 1;
+                core->mmvd_flag = 0;
+                core->affine_flag = 0;
+                core->ats_inter_info = 0;
+            }
+#if TRACE_ADDITIONAL_FLAGS
+            EVC_TRACE_COUNTER;
+            EVC_TRACE_STR("ibc pred mode ");
+            EVC_TRACE_INT(!!core->ibc_flag);
+            EVC_TRACE_STR("ctx ");
+            EVC_TRACE_INT(ctx->ctx_flags[CNID_IBC_FLAG]);
+            EVC_TRACE_STR("\n");
+#endif
+        }
+#if !TRACE_ADDITIONAL_FLAGS
+        EVC_TRACE_COUNTER;
+        EVC_TRACE_STR("pred mode ");
+        EVC_TRACE_INT(core->pred_mode);
+        EVC_TRACE_STR("\n");
+#endif
+    }
+    else if (ctx->sh.slice_type == SLICE_I && ctx->sps.ibc_flag
+#if M50761_CHROMA_NOT_SPLIT
+        && evcd_check_luma(ctx)
+#endif
+        )
+    {
+        core->pred_mode = MODE_INTRA;
+        core->mmvd_flag = 0;
+        core->affine_flag = 0;
+
+        if (core->log2_cuw <= ctx->sps.ibc_log_max_size && core->log2_cuh <= ctx->sps.ibc_log_max_size)
+        {
+            if (evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ibc_flag + ctx->ctx_flags[CNID_IBC_FLAG])) /* is ibc mode? */
+            {
+                core->pred_mode = MODE_IBC;
+                core->ibc_flag = 1;
+                core->ats_inter_info = 0;
+            }
+#if TRACE_ADDITIONAL_FLAGS
+            EVC_TRACE_COUNTER;
+            EVC_TRACE_STR("IBC pred mode ");
+            EVC_TRACE_INT(!!core->ibc_flag);
+            EVC_TRACE_STR("ctx ");
+            EVC_TRACE_INT(ctx->ctx_flags[CNID_IBC_FLAG]);
+            EVC_TRACE_STR("\n");
+#endif
+        }
+    }
+    else /* SLICE_I */
+    {
+#if M50761_CHROMA_NOT_SPLIT
+        evc_assert(!evcd_check_only_inter(ctx));
+#endif
+        core->pred_mode = MODE_INTRA;
+    }
+}
+#endif
 
 void evcd_eco_cu_skip_flag(EVCD_CTX * ctx, EVCD_CORE * core)
 {
@@ -2068,11 +2177,11 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
 #endif
     evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init, ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size);
 
+#if !M50761_CHROMA_NOT_SPLIT
     if (ctx->sh.slice_type != SLICE_I && !(ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2)
-#if M50761_CHROMA_NOT_SPLIT
-        && (evcd_check_only_inter(ctx) || evcd_check_all_preds(ctx))
+#else
+    if (ctx->sh.slice_type != SLICE_I && !evcd_check_only_intra(ctx) ) //TODO: Tim remove consdition 1
 #endif
-        )
     {
         /* CU skip flag */
         evcd_eco_cu_skip_flag(ctx, core); /* cu_skip_flag */
@@ -2115,7 +2224,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
             }
         }
 
-        core->is_coef[Y_C] = core->is_coef[U_C] = core->is_coef[V_C] = 0;
+        core->is_coef[Y_C] = core->is_coef[U_C] = core->is_coef[V_C] = 0;   //TODO: Tim why we need to duplicate code here?
         evc_mset(core->is_coef_sub, 0, sizeof(int) * N_C * MAX_SUB_TB_NUM);
 #if DQP //need to check
         if(ctx->pps.cu_qp_delta_enabled_flag)
