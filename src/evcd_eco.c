@@ -1984,13 +1984,24 @@ void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
 #else
 void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
 {
-    EVCD_SBAC   *sbac;
-    EVC_BSR     *bs;
-    int          cuw, cuh;
-    cuw = (1 << core->log2_cuw);
-    cuh = (1 << core->log2_cuh);
-    bs = &ctx->bs;
-    sbac = GET_SBAC_DEC(bs);
+    EVC_BSR     *bs = &ctx->bs;
+    EVCD_SBAC   *sbac = GET_SBAC_DEC(bs);
+
+    BOOL pred_mode_flag = FALSE;
+
+    if ( ctx->sh.slice_type != SLICE_I && ctx->tree_cons.mode_cons == eAll )
+        pred_mode_flag = evcd_sbac_decode_bin( bs, sbac, sbac->ctx.pred_mode + ctx->ctx_flags[CNID_PRED_MODE] );
+
+    BOOL isIbcAllowed = ctx->sps.ibc_flag &&
+                        core->log2_cuw <= ctx->sps.ibc_log_max_size && core->log2_cuh <= ctx->sps.ibc_log_max_size &&
+                        ctx->tree_cons.tree_type != TREE_C &&
+                        ctx->tree_cons.mode_cons != eOnlyInter &&
+                        !( ctx->tree_cons.mode_cons == eAll && pred_mode_flag );
+
+    BOOL ibc_flag = FALSE;
+
+    if ( isIbcAllowed )
+        ibc_flag = evcd_sbac_decode_bin( bs, sbac, sbac->ctx.ibc_flag + ctx->ctx_flags[CNID_IBC_FLAG] );
 
     /* get pred_mode */
     if (ctx->sh.slice_type != SLICE_I && !(!ctx->sps.ibc_flag && ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
@@ -2007,7 +2018,7 @@ void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
             }
             else
             {
-                core->pred_mode = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.pred_mode + ctx->ctx_flags[CNID_PRED_MODE]) ? MODE_INTRA : MODE_INTER;
+                core->pred_mode = pred_mode_flag ? MODE_INTRA : MODE_INTER;
                 EVC_TRACE_COUNTER;
                 EVC_TRACE_STR("pred mode ");
                 EVC_TRACE_INT(core->pred_mode);
@@ -2016,35 +2027,7 @@ void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
 #if M50761_CHROMA_NOT_SPLIT
         }
 #endif
-        if ((core->pred_mode != MODE_INTRA
-#if M50761_CHROMA_NOT_SPLIT
-            || evcd_check_only_intra(ctx)
-#endif
-            || (ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2)
-            )
-#if M50761_CHROMA_NOT_SPLIT
-            && evcd_check_luma(ctx) && !evcd_check_only_inter(ctx)
-#endif
 
-            && ctx->sps.ibc_flag && core->log2_cuw <= ctx->sps.ibc_log_max_size && core->log2_cuh <= ctx->sps.ibc_log_max_size)
-        {
-            if (evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ibc_flag + ctx->ctx_flags[CNID_IBC_FLAG])) /* is ibc mode? */
-            {
-                core->pred_mode = MODE_IBC;
-                core->ibc_flag = 1;
-                core->mmvd_flag = 0;
-                core->affine_flag = 0;
-                core->ats_inter_info = 0;
-            }
-#if TRACE_ADDITIONAL_FLAGS
-            EVC_TRACE_COUNTER;
-            EVC_TRACE_STR("ibc pred mode ");
-            EVC_TRACE_INT(!!core->ibc_flag);
-            EVC_TRACE_STR("ctx ");
-            EVC_TRACE_INT(ctx->ctx_flags[CNID_IBC_FLAG]);
-            EVC_TRACE_STR("\n");
-#endif
-        }
 #if !TRACE_ADDITIONAL_FLAGS
         EVC_TRACE_COUNTER;
         EVC_TRACE_STR("pred mode ");
@@ -2061,24 +2044,6 @@ void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
         core->pred_mode = MODE_INTRA;
         core->mmvd_flag = 0;
         core->affine_flag = 0;
-
-        if (core->log2_cuw <= ctx->sps.ibc_log_max_size && core->log2_cuh <= ctx->sps.ibc_log_max_size)
-        {
-            if (evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ibc_flag + ctx->ctx_flags[CNID_IBC_FLAG])) /* is ibc mode? */
-            {
-                core->pred_mode = MODE_IBC;
-                core->ibc_flag = 1;
-                core->ats_inter_info = 0;
-            }
-#if TRACE_ADDITIONAL_FLAGS
-            EVC_TRACE_COUNTER;
-            EVC_TRACE_STR("IBC pred mode ");
-            EVC_TRACE_INT(!!core->ibc_flag);
-            EVC_TRACE_STR("ctx ");
-            EVC_TRACE_INT(ctx->ctx_flags[CNID_IBC_FLAG]);
-            EVC_TRACE_STR("\n");
-#endif
-        }
     }
     else /* SLICE_I */
     {
@@ -2087,6 +2052,24 @@ void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
 #endif
         core->pred_mode = MODE_INTRA;
     }
+
+    if ( ibc_flag ) /* is ibc mode? */
+    {
+        core->pred_mode = MODE_IBC;
+        core->ibc_flag = 1;
+        core->mmvd_flag = 0;
+        core->affine_flag = 0;
+        core->ats_inter_info = 0;
+    }
+#if TRACE_ADDITIONAL_FLAGS
+    EVC_TRACE_COUNTER;
+    EVC_TRACE_STR("ibc pred mode ");
+    EVC_TRACE_INT(!!core->ibc_flag);
+    EVC_TRACE_STR("ctx ");
+    EVC_TRACE_INT(ctx->ctx_flags[CNID_IBC_FLAG]);
+    EVC_TRACE_STR("\n");
+#endif
+
 }
 #endif
 
