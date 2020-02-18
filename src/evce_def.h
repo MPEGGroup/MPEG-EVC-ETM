@@ -41,9 +41,7 @@
 
 /* support RDOQ */
 #define SCALE_BITS               15    /* Inherited from TMuC, pressumably for fractional bit estimates in RDOQ */
-#if USE_RDOQ || M50631_IMPROVEMENT_ADCC_RDOQFIX
 #define ERR_SCALE_PRECISION_BITS 20
-#endif
 /* EVC encoder magic code */
 #define EVCE_MAGIC_CODE         0x45565945 /* EVYE */
 
@@ -85,7 +83,11 @@
 #define ME_LEV_QPEL              3
 
 /* maximum inbuf count */
+#if M52291_HDR_DRA
+#define EVCE_MAX_INBUF_CNT      34
+#else
 #define EVCE_MAX_INBUF_CNT      33
+#endif
 
 /* maximum cost value */
 #define MAX_COST                (1.7e+308)
@@ -128,12 +130,10 @@ typedef struct _EVCE_MODE
     int   cu_mode;
     u8    affine_flag;
 
-#if M50662_AFFINE_MV_HISTORY_TABLE
 #if AFFINE_UPDATE 
     // spatial neighboring MV of affine block
     s8    refi_sp[REFP_NUM];
     s16   mv_sp[REFP_NUM][MV_D];
-#endif
 #endif
     u8    ats_intra_cu;
     u8    ats_intra_tu_h;
@@ -449,7 +449,9 @@ typedef struct _EVCE_PARAM
     int                 use_deblock;
     int                 deblock_alpha_offset;
     int                 deblock_beta_offset;
+#if    !ADDB_FLAG_FIX
     int                 use_alf;
+#endif
     /* I-frame period */
     int                 i_period;
     /* force I-frame */
@@ -557,11 +559,7 @@ typedef struct _EVCE_CU_DATA
     u8* ats_tu_v;
     u8  *ats_inter_info;
     u32 *map_cu_mode;
-#if !M50761_REMOVE_BLOCK_SIZE_MAP
-    s16 **block_size;
-#endif
     s8  *depth;
-
     s16 *coef[N_C]; 
     pel *reco[N_C]; 
 #if TRACE_ENC_CU_DATA
@@ -770,6 +768,9 @@ struct _EVCE_CTX
     /* picture parameter set */
     EVC_PPS                pps;
     /* adaptation parameter set */
+#if M52291_HDR_DRA
+    EVC_APS_GEN                *aps_gen_array[2];
+#endif
     EVC_APS                aps;
     u8                     aps_counter;
     u8                     aps_temp;
@@ -889,11 +890,7 @@ struct _EVCE_CTX
     s8                  (* map_refi)[REFP_NUM];
     /* map for intra pred mode */
     s8                   * map_ipm;
-#if !M50761_REMOVE_BLOCK_SIZE_MAP
-    s16                 (* map_block_size)[2];
-#endif
     s8                   * map_depth;
-
 #if RDO_DBK
     EVC_PIC              * pic_dbk;          //one picture that arranges cu pixels and neighboring pixels for deblocking (just to match the interface of deblocking functions)
     s64                    delta_dist[N_C];  //delta distortion from filtering (negative values mean distortion reduced)

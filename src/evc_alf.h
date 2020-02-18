@@ -245,9 +245,7 @@ struct AlfSliceParam
   int                          tLayer;
   BOOL                         temporalAlfFlag;         //indicate whether reuse previous ALF coefficients
   int                          prevIdx;                 //index of the reused ALF coefficients
-#if M50662_LUMA_CHROMA_SEPARATE_APS
   int                          prevIdxComp[MAX_NUM_CHANNEL_TYPE];
-#endif
   BOOL resetALFBufferFlag;
   BOOL store2ALFBufferFlag;
 
@@ -317,14 +315,10 @@ extern void reconstructCoeff( AlfSliceParam* alfSliceParam, ChannelType channel,
 extern void deriveClassification( AlfClassifier** classifier, const pel * srcLuma, const int srcLumaStride, const Area * blk );
 
 extern void copyAlfParam(AlfSliceParam* dst, AlfSliceParam* src);
-#if M50662_LUMA_CHROMA_SEPARATE_APS
 extern void copyAlfParamChroma(AlfSliceParam* dst, AlfSliceParam* src);
-#endif
 void store_alf_paramline_from_aps(AlfSliceParam* pAlfParam, u8 idx);
 void load_alf_paramline_from_aps_buffer(AlfSliceParam* pAlfParam, u8 idx);
-#if M50662_LUMA_CHROMA_SEPARATE_APS
 void load_alf_paramline_from_aps_buffer2(AlfSliceParam* pAlfParam, u8 idxY, u8 idxUV);
-#endif
 extern u8 m_nextFreeAlfIdxInBuffer;
 extern void resetAlfParam(AlfSliceParam* dst);
 extern void resetIdrIndexListBufferAPS();

@@ -68,12 +68,10 @@ extern const u8  evc_split_order[2][SPLIT_CHECK_NUM];
 extern int evc_tbl_qp_chroma_ajudst_main[MAX_QP_TABLE_SIZE];
 extern int evc_tbl_qp_chroma_ajudst_base[MAX_QP_TABLE_SIZE];
 extern int* evc_tbl_qp_chroma_ajudst;
-#if CHROMA_QP_TABLE_SUPPORT_M50663
 extern int evc_tbl_qp_chroma_dynamic_ext[2][MAX_QP_TABLE_SIZE_EXT];
 extern int* p_evc_tbl_qp_chroma_dynamic_ext[2];// pointer to [0th position in evc_tbl_qp_chroma_dynamic_ext]
 extern int* p_evc_tbl_qp_chroma_dynamic[2];    // pointer to [12th position in evc_tbl_qp_chroma_dynamic_ext]
 void evc_derived_chroma_qp_mapping_tables(EVC_CHROMA_TABLE *structChromaQP);
-#endif
 
 #if CTX_REPRESENTATION_IMPROVEMENT
 extern const s16 init_cbf[2][NUM_QT_CBF_CTX][1];
@@ -111,13 +109,8 @@ extern const s16 init_cc_gtA[2][NUM_CTX_GTA];
 extern const s16 init_cc_scanr_x[2][NUM_CTX_SCANR];
 extern const s16 init_cc_scanr_y[2][NUM_CTX_SCANR];
 
-#if M50631_IMPROVEMENT_ADCC_CTXINIT
 extern const s16 init_cc_gt0_4[2][NUM_CTX_GT0];
 extern const s16 init_cc_gtA_4[2][NUM_CTX_GTA];
-#else
-extern const s16 init_cc_gt0_3[2][NUM_CTX_GT0];
-extern const s16 init_cc_gtA_3[2][NUM_CTX_GTA];
-#endif
 extern const s16 init_cc_scanr_x_3[2][NUM_CTX_SCANR];
 extern const s16 init_cc_scanr_y_3[2][NUM_CTX_SCANR];
 
@@ -128,12 +121,7 @@ extern const s16 init_affine_mvd_flag[2][NUM_SBAC_CTX_AFFINE_MVD_FLAG][1];
 extern const s16 init_skip_flag[2][NUM_SBAC_CTX_SKIP_FLAG][1];
 extern const s16 init_ibc_flag[2][NUM_SBAC_CTX_IBC_FLAG][1];
 extern const s16 init_ats_intra_cu[2][NUM_ATS_INTRA_CU_FLAG_CTX][1];
-#if M50632_SIMPLIFICATION_ATS
 extern const s16 init_ats_tu[2][NUM_ATS_INTRA_TU_FLAG_CTX][1];
-#else
-extern const s16 init_ats_tu_h[2][NUM_ATS_INTRA_TU_FLAG_CTX][1];
-extern const s16 init_ats_tu_v[2][NUM_ATS_INTRA_TU_FLAG_CTX][1];
-#endif
 extern const s16 init_ats_inter_info[2][NUM_SBAC_CTX_ATS_INTER_INFO][1];
 #else
 
@@ -170,12 +158,7 @@ extern const s16 init_affine_mrg[2][AFF_MAX_CAND][2];
 extern const s16 init_affine_mvd_flag[2][NUM_SBAC_CTX_AFFINE_MVD_FLAG][2];
 extern const s16 init_skip_flag[2][NUM_SBAC_CTX_SKIP_FLAG][2];
 extern const s16 init_ats_intra_cu[2][NUM_ATS_INTRA_CU_FLAG_CTX][2];
-#if M50632_SIMPLIFICATION_ATS
 extern const s16 init_ats_tu[2][NUM_ATS_INTRA_TU_FLAG_CTX][2];
-#else
-extern const s16 init_ats_tu_h[2][NUM_ATS_INTRA_TU_FLAG_CTX][2];
-extern const s16 init_ats_tu_v[2][NUM_ATS_INTRA_TU_FLAG_CTX][2];
-#endif
 extern const s16 init_ats_inter_info[2][NUM_SBAC_CTX_ATS_INTER_INFO][2];
 #endif
 
@@ -197,7 +180,7 @@ extern s16 evc_tbl_inv_tr32[NUM_TRANS_TYPE][32][32];
 extern s16 evc_tbl_inv_tr64[NUM_TRANS_TYPE][64][64];
 extern s16 evc_tbl_inv_tr128[NUM_TRANS_TYPE][128][128];
 
-#if DBF == DBF_AVC
+#if (DBF == DBF_AVC) || ADDB_FLAG_FIX
 extern const u8 ALPHA_TABLE[52];
 extern const u8 BETA_TABLE[52];
 extern const u8 CLIP_TAB[52][5];
@@ -207,6 +190,24 @@ extern const int g_min_in_group[LAST_SIGNIFICANT_GROUPS];
 extern const int g_group_idx[MAX_TR_SIZE];
 extern const int g_go_rice_range[MAX_GR_ORDER_RESIDUAL];
 extern const int g_go_rice_para_coeff[32];
+
+#if HDR_MD5_CHECK
+extern int g_lumaInvScaleLUT[DRA_LUT_MAXSIZE];               // LUT for luma and correspionding QP offset
+extern double g_chromaInvScaleLUT[2][DRA_LUT_MAXSIZE];               // LUT for chroma scales 
+extern int g_intChromaInvScaleLUT[2][DRA_LUT_MAXSIZE];               // LUT for chroma scales 
+
+extern u8 g_pic_sign[16];
+extern u8 g_pic_sign_dec_sig[16];
+#endif
+#if HDR_METRIC
+extern const double g_UCF_Filters[8][4][15];
+extern const double g_color_trans[3][3];
+extern const float  g_RGB2XYZ_REC[5][9];
+#endif
+#if M52291_HDR_DRA
+extern const int g_dra_chroma_qp_offset_tbl[NUM_CHROMA_QP_OFFSET_LOG];
+extern const int g_dra_exp_nom_v2[NUM_CHROMA_QP_SCALE_EXP];
+#endif
 #ifdef __cplusplus
 }
 #endif

@@ -143,20 +143,14 @@ void evc_set_affine_mvf(EVCE_CTX * ctx, EVCE_CORE * core, int w, int h, s8 refi[
         map_refi += w_scu;
     }
 
-#if M50761_AFFINE_ADAPT_SUB_SIZE
     // derive sub-block size
     int sub_w = 4, sub_h = 4;
-    derive_affine_subblock_size_bi( mv, refi, core->cuw, core->cuh, &sub_w, &sub_h, vertex_num
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
-      , NULL
-#endif
-    );
+    derive_affine_subblock_size_bi( mv, refi, core->cuw, core->cuh, &sub_w, &sub_h, vertex_num, NULL);
 
     int   sub_w_in_scu = PEL2SCU( sub_w );
     int   sub_h_in_scu = PEL2SCU( sub_h );
     int   half_w = sub_w >> 1;
     int   half_h = sub_h >> 1;
-#endif
 
     for (lidx = 0; lidx < REFP_NUM; lidx++)
     {
@@ -182,16 +176,6 @@ void evc_set_affine_mvf(EVCE_CTX * ctx, EVCE_CORE * core, int w, int h, s8 refi[
                 dmv_ver_x = -dmv_hor_y;                                          // deltaMvVer
                 dmv_ver_y = dmv_hor_x;
             }
-
-#if !M50761_AFFINE_ADAPT_SUB_SIZE
-            // derive sub-block size
-            int sub_w = 4, sub_h = 4;
-            derive_affine_subblock_size( mv[lidx], core->cuw, core->cuh, &sub_w, &sub_h, vertex_num );
-            int   sub_w_in_scu = PEL2SCU( sub_w );
-            int   sub_h_in_scu = PEL2SCU( sub_h );
-            int   half_w = sub_w >> 1;
-            int   half_h = sub_h >> 1;
-#endif
 
             for ( int h = 0; h < h_cu; h += sub_h_in_scu )
             {
@@ -260,13 +244,8 @@ void evce_set_qp(EVCE_CTX *ctx, EVCE_CORE *core, u8 qp)
     core->qp_y = GET_LUMA_QP(core->qp);
     qp_i_cb = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_u));
     qp_i_cr = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_v));
-#if CHROMA_QP_TABLE_SUPPORT_M50663
     core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][qp_i_cb] + 6 * (BIT_DEPTH - 8);
     core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][qp_i_cr] + 6 * (BIT_DEPTH - 8);
-#else
-    core->qp_u = evc_tbl_qp_chroma_ajudst[qp_i_cb] + 6 * (BIT_DEPTH - 8);
-    core->qp_v = evc_tbl_qp_chroma_ajudst[qp_i_cr] + 6 * (BIT_DEPTH - 8);
-#endif
 }
 #endif
 void evce_split_tbl_init(EVCE_CTX *ctx)

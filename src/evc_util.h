@@ -111,11 +111,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 #if M52166_MMVD
     , u32 curr_ptr, u8 num_refp[REFP_NUM]
 #endif
-    , EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh
-#if M50761_TMVP_8X8_GRID
-    , int log2_max_cuwh
-#endif
-);
+    , EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh, int log2_max_cuwh);
 
 void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_scu, int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], u32 *map_scu, u16 avail_lr, int num_mvp, int is_ibc);
 void evc_get_default_motion(int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], s8 cur_refi, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], s8 *refi, s16 mv[MV_D]
@@ -146,19 +142,11 @@ void evc_get_motion_merge_main(int poc, int slice_type, int scup, s8(*map_refi)[
     , u8 ibc_flag
     , EVC_REFP(*refplx)[REFP_NUM]
     , EVC_SH* sh
-#if M50761_TMVP_8X8_GRID
     , int log2_max_cuwh
-#endif
 );
-#if M52165
 void evc_get_merge_insert_mv(s8* refi_dst, s16 *mvp_dst_L0, s16 *mvp_dst_L1, s8* map_refi_src, s16* map_mv_src, int slice_type, int cuw, int cuh, int is_sps_admvp);
-#else
-void evc_get_merge_insert_mv(s8* refi_dst, s16 *mvp_dst_L0, s16 *mvp_dst_L1, s8* map_refi_src, s16* map_mv_src, int slice_type, int cuw, int cuh, int is_sps_amis);
-#endif
-
 void evc_get_motion_skip_baseline(int slice_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],
-    EVC_REFP refp[REFP_NUM], int cuw, int cuh, int w_scu, s8 refi[REFP_NUM][MAX_NUM_MVP], s16 mvp[REFP_NUM][MAX_NUM_MVP][MV_D], u16 avail_lr
-);
+    EVC_REFP refp[REFP_NUM], int cuw, int cuh, int w_scu, s8 refi[REFP_NUM][MAX_NUM_MVP], s16 mvp[REFP_NUM][MAX_NUM_MVP][MV_D], u16 avail_lr);
 void evc_get_mv_collocated(EVC_REFP(*refp)[REFP_NUM], u32 poc, int scup, int c_scu, u16 w_scu, u16 h_scu, s16 mvp[REFP_NUM][MV_D], s8 *availablePredIdx, EVC_SH* sh);
 void evc_get_motion_from_mvr(u8 mvr_idx, int poc, int scup, int lidx, s8 cur_refi, int num_refp, \
                              s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
@@ -259,32 +247,11 @@ void evc_mv_rounding_s32( s32 hor, int ver, s32 * rounded_hor, s32 * rounded_ver
 void evc_rounding_s32(s32 comp, s32 *rounded_comp, int right_shift, int left_shift);
 #endif
 
-#if M50761_AFFINE_ADAPT_SUB_SIZE
-void derive_affine_subblock_size_bi( s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi[REFP_NUM], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
-  , BOOL*mem_band_conditions_for_eif_are_satisfied
-#endif
-);
-#endif
-void derive_affine_subblock_size( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
-  , BOOL*mem_band_conditions_for_eif_are_satisfied
-#endif
-);
+void derive_affine_subblock_size_bi( s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi[REFP_NUM], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num, BOOL*mem_band_conditions_for_eif_are_satisfied);
+void derive_affine_subblock_size( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num, BOOL*mem_band_conditions_for_eif_are_satisfied);
 
-#if M50761_EIF_RESTRICTIONS
-BOOL check_eif_applicability_bi( s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi[REFP_NUM], int cuw, int cuh, int vertex_num
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
-  , BOOL* mem_band_conditions_are_satisfied
-#endif
-);
-
-BOOL check_eif_applicability_uni( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int vertex_num
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
-  , BOOL* mem_band_conditions_are_satisfied
-#endif
-);
-#endif
+BOOL check_eif_applicability_bi( s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi[REFP_NUM], int cuw, int cuh, int vertex_num, BOOL* mem_band_conditions_are_satisfied);
+BOOL check_eif_applicability_uni( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int vertex_num, BOOL* mem_band_conditions_are_satisfied);
 
 void evc_get_affine_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int num_refp, \
                                    s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
@@ -303,14 +270,8 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
                                    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
     , u16 avail_lr
-#if M50761_TMVP_ALIGN_SPEC || M50662_AFFINE_IBC_TMVP_SUCO_FIX
     , EVC_SH * sh
-#endif
 );
-
-#if !EIF_MEMORY_BANDWIDTH_RESTRICTION
-int evc_get_affine_memory_access(s16 mv[VER_NUM][MV_D], int cuw, int cuh);
-#endif
 
 /* MD5 structure */
 typedef struct _EVC_MD5
@@ -354,15 +315,9 @@ u8  *evc_get_dqp_used(int x_scu, int y_scu, int w_scu, u8 * map_dqp_input, int d
 void evc_init_scan_sr(int *scan, int size_x, int size_y, int width, int height, int scan_type);
 void evc_init_inverse_scan_sr(u16 *scan_inv, u16 *scan_orig, int width, int height, int scan_type);
 void evc_get_ctx_last_pos_xy_para(int ch_type, int width, int height, int *result_offset_x, int *result_offset_y, int *result_shift_x, int *result_shift_y);
-#if M50631_IMPROVEMENT_ADCC_CTXGT12
 int evc_get_ctx_gt0_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type);
 int evc_get_ctx_gtA_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type);
 int evc_get_ctx_gtB_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type);
-#else
-int evc_get_ctx_gt0_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y);
-int evc_get_ctx_gtA_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y);
-int evc_get_ctx_gtB_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y);
-#endif
 int evc_get_ctx_remain_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y);
 int get_rice_para(s16 *pcoeff, int blkpos, int width, int height, int base_level);
 #ifdef __cplusplus
@@ -382,11 +337,7 @@ void get_tu_size(u8 ats_inter_info, int log2_cuw, int log2_cuh, int* log2_tuw, i
 void get_tu_pos_offset(u8 ats_inter_info, int log2_cuw, int log2_cuh, int* x_offset, int* y_offset);
 void get_ats_inter_trs(u8 ats_inter_info, int log2_cuw, int log2_cuh, u8* ats_cu, u8* ats_tu);
 void set_cu_cbf_flags(u8 cbf_y, u8 ats_inter_info, int log2_cuw, int log2_cuh, u32 *map_scu, int w_scu);
-#if M52165
 BOOL check_bi_applicability(int slice_type, int cuw, int cuh, int is_sps_admvp);
-#else
-BOOL check_bi_applicability(int slice_type, int cuw, int cuh, int is_sps_amis);
-#endif
 void evc_block_copy(s16 * src, int src_stride, s16 * dst, int dst_stride, int log2_copy_w, int log2_copy_h);
 
 #if M50761_CHROMA_NOT_SPLIT

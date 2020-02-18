@@ -322,13 +322,8 @@ static void deblock_h263_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
             if (evc_check_chroma(tree_cons))
             {
 #endif
-#if CHROMA_QP_TABLE_SUPPORT_M50663
             deblock_scu_hor_chroma(u + (t >> 1), p_evc_tbl_qp_chroma_dynamic[0][qp], s_c, 0, tbl_qp_to_st);
             deblock_scu_hor_chroma(v + (t >> 1), p_evc_tbl_qp_chroma_dynamic[1][qp], s_c, 0, tbl_qp_to_st);
-#else
-            deblock_scu_hor_chroma(u + (t >> 1), evc_tbl_qp_chroma_ajudst[qp], s_c, 0, tbl_qp_to_st);
-            deblock_scu_hor_chroma(v + (t >> 1), evc_tbl_qp_chroma_ajudst[qp], s_c, 0, tbl_qp_to_st);
-#endif
 #if M50761_CHROMA_NOT_SPLIT
             }
 #endif
@@ -413,13 +408,8 @@ static void deblock_h263_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
             if (evc_check_chroma(tree_cons))
             {
 #endif
-#if CHROMA_QP_TABLE_SUPPORT_M50663
                 deblock_scu_ver_chroma(u, p_evc_tbl_qp_chroma_dynamic[0][qp], s_c, 0, tbl_qp_to_st);
                 deblock_scu_ver_chroma(v, p_evc_tbl_qp_chroma_dynamic[1][qp], s_c, 0, tbl_qp_to_st);
-#else
-                deblock_scu_ver_chroma(u, evc_tbl_qp_chroma_ajudst[qp], s_c, 0, tbl_qp_to_st);
-                deblock_scu_ver_chroma(v, evc_tbl_qp_chroma_ajudst[qp], s_c, 0, tbl_qp_to_st);
-#endif
 #if M50761_CHROMA_NOT_SPLIT
             }
 #endif
@@ -470,13 +460,8 @@ static void deblock_h263_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
             if (evc_check_chroma(tree_cons))
             {
 #endif
-#if CHROMA_QP_TABLE_SUPPORT_M50663
                 deblock_scu_ver_chroma(u, p_evc_tbl_qp_chroma_dynamic[0][qp], s_c, 0, tbl_qp_to_st);
                 deblock_scu_ver_chroma(v, p_evc_tbl_qp_chroma_dynamic[1][qp], s_c, 0, tbl_qp_to_st);
-#else
-                deblock_scu_ver_chroma(u, evc_tbl_qp_chroma_ajudst[qp], s_c, 0, tbl_qp_to_st);
-                deblock_scu_ver_chroma(v, evc_tbl_qp_chroma_ajudst[qp], s_c, 0, tbl_qp_to_st);
-#endif
 #if M50761_CHROMA_NOT_SPLIT
             }
 #endif
@@ -527,7 +512,7 @@ const u8 sm_beta_table[MAX_QP + 1] =
 };
 #endif
 
-#if DBF == DBF_AVC
+#if (DBF == DBF_AVC) || ADDB_FLAG_FIX
 static const u8 compare_mvs(const int mv0[2], const int mv1[2])
 {
     // Return 1 if vetors difference less then 1 pixel
@@ -1076,7 +1061,7 @@ static void deblock_scu_hevc_ver(pel *buf, int qp, int stride, int is_luma, u8 b
 }
 #endif
 
-#if DBF == DBF_AVC
+#if (DBF == DBF_AVC) || ADDB_FLAG_FIX
 static void deblock_avc_get_pq(pel *buf, int offset, pel* p, pel* q, int size)
 {
     // p and q has DBF_LENGTH elements
@@ -1266,6 +1251,17 @@ static void deblock_scu_avc_line_luma(pel *buf, int stride, u8 bs, u8 alpha, u8 
 #endif
             }
         }
+#if DBF_CLIP_FIX
+        int pel_max = (1 << BIT_DEPTH) - 1;
+        p_out[0] = EVC_CLIP3(0, pel_max, p_out[0]);
+        q_out[0] = EVC_CLIP3(0, pel_max, q_out[0]);
+        p_out[1] = EVC_CLIP3(0, pel_max, p_out[1]);
+        q_out[1] = EVC_CLIP3(0, pel_max, q_out[1]);
+        p_out[2] = EVC_CLIP3(0, pel_max, p_out[2]);
+        q_out[2] = EVC_CLIP3(0, pel_max, q_out[2]);
+        p_out[3] = EVC_CLIP3(0, pel_max, p_out[3]);
+        q_out[3] = EVC_CLIP3(0, pel_max, q_out[3]);
+#endif
         deblock_avc_set_pq(buf, stride, p_out, q_out, DBF_LENGTH);
     }
 #if TRACE_DBF
@@ -1334,6 +1330,13 @@ static void deblock_scu_avc_line_chroma(pel *buf, int stride, u8 bs, u8 alpha, u
             EVC_TRACE_INT(delta0);
 #endif
         }
+#if DBF_CLIP_FIX
+        int pel_max = (1 << BIT_DEPTH) - 1;
+        p_out[0] = EVC_CLIP3(0, pel_max, p_out[0]);
+        q_out[0] = EVC_CLIP3(0, pel_max, q_out[0]);
+        p_out[1] = EVC_CLIP3(0, pel_max, p_out[1]);
+        q_out[1] = EVC_CLIP3(0, pel_max, q_out[1]);
+#endif
         deblock_avc_set_pq(buf, stride, p_out, q_out, DBF_LENGTH_CHROMA);
     }
 #if TRACE_DBF
@@ -1518,7 +1521,6 @@ static void deblock_avc_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int 
                 if (evc_check_chroma(tree_cons))
                 {
 #endif
-#if CHROMA_QP_TABLE_SUPPORT_M50663
                     t >>= 1;
                     indexA = get_avc_index(p_evc_tbl_qp_chroma_dynamic[0][qp], pic->pic_deblock_alpha_offset);
                     indexB = get_avc_index(p_evc_tbl_qp_chroma_dynamic[0][qp], pic->pic_deblock_beta_offset);
@@ -1535,20 +1537,6 @@ static void deblock_avc_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int 
                     c1 = CLIP_TAB[indexA][bs_cur] << bitdepth_scale;
                     c0 = c1 + 1;
                     deblock_scu_avc_hor_chroma(v + t, s_c, bs_cur, alpha, beta, c0);
-#else
-                indexA = get_avc_index(evc_tbl_qp_chroma_ajudst[qp], pic->pic_deblock_alpha_offset);            //! \todo Add offset for IndexA
-                indexB = get_avc_index(evc_tbl_qp_chroma_ajudst[qp], pic->pic_deblock_beta_offset);            //! \todo Add offset for IndexB
-
-                alpha = ALPHA_TABLE[indexA] << bitdepth_scale;
-                beta = BETA_TABLE[indexB] << bitdepth_scale;
-                c1 = CLIP_TAB[indexA][bs_cur] << bitdepth_scale;
-
-                t >>= 1;
-
-                c0 = c1 + 1;
-                deblock_scu_avc_hor_chroma(u + t, s_c, bs_cur, alpha, beta, c0);
-                deblock_scu_avc_hor_chroma(v + t, s_c, bs_cur, alpha, beta, c0);
-#endif
 #if M50761_CHROMA_NOT_SPLIT
                 }
 #endif
@@ -1636,7 +1624,6 @@ static void deblock_avc_cu_ver_yuv(EVC_PIC *pic, int x_pel, int y_pel, int log2_
             if (evc_check_chroma(tree_cons))
             {
 #endif
-#if CHROMA_QP_TABLE_SUPPORT_M50663
                 indexA = get_avc_index(p_evc_tbl_qp_chroma_dynamic[0][qp], pic->pic_deblock_alpha_offset);
                 indexB = get_avc_index(p_evc_tbl_qp_chroma_dynamic[0][qp], pic->pic_deblock_beta_offset);
 
@@ -1654,17 +1641,6 @@ static void deblock_avc_cu_ver_yuv(EVC_PIC *pic, int x_pel, int y_pel, int log2_
                 c1 = CLIP_TAB[indexA][bs_cur] << bitdepth_scale;
                 c0 = c1 + 1;
                 deblock_scu_avc_ver_chroma(v, s_c, bs_cur, alpha, beta, c0);
-#else
-            indexA = get_avc_index(evc_tbl_qp_chroma_ajudst[qp], pic->pic_deblock_alpha_offset);            //! \todo Add offset for IndexA
-            indexB = get_avc_index(evc_tbl_qp_chroma_ajudst[qp], pic->pic_deblock_beta_offset);            //! \todo Add offset for IndexB
-
-            alpha = ALPHA_TABLE[indexA] << bitdepth_scale;
-            beta = BETA_TABLE[indexB] << bitdepth_scale;
-            c1 = CLIP_TAB[indexA][bs_cur] << bitdepth_scale;
-            c0 = c1 + 1;
-            deblock_scu_avc_ver_chroma(u, s_c, bs_cur, alpha, beta, c0);
-            deblock_scu_avc_ver_chroma(v, s_c, bs_cur, alpha, beta, c0);
-#endif
 #if M50761_CHROMA_NOT_SPLIT
             }
 #endif
@@ -2122,8 +2098,36 @@ void evc_deblock_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
 #if EVC_TILE_SUPPORT
     , u8* map_tidx
 #endif
+#if ADDB_FLAG_FIX
+    , int tool_addb
+#endif
 )
 {
+#if ADDB_FLAG_FIX
+    if (tool_addb)
+    {
+        deblock_avc_cu_hor(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu, log2_max_cuwh, refp
+            , ats_inter_mode
+#if M50761_CHROMA_NOT_SPLIT
+            , tree_cons
+#endif
+#if EVC_TILE_SUPPORT
+            , map_tidx
+#endif
+        );
+}
+    else
+    {
+        deblock_h263_cu_hor(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu
+#if M50761_CHROMA_NOT_SPLIT
+            , tree_cons
+#endif
+#if EVC_TILE_SUPPORT
+            , map_tidx
+#endif
+        );
+    }
+#else
 #if DBF == DBF_HEVC
     deblock_hevc_cu_hor(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu
 #if M50761_CHROMA_NOT_SPLIT
@@ -2150,6 +2154,7 @@ void evc_deblock_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
 #endif
     );
 #endif
+#endif
 }
 
 void evc_deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u32 *map_scu, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int log2_max_cuwh
@@ -2164,8 +2169,43 @@ void evc_deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
 #if EVC_TILE_SUPPORT
     , u8* map_tidx
 #endif
+#if ADDB_FLAG_FIX
+    , int tool_addb
+#endif
 )
 {
+#if ADDB_FLAG_FIX
+    if (tool_addb)
+    {
+        deblock_avc_cu_ver(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu, log2_max_cuwh
+#if FIX_PARALLEL_DBF
+            , map_cu
+#endif
+            , refp
+            , ats_inter_mode
+#if M50761_CHROMA_NOT_SPLIT
+            , tree_cons
+#endif
+#if EVC_TILE_SUPPORT
+            , map_tidx
+#endif
+        );
+}
+    else
+    {
+        deblock_h263_cu_ver(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu
+#if FIX_PARALLEL_DBF
+            , map_cu
+#endif
+#if M50761_CHROMA_NOT_SPLIT
+            , tree_cons
+#endif
+#if EVC_TILE_SUPPORT
+            , map_tidx
+#endif
+        );
+    }
+#else
 #if DBF == DBF_HEVC
     deblock_hevc_cu_ver(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu
 #if FIX_PARALLEL_DBF
@@ -2202,6 +2242,6 @@ void evc_deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
 #endif
     );
 #endif
-
+#endif
 }
 

@@ -61,6 +61,23 @@ int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16])
     {
         return EVC_ERR_BAD_CRC;
     }
+
+#if HDR_MD5_CHECK
+    /* execute HDR MD5 digest here */
+    u8 zero_array[16] = {0};
+    if (memcmp(g_pic_sign_dec_sig, zero_array, 16)) //workaround to avoid writing HDR-related stuff when HDR metric is disabled. TBD in a better way.
+    {
+        if (memcmp(g_pic_sign_dec_sig, g_pic_sign, 16) != 0)
+        {
+            printf("HDR md5 mismatch,\t");
+            exit(-999);
+        }
+        else
+        {
+            printf("HDR md5 check OK,\t");
+        }
+    }
+#endif
     return EVC_OK;
 }
 
@@ -84,20 +101,14 @@ void evcd_set_affine_mvf(EVCD_CTX * ctx, EVCD_CORE * core)
     aff_scup[2] = (h_cu - 1) * w_scu;
     aff_scup[3] = (w_cu - 1) + (h_cu - 1) * w_scu;
 
-#if M50761_AFFINE_ADAPT_SUB_SIZE
     // derive sub-block size
     int sub_w = 4, sub_h = 4;
-    derive_affine_subblock_size_bi( core->affine_mv, core->refi, (1 << core->log2_cuw), (1 << core->log2_cuh), &sub_w, &sub_h, vertex_num
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
-    , NULL
-#endif
-    );
+    derive_affine_subblock_size_bi( core->affine_mv, core->refi, (1 << core->log2_cuw), (1 << core->log2_cuh), &sub_w, &sub_h, vertex_num, NULL);
 
     int   sub_w_in_scu = PEL2SCU( sub_w );
     int   sub_h_in_scu = PEL2SCU( sub_h );
     int   half_w = sub_w >> 1;
     int   half_h = sub_h >> 1;
-#endif
 
     for(lidx = 0; lidx < REFP_NUM; lidx++)
     {
@@ -124,16 +135,6 @@ void evcd_set_affine_mvf(EVCD_CTX * ctx, EVCD_CORE * core)
                 dmv_ver_x = -dmv_hor_y;                                                // deltaMvVer
                 dmv_ver_y = dmv_hor_x;
             }
-
-#if !M50761_AFFINE_ADAPT_SUB_SIZE
-            // derive sub-block size
-            int sub_w = 4, sub_h = 4;
-            derive_affine_subblock_size( core->affine_mv[lidx], (1 << core->log2_cuw), (1 << core->log2_cuh), &sub_w, &sub_h, vertex_num );
-            int   sub_w_in_scu = PEL2SCU( sub_w );
-            int   sub_h_in_scu = PEL2SCU( sub_h );
-            int   half_w = sub_w >> 1;
-            int   half_h = sub_h >> 1;
-#endif
 
             for ( int h = 0; h < h_cu; h += sub_h_in_scu )
             {
@@ -354,17 +355,10 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
                 map_mv[j][REFP_1][MV_X] = core->mv[REFP_1][MV_X];
                 map_mv[j][REFP_1][MV_Y] = core->mv[REFP_1][MV_Y];
 #if DMVR_LAG
-#if M50761_DMVR_SIMP_SPATIAL_MV
                 map_unrefined_mv[j][REFP_0][MV_X] = core->mv[REFP_0][MV_X];
                 map_unrefined_mv[j][REFP_0][MV_Y] = core->mv[REFP_0][MV_Y];
                 map_unrefined_mv[j][REFP_1][MV_X] = core->mv[REFP_1][MV_X];
                 map_unrefined_mv[j][REFP_1][MV_Y] = core->mv[REFP_1][MV_Y];
-#else
-                map_unrefined_mv[j][REFP_0][MV_X] = SHRT_MAX;
-                map_unrefined_mv[j][REFP_0][MV_Y] = SHRT_MAX;
-                map_unrefined_mv[j][REFP_1][MV_X] = SHRT_MAX;
-                map_unrefined_mv[j][REFP_1][MV_Y] = SHRT_MAX;
-#endif
 #endif
 
             }
@@ -806,9 +800,7 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
     }
 #if !M52166_MMVD
     REF_SET[2][0] = ctx->poc.poc_val;
-#if M50632_IMPROVEMENT_MMVD
     REF_SET[2][1] = ctx->dpm.cur_num_ref_pics;
-#endif
 #endif
     cuw = (1 << core->log2_cuw);
     cuh = (1 << core->log2_cuh);
@@ -817,11 +809,7 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #if M52166_MMVD
         , ctx->poc.poc_val, ctx->dpm.num_refp
 #endif
-        , core->history_buffer, ctx->sps.tool_admvp, &ctx->sh
-#if M50761_TMVP_8X8_GRID
-        , ctx->log2_max_cuwh
-#endif
-    );
+        , core->history_buffer, ctx->sps.tool_admvp, &ctx->sh, ctx->log2_max_cuwh);
 
     core->mv[REFP_0][MV_X] = real_mv[core->mmvd_idx][0][MV_X];
     core->mv[REFP_0][MV_Y] = real_mv[core->mmvd_idx][0][MV_Y];
@@ -833,11 +821,8 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
         core->mv[REFP_1][MV_X] = real_mv[core->mmvd_idx][1][MV_X];
         core->mv[REFP_1][MV_Y] = real_mv[core->mmvd_idx][1][MV_Y];
     }
-#if M52165
+
     if ((ctx->sh.slice_type == SLICE_P) || (!check_bi_applicability(ctx->sh.slice_type, cuw, cuh, ctx->sps.tool_admvp)))
-#else
-    if ((ctx->sh.slice_type == SLICE_P) || (!check_bi_applicability(ctx->sh.slice_type, cuw, cuh, ctx->sps.tool_amis)))
-#endif
     {
         core->refi[REFP_1] = -1;
     }

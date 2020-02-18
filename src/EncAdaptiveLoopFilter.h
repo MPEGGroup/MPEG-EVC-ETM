@@ -172,9 +172,7 @@ private:
   AlfCovariance***       m_alfCovariance[MAX_NUM_COMPONENT];          // [compIdx][shapeIdx][ctbAddr][classIdx]
   AlfCovariance**        m_alfCovarianceFrame[MAX_NUM_CHANNEL_TYPE];   // [CHANNEL][shapeIdx][classIdx]
   uint8_t*               m_ctuEnableFlagTmp[MAX_NUM_COMPONENT];
-#if M50662_LUMA_CHROMA_SEPARATE_APS
   uint8_t*               m_ctuEnableFlagTmpLuma;
-#endif
   //for RDO
   AlfSliceParam      m_alfSliceParamTemp;
   AlfCovariance          m_alfCovarianceMerged[ALF_NUM_OF_FILTER_TYPES][MAX_NUM_ALF_CLASSES + 1];
@@ -226,9 +224,7 @@ private:
 #endif
   );
   void   alfTemporalEncoderAPS(CodingStructure& cs, AlfSliceParam* alfSliceParam);
-#if M50662_LUMA_CHROMA_SEPARATE_APS
   void   alfTemporalEncoderAPSComponent(CodingStructure& cs, AlfSliceParam* alfSliceParam);
-#endif
   void   findBestFixedFilter(AlfSliceParam* alfSliceParam, AlfCovariance* cov);
   void   xDeriveCovFromLgrTapFilter(AlfCovariance& covLgr, AlfCovariance& covSml, int* patternSml);
 
@@ -270,8 +266,6 @@ private:
   void setEnableFlag(AlfSliceParam* alfSlicePara, ChannelType channel, uint8_t** ctuFlags);
   void setCtuEnableFlag(uint8_t** ctuFlags, ChannelType channel, uint8_t val);
   void copyCtuEnableFlag(uint8_t** ctuFlagsDst, uint8_t** ctuFlagsSrc, ChannelType channel);
-#if ALF_TILES_SUPPORT_M50663
   void tile_boundary_check(int* availableL, int* availableR, int* availableT, int* availableB, const int width, const int height, int xPos, int yPos, int x_l, int x_r, int y_l, int y_r);
-#endif
 };
 #endif

@@ -47,6 +47,9 @@ extern "C"
 #if EVC_TILE_SUPPORT
     , u8* map_tidx
 #endif
+#if ADDB_FLAG_FIX
+     , int tool_addb
+#endif
 );
 void evc_deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u32 *map_scu, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int log2_max_cuwh
 #if FIX_PARALLEL_DBF
@@ -59,6 +62,9 @@ void evc_deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
 #endif
 #if EVC_TILE_SUPPORT
     , u8 *map_tidx
+#endif
+#if ADDB_FLAG_FIX
+    , int tool_addb
 #endif
 );
 

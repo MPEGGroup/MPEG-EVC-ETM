@@ -281,13 +281,8 @@ BOOL evc_htdf_skip_condition(int width, int height, int IntraBlockFlag, int *qp)
     if(*qp <= 17)
         return TRUE;
 
-#if M50761_HTDF_BLOCK_SIZE_64
     if (width*height < 64)
         return TRUE;
-#else
-    if((width == 4) && (height == 4))
-        return TRUE;
-#endif
 
     int min_size = min(width, height);
     int max_size = max(width, height);

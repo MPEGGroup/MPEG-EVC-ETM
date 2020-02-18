@@ -115,12 +115,7 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
             , s16 dmvr_mv[MAX_CU_CNT_IN_LCU][REFP_NUM][MV_D]
 #endif
 #endif
-#if M52165
-            , int sps_admvp_flag
-#else
-            , int sps_amis_flag
-#endif
-);
+            , int sps_admvp_flag);
 
 void evc_IBC_mc(int x, int y, int log2_cuw, int log2_cuh, s16 mv[MV_D], EVC_PIC *ref_pic, pel pred[N_C][MAX_CU_DIM]
 #if M50761_CHROMA_NOT_SPLIT
@@ -132,15 +127,7 @@ void mv_clip(int x, int y, int pic_w, int pic_h, int w, int h,
              s8 refi[REFP_NUM], s16 mv[REFP_NUM][MV_D], s16(*mv_t)[MV_D]);
 void evc_affine_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16 mv[REFP_NUM][VER_NUM][MV_D], EVC_REFP(*refp)[REFP_NUM], pel pred[2][N_C][MAX_CU_DIM], int vertex_num, pel* tmp_buffer);
 void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 ac_mv[VER_NUM][MV_D], EVC_PIC* ref_pic, pel pred[MAX_CU_DIM], int vertex_num, pel* tmp_buffer);
-void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 ac_mv[VER_NUM][MV_D], EVC_PIC* ref_pic, pel pred[N_C][MAX_CU_DIM], int vertex_num
-#if M50761_AFFINE_ADAPT_SUB_SIZE
-                      , int sub_w, int sub_h
-#endif
-                      , pel* tmp_buffer
-#if M51449_HARMONIZED_AFFINE_BANDWIDTH_CLIPMV_HW
-                      , BOOL mem_band_conditions_for_eif_are_satisfied
-#endif
-);
+void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 ac_mv[VER_NUM][MV_D], EVC_PIC* ref_pic, pel pred[N_C][MAX_CU_DIM], int vertex_num, int sub_w, int sub_h, pel* tmp_buffer, BOOL mem_band_conditions_for_eif_are_satisfied);
 
 void evc_eif_mc(int block_width, int block_height, int x, int y, int mv_scale_hor, int mv_scale_ver, int dmv_hor_x, int dmv_hor_y, int dmv_ver_x, int dmv_ver_y,
                 int hor_max, int ver_max, int hor_min, int ver_min, pel* p_ref, int ref_stride, pel *p_dst, int dst_stride, pel* p_tmp_buf, char affine_mv_prec, s8 comp);
