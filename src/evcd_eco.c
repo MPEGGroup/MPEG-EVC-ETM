@@ -1993,14 +1993,12 @@ void evcd_eco_pred_mode( EVCD_CTX * ctx, EVCD_CORE * core )
 
     BOOL pred_mode_flag = FALSE;
 
-    if ( pred_mode_constraint == eOnlyIntra || ctx->sh.slice_type == SLICE_I )  //TODO: Tim : remove second condition later
+    if ( pred_mode_constraint == eOnlyIntra )  //TODO: Tim : remove second condition later
         core->pred_mode = MODE_INTRA;
     else if ( pred_mode_constraint == eOnlyInter )
         core->pred_mode = MODE_INTER;
     else 
     {
-        evc_assert( pred_mode_constraint == eAll && ctx->sh.slice_type != SLICE_I );
-
         pred_mode_flag = evcd_sbac_decode_bin( bs, sbac, sbac->ctx.pred_mode + ctx->ctx_flags[CNID_PRED_MODE] );
         core->pred_mode = pred_mode_flag ? MODE_INTRA : MODE_INTER;
     }
