@@ -2758,7 +2758,7 @@ int evcd_decode(EVCD id, EVC_BITB * bitb, EVCD_STAT * stat)
 #if M52291_HDR_DRA
     ctx->void_aps_gen_array = p_draParams;
 //#else
-    ctx->p_draParams = p_draParams;
+    //ctx->p_draParams = p_draParams;
 #endif
     evc_assert_rv(ctx->fn_dec_cnk, EVC_ERR_UNEXPECTED);
 
