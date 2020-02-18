@@ -1554,8 +1554,8 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
 
         assert( mode_cons != eOnlyInter || !( ctx->sps.sps_btt_flag && log2_cuw == 2 && log2_cuh == 2 ) );
 
-        if ( ( ctx->sh.slice_type == SLICE_I ) || ( ctx->sps.sps_btt_flag && log2_cuw == 2 && log2_cuh == 2 ) )
-          mode_cons = eOnlyIntra;
+        if ( /*( ctx->sh.slice_type == SLICE_I ) || TODO:Tim process it*/ ( ctx->sps.sps_btt_flag && log2_cuw == 2 && log2_cuh == 2 ) )
+          mode_cons = eOnlyIntra;   
 #endif
 
         ret = evcd_eco_unit(ctx, core, x0, y0, log2_cuw, log2_cuh
