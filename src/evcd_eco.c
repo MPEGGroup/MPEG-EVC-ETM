@@ -1993,16 +1993,8 @@ void evcd_eco_pred_mode( EVCD_CTX * ctx, EVCD_CORE * core )
 
     BOOL pred_mode_flag = FALSE;
 
-    if ( pred_mode_constraint == eOnlyIntra )  //TODO: Tim : remove second condition later
-        core->pred_mode = MODE_INTRA;
-    else if ( pred_mode_constraint == eOnlyInter )
-        core->pred_mode = MODE_INTER;
-    else 
-    {
+    if ( pred_mode_constraint == eAll )
         pred_mode_flag = evcd_sbac_decode_bin( bs, sbac, sbac->ctx.pred_mode + ctx->ctx_flags[CNID_PRED_MODE] );
-        core->pred_mode = pred_mode_flag ? MODE_INTRA : MODE_INTER;
-    }
-
 
     BOOL isIbcAllowed = ctx->sps.ibc_flag &&
         core->log2_cuw <= ctx->sps.ibc_log_max_size && core->log2_cuh <= ctx->sps.ibc_log_max_size &&
@@ -2017,6 +2009,12 @@ void evcd_eco_pred_mode( EVCD_CTX * ctx, EVCD_CORE * core )
 
     if ( core->ibc_flag )
         core->pred_mode = MODE_IBC;
+    else if ( pred_mode_constraint == eOnlyInter )
+        core->pred_mode = MODE_INTER;
+    else if( pred_mode_constraint == eOnlyIntra )
+        core->pred_mode = MODE_INTRA;
+    else 
+        core->pred_mode = pred_mode_flag ? MODE_INTRA : MODE_INTER;
 
     EVC_TRACE_COUNTER;
     EVC_TRACE_STR( "pred mode " );
