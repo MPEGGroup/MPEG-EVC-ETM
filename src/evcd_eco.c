@@ -1986,16 +1986,20 @@ void evcd_eco_pred_mode( EVCD_CTX * ctx, EVCD_CORE * core )
 {
     EVC_BSR     *bs = &ctx->bs;
     EVCD_SBAC   *sbac = GET_SBAC_DEC( bs );
+    BOOL        pred_mode_constraint = ctx->tree_cons.mode_cons;
+
+    if ( ctx->sh.slice_type == SLICE_I )        
+        pred_mode_constraint = eOnlyIntra;          //TODO: Tim : remove this code later after full refactoring
 
     BOOL pred_mode_flag = FALSE;
 
-    if ( ctx->tree_cons.mode_cons == eOnlyIntra || ctx->sh.slice_type == SLICE_I )  //TODO: Tim : remove second condition later
+    if ( pred_mode_constraint == eOnlyIntra || ctx->sh.slice_type == SLICE_I )  //TODO: Tim : remove second condition later
         core->pred_mode = MODE_INTRA;
-    else if ( ctx->tree_cons.mode_cons == eOnlyInter )
+    else if ( pred_mode_constraint == eOnlyInter )
         core->pred_mode = MODE_INTER;
     else 
     {
-        evc_assert( ctx->tree_cons.mode_cons == eAll && ctx->sh.slice_type != SLICE_I );
+        evc_assert( pred_mode_constraint == eAll && ctx->sh.slice_type != SLICE_I );
 
         pred_mode_flag = evcd_sbac_decode_bin( bs, sbac, sbac->ctx.pred_mode + ctx->ctx_flags[CNID_PRED_MODE] );
         core->pred_mode = pred_mode_flag ? MODE_INTRA : MODE_INTER;
@@ -2005,8 +2009,8 @@ void evcd_eco_pred_mode( EVCD_CTX * ctx, EVCD_CORE * core )
     BOOL isIbcAllowed = ctx->sps.ibc_flag &&
         core->log2_cuw <= ctx->sps.ibc_log_max_size && core->log2_cuh <= ctx->sps.ibc_log_max_size &&
         ctx->tree_cons.tree_type != TREE_C &&
-        ctx->tree_cons.mode_cons != eOnlyInter &&
-        !( ctx->tree_cons.mode_cons == eAll && pred_mode_flag );
+        pred_mode_constraint != eOnlyInter &&
+        !( pred_mode_constraint == eAll && pred_mode_flag );
 
     core->ibc_flag = FALSE;
 
