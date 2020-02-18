@@ -499,6 +499,11 @@ static void set_pps(EVCE_CTX * ctx, EVC_PPS * pps)
             pps->pic_dra_aps_id = (p_aps + 1)->aps_id;
         }
     }
+    else
+    {
+        pps->pic_dra_enabled_present_flag = 0;
+        pps->pic_dra_enabled_flag = 0;
+    }
 #endif
 #endif
 }

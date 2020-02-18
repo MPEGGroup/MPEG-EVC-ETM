@@ -675,9 +675,9 @@ static EVC_ARGS_OPTION options[] = \
         "cr qp offset"
     },
     {
-         EVC_ARGS_NO_KEY,  "ats", EVC_ARGS_VAL_TYPE_INTEGER,
-         &op_flag[OP_TOOL_ATS], &op_tool_ats,
-         "ats on/off flag"
+        EVC_ARGS_NO_KEY, "ats", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_TOOL_ATS], &op_tool_ats,
+        "ats on/off flag"
     },
     {
         EVC_ARGS_NO_KEY,  "constrained_intra_pred", EVC_ARGS_VAL_TYPE_INTEGER,
@@ -770,11 +770,11 @@ static EVC_ARGS_OPTION options[] = \
     },
 
 #if M52291_HDR_DRA
-        {
-            EVC_ARGS_NO_KEY,  "dra_enable_flag", EVC_ARGS_VAL_TYPE_INTEGER,
-            &op_flag[OP_DRA_ENABLE_FLAG], &op_dra_enable_flag,
-            "op_dra_enable_flag"
-        },
+    {
+        EVC_ARGS_NO_KEY,  "dra_enable_flag", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_DRA_ENABLE_FLAG], &op_dra_enable_flag,
+        "op_dra_enable_flag"
+    },
     {
         EVC_ARGS_NO_KEY,  "dra_number_ranges", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_DRA_NUMBER_RANGES], &op_dra_number_ranges,
@@ -1518,8 +1518,6 @@ static void print_enc_conf(EVCE_CDSC * cdsc)
     printf("ChromaQPTable: %d ", cdsc->chroma_qp_table_struct.chroma_qp_table_present_flag);
 #if M52291_HDR_DRA
     printf("DRA: %d ", cdsc->tool_dra);
-//#else
-    printf("DRA: %d ", ((WCGDDRAControl *)cdsc->m_DRAMappingApp)->m_flagEnabled);
 #endif
     printf("\n");
 }
@@ -2614,7 +2612,7 @@ static int write_rec(IMGB_LIST *list, EVC_MTIME *ts)
             if(op_flag[OP_FLAG_FNAME_REC])
             {
 #if M52291_HDR_DRA
-                if (p_DRAMapping->m_signalledDRA.m_signal_dra_flag)
+                if (p_DRAMapping->m_signalledDRA.m_signal_dra_flag == 1)
                 {
                     evc_apply_dra_chroma_plane(list[i].imgb, list[i].imgb, p_DRAMapping, 1, TRUE/*backwardMapping == false*/);
                     evc_apply_dra_chroma_plane(list[i].imgb, list[i].imgb, p_DRAMapping, 2, TRUE /*backwardMapping == false*/);
@@ -2885,6 +2883,9 @@ int main(int argc, const char **argv)
             aps_gen_array[1].signal_flag = 1;
             aps_gen_array[1].aps_id = 0;  // initial DRA APS
         }
+    }
+    else {
+        p_g_dra_control->m_signalledDRA.m_signal_dra_flag = 0;
     }
 #endif
 #if M52291_HDR_DRA

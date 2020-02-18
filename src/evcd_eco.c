@@ -2625,6 +2625,11 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps)
         pps->pic_dra_enabled_flag = evc_bsr_read1(bs);
         pps->pic_dra_aps_id = evc_bsr_read(bs, APS_TYPE_ID_BITS);
     }
+    else
+    {
+        pps->pic_dra_enabled_present_flag = 0;
+        pps->pic_dra_enabled_flag = 0;
+    }
 #endif
 
     pps->arbitrary_slice_present_flag = evc_bsr_read1(bs);
