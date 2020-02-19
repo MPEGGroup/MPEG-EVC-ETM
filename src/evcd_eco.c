@@ -445,11 +445,7 @@ static int evcd_eco_run_length_cc(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int l
 
     do
     {
-#if CTX_MODEL_FOR_RESIDUAL_IN_BASE
-        t0 = ((EVC_MIN(prev_level - 1, 5)) << 1) + (ch_type == Y_C ? 0 : 12);
-#else
         t0 = sbac->ctx.sps_cm_init_flag == 1 ? ((EVC_MIN(prev_level - 1, 5)) << 1) + (ch_type == Y_C ? 0 : 12) : (ch_type == Y_C ? 0 : 2);
-#endif
 
         /* Run parsing */
         run = sbac_read_unary_sym(bs, sbac, sbac_ctx->run + t0, 2);
@@ -496,11 +492,8 @@ static int evcd_eco_run_length_cc(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int l
 static int evcd_eco_ats_intra_cu(EVC_BSR* bs, EVCD_SBAC* sbac, u8 ctx)
 {
     u32 t0;
-#if M50632_SIMPLIFICATION_ATS
     t0 = sbac_decode_bin_ep(bs, sbac);
-#else
-    t0 = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ats_intra_cu + ctx);
-#endif
+
     EVC_TRACE_COUNTER;
     EVC_TRACE_STR("ats intra CU ");
     EVC_TRACE_INT(t0);
@@ -513,11 +506,8 @@ static int evcd_eco_ats_tu_h(EVC_BSR * bs, EVCD_SBAC * sbac, u8 ctx)
 {
     u32 t0;
 
-#if M50632_SIMPLIFICATION_ATS
     t0 = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ats_tu + ctx);
-#else
-    t0 = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ats_tu_h + ctx);
-#endif
+
     EVC_TRACE_COUNTER;
     EVC_TRACE_STR("ats intra tuH ");
     EVC_TRACE_INT(t0);
@@ -530,11 +520,8 @@ static int evcd_eco_ats_tu_v(EVC_BSR * bs, EVCD_SBAC * sbac, u8 ctx)
 {
     u32 t0;
 
-#if M50632_SIMPLIFICATION_ATS
     t0 = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ats_tu + ctx);
-#else
-    t0 = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ats_tu_v + ctx);
-#endif
+
     EVC_TRACE_COUNTER;
     EVC_TRACE_STR("ats intra tuV ");
     EVC_TRACE_INT(t0);
@@ -732,11 +719,7 @@ static int evcd_eco_ccA(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int log2_w, int
                 }
                 else
                 {
-#if M50631_IMPROVEMENT_ADCC_CTXGT12
                     ctx_gt0 = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gt0_inc(coef, blkpos, width, height, ch_type) : 0;
-#else
-                    ctx_gt0 = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gt0_inc(coef, blkpos, width, height, ch_type, sr_x, sr_y) : 0;
-#endif
                 }
 
                 if (!(ipos == scan_pos_last)) // skipping signaling flag for last, we know it is non-zero
@@ -787,11 +770,7 @@ static int evcd_eco_ccA(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int log2_w, int
                 {
                     if (pos[idx] != pos_last)
                     {
-#if M50631_IMPROVEMENT_ADCC_CTXGT12
                         ctx_gtA = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gtA_inc(coef, pos[idx], width, height, ch_type) : 0;
-#else
-                        ctx_gtA = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gtA_inc(coef, pos[idx], width, height, ch_type, sr_x, sr_y) : 0;
-#endif
                     }
                     bin = evcd_sbac_decode_bin(bs, sbac, cm_gtx + ctx_gtA);
                     coef[pos[idx]] += bin;
@@ -812,11 +791,7 @@ static int evcd_eco_ccA(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int log2_w, int
                 {
                     if (pos[firstC2FlagIdx] != pos_last)
                     {
-#if M50631_IMPROVEMENT_ADCC_CTXGT12
                         ctx_gtB = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gtB_inc(coef, pos[firstC2FlagIdx], width, height, ch_type) : 0;
-#else
-                        ctx_gtB = sbac->ctx.sps_cm_init_flag == 1 ? evc_get_ctx_gtB_inc(coef, pos[firstC2FlagIdx], width, height, ch_type, sr_x, sr_y) : 0;
-#endif
                     }
                     bin = evcd_sbac_decode_bin(bs, sbac, cm_gtx + ctx_gtB);
                     coef[pos[firstC2FlagIdx]] += bin;
@@ -930,19 +905,13 @@ static int evcd_eco_refi(EVC_BSR * bs, EVCD_SBAC * sbac, int num_refp)
     }
     return ref_num;
 }
-#if M52165
+
 static int evcd_eco_mvp_idx(EVC_BSR * bs, EVCD_SBAC * sbac, int sps_admvp_flag)
-#else
-static int evcd_eco_mvp_idx(EVC_BSR * bs, EVCD_SBAC * sbac, int sps_amis_flag)
-#endif
 {
 #if ENC_DEC_TRACE
     int idx;
-#if M52165
+
     if (sps_admvp_flag == 1)
-#else
-    if(sps_amis_flag == 1)
-#endif
     {
         idx = sbac_read_truncate_unary_sym(bs, sbac, sbac->ctx.mvp_idx, NUM_MVP_IDX_CTX, MAX_NUM_MVP);
     }
@@ -958,11 +927,8 @@ static int evcd_eco_mvp_idx(EVC_BSR * bs, EVCD_SBAC * sbac, int sps_amis_flag)
 
     return idx;
 #else
-#if M52165
+
     if(sps_admvp_flag == 1)
-#else
-    if(sps_amis_flag == 1)
-#endif
     {
         return sbac_read_truncate_unary_sym(bs, sbac, sbac->ctx.mvp_idx, NUM_MVP_IDX_CTX, MAX_NUM_MVP);
     }
@@ -1186,11 +1152,8 @@ int evcd_eco_coef(EVCD_CTX * ctx, EVCD_CORE * core)
     b_no_cbf |= core->pred_mode == MODE_DIR && core->affine_flag;
     b_no_cbf |= core->pred_mode == MODE_DIR_MMVD;
     b_no_cbf |= core->pred_mode == MODE_DIR;
-#if M52165
+
     if(ctx->sps.tool_admvp == 0)
-#else
-    if(ctx->sps.tool_amis == 0)
-#endif
     {
         b_no_cbf = 0;
     }
@@ -1251,14 +1214,8 @@ int evcd_eco_coef(EVCD_CTX * ctx, EVCD_CORE * core)
 
                     qp_i_cb = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_u));
                     qp_i_cr = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_v));
-
-#if CHROMA_QP_TABLE_SUPPORT_M50663
                     core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][qp_i_cb] + 6 * (BIT_DEPTH - 8);
                     core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][qp_i_cr] + 6 * (BIT_DEPTH - 8);
-#else
-                    core->qp_u = evc_tbl_qp_chroma_ajudst[qp_i_cb] + 6 * (BIT_DEPTH - 8);
-                    core->qp_v = evc_tbl_qp_chroma_ajudst[qp_i_cr] + 6 * (BIT_DEPTH - 8);
-#endif
                 }
 #endif
                 if (ctx->sps.tool_ats && cbf[Y_C] && (core->log2_cuw <= 5 && core->log2_cuh <= 5) && is_intra)
@@ -1266,22 +1223,15 @@ int evcd_eco_coef(EVCD_CTX * ctx, EVCD_CORE * core)
 #if M50761_CHROMA_NOT_SPLIT
                     evc_assert(!evcd_check_only_inter(ctx));
 #endif
-                  
-#if M50632_SIMPLIFICATION_ATS 
+
                     ats_intra_cu_on = evcd_eco_ats_intra_cu(bs, sbac, 0);
-#else
-                    ats_intra_cu_on = evcd_eco_ats_intra_cu(bs, sbac, sbac->ctx.sps_cm_init_flag == 1 ? ((core->log2_cuw > core->log2_cuh) ? core->log2_cuw : core->log2_cuh) - MIN_CU_LOG2 : 0);
-#endif
+
                     ats_tu_mode = 0;
                     if (ats_intra_cu_on)
                     {
-#if M50632_SIMPLIFICATION_ATS
                         u8 ats_intra_tu_h = evcd_eco_ats_tu_h(bs, sbac, 0);
                         u8 ats_intra_tu_v = evcd_eco_ats_tu_v(bs, sbac, 0);
-#else
-                        u8 ats_intra_tu_h = evcd_eco_ats_tu_h(bs, sbac, is_intra);
-                        u8 ats_intra_tu_v = evcd_eco_ats_tu_v(bs, sbac, is_intra);
-#endif
+
                         ats_tu_mode = ((ats_intra_tu_h << 1) | ats_intra_tu_v);
                     }
                 }
@@ -1393,13 +1343,8 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_in
         evc_eco_sbac_ctx_initialize(sbac_ctx->delta_qp, (s16*)init_dqp, NUM_DELTA_QP_CTX, slice_type, slice_qp);
 #endif
 
-#if M50631_IMPROVEMENT_ADCC_CTXINIT
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gt0, (s16*)init_cc_gt0_4, NUM_CTX_GT0, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gtA, (s16*)init_cc_gtA_4, NUM_CTX_GTA, slice_type, slice_qp);
-#else
-        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gt0, (s16*)init_cc_gt0_3, NUM_CTX_GT0, slice_type, slice_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gtA, (s16*)init_cc_gtA_3, NUM_CTX_GTA, slice_type, slice_qp);
-#endif
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_x, (s16*)init_cc_scanr_x_3, NUM_CTX_SCANR, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_y, (s16*)init_cc_scanr_y_3, NUM_CTX_SCANR, slice_type, slice_qp);
 
@@ -1441,12 +1386,7 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_in
         evc_eco_sbac_ctx_initialize(sbac_ctx->skip_flag, (s16*)init_skip_flag, NUM_SBAC_CTX_SKIP_FLAG, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->ibc_flag, (s16*)init_ibc_flag, NUM_SBAC_CTX_IBC_FLAG, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_intra_cu, (s16*)init_ats_intra_cu, NUM_ATS_INTRA_CU_FLAG_CTX, slice_type, slice_qp);
-#if M50632_SIMPLIFICATION_ATS
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_tu, (s16*)init_ats_tu, NUM_ATS_INTRA_TU_FLAG_CTX, slice_type, slice_qp);
-#else
-        evc_eco_sbac_ctx_initialize(sbac_ctx->ats_tu_h, (s16*)init_ats_tu_h, NUM_ATS_INTRA_TU_FLAG_CTX, slice_type, slice_qp);
-        evc_eco_sbac_ctx_initialize(sbac_ctx->ats_tu_v, (s16*)init_ats_tu_v, NUM_ATS_INTRA_TU_FLAG_CTX, slice_type, slice_qp);
-#endif
         evc_eco_sbac_ctx_initialize(sbac_ctx->ats_inter_info, (s16*)init_ats_inter_info, NUM_SBAC_CTX_ATS_INTER_INFO, slice_type, slice_qp);
     }
     else
@@ -1501,12 +1441,7 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_in
         for (i = 0; i < NUM_SBAC_CTX_SKIP_FLAG; i++)  sbac_ctx->skip_flag[i] = PROB_INIT;
         for (i = 0; i < NUM_SBAC_CTX_IBC_FLAG; i++) sbac_ctx->ibc_flag[i] = PROB_INIT;
         for (i = 0; i < NUM_ATS_INTRA_CU_FLAG_CTX; i++) sbac_ctx->ats_intra_cu[i] = PROB_INIT;
-#if M50632_SIMPLIFICATION_ATS
         for (i = 0; i < NUM_ATS_INTRA_TU_FLAG_CTX; i++) sbac_ctx->ats_tu[i] = PROB_INIT;
-#else
-        for (i = 0; i < NUM_ATS_INTRA_TU_FLAG_CTX; i++) sbac_ctx->ats_tu_h[i] = PROB_INIT;
-        for (i = 0; i < NUM_ATS_INTRA_TU_FLAG_CTX; i++) sbac_ctx->ats_tu_v[i] = PROB_INIT;
-#endif
         for (i = 0; i < NUM_SBAC_CTX_ATS_INTER_INFO; i++) sbac_ctx->ats_inter_info[i] = PROB_INIT;
     }
 }
@@ -1685,14 +1620,11 @@ void evcd_eco_inter_pred_idc(EVCD_CTX * ctx, EVCD_CORE * core)
     bs = &ctx->bs;
     sbac = GET_SBAC_DEC(bs);
 
-#if REMOVE_BI_INTERDIR
-#if M52165
     if (check_bi_applicability(ctx->sh.slice_type, 1 << core->log2_cuw, 1 << core->log2_cuh, ctx->sps.tool_admvp))
-#else
-    if (check_bi_applicability(ctx->sh.slice_type, 1 << core->log2_cuw, 1 << core->log2_cuh, ctx->sps.tool_amis))
-#endif
-#endif
-    tmp = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.inter_dir + 1);
+    {
+        tmp = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.inter_dir + 1);
+    }
+
     if (!tmp)
     {
         core->inter_dir = PRED_BI;
@@ -1949,51 +1881,26 @@ void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
     sbac = GET_SBAC_DEC(bs);
 
     /* get pred_mode */
-#if M52165
     if (ctx->sh.slice_type != SLICE_I && !(!ctx->sps.ibc_flag && ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
-#else
-    if (ctx->sh.slice_type != SLICE_I && !(!ctx->sps.ibc_flag && ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
-#endif
-
-#if 0
-        //#error if not IBC the condition was different. Check me please 
-#if M52165
-        if (ctx->sh.slice_type != SLICE_I && !(ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2
-#else
-        if (ctx->sh.slice_type != SLICE_I && !(ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2
-#endif
-#if M50761_CHROMA_NOT_SPLIT
-            && evcd_check_only_inter(ctx)
-#endif
-            ))
-#endif
-        {
+    {
 #if M50761_CHROMA_NOT_SPLIT
             if (!evcd_check_all_preds(ctx))
                 core->pred_mode = evcd_check_only_inter(ctx) ? MODE_INTER : MODE_INTRA;
             else
             {
 #endif
-#if FIX_IBC_PRED_MODE_4x4
-#if M52165
                 if (ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2)
-#else
-                if (ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2)
-#endif
                 {
                     core->pred_mode = MODE_INTRA;
                 }
                 else
                 {
-#endif
                     core->pred_mode = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.pred_mode + ctx->ctx_flags[CNID_PRED_MODE]) ? MODE_INTRA : MODE_INTER;
                     EVC_TRACE_COUNTER;
                     EVC_TRACE_STR("pred mode ");
                     EVC_TRACE_INT(core->pred_mode);
                     EVC_TRACE_STR("\n");
-#if FIX_IBC_PRED_MODE_4x4
                 }
-#endif
 #if M50761_CHROMA_NOT_SPLIT
             }
 #endif
@@ -2001,13 +1908,7 @@ void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
 #if M50761_CHROMA_NOT_SPLIT
                 || evcd_check_only_intra(ctx)
 #endif
-#if FIX_IBC_PRED_MODE_4x4
-#if M52165
                 || (ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2)
-#else
-                || (ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2)
-#endif
-#endif
                 )
 #if M50761_CHROMA_NOT_SPLIT
                 && evcd_check_luma(ctx) && !evcd_check_only_inter(ctx)
@@ -2164,11 +2065,8 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
     }
 #endif
     evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, ctx->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init, ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size);
-#if M52165
+
     if (ctx->sh.slice_type != SLICE_I && !(ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2)
-#else
-    if (ctx->sh.slice_type != SLICE_I && !(ctx->sps.tool_amis && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2)
-#endif
 #if M50761_CHROMA_NOT_SPLIT
         && (evcd_check_only_inter(ctx) || evcd_check_all_preds(ctx))
 #endif
@@ -2203,19 +2101,11 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
             }
             else
             {
-#if M52165
                 core->mvp_idx[REFP_0] = evcd_eco_mvp_idx(bs, sbac, ctx->sps.tool_admvp);
                 if (ctx->sps.tool_admvp == 0 && ctx->sh.slice_type == SLICE_B)
                 {
                     core->mvp_idx[REFP_1] = evcd_eco_mvp_idx(bs, sbac, ctx->sps.tool_admvp);
                 }
-#else
-                core->mvp_idx[REFP_0] = evcd_eco_mvp_idx(bs, sbac, ctx->sps.tool_amis);
-                if (ctx->sps.tool_amis == 0 && ctx->sh.slice_type == SLICE_B)
-                {
-                    core->mvp_idx[REFP_1] = evcd_eco_mvp_idx(bs, sbac, ctx->sps.tool_amis);
-                }
-#endif
                 else
                 {
                     core->mvp_idx[REFP_1] = core->mvp_idx[REFP_0];
@@ -2234,13 +2124,9 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
 
             qp_i_cb = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_u));
             qp_i_cr = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_v));
-#if CHROMA_QP_TABLE_SUPPORT_M50663
+
             core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][qp_i_cb] + 6 * (BIT_DEPTH - 8);
             core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][qp_i_cr] + 6 * (BIT_DEPTH - 8);
-#else
-            core->qp_u = evc_tbl_qp_chroma_ajudst[qp_i_cb] + 6 * (BIT_DEPTH - 8);
-            core->qp_v = evc_tbl_qp_chroma_ajudst[qp_i_cr] + 6 * (BIT_DEPTH - 8);
-#endif
         }
         else
         {
@@ -2252,13 +2138,8 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
             qp_i_cb = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_u));
             qp_i_cr = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_v));
 
-#if CHROMA_QP_TABLE_SUPPORT_M50663
             core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][qp_i_cb] + 6 * (BIT_DEPTH - 8);
             core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][qp_i_cr] + 6 * (BIT_DEPTH - 8);
-#else
-            core->qp_u = evc_tbl_qp_chroma_ajudst[qp_i_cb] + 6 * (BIT_DEPTH - 8);
-            core->qp_v = evc_tbl_qp_chroma_ajudst[qp_i_cr] + 6 * (BIT_DEPTH - 8);
-#endif
         }
 #endif
     }
@@ -2278,11 +2159,8 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                 EVC_TRACE_STR("\n");
 #endif
             }
-#if M52165
+
             if (ctx->sps.tool_admvp == 0)
-#else
-            if (ctx->sps.tool_amis == 0)
-#endif
             {
                 evcd_eco_direct_mode_flag(ctx, core);
             }
@@ -2293,11 +2171,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
             
             if (core->inter_dir == PRED_DIR)
             {
-#if M52165
                 if (ctx->sps.tool_admvp != 0)
-#else
-                if (ctx->sps.tool_amis != 0)
-#endif
                 {
                     if (ctx->sps.tool_mmvd)
                     {
@@ -2323,11 +2197,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                         }
                         else
                         {
-#if M52165
                             core->mvp_idx[REFP_0] = evcd_eco_mvp_idx(bs, sbac, ctx->sps.tool_admvp);
-#else
-                            core->mvp_idx[REFP_0] = evcd_eco_mvp_idx(bs, sbac, ctx->sps.tool_amis);
-#endif
                             core->mvp_idx[REFP_1] = core->mvp_idx[REFP_0];
                         }
                     }
@@ -2372,11 +2242,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                 }
                 else
                 {
-#if M52165
                     if (ctx->sps.tool_admvp == 1 && core->inter_dir == PRED_BI)
-#else
-                    if (ctx->sps.tool_amis == 1 && core->inter_dir == PRED_BI)
-#endif
                     {
                         core->bi_idx = evcd_eco_bi_idx(bs, sbac) + 1;
 #if TRACE_ADDITIONAL_FLAGS
@@ -2391,18 +2257,10 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                         /* 0: forward, 1: backward */
                         if (((core->inter_dir + 1) >> inter_dir_idx) & 1)
                         {
-#if M52165
                             if (ctx->sps.tool_admvp == 0)
-#else
-                            if (ctx->sps.tool_amis == 0)
-#endif
                             {
                                 core->refi[inter_dir_idx] = evcd_eco_refi(bs, sbac, ctx->dpm.num_refp[inter_dir_idx]);
-#if M52165
                                 core->mvp_idx[inter_dir_idx] = evcd_eco_mvp_idx(bs, sbac, ctx->sps.tool_admvp);
-#else
-                                core->mvp_idx[inter_dir_idx] = evcd_eco_mvp_idx(bs, sbac, ctx->sps.tool_amis);
-#endif
                                 evcd_eco_get_mvd(bs, sbac, core->mvd[inter_dir_idx]);
                             }
                             else
@@ -2562,15 +2420,10 @@ int evcd_eco_vui(EVC_BSR * bs)
 int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
 {
     sps->sps_seq_parameter_set_id = (u32)evc_bsr_read_ue(bs);
-#if CHROMA_QP_TABLE_SUPPORT_M50663
     sps->profile_idc = evc_bsr_read(bs, 8);
     sps->level_idc = evc_bsr_read(bs, 8);
     sps->toolset_idc_h = evc_bsr_read(bs, 32);
     sps->toolset_idc_l = evc_bsr_read(bs, 32);
-#else
-    sps->profile_idc = evc_bsr_read(bs, 7);
-    sps->level_idc = evc_bsr_read(bs, 8);
-#endif
     sps->chroma_format_idc = (u32)evc_bsr_read_ue(bs);
     sps->pic_width_in_luma_samples = (u32)evc_bsr_read_ue(bs);
     sps->pic_height_in_luma_samples = (u32)evc_bsr_read_ue(bs);
@@ -2603,17 +2456,10 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
         sps->log2_diff_ctu_size_max_suco_cb_size = (u32)evc_bsr_read_ue(bs);
         sps->log2_diff_max_suco_min_suco_cb_size = (u32)evc_bsr_read_ue(bs);
     }
-#if M50632_IMPROVEMENT_SPS
-#if M52165
+
     sps->tool_admvp = evc_bsr_read1(bs);
     if (sps->tool_admvp)
     {
-#else
-    sps->tool_amis = evc_bsr_read1(bs);
-    if(sps->tool_amis)
-    {
-        sps->tool_admvp = evc_bsr_read1(bs);
-#endif
         sps->tool_affine = evc_bsr_read1(bs);
         sps->tool_amvr = evc_bsr_read1(bs);
         sps->tool_dmvr = evc_bsr_read1(bs);
@@ -2641,39 +2487,14 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
     {
         sps->tool_ats = evc_bsr_read1(bs);
     }
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
     sps->tool_addb = evc_bsr_read1(bs);
 #endif
-#if QC_DRA
+#if M52291_HDR_DRA
     sps->tool_dra = evc_bsr_read1(bs);
 #endif
     sps->tool_alf = evc_bsr_read1(bs);
     sps->tool_htdf = evc_bsr_read1(bs);
-#else
-    sps->tool_amvr = evc_bsr_read1(bs);
-    sps->tool_mmvd = evc_bsr_read1(bs);
-    sps->tool_affine = evc_bsr_read1(bs);
-    sps->tool_dmvr = evc_bsr_read1(bs);
-#if QC_ADD_ADDB_FLAG
-    sps->tool_addb = evc_bsr_read1(bs);
-#endif
-    sps->tool_alf = evc_bsr_read1(bs);
-    sps->tool_admvp = evc_bsr_read1(bs);
-    sps->tool_eipd = evc_bsr_read1(bs);
-#if !M52165
-    sps->tool_amis = evc_bsr_read1(bs);
-#endif
-    sps->tool_iqt = evc_bsr_read1(bs);
-    sps->tool_htdf = evc_bsr_read1(bs);
-    sps->tool_adcc = evc_bsr_read1(bs);
-    sps->tool_cm_init = evc_bsr_read1(bs);
-    sps->ibc_flag = evc_bsr_read1(bs);
-    if (sps->ibc_flag)
-    {
-        sps->ibc_log_max_size = (u32)evc_bsr_read_ue(bs) + 2;
-    }
-    sps->tool_ats = evc_bsr_read1(bs);
-#endif
     sps->tool_rpl = evc_bsr_read1(bs);
     sps->tool_pocs = evc_bsr_read1(bs);
 #if DQP
@@ -2727,7 +2548,7 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
         sps->picture_crop_top_offset = (u32)evc_bsr_read_ue(bs);
         sps->picture_crop_bottom_offset = (u32)evc_bsr_read_ue(bs);
     }
-#if CHROMA_QP_TABLE_SUPPORT_M50663
+
     sps->chroma_qp_table_struct.chroma_qp_table_present_flag = evc_bsr_read1(bs);
     if (sps->chroma_qp_table_struct.chroma_qp_table_present_flag)
     {
@@ -2741,7 +2562,7 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
             }
         }
     }
-#endif
+
     sps->vui_parameters_present_flag = evc_bsr_read1(bs);
     if (sps->vui_parameters_present_flag)
         evcd_eco_vui(bs); //To be implemented
@@ -2797,7 +2618,7 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps)
         }
     }
 
-#if QC_DRA
+#if M52291_HDR_DRA
     if (sps->tool_dra)
     {
         pps->pic_dra_enabled_present_flag = evc_bsr_read1(bs);
@@ -2824,7 +2645,7 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps)
 
     return EVC_OK;
 }
-#if QC_DRA
+#if M52291_HDR_DRA
 int evcd_eco_aps_gen(EVC_BSR * bs, EVC_APS_GEN * aps)
 {
     int aps_id = evc_bsr_read(bs, APS_MAX_NUM_IN_BITS); // parse APS ID
@@ -3047,7 +2868,7 @@ int evcd_eco_alf_filter(EVC_BSR * bs, evc_AlfSliceParam* alfSliceParam, const BO
 
     return EVC_OK;
 }
-#if QC_DRA
+#if M52291_HDR_DRA
 int evcd_eco_dra_aps_param(EVC_BSR * bs, EVC_APS_GEN * aps)
 {
     int value;
@@ -3100,10 +2921,8 @@ int evcd_eco_alf_aps_param(EVC_BSR * bs, EVC_APS * aps)
     alfSliceParam->store2ALFBufferFlag = 0;
     alfSliceParam->temporalAlfFlag = 0;
     alfSliceParam->prevIdx = 0;
-#if M50662_LUMA_CHROMA_SEPARATE_APS
     alfSliceParam->prevIdxComp[0] = 0;
     alfSliceParam->prevIdxComp[1] = 0;
-#endif
     alfSliceParam->tLayer = 0;
     alfSliceParam->isCtbAlfOn = 0;
     memset(alfSliceParam->enabledFlag, 0, 3 * sizeof(BOOL));
@@ -3195,10 +3014,8 @@ int evcd_eco_alf_sh_param(EVC_BSR * bs, EVC_SH * sh)
     evc_AlfSliceParam* alfSliceParam = &(sh->alf_sh_param);
 
     //AlfSliceParam reset
-#if M50662_LUMA_CHROMA_SEPARATE_APS
     alfSliceParam->prevIdxComp[0] = 0;
     alfSliceParam->prevIdxComp[1] = 0;
-#endif
     alfSliceParam->resetALFBufferFlag = 0;
     alfSliceParam->store2ALFBufferFlag = 0;
     alfSliceParam->temporalAlfFlag = 0;
@@ -3262,11 +3079,7 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
         sh->no_output_of_prior_pics_flag = evc_bsr_read1(bs);
     }
 
-  #if M50632_IMPROVEMENT_MMVD
     if (sps->tool_mmvd && ((sh->slice_type == SLICE_B)||(sh->slice_type == SLICE_P)) )
-#else
-    if (sps->tool_mmvd && (sh->slice_type == SLICE_B))
-#endif
     {
         sh->mmvd_group_enable_flag = evc_bsr_read1(bs);
     }
@@ -3280,12 +3093,8 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
         sh->alf_on = evc_bsr_read1(bs);
         if (sh->alf_on)
         {
-#if M50662_LUMA_CHROMA_SEPARATE_APS
             sh->aps_id_y = evc_bsr_read(bs, 5);
             sh->aps_id_ch = evc_bsr_read(bs, 5);
-#else
-            sh->aps_signaled = evc_bsr_read(bs, 5); // parse APS ID in tile group header
-#endif
             evcd_eco_alf_sh_param(bs, sh); // parse ALF map
         }
     }

@@ -52,7 +52,7 @@ void ence_stat_cu(int x, int y, int cuw, int cuh, int cup, void *ctx, void *core
 int evce_eco_nalu(EVC_BSW * bs, EVC_NALU nalu);
 int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps);
 int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps);
-#if QC_DRA
+#if M52291_HDR_DRA
 int evce_eco_aps_gen(EVC_BSW * bs, EVC_APS_GEN * aps);
 #endif
 int evce_eco_aps(EVC_BSW * bs, EVC_APS * aps);
@@ -99,23 +99,11 @@ void evce_eco_slice_end_flag(EVC_BSW * bs, int flag);
 #if EVC_TILE_SUPPORT
 void evce_eco_tile_end_flag(EVC_BSW * bs, int flag);
 #endif
-#if M52165
 int evce_eco_mvp_idx(EVC_BSW *bs, int mvp_idx, int sps_admvp_flag);
-#else
-int evce_eco_mvp_idx(EVC_BSW *bs, int mvp_idx, int sps_amis_flag);
-#endif
 int evce_eco_affine_mvp_idx(EVC_BSW *bs, int mvp_idx);
 int evce_eco_mvd(EVC_BSW *bs, s16 mvd[MV_D]);
 int evce_eco_refi(EVC_BSW * bs, int num_refp, int refi);
-void evce_eco_inter_dir(EVC_BSW * bs, s8 refi[REFP_NUM]
-#if REMOVE_BI_INTERDIR
-#if M52165
-                        , int slice_type, int cuw, int cuh, int is_sps_admvp
-#else
-                        , int slice_type, int cuw, int cuh, int is_sps_amis
-#endif
-#endif
-);
+void evce_eco_inter_dir(EVC_BSW * bs, s8 refi[REFP_NUM], int slice_type, int cuw, int cuh, int is_sps_admvp);
 void evce_eco_inter_t_direct(EVC_BSW *bs, int t_direct_flag);
 //! \todo Change list of arguments
 void evce_eco_xcoef(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num_sig, int ch_type, int tool_adcc);
@@ -133,16 +121,14 @@ void setAlfFilterShape(evc_AlfFilterShape *  alfShape, int shapeSize);
 int evc_lengthGolomb(int coeffVal, int k);
 int evc_getGolombKMin(evc_AlfFilterShape *  alfShape, int numFilters, int *kMinTab, int bitsCoeffScan[m_MAX_SCAN_VAL][m_MAX_EXP_GOLOMB]);
 void evc_alfGolombEncode(EVC_BSW * bs, int coeff, int kMinTab);
-#if QC_DRA
+#if M52291_HDR_DRA
 int evce_eco_dra_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps);
 int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps);
 #else
 int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS * aps);
 #endif
 int evce_eco_alf_sh_param(EVC_BSW * bs, EVC_SH * sh);
-#if M50761_BUGFIX_ENCSIDE_IBC
 void evce_eco_ibc_flag(EVC_BSW * bs, int flag, int ctx);
-#endif
 #ifdef __cplusplus
 }
 #endif

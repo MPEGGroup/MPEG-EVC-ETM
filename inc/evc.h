@@ -36,8 +36,8 @@
 #define _EVC_H_
 
 #define ETM_HDR_REPORT_METRIC_FLAG      1
-#define QC_DRA                          1
-#define QC_ADD_ADDB_FLAG                1
+#define M52291_HDR_DRA                          1
+#define ADDB_FLAG_FIX                1
 #define M52166_PARTITION                1
 
 #ifdef __cplusplus
@@ -45,7 +45,7 @@ extern "C"
 {
 #endif
       
-#if QC_DRA
+#if M52291_HDR_DRA
 #define QC_SCALE_NUMFBITS     9   // # frac. bits for scale (Y/Cb/Cr)
 #define QC_INVSCALE_NUMFBITS  9   // # frac. bits for inv. scale (Y/Cb/Cr)
 #define QC_OFFSET_NUMFBITS    7   // # frac. bits for offset (Y/Cb/Cr)
@@ -60,11 +60,9 @@ extern "C"
 #define NUM_CHROMA_QP_SCALE_EXP               25
 #endif
 
-#define CHROMA_QP_TABLE_SUPPORT_M50663  1
-#if CHROMA_QP_TABLE_SUPPORT_M50663 
 #define MAX_QP_TABLE_SIZE               58   
 #define MAX_QP_TABLE_SIZE_EXT           70   
-#endif
+
 #define USE_TILE_GROUP_DQP              1
 #define DQP_CFG                         1
 #define EVC_TILE_SUPPORT                1
@@ -384,7 +382,6 @@ typedef struct _EVC_RPL
     char pic_type;
 } EVC_RPL;
 
-#if CHROMA_QP_TABLE_SUPPORT_M50663
 /* chromaQP table structure to be signalled in SPS*/
 typedef struct _EVC_CHROMA_TABLE
 {
@@ -395,7 +392,6 @@ typedef struct _EVC_CHROMA_TABLE
     int             delta_qp_in_val_minus1[2][MAX_QP_TABLE_SIZE];
     int             delta_qp_out_val[2][MAX_QP_TABLE_SIZE];
 } EVC_CHROMA_TABLE;
-#endif
 
 /*****************************************************************************
  * description for creating of encoder
@@ -452,10 +448,8 @@ typedef struct _EVCE_CDSC
     int            out_bit_depth;
     int            profile;
     int            level;
-#if CHROMA_QP_TABLE_SUPPORT_M50663
     int            toolset_idc_h;
     int            toolset_idc_l;
-#endif
     int            btt;
     int            suco;
     int            add_qp_frame;
@@ -480,15 +474,12 @@ typedef struct _EVCE_CDSC
     int            tool_mmvd;
     int            tool_affine;
     int            tool_dmvr;
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
     int            tool_addb;
 #endif
     int            tool_alf;
     int            tool_htdf;
     int            tool_admvp;
-#if !(M52165 || 1)
-    int            tool_amis;
-#endif
     int            tool_eipd;
     int            tool_iqt;
     int            tool_cm_init;
@@ -512,11 +503,8 @@ typedef struct _EVCE_CDSC
     int            num_slice_in_pic;
     int            slice_boundary_array[2 * 600];
 #endif
-#if CHROMA_QP_TABLE_SUPPORT_M50663
     EVC_CHROMA_TABLE chroma_qp_table_struct;
-#endif
-
-#if QC_DRA
+#if M52291_HDR_DRA
     void * m_DRAMappingApp; 
     int tool_dra;
 #endif
@@ -566,7 +554,7 @@ typedef void  * EVCD;
 
 EVCD evcd_create(EVCD_CDSC * cdsc, int * err);
 void evcd_delete(EVCD id);
-#if QC_DRA
+#if M52291_HDR_DRA
 int evcd_get_pps_dra_id(EVCD id);
 int evcd_assign_pps_draParam(EVCD id, void * p_draParams);
 int evcd_decode(EVCD id, EVC_BITB * bitb, EVCD_STAT * stat, void * p_draParams);
@@ -586,7 +574,7 @@ EVCE evce_create(EVCE_CDSC * cdsc, int * err);
 void evce_delete(EVCE id);
 int evce_push(EVCE id, EVC_IMGB * imgb);
 int evce_encode(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat);
-#if QC_DRA
+#if M52291_HDR_DRA
 int evce_get_pps_dra_flag(EVCE id);
 int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat, void *p_signalledDRA);
 #else

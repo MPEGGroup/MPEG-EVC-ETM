@@ -34,7 +34,7 @@
 #include "evc_def.h"
 #include <math.h>
 
-#if QC_DRA
+#if M52291_HDR_DRA
 double evce_getQP2ScaleDRA(int cbQP) {
     double scaleDRA = 1.0;
     scaleDRA = exp(((double)(cbQP) / 6)*log(2.0));

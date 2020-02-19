@@ -41,9 +41,7 @@ int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16]);
 
 void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core);
 
-#if M50662_HISTORY_CTU_ROW_RESET
 static int evcd_hmvp_init(EVCD_CORE * core);
-#endif
 
 /* set decoded information, such as MVs, inter_dir, etc. */
 void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core

@@ -35,7 +35,7 @@
 #include "evca_util.h"
 #include "evca_args.h"
 #include <math.h>
-#if QC_DRA
+#if M52291_HDR_DRA
 #include "../src/evc_dra.h"
 #include "../src/evc_util.h"
 #endif
@@ -125,14 +125,11 @@ static int  op_tool_amvr          = 1; /* default on */
 static int  op_tool_mmvd          = 1; /* default on */
 static int  op_tool_affine        = 1; /* default on */
 static int  op_tool_dmvr          = 1; /* default on */
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
 static int  op_tool_addb          = 1; /* default on */
 #endif
 static int  op_tool_alf           = 1; /* default on */
 static int  op_tool_admvp         = 1; /* default on */
-#if !M52165
-static int  op_tool_amis          = 1; /* default on */
-#endif
 static int  op_tool_htdf          = 1; /* default on */
 static int  op_tool_eipd          = 1; /* default on */
 static int  op_tool_iqt           = 1; /* default on */
@@ -155,16 +152,14 @@ static int  op_num_slice_in_pic_minus1 = 0;     // default 1
 static char op_slice_boundary_array[2 * 600];   // Max. slices can be 600 for the highest level 6.2
 #endif
 
-#if CHROMA_QP_TABLE_SUPPORT_M50663
 static int  op_chroma_qp_table_present_flag = 0;
 static char op_chroma_qp_num_points_in_table[256] = {0};
 static char op_chroma_qp_delta_in_val_cb[256] = {0};
 static char op_chroma_qp_delta_out_val_cb[256] = { 0 };
 static char op_chroma_qp_delta_in_val_cr[256] = { 0 };
 static char op_chroma_qp_delta_out_val_cr[256] = { 0 };
-#endif
 
-#if QC_DRA
+#if M52291_HDR_DRA
 static int  op_dra_enable_flag = 0;
 static int  op_dra_number_ranges = 0;
 static char op_dra_range[256] = { 0 };
@@ -243,15 +238,12 @@ typedef enum _OP_FLAGS
     OP_TOOL_MMVD,
     OP_TOOL_AFFINE,
     OP_TOOL_DMVR,
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
     OP_TOOL_ADDB,
 #endif
     OP_TOOL_ALF,
     OP_TOOL_HTDF,
     OP_TOOL_ADMVP,
-#if !M52165
-    OP_TOOL_AMIS,
-#endif
     OP_TOOL_EIPD,
     OP_TOOL_IQT,
     OP_TOOL_CM_INIT,
@@ -273,16 +265,13 @@ typedef enum _OP_FLAGS
     OP_NUM_SLICE_IN_PIC_MINUS1,
     OP_SLICE_BOUNDARY_ARRAY,
 #endif
-#if CHROMA_QP_TABLE_SUPPORT_M50663
     OP_CHROMA_QP_TABLE_PRESENT_FLAG,
     OP_CHROMA_QP_NUM_POINTS_IN_TABLE,
     OP_CHROMA_QP_DELTA_IN_VAL_CB,
     OP_CHROMA_QP_DELTA_OUT_VAL_CB,
     OP_CHROMA_QP_DELTA_IN_VAL_CR,
     OP_CHROMA_QP_DELTA_OUT_VAL_CR,
-#endif
-
-#if QC_DRA
+#if M52291_HDR_DRA
     OP_DRA_ENABLE_FLAG,
     OP_DRA_NUMBER_RANGES,
     OP_DRA_RANGE,
@@ -293,7 +282,6 @@ typedef enum _OP_FLAGS
     OP_DRA_CHROMA_CR_SCALE,
     OP_DRA_HIST_NORM,
 #endif
-
     OP_FLAG_RPL0_0,
     OP_FLAG_RPL0_1,
     OP_FLAG_RPL0_2,
@@ -634,7 +622,7 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_TOOL_DMVR], &op_tool_dmvr,
         "dmvr on/off flag"
     },
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
     {
         EVC_ARGS_NO_KEY,  "addb", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_TOOL_ADDB], &op_tool_addb,
@@ -656,13 +644,6 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_TOOL_ADMVP], &op_tool_admvp,
         "admvp on/off flag"
     },
-#if !M52165
-    {
-        EVC_ARGS_NO_KEY,  "amis", EVC_ARGS_VAL_TYPE_INTEGER,
-        &op_flag[OP_TOOL_AMIS], &op_tool_amis,
-        "amis on/off flag"
-    },
-#endif
     {
         EVC_ARGS_NO_KEY,  "eipd", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_TOOL_EIPD], &op_tool_eipd,
@@ -757,7 +738,6 @@ static EVC_ARGS_OPTION options[] = \
         "Array of Slice Boundaries"
     },
 #endif
-#if CHROMA_QP_TABLE_SUPPORT_M50663
     {
         EVC_ARGS_NO_KEY,  "chroma_qp_table_present_flag", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_CHROMA_QP_TABLE_PRESENT_FLAG], &op_chroma_qp_table_present_flag,
@@ -788,9 +768,8 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_CHROMA_QP_DELTA_OUT_VAL_CR], &op_chroma_qp_delta_out_val_cr,
         "Array of input pivot points for Cr"
     },
-#endif
 
-#if QC_DRA
+#if M52291_HDR_DRA
         {
             EVC_ARGS_NO_KEY,  "dra_enable_flag", EVC_ARGS_VAL_TYPE_INTEGER,
             &op_flag[OP_DRA_ENABLE_FLAG], &op_dra_enable_flag,
@@ -1159,7 +1138,6 @@ static char get_pic_type(char * in)
     return type;
 }
 
-#if CHROMA_QP_TABLE_SUPPORT_M50663
 static void evca_parse_chroma_qp_mapping_params(EVC_CHROMA_TABLE *dst_struct, EVC_CHROMA_TABLE *src_struct)
 {
     int qpBdOffsetC = 6 * (BIT_DEPTH - 8);
@@ -1205,9 +1183,8 @@ static void evca_parse_chroma_qp_mapping_params(EVC_CHROMA_TABLE *dst_struct, EV
         }
     }
 }
-#endif
 
-#if QC_DRA
+#if M52291_HDR_DRA
 static int get_conf(EVCE_CDSC * cdsc, void *p_dra_struct_void)
 #else
 static int get_conf(EVCE_CDSC * cdsc)
@@ -1284,14 +1261,11 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->tool_mmvd          = op_tool_mmvd;
     cdsc->tool_affine        = op_tool_affine;
     cdsc->tool_dmvr          = op_tool_dmvr;
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
     cdsc->tool_addb          = op_tool_addb;
 #endif
     cdsc->tool_alf           = op_tool_alf;
     cdsc->tool_admvp         = op_tool_admvp;
-#if !M52165
-    cdsc->tool_amis          = op_tool_amis;
-#endif
     cdsc->tool_htdf          = op_tool_htdf;
     cdsc->tool_eipd          = op_tool_eipd;
     cdsc->tool_iqt           = op_tool_iqt;
@@ -1306,7 +1280,7 @@ static int get_conf(EVCE_CDSC * cdsc)
 #if ETM_HDR_REPORT_METRIC_FLAG
     cdsc->tool_hdr_metric = op_hdr_metric_report;
 #endif
-#if QC_DRA
+#if M52291_HDR_DRA
     cdsc->tool_dra = op_dra_enable_flag;
 #endif
 #if EVC_TILE_SUPPORT
@@ -1356,7 +1330,6 @@ static int get_conf(EVCE_CDSC * cdsc)
         } while (1);
     }
 #endif
-#if CHROMA_QP_TABLE_SUPPORT_M50663
     EVC_CHROMA_TABLE l_chroma_qp_table;
     memset(&l_chroma_qp_table, 0, sizeof(EVC_CHROMA_TABLE));
 
@@ -1412,14 +1385,13 @@ static int get_conf(EVCE_CDSC * cdsc)
             } while (1);
             evc_assert(l_chroma_qp_table.num_points_in_qp_table_minus1[1] + 1 == j);
         }
-#if QC_DRA
+#if M52291_HDR_DRA
         evca_parse_chroma_qp_mapping_params(&(cdsc->chroma_qp_table_struct), &l_chroma_qp_table);  // parse input params and create chroma_qp_table_struct structure
         evc_derived_chroma_qp_mapping_tables(&(cdsc->chroma_qp_table_struct));
 #endif
     }
-#if !QC_DRA
+#if !M52291_HDR_DRA
     evca_parse_chroma_qp_mapping_params(&(cdsc->chroma_qp_table_struct), &l_chroma_qp_table);  // parse input params and create chroma_qp_table_struct structure
-#endif
 #endif
     for (int i = 0; i < MAX_NUM_RPLS && op_rpl0[i][0] != 0; ++i)
     {
@@ -1461,7 +1433,7 @@ static int get_conf(EVCE_CDSC * cdsc)
         cdsc->rpls_l1[i].ref_pic_num = j;
         ++cdsc->rpls_l1_cfg_num;
     }
-#if QC_DRA
+#if M52291_HDR_DRA
     {
         cdsc->m_DRAMappingApp = p_dra_struct_void;
         WCGDDRAControl *p_dra_control = ((WCGDDRAControl*)cdsc->m_DRAMappingApp);
@@ -1523,14 +1495,11 @@ static void print_enc_conf(EVCE_CDSC * cdsc)
     printf("MMVD: %d, ",   cdsc->tool_mmvd);
     printf("AFFINE: %d, ", cdsc->tool_affine);
     printf("DMVR: %d, ",   cdsc->tool_dmvr);
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
     printf("ADDB: %d, ",   cdsc->tool_addb);
 #endif
     printf("ALF: %d, ",    cdsc->tool_alf);
     printf("ADMVP: %d, ",  cdsc->tool_admvp);
-#if !M52165
-    printf("AMIS: %d, ",   cdsc->tool_amis);
-#endif
     printf("HTDF: %d ",    cdsc->tool_htdf);
     printf("EIPD: %d, ",   cdsc->tool_eipd);
     printf("IQT: %d, ",    cdsc->tool_iqt);
@@ -1546,12 +1515,10 @@ static void print_enc_conf(EVCE_CDSC * cdsc)
     printf("Number of Tile Columns: %d, ", cdsc->tile_columns);
     printf("Number of Tile  Rows: %d ", cdsc->tile_rows);
 #endif
-#if CHROMA_QP_TABLE_SUPPORT_M50663
     printf("ChromaQPTable: %d ", cdsc->chroma_qp_table_struct.chroma_qp_table_present_flag);
-#endif
-#if QC_DRA
+#if M52291_HDR_DRA
     printf("DRA: %d ", cdsc->tool_dra);
-#else
+//#else
     printf("DRA: %d ", ((WCGDDRAControl *)cdsc->m_DRAMappingApp)->m_flagEnabled);
 #endif
     printf("\n");
@@ -1567,16 +1534,13 @@ int check_conf(EVCE_CDSC* cdsc)
         if (cdsc->tool_affine  == 1) { v0print("Affine cannot be on in base profile\n"); success = 0; }
         if (cdsc->tool_dmvr    == 1) { v0print("DMVR cannot be on in base profile\n"); success = 0; }
         if (cdsc->tool_admvp   == 1) { v0print("ADMVP cannot be on in base profile\n"); success = 0; }
-#if QC_ADD_ADDB_FLAG
+#if ADDB_FLAG_FIX
         if (cdsc->tool_addb    == 1) { v0print("ADDB cannot be on in base profile\n"); success = 0; }
 #endif
         if (cdsc->tool_alf     == 1) { v0print("ALF cannot be on in base profile\n"); success = 0; }
         if (cdsc->tool_htdf    == 1) { v0print("HTDF cannot be on in base profile\n"); success = 0; }
         if (cdsc->btt          == 1) { v0print("BTT cannot be on in base profile\n"); success = 0; }
         if (cdsc->suco         == 1) { v0print("SUCO cannot be on in base profile\n"); success = 0; }
-#if !M52165
-        if (cdsc->tool_amis    == 1) { v0print("AMIS cannot be on in base profile\n"); success = 0; }
-#endif
         if (cdsc->tool_eipd    == 1) { v0print("EIPD cannot be on in base profile\n"); success = 0; }
         if (cdsc->tool_iqt     == 1) { v0print("IQT cannot be on in base profile\n"); success = 0; }
         if (cdsc->tool_cm_init == 1) { v0print("CM_INIT cannot be on in base profile\n"); success = 0; }
@@ -1586,9 +1550,6 @@ int check_conf(EVCE_CDSC* cdsc)
     }
     else
     {
-#if !M52165
-        if (cdsc->tool_amis    == 0) { v0print("AMIS cannot be off in main profile\n"); success = 0; }
-#endif
         if (cdsc->tool_eipd    == 0) { v0print("EIPD cannot be off in main profile\n"); success = 0; }
         if (cdsc->tool_iqt     == 0) { v0print("IQT cannot be off in main profile\n"); success = 0; }
         if (cdsc->tool_cm_init == 0) { v0print("CM_INIT cannot be off in main profile\n"); success = 0; }
@@ -1653,7 +1614,7 @@ static void print_stat_init(void)
         print("  Output YUV file         : %s \n", op_fname_rec);
     }
     print("---------------------------------------------------------------------------------------\n");
-#if ETM_HDR_METRIC
+#if HDR_METRIC
 #if ETM_HDR_REPORT_METRIC_FLAG
     if (op_hdr_metric_report)
 #else
@@ -1763,7 +1724,7 @@ static void find_psnr_8bit(EVC_IMGB * org, EVC_IMGB * rec, double psnr[3])
         psnr[i] = (mse[i]==0.0) ? 100. : fabs( 10*log10(((255*255)/mse[i])) );
     }
 }
-#if ETM_HDR_METRIC
+#if HDR_METRIC
 double getWPSNRLumaLevelWeight(short pel)
 {
     double x = (double)pel;
@@ -2183,7 +2144,7 @@ static int cal_psnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts,
                 find_ms_ssim(imgb_t, imgb_rec, ms_ssim, 8);
                 imgb_free(imgb_t);
             }
-#if !ETM_HDR_METRIC
+#if !HDR_METRIC
             imgblist_inp[i].used = 0;
 #endif
             return 0;
@@ -2191,7 +2152,7 @@ static int cal_psnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts,
     }
     return -1;
 }
-#if ETM_HDR_METRIC
+#if HDR_METRIC
 static int cal_wpsnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts, double wpsnr[3])
 {
     int            i;
@@ -2638,7 +2599,7 @@ static int cal_hdr_metric(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTI
     return -1;
 }
 #endif
-#if QC_DRA
+#if M52291_HDR_DRA
 static int write_rec(IMGB_LIST *list, EVC_MTIME *ts, WCGDDRAControl *p_DRAMapping)
 #else
 static int write_rec(IMGB_LIST *list, EVC_MTIME *ts)
@@ -2652,7 +2613,7 @@ static int write_rec(IMGB_LIST *list, EVC_MTIME *ts)
         {
             if(op_flag[OP_FLAG_FNAME_REC])
             {
-#if QC_DRA
+#if M52291_HDR_DRA
                 if (p_DRAMapping->m_signalledDRA.m_signal_dra_flag)
                 {
                     evc_apply_dra_chroma_plane(list[i].imgb, list[i].imgb, p_DRAMapping, 1, TRUE/*backwardMapping == false*/);
@@ -2675,7 +2636,7 @@ static int write_rec(IMGB_LIST *list, EVC_MTIME *ts)
 }
 
 void print_psnr(EVCE_STAT * stat, double * psnr, double ms_ssim, int bitrate, EVC_CLK clk_end
-#if ETM_HDR_METRIC
+#if HDR_METRIC
     , double *wpsnr
     , double *deltaE
     , double *psnrL
@@ -2703,7 +2664,7 @@ void print_psnr(EVCE_STAT * stat, double * psnr, double ms_ssim, int bitrate, EV
         stype = 'U';
         break;
     }
-#if ETM_HDR_METRIC
+#if HDR_METRIC
 #if ETM_HDR_REPORT_METRIC_FLAG
     if (op_hdr_metric_report)
     {
@@ -2764,7 +2725,7 @@ int main(int argc, const char **argv)
     double              psnr_avg[3] = {0,};
     double              ms_ssim = 0;
     double              ms_ssim_avg = 0;
-#if ETM_HDR_METRIC
+#if HDR_METRIC
     double              wpsnr[3] = { 0, };
     double              wpsnr_avg[3] = { 0, };
     double deltaE[NB_REF_WHITE];
@@ -2777,7 +2738,7 @@ int main(int argc, const char **argv)
     double deltaE_avg = 0.0;
     double psnrL_avg = 0.0;
 #endif
-#if QC_DRA
+#if M52291_HDR_DRA
     EVC_IMGB          *imgb_dra = NULL;
     WCGDDRAControl g_dra_control;
     WCGDDRAControl *p_g_dra_control = &g_dra_control;
@@ -2862,7 +2823,7 @@ int main(int argc, const char **argv)
     }
 
     /* read configurations and set values for create descriptor */
-#if QC_DRA
+#if M52291_HDR_DRA
     if (get_conf(&cdsc, (void*)p_g_dra_control))
 #else
     if (get_conf(&cdsc))
@@ -2914,7 +2875,7 @@ int main(int argc, const char **argv)
     bitb.addr = bs_buf;
     bitb.bsize = MAX_BS_BUF;
 
-#if QC_DRA
+#if M52291_HDR_DRA
     if (cdsc.tool_dra)
     {
         evce_initDRA(p_g_dra_control, 0, NULL, NULL);
@@ -2926,7 +2887,7 @@ int main(int argc, const char **argv)
         }
     }
 #endif
-#if QC_DRA
+#if M52291_HDR_DRA
     ret = evce_encode_sps(id, &bitb, &stat, (void *)aps_gen_array);
 #else
     ret = evce_encode_sps(id, &bitb, &stat);
@@ -3031,7 +2992,7 @@ int main(int argc, const char **argv)
             }
             /* copy original image to encoding buffer */
             imgb_cpy(imgb_enc, ilist_t->imgb);
-#if QC_DRA
+#if M52291_HDR_DRA
             if (evce_get_pps_dra_flag(id))
             {
                 /* get encodng buffer */
@@ -3104,7 +3065,7 @@ int main(int argc, const char **argv)
                 v0print("cannot put reconstructed image to list\n");
                 return -1;
             }
-#if QC_DRA
+#if M52291_HDR_DRA
             if (evce_get_pps_dra_flag(id))
             {
                 if (EVC_OK != evce_get_inbuf(id, &imgb_dra))
@@ -3124,7 +3085,7 @@ int main(int argc, const char **argv)
                 v0print("cannot calculate PSNR\n");
                 return -1;
             }
-#if ETM_HDR_METRIC
+#if HDR_METRIC
             {
                 if (cal_wpsnr(ilist_org, ilist_t->imgb, ilist_t->ts, wpsnr))
                 {
@@ -3138,7 +3099,7 @@ int main(int argc, const char **argv)
                 }
             }
 #endif
-#if QC_DRA
+#if M52291_HDR_DRA
             if (cdsc.tool_dra)
             {
                 imgb_cpy(ilist_t->imgb, imgb_dra);// recover copy of the reconstructed picture for DPB
@@ -3157,7 +3118,7 @@ int main(int argc, const char **argv)
             if(is_first_enc)
             {
                 print_psnr(&stat, psnr, ms_ssim, (stat.write - stat.sei_size + (int)bitrate) << 3, clk_end
-#if ETM_HDR_METRIC
+#if HDR_METRIC
                     , wpsnr
                     , deltaE
                     , psnrL
@@ -3168,7 +3129,7 @@ int main(int argc, const char **argv)
             else
             {
                 print_psnr(&stat, psnr, ms_ssim, (stat.write - stat.sei_size) << 3, clk_end
-#if ETM_HDR_METRIC
+#if HDR_METRIC
                     , wpsnr
                     , deltaE
                     , psnrL
@@ -3181,7 +3142,7 @@ int main(int argc, const char **argv)
             {
                 ms_ssim_avg += ms_ssim;
             }
-#if ETM_HDR_METRIC
+#if HDR_METRIC
             for (i = 0; i < 3; i++) wpsnr_avg[i] += wpsnr[i];
             deltaE_avg += deltaE[0];
             psnrL_avg += psnrL[0];
@@ -3213,7 +3174,7 @@ int main(int argc, const char **argv)
     /* store remained reconstructed pictures in output list */
     while(pic_icnt - pic_ocnt > 0)
     {
-#if QC_DRA
+#if M52291_HDR_DRA
         write_rec(ilist_rec, &pic_ocnt, p_g_dra_control);
 #else
         write_rec(ilist_rec, &pic_ocnt);
@@ -3230,7 +3191,7 @@ int main(int argc, const char **argv)
     psnr_avg[1] /= pic_ocnt;
     psnr_avg[2] /= pic_ocnt;
     ms_ssim_avg  /= pic_ocnt;
-#if ETM_HDR_METRIC
+#if HDR_METRIC
     wpsnr_avg[0] /= pic_ocnt;
     wpsnr_avg[1] /= pic_ocnt;
     wpsnr_avg[2] /= pic_ocnt;
@@ -3241,7 +3202,7 @@ int main(int argc, const char **argv)
     v1print("  PSNR U(dB)       : %-5.4f\n", psnr_avg[1]);
     v1print("  PSNR V(dB)       : %-5.4f\n", psnr_avg[2]);
     v1print("  MsSSIM_Y         : %-8.7f\n", ms_ssim_avg);
-#if ETM_HDR_METRIC
+#if HDR_METRIC
 #if ETM_HDR_REPORT_METRIC_FLAG
     if (op_hdr_metric_report)
 #endif
@@ -3261,7 +3222,7 @@ int main(int argc, const char **argv)
     v1print("  bitrate(kbps)    : %-5.4f\n", bitrate);
 
 #if SCRIPT_REPORT
-#if ETM_HDR_METRIC
+#if HDR_METRIC
 #if ETM_HDR_REPORT_METRIC_FLAG
     if (op_hdr_metric_report)
 #else

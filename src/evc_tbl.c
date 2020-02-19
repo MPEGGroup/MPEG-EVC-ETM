@@ -360,7 +360,7 @@ int evc_tbl_qp_chroma_ajudst_base[MAX_QP_TABLE_SIZE] =
 };
 
 int* evc_tbl_qp_chroma_ajudst;
-#if CHROMA_QP_TABLE_SUPPORT_M50663
+
 // ChromaQP offset for U and V components
 int evc_tbl_qp_chroma_dynamic_ext[2][MAX_QP_TABLE_SIZE_EXT] = { { 0 }, {0} };
 int *p_evc_tbl_qp_chroma_dynamic_ext[2] = { &(evc_tbl_qp_chroma_dynamic_ext[0][0]) , &(evc_tbl_qp_chroma_dynamic_ext[1][0]) };
@@ -415,8 +415,6 @@ void evc_derived_chroma_qp_mapping_tables(EVC_CHROMA_TABLE *structChromaQP)
         memcpy(&(p_evc_tbl_qp_chroma_dynamic[1][-qpBdOffsetC]), &(p_evc_tbl_qp_chroma_dynamic[0][-qpBdOffsetC]), MAX_QP_TABLE_SIZE_EXT * sizeof(int));
     }
 }
-
-#endif
 
 #if CTX_REPRESENTATION_IMPROVEMENT
 const s16 init_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG][1] = {
@@ -723,21 +721,12 @@ const s16 init_cc_gtA_4[2][NUM_CTX_GTA] = {
 {40, 225, 306, 272, 85, 120, 389, 664, 209, 322, 291, 536, 338, 709, 54, 244, 19, 566},
 {38, 352, 340, 19, 305, 258, 18, 33, 209, 773, 517, 406, 719, 741, 613, 295, 37, 498}};
 #else
-#if M50631_IMPROVEMENT_ADCC_CTXINIT
 const s16 init_cc_gt0_4[2][NUM_CTX_GT0] = {
     { 387, 421, 369, 288, 67, 534, 466, 662, 321, 65, 163, 404, 199, 645, 131, 363, 549, 683, 751, 427, 596, 416, 293, 263, 101, 144, 416, 80, 304, 150, 67, 112, 101, 368, 120, 681, 423, 144, 71, 519, 224, 241, 905, 64, 146, 329, 241 },
     { 66, 244, 402, 451, 585, 113, 263, 272, 352, 325, 293, 587, 19, 224, 357, 197, 224, 0, 178, 80, 370, 417, 244, 33, 197, 144, 387, 325, 209, 613, 32, 404, 3, 402, 353, 97, 146, 534, 208, 453, 909, 5, 387, 261, 64, 340, 762 } };
 const s16 init_cc_gtA_4[2][NUM_CTX_GTA] = {
     { 547, 745, 698, 240, 596, 38, 148, 306, 824, 709, 161, 340, 263, 42, 321, 178, 297, 698 },
     { 136, 194, 274, 338, 532, 385, 180, 81, 241, 480, 355, 131, 3, 773, 483, 165, 199, 277 } };
-#else
-const s16 init_cc_gt0_3[2][NUM_CTX_GT0] = {
-        { 387, 340, 304, 227, 457, 133, 208, 792, 419, 553, 391, 112, 534, 645, 83, 402, 357, 67, 112, 338, 532, 711, 259, 131, 112, 698, 416, 338, 304, 96, 0, 372, 468, 532, 352, 128, 64, 210, 338, 519, 35, 147, 227, 131, 48, 274, 630 },
-        { 66, 274, 240, 146, 144, 35, 370, 790, 483, 325, 163, 112, 662, 224, 3, 240, 0, 274, 242, 338, 434, 613, 32, 32, 144, 922, 387, 67, 434, 195, 210, 274, 338, 434, 451, 96, 114, 242, 208, 453, 99, 466, 32, 80, 178, 306, 726 } };
-const s16 init_cc_gtA_3[2][NUM_CTX_GTA] = {
-        { 480, 50, 208, 304, 400, 288, 178, 306, 500, 416, 148, 308, 566, 480, 352, 308, 566, 858 },
-        { 322, 246, 274, 304, 400, 130, 146, 144, 434, 290, 2, 178, 500, 448, 162, 372, 532, 888 } };
-#endif
 #endif
 #if M52290_ADCC 
 const s16 init_cc_scanr_x_3[2][NUM_CTX_SCANR] = {
@@ -1042,30 +1031,12 @@ const s16 init_ctb_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG][1] = {
 const s16 init_ats_intra_cu[2][NUM_ATS_INTRA_CU_FLAG_CTX][1] = {
     {
         { 999  },
-#if !M50632_SIMPLIFICATION_ATS
-        { 514  },
-        { 452  },
-        { 546  },
-        { 1001 },
-        { 992  },
-        { 960  },
-        { 960  }
-#endif
-        },
+    },
     {
         { 1003 },
-#if !M50632_SIMPLIFICATION_ATS
-        { 292  },
-        { 354  },
-        { 544  },
-        { 999  },
-        { 960  },
-        { 928  },
-        { 960  }
-#endif
     }
 };
-#if M50632_SIMPLIFICATION_ATS
+
 const s16 init_ats_tu[2][NUM_ATS_INTRA_TU_FLAG_CTX][1] = {
     {
         { 512  },
@@ -1074,28 +1045,6 @@ const s16 init_ats_tu[2][NUM_ATS_INTRA_TU_FLAG_CTX][1] = {
         { 673 },
     }
 };
-#else
-const s16 init_ats_tu_h[2][NUM_ATS_INTRA_TU_FLAG_CTX][1] = {
-    {
-        { 512  },
-        { 993  }
-    },
-    {
-        { 673 },
-        { 993 }
-    }
-};
-const s16 init_ats_tu_v[2][NUM_ATS_INTRA_TU_FLAG_CTX][1] = {
-    {
-        { 512 },
-        { 993 }
-    },
-    {
-        { 641 },
-        { 929 }
-    }
-};
-#endif
 
 const s16 init_ats_inter_info[2][NUM_SBAC_CTX_ATS_INTER_INFO][1] = {
     {
@@ -1137,7 +1086,7 @@ s16 evc_tbl_inv_tr32[NUM_TRANS_TYPE][32][32];
 s16 evc_tbl_inv_tr64[NUM_TRANS_TYPE][64][64];
 s16 evc_tbl_inv_tr128[NUM_TRANS_TYPE][128][128];
 
-#if (DBF == DBF_AVC) || QC_ADD_ADDB_FLAG
+#if (DBF == DBF_AVC) || ADDB_FLAG_FIX
 const u8 ALPHA_TABLE[52] = { 0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,4,4,5,6,  7,8,9,10,12,13,15,17,  20,22,25,28,32,36,40,45,  50,56,63,71,80,90,101,113,  127,144,162,182,203,226,255,255 };
 const u8 BETA_TABLE[52] = { 0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,2,2,2,3,  3,3,3, 4, 4, 4, 6, 6,   7, 7, 8, 8, 9, 9,10,10,  11,11,12,12,13,13, 14, 14,   15, 15, 16, 16, 17, 17, 18, 18 };
 const u8 CLIP_TAB[52][5] =
@@ -1171,7 +1120,7 @@ int g_intChromaInvScaleLUT[2][DRA_LUT_MAXSIZE];               // LUT for chroma 
 u8 g_pic_sign[16];
 u8 g_pic_sign_dec_sig[16];
 #endif
-#if ETM_HDR_METRIC
+#if HDR_METRIC
 const double g_UCF_Filters[8][4][15] = {
   { // UF_F0
     { 2.0,   0.0, +256.0,                +128.0, 8.0},
@@ -1258,7 +1207,7 @@ const float g_RGB2XYZ_REC[5][9] =
   }
 };
 #endif
-#if QC_DRA
+#if M52291_HDR_DRA
 // input to table is in the range 0<input<256, as a result of multiplication of 2 scales with max value of <16.
 #if QC_DRA_LUT_SUBSAMPLE_TWO
 const int g_dra_chroma_qp_offset_tbl[NUM_CHROMA_QP_OFFSET_LOG] =  // Approximation of Log function at accuracy 1<<9 bits
