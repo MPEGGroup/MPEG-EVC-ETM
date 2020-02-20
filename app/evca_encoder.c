@@ -2098,7 +2098,11 @@ static void imgb_list_make_used(IMGB_LIST *list, EVC_MTIME ts)
     list->ts = list->imgb->ts[0] = ts;
 }
 
-static int cal_psnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts, double psnr[3], double* ms_ssim)
+static int cal_psnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts, double psnr[3], double* ms_ssim
+#if HDR_METRIC
+    , int hdr_metric_report
+#endif
+)
 {
     int            i;
     EVC_IMGB     *imgb_t = NULL;
@@ -2142,6 +2146,12 @@ static int cal_psnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts,
                 find_ms_ssim(imgb_t, imgb_rec, ms_ssim, 8);
                 imgb_free(imgb_t);
             }
+#if HDR_METRIC
+            if (!hdr_metric_report)
+            {
+                imgblist_inp[i].used = 0;
+            }
+#endif
 #if !HDR_METRIC
             imgblist_inp[i].used = 0;
 #endif
@@ -3081,12 +3091,17 @@ int main(int argc, const char **argv)
             }
 #endif
             /* calculate PSNR */
-            if(cal_psnr(ilist_org, ilist_t->imgb, ilist_t->ts, psnr, &ms_ssim))
+            if(cal_psnr(ilist_org, ilist_t->imgb, ilist_t->ts, psnr, &ms_ssim
+#if HDR_METRIC
+                        , op_hdr_metric_report
+#endif
+            ))
             {
                 v0print("cannot calculate PSNR\n");
                 return -1;
             }
 #if HDR_METRIC
+            if (op_hdr_metric_report)
             {
                 if (cal_wpsnr(ilist_org, ilist_t->imgb, ilist_t->ts, wpsnr))
                 {

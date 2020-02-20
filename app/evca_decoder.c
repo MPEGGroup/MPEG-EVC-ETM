@@ -452,8 +452,14 @@ int main(int argc, const char **argv)
 #if !DECODING_TIME_TEST
             clk_tot += evc_clk_from(clk_beg);
 #endif
-            print_stat(&stat, ret);
-
+#if HDR_MD5_CHECK
+            if (!((&stat)->nalu_type == EVC_SEI_NUT && sps_dra_enable_flag))
+            {
+#endif
+                print_stat(&stat, ret);
+#if HDR_MD5_CHECK
+            }
+#endif
             if(stat.read - nalu_size_field_in_bytes != bs_size)
             {
                 v0print("\t=> different reading of bitstream (in:%d, read:%d)\n",

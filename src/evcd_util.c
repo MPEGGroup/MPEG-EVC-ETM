@@ -48,7 +48,41 @@ void evcd_picbuf_free(PICBUF_ALLOCATOR * pa, EVC_PIC * pic)
 {
     evc_picbuf_free(pic);
 }
+#if HDR_MD5_CHECK
+int evcd_picbuf_check_signature_sdr(EVC_PIC * pic, u8 signature[16])
+{
+    u8 pic_sign[16];
+    int ret;
 
+    /* execute MD5 digest here */
+    ret = evc_picbuf_signature(pic, pic_sign);
+    evc_assert_rv(EVC_SUCCEEDED(ret), ret);
+    if (memcmp(signature, pic_sign, 16) != 0)
+    {
+        return EVC_ERR_BAD_CRC;
+    }
+    return EVC_OK;
+}
+int evcd_picbuf_check_signature_hdr()
+{
+    /* execute HDR MD5 digest here */
+    u8 zero_array[16] = { 0 };
+    if (memcmp(g_pic_sign_dec_sig, zero_array, 16)) //workaround to avoid writing HDR-related stuff when HDR metric is disabled. TBD in a better way.
+    {
+        if (memcmp(g_pic_sign_dec_sig, g_pic_sign, 16) != 0)
+        {
+            printf("SEI message: HDR MD5 check mismatch!\n");
+            exit(-999);
+        }
+        else
+        {
+            printf("SEI message: HDR MD5 check OK!\n");
+        }
+    }
+    return EVC_OK;
+}
+#endif
+#if !HDR_METRIC
 int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16])
 {
     u8 pic_sign[16];
@@ -62,25 +96,9 @@ int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16])
         return EVC_ERR_BAD_CRC;
     }
 
-#if HDR_MD5_CHECK
-    /* execute HDR MD5 digest here */
-    u8 zero_array[16] = {0};
-    if (memcmp(g_pic_sign_dec_sig, zero_array, 16)) //workaround to avoid writing HDR-related stuff when HDR metric is disabled. TBD in a better way.
-    {
-        if (memcmp(g_pic_sign_dec_sig, g_pic_sign, 16) != 0)
-        {
-            printf("HDR md5 mismatch,\t");
-            exit(-999);
-        }
-        else
-        {
-            printf("HDR md5 check OK,\t");
-        }
-    }
-#endif
     return EVC_OK;
 }
-
+#endif
 void evcd_set_affine_mvf(EVCD_CTX * ctx, EVCD_CORE * core)
 {
     int   w_cu;

@@ -2545,7 +2545,18 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         {
             if (ctx->use_pic_sign)
             {
+#if HDR_MD5_CHECK
+                if (ctx->sps.tool_dra)
+                {
+                    ret = evcd_picbuf_check_signature_hdr();
+                }
+                else
+                {
+                    ret = evcd_picbuf_check_signature_sdr(ctx->pic, ctx->pic_sign);
+                }
+#else
                 ret = evcd_picbuf_check_signature(ctx->pic, ctx->pic_sign);
+#endif
                 ctx->pic_sign_exist = 0;
             }
             else

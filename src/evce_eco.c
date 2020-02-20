@@ -544,21 +544,29 @@ int evce_eco_signature(EVCE_CTX * ctx, EVC_BSW * bs)
         u8 pic_sign[16];
 
         /* get picture signature */
-        ret = evc_picbuf_signature(PIC_CURR(ctx), pic_sign);
-        evc_assert_rv(ret == EVC_OK, ret);
+#if HDR_MD5_CHECK
+        if (!ctx->sps.tool_dra)
+        {
+#endif
+            ret = evc_picbuf_signature(PIC_CURR(ctx), pic_sign);
+            evc_assert_rv(ret == EVC_OK, ret);
+#if HDR_MD5_CHECK
+        }
+#endif
 
         evc_bsw_write(bs, EVC_UD_PIC_SIGNATURE, 8);
         evc_bsw_write(bs, hash_size, 8);
 
         for (i = 0; i < hash_size; i++)
         {
-            evc_bsw_write(bs, pic_sign[i], 8);
 #if HDR_MD5_CHECK
             if (ctx->sps.tool_dra)
             {
                 evc_bsw_write(bs, g_pic_sign[i], 8);
             }
+            else
 #endif
+                evc_bsw_write(bs, pic_sign[i], 8);
         }
     }
 
