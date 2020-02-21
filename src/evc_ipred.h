@@ -60,10 +60,17 @@ extern "C"
 
 void evc_get_nbr_b(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_cu, pel nb[N_C][N_REF][MAX_CU_SIZE * 3], int scup, u32 *map_scu, int w_scu, int h_scu, int ch_type, int constrained_intra_pred);
 void evc_get_nbr(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_cu, pel nb[N_C][N_REF][MAX_CU_SIZE * 3], int scup, u32 *map_scu, int w_scu, int h_scu, int ch_type, int constrained_intra_pred);
+#if CLEANUP_INTRA_PRED
+void evc_ipred(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm, int w, int h);
+void evc_ipred_uv(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm_c, int ipm, int w, int h);
+void evc_ipred_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm, int w, int h);
+void evc_ipred_uv_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm_c, int ipm, int w, int h);
+#else
 void evc_ipred(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm, int w, int h, u16 avail_cu);
 void evc_ipred_uv(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm_c, int ipm, int w, int h, u16 avail_cu);
 void evc_ipred_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm, int w, int h, u16 avail_cu);
 void evc_ipred_uv_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm_c, int ipm, int w, int h, u16 avail_cu);
+#endif
 void evc_get_mpm_b(int x_scu, int y_scu, int cuw, int cuh, u32 * map_scu, s8 * map_ipm, int scup, int w_scu, u8 ** mpm, u16 avail_lr, u8 mpm_ext[8], u8 pms[IPD_CNT]);
 void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 * map_scu, s8 * map_ipm, int scup, int w_scu, u8 mpm[2], u16 avail_lr, u8 mpm_ext[8], u8 pms[IPD_CNT]);
 

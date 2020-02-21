@@ -2200,8 +2200,11 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
     evc_assert(abs(log2_cuw - log2_cuh) <= 2);
     mode_cu_init(ctx, core, x, y, log2_cuw, log2_cuh, cud);
 #if M50761_CHROMA_NOT_SPLIT
-
+#if FIX_BTT_OFF
+    if (ctx->sps.sps_btt_flag && log2_cuw == 2 && log2_cuh == 2 && ctx->sps.tool_admvp)
+#else
     if (log2_cuw == 2 && log2_cuh == 2 && ctx->sps.tool_admvp)
+#endif
     {
         // Check only in main profile
         evc_assert(!evce_check_all(ctx));
@@ -2216,12 +2219,13 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
             evc_assert(!evce_check_all(ctx));
         }
     }
-
+#if !FIX_ADMPV_OFF
     if (!ctx->sps.tool_admvp)
     {
         evc_assert(evce_check_all(ctx));
         evc_assert(evce_check_all_preds(ctx));
     }
+#endif
 #endif
     core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, (1 << log2_cuw), (1 << log2_cuh), ctx->w_scu, ctx->h_scu, ctx->map_scu
 #if EVC_TILE_SUPPORT
@@ -3317,7 +3321,11 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
 #if M50761_CHROMA_NOT_SPLIT
     ctx->tree_cons = tree_cons;
 
+#if FIX_BTT_OFF
+    if (ctx->sps.sps_btt_flag && log2_cuw == 2 && log2_cuh == 2 && (evce_check_luma(ctx) || evce_check_all(ctx)) && ctx->sps.tool_admvp)
+#else
     if (log2_cuw == 2 && log2_cuh == 2 && (evce_check_luma(ctx) || evce_check_all(ctx)) && ctx->sps.tool_admvp )
+#endif
     {
         // Check only for main profile
         evc_assert(evce_check_only_intra(ctx));

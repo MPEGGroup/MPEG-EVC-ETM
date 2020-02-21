@@ -3192,8 +3192,15 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
         }
     }
     sh->deblocking_filter_on = evc_bsr_read1(bs);
-    sh->sh_deblock_alpha_offset = evc_bsr_read_se(bs);
-    sh->sh_deblock_beta_offset = evc_bsr_read_se(bs);
+#if SH_DBF_SIGNAL_ALIGN
+    if(sh->deblocking_filter_on && sps->tool_addb)
+    {
+#endif
+        sh->sh_deblock_alpha_offset = evc_bsr_read_se(bs);
+        sh->sh_deblock_beta_offset = evc_bsr_read_se(bs);
+#if SH_DBF_SIGNAL_ALIGN
+    }
+#endif
     sh->qp = evc_bsr_read(bs, 6);
     sh->qp_u = sh->qp - evc_bsr_read_se(bs);
     sh->qp_v = sh->qp - evc_bsr_read_se(bs);

@@ -1548,12 +1548,14 @@ int check_conf(EVCE_CDSC* cdsc)
         if (cdsc->tool_ats     == 1) { v0print("ATS_INTRA cannot be on in base profile\n"); success = 0; }
         if (cdsc->ibc_flag     == 1) { v0print("IBC cannot be on in base profile\n"); success = 0; }
     }
+#if !REMOVE_MAIN_RESTRICTION
     else
     {
         if (cdsc->tool_eipd    == 0) { v0print("EIPD cannot be off in main profile\n"); success = 0; }
         if (cdsc->tool_iqt     == 0) { v0print("IQT cannot be off in main profile\n"); success = 0; }
         if (cdsc->tool_cm_init == 0) { v0print("CM_INIT cannot be off in main profile\n"); success = 0; }
     }
+#endif
 #if M52166_PARTITION
     if (cdsc->btt == 1)
     {

@@ -42,6 +42,10 @@ void evc_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pe
 #endif
 );
 
-void evc_htdf(s16* rec, int qp, int w, int h, int s, BOOL intra_block_flag, pel* rec_pic, int s_pic, int avail_cu);
+void evc_htdf(s16* rec, int qp, int w, int h, int s, BOOL intra_block_flag, pel* rec_pic, int s_pic, int avail_cu
+#if FIX_CONSTRAINT_PRED
+              , int scup, int w_scu, int h_scu, u32 * map_scu, int constrained_intra_pred
+#endif
+);
 
 #endif /* _EVC_RECON_H_ */
