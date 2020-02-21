@@ -37,8 +37,6 @@
 #include "evc.h"
 #include "evc_port.h"
 
-#define FIX_CONSTRAINT_PRED                          1
-
 //bug fixes and platform changes to be applied
 #define ADDB_FLAG_FIX                                1 
 #define HDR_METRIC                                   1
@@ -51,6 +49,7 @@
 #define SEP_HOR_BASE                                 1
 #define CLEANUP_INTRA_PRED                           1
 #define REMOVE_MAIN_RESTRICTION                      1
+#define FIX_CONSTRAINT_PRED                          1
 
 //MPEG 129 adoptions
 #define M52291_HDR_DRA                               1
