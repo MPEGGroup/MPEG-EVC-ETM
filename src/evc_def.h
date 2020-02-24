@@ -50,6 +50,7 @@
 #define CLEANUP_INTRA_PRED                           1
 #define REMOVE_MAIN_RESTRICTION                      1
 #define FIX_CONSTRAINT_PRED                          1
+#define FIX_TEMPORAL_ID_SET                          1
 
 //MPEG 129 adoptions
 #define M52291_HDR_DRA                               1

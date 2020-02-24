@@ -297,11 +297,18 @@ static int set_enc_param(EVCE_CTX * ctx, EVCE_PARAM * param)
     return ret;
 }
 
+#if FIX_TEMPORAL_ID_SET
+static void set_nalu(EVC_NALU * nalu, int nalu_type, int nuh_temporal_id)
+#else
 static void set_nalu(EVC_NALU * nalu, int nalu_type)
+#endif
 {
     nalu->nal_unit_size = 0;
     nalu->forbidden_zero_bit = 0;
     nalu->nal_unit_type_plus1 = nalu_type + 1;
+#if FIX_TEMPORAL_ID_SET
+    nalu->nuh_temporal_id = nuh_temporal_id;
+#endif
     nalu->nuh_reserved_zero_5bits = 0;
     nalu->nuh_extension_flag = 0;
 }
@@ -1864,7 +1871,11 @@ int evce_aps_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, EVC_APS *
 
     /* Encode APS nalu header */
     EVC_NALU aps_nalu;
+#if FIX_TEMPORAL_ID_SET
+    set_nalu(&aps_nalu, EVC_APS_NUT, ctx->nalu.nuh_temporal_id);
+#else
     set_nalu(&aps_nalu, EVC_APS_NUT);
+#endif
 
     /* Write APS */
 #if M52291_HDR_DRA
@@ -1906,7 +1917,11 @@ int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     evce_bsw_skip_slice_size(bs);
 
     /* nalu header */
+#if FIX_TEMPORAL_ID_SET
+    set_nalu(&nalu, EVC_SPS_NUT, 0);
+#else
     set_nalu(&nalu, EVC_SPS_NUT);
+#endif
     evce_eco_nalu(bs, nalu);
 
     /* sequence parameter set*/
@@ -2193,7 +2208,11 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     {
         EVC_BSW  *bs = &ctx->bs;
         EVC_NALU sei_nalu;
+#if FIX_TEMPORAL_ID_SET
+        set_nalu(&sei_nalu, EVC_SEI_NUT, ctx->nalu.nuh_temporal_id);
+#else
         set_nalu(&sei_nalu, EVC_SEI_NUT);
+#endif
 
         int* size_field = (int*)(*(&bs->cur));
         u8* cur_tmp = bs->cur;
@@ -2393,7 +2412,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     ctx->lcu_cnt = ctx->f_lcu;
 
     /* Set nalu header */
+#if FIX_TEMPORAL_ID_SET
+    set_nalu(&ctx->nalu, ctx->pic_cnt == 0 || (ctx->slice_type == SLICE_I && ctx->param.use_closed_gop) ? EVC_IDR_NUT : EVC_NONIDR_NUT, ctx->nalu.nuh_temporal_id);
+#else
     set_nalu(&ctx->nalu, ctx->pic_cnt == 0 || (ctx->slice_type == SLICE_I && ctx->param.use_closed_gop) ? EVC_IDR_NUT : EVC_NONIDR_NUT);
+#endif
 
     if (!ctx->sps.tool_rpl)
     {
@@ -2684,7 +2707,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             {
                 aps_nalu_size = 0;
                 EVC_NALU aps_nalu;
+#if FIX_TEMPORAL_ID_SET
+                set_nalu(&aps_nalu, EVC_APS_NUT, ctx->nalu.nuh_temporal_id);
+#else
                 set_nalu(&aps_nalu, EVC_APS_NUT);
+#endif
 
                 /* Encode APS nalu header */
                 int* size_field = (int*)(*(&bs->cur));
@@ -2714,7 +2741,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         {
             aps_nalu_size = 0;
             EVC_NALU aps_nalu;
+#if FIX_TEMPORAL_ID_SET
+            set_nalu(&aps_nalu, EVC_APS_NUT, ctx->nalu.nuh_temporal_id);
+#else
             set_nalu(&aps_nalu, EVC_APS_NUT);
+#endif
 
             int* size_field = (int*)(*(&bs->cur));
             u8* cur_tmp = bs->cur;
@@ -3140,7 +3171,11 @@ int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
     bs->pdata[1] = &ctx->sbac_enc;
 
     /* nalu header */
+#if FIX_TEMPORAL_ID_SET
+    set_nalu(&nalu, EVC_SPS_NUT, 0);
+#else
     set_nalu(&nalu, EVC_SPS_NUT);
+#endif
     evce_eco_nalu(bs, nalu);
 
     /* sequence parameter set*/
@@ -3183,7 +3218,11 @@ int evce_encode_pps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
     bs->pdata[1] = &ctx->sbac_enc;
 
     /* nalu header */
+#if FIX_TEMPORAL_ID_SET
+    set_nalu(&nalu, EVC_PPS_NUT, ctx->nalu.nuh_temporal_id);
+#else
     set_nalu(&nalu, EVC_PPS_NUT);
+#endif
     evce_eco_nalu(bs, nalu);
 
     /* sequence parameter set*/
