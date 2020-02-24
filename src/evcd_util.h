@@ -57,12 +57,36 @@ void evcd_draw_partition(EVCD_CTX * ctx, EVC_PIC * pic);
 #endif
 
 #if M50761_CHROMA_NOT_SPLIT
-u8 evcd_check_luma(EVCD_CTX *ctx);
-u8 evcd_check_chroma(EVCD_CTX *ctx);
-u8 evcd_check_all(EVCD_CTX *ctx);
-u8 evcd_check_only_intra(EVCD_CTX *ctx);
-u8 evcd_check_only_inter(EVCD_CTX *ctx);
-u8 evcd_check_all_preds(EVCD_CTX *ctx);
+u8 evcd_check_luma(EVCD_CTX *ctx
+#if EVC_CONCURENCY
+    , EVCD_CORE * core
+#endif
+);
+u8 evcd_check_chroma(EVCD_CTX *ctx
+#if EVC_CONCURENCY
+    , EVCD_CORE * core
+#endif
+);
+u8 evcd_check_all(EVCD_CTX *ctx
+#if EVC_CONCURENCY
+    , EVCD_CORE * core
+#endif
+);
+u8 evcd_check_only_intra(EVCD_CTX *ctx
+#if EVC_CONCURENCY
+    , EVCD_CORE * core
+#endif
+);
+u8 evcd_check_only_inter(EVCD_CTX *ctx
+#if EVC_CONCURENCY
+    , EVCD_CORE * core
+#endif
+);
+u8 evcd_check_all_preds(EVCD_CTX *ctx
+#if EVC_CONCURENCY
+    , EVCD_CORE * core
+#endif
+);
 MODE_CONS evcd_derive_mode_cons(EVCD_CTX *ctx, int scup);
 #endif
 #endif /* _EVCD_UTIL_H_ */

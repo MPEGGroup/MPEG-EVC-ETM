@@ -67,12 +67,18 @@ extern "C"
     }
 
     u32 search_ibc_hash_match(EVCE_CTX *ctx, ibc_hash_handle* p, int cu_x, int cu_y,
-        int log2_cuw, int log2_cuh, s16 mvp[MV_D], s16 mv[MV_D])
+        int log2_cuw, int log2_cuh, s16 mvp[MV_D], s16 mv[MV_D]
+#if  EVC_TILE_SUPPORT
+        , EVCE_CORE * core
+#endif
+    )
     {
         u32 cost = 0;
         u32 min_cost = EVC_UINT32_MAX;
 
+
         EVCE_PIBC *pi = &ctx->pibc;
+
 
         EVCE_IBC_HashMap* p_hash = (EVCE_IBC_HashMap*)p;
 
@@ -115,7 +121,11 @@ extern "C"
                     cand_mv[MV_X] = pos->first - cu_x;
                     cand_mv[MV_Y] = pos->second - cu_y;
 
-                    if (!is_bv_valid(ctx, cu_x, cu_y, roi_width, roi_height, log2_cuw, log2_cuh, pic_width, pic_height, cand_mv[0], cand_mv[1], lcuWidth))
+                    if (!is_bv_valid(ctx, cu_x, cu_y, roi_width, roi_height, log2_cuw, log2_cuh, pic_width, pic_height, cand_mv[0], cand_mv[1], lcuWidth
+#if EVC_TILE_SUPPORT
+                        , core
+#endif
+                    ))
                     {
                         continue;
                     }

@@ -86,6 +86,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 #if M50761_CHROMA_NOT_SPLIT
     , TREE_CONS tree_cons
 #endif
+
 );
 #if M50761_CHROMA_NOT_SPLIT
 int evce_eco_mode_constr(EVC_BSW * bs, MODE_CONS mode_cons, int ctx);

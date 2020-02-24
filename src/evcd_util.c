@@ -240,7 +240,11 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
     idx = 0;
 #endif
 #if M50761_CHROMA_NOT_SPLIT
-    if (evcd_check_luma(ctx))
+    if (evcd_check_luma(ctx
+#if EVC_CONCURENCY
+        , core
+#endif
+    ))
     {
 #endif
     for(i = 0; i < h_cu; i++)
@@ -319,10 +323,18 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
             }
             else
             {
+#if EVC_TILE_DQP
+                MCU_SET_IF_COD_SN_QP(map_scu[j], flag, ctx->slice_num, ctx->tile[core->tile_num].qp);
+#else
                 MCU_SET_IF_COD_SN_QP(map_scu[j], flag, ctx->slice_num, ctx->sh.qp);
+#endif
             }
 #else
+#if EVC_TILE_DQP
+            MCU_SET_IF_COD_SN_QP(map_scu[j], flag, ctx->slice_num, ctx->tile[core->tile_num].qp);
+#else
             MCU_SET_IF_COD_SN_QP(map_scu[j], flag, ctx->slice_num, ctx->sh.qp);
+#endif
 #endif
 
             map_refi[j][REFP_0] = core->refi[REFP_0];
@@ -809,7 +821,11 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #if M52166_MMVD
         , ctx->poc.poc_val, ctx->dpm.num_refp
 #endif
-        , core->history_buffer, ctx->sps.tool_admvp, &ctx->sh, ctx->log2_max_cuwh);
+        , core->history_buffer, ctx->sps.tool_admvp, &ctx->sh, ctx->log2_max_cuwh
+#if EVC_TILE_SUPPORT
+        , ctx->map_tidx
+#endif
+    );
 
     core->mv[REFP_0][MV_X] = real_mv[core->mmvd_idx][0][MV_X];
     core->mv[REFP_0][MV_Y] = real_mv[core->mmvd_idx][0][MV_Y];
@@ -831,33 +847,81 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 }
 
 #if M50761_CHROMA_NOT_SPLIT
-u8 evcd_check_luma(EVCD_CTX *ctx)
+u8 evcd_check_luma(EVCD_CTX *ctx
+#if EVC_CONCURENCY
+    , EVCD_CORE * core
+#endif
+)
 {
+#if EVC_CONCURENCY
+    return evc_check_luma(core->tree_cons);
+#else
     return evc_check_luma(ctx->tree_cons);
+#endif
 }
 
-u8 evcd_check_chroma(EVCD_CTX *ctx)
+u8 evcd_check_chroma(EVCD_CTX *ctx
+#if EVC_CONCURENCY
+    , EVCD_CORE * core
+#endif
+)
 {
+#if EVC_CONCURENCY
+    return evc_check_chroma(core->tree_cons);
+#else
     return evc_check_chroma(ctx->tree_cons);
+#endif
 }
-u8 evcd_check_all(EVCD_CTX *ctx)
+u8 evcd_check_all(EVCD_CTX *ctx
+#if EVC_CONCURENCY
+    , EVCD_CORE * core
+#endif
+)
 {
+#if EVC_CONCURENCY
+    return evc_check_all(core->tree_cons);
+#else
     return evc_check_all(ctx->tree_cons);
+#endif
 }
 
-u8 evcd_check_only_intra(EVCD_CTX *ctx)
+u8 evcd_check_only_intra(EVCD_CTX *ctx
+#if EVC_CONCURENCY
+    , EVCD_CORE * core
+#endif
+)
 {
+#if EVC_CONCURENCY
+    return evc_check_only_intra(core->tree_cons);
+#else
     return evc_check_only_intra(ctx->tree_cons);
+#endif
 }
 
-u8 evcd_check_only_inter(EVCD_CTX *ctx)
+u8 evcd_check_only_inter(EVCD_CTX *ctx
+#if EVC_CONCURENCY
+    , EVCD_CORE * core
+#endif
+)
 {
+#if EVC_CONCURENCY
+    return evc_check_only_inter(core->tree_cons);
+#else
     return evc_check_only_inter(ctx->tree_cons);
+#endif
 }
 
-u8 evcd_check_all_preds(EVCD_CTX *ctx)
+u8 evcd_check_all_preds(EVCD_CTX *ctx
+#if EVC_CONCURENCY
+    , EVCD_CORE * core
+#endif
+)
 {
+#if EVC_CONCURENCY
+    return evc_check_all_preds(core->tree_cons);
+#else
     return evc_check_all_preds(ctx->tree_cons);
+#endif
 }
 
 MODE_CONS evcd_derive_mode_cons(EVCD_CTX *ctx, int scup)

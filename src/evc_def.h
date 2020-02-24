@@ -53,7 +53,7 @@
 #define FIX_TEMPORAL_ID_SET                          1
 
 //MPEG 129 adoptions
-#define M52291_HDR_DRA                               1
+#define M52291_HDR_DRA                               0
 #define M52165                                       1
 #define M52166                                       1
 #define M52290                                       1
@@ -85,8 +85,6 @@
 #define M52290_MVCLIP_THRESH                         1
 #endif
 
-
-
 /* Profiles definitions */
 #define PROFILE_BASELINE                             0
 #define PROFILE_MAIN                                 1
@@ -102,6 +100,8 @@
 #define TILE_SUPPORT                                 1
 #if     TILE_SUPPORT
 #define EVC_TILE_SUPPORT                             1
+#define EVC_CONCURENCY                               1
+#define TEST_ALF_BIT_CALC                            1
 #endif
 
 //fast algorithm
@@ -117,6 +117,9 @@
 
 #define DQP_EVC                                      1
 #if DQP_EVC
+#if EVC_TILE_SUPPORT
+#define EVC_TILE_DQP                                 1
+#endif
 #define DQP                                          1
 #define DQP_RDO                                      1
 #define GET_QP(qp,dqp)                               ((qp + dqp + 52) % 52)
@@ -1371,7 +1374,7 @@ typedef struct _EVC_SH
     u8               qp;
     u8               qp_u;
     u8               qp_v;
-    int              entry_point_offset_minus1[MAX_NUM_TILES_ROW * MAX_NUM_TILES_COL];
+    u32              entry_point_offset_minus1[MAX_NUM_TILES_ROW * MAX_NUM_TILES_COL];
 #if DQP
     /*QP of previous cu in decoding order (used for dqp)*/
     u8               qp_prev_eco;
@@ -1387,6 +1390,9 @@ typedef struct _EVC_SH
     int              aps_id_ch;
     EVC_APS*         aps;
     evc_AlfSliceParam alf_sh_param;
+#if EVC_TILE_SUPPORT
+    u16              num_tiles_in_slice;
+#endif
 } EVC_SH;
 
 #if EVC_TILE_SUPPORT
@@ -1403,6 +1409,10 @@ typedef struct _EVC_TILE
     u32             f_ctb;
     /* first ctb address in raster scan order */
     u16             ctba_rs_first;
+#if EVC_TILE_DQP
+    u8              qp;
+    u8              qp_prev_eco;
+#endif
 } EVC_TILE;
 
 /*****************************************************************************/
