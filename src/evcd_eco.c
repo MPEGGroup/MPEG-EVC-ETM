@@ -3236,12 +3236,6 @@ int evcd_eco_sei(EVCD_CTX * ctx, EVC_BSR * bs)
         /* read signature (HASH) from bitstream */
         for (i = 0; i < payload_size; i++)
         {
-#if HDR_MD5_CHECK
-            if (ctx->sps.tool_dra)
-            {
-                g_pic_sign_dec_sig[i] = evc_bsr_read(bs, 8);
-            }else
-#endif
                 ctx->pic_sign[i] = evc_bsr_read(bs, 8);
         }
         ctx->pic_sign_exist = 1;

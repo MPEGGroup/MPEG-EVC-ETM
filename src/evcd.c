@@ -2104,115 +2104,6 @@ void evcd_flush(EVCD_CTX * ctx)
     }
 }
 
-#if HDR_MD5_CHECK
-static void __imgb_cpy_plane(void *src, void *dst, int bw, int h, int s_src,
-    int s_dst)
-{
-    int i;
-    unsigned char *s, *d;
-
-    s = (unsigned char*)src;
-    d = (unsigned char*)dst;
-
-    for (i = 0; i < h; i++)
-    {
-        memcpy(d, s, bw);
-        s += s_src;
-        d += s_dst;
-    }
-}
-#define IFVCA_CLIP(n,min,max) (((n)>(max))? (max) : (((n)<(min))? (min) : (n)))
-static void imgb_conv_8b_to_16b(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
-    int shift)
-{
-    int i, j, k;
-
-    unsigned char * s;
-    short         * d;
-
-    for (i = 0; i < 3; i++)
-    {
-        s = imgb_src->a[i];
-        d = imgb_dst->a[i];
-
-        for (j = 0; j < imgb_src->h[i]; j++)
-        {
-            for (k = 0; k < imgb_src->w[i]; k++)
-            {
-                d[k] = (short)(s[k] << shift);
-            }
-            s = s + imgb_src->s[i];
-            d = (short*)(((unsigned char *)d) + imgb_dst->s[i]);
-        }
-    }
-}
-
-static void imgb_conv_16b_to_8b(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
-    int shift)
-{
-
-    int i, j, k, t0, add;
-
-    short         * s;
-    unsigned char * d;
-
-    add = 1 << (shift - 1);
-
-    for (i = 0; i < 3; i++)
-    {
-        s = imgb_src->a[i];
-        d = imgb_dst->a[i];
-
-        for (j = 0; j < imgb_src->h[i]; j++)
-        {
-            for (k = 0; k < imgb_src->w[i]; k++)
-            {
-                t0 = ((s[k] + add) >> shift);
-                d[k] = (unsigned char)(IFVCA_CLIP(t0, 0, 255));
-
-            }
-            s = (short*)(((unsigned char *)s) + imgb_src->s[i]);
-            d = d + imgb_dst->s[i];
-        }
-    }
-}
-static void imgb_cpy(EVC_IMGB * dst, EVC_IMGB * src)
-{
-    int i, bd;
-
-    if (src->cs == dst->cs)
-    {
-        if (src->cs == EVC_COLORSPACE_YUV420_10LE) bd = 2;
-        else bd = 1;
-
-        for (i = 0; i < src->np; i++)
-        {
-            __imgb_cpy_plane(src->a[i], dst->a[i], bd*src->w[i], src->h[i],
-                src->s[i], dst->s[i]);
-        }
-    }
-    else if (src->cs == EVC_COLORSPACE_YUV420 &&
-        dst->cs == EVC_COLORSPACE_YUV420_10LE)
-    {
-        imgb_conv_8b_to_16b(dst, src, 2);
-    }
-    else if (src->cs == EVC_COLORSPACE_YUV420_10LE &&
-        dst->cs == EVC_COLORSPACE_YUV420)
-    {
-        imgb_conv_16b_to_8b(dst, src, 2);
-    }
-    else
-    {
-        printf("ERROR: unsupported image copy\n");
-        return;
-    }
-    for (i = 0; i < 4; i++)
-    {
-        dst->ts[i] = src->ts[i];
-    }
-}
-#endif
-
 int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 {
     EVC_BSR  *bs = &ctx->bs;
@@ -2493,34 +2384,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
             ret = ctx->fn_alf(ctx,  ctx->pic);
             evc_assert_rv(EVC_SUCCEEDED(ret), ret);
         }
-#if HDR_MD5_CHECK
-        if (ctx->sps.tool_dra)
-        {
-            int ret;
-            EVC_IMGB *imgb_hdr_md5 = NULL;
-            WCGDDRAControl l_dra_control;
-            WCGDDRAControl *local_g_dra_control = &l_dra_control;
-            SignalledParamsDRA* p_pps_draParams = (SignalledParamsDRA*)ctx->p_pps_draParams;
-            memcpy(&(local_g_dra_control->m_signalledDRA), p_pps_draParams, sizeof(SignalledParamsDRA));
-            evcd_initDRA(local_g_dra_control);
-            int align[EVC_IMGB_MAX_PLANE] = { MIN_CU_SIZE, MIN_CU_SIZE >> 1, MIN_CU_SIZE >> 1 };
-            int pad[EVC_IMGB_MAX_PLANE] = { 0, 0, 0, };
-            imgb_hdr_md5 = evc_imgb_create(ctx->w, ctx->h, EVC_COLORSPACE_YUV420_10LE, 0, pad, align);
-            if (imgb_hdr_md5 == NULL)
-            {
-                printf("Cannot get original image buffer (DRA)\n");
-                return -1;
-            }
-            imgb_cpy(imgb_hdr_md5, ctx->pic->imgb);  // store copy of the reconstructed picture in DPB
-            evc_apply_dra_chroma_plane(imgb_hdr_md5, imgb_hdr_md5, local_g_dra_control, 1, TRUE);
-            evc_apply_dra_chroma_plane(imgb_hdr_md5, imgb_hdr_md5, local_g_dra_control, 2, TRUE);
-            evc_apply_dra_luma_plane(imgb_hdr_md5, imgb_hdr_md5, local_g_dra_control, 0, TRUE);
-            /* execute MD5 digest here */
-            ret = evc_md5_imgb(imgb_hdr_md5, g_pic_sign);
-            evc_assert_rv(EVC_SUCCEEDED(ret), ret);
-            imgb_hdr_md5->release(imgb_hdr_md5);
-        }
-#endif
+
 #if USE_DRAW_PARTITION_DEC
         evcd_draw_partition(ctx, ctx->pic);
 #endif
@@ -2546,14 +2410,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
             if (ctx->use_pic_sign)
             {
 #if HDR_MD5_CHECK
-                if (ctx->sps.tool_dra)
-                {
-                    ret = evcd_picbuf_check_signature_hdr();
-                }
-                else
-                {
-                    ret = evcd_picbuf_check_signature_sdr(ctx->pic, ctx->pic_sign);
-                }
+                ret = evcd_picbuf_check_signature(ctx->pic, ctx->pic_sign, ctx->sps.tool_dra, ctx->p_pps_draParams, ctx->w, ctx->h);
 #else
                 ret = evcd_picbuf_check_signature(ctx->pic, ctx->pic_sign);
 #endif

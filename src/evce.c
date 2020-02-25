@@ -2642,13 +2642,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         ret = ctx->fn_alf(ctx, PIC_MODE(ctx), sh, aps);
         evc_assert_rv(ret == EVC_OK, ret);
     }
-#if HDR_MD5_CHECK
-    if (ctx->sps.tool_dra)
-    {
-        ret = evce_eco_udata_hdr(ctx, bs);
-        evc_assert_rv(ret == EVC_OK, ret);
-    }
-#endif
+
     /* Bit-stream re-writing (START) */
     evc_bsw_init(&ctx->bs, (u8*)bitb->addr, bitb->bsize, NULL);
 #if TRACE_START_POC
