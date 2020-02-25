@@ -956,10 +956,12 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
         core->mv[REFP_1][MV_Y] = real_mv[core->mmvd_idx][1][MV_Y];
     }
 
+#if !MMVD_CLEANUP
     if ((ctx->sh.slice_type == SLICE_P) || (!check_bi_applicability(ctx->sh.slice_type, cuw, cuh, ctx->sps.tool_admvp)))
     {
         core->refi[REFP_1] = -1;
     }
+#endif
 }
 
 #if M50761_CHROMA_NOT_SPLIT
