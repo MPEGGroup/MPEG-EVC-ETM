@@ -3729,12 +3729,16 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
 #if M50761_CHROMA_NOT_SPLIT
                     split_struct.tree_cons = tree_cons;
 
+                    BOOL mode_cons_changed = FALSE;
+                    BOOL mode_cons_signal = FALSE;
+
                     if ( ctx->sps.tool_admvp && ctx->sps.sps_btt_flag ) // TODO: Tim, is special check needed here? create the specific variable for local dual tree ON/OFF
+                    {
                         split_struct.tree_cons.changed = tree_cons.mode_cons == eAll && !evc_is_chroma_split_allowed( cuw, cuh, split_mode );
+                        mode_cons_changed = evc_signal_mode_cons( &ctx->tree_cons, &split_struct.tree_cons );
+                        mode_cons_signal = mode_cons_changed && ( ctx->sh.slice_type != SLICE_I ) && ( evc_get_mode_cons_by_split( split_mode, cuw, cuh ) == eAll );
+                    }
 
-                    BOOL mode_cons_changed = evc_signal_mode_cons(&ctx->tree_cons, &split_struct.tree_cons);
-
-                    BOOL mode_cons_signal = mode_cons_changed && (ctx->sh.slice_type != SLICE_I) && (evc_get_mode_cons_by_split(split_mode, cuw, cuh) == eAll);
                     for (int mode_num = 0; mode_num < (mode_cons_signal ? 2 : 1); ++mode_num)
                     {
                         if (mode_cons_changed)
