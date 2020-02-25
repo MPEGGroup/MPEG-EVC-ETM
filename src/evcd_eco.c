@@ -2323,8 +2323,34 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
             }
             else
             {
+#if FIX_EIPD_OFF & M50761_CHROMA_NOT_SPLIT
+                int luma_ipm = IPD_DC_B;
+                if (evcd_check_luma(ctx))
+                {
+#endif
                 core->ipm[0] = evcd_eco_intra_dir_b(bs, sbac, core->mpm_b_list, core->mpm_ext, core->pims);
+#if FIX_EIPD_OFF & M50761_CHROMA_NOT_SPLIT
+                luma_ipm = core->ipm[0];
+                }
+                else
+                {
+                    int luma_cup = evc_get_luma_cup(core->x_scu, core->y_scu, PEL2SCU(cuw), PEL2SCU(cuh), ctx->w_scu);
+                    if(MCU_GET_IF(ctx->map_scu[luma_cup]))
+                    {
+                        luma_ipm = ctx->map_ipm[luma_cup];
+                    }
+                    else
+                    {
+                        luma_ipm = IPD_DC_B;
+                    }
+                }
+                if(evcd_check_chroma(ctx))
+                {
+                    core->ipm[1] = luma_ipm;
+                }
+#else
                 core->ipm[1] = core->ipm[0];
+#endif
             }
 
             SET_REFI(core->refi, REFI_INVALID, REFI_INVALID);

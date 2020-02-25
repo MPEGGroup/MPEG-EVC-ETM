@@ -51,6 +51,9 @@
 #define REMOVE_MAIN_RESTRICTION                      1
 #define FIX_CONSTRAINT_PRED                          1
 #define FIX_TEMPORAL_ID_SET                          1
+#define FIX_EIPD_OFF                                 1
+#define RESTRICT_IBC_WITH_EIPD                       1
+#define CLEANUP_SUCO_4X4                             1
 
 //MPEG 129 adoptions
 #define M52291_HDR_DRA                               1
