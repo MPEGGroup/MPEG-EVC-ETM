@@ -3731,7 +3731,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                 if(split_allow[split_mode])
                 {
 #if M50761_CHROMA_NOT_SPLIT
-                    if (split_mode == SPLIT_QUAD)
+                    if ( ctx->sps.tool_admvp && ctx->sps.sps_btt_flag )       // TODO: Tim, is special check needed here? create the specific variable for local dual tree ON/OFF
                     {
                         // No processing of small chroma blocks in base line
                         split_struct.tree_cons = evc_get_default_tree_cons();

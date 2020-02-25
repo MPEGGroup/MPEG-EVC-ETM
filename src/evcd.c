@@ -880,7 +880,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 {
     int ret, cuw, cuh;
 #if M50761_CHROMA_NOT_SPLIT
-    ctx->tree_cons = ( TREE_CONS ) { FALSE, tree_cons.tree_type, tree_cons.mode_cons }; //TODO: for further refactoring
+    ctx->tree_cons = ( TREE_CONS ) { FALSE, tree_cons.tree_type, tree_cons.mode_cons }; //TODO: Tim for further refactoring
 #endif
     core->log2_cuw = log2_cuw;
     core->log2_cuh = log2_cuh;
@@ -1144,12 +1144,12 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
                 evc_ipred_uv_b(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1);
                 evc_ipred_uv_b(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1);
 #else
-            evc_ipred_uv_b(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[0], core->ipm[0], cuw >> 1, cuh >> 1);
-            evc_ipred_uv_b(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[0], core->ipm[0], cuw >> 1, cuh >> 1);
+                evc_ipred_uv_b(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[0], core->ipm[0], cuw >> 1, cuh >> 1);
+                evc_ipred_uv_b(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[0], core->ipm[0], cuw >> 1, cuh >> 1);
 #endif
 #else
-            evc_ipred_uv_b(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[0], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu);
-            evc_ipred_uv_b(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[0], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu);
+                evc_ipred_uv_b(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[0], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu);
+                evc_ipred_uv_b(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[0], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu);
 #endif
 #if M50761_CHROMA_NOT_SPLIT
             }
@@ -1343,7 +1343,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
         split_mode = NO_SPLIT;
     }
 
-#if DQP //TODO: DQP
+#if DQP
     if(ctx->pps.cu_qp_delta_enabled_flag && ctx->sps.dquant_flag)
     {
         if (split_mode == NO_SPLIT && (log2_cuh + log2_cuw >= ctx->pps.cu_qp_delta_area) && cu_qp_delta_code != 2)
@@ -1385,7 +1385,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
 
         BOOL mode_constraint_changed = FALSE;
 
-        if ( ctx->sps.sps_btt_flag )       // Only for main profile
+        if ( ctx->sps.sps_btt_flag && ctx->sps.tool_admvp )       // TODO: Tim create the specific variable for local dual tree ON/OFF
         {
             mode_constraint_changed = mode_cons == eAll && !evc_is_chroma_split_allowed( cuw, cuh, split_mode );
 
@@ -1451,9 +1451,9 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
 #if M50761_CHROMA_NOT_SPLIT
         TREE_TYPE tree_type = mode_cons == eOnlyIntra ? TREE_L : TREE_LC;
 
-        assert( mode_cons != eOnlyInter || !( ctx->sps.sps_btt_flag && log2_cuw == 2 && log2_cuh == 2 ) );
+        assert( mode_cons != eOnlyInter || !( ctx->sps.tool_admvp && log2_cuw == 2 && log2_cuh == 2 ) );
 
-        if ( /*( ctx->sh.slice_type == SLICE_I ) || TODO:Tim process it*/ ( ctx->sps.sps_btt_flag && log2_cuw == 2 && log2_cuh == 2 ) )
+        if ( /*( ctx->sh.slice_type == SLICE_I ) || TODO:Tim process it*/ ( ctx->sps.tool_admvp && log2_cuw == 2 && log2_cuh == 2 ) )
           mode_cons = eOnlyIntra;   
 #endif
 
@@ -1497,7 +1497,7 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 
         BOOL mode_cons_changed = FALSE;
 
-        if (split_mode != SPLIT_QUAD )       // Only for main profile
+        if ( ctx->sps.tool_admvp && ctx->sps.sps_btt_flag )       // TODO: Tim create the specific variable for local dual tree ON/OFF
         {
             mode_cons_changed = tree_cons.mode_cons == eAll && !evc_is_chroma_split_allowed( cuw, cuh, split_mode );
 
@@ -1717,7 +1717,7 @@ int evcd_deblock_h263(EVCD_CTX * ctx
         {
             deblock_tree(ctx, ctx->pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 1
 #if M50761_CHROMA_NOT_SPLIT
-                , ( TREE_CONS_NEW ) {TREE_LC, eAll}
+                , ( TREE_CONS_NEW ) {TREE_LC, eAll} //TODO: Tim this place could not work with "special main (advanced dbf off)"
 #endif
             );
         }
@@ -1738,7 +1738,7 @@ int evcd_deblock_h263(EVCD_CTX * ctx
         {
             deblock_tree(ctx, ctx->pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 0
 #if M50761_CHROMA_NOT_SPLIT
-                , ( TREE_CONS_NEW ) {TREE_LC, eAll}
+                , ( TREE_CONS_NEW ) {TREE_LC, eAll} //TODO: Tim this place could not work with "special main (advanced dbf off)"
 #endif
             );
         }

@@ -1490,7 +1490,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if M50761_CHROMA_NOT_SPLIT
         BOOL mode_cons_changed = evc_signal_mode_cons(&ctx->tree_cons, &split_struct.tree_cons);
 
-        if (split_mode != SPLIT_QUAD )       // Only for main profile
+        if ( ctx->sps.tool_admvp && ctx->sps.sps_btt_flag )       // TODO: Tim create the specific variable for local dual tree ON/OFF
         {
             if (mode_cons_changed)
             {
