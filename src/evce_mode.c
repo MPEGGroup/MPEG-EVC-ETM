@@ -3793,9 +3793,8 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                                 evc_set_suco_flag(suco_flag, cud, 0, cuw, cuh, cuw, core->cu_data_temp[log2_cuw - 2][log2_cuh - 2].suco_flag);
                             }
 #if M50761_CHROMA_NOT_SPLIT
-                            if (split_mode != SPLIT_QUAD)       // Only for main profile
+                            if ( ctx->sps.tool_admvp && ctx->sps.sps_btt_flag && mode_cons_signal )       // TODO: Tim, is special check needed here? create the specific variable for local dual tree ON/OFF
                             {
-                                if (mode_cons_signal)
                                     evce_eco_mode_constr(&core->bs_temp, split_struct.tree_cons.mode_cons, ctx->ctx_flags[CNID_MODE_CONS]);
                             }
 #endif
