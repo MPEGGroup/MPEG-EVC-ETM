@@ -1117,8 +1117,6 @@ const int g_go_rice_para_coeff[32] =
 int g_lumaInvScaleLUT[DRA_LUT_MAXSIZE];               // LUT for luma and correspionding QP offset
 double g_chromaInvScaleLUT[2][DRA_LUT_MAXSIZE];               // LUT for chroma scales 
 int g_intChromaInvScaleLUT[2][DRA_LUT_MAXSIZE];               // LUT for chroma scales 
-u8 g_pic_sign[16];
-u8 g_pic_sign_dec_sig[16];
 #endif
 #if HDR_METRIC
 const double g_UCF_Filters[8][4][15] = {

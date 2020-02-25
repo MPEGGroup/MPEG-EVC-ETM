@@ -2625,6 +2625,11 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps)
         pps->pic_dra_enabled_flag = evc_bsr_read1(bs);
         pps->pic_dra_aps_id = evc_bsr_read(bs, APS_TYPE_ID_BITS);
     }
+    else
+    {
+        pps->pic_dra_enabled_present_flag = 0;
+        pps->pic_dra_enabled_flag = 0;
+    }
 #endif
 
     pps->arbitrary_slice_present_flag = evc_bsr_read1(bs);
@@ -3231,13 +3236,7 @@ int evcd_eco_sei(EVCD_CTX * ctx, EVC_BSR * bs)
         /* read signature (HASH) from bitstream */
         for (i = 0; i < payload_size; i++)
         {
-            ctx->pic_sign[i] = evc_bsr_read(bs, 8);
-#if HDR_MD5_CHECK
-            if (ctx->sps.tool_dra)
-            {
-                g_pic_sign_dec_sig[i] = evc_bsr_read(bs, 8);
-            }
-#endif
+                ctx->pic_sign[i] = evc_bsr_read(bs, 8);
         }
         ctx->pic_sign_exist = 1;
         break;

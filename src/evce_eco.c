@@ -544,21 +544,28 @@ int evce_eco_signature(EVCE_CTX * ctx, EVC_BSW * bs)
         u8 pic_sign[16];
 
         /* get picture signature */
-        ret = evc_picbuf_signature(PIC_CURR(ctx), pic_sign);
-        evc_assert_rv(ret == EVC_OK, ret);
+#if HDR_MD5_CHECK
+        if (!ctx->sps.tool_dra)
+        {
+#endif
+            ret = evc_picbuf_signature(PIC_CURR(ctx), pic_sign);
+            evc_assert_rv(ret == EVC_OK, ret);
+#if HDR_MD5_CHECK
+        }
+#endif
+
+        if (ctx->sps.tool_dra)
+        {
+            ret = evce_eco_udata_hdr(ctx, bs, pic_sign);
+            evc_assert_rv(ret == EVC_OK, ret);
+        }
 
         evc_bsw_write(bs, EVC_UD_PIC_SIGNATURE, 8);
         evc_bsw_write(bs, hash_size, 8);
 
         for (i = 0; i < hash_size; i++)
         {
-            evc_bsw_write(bs, pic_sign[i], 8);
-#if HDR_MD5_CHECK
-            if (ctx->sps.tool_dra)
-            {
-                evc_bsw_write(bs, g_pic_sign[i], 8);
-            }
-#endif
+                evc_bsw_write(bs, pic_sign[i], 8);
         }
     }
 
@@ -783,7 +790,7 @@ EVC_IMGB * imgb_alloc1(int w, int h, int cs)
     imgb->cs = cs;
     return imgb;
 }
-int evce_eco_udata_hdr(EVCE_CTX * ctx, EVC_BSW * bs)
+int evce_eco_udata_hdr(EVCE_CTX * ctx, EVC_BSW * bs, u8* pic_sign)
 {
     int ret;
     EVC_IMGB *imgb_hdr_md5 = NULL;
@@ -791,14 +798,9 @@ int evce_eco_udata_hdr(EVCE_CTX * ctx, EVC_BSW * bs)
     memcpy(&(control_rda_md5->m_lumaInvScaleLUT[0]), g_lumaInvScaleLUT, DRA_LUT_MAXSIZE * sizeof(int));
     memcpy(&(control_rda_md5->m_chromaInvScaleLUT[0][0]), g_chromaInvScaleLUT, 2 * DRA_LUT_MAXSIZE * sizeof(double));
     memcpy(&(control_rda_md5->m_intChromaInvScaleLUT[0][0]), g_intChromaInvScaleLUT, 2 * DRA_LUT_MAXSIZE * sizeof(int));
-    //    control_rda_md5->m_chromaInvScaleLUT[0][0] = 
     imgb_hdr_md5 = imgb_alloc1(PIC_CURR(ctx)->imgb->w[0], PIC_CURR(ctx)->imgb->h[0],
         EVC_COLORSPACE_YUV420_10LE);
-    //    if (EVC_OK != evce_get_inbuf(ctx->id, &imgb_hdr_md5))
-    {
-        //        printf("Cannot initialize buffer for HDR MD5 computation\n");
-        //        return -1;
-    }
+
     imgb_cpy(imgb_hdr_md5, PIC_CURR(ctx)->imgb);  // store copy of the reconstructed picture in DPB
     evc_apply_dra_chroma_plane(imgb_hdr_md5, imgb_hdr_md5, control_rda_md5, 1, TRUE/*backwardMapping == false*/);
     evc_apply_dra_chroma_plane(imgb_hdr_md5, imgb_hdr_md5, control_rda_md5, 2, TRUE /*backwardMapping == false*/);
@@ -810,11 +812,9 @@ int evce_eco_udata_hdr(EVCE_CTX * ctx, EVC_BSW * bs)
     if (ctx->param.use_pic_sign)
     {
         /* get picture signature */
-        ret = evc_md5_imgb(imgb_hdr_md5, g_pic_sign);
-        //        ret = evc_picbuf_signature(PIC_CURR(ctx), pic_sign);
+        ret = evc_md5_imgb(imgb_hdr_md5, pic_sign);
         evc_assert_rv(ret == EVC_OK, ret);
     }
-    //    imgb_hdr_md5->release(imgb_hdr_md5);
     imgb_free1(imgb_hdr_md5);
     return EVC_OK;
 }
