@@ -304,7 +304,11 @@ BOOL evc_htdf_skip_condition(int width, int height, int IntraBlockFlag, int *qp)
     return FALSE;
 }
 
-void evc_htdf(s16* rec, int qp, int w, int h, int s, BOOL intra_block_flag, pel* rec_pic, int s_pic, int avail_cu)
+void evc_htdf(s16* rec, int qp, int w, int h, int s, BOOL intra_block_flag, pel* rec_pic, int s_pic, int avail_cu
+#if FIX_CONSTRAINT_PRED
+              , int scup, int w_scu, int h_scu, u32 * map_scu, int constrained_intra_pred
+#endif
+)
 {
     if (evc_htdf_skip_condition(w, h, intra_block_flag, &qp))
         return;
@@ -316,6 +320,68 @@ void evc_htdf(s16* rec, int qp, int w, int h, int s, BOOL intra_block_flag, pel*
     for (int i = 0; i < h; ++i)
         memcpy(tempblock + (i + 1) * width_ext + 1, rec + i * s, w * sizeof(rec[0]));
 
+#if FIX_CONSTRAINT_PRED
+    if(IS_AVAIL(avail_cu, AVAIL_LE))
+    {
+        for(int i = 1; i < height_ext - 1; ++i)
+        {
+            if(!constrained_intra_pred || MCU_GET_IF(map_scu[scup - 1 + ((i - 1) >> MIN_CU_LOG2) * w_scu]))
+            {
+                tempblock[i * width_ext] = rec_pic[(i - 1) * s_pic - 1];
+            }
+            else
+            {
+                tempblock[i * width_ext] = rec[(i - 1) * s];
+            }
+        }
+    }
+    else
+    {
+        for(int i = 1; i < height_ext - 1; ++i)
+        {
+            tempblock[i * width_ext] = rec[(i - 1) * s];
+        }
+    }
+    if(IS_AVAIL(avail_cu, AVAIL_RI))
+    {
+        for(int i = 1; i < height_ext - 1; ++i)
+        {
+            if(!constrained_intra_pred || MCU_GET_IF(map_scu[scup + (w >> MIN_CU_LOG2) + ((i - 1) >> MIN_CU_LOG2) * w_scu]))
+            {
+                tempblock[i * width_ext + width_ext - 1] = rec_pic[(i - 1) * s_pic + w];
+            }
+            else
+            {
+                tempblock[i * width_ext + width_ext - 1] = rec[(i - 1) * s + w - 1];
+            }
+        }
+    }
+    else
+    {
+        for(int i = 1; i < height_ext - 1; ++i)
+        {
+            tempblock[i * width_ext + width_ext - 1] = rec[(i - 1) * s + w - 1];
+        }
+    }
+    if(IS_AVAIL(avail_cu, AVAIL_UP))
+    {
+        for(int i = 1; i < width_ext - 1; ++i)
+        {
+            if(!constrained_intra_pred || MCU_GET_IF(map_scu[scup - w_scu + ((i - 1) >> MIN_CU_LOG2)]))
+            {
+                tempblock[i] = rec_pic[(i - 1) - s_pic];
+            }
+            else
+            {
+                tempblock[i] = rec[(i - 1)];
+            }
+        }
+    }
+    else
+    {
+        memcpy(tempblock + 1, rec, w * sizeof(rec[0]));
+    }
+#else
     if (IS_AVAIL(avail_cu, AVAIL_LE))
     {
         for (int i = 1; i < height_ext - 1; ++i)
@@ -344,6 +410,7 @@ void evc_htdf(s16* rec, int qp, int w, int h, int s, BOOL intra_block_flag, pel*
     {
         memcpy(tempblock + 1, rec, w * sizeof(rec[0]));
     }
+#endif
     memcpy(tempblock + 1 + (height_ext - 1) * width_ext, rec + (h - 1) * s, w * sizeof(rec[0]));
 
     tempblock[0] = IS_AVAIL(avail_cu, AVAIL_UP_LE) ? rec_pic[-1 - 1 * s_pic] : rec[0];

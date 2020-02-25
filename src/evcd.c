@@ -1102,14 +1102,23 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
             if (evcd_check_luma(ctx))
             {
 #endif
+#if CLEANUP_INTRA_PRED
+            evc_ipred(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh);
+#else
             evc_ipred(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh, core->avail_cu);
+#endif
 #if M50761_CHROMA_NOT_SPLIT
             }
             if (evcd_check_chroma(ctx))
             {
 #endif
+#if CLEANUP_INTRA_PRED
+            evc_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1);
+            evc_ipred_uv(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1);
+#else
             evc_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu);
             evc_ipred_uv(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu);
+#endif
 #if M50761_CHROMA_NOT_SPLIT
             }
 #endif
@@ -1120,14 +1129,28 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
             if (evcd_check_luma(ctx))
             {
 #endif
+#if CLEANUP_INTRA_PRED
+            evc_ipred_b(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh);
+#else
             evc_ipred_b(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh, core->avail_cu);
+#endif
 #if M50761_CHROMA_NOT_SPLIT
             }
             if (evcd_check_chroma(ctx))
             {
 #endif
+#if CLEANUP_INTRA_PRED
+#if FIX_EIPD_OFF & M50761_CHROMA_NOT_SPLIT
+                evc_ipred_uv_b(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1);
+                evc_ipred_uv_b(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1);
+#else
+            evc_ipred_uv_b(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[0], core->ipm[0], cuw >> 1, cuh >> 1);
+            evc_ipred_uv_b(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[0], core->ipm[0], cuw >> 1, cuh >> 1);
+#endif
+#else
             evc_ipred_uv_b(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[0], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu);
             evc_ipred_uv_b(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[0], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu);
+#endif
 #if M50761_CHROMA_NOT_SPLIT
             }
 #endif
@@ -1162,8 +1185,15 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
                 , ctx->map_tidx
 #endif
             );
+#if FIX_CONSTRAINT_PRED
+            int constrained_intra_flag = core->pred_mode == MODE_INTRA && ctx->pps.constrained_intra_pred_flag;
+#endif
             evc_htdf(ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->sh.qp, cuw, cuh, ctx->pic->s_l, core->pred_mode == MODE_INTRA
-                , ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->pic->s_l, avail_cu);
+                , ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->pic->s_l, avail_cu
+#if FIX_CONSTRAINT_PRED
+                     , core->scup, ctx->w_scu, ctx->h_scu, ctx->map_scu, constrained_intra_flag
+#endif
+            );
         }
     }
     return EVC_OK;
@@ -2758,8 +2788,8 @@ int evcd_decode(EVCD id, EVC_BITB * bitb, EVCD_STAT * stat)
     EVCD_ID_TO_CTX_RV(id, ctx, EVC_ERR_INVALID_ARGUMENT);
 #if M52291_HDR_DRA
     ctx->void_aps_gen_array = p_draParams;
-#else
-    ctx->p_draParams = p_draParams;
+//#else
+    //ctx->p_draParams = p_draParams;
 #endif
     evc_assert_rv(ctx->fn_dec_cnk, EVC_ERR_UNEXPECTED);
 

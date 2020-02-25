@@ -1518,7 +1518,7 @@ static void print_enc_conf(EVCE_CDSC * cdsc)
     printf("ChromaQPTable: %d ", cdsc->chroma_qp_table_struct.chroma_qp_table_present_flag);
 #if M52291_HDR_DRA
     printf("DRA: %d ", cdsc->tool_dra);
-#else
+//#else
     printf("DRA: %d ", ((WCGDDRAControl *)cdsc->m_DRAMappingApp)->m_flagEnabled);
 #endif
     printf("\n");
@@ -1550,9 +1550,14 @@ int check_conf(EVCE_CDSC* cdsc)
     }
     else
     {
+#if RESTRICT_IBC_WITH_EIPD
+        if (cdsc->tool_eipd == 0 && cdsc->ibc_flag == 1) { v0print("IBC cannot be on when EIPD is off\n"); success = 0; }
+#endif
+#if !REMOVE_MAIN_RESTRICTION
         if (cdsc->tool_eipd    == 0) { v0print("EIPD cannot be off in main profile\n"); success = 0; }
         if (cdsc->tool_iqt     == 0) { v0print("IQT cannot be off in main profile\n"); success = 0; }
         if (cdsc->tool_cm_init == 0) { v0print("CM_INIT cannot be off in main profile\n"); success = 0; }
+#endif
     }
 #if M52166_PARTITION
     if (cdsc->btt == 1)
