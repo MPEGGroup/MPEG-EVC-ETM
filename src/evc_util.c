@@ -4880,11 +4880,7 @@ int evc_split_get_part_size_idx(int split_mode, int part_num, int length_idx)
     return ans;
 }
 
-void evc_split_get_part_structure(int split_mode, int x0, int y0, int cuw, int cuh, int cup, int cud, int log2_culine, EVC_SPLIT_STRUCT* split_struct
-#if M50761_CHROMA_NOT_SPLIT
-    , TREE_CONS tree_cons /*, u8 slice_type */
-#endif
-)
+void evc_split_get_part_structure(int split_mode, int x0, int y0, int cuw, int cuh, int cup, int cud, int log2_culine, EVC_SPLIT_STRUCT* split_struct)
 {
     int i;
     int log_cuw, log_cuh;
@@ -4992,123 +4988,6 @@ void evc_split_get_part_structure(int split_mode, int x0, int y0, int cuw, int c
             }
         }
         break;
-    }
-
-#if M50761_CHROMA_NOT_SPLIT
-    split_struct->tree_cons = tree_cons;
-    split_struct->tree_cons.changed = tree_cons.mode_cons == eAll && !evc_is_chroma_split_allowed( cuw, cuh, split_mode );
-#endif
-}
-
-//TODO: Tim: remove after full refactoring
-void evc_split_get_part_structure_d(int split_mode, int x0, int y0, int cuw, int cuh, int cup, int cud, int log2_culine, EVC_SPLIT_STRUCT* split_struct)
-{
-    int i;
-    int log_cuw, log_cuh;
-    int cup_w, cup_h;
-
-    split_struct->part_count = evc_split_part_count(split_mode);
-    log_cuw = CONV_LOG2(cuw);
-    log_cuh = CONV_LOG2(cuh);
-    split_struct->x_pos[0] = x0;
-    split_struct->y_pos[0] = y0;
-    split_struct->cup[0] = cup;
-
-    switch(split_mode)
-    {
-    case NO_SPLIT:
-    {
-        split_struct->width[0] = cuw;
-        split_struct->height[0] = cuh;
-        split_struct->log_cuw[0] = log_cuw;
-        split_struct->log_cuh[0] = log_cuh;
-    }
-    break;
-
-    case SPLIT_QUAD:
-    {
-        split_struct->width[0] = cuw >> 1;
-        split_struct->height[0] = cuh >> 1;
-        split_struct->log_cuw[0] = log_cuw - 1;
-        split_struct->log_cuh[0] = log_cuh - 1;
-        for(i = 1; i < split_struct->part_count; ++i)
-        {
-            split_struct->width[i] = split_struct->width[0];
-            split_struct->height[i] = split_struct->height[0];
-            split_struct->log_cuw[i] = split_struct->log_cuw[0];
-            split_struct->log_cuh[i] = split_struct->log_cuh[0];
-        }
-        split_struct->x_pos[1] = x0 + split_struct->width[0];
-        split_struct->y_pos[1] = y0;
-        split_struct->x_pos[2] = x0;
-        split_struct->y_pos[2] = y0 + split_struct->height[0];
-        split_struct->x_pos[3] = split_struct->x_pos[1];
-        split_struct->y_pos[3] = split_struct->y_pos[2];
-        cup_w = (split_struct->width[0] >> MIN_CU_LOG2);
-        cup_h = ((split_struct->height[0] >> MIN_CU_LOG2) << log2_culine);
-        split_struct->cup[1] = cup + cup_w;
-        split_struct->cup[2] = cup + cup_h;
-        split_struct->cup[3] = split_struct->cup[1] + cup_h;
-        split_struct->cud[0] = cud + 2;
-        split_struct->cud[1] = cud + 2;
-        split_struct->cud[2] = cud + 2;
-        split_struct->cud[3] = cud + 2;
-    }
-    break;
-
-    default:
-    {
-        if(evc_split_is_vertical(split_mode))
-        {
-            for(i = 0; i < split_struct->part_count; ++i)
-            {
-                split_struct->width[i] = evc_split_get_part_size(split_mode, i, cuw);
-                split_struct->log_cuw[i] = evc_split_get_part_size_idx(split_mode, i, log_cuw);
-                split_struct->height[i] = cuh;
-                split_struct->log_cuh[i] = log_cuh;
-                if(i)
-                {
-                    split_struct->x_pos[i] = split_struct->x_pos[i - 1] + split_struct->width[i - 1];
-                    split_struct->y_pos[i] = split_struct->y_pos[i - 1];
-                    split_struct->cup[i] = split_struct->cup[i - 1] + (split_struct->width[i - 1] >> MIN_CU_LOG2);
-                }
-            }
-        }
-        else
-        {
-            for(i = 0; i < split_struct->part_count; ++i)
-            {
-                split_struct->width[i] = cuw;
-                split_struct->log_cuw[i] = log_cuw;
-                split_struct->height[i] = evc_split_get_part_size(split_mode, i, cuh);
-                split_struct->log_cuh[i] = evc_split_get_part_size_idx(split_mode, i, log_cuh);
-                if(i)
-                {
-                    split_struct->y_pos[i] = split_struct->y_pos[i - 1] + split_struct->height[i - 1];
-                    split_struct->x_pos[i] = split_struct->x_pos[i - 1];
-                    split_struct->cup[i] = split_struct->cup[i - 1] + ((split_struct->height[i - 1] >> MIN_CU_LOG2) << log2_culine);
-                }
-            }
-        }
-        switch(split_mode)
-        {
-        case SPLIT_BI_VER:
-            split_struct->cud[0] = cud + 1;
-            split_struct->cud[1] = cud + 1;
-            break;
-        case SPLIT_BI_HOR:
-            split_struct->cud[0] = cud + 1;
-            split_struct->cud[1] = cud + 1;
-            break;
-        default:
-            // Triple tree case
-            split_struct->cud[0] = cud + 2;
-            split_struct->cud[1] = cud + 1;
-            split_struct->cud[2] = cud + 2;
-            break;
-        }
-    }
-    break;
     }
 }
 

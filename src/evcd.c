@@ -1379,7 +1379,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
     {
         EVC_SPLIT_STRUCT split_struct;
         
-        evc_split_get_part_structure_d(split_mode, x0, y0, cuw, cuh, cup, cud, ctx->log2_max_cuwh - MIN_CU_LOG2, &split_struct );
+        evc_split_get_part_structure(split_mode, x0, y0, cuw, cuh, cup, cud, ctx->log2_max_cuwh - MIN_CU_LOG2, &split_struct );
 #if M50761_CHROMA_NOT_SPLIT
         MODE_CONS mode_cons_for_child = mode_cons;
 
@@ -1491,7 +1491,7 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
     {
         EVC_SPLIT_STRUCT split_struct;
         int suco_order[SPLIT_MAX_PART_COUNT];
-        evc_split_get_part_structure_d(split_mode, x, y, cuw, cuh, cup, cud, ctx->log2_max_cuwh - MIN_CU_LOG2, &split_struct);
+        evc_split_get_part_structure(split_mode, x, y, cuw, cuh, cup, cud, ctx->log2_max_cuwh - MIN_CU_LOG2, &split_struct);
 #if M50761_CHROMA_NOT_SPLIT
         TREE_CONS_NEW tree_constrain_for_child = tree_cons;
 
