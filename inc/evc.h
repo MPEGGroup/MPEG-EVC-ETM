@@ -557,6 +557,8 @@ typedef void  * EVCD;
 EVCD evcd_create(EVCD_CDSC * cdsc, int * err);
 void evcd_delete(EVCD id);
 #if M52291_HDR_DRA
+int evcd_get_sps_dra_flag(EVCD id);
+int evcd_get_pps_dra_flag(EVCD id);
 int evcd_get_pps_dra_id(EVCD id);
 int evcd_assign_pps_draParam(EVCD id, void * p_draParams);
 int evcd_decode(EVCD id, EVC_BITB * bitb, EVCD_STAT * stat, void * p_draParams);

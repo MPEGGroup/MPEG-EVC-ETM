@@ -523,6 +523,11 @@ static void set_pps(EVCE_CTX * ctx, EVC_PPS * pps)
             pps->pic_dra_aps_id = (p_aps + 1)->aps_id;
         }
     }
+    else
+    {
+        pps->pic_dra_enabled_present_flag = 0;
+        pps->pic_dra_enabled_flag = 0;
+    }
 #endif
 #endif
 }
@@ -1833,7 +1838,7 @@ int evce_deblock_h263(EVCE_CTX * ctx, EVC_PIC * pic
 #if EVC_TILE_SUPPORT
     int x_l, x_r, y_l, y_r, l_scu, r_scu, t_scu, b_scu;
     u32 k1;
-    int scu_in_lcu_wh = 1 << (MAX_CU_LOG2 - MIN_CU_LOG2);
+    int scu_in_lcu_wh = 1 << (ctx->log2_max_cuwh - MIN_CU_LOG2);
     
     x_l = (ctx->tile[tile_idx].ctba_rs_first) % ctx->w_lcu; //entry point lcu's x location
     y_l = (ctx->tile[tile_idx].ctba_rs_first) / ctx->w_lcu; // entry point lcu's y location
@@ -2495,7 +2500,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     int num_slice_in_pic = ctx->param.num_slice_in_pic;
     u8  * tiles_in_slice, total_tiles_in_slice, total_tiles_in_slice_copy;
     u8* curr_temp = NULL;
-    int temp_size = 0;
     for (ctx->slice_num = 0; ctx->slice_num < num_slice_in_pic; ctx->slice_num++)
     {
         if (num_slice_in_pic > 1)
@@ -2912,23 +2916,26 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         }
     }
 #endif
+         
     /* deblocking filter */
-    if(ctx->param.use_deblock)
+    if (ctx->param.use_deblock)
     {
-
+#if TRACE_DBF
+        EVC_TRACE_SET(1);
+#endif
 #if EVC_TILE_SUPPORT
-            u32 k = 0;
-            total_tiles_in_slice = total_tiles_in_slice_copy;
-            while (total_tiles_in_slice)
-            {
-                int i = tiles_in_slice[k++];
+        u32 k = 0;
+        total_tiles_in_slice = total_tiles_in_slice_copy;
+        while (total_tiles_in_slice)
+        {
+            int i = tiles_in_slice[k++];
             ret = ctx->fn_deblock(ctx, PIC_MODE(ctx), i
 #if EVC_CONCURENCY
-            , core
+                , core
 #endif
             );
             evc_assert_rv(ret == EVC_OK, ret);
-                total_tiles_in_slice--;
+            total_tiles_in_slice--;
         }
 #else 
         ret = ctx->fn_deblock(ctx, PIC_MODE(ctx)
@@ -2937,6 +2944,9 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #endif
         );
         evc_assert_rv(ret == EVC_OK, ret);
+#endif
+#if TRACE_DBF
+        EVC_TRACE_SET(0);
 #endif
     }
 
@@ -3048,13 +3058,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         } // End to tile encoding loop in a slice
 #endif
 #endif
-#if HDR_MD5_CHECK
-    if (ctx->sps.tool_dra)
-    {
-        ret = evce_eco_udata_hdr(ctx, bs);
-        evc_assert_rv(ret == EVC_OK, ret);
-    }
-#endif
+
     /* Bit-stream re-writing (START) */
 #if EVC_TILE_SUPPORT
         u8* tmp_ptr1;
@@ -3085,7 +3089,9 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     if(ctx->slice_type != SLICE_I)
     {
 #endif
+#if !TRACE_DBF
         EVC_TRACE_SET(1);
+#endif
 #if TRACE_RDO_EXCLUDE_I
     }
 #endif
@@ -3362,14 +3368,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         }
     }
 #endif
-#if TRACE_DBF
-    /* deblocking filter */
-    if (ctx->param.use_deblock)
-    {
-        ret = ctx->fn_deblock(ctx, PIC_CURR_BDBF(ctx));
-        evc_assert_rv(ret == EVC_OK, ret);
-    }
-#endif
+
     /* Bit-stream re-writing (END) */
 #if EVC_TILE_SUPPORT
     ret = evce_eco_sh(&bs_sh, &ctx->sps, &ctx->pps, sh, ctx->nalu.nal_unit_type_plus1 - 1);
@@ -3377,9 +3376,8 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #endif
 #if EVC_TILE_SUPPORT    
     evc_bsw_deinit(bs);
-    *size_field = (int)(bs->cur - cur_tmp) - 4 - temp_size;
+    *size_field = (int)(bs->cur - cur_tmp) - 4;
     curr_temp = bs->cur;
-    temp_size += (int)(bs->cur - cur_tmp) - 4;
 #else
     evc_bsw_deinit(bs);
     *size_field = (int)(bs->cur - cur_tmp) - 4;

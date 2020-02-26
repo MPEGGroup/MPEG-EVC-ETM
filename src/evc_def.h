@@ -53,7 +53,7 @@
 #define FIX_TEMPORAL_ID_SET                          1
 
 //MPEG 129 adoptions
-#define M52291_HDR_DRA                               0
+#define M52291_HDR_DRA                               1
 #define M52165                                       1
 #define M52166                                       1
 #define M52290                                       1
@@ -478,6 +478,7 @@ typedef int BOOL;
 #define TRACE_COSTS                        0 //!< Trace cost information
 #define TRACE_REMOVE_COUNTER               0 //!< Remove trace counter
 #define TRACE_ADDITIONAL_FLAGS             1 
+#define TRACE_DBF                          0 //!< Trace only DBF
 #if TRACE_RDO
 #define TRACE_RDO_EXCLUDE_I                0 //!< Exclude I frames
 #endif

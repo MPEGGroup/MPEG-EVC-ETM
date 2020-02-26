@@ -381,6 +381,12 @@ static int eco_cbf(EVC_BSR * bs, EVCD_SBAC * sbac, u8 pred_mode, u8 cbf[N_C], in
         cbf[U_C] = evcd_sbac_decode_bin(bs, sbac, sbac_ctx->cbf + 1);
         cbf[V_C] = evcd_sbac_decode_bin(bs, sbac, sbac_ctx->cbf + 2);
 
+        EVC_TRACE_COUNTER;
+        EVC_TRACE_STR("cbf U ");
+        EVC_TRACE_INT(cbf[U_C]);
+        EVC_TRACE_STR("cbf V ");
+        EVC_TRACE_INT(cbf[V_C]);
+
         if (cbf[U_C] + cbf[V_C] == 0 && !is_sub)
         {
             cbf[Y_C] = 1;
@@ -388,16 +394,24 @@ static int eco_cbf(EVC_BSR * bs, EVCD_SBAC * sbac, u8 pred_mode, u8 cbf[N_C], in
         else
         {
             cbf[Y_C] = evcd_sbac_decode_bin(bs, sbac, sbac_ctx->cbf + 0);
+            EVC_TRACE_STR("cbf Y ");
+            EVC_TRACE_INT(cbf[Y_C]);
         }
+        EVC_TRACE_STR("\n");
     }
     else
     {
+        EVC_TRACE_COUNTER;
 #if M50761_CHROMA_NOT_SPLIT 
         if (evc_check_chroma(tree_cons))
         {
 #endif
         cbf[U_C] = evcd_sbac_decode_bin(bs, sbac, sbac_ctx->cbf + 1);
         cbf[V_C] = evcd_sbac_decode_bin(bs, sbac, sbac_ctx->cbf + 2);
+        EVC_TRACE_STR("cbf U ");
+        EVC_TRACE_INT(cbf[U_C]);
+        EVC_TRACE_STR("cbf V ");
+        EVC_TRACE_INT(cbf[V_C]);
 #if M50761_CHROMA_NOT_SPLIT 
         }
         else
@@ -408,6 +422,8 @@ static int eco_cbf(EVC_BSR * bs, EVCD_SBAC * sbac, u8 pred_mode, u8 cbf[N_C], in
         {
 #endif
         cbf[Y_C] = evcd_sbac_decode_bin(bs, sbac, sbac_ctx->cbf + 0);
+        EVC_TRACE_STR("cbf Y ");
+        EVC_TRACE_INT(cbf[Y_C]);
 #if M50761_CHROMA_NOT_SPLIT 
         }
         else
@@ -415,16 +431,8 @@ static int eco_cbf(EVC_BSR * bs, EVCD_SBAC * sbac, u8 pred_mode, u8 cbf[N_C], in
             cbf[Y_C] = 0;
         }
 #endif
+        EVC_TRACE_STR("\n");
     }
-
-    EVC_TRACE_COUNTER;
-    EVC_TRACE_STR("cbf Y ");
-    EVC_TRACE_INT(cbf[Y_C]);
-    EVC_TRACE_STR("cbf U ");
-    EVC_TRACE_INT(cbf[U_C]);
-    EVC_TRACE_STR("cbf V ");
-    EVC_TRACE_INT(cbf[V_C]);
-    EVC_TRACE_STR("\n");
 
     return EVC_OK;
 }
@@ -2009,7 +2017,7 @@ void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
                 EVC_TRACE_STR("\n");
 #endif
             }
-#if !TRACE_ADDITIONAL_FLAGS
+#if !TRACE_ADDITIONAL_FLAGS && 0
             EVC_TRACE_COUNTER;
             EVC_TRACE_STR("pred mode ");
             EVC_TRACE_INT(core->pred_mode);
@@ -2515,6 +2523,7 @@ int evcd_eco_nalu(EVC_BSR * bs, EVC_NALU * nalu)
 {
     //nalu->nal_unit_size = evc_bsr_read(bs, 32);
     nalu->forbidden_zero_bit = evc_bsr_read(bs, 1);
+
     if (nalu->forbidden_zero_bit != 0)
     {
         printf("malformed bitstream: forbidden_zero_bit != 0\n");
@@ -2523,8 +2532,8 @@ int evcd_eco_nalu(EVC_BSR * bs, EVC_NALU * nalu)
 
     nalu->nal_unit_type_plus1 = evc_bsr_read(bs, 6);
     nalu->nuh_temporal_id = evc_bsr_read(bs,3);
-
     nalu->nuh_reserved_zero_5bits = evc_bsr_read(bs, 5);
+
     if (nalu->nuh_reserved_zero_5bits != 0)
     {
         printf("malformed bitstream: nuh_reserved_zero_5bits != 0");
@@ -2532,6 +2541,7 @@ int evcd_eco_nalu(EVC_BSR * bs, EVC_NALU * nalu)
     }
 
     nalu->nuh_extension_flag = evc_bsr_read(bs, 1);
+
     if (nalu->nuh_extension_flag != 0)
     {
         printf("malformed bitstream: nuh_extension_flag != 0");
@@ -2773,6 +2783,11 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps)
         pps->pic_dra_enabled_present_flag = evc_bsr_read1(bs);
         pps->pic_dra_enabled_flag = evc_bsr_read1(bs);
         pps->pic_dra_aps_id = evc_bsr_read(bs, APS_TYPE_ID_BITS);
+    }
+    else
+    {
+        pps->pic_dra_enabled_present_flag = 0;
+        pps->pic_dra_enabled_flag = 0;
     }
 #endif
 
@@ -3409,13 +3424,7 @@ int evcd_eco_sei(EVCD_CTX * ctx, EVC_BSR * bs)
         /* read signature (HASH) from bitstream */
         for (i = 0; i < payload_size; i++)
         {
-            ctx->pic_sign[i] = evc_bsr_read(bs, 8);
-#if HDR_MD5_CHECK
-            if (ctx->sps.tool_dra)
-            {
-                g_pic_sign_dec_sig[i] = evc_bsr_read(bs, 8);
-            }
-#endif
+                ctx->pic_sign[i] = evc_bsr_read(bs, 8);
         }
         ctx->pic_sign_exist = 1;
         break;

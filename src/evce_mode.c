@@ -3045,7 +3045,7 @@ static void check_run_split(EVCE_CORE *core, int log2_cuw, int log2_cuh, int cup
                 for(i = 1; i < MAX_SPLIT_NUM; i++)
                 {
 #if RDO_DBK //harmonize with cu split fast algorithm
-                    double th = (min_cost < 0) ? 0.99 : 1.01;
+                    double th = (min_cost < 0) ? 0.99 : 1.02;
                     if(core->bef_data[log2_cuw - 2][log2_cuh - 2][cup][bef_data_idx].split_cost[i] <= th * min_cost)
 #else
                     if(core->bef_data[log2_cuw - 2][log2_cuh - 2][cup][bef_data_idx].split_cost[i] <= (1.01) * min_cost)
