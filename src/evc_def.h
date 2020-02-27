@@ -55,6 +55,8 @@
 #define RESTRICT_IBC_WITH_EIPD                       1
 #define CLEANUP_SUCO_4X4                             1
 
+#define FIX_DMVR_MV_RANGE                            1
+
 //MPEG 129 adoptions
 #define M52291_HDR_DRA                               1
 #define M52165                                       1

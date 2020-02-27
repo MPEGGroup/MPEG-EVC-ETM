@@ -6574,7 +6574,11 @@ void prefetch_for_mc(int x, int y,int pu_x, int pu_y, int pu_w, int pu_h,
 
 #endif
 
+#if FIX_DMVR_MV_RANGE
+void final_paddedMC_forDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16(*inital_mv)[MV_D], s32(*refined_mv)[MV_D], EVC_REFP(*refp)[REFP_NUM], pel pred[REFP_NUM][N_C][MAX_CU_DIM]
+#else
 void final_paddedMC_forDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16(*inital_mv)[MV_D], s16(*refined_mv)[MV_D], EVC_REFP(*refp)[REFP_NUM], pel pred[REFP_NUM][N_C][MAX_CU_DIM]
+#endif
     , int sub_pred_offset_x
     , int sub_pred_offset_y
     , int cu_pred_stride
@@ -6691,15 +6695,24 @@ void processDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_
 )
 {
 #if DMVR_SUBCU
+#if FIX_DMVR_MV_RANGE
+    s32 sub_pu_L0[(MAX_CU_SIZE * MAX_CU_SIZE) >> (MIN_CU_LOG2 << 1)][MV_D];
+    s32 sub_pu_L1[(MAX_CU_SIZE * MAX_CU_SIZE) >> (MIN_CU_LOG2 << 1)][MV_D];
+#else
     s16 sub_pu_L0[(MAX_CU_SIZE * MAX_CU_SIZE) >> (MIN_CU_LOG2 << 1)][MV_D];
     s16 sub_pu_L1[(MAX_CU_SIZE * MAX_CU_SIZE) >> (MIN_CU_LOG2 << 1)][MV_D];
+#endif
 #endif
 
     int stride = w + (iteration << 1);
     s16 ref_pred_mv_scaled_step = 2;
 
     s16 tempMv[MV_D];
+#if FIX_DMVR_MV_RANGE
+    s32 refined_mv[REFP_NUM][MV_D];
+#else
     s16 refined_mv[REFP_NUM][MV_D];
+#endif
 
     s16 starting_mv[REFP_NUM][MV_D];
     mv_clip(x, y, pic_w, pic_h, w, h, refi, mv, starting_mv);
@@ -6879,9 +6892,15 @@ void processDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_
         {
             prefetch_for_mc(x, y, subPuStartX, subPuStartY, dx, dy, pic_w, pic_h, w, h, refi, starting_mv, refp, iteration, dmvr_padding_buf);
 #if DMVR_SUBCU
+#if FIX_DMVR_MV_RANGE
+            s32 dmvr_mv[REFP_NUM][MV_D] = { { sub_pu_L0[num][MV_X], sub_pu_L0[num][MV_Y] },
+                                            { sub_pu_L1[num][MV_X], sub_pu_L1[num][MV_Y] }
+            };
+#else
             s16 dmvr_mv[REFP_NUM][MV_D] = { { sub_pu_L0[num][MV_X], sub_pu_L0[num][MV_Y] },
                                             { sub_pu_L1[num][MV_X], sub_pu_L1[num][MV_Y] }
             };
+#endif
 #else
             s16 dmvr_mv[REFP_NUM][MV_D] = { { refined_mv[REFP_0][MV_X], refined_mv[REFP_0][MV_Y] },
                                             { refined_mv[REFP_1][MV_X], refined_mv[REFP_1][MV_Y] }
