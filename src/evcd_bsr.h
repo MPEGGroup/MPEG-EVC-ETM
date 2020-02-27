@@ -74,18 +74,10 @@ struct _EVC_BSR
     void             * pdata[4];
 };
 
-#if defined(X86F)
-/* on X86 machine, 32-bit shift means remaining of original value, so we
-should set zero in that case. */
 #define EVC_BSR_SKIP_CODE(bs, size) \
     evc_assert((bs)->leftbits >= (size)); \
     if((size) == 32) {(bs)->code = 0; (bs)->leftbits = 0;} \
     else           {(bs)->code <<= (size); (bs)->leftbits -= (size);}
-#else
-#define EVC_BSR_SKIP_CODE(bs, size) \
-    evc_assert((bs)->leftbits >= (size)); \
-    (bs)->code <<= (size); (bs)->leftbits -= (size);
-#endif
 
 /*! Is bitstream byte aligned? */
 #define EVC_BSR_IS_BYTE_ALIGN(bs) ((((bs)->leftbits & 0x7) == 0) ? 1: 0)
