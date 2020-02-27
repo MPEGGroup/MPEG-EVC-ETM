@@ -365,7 +365,11 @@ void evce_rdo_bit_cnt_cu_intra(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
     else
     {
 #if FIX_EIPD_OFF & M50761_CHROMA_NOT_SPLIT
-        if (evce_check_luma(ctx))
+        if (evce_check_luma(ctx
+#if EVC_CONCURENCY
+            , core
+#endif
+        ))
         {
 #endif
             evce_eco_intra_dir_b(&core->bs_temp, core->ipm[0], core->mpm_b_list, core->mpm_ext, core->pims);

@@ -2482,7 +2482,11 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
             {
 #if FIX_EIPD_OFF & M50761_CHROMA_NOT_SPLIT
                 int luma_ipm = IPD_DC_B;
-                if (evcd_check_luma(ctx))
+                if (evcd_check_luma(ctx
+#if EVC_CONCURENCY
+                                    , core
+#endif
+                ))
                 {
 #endif
                 core->ipm[0] = evcd_eco_intra_dir_b(bs, sbac, core->mpm_b_list, core->mpm_ext, core->pims);
@@ -2501,7 +2505,11 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                         luma_ipm = IPD_DC_B;
                     }
                 }
-                if(evcd_check_chroma(ctx))
+                if(evcd_check_chroma(ctx
+#if EVC_CONCURENCY
+                                    , core
+#endif
+                ))
                 {
                     core->ipm[1] = luma_ipm;
                 }
