@@ -2391,14 +2391,9 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                 else
                 {
                     int luma_cup = evc_get_luma_cup(core->x_scu, core->y_scu, PEL2SCU(cuw), PEL2SCU(cuh), ctx->w_scu);
-                    if(MCU_GET_IF(ctx->map_scu[luma_cup]))
-                    {
-                        luma_ipm = ctx->map_ipm[luma_cup];
-                    }
-                    else
-                    {
-                        luma_ipm = IPD_DC_B;
-                    }
+                    assert( MCU_GET_IF( ctx->map_scu[luma_cup] ) && "IBC is forbidden for this case (EIPD off)");
+  
+                    luma_ipm = ctx->map_ipm[luma_cup];
                 }
                 if(evcd_check_chroma(ctx))
                 {
