@@ -531,8 +531,8 @@ void evc_buildDraLumaLut2(WCGDDRAControl *p_DRAMapping)
     for (int i = 0; i < DRA_LUT_MAXSIZE; i++)
     {
         int rangeIdxY = getDraRangeIdx_gen(p_DRAMapping, i, p_DRAMapping->m_atfIntOutRanges, p_DRAMapping->m_atfNumRanges);
-        int value = (int)((i * p_DRAMapping->m_atfIntInvDraScales[rangeIdxY] + (1 << 9)) >> 10);
-        value = ((p_DRAMapping->m_atfIntInvDraOffsets[rangeIdxY] << 2) + value + (1 << 8)) >> 9;
+        int value = i * p_DRAMapping->m_atfIntInvDraScales[rangeIdxY]; 
+        value = (p_DRAMapping->m_atfIntInvDraOffsets[rangeIdxY] + value + (1 << 8)) >> 9;
         value = EVC_CLIP(value, 0, DRA_LUT_MAXSIZE - 1);
         p_DRAMapping->m_lumaInvScaleLUT[i] = value;
     }
@@ -1210,13 +1210,12 @@ void evcd_constructDra(WCGDDRAControl *p_DRAMapping)
     for (int i = 0; i < p_DRAMapping->m_atfNumRanges; i++)
     {
         int invScale2;
-        invScale2 = (int)(((1 << (NUM_MULT_BITS + 1))) / p_DRAMapping->m_atfIntDraScales[i] + 1) >> 1;
-        p_DRAMapping->m_atfIntInvDraScales[i] = invScale2;
-        int invScale3 = (int)(((1 << (10 + NUM_MULT_BITS))) / p_DRAMapping->m_atfIntDraScales[i]); 
-        p_DRAMapping->m_atfIntInvDraScales[i] = invScale3;
+        int nomin = 1 << NUM_MULT_BITS;
+        invScale2 = (int) ( (nomin  + ( p_DRAMapping->m_atfIntDraScales[i] >> 1 ) ) / p_DRAMapping->m_atfIntDraScales[i] );
 
-        int diffVal2 = p_DRAMapping->m_atfIntOutRanges[i + 1] * invScale2; 
-        p_DRAMapping->m_atfIntInvDraOffsets[i] = ((p_DRAMapping->m_atfInRanges[i + 1] << NUM_MULT_BITS) - diffVal2 + (1 << 10)) >> 11;
+        int diffVal2 = p_DRAMapping->m_atfIntOutRanges[i + 1] * invScale2;
+        p_DRAMapping->m_atfIntInvDraOffsets[i] = ((p_DRAMapping->m_atfInRanges[i + 1] << NUM_MULT_BITS) - diffVal2 + (1 << 8) ) >> 9;
+        p_DRAMapping->m_atfIntInvDraScales[i] = invScale2;
     }
 
     for (int i = 0; i < p_DRAMapping->m_atfNumRanges + 1; i++)

@@ -2907,12 +2907,12 @@ int evcd_eco_dra_aps_param(EVC_BSR * bs, EVC_APS_GEN * aps)
     p_dra_param->m_signal_dra_flag = 1;
     p_dra_param->m_numFracBitsScale = evc_bsr_read(bs, 4);
     p_dra_param->m_numIntBitsScale = evc_bsr_read(bs, 4);
-    p_dra_param->m_numRanges = evc_bsr_read_ue(bs);
+    p_dra_param->m_numRanges = evc_bsr_read_ue(bs) + 1;
     p_dra_param->m_equalRangesFlag = evc_bsr_read1(bs);
     p_dra_param->m_inRanges[0] = evc_bsr_read(bs, QC_IN_RANGE_NUM_BITS);
     if (p_dra_param->m_equalRangesFlag == TRUE)
     {
-        p_dra_param->m_deltaVal = evc_bsr_read_se(bs);
+        p_dra_param->m_deltaVal = evc_bsr_read(bs, QC_IN_RANGE_NUM_BITS);
         for (int i = 1; i <= p_dra_param->m_numRanges; i++)
         {
             p_dra_param->m_inRanges[i] = p_dra_param->m_deltaVal + p_dra_param->m_inRanges[i - 1];
@@ -2938,8 +2938,7 @@ int evcd_eco_dra_aps_param(EVC_BSR * bs, EVC_APS_GEN * aps)
     p_dra_param->m_intScaleCbDRA = value;
     value = evc_bsr_read(bs, numBits);
     p_dra_param->m_intScaleCrDRA = value;
-    p_dra_param->m_baseLumaQP = evc_bsr_read_se(bs);
-
+    p_dra_param->m_baseLumaQP = evc_bsr_read_ue(bs);
 
     return EVC_OK;
 }
