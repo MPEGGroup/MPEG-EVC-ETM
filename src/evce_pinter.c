@@ -5552,11 +5552,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
     }
 #endif
 
-    if(!(core->cu_mode == MODE_SKIP)
-       || ctx->sps.tool_mmvd == 0
-       || ctx->sps.tool_dmvr == 0
-       || ctx->sps.tool_affine == 0
-       )
+    if(core->cu_mode != MODE_SKIP)
     {
         for(pi->curr_mvr = 0; pi->curr_mvr < num_amvr; pi->curr_mvr++)
         {
