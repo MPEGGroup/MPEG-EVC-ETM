@@ -3748,7 +3748,19 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                 , ctx->map_tidx
 #endif
             );
-            evce_eco_intra_dir_b(bs, cu_data->ipm[0][cup], core->mpm_b_list, core->mpm_ext, core->pims);
+
+#if FIX_EIPD_OFF & M50761_CHROMA_NOT_SPLIT
+            if (evce_check_luma(ctx
+#if EVC_CONCURENCY
+                                , core
+#endif    
+            ))
+            {
+#endif
+                evce_eco_intra_dir_b(bs, cu_data->ipm[0][cup], core->mpm_b_list, core->mpm_ext, core->pims);
+#if FIX_EIPD_OFF & M50761_CHROMA_NOT_SPLIT
+            }
+#endif
         }
     }
     else if (core->ibc_flag)
