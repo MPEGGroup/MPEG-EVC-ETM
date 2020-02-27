@@ -4099,20 +4099,12 @@ int evce_eco_dra_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps)
     SignalledParamsDRA *p_dra_param = (SignalledParamsDRA *)aps->aps_data;
     evc_bsw_write(bs, (u32)p_dra_param->m_numFracBitsScale, 4);
     evc_bsw_write(bs, (u32)p_dra_param->m_numIntBitsScale, 4);
-#if QC_MISC_FIX
     evc_bsw_write_ue(bs, (u32)p_dra_param->m_numRanges - 1);
-#else
-    evc_bsw_write_ue(bs, (u32)p_dra_param->m_numRanges);
-#endif
     evc_bsw_write1(bs, p_dra_param->m_equalRangesFlag);
     evc_bsw_write(bs, (u32)p_dra_param->m_inRanges[0], QC_IN_RANGE_NUM_BITS); // delta_luma_dqp_change_point
     if (p_dra_param->m_equalRangesFlag == TRUE)
     {
-#if QC_MISC_FIX
         evc_bsw_write(bs, (u32)p_dra_param->m_deltaVal, QC_IN_RANGE_NUM_BITS);
-#else
-        evc_bsw_write_se(bs, (u32)p_dra_param->m_deltaVal);
-#endif
     }
     else
     {
@@ -4130,11 +4122,7 @@ int evce_eco_dra_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps)
 
     evc_bsw_write(bs, p_dra_param->m_intScaleCbDRA, numBits);
     evc_bsw_write(bs, p_dra_param->m_intScaleCrDRA, numBits);
-#if QC_MISC_FIX
     evc_bsw_write_ue(bs, (u32)p_dra_param->m_baseLumaQP);
-#else
-    evc_bsw_write_se(bs, (u32)p_dra_param->m_baseLumaQP);
-#endif
 
     return EVC_OK;
 }
