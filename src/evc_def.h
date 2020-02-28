@@ -38,6 +38,7 @@
 #include "evc_port.h"
 
 //bug fixes and platform changes to be applied
+#define QC_MISC_FIX                                  1 
 #define ADDB_FLAG_FIX                                1 
 #define HDR_METRIC                                   1
 #define LD_CONFIG_CHANGE                             1
@@ -54,6 +55,8 @@
 #define FIX_EIPD_OFF                                 1
 #define RESTRICT_IBC_WITH_EIPD                       1
 #define CLEANUP_SUCO_4X4                             1
+
+#define FIX_DMVR_MV_RANGE                            1
 
 //MPEG 129 adoptions
 #define M52291_HDR_DRA                               1
@@ -291,6 +294,9 @@ enum SAD_POINT_INDEX
 /* HISTORY (START) */
 #define HISTORY_LCU_COPY_BUG_FIX           1
 #define ALLOWED_CHECKED_NUM                23
+#if QC_MISC_FIX
+#define ALLOWED_CHECKED_NUM_SMALL_CU       15
+#endif
 #define ALLOWED_CHECKED_AMVP_NUM           4
 #define AFFINE_UPDATE                      1
 /* ADMVP (END) */

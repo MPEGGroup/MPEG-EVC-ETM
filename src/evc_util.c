@@ -1827,7 +1827,11 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
 
     if (cnt < (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
     {
+#if QC_MISC_FIX
+        for (k = 3; k <= min(history_buffer.currCnt, small_cu ? ALLOWED_CHECKED_NUM_SMALL_CU : ALLOWED_CHECKED_NUM); k += 4)
+#else
         for (k = 3; k <= min(history_buffer.currCnt, ALLOWED_CHECKED_NUM); k += 4)
+#endif
         {
             p_ref_dst = &(refi[0][cnt]);
             p_map_mv_dst_L0 = mvp[REFP_0][cnt];

@@ -301,6 +301,8 @@ int main(int argc, const char **argv)
     FILE             * fp_bs = NULL;
 
 #if M52291_HDR_DRA
+    int sps_dra_enable_flag = 0;
+    int pps_dra_enable_flag = 0;
     EVC_IMGB          *imgb_dra = NULL;
     // global CVS buffer for DRA control
     SignalledParamsDRA g_dra_control_array[32];
@@ -415,24 +417,27 @@ int main(int argc, const char **argv)
             /* main decoding block */
 #if M52291_HDR_DRA
             ret = evcd_decode(id, &bitb, &stat, (void*)(p_aps_gen_array));
-
-            // check if new DRA APS recieved, update buffer
-            if ((p_aps_gen_array + 1)->aps_id != -1)
+            sps_dra_enable_flag = evcd_get_sps_dra_flag(id);
+            if (sps_dra_enable_flag)
             {
-                evc_addDraApsToBuffer(&(g_dra_control_array[0]), p_aps_gen_array);
-            }
-            // Assigned effective DRA controls as specified by PPS
-            int pps_dra_id = evcd_get_pps_dra_id(id);
-            if ((pps_dra_id > -1) && (pps_dra_id < 32))
-            {
-                memcpy(&(g_dra_control_effective.m_signalledDRA), &(g_dra_control_array[pps_dra_id]), sizeof(SignalledParamsDRA));
-                g_dra_control_effective.m_flagEnabled = 1;
-                evcd_assign_pps_draParam(id, &(g_dra_control_effective.m_signalledDRA));
-            }
-            else
-            {
-                g_dra_control_effective.m_flagEnabled = 0;
-                g_dra_control_effective.m_signalledDRA.m_signal_dra_flag = 0;
+                // check if new DRA APS recieved, update buffer
+                if ((p_aps_gen_array + 1)->aps_id != -1)
+                {
+                    evc_addDraApsToBuffer(&(g_dra_control_array[0]), p_aps_gen_array);
+                }
+                // Assigned effective DRA controls as specified by PPS
+                int pps_dra_id = evcd_get_pps_dra_id(id);
+                if ((pps_dra_id > -1) && (pps_dra_id < 32))
+                {
+                    memcpy(&(g_dra_control_effective.m_signalledDRA), &(g_dra_control_array[pps_dra_id]), sizeof(SignalledParamsDRA));
+                    g_dra_control_effective.m_flagEnabled = 1;
+                    evcd_assign_pps_draParam(id, &(g_dra_control_effective.m_signalledDRA));
+                }
+                else
+                {
+                    g_dra_control_effective.m_flagEnabled = 0;
+                    g_dra_control_effective.m_signalledDRA.m_signal_dra_flag = 0;
+                }
             }
 #else
             ret = evcd_decode(id, &bitb, &stat);
@@ -447,8 +452,7 @@ int main(int argc, const char **argv)
 #if !DECODING_TIME_TEST
             clk_tot += evc_clk_from(clk_beg);
 #endif
-            print_stat(&stat, ret);
-
+                print_stat(&stat, ret);
             if(stat.read - nalu_size_field_in_bytes != bs_size)
             {
                 v0print("\t=> different reading of bitstream (in:%d, read:%d)\n",
@@ -493,29 +497,34 @@ int main(int argc, const char **argv)
                     }
                 }
 #if M52291_HDR_DRA
-                if (g_dra_control_effective.m_flagEnabled)
+                pps_dra_enable_flag = evcd_get_pps_dra_flag(id);
+                if ( (sps_dra_enable_flag == 1) && (pps_dra_enable_flag == 1) )
                 {
-                    evcd_initDRA(&g_dra_control_effective);
-                }
-                if (g_dra_control_effective.m_flagEnabled)
-                {
-                    int align[EVC_IMGB_MAX_PLANE] = { MIN_CU_SIZE, MIN_CU_SIZE >> 1, MIN_CU_SIZE >> 1 };
-                    int pad[EVC_IMGB_MAX_PLANE] = { 0, 0, 0, };
-                    imgb_dra = evc_imgb_create(w, h, EVC_COLORSPACE_YUV420_10LE, 0, pad, align);
-                    if (imgb_dra == NULL)
+                    if (g_dra_control_effective.m_flagEnabled)
                     {
-                        v0print("Cannot get original image buffer (DRA)\n");
-                        return -1;
+                        evcd_initDRA(&g_dra_control_effective);
                     }
-                    imgb_cpy(imgb_dra, imgb);
-                    evc_apply_dra_chroma_plane(imgb, imgb, &g_dra_control_effective, 1, TRUE/*backwardMapping == true*/);
-                    evc_apply_dra_chroma_plane(imgb, imgb, &g_dra_control_effective, 2, TRUE /*backwardMapping == true*/);
-                    evc_apply_dra_luma_plane(imgb, imgb, &g_dra_control_effective, 0, TRUE /*backwardMapping == true*/);
-                    write_dec_img(id, op_fname_out, imgb, imgb_t);
-                    imgb_cpy(imgb, imgb_dra);
-                    imgb_dra->release(imgb_dra);
-                }
-                else
+                    if (g_dra_control_effective.m_flagEnabled)
+                    {
+                        int align[EVC_IMGB_MAX_PLANE] = { MIN_CU_SIZE, MIN_CU_SIZE >> 1, MIN_CU_SIZE >> 1 };
+                        int pad[EVC_IMGB_MAX_PLANE] = { 0, 0, 0, };
+                        imgb_dra = evc_imgb_create(w, h, EVC_COLORSPACE_YUV420_10LE, 0, pad, align);
+                        if (imgb_dra == NULL)
+                        {
+                            v0print("Cannot get original image buffer (DRA)\n");
+                            return -1;
+                        }
+                        imgb_cpy(imgb_dra, imgb);
+                        evc_apply_dra_chroma_plane(imgb, imgb, &g_dra_control_effective, 1, TRUE/*backwardMapping == true*/);
+                        evc_apply_dra_chroma_plane(imgb, imgb, &g_dra_control_effective, 2, TRUE /*backwardMapping == true*/);
+                        evc_apply_dra_luma_plane(imgb, imgb, &g_dra_control_effective, 0, TRUE /*backwardMapping == true*/);
+                        write_dec_img(id, op_fname_out, imgb, imgb_t);
+                        imgb_cpy(imgb, imgb_dra);
+                        imgb_dra->release(imgb_dra);
+                    }
+                    else
+                        write_dec_img(id, op_fname_out, imgb, imgb_t);
+                }else
                     write_dec_img(id, op_fname_out, imgb, imgb_t);
 #else
                 write_dec_img(id, op_fname_out, imgb, imgb_t);
