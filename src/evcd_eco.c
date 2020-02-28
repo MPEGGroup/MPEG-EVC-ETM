@@ -351,7 +351,7 @@ static int eco_cbf(EVC_BSR * bs, EVCD_SBAC * sbac, u8 pred_mode, u8 cbf[N_C], in
     /* decode allcbf */
     if(pred_mode != MODE_INTRA
 #if M50761_CHROMA_NOT_SPLIT 
-        && !evc_check_only_intra(tree_cons)
+       && tree_cons.tree_type == TREE_LC
 #endif
         )
     {
