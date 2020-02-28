@@ -1986,12 +1986,8 @@ void evcd_eco_pred_mode( EVCD_CTX * ctx, EVCD_CORE * core )
 {
     EVC_BSR     *bs = &ctx->bs;
     EVCD_SBAC   *sbac = GET_SBAC_DEC( bs );
+    BOOL        pred_mode_flag = FALSE;
     BOOL        pred_mode_constraint = ctx->tree_cons.mode_cons;
-
-    if ( ctx->sh.slice_type == SLICE_I )        
-        pred_mode_constraint = eOnlyIntra;          //TODO: Tim : remove this code later after full refactoring
-
-    BOOL pred_mode_flag = FALSE;
 
     if ( pred_mode_constraint == eAll )
         pred_mode_flag = evcd_sbac_decode_bin( bs, sbac, sbac->ctx.pred_mode + ctx->ctx_flags[CNID_PRED_MODE] );
@@ -2125,7 +2121,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
 #if !M50761_CHROMA_NOT_SPLIT
     if (ctx->sh.slice_type != SLICE_I && !(ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2)
 #else
-    if (ctx->sh.slice_type != SLICE_I && !evcd_check_only_intra(ctx) ) //TODO: Tim remove consdition 1
+    if ( !evcd_check_only_intra(ctx) )
 #endif
     {
         /* CU skip flag */

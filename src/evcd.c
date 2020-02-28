@@ -1453,7 +1453,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
 
         assert( mode_cons != eOnlyInter || !( ctx->sps.tool_admvp && log2_cuw == 2 && log2_cuh == 2 ) );
 
-        if ( /*( ctx->sh.slice_type == SLICE_I ) || TODO:Tim process it*/ ( ctx->sps.tool_admvp && log2_cuw == 2 && log2_cuh == 2 ) )
+        if ( ctx->sh.slice_type == SLICE_I || ctx->sps.tool_admvp && log2_cuw == 2 && log2_cuh == 2 )
           mode_cons = eOnlyIntra;   
 #endif
 
