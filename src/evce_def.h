@@ -489,6 +489,13 @@ typedef struct _EVCE_PARAM
     int                 tile_rows;
     /* flag for uniform spacing tiles */
     int                 uniform_spacing_tiles;
+    int                  num_slice_in_pic;
+    /* Array for storing slice boundaries*/ 
+    /* In EVC slices are rectangular only (No rasterscan tiles)
+    Slice boundaries stores the tile index of top left and bottom right tiles */
+    int            slice_boundary_array[2 * 600];
+    int            arbitrary_slice_flag;
+    u32            num_remaining_tiles_in_slice_minus1;
 #endif
 } EVCE_PARAM;
 
@@ -593,6 +600,7 @@ typedef struct _EVCE_BEF_DATA
  *
  * The variables in this structure are very often used in encoding process.
  *****************************************************************************/
+
 typedef struct _EVCE_CORE
 {
     /* coefficient buffer of current CU */
@@ -720,11 +728,35 @@ typedef struct _EVCE_CORE
 #if TRACE_ENC_CU_DATA
     u64  trace_idx;
 #endif
-#if EVC_TILE_SUPPORT
-    /* address of tile info */
-    EVC_TILE       * tile;
+#if EVC_TILE_SUPPORT 
+    int          tile_num;
     /* current tile index */
     int            tile_idx;
+#endif
+#if EVC_CONCURENCY
+
+#if M50761_CHROMA_NOT_SPLIT
+    TREE_CONS            tree_cons;                //!< Tree status
+#endif    
+    
+    u8             ctx_flags[NUM_CNID]; 
+    int split_mode_child[4];
+    int parent_split_allow[6];
+    
+    //one picture that arranges cu pixels and neighboring pixels for deblocking (just to match the interface of deblocking functions)
+    s64                    delta_dist[N_C];  //delta distortion from filtering (negative values mean distortion reduced)
+    s64                    dist_nofilt[N_C]; //distortion of not filtered samples
+    s64                    dist_filter[N_C]; //distortion of filtered samples
+    /* RDOQ related variables*/
+    int rdoq_est_all_cbf[2];
+    int rdoq_est_cbf[NUM_QT_CBF_CTX][2];
+    int rdoq_est_gt0[NUM_CTX_GT0][2];
+    int rdoq_est_gtA[NUM_CTX_GTA][2];
+    int rdoq_est_scanr_x[NUM_CTX_SCANR][2];
+    int rdoq_est_scanr_y[NUM_CTX_SCANR][2];
+    s32 rdoq_est_run[NUM_SBAC_CTX_RUN][2];
+    s32 rdoq_est_level[NUM_SBAC_CTX_LEVEL][2];
+    s32 rdoq_est_last[NUM_SBAC_CTX_LAST][2];
 #endif
 } EVCE_CORE;
 
@@ -733,7 +765,8 @@ typedef struct _EVCE_CORE
  *
  * All have to be stored are in this structure.
  *****************************************************************************/
-typedef struct _EVCE_CTX EVCE_CTX;
+ typedef struct _EVCE_CTX EVCE_CTX;
+
 struct _EVCE_CTX
 {
     /* address of current input picture, ref_picture  buffer structure */
@@ -893,14 +926,18 @@ struct _EVCE_CTX
     s8                   * map_depth;
 #if RDO_DBK
     EVC_PIC              * pic_dbk;          //one picture that arranges cu pixels and neighboring pixels for deblocking (just to match the interface of deblocking functions)
+#if !EVC_CONCURENCY    
     s64                    delta_dist[N_C];  //delta distortion from filtering (negative values mean distortion reduced)
     s64                    dist_nofilt[N_C]; //distortion of not filtered samples
     s64                    dist_filter[N_C]; //distortion of filtered samples
 #endif
+#endif
     /* affine map (width in SCU x height in SCU) of raster scan order in a frame */
     u32                  * map_affine;
     u32                  * map_cu_mode;
+#if !EVC_CONCURENCY    
     u8                     ctx_flags[NUM_CNID];
+#endif
     double                 lambda[3];
     double                 sqrt_lambda[3];
     double                 dist_chroma_weight[2];
@@ -909,9 +946,11 @@ struct _EVCE_CTX
     u8                   * map_ats_tu_h;
     u8                   * map_ats_tu_v;
     u8                   * map_ats_inter;
+
     u32                  * ats_inter_pred_dist;
     u8                   * ats_inter_info_pred;   //best-mode ats_inter info
     u8                   * ats_inter_num_pred;
+
 #if EVC_TILE_SUPPORT
     /* Tile information for each index */
     EVC_TILE             * tile;
@@ -924,7 +963,10 @@ struct _EVCE_CTX
     /* tile index map (width in SCU x height in SCU) of
     raster scan order in a frame */
     u8                   * map_tidx;
+    u8                    tile_to_slice_map[MAX_NUM_TILES_COL * MAX_NUM_TILES_ROW];
+    u8                    tiles_in_slice[MAX_NUM_TILES_COL * MAX_NUM_TILES_ROW];
 #endif
+
     int (*fn_ready)(EVCE_CTX * ctx);
     void (*fn_flush)(EVCE_CTX * ctx);
     int (*fn_enc)(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
@@ -939,6 +981,10 @@ struct _EVCE_CTX
 #if EVC_TILE_SUPPORT
         , int tile_idx
 #endif
+#if EVC_CONCURENCY
+        , EVCE_CORE * core
+#endif
+
         );
 
     void* enc_alf;
@@ -989,7 +1035,9 @@ struct _EVCE_CTX
     /* platform specific data, if needed */
     void                  * pf;
 #if M50761_CHROMA_NOT_SPLIT
+#if !EVC_CONCURENCY
     TREE_CONS            tree_cons;                //!< Tree status
+#endif
 #endif
 };
 
@@ -1001,6 +1049,9 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
 int evce_deblock_h263(EVCE_CTX * ctx, EVC_PIC * pic
 #if EVC_TILE_SUPPORT
     , int tile_idx
+#endif
+#if EVC_CONCURENCY
+    , EVCE_CORE * core
 #endif
 );
 int evce_enc(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);

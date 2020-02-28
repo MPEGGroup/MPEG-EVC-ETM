@@ -49,7 +49,6 @@ typedef struct _EVCD_SBAC
     u32            value;
     EVC_SBAC_CTX  ctx;
 } EVCD_SBAC;
-
 /*****************************************************************************
  * CORE information used for decoding process.
  *
@@ -173,6 +172,16 @@ typedef struct _EVCD_CORE
     int            bi_idx;
     int            affine_bzero[REFP_NUM];
     s16            affine_mvd[REFP_NUM][3][MV_D];
+#if EVC_TILE_SUPPORT
+    int                    tile_num;
+#endif
+#if EVC_CONCURENCY
+    u8                     ctx_flags[NUM_CNID];
+    
+#if M50761_CHROMA_NOT_SPLIT
+    TREE_CONS               tree_cons;
+#endif
+#endif
 } EVCD_CORE;
 
 /******************************************************************************
@@ -250,7 +259,9 @@ struct _EVCD_CTX
     u32                   * map_affine;
     /* new coding tool flag*/
     u32                   * map_cu_mode;
+#if !EVC_CONCURENCY
     u8                      ctx_flags[NUM_CNID];
+#endif
     /* ats_inter info map */
     u8                    * map_ats_inter;
     /**************************************************************************/
@@ -308,6 +319,11 @@ struct _EVCD_CTX
     u16                     w_tile;
     /* number of tile rows */
     u16                     h_tile;
+    /* tile to slice map */
+    u16                 tile_in_slice[MAX_NUM_TILES_COL*MAX_NUM_TILES_ROW];
+     /* Number of tiles in slice*/
+    u16                 NumTilesInSlice;
+    u32                   NumCtb;
 #endif
     /* address of ready function */
     int  (* fn_ready)(EVCD_CTX * ctx);
@@ -332,7 +348,9 @@ struct _EVCD_CTX
     /* platform specific data, if needed */
     void                  * pf;
 #if M50761_CHROMA_NOT_SPLIT
+#if !EVC_CONCURENCY
     TREE_CONS               tree_cons;
+#endif
 #endif
 };
 

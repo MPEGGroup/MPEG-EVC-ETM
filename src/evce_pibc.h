@@ -65,7 +65,11 @@ void reset_ibc_search_range(EVCE_CTX *ctx, int cu_x, int cu_y, int log2_cuw, int
 
 // for ibc pu validation
 IBC_INLINE int is_bv_valid(EVCE_CTX *ctx, int x, int y, int width, int height, int log2_cuw, int log2_cuh,
-    int pic_width, int pic_height, int x_bv, int y_bv, int ctu_size)
+    int pic_width, int pic_height, int x_bv, int y_bv, int ctu_size
+#if EVC_TILE_SUPPORT
+ ,EVCE_CORE * core
+#endif
+)
 {
     int x_scu = 0, y_scu = 0;
     int log2_scuw = 0, log2_scuh = 0;
@@ -79,14 +83,50 @@ IBC_INLINE int is_bv_valid(EVCE_CTX *ctx, int x, int y, int width, int height, i
     scuw = 1 << log2_scuw;
     scuh = 1 << log2_scuh;
 
+
     const int ctu_size_log2 = ctx->pibc.ctu_log2_tbl[ctu_size];
+
 
     int ref_right_x = x + x_bv + width - 1;
     int ref_bottom_y = y + y_bv + height - 1;
 
     int ref_left_x = x + x_bv;
     int ref_top_y = y + y_bv;
+#if EVC_TILE_SUPPORT
+    int x_l = ((ctx->tile[core->tile_num].ctba_rs_first) % ctx->w_lcu) << MAX_CU_LOG2; //entry point lcu's x location
+    int y_l = ((ctx->tile[core->tile_num].ctba_rs_first) / ctx->w_lcu)<<MAX_CU_LOG2; // entry point lcu's y location
+    int x_r = x_l + ((int)(ctx->tile[core->tile_num].w_ctb) << MAX_CU_LOG2);
+    int y_r = y_l + ((int)(ctx->tile[core->tile_num].h_ctb) << MAX_CU_LOG2);
+    x_r = x_r > pic_width ? pic_width:x_r;
+    y_r = y_r > pic_height ? pic_height:y_r;
 
+    if ((x + x_bv) < x_l )
+    {
+        return 0;
+    }
+    if (ref_right_x >= x_r)
+    {
+        return 0;
+    }
+    if ((y + y_bv) < y_l)
+    {
+        return 0;
+    }
+    if (ref_bottom_y >= y_r)
+    {
+        return 0;
+    }
+    if ((x_bv + width) > x_l && (y_bv + height) > y_l)
+    {
+        return 0;
+    }
+    if ((ref_top_y >> ctu_size_log2) < (y >> ctu_size_log2))
+        return 0;
+    if ((ref_bottom_y >> ctu_size_log2) > (y >> ctu_size_log2))
+    {
+        return 0;
+    }
+#else
     if ((x + x_bv) < 0)
     {
         return 0;
@@ -118,7 +158,7 @@ IBC_INLINE int is_bv_valid(EVCE_CTX *ctx, int x, int y, int width, int height, i
     {
         return 0;
     }
-
+#endif
     // in the same CTU line
 #if CONSTRAIN_ONE_EXTRA_CTU
     if (((ref_right_x >> ctu_size_log2) <= (x >> ctu_size_log2)) && ((ref_left_x >> ctu_size_log2) >= (x >> ctu_size_log2) - 1))
@@ -139,8 +179,12 @@ IBC_INLINE int is_bv_valid(EVCE_CTX *ctx, int x, int y, int width, int height, i
             int offset_x_scu = PEL2SCU(offset64x);
             int offset_y_scu = PEL2SCU(offset64y);
             int offset_scup = (offset_y_scu * ctx->w_scu) + offset_x_scu;
-
+#if EVC_TILE_SUPPORT
+            int curr_scup = ((y_scu) * ctx->w_scu) + (x_scu);
+            int avail_cu = MCU_GET_COD(ctx->map_scu[offset_scup]) && (ctx->map_tidx[curr_scup] == ctx->map_tidx[offset_scup]);
+#else
             int avail_cu = MCU_GET_COD(ctx->map_scu[offset_scup]);
+#endif
             if (avail_cu)
             {
                 return 0;
@@ -164,8 +208,12 @@ IBC_INLINE int is_bv_valid(EVCE_CTX *ctx, int x, int y, int width, int height, i
               int offset_TR_x_scu = PEL2SCU(offset64_TR_x);
               int offset_TR_y_scu = PEL2SCU(offset64_TR_y);
               int offset_TR_scup = (offset_TR_y_scu * ctx->w_scu) + offset_TR_x_scu;
-
+#if EVC_TILE_SUPPORT
+              curr_scup = ((y_scu)* ctx->w_scu) + (x_scu);
+             int avail_TR_cu = MCU_GET_COD(ctx->map_scu[offset_TR_scup]) && (ctx->map_tidx[curr_scup] == ctx->map_tidx[offset_TR_scup]);
+#else
               int avail_TR_cu = MCU_GET_COD(ctx->map_scu[offset_TR_scup]);
+#endif
               if (avail_TR_cu)
               {
                 return 0;
@@ -187,8 +235,12 @@ IBC_INLINE int is_bv_valid(EVCE_CTX *ctx, int x, int y, int width, int height, i
                 int RT_ref_pos_LT_x_scu = PEL2SCU(RT_ref_pos_LT_offset64x);
                 int RT_ref_pos_LT_y_scu = PEL2SCU(RT_ref_pos_LT_offset64y);
                 int RT_ref_pos_LT_scup = (RT_ref_pos_LT_y_scu * ctx->w_scu) + RT_ref_pos_LT_x_scu;
-
+#if EVC_TILE_SUPPORT
+                curr_scup = ((y_scu)* ctx->w_scu) + (x_scu);
+                int RT_ref_pos_LT_cu = MCU_GET_COD(ctx->map_scu[RT_ref_pos_LT_scup]) && (ctx->map_tidx[curr_scup] == ctx->map_tidx[RT_ref_pos_LT_scup]);
+#else
                 int RT_ref_pos_LT_cu = MCU_GET_COD(ctx->map_scu[RT_ref_pos_LT_scup]);
+#endif
                 if (RT_ref_pos_LT_cu)
                 {
                   return 0;
@@ -206,7 +258,12 @@ IBC_INLINE int is_bv_valid(EVCE_CTX *ctx, int x, int y, int width, int height, i
                 int RT_ref_pos_RT_y_scu = PEL2SCU(RT_ref_pos_RT_offset64y);
                 int RT_ref_pos_RT_scup = (RT_ref_pos_RT_y_scu * ctx->w_scu) + RT_ref_pos_RT_x_scu;
 
+#if EVC_TILE_SUPPORT
+                curr_scup = ((y_scu)* ctx->w_scu) + (x_scu);
+                int RT_ref_pos_RT_cu = MCU_GET_COD(ctx->map_scu[RT_ref_pos_RT_scup]) && (ctx->map_tidx[curr_scup] == ctx->map_tidx[RT_ref_pos_RT_scup]);
+#else
                 int RT_ref_pos_RT_cu = MCU_GET_COD(ctx->map_scu[RT_ref_pos_RT_scup]);
+#endif
                 if (RT_ref_pos_RT_cu)
                 {
                   return 0;
@@ -227,8 +284,12 @@ IBC_INLINE int is_bv_valid(EVCE_CTX *ctx, int x, int y, int width, int height, i
         int offset_x_scu = PEL2SCU(ref_pos_LT_x);
         int offset_y_scu = PEL2SCU(ref_pos_LT_y);
         int offset_LT_scup = (offset_y_scu * ctx->w_scu) + offset_x_scu;
-
+#if EVC_TILE_SUPPORT
+        int curr_scup = ((y_scu)* ctx->w_scu) + (x_scu);
+        int avail_cu = MCU_GET_COD(ctx->map_scu[offset_LT_scup]) && (ctx->map_tidx[curr_scup] == ctx->map_tidx[offset_LT_scup]);
+#else
         int avail_cu = MCU_GET_COD(ctx->map_scu[offset_LT_scup]);
+#endif
         if (!avail_cu)
         {
             return 0;
@@ -240,8 +301,12 @@ IBC_INLINE int is_bv_valid(EVCE_CTX *ctx, int x, int y, int width, int height, i
         offset_x_scu = PEL2SCU(ref_pos_BR_x);
         offset_y_scu = PEL2SCU(ref_pos_BR_y);
         int offset_BR_scup = (offset_y_scu * ctx->w_scu) + offset_x_scu;
-
+#if EVC_TILE_SUPPORT
+        curr_scup = ((y_scu)* ctx->w_scu) + (x_scu);
+         avail_cu = MCU_GET_COD(ctx->map_scu[offset_BR_scup]) && (ctx->map_tidx[curr_scup] == ctx->map_tidx[offset_BR_scup]);
+#else
         avail_cu = MCU_GET_COD(ctx->map_scu[offset_BR_scup]);
+#endif
         if (!avail_cu)
         {
             return 0;
@@ -264,7 +329,12 @@ IBC_INLINE int is_bv_valid(EVCE_CTX *ctx, int x, int y, int width, int height, i
     int ref_pos_LT_y_scu = PEL2SCU(ref_pos_LT_y);
     int ref_pos_LT_scup = (ref_pos_LT_y_scu * ctx->w_scu) + ref_pos_LT_x_scu;
 
+#if EVC_TILE_SUPPORT
+    int curr_scup = ((y_scu)* ctx->w_scu) + (x_scu);
+    int avail_cu = MCU_GET_COD(ctx->map_scu[ref_pos_LT_scup]) && (ctx->map_tidx[curr_scup] == ctx->map_tidx[ref_pos_LT_scup]);
+#else
     int avail_cu = MCU_GET_COD(ctx->map_scu[ref_pos_LT_scup]);
+#endif
     if (avail_cu == 0)
     {
         return 0;
@@ -277,7 +347,12 @@ IBC_INLINE int is_bv_valid(EVCE_CTX *ctx, int x, int y, int width, int height, i
     int ref_pos_BR_y_scu = PEL2SCU(ref_pos_BR_y);
     int ref_pos_BR_scup = (ref_pos_BR_y_scu * ctx->w_scu) + ref_pos_BR_x_scu;
 
+#if EVC_TILE_SUPPORT
+    curr_scup = ((y_scu)* ctx->w_scu) + (x_scu);
+    avail_cu = MCU_GET_COD(ctx->map_scu[ref_pos_BR_scup]) && (ctx->map_tidx[curr_scup] == ctx->map_tidx[ref_pos_BR_scup]);
+#else
     avail_cu = MCU_GET_COD(ctx->map_scu[ref_pos_BR_scup]);
+#endif
     if (avail_cu == 0)
     {
         return 0;
@@ -287,7 +362,12 @@ IBC_INLINE int is_bv_valid(EVCE_CTX *ctx, int x, int y, int width, int height, i
     {
       // check the availablity of bottom-left corner
       int ref_pos_BL_scup = (ref_pos_BR_y_scu * ctx->w_scu) + ref_pos_LT_x_scu;
+#if EVC_TILE_SUPPORT
+      int curr_scup = ((y_scu)* ctx->w_scu) + (x_scu);
+      avail_cu = MCU_GET_COD(ctx->map_scu[ref_pos_BL_scup]) && (ctx->map_tidx[curr_scup] == ctx->map_tidx[ref_pos_BL_scup]);
+#else
       avail_cu = MCU_GET_COD(ctx->map_scu[ref_pos_BL_scup]);
+#endif
       if (avail_cu == 0)
       {
         return 0;
@@ -302,8 +382,12 @@ IBC_INLINE int is_bv_valid(EVCE_CTX *ctx, int x, int y, int width, int height, i
         int check_point_x_scu = PEL2SCU(check_point_x);
         int check_point_y_scu = PEL2SCU(check_point_y);
         int check_point_scup = (check_point_y_scu * ctx->w_scu) + check_point_x_scu;
-
+#if EVC_TILE_SUPPORT
+        int curr_scup = ((y_scu)* ctx->w_scu) + (x_scu);
+        avail_cu = MCU_GET_COD(ctx->map_scu[check_point_scup]) && (ctx->map_tidx[curr_scup] == ctx->map_tidx[check_point_scup]);
+#else
         avail_cu = MCU_GET_COD(ctx->map_scu[check_point_scup]);
+#endif
         if (avail_cu == 0)
         {
           return 0;

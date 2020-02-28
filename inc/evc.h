@@ -502,6 +502,8 @@ typedef struct _EVCE_CDSC
     int            tile_row_height_array[22];
     int            num_slice_in_pic;
     int            slice_boundary_array[2 * 600];
+    int            arbitrary_slice_flag;
+    int            num_remaining_tiles_in_slice_minus1;
 #endif
     EVC_CHROMA_TABLE chroma_qp_table_struct;
 #if M52291_HDR_DRA

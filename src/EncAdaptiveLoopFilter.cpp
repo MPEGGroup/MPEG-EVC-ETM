@@ -454,45 +454,7 @@ void EncAdaptiveLoopFilter::Enc_ALFProcess(CodingStructure& cs, const double *la
   pel * orgYuv2 = picOrig->v;
   const int oStride1 = picOrig->s_c;
 
-#if EVC_TILE_SUPPORT
-  int ii, x_l, x_r, y_l, y_r, w_tile, h_tile;
-  int col_bd2 = 0;
 
-  for (ii = ctx->sh.first_tile_id; ii <= ctx->sh.last_tile_id; ii++)
-  {
-      int x_loc = ((ctx->tile[ii].ctba_rs_first) % ctx->w_lcu);
-      int y_loc = ((ctx->tile[ii].ctba_rs_first) / ctx->w_lcu);
-      x_l = x_loc << MAX_CU_LOG2; //entry point CTB's x location
-      y_l = y_loc << MAX_CU_LOG2; //entry point CTB's y location
-      x_r = x_l + ((int)(ctx->tile[ii].w_ctb) << MAX_CU_LOG2);
-      y_r = y_l + ((int)(ctx->tile[ii].h_ctb) << MAX_CU_LOG2);
-      w_tile = x_r > ((int)ctx->w_scu << MIN_CU_LOG2) ? ((int)ctx->w_scu << MIN_CU_LOG2) - x_l : x_r - x_l;
-      h_tile = y_r > ((int)ctx->h_scu << MIN_CU_LOG2) ? ((int)ctx->h_scu << MIN_CU_LOG2) - y_l : y_r - y_l;
-      Pel * recLuma0_tile = recLuma0 + x_l + y_l * s;
-      Pel * recoYuv0_tile = recoYuv0 + x_l + y_l * rStride;
-
-      copy_and_extend_tile(recLuma0_tile, s, recoYuv0_tile, rStride, w_tile, h_tile, m);
-
-      // derive classification
-      Area blk = { x_l, y_l, w_tile, h_tile };
-      deriveClassification(m_classifier, recLuma0, s, &blk);
-      //deriveClassification(m_classifier, recLuma0_tile, s, &blk);
-  }
-#else
-  copy_and_extend(recLuma0, s, recoYuv0, rStride, w, h, m);
-  copy_and_extend(recLuma1, s1, recoYuv1, picReco->s_c, (w >> 1), (h >> 1), m);
-  copy_and_extend(recLuma2, s1, recoYuv2, picReco->s_c, (w >> 1), (h >> 1), m);
-
-  // derive classification
-  Area blk = { 0, 0, w, h };
-  deriveClassification(m_classifier, recLuma0, s, &blk);
-#endif
-
-#if EVC_TILE_SUPPORT
-  copy_and_extend(recLuma0, s, recoYuv0, rStride, w, h, m);
-  copy_and_extend(recLuma1, s1, recoYuv1, picReco->s_c, (w >> 1), (h >> 1), m);
-  copy_and_extend(recLuma2, s1, recoYuv2, picReco->s_c, (w >> 1), (h >> 1), m);
-#endif
 
   YUV orgYuv, recLuma, recYuv;
   orgYuv.yuv[0] = orgYuv0;  orgYuv.s[0] = oStride;
@@ -505,6 +467,44 @@ void EncAdaptiveLoopFilter::Enc_ALFProcess(CodingStructure& cs, const double *la
   recLuma.yuv[1] = recLuma1; recLuma.s[1] = s1;
   recLuma.yuv[2] = recLuma2; recLuma.s[2] = s1;
 
+#if EVC_TILE_SUPPORT
+  int  x_l, x_r, y_l, y_r, w_tile, h_tile;
+  int col_bd = 0;
+  int total_tiles_in_slice = ctx->sh.num_tiles_in_slice;
+
+  u32 k = 0;
+  int ii=0;
+  while (total_tiles_in_slice)
+  {
+
+      ii = ctx->tiles_in_slice[k++];
+      int x_loc = ((ctx->tile[ii].ctba_rs_first) % ctx->w_lcu);
+      int y_loc = ((ctx->tile[ii].ctba_rs_first) / ctx->w_lcu);
+      x_l = x_loc << ctx->log2_max_cuwh; //entry point CTB's x location
+      y_l = y_loc << ctx->log2_max_cuwh; //entry point CTB's y location
+      x_r = x_l + ((int)(ctx->tile[ii].w_ctb) << ctx->log2_max_cuwh);
+      y_r = y_l + ((int)(ctx->tile[ii].h_ctb) << ctx->log2_max_cuwh);
+      w_tile = x_r > ((int)ctx->w_scu << MIN_CU_LOG2) ? ((int)ctx->w_scu << MIN_CU_LOG2) - x_l : x_r - x_l;
+      h_tile = y_r > ((int)ctx->h_scu << MIN_CU_LOG2) ? ((int)ctx->h_scu << MIN_CU_LOG2) - y_l : y_r - y_l;
+      Pel * recLuma0_tile = recLuma0 + x_l + y_l * s;
+      Pel * recoYuv0_tile = recoYuv0 + x_l + y_l * rStride;
+      copy_and_extend_tile(recLuma0_tile, s, recoYuv0_tile, rStride, w_tile, h_tile, m);
+      Area blk = { x_l, y_l, w_tile, h_tile };
+      deriveClassification(m_classifier, recLuma0, s, &blk);
+      total_tiles_in_slice--;
+  }
+#else
+  copy_and_extend(recLuma0, s, recoYuv0, rStride, w, h, m);
+  copy_and_extend(recLuma1, s1, recoYuv1, picReco->s_c, (w >> 1), (h >> 1), m);
+  copy_and_extend(recLuma2, s1, recoYuv2, picReco->s_c, (w >> 1), (h >> 1), m);
+  Area blk = { 0, 0, w, h };
+  deriveClassification(m_classifier, recLuma0, s, &blk);
+#endif
+#if EVC_TILE_SUPPORT
+  copy_and_extend(recLuma0, s, recoYuv0, rStride, w, h, m);
+  copy_and_extend(recLuma1, s1, recoYuv1, picReco->s_c, (w >> 1), (h >> 1), m);
+  copy_and_extend(recLuma2, s1, recoYuv2, picReco->s_c, (w >> 1), (h >> 1), m);
+#endif
   // get CTB stats for filtering
   deriveStatsForFiltering(&orgYuv, &recLuma);
 
@@ -544,17 +544,35 @@ void EncAdaptiveLoopFilter::Enc_ALFProcess(CodingStructure& cs, const double *la
 
   }
 #if EVC_TILE_SUPPORT
-  for (ii = ctx->sh.first_tile_id; ii <= ctx->sh.last_tile_id; ii++)
+      k = 0;
+      ii = 0;
+      total_tiles_in_slice = ctx->sh.num_tiles_in_slice;
+      while (total_tiles_in_slice)
   {
+      int ii = ctx->tiles_in_slice[k++];
       int x_loc = ((ctx->tile[ii].ctba_rs_first) % ctx->w_lcu);
       int y_loc = ((ctx->tile[ii].ctba_rs_first) / ctx->w_lcu);
 
-      col_bd2 = (ii % ctx->param.tile_columns) ? col_bd2 + ctx->tile[ii - 1].w_ctb : 0;
+      col_bd = 0;
+      if (ii% ctx->param.tile_columns)
+      {
+          int temp = ii - 1;
+          while (temp >= 0)
+          {
+              col_bd += ctx->tile[temp].w_ctb;
+              if (!(temp%ctx->param.tile_columns)) break;
+              temp--;
+          }
+      }
+      else
+      {
+          col_bd = 0;
+      }
 
-      x_l = x_loc << MAX_CU_LOG2; //entry point CTB's x location
-      y_l = y_loc << MAX_CU_LOG2; //entry point CTB's y location
-      x_r = x_l + ((int)(ctx->tile[ii].w_ctb) << MAX_CU_LOG2);
-      y_r = y_l + ((int)(ctx->tile[ii].h_ctb) << MAX_CU_LOG2);
+      x_l = x_loc << ctx->log2_max_cuwh; //entry point CTB's x location
+      y_l = y_loc << ctx->log2_max_cuwh; //entry point CTB's y location
+      x_r = x_l + ((int)(ctx->tile[ii].w_ctb) << ctx->log2_max_cuwh);
+      y_r = y_l + ((int)(ctx->tile[ii].h_ctb) << ctx->log2_max_cuwh);
       w_tile = x_r >((int)ctx->w_scu << MIN_CU_LOG2) ? ((int)ctx->w_scu << MIN_CU_LOG2) - x_l : x_r - x_l;
       h_tile = y_r > ((int)ctx->h_scu << MIN_CU_LOG2) ? ((int)ctx->h_scu << MIN_CU_LOG2) - y_l : y_r - y_l;
       //This is for YUV420 only 
@@ -572,19 +590,20 @@ void EncAdaptiveLoopFilter::Enc_ALFProcess(CodingStructure& cs, const double *la
       // reconstruct 
       alfReconstructor(cs, alfSliceParam, orgYuv.yuv[0], orgYuv.s[0], recLuma.yuv[0], recLuma.s[0], COMPONENT_Y
 #if EVC_TILE_SUPPORT
-          , ii, col_bd2
+          , ii, col_bd
 #endif
       );
       alfReconstructor(cs, alfSliceParam, orgYuv.yuv[1], orgYuv.s[1], recLuma.yuv[1], recLuma.s[1], COMPONENT_Cb
 #if EVC_TILE_SUPPORT
-          , ii, col_bd2
+          , ii, col_bd
 #endif
       );
       alfReconstructor(cs, alfSliceParam, orgYuv.yuv[2], orgYuv.s[2], recLuma.yuv[2], recLuma.s[2], COMPONENT_Cr
 #if EVC_TILE_SUPPORT
-          , ii, col_bd2
+          , ii, col_bd
 #endif
       );
+      total_tiles_in_slice--;
   }
 
 #else
@@ -787,7 +806,7 @@ void EncAdaptiveLoopFilter::tile_boundary_check(int* availableL, int* availableR
 
 void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam* alfSliceParam, const pel * orgUnitBuf, const int oStride, pel * recExtBuf, int recStride, const ComponentID compID
 #if EVC_TILE_SUPPORT
-    , int tile_idx, int col_bd2
+    , int tile_idx, int col_bd
 #endif
 )
 {
@@ -804,10 +823,10 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
 #if EVC_TILE_SUPPORT
   int x_loc = ((ctx->tile[tile_idx].ctba_rs_first) % ctx->w_lcu);
   int y_loc = ((ctx->tile[tile_idx].ctba_rs_first) / ctx->w_lcu);
-  x_l = x_loc << MAX_CU_LOG2; //entry point lcu's x location
-  y_l = y_loc << MAX_CU_LOG2; // entry point lcu's y location
-  x_r = x_l + ((int)(ctx->tile[tile_idx].w_ctb) << MAX_CU_LOG2);
-  y_r = y_l + ((int)(ctx->tile[tile_idx].h_ctb) << MAX_CU_LOG2);
+  x_l = x_loc << ctx->log2_max_cuwh; //entry point lcu's x location
+  y_l = y_loc << ctx->log2_max_cuwh; // entry point lcu's y location
+  x_r = x_l + ((int)(ctx->tile[tile_idx].w_ctb) << ctx->log2_max_cuwh);
+  y_r = y_l + ((int)(ctx->tile[tile_idx].h_ctb) << ctx->log2_max_cuwh);
   x_r = x_r > ((int)ctx->w_scu << MIN_CU_LOG2) ? ((int)ctx->w_scu << MIN_CU_LOG2) : x_r;
   y_r = y_r > ((int)ctx->h_scu << MIN_CU_LOG2) ? ((int)ctx->h_scu << MIN_CU_LOG2) : y_r;
 #endif
@@ -1023,7 +1042,7 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
 #if EVC_TILE_SUPPORT
           x_loc++;
 
-          if (x_loc >= ctx->tile[tile_idx].w_ctb + col_bd2)
+          if (x_loc >= ctx->tile[tile_idx].w_ctb + col_bd)
           {
               x_loc = ((ctx->tile[tile_idx].ctba_rs_first) % ctx->w_lcu);
               y_loc++;

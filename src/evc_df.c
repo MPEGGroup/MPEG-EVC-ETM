@@ -1135,8 +1135,13 @@ static pel deblock_line_avc_normal_delta1(u8 c1, pel* x, pel* y)
 
 static void deblock_scu_avc_line_luma(pel *buf, int stride, u8 bs, u8 alpha, u8 beta, u8 c1)
 {
+#if EVC_CONCURENCY    
+    pel p[DBF_LENGTH], q[DBF_LENGTH];
+    pel p_out[DBF_LENGTH], q_out[DBF_LENGTH];
+#else
     static pel p[DBF_LENGTH], q[DBF_LENGTH];
     static pel p_out[DBF_LENGTH], q_out[DBF_LENGTH];
+#endif
 
     deblock_avc_get_pq(buf, stride, p, q, DBF_LENGTH);
     evc_mcpy(p_out, p, DBF_LENGTH * sizeof(p[0]));
@@ -1275,8 +1280,13 @@ static void deblock_scu_avc_line_luma(pel *buf, int stride, u8 bs, u8 alpha, u8 
 
 static void deblock_scu_avc_line_chroma(pel *buf, int stride, u8 bs, u8 alpha, u8 beta, u8 c0)
 {
+#if EVC_CONCURENCY
+    pel p[DBF_LENGTH_CHROMA], q[DBF_LENGTH_CHROMA];
+    pel p_out[DBF_LENGTH_CHROMA], q_out[DBF_LENGTH_CHROMA];
+#else
     static pel p[DBF_LENGTH_CHROMA], q[DBF_LENGTH_CHROMA];
     static pel p_out[DBF_LENGTH_CHROMA], q_out[DBF_LENGTH_CHROMA];
+#endif
 
     deblock_avc_get_pq(buf, stride, p, q, DBF_LENGTH_CHROMA);
     evc_mcpy(p_out, p, DBF_LENGTH_CHROMA * sizeof(p[0]));
@@ -1435,7 +1445,16 @@ static void deblock_avc_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int 
     t = (x_pel >> MIN_CU_LOG2) + (y_pel >> MIN_CU_LOG2) * w_scu;
 #if EVC_TILE_SUPPORT
     t_copy = t;
+#if DBF_8_8_GRID && 0 //need to check
+    if (align_8_8_grid)
+    {
+        t1 = (x_pel >> MIN_CU_LOG2) + ((y_pel - (1 << 3)) >> MIN_CU_LOG2) * w_scu;
+    }
+    else
+#endif
+    {
     t1 = (x_pel >> MIN_CU_LOG2) + ((y_pel - (1 << MIN_CU_LOG2)) >> MIN_CU_LOG2) * w_scu;
+    }
 #endif
    
     map_scu += t;
@@ -1700,8 +1719,18 @@ static void deblock_avc_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int 
     t = (x_pel >> MIN_CU_LOG2) + (y_pel >> MIN_CU_LOG2) * w_scu;
 #if EVC_TILE_SUPPORT
     t_copy = t;
+#if DBF_8_8_GRID && 0 //need to check
+    if(align_8_8_grid)
+    {
+        t1 = ((x_pel - (1 << 3)) >> MIN_CU_LOG2) + (y_pel >> MIN_CU_LOG2) * w_scu;
+        t2 = ((x_pel + (w << 3)) >> MIN_CU_LOG2) + (y_pel >> MIN_CU_LOG2) * w_scu;
+    }
+    else
+#endif
+    {
     t1 = ((x_pel - (1 << MIN_CU_LOG2)) >> MIN_CU_LOG2) + (y_pel >> MIN_CU_LOG2) * w_scu;
     t2 = ((x_pel + (w << MIN_CU_LOG2)) >> MIN_CU_LOG2) + (y_pel >> MIN_CU_LOG2) * w_scu;
+    }
 #endif
           
     map_scu += t;

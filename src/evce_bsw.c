@@ -61,6 +61,18 @@ void evc_bsw_init(EVC_BSW * bs, u8 * buf, int size,
     bs->fn_flush = (fn_flush == NULL ? evc_bsw_flush : fn_flush);
 }
 
+#if EVC_TILE_SUPPORT
+void evc_bsw_init_slice(EVC_BSW * bs, u8 * buf, int size,
+    EVC_BSW_FN_FLUSH fn_flush)
+{
+    bs->size = size;
+    bs->cur = buf;
+    bs->end = buf + size - 1;
+    bs->code = 0;
+    bs->leftbits = 32;
+    bs->fn_flush = (fn_flush == NULL ? evc_bsw_flush : fn_flush);
+}
+#endif
 void evc_bsw_deinit(EVC_BSW * bs)
 {
     bs->fn_flush(bs);
@@ -104,15 +116,8 @@ int evc_bsw_write(EVC_BSW * bs, u32 val, int len) /* len(1 ~ 32) */
         evc_assert_rv(bs->cur + 4 <= bs->end, -1);
 
         bs->leftbits = 0;
-        bs->fn_flush(bs);
-
-#if defined(X86F)
-        /* on X86 machine, shift operation works properly when the value of the
-           right operand is less than the number of bits of the left operand. */
+        bs->fn_flush(bs);        
         bs->code = (leftbits < 32 ? val << leftbits : 0);
-#else
-        bs->code = (val << leftbits);
-#endif
         bs->leftbits = 32 - (len - leftbits);
     }
 
