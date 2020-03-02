@@ -873,13 +873,9 @@ static void sbac_put_byte(u8 writing_byte, EVCE_SBAC *sbac, EVC_BSW *bs)
 
 static void sbac_carry_propagate(EVCE_SBAC *sbac, EVC_BSW *bs)
 {
-#if VARIABLE_RANGE
-    u32 out_bits = (sbac->code) >> (RANGE_BITS + 3);
-    (sbac->code) &= (1 << (RANGE_BITS + 3)) - 1;
-#else
-    u32 out_bits = (sbac->code) >> 19;
-    (sbac->code) &= 0x7FFFF;
-#endif
+    u32 out_bits = sbac->code >> 17;
+    
+    sbac->code &= (1 << 17) - 1;
 
     if(out_bits < 0xFF)
     {
@@ -995,129 +991,84 @@ static void sbac_encode_bins_ep_msb(u32 value, int num_bin, EVCE_SBAC *sbac, EVC
 
 void evce_sbac_encode_bin(u32 bin, EVCE_SBAC *sbac, SBAC_CTX_MODEL *model, EVC_BSW *bs)
 {
-    u32  lps, range, code, code_bits;
-    u16  cmps, p0, p0_lps, p0_mps;
+    u32 lps;
+    u16 mps, state;
 
-    p0 = ((*model) >> 1) & PROB_MASK;
-    lps = (p0*(sbac->range)) >> MCABAC_PROB_BITS;
+    state = (*model) >> 1;
+    mps = (*model) & 1;
 
-    lps = lps < 437 ? 437 : lps;
-    cmps = (*model) & 1;
+    lps = (state * (sbac->range)) >> 9;
+    lps = lps < 437 ? 437 : lps;    
 
-    range = sbac->range;
-    code = sbac->code;
-    code_bits = sbac->code_bits;
-
-    range -= lps;
+    sbac->range -= lps;
 
 #if TRACE_BIN
     EVC_TRACE_COUNTER;
     EVC_TRACE_STR("model ");
     EVC_TRACE_INT(*model);
     EVC_TRACE_STR("range ");
-    EVC_TRACE_INT(range);
+    EVC_TRACE_INT(sbac->range);
     EVC_TRACE_STR("lps ");
     EVC_TRACE_INT(lps);
     EVC_TRACE_STR("\n");
 #endif
 
-    if(bin != (cmps))
+    if(bin != mps)
     {
-        if((range) >= lps)
+        if(sbac->range >= lps)
         {
-            (code) += (range);
-            (range) = lps;
+            sbac->code += sbac->range;
+            sbac->range = lps;
         }
-        p0_lps = p0 + ((MAX_PROB - p0 + MCABAC_OFFSET_0) >> MCABAC_SHIFT_0);
 
-        //to do
-        if(p0_lps > (MAX_PROB>>1))
+        state = state + ((512 - state + 16) >> 5);
+        if(state > 256)
         {
-            cmps = 1 - cmps;
-            p0_lps = MAX_PROB - p0_lps;
+            mps = 1 - mps;
+            state = 512 - state;
         }
-        *model = (p0_lps << 1) + cmps;
+        *model = (state << 1) + mps;
     }
     else
     {
-        p0_mps = p0 - ((p0 + MCABAC_OFFSET_0) >> MCABAC_SHIFT_0);
-        *model = (p0_mps << 1) + cmps;
-#if VARIABLE_RANGE
-        if((range) >= HALF_RANGE)
-#else
-        if((range) >= 0x8000)
-#endif
-        {
-            goto END;
-        }
-        if((range) < lps)
-        {
-            (code) += (range);
-            (range) = lps;
-        }
+        state = state - ((state + 16) >> 5);
+        *model = (state << 1) + mps;
     }
 
-    do
+    while(sbac->range < 8192)
     {
-        range <<= 1;
-        code <<= 1;
-        code_bits--;
+        sbac->range <<= 1;
+        sbac->code <<= 1;
+        sbac->code_bits--;
 
-        if(code_bits == 0)
+        if(sbac->code_bits == 0)
         {
-            sbac->code = code;
-
             sbac_carry_propagate(sbac, bs);
-
-            code = sbac->code;
-            code_bits = 8;
+            sbac->code_bits = 8;
         }
-#if VARIABLE_RANGE
-    } while(range < HALF_RANGE);
-#else
-    } while(range < 0x8000);
-#endif
-
-END:
-    sbac->range = range;
-    sbac->code = code;
-    sbac->code_bits = code_bits;
+    }
 }
 
 void evce_sbac_encode_bin_trm(u32 bin, EVCE_SBAC *sbac, EVC_BSW *bs)
 {
-    (sbac->range)--;
+    sbac->range--;
 
     if(bin)
     {
-        (sbac->code) += (sbac->range);
-        (sbac->range) = 1;
+        sbac->code += sbac->range;
+        sbac->range = 1;
     }
-    else
+   
+    while(sbac->range < 8192)
     {
-#if VARIABLE_RANGE
-        if((sbac->range) >= HALF_RANGE)
-#else
-        if((sbac->range) >= 0x8000)
-#endif
-        {
-            return;
-        }
-    }
-    do
-    {
-        (sbac->range) <<= 1;
-        (sbac->code) <<= 1;
+        sbac->range <<= 1;
+        sbac->code <<= 1;
         if(--(sbac->code_bits) == 0)
         {
             sbac_carry_propagate(sbac, bs);
             sbac->code_bits = 8;
         }
-#if VARIABLE_RANGE
-    } while((sbac->range) < HALF_RANGE);
-#else
-    } while((sbac->range) < 0x8000);
-#endif
+    }
 }
 
 void evce_sbac_reset(EVCE_SBAC *sbac, u8 slice_type, u8 slice_qp, int sps_cm_init_flag)
@@ -1126,11 +1077,7 @@ void evce_sbac_reset(EVCE_SBAC *sbac, u8 slice_type, u8 slice_qp, int sps_cm_ini
     sbac_ctx = &sbac->ctx;
 
     /* Initialization of the internal variables */
-#if VARIABLE_RANGE
-    sbac->range = MAX_RANGE;
-#else
-    sbac->range = 0x10000;
-#endif
+    sbac->range = 16384;
     sbac->code = 0;
     sbac->code_bits = 11;
     sbac->pending_byte = 0;
@@ -1145,19 +1092,13 @@ void evce_sbac_reset(EVCE_SBAC *sbac, u8 slice_type, u8 slice_qp, int sps_cm_ini
     /* Initialization of the context models */
     if(sps_cm_init_flag == 1)
     {
-#if !CTX_REPRESENTATION_IMPROVEMENT
-        int i; 
-#endif
-
         evc_eco_sbac_ctx_initialize(sbac_ctx->cbf, (s16*)init_cbf, NUM_QT_CBF_CTX, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->all_cbf, (s16*)init_all_cbf, NUM_QT_ROOT_CBF_CTX, slice_type, slice_qp);
 #if DQP
         evc_eco_sbac_ctx_initialize(sbac_ctx->delta_qp, (s16*)init_dqp, NUM_DELTA_QP_CTX, slice_type, slice_qp);
 #endif
-
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gt0, (s16*)init_cc_gt0_4, NUM_CTX_GT0, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gtA, (s16*)init_cc_gtA_4, NUM_CTX_GTA, slice_type, slice_qp);
-
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_x, (s16*)init_cc_scanr_x_3, NUM_CTX_SCANR, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_y, (s16*)init_cc_scanr_y_3, NUM_CTX_SCANR, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->pred_mode, (s16*)init_pred_mode, NUM_PRED_MODE_CTX, slice_type, slice_qp);
@@ -1166,15 +1107,9 @@ void evce_sbac_reset(EVCE_SBAC *sbac, u8 slice_type, u8 slice_qp, int sps_cm_ini
 #endif
         evc_eco_sbac_ctx_initialize(sbac_ctx->inter_dir, (s16*)init_inter_dir, NUM_INTER_DIR_CTX, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->intra_dir, (s16*)init_intra_dir, NUM_INTRA_DIR_CTX, slice_type, slice_qp);
-#if CTX_REPRESENTATION_IMPROVEMENT
         evc_eco_sbac_ctx_initialize(sbac_ctx->run, (s16*)init_run, NUM_SBAC_CTX_RUN, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->last, (s16*)init_last, NUM_SBAC_CTX_LAST, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->level, (s16*)init_level, NUM_SBAC_CTX_LEVEL, slice_type, slice_qp);
-#else
-        for(i = 0; i < NUM_SBAC_CTX_RUN; i++) sbac_ctx->run[i] = PROB_INIT;
-        for(i = 0; i < NUM_SBAC_CTX_LAST; i++) sbac_ctx->last[i] = PROB_INIT;
-        for(i = 0; i < NUM_SBAC_CTX_LEVEL; i++) sbac_ctx->level[i] = PROB_INIT;
-#endif
         evc_eco_sbac_ctx_initialize(sbac_ctx->mmvd_flag, (s16*)init_mmvd_flag, NUM_SBAC_CTX_MMVD_FLAG, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->mmvd_merge_idx, (s16*)init_mmvd_merge_idx, NUM_SBAC_CTX_MMVD_MERGE_IDX, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->mmvd_distance_idx, (s16*)init_mmvd_distance_idx, NUM_SBAC_CTX_MMVD_DIST_IDX, slice_type, slice_qp);
@@ -1241,14 +1176,11 @@ void evce_sbac_reset(EVCE_SBAC *sbac, u8 slice_type, u8 slice_qp, int sps_cm_ini
         {
             sbac_ctx->affine_flag[i] = PROB_INIT;
         }
-
         sbac_ctx->affine_mode[0] = PROB_INIT;
-
         for (i = 0; i < AFF_MAX_CAND; i++) 
         {
             sbac_ctx->affine_mrg[i] = PROB_INIT;
         }
-
         sbac_ctx->affine_mvd_flag[0] = PROB_INIT;
         sbac_ctx->affine_mvd_flag[1] = PROB_INIT;
         for (i = 0; i < NUM_SBAC_CTX_SKIP_FLAG; i++) sbac_ctx->skip_flag[i] = PROB_INIT;
@@ -1266,18 +1198,10 @@ void evce_sbac_finish(EVC_BSW *bs)
 
     sbac = GET_SBAC_ENC(bs);
 
-#if VARIABLE_RANGE
-    tmp = (sbac->code + sbac->range - 1) & (0xFFFFFFFF << RANGE_BITS);
-#else
-    tmp = (sbac->code + sbac->range - 1) & 0xFFFF0000;
-#endif
+    tmp = (sbac->code + sbac->range - 1) & (0xFFFFFFFF << 14);
     if(tmp < sbac->code)
     {
-#if VARIABLE_RANGE
-        tmp += HALF_RANGE;
-#else
-        tmp += 0x8000;
-#endif
+        tmp += 8192;
     }
 
     sbac->code = tmp << sbac->code_bits;
