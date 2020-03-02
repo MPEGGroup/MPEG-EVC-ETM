@@ -40,9 +40,6 @@
 #include "evc_util.h"
 #include "evce_ibc_hash_wrapper.h"
 
-#define ENTROPY_BITS_TABLE_BiTS          10
-#define ENTROPY_BITS_TABLE_BiTS_SHIFP   (MPS_SHIFT-ENTROPY_BITS_TABLE_BiTS)
-#define ENTROPY_BITS_TABLE_SIZE         (1<<ENTROPY_BITS_TABLE_BiTS)
 
 #if FAST_RECURSE_OPT
 typedef int(*LOSSY_ES_FUNC)(EVCE_CU_DATA *, int, double, int, int, int, int, int, int);
@@ -62,7 +59,7 @@ s32 rdoq_est_level[NUM_SBAC_CTX_LEVEL][2];
 s32 rdoq_est_last[NUM_SBAC_CTX_LAST][2];
 #endif
 
-static s32 entropy_bits[ENTROPY_BITS_TABLE_SIZE];
+static s32 entropy_bits[1024];
 
 void evce_sbac_bit_reset(EVCE_SBAC * sbac)
 {
@@ -906,31 +903,22 @@ void evce_init_bits_est()
     int i = 0;
     double p;
 
-    for(i = 0; i < ENTROPY_BITS_TABLE_SIZE; i++)
+    for(i = 0; i < 1024; i++)
     {
-        p = (MAX_PROB_2 * (i + 0.5)) / ENTROPY_BITS_TABLE_SIZE;
-        entropy_bits[i] = (s32)(-32768 * (log(p) / log(2.0) - MPS_SHIFT));
+        p = (512 * (i + 0.5)) / 1024;
+        entropy_bits[i] = (s32)(-32768 * (log(p) / log(2.0) - 9));
     }
 }
 
 static s32 biari_no_bits(int symbol, SBAC_CTX_MODEL* cm)
 {
-    s32 est_bits;
-    u8 cmps;
-    u16 p;
+    u16 mps, state;
 
-    cmps = (*cm) & 1;
-    symbol = (u8)(symbol != 0);
-    p = (((*cm) >> 1)& PROB_MASK);
-    p += p;
-    p = (symbol != cmps) ? p : (MAX_PROB_2 - p);
-    /* (s32)(-32768*(log(p)/log(2.0)-MPS_SHIFT)); */
-#if ENTROPY_BITS_TABLE_BiTS_SHIFP < 0
-    est_bits = entropy_bits[p << (-(ENTROPY_BITS_TABLE_BiTS_SHIFP))];
-#else
-    est_bits = entropy_bits[p >> ENTROPY_BITS_TABLE_BiTS_SHIFP];
-#endif
-    return est_bits;
+    mps = (*cm) & 1;
+    state = (*cm) >> 1;
+    state = ((u16)(symbol != 0) != mps) ? state : (512 - state);
+
+    return entropy_bits[state << 1];
 }
 
 static void evce_rdoq_bit_est(EVCE_SBAC * sbac

@@ -177,27 +177,9 @@
 #define SPLIT_CHECK_NUM                    6
 /* Partitioning (END) */
 
-/* MCABAC (START) */
-#define MCABAC_PROB_BITS                  9 
-#define MPS_SHIFT                         (MCABAC_PROB_BITS + 1)
-#define PROB_MASK                         ((1 << MCABAC_PROB_BITS) - 1)
-#define MAX_PROB                          (1 << MCABAC_PROB_BITS)
-#define MAX_PROB_2                        (MAX_PROB << 1)
-
-#define MCABAC_SHIFT_0                     5
-
-#define MCABAC_OFFSET_0                   (1 << (MCABAC_SHIFT_0 - 1))
-#define PROB_INIT                         ((1 << (MCABAC_PROB_BITS << 1)) + (1 << MCABAC_PROB_BITS)) /* 1/2 of initialization */
-
-#define VARIABLE_RANGE                     1
-#if VARIABLE_RANGE
-#define RANGE_BITS                         14 /* Can be set between 11 and 16 */
-#define MAX_RANGE                          (1<<RANGE_BITS)
-#define HALF_RANGE                         (1<<(RANGE_BITS-1))
-#endif
-
-#define CTX_REPRESENTATION_IMPROVEMENT     1 /* Init state stored in 10 bits per context model */
-/* MCABAC (END) */
+/* CABAC (START) */
+#define PROB_INIT                         (512) /* 1/2 of initialization with mps = 0 */
+/* CABAC (END) */
 
 /* Multiple Referene (START) */
 #define MAX_NUM_ACTIVE_REF_FRAME_B         2  /* Maximum number of active reference frames for RA condition */
@@ -901,7 +883,7 @@ typedef enum _TRANS_TYPE
 #define MCU_GET_LOGW(m)          (int)(((m)>>24)&0x0F)
 #define MCU_GET_LOGH(m)          (int)(((m)>>28)&0x0F)
 
-typedef u32 SBAC_CTX_MODEL;
+typedef u16 SBAC_CTX_MODEL;
 
 #define NUM_SBAC_CTX_MMVD_FLAG             1
 #define NUM_SBAC_CTX_MMVD_GRP_IDX         (MMVD_GRP_NUM - 1)

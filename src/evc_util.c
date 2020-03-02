@@ -5104,67 +5104,37 @@ int evc_get_transform_shift(int log2_size, int type)
     return (type == 0) ? TX_SHIFT1(log2_size) : TX_SHIFT2(log2_size);
 }
 
-void evc_eco_sbac_ctx_initialize(SBAC_CTX_MODEL *ctx, s16 *ctx_init_model, u16 num_ctx, u8 slice_type, u8 slice_qp)
-{
-    int i, slope, offset;
-    u16 cmps, p0, p1;
-    int qp = EVC_CLIP3(0, 51, slice_qp);
-    int is_inter_slice = (slice_type == SLICE_B || slice_type == SLICE_P);
-#if CTX_REPRESENTATION_IMPROVEMENT
-    ctx_init_model += (is_inter_slice * num_ctx * 1);
-#else
-    ctx_init_model += (is_inter_slice * num_ctx * 2);
-#endif
+void evc_eco_sbac_ctx_initialize(SBAC_CTX_MODEL *model, s16 *ctx_init_model, u16 num_ctx, u8 slice_type, u8 slice_qp)
+{    
+    s32 i, slope, offset;
+    u16 mps, state;
+    const int qp = EVC_CLIP3(0, 51, slice_qp);
+    const int is_inter_slice = (slice_type == SLICE_B || slice_type == SLICE_P);
+
+    ctx_init_model += (is_inter_slice * num_ctx);
+
     for(i = 0; i < num_ctx; i++)
     {
-#if CTX_REPRESENTATION_IMPROVEMENT
-        int tmp = *(ctx_init_model);
-        int m;
-        int SLOPE_BITS = 4;
-        m = (tmp & 14) >> 1;  //(tmp & 0b1110)
-        m = m << 5;
-        m = (tmp & 1) ? -m : m;
-        
-        tmp = *(ctx_init_model) >> SLOPE_BITS;
-        int c;
-        c = (tmp & 62) >> 1;    //(tmp & 0b111110)
-        c = c << 8;
-        c = (tmp & 1) ? -c : c;;
-        c += 4096;
-        slope = m;
-        offset = c;
-#else
-        slope = *(ctx_init_model);
-        offset = *(ctx_init_model + 1);
-#endif
+        const int init_value = *(ctx_init_model);
+        slope = (init_value & 14) << 4;
+        slope = (init_value & 1) ? -slope : slope;
+        offset = ((init_value >> 4) & 62) << 7;
+        offset = ((init_value >> 4) & 1) ? -offset : offset;
+        offset += 4096;
 
-        int p = slope * qp + offset;
-        int shift = MCABAC_PROB_BITS - 13;
-        if (shift < 0)
+        state = EVC_CLIP3(1, 511, (slope * qp + offset) >> 4);
+        if(state > 256)
         {
-            p >>= (-shift);
+            state = 512 - state;
+            mps = 0;
         }
         else
         {
-            p <<= shift;
+            mps = 1;
         }
+        model[i] = (state << 1) + mps;
 
-        p0 = (u16)EVC_CLIP3(1, MAX_PROB - 1, p);
-
-        p1 = p0;
-        cmps = 1;
-        if(p0 + p1 > MAX_PROB)
-        {
-            p0 = MAX_PROB - p0;
-            p1 = MAX_PROB - p1;
-            cmps = 0;
-        }
-        ctx[i] = (p0 << MPS_SHIFT) + (p1 << 1) + cmps;
-#if CTX_REPRESENTATION_IMPROVEMENT
-        ctx_init_model += 1;
-#else
-        ctx_init_model += 2;
-#endif
+        ctx_init_model++;
     }
 }
 

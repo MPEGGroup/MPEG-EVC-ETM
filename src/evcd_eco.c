@@ -48,16 +48,16 @@
 
 u32 evcd_sbac_decode_bin(EVC_BSR * bs, EVCD_SBAC * sbac, SBAC_CTX_MODEL * model)
 {
-    u32  bin, lps;
-    u16  cmps, p0, p0_lps, p0_mps;
+    u32 bin, lps;
+    u16 mps, state;
 
-    p0 = ((*model) >> 1) & PROB_MASK;
-    lps = (p0*(sbac->range)) >> MCABAC_PROB_BITS;
+    state = (*model) >> 1;
+    mps = (*model) & 1;
 
-    lps = lps < 437 ? 437 : lps;
-    cmps = (*model) & 1;
+    lps = (state * (sbac->range)) >> 9;
+    lps = lps < 437 ? 437 : lps;    
 
-    bin = cmps;
+    bin = mps;
 
     sbac->range -= lps;
 
@@ -72,50 +72,32 @@ u32 evcd_sbac_decode_bin(EVC_BSR * bs, EVCD_SBAC * sbac, SBAC_CTX_MODEL * model)
     EVC_TRACE_STR("\n");
 #endif
 
-    if(sbac->value < sbac->range)
+    if(sbac->value >= sbac->range)
     {
-        p0_mps = p0 - ((p0 + MCABAC_OFFSET_0) >> MCABAC_SHIFT_0);
-        *model = (p0_mps << 1) + cmps;
-#if VARIABLE_RANGE
-        if(sbac->range >= HALF_RANGE)
-#else
-        if(sbac->range >= 0x8000)
-#endif
+        bin = 1 - mps;
+        sbac->value -= sbac->range;
+        sbac->range = lps;
+
+        state = state + ((512 - state + 16) >> 5);
+        if(state > 256)
         {
-            return bin;
+            mps = 1 - mps;
+            state = 512 - state;
         }
+        *model = (state << 1) + mps;
     }
     else
     {
-        sbac->value -= sbac->range;
-        if(sbac->range < lps)
-        {
-            p0_mps = p0 - ((p0 + MCABAC_OFFSET_0) >> MCABAC_SHIFT_0);
-            *model = (p0_mps << 1) + cmps;
-        }
-        else
-        {
-            bin = 1 - bin;
-            p0_lps = p0 + ((MAX_PROB - p0 + MCABAC_OFFSET_0) >> MCABAC_SHIFT_0);
-            if(p0_lps  > (MAX_PROB>>1))
-            {
-                cmps = cmps == 1 ? 0 : 1;
-                p0_lps = MAX_PROB - p0_lps;
-            }
-            *model = (p0_lps << 1) + cmps;
-        }
-        sbac->range = lps;
+        bin = mps;
+        state = state - ((state + 16) >> 5);
+        *model = (state << 1) + mps;
     }
 
-    do
+    while(sbac->range < 8192)
     {
         sbac->range <<= 1;
         SBAC_READ_BIT(bs, sbac);
-#if VARIABLE_RANGE
-    } while(sbac->range < HALF_RANGE);
-#else
-    } while(sbac->range < 0x8000);
-#endif
+    }
 
     return bin;
 }
@@ -126,14 +108,14 @@ static u32 sbac_decode_bin_ep(EVC_BSR * bs, EVCD_SBAC * sbac)
 
     sbac->range >>= 1;
 
-    if(sbac->value < sbac->range)
+    if(sbac->value >= sbac->range)
     {
-        bin = 0;
+        bin = 1;
+        sbac->value -= sbac->range;
     }
     else
-    {
-        sbac->value -= sbac->range;
-        bin = 1;
+    {        
+        bin = 0;
     }
 
     sbac->range <<= 1;
@@ -144,39 +126,35 @@ static u32 sbac_decode_bin_ep(EVC_BSR * bs, EVCD_SBAC * sbac)
 
 u32 evcd_sbac_decode_bin_trm(EVC_BSR * bs, EVCD_SBAC * sbac)
 {
+    u32 bin;
+
     sbac->range--;
 
-    if(sbac->value < sbac->range)
+    if(sbac->value >= sbac->range)
     {
-#if VARIABLE_RANGE
-        if((sbac->range) < HALF_RANGE)
-#else
-        if((sbac->range) < 0x8000)
-#endif
-        {
-            do
-            {
-                sbac->range <<= 1;
-                SBAC_READ_BIT(bs, sbac);
-#if VARIABLE_RANGE
-            } while((sbac->range) < HALF_RANGE);
-#else
-            } while((sbac->range) < 0x8000);
-#endif
-        }
-        return 0;
-    }
-    else
-    {
+        bin = 1;
+
+        /*
         sbac->value -= sbac->range;
         sbac->range = 1;
+        */
 
         while(!EVC_BSR_IS_BYTE_ALIGN(bs))
         {
             evc_assert_rv(evc_bsr_read1(bs) == 0, EVC_ERR_MALFORMED_BITSTREAM);
         }
-        return 1; /* end of slice */
     }
+    else
+    {
+        bin = 0;
+        while(sbac->range < 8192)
+        {
+            sbac->range <<= 1;
+            SBAC_READ_BIT(bs, sbac);
+        }
+    }
+
+    return bin;
 }
 
 static u32 sbac_read_unary_sym_ep(EVC_BSR * bs, EVCD_SBAC * sbac, u32 max_val)
@@ -1346,17 +1324,9 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_in
     sbac_ctx = &sbac->ctx;
 
     /* Initialization of the internal variables */
-#if VARIABLE_RANGE
-    sbac->range = MAX_RANGE;
-#else
-    sbac->range = 0x10000;
-#endif
+    sbac->range = 16384;
     sbac->value = 0;
-#if VARIABLE_RANGE
-    for(i = 0; i < RANGE_BITS; i++)
-#else
-    for(i = 0; i < 16; i++)
-#endif
+    for(i = 0; i < 14; i++)
     {
         SBAC_READ_BIT(bs, sbac);
     }
@@ -1373,27 +1343,19 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_in
 #if DQP
         evc_eco_sbac_ctx_initialize(sbac_ctx->delta_qp, (s16*)init_dqp, NUM_DELTA_QP_CTX, slice_type, slice_qp);
 #endif
-
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gt0, (s16*)init_cc_gt0_4, NUM_CTX_GT0, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_gtA, (s16*)init_cc_gtA_4, NUM_CTX_GTA, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_x, (s16*)init_cc_scanr_x_3, NUM_CTX_SCANR, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->cc_scanr_y, (s16*)init_cc_scanr_y_3, NUM_CTX_SCANR, slice_type, slice_qp);
-
         evc_eco_sbac_ctx_initialize(sbac_ctx->pred_mode, (s16*)init_pred_mode, NUM_PRED_MODE_CTX, slice_type, slice_qp);
 #if M50761_CHROMA_NOT_SPLIT
         evc_eco_sbac_ctx_initialize(sbac_ctx->mode_cons, (s16*)init_mode_cons, NUM_MODE_CONS_CTX, slice_type, slice_qp);
 #endif
         evc_eco_sbac_ctx_initialize(sbac_ctx->inter_dir, (s16*)init_inter_dir, NUM_INTER_DIR_CTX, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->intra_dir, (s16*)init_intra_dir, NUM_INTRA_DIR_CTX, slice_type, slice_qp);
-#if CTX_REPRESENTATION_IMPROVEMENT
         evc_eco_sbac_ctx_initialize(sbac_ctx->run, (s16*)init_run, NUM_SBAC_CTX_RUN, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->last, (s16*)init_last, NUM_SBAC_CTX_LAST, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->level, (s16*)init_level, NUM_SBAC_CTX_LEVEL, slice_type, slice_qp);
-#else
-        for(i = 0; i < NUM_SBAC_CTX_RUN; i++) sbac_ctx->run[i] = PROB_INIT;
-        for(i = 0; i < NUM_SBAC_CTX_LAST; i++) sbac_ctx->last[i] = PROB_INIT;
-        for(i = 0; i < NUM_SBAC_CTX_LEVEL; i++) sbac_ctx->level[i] = PROB_INIT;
-#endif
         evc_eco_sbac_ctx_initialize(sbac_ctx->mmvd_flag, (s16*)init_mmvd_flag, NUM_SBAC_CTX_MMVD_FLAG, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->mmvd_merge_idx, (s16*)init_mmvd_merge_idx, NUM_SBAC_CTX_MMVD_MERGE_IDX, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->mmvd_distance_idx, (s16*)init_mmvd_distance_idx, NUM_SBAC_CTX_MMVD_DIST_IDX, slice_type, slice_qp);
@@ -1454,21 +1416,17 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_in
 #if DQP
         for (i = 0; i < NUM_DELTA_QP_CTX; i++) sbac_ctx->delta_qp[i] = PROB_INIT;
 #endif
-
         for (i = 0; i < NUM_SBAC_CTX_AFFINE_FLAG; i++)
         {
             sbac_ctx->affine_flag[i] = PROB_INIT;
-        }
-        
+        }        
         sbac_ctx->affine_mode[0] = PROB_INIT;
         for (i = 0; i < AFF_MAX_CAND; i++)
         {
             sbac_ctx->affine_mrg[i] = PROB_INIT;
         }
-
         sbac_ctx->affine_mvd_flag[0] = PROB_INIT;
         sbac_ctx->affine_mvd_flag[1] = PROB_INIT;
-
         for (i = 0; i < NUM_SBAC_CTX_SKIP_FLAG; i++)  sbac_ctx->skip_flag[i] = PROB_INIT;
         for (i = 0; i < NUM_SBAC_CTX_IBC_FLAG; i++) sbac_ctx->ibc_flag[i] = PROB_INIT;
         for (i = 0; i < NUM_ATS_INTRA_CU_FLAG_CTX; i++) sbac_ctx->ats_intra_cu[i] = PROB_INIT;
