@@ -359,7 +359,7 @@ int evcd_platform_init(EVCD_CTX * ctx);
 void evcd_platform_deinit(EVCD_CTX * ctx);
 int evcd_ready(EVCD_CTX * ctx);
 void evcd_flush(EVCD_CTX * ctx);
-int evcd_deblock_h263(EVCD_CTX * ctx
+int evcd_deblock(EVCD_CTX * ctx
 #if EVC_TILE_SUPPORT
     , int tile_idx
 #endif

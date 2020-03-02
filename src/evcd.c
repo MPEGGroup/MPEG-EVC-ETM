@@ -1879,7 +1879,7 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
 }
 
-int evcd_deblock_h263(EVCD_CTX * ctx
+int evcd_deblock(EVCD_CTX * ctx
 #if  EVC_TILE_SUPPORT
     , int tile_idx
 #endif
@@ -2815,7 +2815,7 @@ int evcd_platform_init(EVCD_CTX *ctx)
     ctx->fn_dec_cnk       = evcd_dec_nalu;
     ctx->fn_dec_slice     = evcd_dec_slice;
     ctx->fn_pull          = evcd_pull_frm;
-    ctx->fn_deblock       = evcd_deblock_h263;
+    ctx->fn_deblock       = evcd_deblock;
     ctx->fn_picbuf_expand = evcd_picbuf_expand;
     ctx->pf               = NULL;
 
