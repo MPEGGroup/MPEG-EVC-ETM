@@ -4189,7 +4189,7 @@ void evc_get_affine_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int
                        && (map_tidx[scup] == map_tidx[neb_addr_rb[0]])
 #endif
                        ;
-    valid_flag_rb[1] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr_rb[1]]) && !MCU_GET_IF(map_scu[neb_addr_rb[1]]) && !MCU_GET_IF(map_scu[neb_addr_rb[1]])
+    valid_flag_rb[1] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr_rb[1]]) && !MCU_GET_IF(map_scu[neb_addr_rb[1]]) && !MCU_GET_IBC(map_scu[neb_addr_rb[1]])
 #if EVC_TILE_SUPPORT
                        && (map_tidx[scup] == map_tidx[neb_addr_rb[1]])
 #endif
