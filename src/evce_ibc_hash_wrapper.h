@@ -48,7 +48,11 @@ void destroy_enc_IBC(ibc_hash_handle* p);
 void rebuild_hashmap(ibc_hash_handle* p, const EVC_PIC* pic);
 
 u32 search_ibc_hash_match(EVCE_CTX *ctx, ibc_hash_handle* p, int cu_x, int cu_y,
-    int log2_cuw, int log2_cuh, s16 mvp[MV_D], s16 mv[MV_D]);
+    int log2_cuw, int log2_cuh, s16 mvp[MV_D], s16 mv[MV_D]
+#if EVC_TILE_SUPPORT
+     , EVCE_CORE * core
+#endif
+);
 
 int get_hash_hit_ratio(EVCE_CTX* ctx, ibc_hash_handle* p, int cu_x, int cu_y, int log2_cuw, int log2_cuh);
 

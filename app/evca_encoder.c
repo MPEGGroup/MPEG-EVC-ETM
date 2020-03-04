@@ -150,6 +150,8 @@ static char op_tile_column_width_array[MAX_NUM_TILES_COL];
 static char op_tile_row_height_array[MAX_NUM_TILES_ROW];
 static int  op_num_slice_in_pic_minus1 = 0;     // default 1 
 static char op_slice_boundary_array[2 * 600];   // Max. slices can be 600 for the highest level 6.2
+static int  op_arbitrary_slice_flag = 0; //default  0
+static int  op_num_remaining_tiles_in_slice_minus1 = 0; // only in case of arbitrary slices
 #endif
 
 static int  op_chroma_qp_table_present_flag = 0;
@@ -264,6 +266,8 @@ typedef enum _OP_FLAGS
     OP_TILE_ROW_HEIGHT_ARRAY,
     OP_NUM_SLICE_IN_PIC_MINUS1,
     OP_SLICE_BOUNDARY_ARRAY,
+    OP_ARBITRAY_SLICE_FLAG,
+    OP_NUM_REMAINING_TILES_IN_SLICE_MINUS1,
 #endif
     OP_CHROMA_QP_TABLE_PRESENT_FLAG,
     OP_CHROMA_QP_NUM_POINTS_IN_TABLE,
@@ -737,6 +741,15 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_SLICE_BOUNDARY_ARRAY], &op_slice_boundary_array,
         "Array of Slice Boundaries"
     },
+    {
+        EVC_ARGS_NO_KEY,  "ArbitrarySliceflag", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_ARBITRAY_SLICE_FLAG], &op_arbitrary_slice_flag,
+        "Array of Slice Boundaries"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "NumRemainingTilesInSliceMinus1", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_NUM_REMAINING_TILES_IN_SLICE_MINUS1], &op_num_remaining_tiles_in_slice_minus1,
+        "Array of Slice Boundaries"},
 #endif
     {
         EVC_ARGS_NO_KEY,  "chroma_qp_table_present_flag", EVC_ARGS_VAL_TYPE_INTEGER,
@@ -1190,6 +1203,7 @@ static int get_conf(EVCE_CDSC * cdsc, void *p_dra_struct_void)
 static int get_conf(EVCE_CDSC * cdsc)
 #endif
 {
+    int result = 0;
     memset(cdsc, 0, sizeof(EVCE_CDSC));
 
     cdsc->w = op_w;
@@ -1288,6 +1302,8 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->tile_columns = op_num_tile_columns_minus1 + 1;
     cdsc->tile_rows = op_num_tile_rows_minus1 + 1;
     cdsc->num_slice_in_pic = op_num_slice_in_pic_minus1 + 1;
+    cdsc->arbitrary_slice_flag = op_arbitrary_slice_flag;
+    cdsc->num_remaining_tiles_in_slice_minus1 = op_num_remaining_tiles_in_slice_minus1;
 
     if (!cdsc->tile_uniform_spacing_flag)
     {
@@ -1329,6 +1345,9 @@ static int get_conf(EVCE_CDSC * cdsc)
             cdsc->slice_boundary_array[j++] = atoi(val);
         } while (1);
     }
+    int num_tiles = cdsc->tile_columns * cdsc->tile_rows;
+    if (num_tiles < cdsc->num_slice_in_pic) result = -1;
+
 #endif
     EVC_CHROMA_TABLE l_chroma_qp_table;
     memset(&l_chroma_qp_table, 0, sizeof(EVC_CHROMA_TABLE));
@@ -2782,6 +2801,7 @@ int main(int argc, const char **argv)
     IMGB_LIST          *ilist_t = NULL;
     static int          is_first_enc = 1;
 
+
     /* parse options */
     ret = evc_args_parse_all(argc, argv, options);
     if(ret != 0)
@@ -2836,12 +2856,16 @@ int main(int argc, const char **argv)
     }
 
     /* read configurations and set values for create descriptor */
+    int val;
 #if M52291_HDR_DRA
-    if (get_conf(&cdsc, (void*)p_g_dra_control))
+    val = get_conf(&cdsc, (void*)p_g_dra_control);
 #else
-    if (get_conf(&cdsc))
+    val = get_conf(&cdsc);
 #endif
+    if (val)
     {
+        if(val == -1)
+        printf("Number of tiles should be equal or more than number of slices\n");
         print_usage();
         return -1;
     }

@@ -416,657 +416,339 @@ void evc_derived_chroma_qp_mapping_tables(EVC_CHROMA_TABLE *structChromaQP)
     }
 }
 
-#if CTX_REPRESENTATION_IMPROVEMENT
-const s16 init_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG][1] = {
-    {
-        { 512 },
-        { 512 },
-        { 512 },
-        { 512 },
-        { 512 },
-        { 512 },
-        { 512 },
-        { 512 },
-        { 512 }
-    },
-    {
-        { 512 },
-        { 512 },
-        { 512 },
-        { 512 },
-        { 512 },
-        { 512 },
-        { 512 },
-        { 512 },
-        { 512 }
-    }
+const s16 init_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG] =
+{
+    {  512,  512,  512,  512,  512,  512,  512,  512,  512, },
+    {  512,  512,  512,  512,  512,  512,  512,  512,  512, },
 };
 
-const s16 init_skip_flag[2][NUM_SBAC_CTX_SKIP_FLAG][1] = {
-    {
-        { 0 },
-        { 0 }
-    },
-    {
-        { 711 },
-        { 233 }
-    }
+const s16 init_skip_flag[2][NUM_SBAC_CTX_SKIP_FLAG] =
+{
+    {    0,    0, },
+    {  711,  233, },
 };
 
-const s16 init_ibc_flag[2][NUM_SBAC_CTX_IBC_FLAG][1] = {
-  {
-    { 0 },
-    { 0 }
-  },
-  {
-    { 711 },
-    { 233 }
-  }
+const s16 init_ibc_flag[2][NUM_SBAC_CTX_IBC_FLAG] =
+{
+    {    0,    0, },
+    {  711,  233, },
 };
 
-const s16 init_mmvd_flag[2][NUM_SBAC_CTX_MMVD_FLAG][1] = {
-    {
-        { 0 }
-    },
-    {
-        { 194 }
-    }
+const s16 init_mmvd_flag[2][NUM_SBAC_CTX_MMVD_FLAG] =
+{
+    {    0, },
+    {  194, },
 };
-const s16 init_mmvd_merge_idx[2][NUM_SBAC_CTX_MMVD_MERGE_IDX][1] = {
-    {
-        { 0 },
-        { 0 },
-        { 0 }
-    },
-    {
-        { 49 },
-        { 129 },
-        { 82 }
-    }
+
+const s16 init_mmvd_merge_idx[2][NUM_SBAC_CTX_MMVD_MERGE_IDX] =
+{
+    {    0,    0,    0, },
+    {   49,  129,   82, },
 };
-const s16 init_mmvd_distance_idx[2][NUM_SBAC_CTX_MMVD_DIST_IDX][1] = {
-    {
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 }
-    },
-    {
-        { 179 },
-        { 5 },
-        { 133 },
-        { 131 },
-        { 227 },
-        { 64 },
-        { 128 }
-    }
+
+const s16 init_mmvd_distance_idx[2][NUM_SBAC_CTX_MMVD_DIST_IDX] =
+{
+    {    0,    0,    0,    0,    0,    0,    0, },
+    {  179,    5,  133,  131,  227,   64,  128, },
 };
-const s16 init_mmvd_direction_idx[2][2][1] = {
-    {
-        { 0 },
-        { 0 }
-    },
-    {
-        { 161 },
-        { 33 }
-    }
+
+const s16 init_mmvd_direction_idx[2][2] =
+{
+    {    0,    0, },
+    {  161,   33, },
 };
-const s16 init_mmvd_group_idx[2][NUM_SBAC_CTX_MMVD_GRP_IDX][1] = {
-    {
-        { 0 },
-        { 0 }
-    },
-    {
-        { 453 },
-        { 48 }
-    }
+
+const s16 init_mmvd_group_idx[2][NUM_SBAC_CTX_MMVD_GRP_IDX] =
+{
+    {    0,    0, },
+    {  453,   48, },
 };
-const s16 init_inter_dir[2][NUM_INTER_DIR_CTX][1] = {
-    {
-        { 0 },
-        { 0 },
-        { 0 }
-    },
-    {
-        { 464 },
-        { 242 },
-        { 80 }
-    }
+
+const s16 init_inter_dir[2][NUM_INTER_DIR_CTX] =
+{
+    {    0,    0,    0, },
+    {  464,  242,   80, },
 };
-const s16 init_intra_dir[2][NUM_INTRA_DIR_CTX][1] = {
-    {
-        { 263 },
-        { 436 },
-        { 465 }
-    },
-    {
-        { 225 },
-        { 724 },
-        { 560 }
-    }
+
+const s16 init_intra_dir[2][NUM_INTRA_DIR_CTX] =
+{
+    {  263,  436,  465, },
+    {  225,  724,  560, },
 };
-const s16 init_pred_mode[2][NUM_PRED_MODE_CTX][1] = {
-    {
-        { 64 },
-        { 0 },
-        { 0 }
-    },
-    {
-        { 481 },
-        { 16 },
-        { 368 }
-    }
+
+const s16 init_pred_mode[2][NUM_PRED_MODE_CTX] =
+{
+    {   64,    0,    0, },
+    {  481,   16,  368, },
 };
+
 #if M50761_CHROMA_NOT_SPLIT
-const s16 init_mode_cons[2][NUM_MODE_CONS_CTX][1] = {
-    {
-        { 64 },
-        { 0 },
-        { 0 }
-    },
-    {
-        { 481 },
-        { 16 },
-        { 368 }
-    }
+const s16 init_mode_cons[2][NUM_MODE_CONS_CTX] =
+{
+    {   64,    0,    0, },
+    {  481,   16,  368, },
 };
 #endif
-const s16 init_refi[2][NUM_REFI_CTX][1] = {
-    {
-        { 0 },
-        { 0 }
-    },
-    {
-        { 288 },
-        { 0 }
-    }
-};
-const s16 init_mvp_idx[2][NUM_MVP_IDX_CTX][1] = {
-    {
-        { 0 },
-        { 0 },
-        { 0 },
-        { 496 },
-        { 496 }
-    },
-    {
-        { 18 },
-        { 128 },
-        { 146 },
-        { 37 },
-        { 69 }
-    }
-};
-const s16 init_affine_mvp_idx[2][NUM_AFFINE_MVP_IDX_CTX][1] = {
-    {
-        { 0 },
-#if NUM_AFFINE_MVP_IDX_CTX >= 2
-        { 0 },
-#endif
-#if NUM_AFFINE_MVP_IDX_CTX >= 3
-        { 0 },
-#endif
-#if NUM_AFFINE_MVP_IDX_CTX == 4
-        { 0 }
-#endif
-    },
-    {
-        { 161 },
-#if NUM_AFFINE_MVP_IDX_CTX >= 2
-        { 0 },
-#endif
-#if NUM_AFFINE_MVP_IDX_CTX >= 3
-        { 0 },
-#endif
-#if NUM_AFFINE_MVP_IDX_CTX == 4
-        { 0 }
-#endif
-    }
+
+const s16 init_refi[2][NUM_REFI_CTX] =
+{
+    {    0,    0, },
+    {  288,    0, },
 };
 
-const s16 init_mvr_idx[2][NUM_MVR_IDX_CTX][1] = {
-    {
-        { 0 },
-        { 0 },
-        { 0 },
-        { 496 }
-    },
-    {
-        { 773 },
-        { 101 },
-        { 421 },
-        { 199 }
-    }
+const s16 init_mvp_idx[2][NUM_MVP_IDX_CTX] =
+{
+    {    0,    0,    0,  496,  496, },
+    {   18,  128,  146,   37,   69, },
 };
-const s16 init_bi_idx[2][NUM_BI_IDX_CTX][1] = {
-    {
-        { 0 },
-        { 0 }
+
+const s16 init_affine_mvp_idx[2][NUM_AFFINE_MVP_IDX_CTX] =
+{
+    {    0,
+#if NUM_AFFINE_MVP_IDX_CTX >= 2
+         0,
+#endif
+#if NUM_AFFINE_MVP_IDX_CTX >= 3
+         0,
+#endif
+#if NUM_AFFINE_MVP_IDX_CTX == 4
+         0,
+#endif
     },
-    {
-        { 49 },
-        { 17 }
-    }
-};
-const s16 init_mvd[2][NUM_MV_RES_CTX][1] = {
-    {
-        { 0 }
+    {  161,
+#if NUM_AFFINE_MVP_IDX_CTX >= 2
+        0,
+#endif
+#if NUM_AFFINE_MVP_IDX_CTX >= 3
+        0,
+#endif
+#if NUM_AFFINE_MVP_IDX_CTX == 4
+        0,
+#endif
     },
-    {
-        { 18 }
-    }
 };
-const s16 init_all_cbf[2][NUM_QT_ROOT_CBF_CTX][1] = {
-    {
-        { 0 }
-    },
-    {
-        { 794 }
-    }
+
+const s16 init_mvr_idx[2][NUM_MVR_IDX_CTX] =
+{
+    {    0,    0,    0,  496, },
+    {  773,  101,  421,  199, },
 };
-const s16 init_cbf[2][NUM_QT_CBF_CTX][1] = {
-    {
-        { 664 },
-        { 384 },
-        { 320 }
-    },
-    {
-        { 368 },
-        { 416 },
-        { 288 }
-    }
+
+const s16 init_bi_idx[2][NUM_BI_IDX_CTX] =
+{
+    {    0,    0, },
+    {   49,   17, },
 };
+
+const s16 init_mvd[2][NUM_MV_RES_CTX] =
+{
+    {    0, },
+    {   18, },
+};
+
+const s16 init_all_cbf[2][NUM_QT_ROOT_CBF_CTX] =
+{
+    {    0, },
+    {  794, },
+};
+
+const s16 init_cbf[2][NUM_QT_CBF_CTX] =
+{
+    {  664,  384,  320, },
+    {  368,  416,  288, },
+};
+
 #if DQP
-const s16 init_dqp[2][NUM_DELTA_QP_CTX][1] = {
-    {
-        { 1028 }
-    },
-    {
-        { 1028 }
-    }
+const s16 init_dqp[2][NUM_DELTA_QP_CTX] =
+{
+    { 1028, },
+    { 1028, },
 };
 #endif
+
 // ADCC the tables below are to be optimized for the final design
 #define initA 0
 #define initB 128
-const s16 init_cc_gt0[2][NUM_CTX_GT0] = { 
-        { initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA },
-        { initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB } };
-const s16 init_cc_gtA[2][NUM_CTX_GTA] = { 
-        { initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA },
-        { initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB } };
+
+const s16 init_cc_gt0[2][NUM_CTX_GT0] =
+{ 
+    { initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, },
+    { initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, },
+};
+
+const s16 init_cc_gtA[2][NUM_CTX_GTA] =
+{ 
+    { initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, },
+    { initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, },
+};
+
 #if M52290_ADCC
-const s16 init_cc_scanr_x[2][NUM_CTX_SCANR] = {
-        { initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA},
-        { initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB} };
-const s16 init_cc_scanr_y[2][NUM_CTX_SCANR] = {
-        { initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA },
-        { initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB} };
+const s16 init_cc_scanr_x[2][NUM_CTX_SCANR] =
+{
+    { initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, },
+    { initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, },
+};
+
+const s16 init_cc_scanr_y[2][NUM_CTX_SCANR] =
+{
+    { initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, },
+    { initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, },
+};
 #else
-const s16 init_cc_scanr_x[2][NUM_CTX_SCANR] = { 
-        { initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA },
-        { initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB }};
-const s16 init_cc_scanr_y[2][NUM_CTX_SCANR] = { 
-        { initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA },
-        { initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB }};
+const s16 init_cc_scanr_x[2][NUM_CTX_SCANR] =
+{ 
+    { initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, },
+    { initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, },
+};
+
+const s16 init_cc_scanr_y[2][NUM_CTX_SCANR] =
+{ 
+    { initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, initA, },
+    { initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, initB, },
+};
 #endif
+
 #if M52290_ADCC 
-const s16 init_cc_gt0_4[2][NUM_CTX_GT0] = {
-{387, 98, 233, 346, 717, 306, 233, 37, 321,293, 244, 37, 329, 645, 408, 493, 164, 781, 101, 179, 369, 871, 585, 244, 361, 147, 416, 408, 628, 352, 406, 502, 566, 466, 54, 97, 521, 113, 147, 519, 36, 297, 132, 457, 308, 231, 534},
-{66, 34, 241, 321, 293, 113, 35, 83, 226, 519, 553, 229, 751, 224, 129, 133, 162, 227, 178, 165, 532, 417, 357, 33, 489, 199, 387, 939, 133, 515, 32, 131, 3, 305, 579, 323, 65, 99, 425, 453, 291, 329, 679, 683, 391, 751, 51}};
-const s16 init_cc_gtA_4[2][NUM_CTX_GTA] = {
-{40, 225, 306, 272, 85, 120, 389, 664, 209, 322, 291, 536, 338, 709, 54, 244, 19, 566},
-{38, 352, 340, 19, 305, 258, 18, 33, 209, 773, 517, 406, 719, 741, 613, 295, 37, 498}};
+const s16 init_cc_gt0_4[2][NUM_CTX_GT0] =
+{
+    {  387,   98,  233,  346,  717,  306,  233,   37,  321,  293,  244,   37,  329,  645,  408,  493,  164,  781,  101,  179,  369,  871,  585,  244,  361,  147,  416,  408,  628,  352,  406,  502,  566,  466,   54,   97,  521,  113,  147,  519,   36,  297,  132,  457,  308,  231,  534, },
+    {   66,   34,  241,  321,  293,  113,   35,   83,  226,  519,  553,  229,  751,  224,  129,  133,  162,  227,  178,  165,  532,  417,  357,   33,  489,  199,  387,  939,  133,  515,   32,  131,    3,  305,  579,  323,   65,   99,  425,  453,  291,  329,  679,  683,  391,  751,   51, },
+};
+
+const s16 init_cc_gtA_4[2][NUM_CTX_GTA] =
+{
+    {   40,  225,  306,  272,   85,  120,  389,  664,  209,  322,  291,  536,  338,  709,   54,  244,   19,  566, },
+    {   38,  352,  340,   19,  305,  258,   18,   33,  209,  773,  517,  406,  719,  741,  613,  295,   37,  498, },
+};
 #else
-const s16 init_cc_gt0_4[2][NUM_CTX_GT0] = {
-    { 387, 421, 369, 288, 67, 534, 466, 662, 321, 65, 163, 404, 199, 645, 131, 363, 549, 683, 751, 427, 596, 416, 293, 263, 101, 144, 416, 80, 304, 150, 67, 112, 101, 368, 120, 681, 423, 144, 71, 519, 224, 241, 905, 64, 146, 329, 241 },
-    { 66, 244, 402, 451, 585, 113, 263, 272, 352, 325, 293, 587, 19, 224, 357, 197, 224, 0, 178, 80, 370, 417, 244, 33, 197, 144, 387, 325, 209, 613, 32, 404, 3, 402, 353, 97, 146, 534, 208, 453, 909, 5, 387, 261, 64, 340, 762 } };
-const s16 init_cc_gtA_4[2][NUM_CTX_GTA] = {
-    { 547, 745, 698, 240, 596, 38, 148, 306, 824, 709, 161, 340, 263, 42, 321, 178, 297, 698 },
-    { 136, 194, 274, 338, 532, 385, 180, 81, 241, 480, 355, 131, 3, 773, 483, 165, 199, 277 } };
+const s16 init_cc_gt0_4[2][NUM_CTX_GT0] =
+{
+    {  387,  421,  369,  288,   67,  534,  466,  662,  321,   65,  163,  404,  199,  645,  131,  363,  549,  683,  751,  427,  596,  416,  293,  263,  101,  144,  416,   80,  304,  150,   67,  112,  101,  368,  120,  681,  423,  144,   71,  519,  224,  241,  905,   64,  146,  329,  241, },
+    {   66,  244,  402,  451,  585,  113,  263,  272,  352,  325,  293,  587,   19,  224,  357,  197,  224,    0,  178,   80,  370,  417,  244,   33,  197,  144,  387,  325,  209,  613,   32,  404,    3,  402,  353,   97,  146,  534,  208,  453,  909,    5,  387,  261,   64,  340,  762, },
+};
+
+const s16 init_cc_gtA_4[2][NUM_CTX_GTA] =
+{
+    {  547,  745,  698,  240,  596,   38,  148,  306,  824,  709,  161,  340,  263,   42,  321,  178,  297,  698, },
+    {  136,  194,  274,  338,  532,  385,  180,   81,  241,  480,  355,  131,    3,  773,  483,  165,  199,  277, },
+ };
 #endif
+
 #if M52290_ADCC 
-const s16 init_cc_scanr_x_3[2][NUM_CTX_SCANR] = {
-        {762, 310, 288, 828, 342, 451, 502, 51, 97, 416, 662, 890, 340, 146, 20, 337, 468, 975, 216, 66, 54},
-        {892, 84, 581, 600, 278, 419, 372, 568, 408, 485, 338, 632, 666, 732, 17, 178, 180, 585, 581, 34, 257} };
-const s16 init_cc_scanr_y_3[2][NUM_CTX_SCANR] = {
-        {81, 440, 4, 534, 406, 226, 370, 370, 259, 38, 598, 792, 860, 312, 88, 662, 924, 161, 248, 20, 54},
-        {470, 376, 323, 276, 602, 52, 340, 600, 376, 378, 598, 502, 730, 538, 17, 195, 504, 378, 320, 160, 572} };
+const s16 init_cc_scanr_x_3[2][NUM_CTX_SCANR] =
+{
+    {  762,  310,  288,  828,  342,  451,  502,   51,   97,  416,  662,  890,  340,  146,   20,  337,  468,  975,  216,   66,   54, },
+    {  892,   84,  581,  600,  278,  419,  372,  568,  408,  485,  338,  632,  666,  732,   17,  178,  180,  585,  581,   34,  257, },
+};
+
+const s16 init_cc_scanr_y_3[2][NUM_CTX_SCANR] =
+{
+    {   81,  440,    4,  534,  406,  226,  370,  370,  259,   38,  598,  792,  860,  312,   88,  662,  924,  161,  248,   20,   54, },
+    {  470,  376,  323,  276,  602,   52,  340,  600,  376,  378,  598,  502,  730,  538,   17,  195,  504,  378,  320,  160,  572, },
+};
 #else
-const s16 init_cc_scanr_x_3[2][NUM_CTX_SCANR] = {
-        { 890, 862, 162, 728, 700, 100, 338, 374, 474, 162, 176, 178, 342, 602, 128, 466, 306, 632, 502, 730, 163, 304, 468, 404, 48, 192, 323, 451 },
-        { 274, 66, 547, 340, 256, 416, 242, 180, 162, 162, 144, 244, 212, 276, 160, 99, 242, 340, 436, 760, 195, 131, 436, 306, 80, 224, 419, 547 } };
-const s16 init_cc_scanr_y_3[2][NUM_CTX_SCANR] = {
-        { 1020, 926, 4, 436, 830, 86, 500, 666, 636, 320, 272, 470, 504, 830, 615, 596, 306, 600, 404, 828, 487, 336, 696, 502, 163, 128, 52, 288 },
-        { 306, 180, 288, 0, 84, 194, 48, 212, 52, 451, 99, 146, 212, 342, 743, 325, 210, 308, 242, 890, 421, 357, 566, 566, 195, 288, 98, 483 } };
+const s16 init_cc_scanr_x_3[2][NUM_CTX_SCANR] =
+{
+    {  890,  862,  162,  728,  700,  100,  338,  374,  474,  162,  176,  178,  342,  602,  128,  466,  306,  632,  502,  730,  163,  304,  468,  404,   48,  192,  323,  451, },
+    {  274,   66,  547,  340,  256,  416,  242,  180,  162,  162,  144,  244,  212,  276,  160,   99,  242,  340,  436,  760,  195,  131,  436,  306,   80,  224,  419,  547, },
+};
+
+const s16 init_cc_scanr_y_3[2][NUM_CTX_SCANR] =
+{
+    { 1020,  926,    4,  436,  830,   86,  500,  666,  636,  320,  272,  470,  504,  830,  615,  596,  306,  600,  404,  828,  487,  336,  696,  502,  163,  128,   52,  288, },
+    {  306,  180,  288,    0,   84,  194,   48,  212,   52,  451,   99,  146,  212,  342,  743,  325,  210,  308,  242,  890,  421,  357,  566,  566,  195,  288,   98,  483, },
+ };
 #endif
 
-const s16 init_run[2][NUM_SBAC_CTX_RUN][1] = {
-    {
-        { 48 },
-        { 112 },
-        { 128 },
-        { 0 },
-        { 321 },
-        { 82 },
-        { 419 },
-        { 160 },
-        { 385 },
-        { 323 },
-        { 353 },
-        { 129 },
-        { 225 },
-        { 193 },
-        { 387 },
-        { 389 },
-        { 453 },
-        { 227 },
-        { 453 },
-        { 161 },
-        { 421 },
-        { 161 },
-        { 481 },
-        { 225 }
-    },
-    {
-        { 129 },
-        { 178 },
-        { 453 },
-        { 97 },
-        { 583 },
-        { 259 },
-        { 517 },
-        { 259 },
-        { 453 },
-        { 227 },
-        { 871 },
-        { 355 },
-        { 291 },
-        { 227 },
-        { 195 },
-        { 97 },
-        { 161 },
-        { 65 },
-        { 97 },
-        { 33 },
-        { 65 },
-        { 1 },
-        { 1003 },
-        { 227 }
-    }
-};
-const s16 init_last[2][NUM_SBAC_CTX_LAST][1] = {
-    {
-        { 421 },
-        { 337 }
-    },
-    {
-        { 33 },
-        { 790 }
-    }
-};
-const s16 init_level[2][NUM_SBAC_CTX_LEVEL][1] = {
-    {
-        { 416 },
-        { 98 },
-        { 128 },
-        { 66 },
-        { 32 },
-        { 82 },
-        { 17 },
-        { 48 },
-        { 272 },
-        { 112 },
-        { 52 },
-        { 50 },
-        { 448 },
-        { 419 },
-        { 385 },
-        { 355 },
-        { 161 },
-        { 225 },
-        { 82 },
-        { 97 },
-        { 210 },
-        { 0 },
-        { 416 },
-        { 224 }
-    },
-    {
-        { 805 },
-        { 775 },
-        { 775 },
-        { 581 },
-        { 355 },
-        { 389 },
-        { 65 },
-        { 195 },
-        { 48 },
-        { 33 },
-        { 224 },
-        { 225 },
-        { 775 },
-        { 227 },
-        { 355 },
-        { 161 },
-        { 129 },
-        { 97 },
-        { 33 },
-        { 65 },
-        { 16 },
-        { 1 },
-        { 841 },
-        { 355 }
-    }
-};
-const s16 init_btt_split_flag[2][NUM_SBAC_CTX_BTT_SPLIT_FLAG][1] = {
-    {
-        { 145 },
-        { 560 },
-        { 528 },
-        { 308 },
-        { 594 },
-        { 560 },
-        { 180 },
-        { 500 },
-        { 626 },
-        { 84 },
-        { 406 },
-        { 662 },
-        { 320 },
-        { 36 },
-        { 340 }
-    },
-    {
-        { 536 },
-        { 726 },
-        { 594 },
-        { 66 },
-        { 338 },
-        { 528 },
-        { 258 },
-        { 404 },
-        { 464 },
-        { 98 },
-        { 342 },
-        { 370 },
-        { 384 },
-        { 256 },
-        { 65 }
-    }
-};
-const s16 init_btt_split_dir[2][NUM_SBAC_CTX_BTT_SPLIT_DIR][1] = {
-    {
-        { 0 },
-        { 417 },
-        { 389 },
-        { 99 },
-        { 0 }
-    },
-    {
-        { 0 },
-        { 128 },
-        { 81 },
-        { 49 },
-        { 0 }
-    }
-};
-const s16 init_btt_split_type[2][NUM_SBAC_CTX_BTT_SPLIT_TYPE][1] = {
-    {
-        { 257 }
-    },
-    {
-        { 225 }
-    }
+const s16 init_run[2][NUM_SBAC_CTX_RUN] =
+{
+    {   48,  112,  128,    0,  321,   82,  419,  160,  385,  323,  353,  129,  225,  193,  387,  389,  453,  227,  453,  161,  421,  161,  481,  225, },
+    {  129,  178,  453,   97,  583,  259,  517,  259,  453,  227,  871,  355,  291,  227,  195,   97,  161,   65,   97,   33,   65,    1, 1003,  227, },
 };
 
-const s16 init_affine_flag[2][NUM_SBAC_CTX_AFFINE_FLAG][1] = {
-    {
-        { 0 },
-        { 0 }
-    },
-    {
-        { 320 },
-        { 210 }
-    }
-};
-const s16 init_affine_mode[2][NUM_SBAC_CTX_AFFINE_MODE][1] = {
-    {
-        { 0 }
-    },
-    {
-        { 225 }
-    }
-};
-const s16 init_affine_mrg[2][NUM_SBAC_CTX_AFFINE_MRG][1] = {
-    {
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 }
-    },
-    {
-        { 193 },
-        { 129 },
-        { 32 },
-        { 323 },
-        { 0 }
-    }
-};
-const s16 init_affine_mvd_flag[2][2][1] = {
-    {
-        { 0 },
-        { 0 }
-    },
-    {
-        { 547 },
-        { 645 }
-    }
+const s16 init_last[2][NUM_SBAC_CTX_LAST] =
+{
+    {  421,  337, },
+    {   33,  790, },
 };
 
-const s16 init_suco_flag[2][NUM_SBAC_CTX_SUCO_FLAG][1] = {
-    {
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 545 },
-        { 0 },
-        { 481 },
-        { 515 },
-        { 0 },
-        { 32 },
-        { 0 },
-        { 0 }
-    },
-    {
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 577 },
-        { 0 },
-        { 481 },
-        { 2 },
-        { 0 },
-        { 97 },
-        { 0 },
-        { 0 }
-    }
+const s16 init_level[2][NUM_SBAC_CTX_LEVEL] =
+{
+    {  416,   98,  128,   66,   32,   82,   17,   48,  272,  112,   52,   50,  448,  419,  385,  355,  161,  225,   82,   97,  210,    0,  416,  224, },
+    {  805,  775,  775,  581,  355,  389,   65,  195,   48,   33,  224,  225,  775,  227,  355,  161,  129,   97,   33,   65,   16,    1,  841,  355, },
 };
 
-const s16 init_ctb_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG][1] = {
-    {
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 }
-    },
-    {
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 }
-    }
+const s16 init_btt_split_flag[2][NUM_SBAC_CTX_BTT_SPLIT_FLAG] =
+{
+    {  145,  560,  528,  308,  594,  560,  180,  500,  626,   84,  406,  662,  320,   36,  340, },
+    {  536,  726,  594,   66,  338,  528,  258,  404,  464,   98,  342,  370,  384,  256,   65, },
 };
 
-const s16 init_ats_intra_cu[2][NUM_ATS_INTRA_CU_FLAG_CTX][1] = {
-    {
-        { 999  },
-    },
-    {
-        { 1003 },
-    }
+const s16 init_btt_split_dir[2][NUM_SBAC_CTX_BTT_SPLIT_DIR] =
+{
+    {    0,  417,  389,   99,    0, },
+    {    0,  128,   81,   49,    0, },
 };
 
-const s16 init_ats_tu[2][NUM_ATS_INTRA_TU_FLAG_CTX][1] = {
-    {
-        { 512  },
-    },
-    {
-        { 673 },
-    }
+const s16 init_btt_split_type[2][NUM_SBAC_CTX_BTT_SPLIT_TYPE] =
+{
+    {  257, },
+    {  225, },
 };
 
-const s16 init_ats_inter_info[2][NUM_SBAC_CTX_ATS_INTER_INFO][1] = {
-    {
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-    },
-    {
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-        { 0 },
-    }
+const s16 init_affine_flag[2][NUM_SBAC_CTX_AFFINE_FLAG] =
+{
+    {    0,    0, },
+    {  320,  210, },
 };
-#endif
+
+const s16 init_affine_mode[2][NUM_SBAC_CTX_AFFINE_MODE] =
+{
+    {    0, },
+    {  225, },
+};
+
+const s16 init_affine_mrg[2][NUM_SBAC_CTX_AFFINE_MRG] =
+{
+    {    0,    0,    0,    0,    0, },
+    {  193,  129,   32,  323,    0, },
+};
+
+const s16 init_affine_mvd_flag[2][2] =
+{
+    {    0,    0, },
+    {  547,  645, },
+};
+
+const s16 init_suco_flag[2][NUM_SBAC_CTX_SUCO_FLAG] =
+{
+    {    0,    0,    0,    0,    0,    0,  545,    0,  481,  515,    0,   32,    0,    0, },
+    {    0,    0,    0,    0,    0,    0,  577,    0,  481,    2,    0,   97,    0,    0, },
+};
+
+const s16 init_ctb_alf_flag[2][NUM_SBAC_CTX_ALF_FLAG] =
+{
+    {    0,    0,    0,    0,    0,    0,    0,    0,    0, },
+    {    0,    0,    0,    0,    0,    0,    0,    0,    0, },
+};
+
+const s16 init_ats_intra_cu[2][NUM_ATS_INTRA_CU_FLAG_CTX] =
+{
+    {  999, },
+    { 1003, },
+};
+
+const s16 init_ats_tu[2][NUM_ATS_INTRA_TU_FLAG_CTX] =
+{
+    {  512, },
+    {  673, },
+};
+
+const s16 init_ats_inter_info[2][NUM_SBAC_CTX_ATS_INTER_INFO] =
+{
+    {    0,    0,    0,    0,    0,    0,    0, },
+    {    0,    0,    0,    0,    0,    0,    0, },
+};
 
 s16 evc_tbl_tr2[NUM_TRANS_TYPE][2][2];
 s16 evc_tbl_tr4[NUM_TRANS_TYPE][4][4];
@@ -1086,7 +768,7 @@ s16 evc_tbl_inv_tr32[NUM_TRANS_TYPE][32][32];
 s16 evc_tbl_inv_tr64[NUM_TRANS_TYPE][64][64];
 s16 evc_tbl_inv_tr128[NUM_TRANS_TYPE][128][128];
 
-#if (DBF == DBF_AVC) || ADDB_FLAG_FIX
+#if ADDB_FLAG_FIX
 const u8 ALPHA_TABLE[52] = { 0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,4,4,5,6,  7,8,9,10,12,13,15,17,  20,22,25,28,32,36,40,45,  50,56,63,71,80,90,101,113,  127,144,162,182,203,226,255,255 };
 const u8 BETA_TABLE[52] = { 0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,2,2,2,3,  3,3,3, 4, 4, 4, 6, 6,   7, 7, 8, 8, 9, 9,10,10,  11,11,12,12,13,13, 14, 14,   15, 15, 16, 16, 17, 17, 18, 18 };
 const u8 CLIP_TAB[52][5] =

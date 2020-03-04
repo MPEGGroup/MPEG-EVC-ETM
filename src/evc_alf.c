@@ -454,18 +454,35 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
   const int w = cs->pPic->w_l;
   const int m = MAX_ALF_FILTER_LENGTH >> 1;
   const int s = w + m + m;
-  int col_bd2 = 0;
-  for (ii = ctx->sh.first_tile_id; ii <= ctx->sh.last_tile_id; ii++)
+  int col_bd = 0;
+  u32 k = 0;
+  ii = 0;
+  int NumTilesInSlice = ctx->NumTilesInSlice;
+  while (NumTilesInSlice)
   {
-
-      col_bd2 = (ii % (ctx->pps.num_tile_columns_minus1 + 1)) ? col_bd2 + ctx->tile[ii - 1].w_ctb : 0;
+      ii = ctx->tile_in_slice[k++];
+      col_bd = 0;
+      if (ii% (ctx->pps.num_tile_columns_minus1 + 1))
+      {
+          int temp = ii - 1;
+          while (temp >= 0)
+          {
+              col_bd += ctx->tile[temp].w_ctb;
+              if (!(temp% (ctx->pps.num_tile_columns_minus1 + 1))) break;
+              temp--;
+          }
+      }
+      else
+      {
+          col_bd = 0;
+      }
       int x_loc = ((ctx->tile[ii].ctba_rs_first) % ctx->w_lcu);
       int y_loc = ((ctx->tile[ii].ctba_rs_first) / ctx->w_lcu);
       int ctuIdx = x_loc + y_loc * ctx->w_lcu;
-      x_l = x_loc << MAX_CU_LOG2; //entry point lcu's x location
-      y_l = y_loc << MAX_CU_LOG2; // entry point lcu's y location
-      x_r = x_l + ((int)(ctx->tile[ii].w_ctb) << MAX_CU_LOG2);
-      y_r = y_l + ((int)(ctx->tile[ii].h_ctb) << MAX_CU_LOG2);
+      x_l = x_loc << ctx->log2_max_cuwh; //entry point lcu's x location
+      y_l = y_loc << ctx->log2_max_cuwh; // entry point lcu's y location
+      x_r = x_l + ((int)(ctx->tile[ii].w_ctb) << ctx->log2_max_cuwh);
+      y_r = y_l + ((int)(ctx->tile[ii].h_ctb) << ctx->log2_max_cuwh);
       w_tile = x_r > ((int)ctx->w_scu << MIN_CU_LOG2) ? ((int)ctx->w_scu << MIN_CU_LOG2) - x_l : x_r - x_l;
       h_tile = y_r > ((int)ctx->h_scu << MIN_CU_LOG2) ? ((int)ctx->h_scu << MIN_CU_LOG2) - y_l : y_r - y_l;
       x_r = x_r > ((int)ctx->w_scu << MIN_CU_LOG2) ? ((int)ctx->w_scu << MIN_CU_LOG2) : x_r;
@@ -635,7 +652,7 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
                   }
               }
               x_loc++;
-              if (x_loc >= ctx->tile[ii].w_ctb + col_bd2)
+              if (x_loc >= ctx->tile[ii].w_ctb + col_bd)
               {
                   x_loc = ((ctx->tile[ii].ctba_rs_first) % ctx->w_lcu);
                   y_loc++;
@@ -643,6 +660,7 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
               ctuIdx = x_loc + y_loc * ctx->w_lcu;
           }
       }
+      NumTilesInSlice--;
   }
 #else
   const int h = cs->pPic->h_l;
@@ -817,6 +835,7 @@ void AdaptiveLoopFilter_create(const int picWidth, const int picHeight, const in
   for (int i = 0; i < picHeight; i++)
   {
     m_classifier[i] = (AlfClassifier*)malloc(picWidth*sizeof(AlfClassifier));
+    memset(m_classifier[i], 0, picWidth * sizeof(AlfClassifier)); 
   }
 
 }

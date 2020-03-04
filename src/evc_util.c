@@ -323,7 +323,12 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 #if M52166_MMVD
     , u32 curr_ptr, u8 num_refp[REFP_NUM]
 #endif
-    , EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh, int log2_max_cuwh)
+    , EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh, int log2_max_cuwh
+#if EVC_TILE_SUPPORT
+    , u8* map_tidx
+#endif
+)
+
 {
     int idx0, idx1, cnt;
     int ref_mvd = 0;
@@ -405,7 +410,11 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 #if DMVR_LAG
             , NULL
 #endif
-            , history_buffer, 0, (EVC_REFP(*)[2])refp, sh, log2_max_cuwh);
+            , history_buffer, 0, (EVC_REFP(*)[2])refp, sh, log2_max_cuwh
+#if EVC_TILE_SUPPORT
+            , map_tidx
+#endif
+        );
     }
 
     for (z = 0; z < MAX_NUM_MVP; z++)
@@ -898,7 +907,11 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
     }
 }
 
-void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_scu, int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], u32* map_scu, u16 avail_lr, int num_mvp, int is_ibc)
+void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_scu, int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], u32* map_scu, u16 avail_lr, int num_mvp, int is_ibc
+#if EVC_TILE_SUPPORT
+    , u8* map_tidx
+#endif
+)
 {
     int dx = 0;
     int dy = 0;
@@ -922,15 +935,39 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
 
         if (is_ibc)
         {
-          valid_flag[0] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[0]]) && MCU_GET_IBC(map_scu[neb_addr[0]]);
-          valid_flag[1] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[1]]) && MCU_GET_IBC(map_scu[neb_addr[1]]);
-          valid_flag[2] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[2]]) && MCU_GET_IBC(map_scu[neb_addr[2]]);
+          valid_flag[0] = (x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[0]]) && MCU_GET_IBC(map_scu[neb_addr[0]]) 
+#if EVC_TILE_SUPPORT
+              && (map_tidx[scup] == map_tidx[neb_addr[0]])
+#endif
+          );
+          valid_flag[1] = (x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[1]]) && MCU_GET_IBC(map_scu[neb_addr[1]])
+#if EVC_TILE_SUPPORT
+              && (map_tidx[scup] == map_tidx[neb_addr[1]])
+#endif
+          );
+          valid_flag[2] = (y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[2]]) && MCU_GET_IBC(map_scu[neb_addr[2]])
+#if EVC_TILE_SUPPORT
+              && (map_tidx[scup] == map_tidx[neb_addr[2]])
+#endif
+          );
         }
         else
         {
-          valid_flag[0] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[0]]) && !MCU_GET_IF(map_scu[neb_addr[0]]) && !MCU_GET_IBC(map_scu[neb_addr[0]]);
-          valid_flag[1] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]) && !MCU_GET_IBC(map_scu[neb_addr[1]]);
-          valid_flag[2] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]) && !MCU_GET_IBC(map_scu[neb_addr[2]]);
+          valid_flag[0] = (x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[0]]) && !MCU_GET_IF(map_scu[neb_addr[0]]) && !MCU_GET_IBC(map_scu[neb_addr[0]])
+#if EVC_TILE_SUPPORT
+              && (map_tidx[scup] == map_tidx[neb_addr[0]])
+#endif
+          );
+          valid_flag[1] = (x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]) && !MCU_GET_IBC(map_scu[neb_addr[1]])
+#if EVC_TILE_SUPPORT
+              && (map_tidx[scup] == map_tidx[neb_addr[1]])
+#endif
+          );
+          valid_flag[2] = (y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]) && !MCU_GET_IBC(map_scu[neb_addr[2]])
+#if EVC_TILE_SUPPORT
+              && (map_tidx[scup] == map_tidx[neb_addr[2]])
+#endif
+          );
         }
 
         if (num_mvp == 1)
@@ -940,13 +977,29 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
 
             if (is_ibc)
             {
-              valid_flag[3] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[3]]) && MCU_GET_IBC(map_scu[neb_addr[3]]);
-              valid_flag[4] = x_scu > 0 && y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[4]]) && MCU_GET_IBC(map_scu[neb_addr[4]]);
+              valid_flag[3] = (y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[3]]) && MCU_GET_IBC(map_scu[neb_addr[3]])
+#if EVC_TILE_SUPPORT
+                  && (map_tidx[scup] == map_tidx[neb_addr[3]])
+#endif
+              );
+              valid_flag[4] = (x_scu > 0 && y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[4]]) && MCU_GET_IBC(map_scu[neb_addr[4]])
+#if EVC_TILE_SUPPORT
+                  && (map_tidx[scup] == map_tidx[neb_addr[4]])
+#endif
+              );
             }
             else
             {
-              valid_flag[3] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[3]]) && !MCU_GET_IF(map_scu[neb_addr[3]]) && !MCU_GET_IBC(map_scu[neb_addr[3]]);
-              valid_flag[4] = x_scu > 0 && y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[4]]) && !MCU_GET_IF(map_scu[neb_addr[4]]) && !MCU_GET_IBC(map_scu[neb_addr[4]]);
+              valid_flag[3] = (y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[3]]) && !MCU_GET_IF(map_scu[neb_addr[3]]) && !MCU_GET_IBC(map_scu[neb_addr[3]])
+#if EVC_TILE_SUPPORT
+                  && (map_tidx[scup] == map_tidx[neb_addr[3]])
+#endif
+              );
+              valid_flag[4] = (x_scu > 0 && y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[4]]) && !MCU_GET_IF(map_scu[neb_addr[4]]) && !MCU_GET_IBC(map_scu[neb_addr[4]])
+#if EVC_TILE_SUPPORT
+                  && (map_tidx[scup] == map_tidx[neb_addr[4]])
+#endif
+              );
             }
         }
     }
@@ -958,15 +1011,39 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
 
         if (is_ibc)
         {
-          valid_flag[0] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[0]]) && MCU_GET_IBC(map_scu[neb_addr[0]]);
-          valid_flag[1] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[1]]) && MCU_GET_IBC(map_scu[neb_addr[1]]);
-          valid_flag[2] = y_scu > 0 && x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[2]]) && MCU_GET_IBC(map_scu[neb_addr[2]]);
+          valid_flag[0] = (x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[0]]) && MCU_GET_IBC(map_scu[neb_addr[0]])
+#if EVC_TILE_SUPPORT
+              && (map_tidx[scup] == map_tidx[neb_addr[0]])
+#endif
+          );
+          valid_flag[1] = (y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[1]]) && MCU_GET_IBC(map_scu[neb_addr[1]])
+#if EVC_TILE_SUPPORT
+              && (map_tidx[scup] == map_tidx[neb_addr[1]])
+#endif
+          );
+          valid_flag[2] = (y_scu > 0 && x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[2]]) && MCU_GET_IBC(map_scu[neb_addr[2]])
+#if EVC_TILE_SUPPORT
+              && (map_tidx[scup] == map_tidx[neb_addr[2]])
+#endif
+          );
         }
         else
         {
-          valid_flag[0] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[0]]) && !MCU_GET_IF(map_scu[neb_addr[0]]) && !MCU_GET_IBC(map_scu[neb_addr[0]]);
-          valid_flag[1] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]) && !MCU_GET_IBC(map_scu[neb_addr[1]]);
-          valid_flag[2] = y_scu > 0 && x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]) && !MCU_GET_IBC(map_scu[neb_addr[2]]);
+          valid_flag[0] = (x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[0]]) && !MCU_GET_IF(map_scu[neb_addr[0]]) && !MCU_GET_IBC(map_scu[neb_addr[0]])
+#if EVC_TILE_SUPPORT
+              && (map_tidx[scup] == map_tidx[neb_addr[0]])
+#endif
+          );
+          valid_flag[1] = (y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]) && !MCU_GET_IBC(map_scu[neb_addr[1]])
+#if EVC_TILE_SUPPORT
+              && (map_tidx[scup] == map_tidx[neb_addr[1]])
+#endif
+          );
+          valid_flag[2] = (y_scu > 0 && x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]) && !MCU_GET_IBC(map_scu[neb_addr[2]])
+#if EVC_TILE_SUPPORT
+              && (map_tidx[scup] == map_tidx[neb_addr[2]])
+#endif
+          );
         }
 
         if (num_mvp == 1)
@@ -976,13 +1053,29 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
 
             if (is_ibc)
             {
-              valid_flag[3] = y_scu + scuh < h_scu && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[3]]) && MCU_GET_IBC(map_scu[neb_addr[3]]);
-              valid_flag[4] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[4]]) && MCU_GET_IBC(map_scu[neb_addr[4]]);
+              valid_flag[3] = (y_scu + scuh < h_scu && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[3]]) && MCU_GET_IBC(map_scu[neb_addr[3]])
+#if EVC_TILE_SUPPORT
+                  && (map_tidx[scup] == map_tidx[neb_addr[3]])
+#endif
+              );
+              valid_flag[4] = (y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[4]]) && MCU_GET_IBC(map_scu[neb_addr[4]])
+#if EVC_TILE_SUPPORT
+                  && (map_tidx[scup] == map_tidx[neb_addr[4]])
+#endif
+              );
             }
             else
             {
-              valid_flag[3] = y_scu + scuh < h_scu && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[3]]) && !MCU_GET_IF(map_scu[neb_addr[3]]) && !MCU_GET_IBC(map_scu[neb_addr[3]]);
-              valid_flag[4] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[4]]) && !MCU_GET_IF(map_scu[neb_addr[4]]) && !MCU_GET_IBC(map_scu[neb_addr[4]]);
+              valid_flag[3] = (y_scu + scuh < h_scu && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[3]]) && !MCU_GET_IF(map_scu[neb_addr[3]]) && !MCU_GET_IBC(map_scu[neb_addr[3]])
+#if EVC_TILE_SUPPORT
+                  && (map_tidx[scup] == map_tidx[neb_addr[3]])
+#endif
+              );
+              valid_flag[4] = (y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[4]]) && !MCU_GET_IF(map_scu[neb_addr[4]]) && !MCU_GET_IBC(map_scu[neb_addr[4]])
+#if EVC_TILE_SUPPORT
+                  && (map_tidx[scup] == map_tidx[neb_addr[4]])
+#endif
+              );
             }
         }
     }
@@ -994,15 +1087,39 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
 
         if (is_ibc)
         {
-          valid_flag[0] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[0]]) && MCU_GET_IBC(map_scu[neb_addr[0]]);
-          valid_flag[1] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[1]]) && MCU_GET_IBC(map_scu[neb_addr[1]]);
-          valid_flag[2] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[2]]) && MCU_GET_IBC(map_scu[neb_addr[2]]);
+          valid_flag[0] = (x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[0]]) && MCU_GET_IBC(map_scu[neb_addr[0]])
+#if EVC_TILE_SUPPORT
+              && (map_tidx[scup] == map_tidx[neb_addr[0]])
+#endif
+          );
+          valid_flag[1] = (y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[1]]) && MCU_GET_IBC(map_scu[neb_addr[1]])
+#if EVC_TILE_SUPPORT
+              && (map_tidx[scup] == map_tidx[neb_addr[1]])
+#endif
+          );
+          valid_flag[2] = (y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[2]]) && MCU_GET_IBC(map_scu[neb_addr[2]])
+#if EVC_TILE_SUPPORT
+              && (map_tidx[scup] == map_tidx[neb_addr[2]])
+#endif
+          );
         }
         else
         {
-          valid_flag[0] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[0]]) && !MCU_GET_IF(map_scu[neb_addr[0]]) && !MCU_GET_IBC(map_scu[neb_addr[0]]);
-          valid_flag[1] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]) && !MCU_GET_IBC(map_scu[neb_addr[1]]);
-          valid_flag[2] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]) && !MCU_GET_IBC(map_scu[neb_addr[2]]);
+          valid_flag[0] = (x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[0]]) && !MCU_GET_IF(map_scu[neb_addr[0]]) && !MCU_GET_IBC(map_scu[neb_addr[0]])
+#if EVC_TILE_SUPPORT
+              && (map_tidx[scup] == map_tidx[neb_addr[0]])
+#endif
+          );
+          valid_flag[1] = (y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]) && !MCU_GET_IBC(map_scu[neb_addr[1]])
+#if EVC_TILE_SUPPORT
+              && (map_tidx[scup] == map_tidx[neb_addr[1]])
+#endif
+          );
+          valid_flag[2] = (y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]) && !MCU_GET_IBC(map_scu[neb_addr[2]])
+#if EVC_TILE_SUPPORT
+              && (map_tidx[scup] == map_tidx[neb_addr[2]])
+#endif
+          );
         }
 
         if (num_mvp == 1)
@@ -1012,13 +1129,29 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
 
             if (is_ibc)
             {
-              valid_flag[3] = y_scu + scuh < h_scu && x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[3]]) && MCU_GET_IBC(map_scu[neb_addr[3]]);
-              valid_flag[4] = y_scu > 0 && x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[4]]) && MCU_GET_IBC(map_scu[neb_addr[4]]);
+              valid_flag[3] = (y_scu + scuh < h_scu && x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[3]]) && MCU_GET_IBC(map_scu[neb_addr[3]])
+#if EVC_TILE_SUPPORT
+                  && (map_tidx[scup] == map_tidx[neb_addr[3]])
+#endif
+              );
+              valid_flag[4] = (y_scu > 0 && x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[4]]) && MCU_GET_IBC(map_scu[neb_addr[4]])
+#if EVC_TILE_SUPPORT
+                  && (map_tidx[scup] == map_tidx[neb_addr[4]])
+#endif             
+              );
             }
             else
             {
-              valid_flag[3] = y_scu + scuh < h_scu && x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[3]]) && !MCU_GET_IF(map_scu[neb_addr[3]]) && !MCU_GET_IBC(map_scu[neb_addr[3]]);
-              valid_flag[4] = y_scu > 0 && x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[4]]) && !MCU_GET_IF(map_scu[neb_addr[4]]) && !MCU_GET_IBC(map_scu[neb_addr[4]]);
+              valid_flag[3] = (y_scu + scuh < h_scu && x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[3]]) && !MCU_GET_IF(map_scu[neb_addr[3]]) && !MCU_GET_IBC(map_scu[neb_addr[3]])
+#if EVC_TILE_SUPPORT
+                  && (map_tidx[scup] == map_tidx[neb_addr[3]])
+#endif
+              );
+              valid_flag[4] = (y_scu > 0 && x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[4]]) && !MCU_GET_IF(map_scu[neb_addr[4]]) && !MCU_GET_IBC(map_scu[neb_addr[4]])
+#if EVC_TILE_SUPPORT
+                  && (map_tidx[scup] == map_tidx[neb_addr[4]])
+#endif
+              );
             }
         }
     }
@@ -1057,13 +1190,21 @@ s8 evc_get_first_refi(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[
 #if DMVR_LAG
                       , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
-                      , EVC_HISTORY_BUFFER history_buffer, int admvp_flag)
+                      , EVC_HISTORY_BUFFER history_buffer, int admvp_flag
+#if EVC_TILE_SUPPORT
+    , u8* map_tidx
+#endif
+)
 {
     int neb_addr[MAX_NUM_POSSIBLE_SCAND], valid_flag[MAX_NUM_POSSIBLE_SCAND];
     s8  refi = 0, default_refi;
     s16 default_mv[MV_D];
 
-    evc_check_motion_availability(scup, cuw, cuh, w_scu, h_scu, neb_addr, valid_flag, map_scu, avail_lr, 1, 0);
+    evc_check_motion_availability(scup, cuw, cuh, w_scu, h_scu, neb_addr, valid_flag, map_scu, avail_lr, 1, 0
+#if EVC_TILE_SUPPORT
+        , map_tidx
+#endif
+    );    
     evc_get_default_motion(neb_addr, valid_flag, 0, lidx, map_refi, map_mv, &default_refi, default_mv
 #if DMVR_LAG
                            , map_scu
@@ -1212,6 +1353,9 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int poc, int scup, int lidx, s8 cur_ref
                              , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
                              , EVC_HISTORY_BUFFER history_buffer, int admvp_flag
+#if EVC_TILE_SUPPORT
+    , u8* map_tidx
+#endif
 )
 {
     int i, t0, poc_refi_cur;
@@ -1221,7 +1365,11 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int poc, int scup, int lidx, s8 cur_ref
     s8 default_refi;
     s16 default_mv[MV_D];
     s16 mvp_temp[MV_D];
-    evc_check_motion_availability(scup, cuw, cuh, w_scu, h_scu, neb_addr, valid_flag, map_scu, avail_lr, 1, 0);
+    evc_check_motion_availability(scup, cuw, cuh, w_scu, h_scu, neb_addr, valid_flag, map_scu, avail_lr, 1, 0
+#if EVC_TILE_SUPPORT
+        , map_tidx
+#endif
+    );
     evc_get_default_motion(neb_addr, valid_flag, cur_refi, lidx, map_refi, map_mv, &default_refi, default_mv
 #if DMVR_LAG
                            , map_scu
@@ -1366,6 +1514,9 @@ void evc_get_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int num_re
 #if DMVR_LAG
                             , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
+#if EVC_TILE_SUPPORT
+    , u8* map_tidx
+#endif
 )
 {
     int cnt, i, t0, poc_refi_cur, dpoc_co;
@@ -1373,7 +1524,11 @@ void evc_get_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int num_re
     int neb_addr[MAX_NUM_POSSIBLE_SCAND], valid_flag[MAX_NUM_POSSIBLE_SCAND];
     s8(*map_refi_co)[REFP_NUM];
 
-    evc_check_motion_availability(scup, cuw, cuh, w_scu, h_scu, neb_addr, valid_flag, map_scu, avail_lr, 0, 0);
+    evc_check_motion_availability(scup, cuw, cuh, w_scu, h_scu, neb_addr, valid_flag, map_scu, avail_lr, 0, 0
+#if EVC_TILE_SUPPORT
+        , map_tidx
+#endif
+    );
 
     poc_refi_cur = refp[cur_refi][lidx].poc;
     for(i = 0; i < num_refp; i++)
@@ -1653,6 +1808,9 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
     , EVC_REFP(*refplx)[REFP_NUM]
     , EVC_SH* sh
     , int log2_max_cuwh
+#if EVC_TILE_SUPPORT
+    , u8* map_tidx
+#endif
 )
 {
     BOOL tmpvBottomRight = 0; // Bottom first
@@ -1684,7 +1842,11 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
     {
         valid_flag[k] = 0;
     }
-    evc_check_motion_availability(scup, cuw, cuh, w_scu, h_scu, neb_addr, valid_flag, map_scu, avail_lr, 1, ibc_flag);
+    evc_check_motion_availability(scup, cuw, cuh, w_scu, h_scu, neb_addr, valid_flag, map_scu, avail_lr, 1, ibc_flag
+#if EVC_TILE_SUPPORT
+        , map_tidx
+#endif
+    );
 
     for (k = 0; k < 5; k++)
     {
@@ -1953,7 +2115,11 @@ void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 poc, int scup, int c_scu, u16 w
     }
 }
 
-int evc_get_avail_cu(int neb_scua[MAX_NEB2], u32 * map_cu)
+int evc_get_avail_cu(int neb_scua[MAX_NEB2], u32 * map_cu
+#if EVC_TILE_SUPPORT
+    , u8* map_tidx
+#endif
+)
 {
     int slice_num_x;
     u16 avail_cu = 0;
@@ -1964,19 +2130,31 @@ int evc_get_avail_cu(int neb_scua[MAX_NEB2], u32 * map_cu)
 
     /* left */
     if(neb_scua[NEB_A] >= 0 &&
-       (slice_num_x == MCU_GET_SN(map_cu[neb_scua[NEB_A]])))
+       (slice_num_x == MCU_GET_SN(map_cu[neb_scua[NEB_A]]))
+#if EVC_TILE_SUPPORT
+        && (map_tidx[neb_scua[NEB_X]] == map_tidx[neb_scua[NEB_A]])
+#endif
+        )
     {
         avail_cu |= AVAIL_LE;
     }
     /* up */
     if(neb_scua[NEB_B] >= 0 &&
-       (slice_num_x == MCU_GET_SN(map_cu[neb_scua[NEB_B]])))
+       (slice_num_x == MCU_GET_SN(map_cu[neb_scua[NEB_B]]))
+#if EVC_TILE_SUPPORT
+        && (map_tidx[neb_scua[NEB_X]] == map_tidx[neb_scua[NEB_B]])
+#endif
+        )
     {
         avail_cu |= AVAIL_UP;
     }
     /* up-right */
     if(neb_scua[NEB_C] >= 0 &&
-       (slice_num_x == MCU_GET_SN(map_cu[neb_scua[NEB_C]])))
+       (slice_num_x == MCU_GET_SN(map_cu[neb_scua[NEB_C]]))
+#if EVC_TILE_SUPPORT
+        && (map_tidx[neb_scua[NEB_X]] == map_tidx[neb_scua[NEB_C]])
+#endif
+        )
     {
         if(MCU_GET_COD(map_cu[neb_scua[NEB_C]]))
         {
@@ -1985,13 +2163,21 @@ int evc_get_avail_cu(int neb_scua[MAX_NEB2], u32 * map_cu)
     }
     /* up-left */
     if(neb_scua[NEB_D] >= 0 &&
-       (slice_num_x == MCU_GET_SN(map_cu[neb_scua[NEB_D]])))
+       (slice_num_x == MCU_GET_SN(map_cu[neb_scua[NEB_D]]))
+#if EVC_TILE_SUPPORT
+        && (map_tidx[neb_scua[NEB_X]] == map_tidx[neb_scua[NEB_D]])
+#endif
+        )
     {
         avail_cu |= AVAIL_UP_LE;
     }
     /* low-left */
     if(neb_scua[NEB_E] >= 0 &&
-       (slice_num_x == MCU_GET_SN(map_cu[neb_scua[NEB_E]])))
+       (slice_num_x == MCU_GET_SN(map_cu[neb_scua[NEB_E]]))
+#if EVC_TILE_SUPPORT
+        && (map_tidx[neb_scua[NEB_X]] == map_tidx[neb_scua[NEB_E]])
+#endif
+        )
     {
         if(MCU_GET_COD(map_cu[neb_scua[NEB_E]]))
         {
@@ -2001,13 +2187,21 @@ int evc_get_avail_cu(int neb_scua[MAX_NEB2], u32 * map_cu)
 
     /* right */
     if(neb_scua[NEB_H] >= 0 &&
-       (slice_num_x == MCU_GET_SN(map_cu[neb_scua[NEB_H]])))
+       (slice_num_x == MCU_GET_SN(map_cu[neb_scua[NEB_H]]))
+#if EVC_TILE_SUPPORT
+        && (map_tidx[neb_scua[NEB_X]] == map_tidx[neb_scua[NEB_H]])
+#endif
+        )
     {
         avail_cu |= AVAIL_RI;
     }
     /* low-right */
     if(neb_scua[NEB_I] >= 0 &&
-       (slice_num_x == MCU_GET_SN(map_cu[neb_scua[NEB_I]])))
+       (slice_num_x == MCU_GET_SN(map_cu[neb_scua[NEB_I]]))
+#if EVC_TILE_SUPPORT
+        && (map_tidx[neb_scua[NEB_X]] == map_tidx[neb_scua[NEB_I]])
+#endif
+        )
     {
         if(MCU_GET_COD(map_cu[neb_scua[NEB_I]]))
         {
@@ -2146,7 +2340,13 @@ u16 evc_get_avail_intra(int x_scu, int y_scu, int w_scu, int h_scu, int scup, in
 
     if(y_scu > 0)
     {
+#if EVC_TILE_SUPPORT
+        if (map_tidx[scup] == map_tidx[scup - w_scu])
+#endif
         SET_AVAIL(avail, AVAIL_UP);
+#if EVC_TILE_SUPPORT
+        if (map_tidx[scup] == map_tidx[scup - w_scu + scuw - 1])
+#endif
         SET_AVAIL(avail, AVAIL_RI_UP);
 
         if(x_scu > 0 && MCU_GET_COD(map_scu[scup - w_scu - 1])
@@ -2189,17 +2389,29 @@ u16 evc_get_avail_intra(int x_scu, int y_scu, int w_scu, int h_scu, int scup, in
     return avail;
 }
 
-u16 evc_get_avail_ibc(int x_scu, int y_scu, int w_scu, int h_scu, int scup, int cuw, int cuh, u32 * map_scu)
+u16 evc_get_avail_ibc(int x_scu, int y_scu, int w_scu, int h_scu, int scup, int cuw, int cuh, u32 * map_scu
+#if EVC_TILE_SUPPORT
+    , u8* map_tidx
+#endif
+)
 {
   u16 avail = 0;
   int scuw = cuw >> MIN_CU_LOG2;
   int scuh = cuh >> MIN_CU_LOG2;
 
-  if (x_scu > 0 && MCU_GET_IBC(map_scu[scup - 1]) && MCU_GET_COD(map_scu[scup - 1]))
+  if (x_scu > 0 && MCU_GET_IBC(map_scu[scup - 1]) && MCU_GET_COD(map_scu[scup - 1])
+#if EVC_TILE_SUPPORT
+       && (map_tidx[scup] == map_tidx[scup-1])
+#endif
+      )
   {
     SET_AVAIL(avail, AVAIL_LE);
 
-    if (y_scu + scuh < h_scu  && MCU_GET_COD(map_scu[scup + (scuh * w_scu) - 1]) && MCU_GET_IBC(map_scu[scup + (scuh * w_scu) - 1]))
+    if (y_scu + scuh < h_scu  && MCU_GET_COD(map_scu[scup + (scuh * w_scu) - 1]) && MCU_GET_IBC(map_scu[scup + (scuh * w_scu) - 1])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[scup] == map_tidx[scup + (scuh * w_scu) - 1])
+#endif
+        )
     {
       SET_AVAIL(avail, AVAIL_LO_LE);
     }
@@ -2207,32 +2419,56 @@ u16 evc_get_avail_ibc(int x_scu, int y_scu, int w_scu, int h_scu, int scup, int 
 
   if (y_scu > 0)
   {
-    if (MCU_GET_IBC(map_scu[scup - w_scu]))
+    if (MCU_GET_IBC(map_scu[scup - w_scu])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[scup] == map_tidx[scup - w_scu])
+#endif
+        )
     {
       SET_AVAIL(avail, AVAIL_UP);
     }
 
-    if (MCU_GET_IBC(map_scu[scup - w_scu + scuw - 1]))
+    if (MCU_GET_IBC(map_scu[scup - w_scu + scuw - 1])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[scup] == map_tidx[scup - w_scu + scuw - 1])
+#endif
+        )
     {
       SET_AVAIL(avail, AVAIL_RI_UP);
     }
 
-    if (x_scu > 0 && MCU_GET_IBC(map_scu[scup - w_scu - 1]) && MCU_GET_COD(map_scu[scup - w_scu - 1]))
+    if (x_scu > 0 && MCU_GET_IBC(map_scu[scup - w_scu - 1]) && MCU_GET_COD(map_scu[scup - w_scu - 1])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[scup] == map_tidx[scup - w_scu - 1])
+#endif
+        )
     {
       SET_AVAIL(avail, AVAIL_UP_LE);
     }
 
-    if (x_scu + scuw < w_scu  && MCU_IS_COD_NIF(map_scu[scup - w_scu + scuw]) && MCU_GET_COD(map_scu[scup - w_scu + scuw]))
+    if (x_scu + scuw < w_scu  && MCU_IS_COD_NIF(map_scu[scup - w_scu + scuw]) && MCU_GET_COD(map_scu[scup - w_scu + scuw])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[scup] == map_tidx[scup - w_scu + scuw])
+#endif
+        )
     {
       SET_AVAIL(avail, AVAIL_UP_RI);
     }
   }
 
-  if (x_scu + scuw < w_scu && MCU_GET_IBC(map_scu[scup + scuw]) && MCU_GET_COD(map_scu[scup + scuw]))
+  if (x_scu + scuw < w_scu && MCU_GET_IBC(map_scu[scup + scuw]) && MCU_GET_COD(map_scu[scup + scuw])
+#if EVC_TILE_SUPPORT
+      && (map_tidx[scup] == map_tidx[scup + scuw])
+#endif
+      )
   {
     SET_AVAIL(avail, AVAIL_RI);
 
-    if (y_scu + scuh < h_scu  && MCU_GET_COD(map_scu[scup + (scuh * w_scu) + scuw]) && MCU_GET_IBC(map_scu[scup + (scuh * w_scu) + scuw]))
+    if (y_scu + scuh < h_scu  && MCU_GET_COD(map_scu[scup + (scuh * w_scu) + scuw]) && MCU_GET_IBC(map_scu[scup + (scuh * w_scu) + scuw])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[scup] == map_tidx[scup + (scuh * w_scu) + scuw])
+#endif
+        )
     {
       SET_AVAIL(avail, AVAIL_LO_RI);
     }
@@ -2960,7 +3196,11 @@ u16 evc_check_nev_avail(int x_scu, int y_scu, int cuw, int cuh, int w_scu, int h
     return avail_lr;
 }
 
-void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u32* map_scu, u32* map_cu_mode, u8* ctx, u8 slice_type, int sps_cm_init_flag, u8 ibc_flag, u8 ibc_log_max_size)
+void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u32* map_scu, u32* map_cu_mode, u8* ctx, u8 slice_type, int sps_cm_init_flag, u8 ibc_flag, u8 ibc_log_max_size
+#if EVC_TILE_SUPPORT
+    , u8* map_tidx
+#endif
+)
 {
     int nev_info[NUM_CNID][3];
     int scun[3], avail[3];
@@ -2983,10 +3223,24 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
     scun[0] = scup - w_scu;
     scun[1] = scup - 1 + (scuh - 1)*w_scu;
     scun[2] = scup + scuw + (scuh - 1)*w_scu;
-    avail[0] = y_scu == 0 ? 0 : MCU_GET_COD(map_scu[scun[0]]);
-    avail[1] = x_scu == 0 ? 0 : MCU_GET_COD(map_scu[scun[1]]);
-    avail[2] = x_scu + scuw >= w_scu ? 0 : MCU_GET_COD(map_scu[scun[2]]);
-
+    avail[0] = y_scu == 0 ? 0 :
+#if EVC_TILE_SUPPORT
+    ((map_tidx[scup] == map_tidx[scun[0]]) && MCU_GET_COD(map_scu[scun[0]]));
+#else
+        (MCU_GET_COD(map_scu[scun[0]]));
+#endif
+    avail[1] = x_scu == 0 ? 0 : 
+#if EVC_TILE_SUPPORT
+    ((map_tidx[scup] == map_tidx[scun[1]]) && MCU_GET_COD(map_scu[scun[1]]));
+#else
+        (MCU_GET_COD(map_scu[scun[1]]));
+#endif
+    avail[2] = x_scu + scuw >= w_scu ? 0 :
+#if EVC_TILE_SUPPORT
+    ((map_tidx[scup] == map_tidx[scun[2]]) && MCU_GET_COD(map_scu[scun[2]]));
+#else
+        (MCU_GET_COD(map_scu[scun[2]]));
+#endif
     num_pos_avail = 0;
     for (j = 0; j < 3; j++)
     {
@@ -3611,6 +3865,9 @@ void evc_get_affine_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int
 #if DMVR_LAG
                                    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
+#if EVC_TILE_SUPPORT
+    , u8* map_tidx
+#endif
 )
 {
     int x_scu = scup % w_scu;
@@ -3656,8 +3913,16 @@ void evc_get_affine_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int
     // left inherited affine MVP, first of {A0, A1}
     neb_addr[0] = scup + w_scu * scuh - 1;       // A0
     neb_addr[1] = scup + w_scu * (scuh - 1) - 1; // A1
-    valid_flag[0] = x_scu > 0 && y_scu + scuh < h_scu && MCU_GET_COD(map_scu[neb_addr[0]]) && !MCU_GET_IF(map_scu[neb_addr[0]]) && MCU_GET_AFF(map_scu[neb_addr[0]]);
-    valid_flag[1] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]) && MCU_GET_AFF(map_scu[neb_addr[1]]);
+    valid_flag[0] = x_scu > 0 && y_scu + scuh < h_scu && MCU_GET_COD(map_scu[neb_addr[0]]) && !MCU_GET_IF(map_scu[neb_addr[0]]) && MCU_GET_AFF(map_scu[neb_addr[0]])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[scup] == map_tidx[neb_addr[0]])
+#endif
+        ;
+    valid_flag[1] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]) && MCU_GET_AFF(map_scu[neb_addr[1]])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[scup] == map_tidx[neb_addr[1]])
+#endif
+        ;
 
     for(k = 0; k < 2; k++)
     {
@@ -3690,9 +3955,21 @@ void evc_get_affine_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int
     neb_addr[0] = scup - w_scu + scuw;           // B0
     neb_addr[1] = scup - w_scu + scuw - 1;       // B1
     neb_addr[2] = scup - w_scu - 1;              // B2
-    valid_flag[0] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[0]]) && !MCU_GET_IF(map_scu[neb_addr[0]]) && MCU_GET_AFF(map_scu[neb_addr[0]]);
-    valid_flag[1] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]) && MCU_GET_AFF(map_scu[neb_addr[1]]);
-    valid_flag[2] = x_scu > 0 && y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]) && MCU_GET_AFF(map_scu[neb_addr[2]]);
+    valid_flag[0] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[0]]) && !MCU_GET_IF(map_scu[neb_addr[0]]) && MCU_GET_AFF(map_scu[neb_addr[0]])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[scup] == map_tidx[neb_addr[0]])
+#endif
+        ;
+    valid_flag[1] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]) && MCU_GET_AFF(map_scu[neb_addr[1]])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[scup] == map_tidx[neb_addr[1]])
+#endif
+        ;
+    valid_flag[2] = x_scu > 0 && y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]) && MCU_GET_AFF(map_scu[neb_addr[2]])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[scup] == map_tidx[neb_addr[2]])
+#endif
+        ;
     for(k = 0; k < 3; k++)
     {
         if(valid_flag[k] && REFI_IS_VALID(map_refi[neb_addr[k]][lidx])
@@ -3723,8 +4000,16 @@ void evc_get_affine_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int
     // right inherited affine MVP, first of {C0, C1}
     neb_addr[0] = scup + w_scu * scuh + scuw;       // C0
     neb_addr[1] = scup + w_scu * (scuh - 1) + scuw; // C1
-    valid_flag[0] = x_scu + scuw < w_scu && y_scu + scuh < h_scu && MCU_GET_COD(map_scu[neb_addr[0]]) && !MCU_GET_IF(map_scu[neb_addr[0]]) && MCU_GET_AFF(map_scu[neb_addr[0]]);
-    valid_flag[1] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]) && MCU_GET_AFF(map_scu[neb_addr[1]]);
+    valid_flag[0] = x_scu + scuw < w_scu && y_scu + scuh < h_scu && MCU_GET_COD(map_scu[neb_addr[0]]) && !MCU_GET_IF(map_scu[neb_addr[0]]) && MCU_GET_AFF(map_scu[neb_addr[0]])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[scup] == map_tidx[neb_addr[0]])
+#endif
+        ;
+    valid_flag[1] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]) && MCU_GET_AFF(map_scu[neb_addr[1]])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[scup] == map_tidx[neb_addr[1]])
+#endif
+        ;
 
     for (k = 0; k < 2; k++)
     {
@@ -3764,9 +4049,21 @@ void evc_get_affine_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int
     neb_addr_lt[1] = scup - w_scu;
     neb_addr_lt[2] = scup - 1;
 
-    valid_flag_lt[0] = x_scu > 0 && y_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lt[0]]) && !MCU_GET_IF(map_scu[neb_addr_lt[0]]) && !MCU_GET_IBC(map_scu[neb_addr_lt[0]]);
-    valid_flag_lt[1] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lt[1]]) && !MCU_GET_IF(map_scu[neb_addr_lt[1]]) && !MCU_GET_IBC(map_scu[neb_addr_lt[1]]);
-    valid_flag_lt[2] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lt[2]]) && !MCU_GET_IF(map_scu[neb_addr_lt[2]]) && !MCU_GET_IBC(map_scu[neb_addr_lt[2]]);
+    valid_flag_lt[0] = x_scu > 0 && y_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lt[0]]) && !MCU_GET_IF(map_scu[neb_addr_lt[0]]) && !MCU_GET_IBC(map_scu[neb_addr_lt[0]])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[scup] == map_tidx[neb_addr_lt[0]])
+#endif
+        ;
+    valid_flag_lt[1] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lt[1]]) && !MCU_GET_IF(map_scu[neb_addr_lt[1]]) && !MCU_GET_IBC(map_scu[neb_addr_lt[1]])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[scup] == map_tidx[neb_addr_lt[1]])
+#endif
+        ;
+    valid_flag_lt[2] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lt[2]]) && !MCU_GET_IF(map_scu[neb_addr_lt[2]]) && !MCU_GET_IBC(map_scu[neb_addr_lt[2]])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[scup] == map_tidx[neb_addr_lt[2]])
+#endif
+        ;
 
     for(k = 0; k < AFFINE_MAX_NUM_LT; k++)
     {
@@ -3807,11 +4104,23 @@ void evc_get_affine_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int
     neb_addr_rt[0] = scup - w_scu + scuw;
     neb_addr_rt[1] = scup - w_scu + scuw - 1;
 
-    valid_flag_rt[0] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr_rt[0]]) && !MCU_GET_IF(map_scu[neb_addr_rt[0]]) && !MCU_GET_IBC(map_scu[neb_addr_rt[0]]);
-    valid_flag_rt[1] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr_rt[1]]) && !MCU_GET_IF(map_scu[neb_addr_rt[1]]) && !MCU_GET_IBC(map_scu[neb_addr_rt[1]]);
-
+    valid_flag_rt[0] = y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr_rt[0]]) && !MCU_GET_IF(map_scu[neb_addr_rt[0]]) && !MCU_GET_IBC(map_scu[neb_addr_rt[0]])
+#if EVC_TILE_SUPPORT
+                       && (map_tidx[scup] == map_tidx[neb_addr_rt[0]])
+#endif
+                       ;
+    valid_flag_rt[1] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr_rt[1]]) && !MCU_GET_IF(map_scu[neb_addr_rt[1]]) && !MCU_GET_IBC(map_scu[neb_addr_rt[1]])
+#if EVC_TILE_SUPPORT
+                       && (map_tidx[scup] == map_tidx[neb_addr_rt[1]])
+#endif
+                       ;
+        
     neb_addr_rt[2] = scup + scuw;
-    valid_flag_rt[2] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr_rt[2]]) && !MCU_GET_IF(map_scu[neb_addr_rt[2]]) && !MCU_GET_IBC(map_scu[neb_addr_rt[2]]);
+    valid_flag_rt[2] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr_rt[2]]) && !MCU_GET_IF(map_scu[neb_addr_rt[2]]) && !MCU_GET_IBC(map_scu[neb_addr_rt[2]])
+#if EVC_TILE_SUPPORT
+        && (map_tidx[scup] == map_tidx[neb_addr_rt[2]])
+#endif
+        ;
 
     for(k = 0; k < AFFINE_MAX_NUM_RT; k++)
     {
@@ -3852,8 +4161,16 @@ void evc_get_affine_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int
     neb_addr_lb[0] = scup + w_scu * scuh - 1;        // A0
     neb_addr_lb[1] = scup + w_scu * (scuh - 1) - 1;  // A1
 
-    valid_flag_lb[0] = x_scu > 0 && y_scu + scuh < h_scu && MCU_GET_COD(map_scu[neb_addr_lb[0]]) && !MCU_GET_IF(map_scu[neb_addr_lb[0]]) && !MCU_GET_IBC(map_scu[neb_addr_lb[0]]);
-    valid_flag_lb[1] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lb[1]]) && !MCU_GET_IF(map_scu[neb_addr_lb[1]]) && !MCU_GET_IBC(map_scu[neb_addr_lb[1]]);
+    valid_flag_lb[0] = x_scu > 0 && y_scu + scuh < h_scu && MCU_GET_COD(map_scu[neb_addr_lb[0]]) && !MCU_GET_IF(map_scu[neb_addr_lb[0]]) && !MCU_GET_IBC(map_scu[neb_addr_lb[0]])
+#if EVC_TILE_SUPPORT
+                       && (map_tidx[scup] == map_tidx[neb_addr_lb[0]])
+#endif
+                       ;
+    valid_flag_lb[1] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lb[1]]) && !MCU_GET_IF(map_scu[neb_addr_lb[1]]) && !MCU_GET_IBC(map_scu[neb_addr_lb[1]])
+#if EVC_TILE_SUPPORT
+                       && (map_tidx[scup] == map_tidx[neb_addr_lb[1]])
+#endif
+                       ;
 
     for(k = 0; k < AFFINE_MAX_NUM_LB; k++)
     {
@@ -3888,8 +4205,16 @@ void evc_get_affine_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int
     neb_addr_rb[0] = scup + w_scu * scuh + scuw;
     neb_addr_rb[1] = scup + w_scu * (scuh - 1) + scuw;
 
-    valid_flag_rb[0] = x_scu + scuw < w_scu && y_scu + scuh < h_scu && MCU_GET_COD(map_scu[neb_addr_rb[0]]) && !MCU_GET_IF(map_scu[neb_addr_rb[0]]) && !MCU_GET_IBC(map_scu[neb_addr_rb[0]]);
-    valid_flag_rb[1] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr_rb[1]]) && !MCU_GET_IF(map_scu[neb_addr_rb[1]]) && !MCU_GET_IF(map_scu[neb_addr_rb[1]]);
+    valid_flag_rb[0] = x_scu + scuw < w_scu && y_scu + scuh < h_scu && MCU_GET_COD(map_scu[neb_addr_rb[0]]) && !MCU_GET_IF(map_scu[neb_addr_rb[0]]) && !MCU_GET_IBC(map_scu[neb_addr_rb[0]])
+#if EVC_TILE_SUPPORT
+                       && (map_tidx[scup] == map_tidx[neb_addr_rb[0]])
+#endif
+                       ;
+    valid_flag_rb[1] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr_rb[1]]) && !MCU_GET_IF(map_scu[neb_addr_rb[1]]) && !MCU_GET_IF(map_scu[neb_addr_rb[1]])
+#if EVC_TILE_SUPPORT
+                       && (map_tidx[scup] == map_tidx[neb_addr_rb[1]])
+#endif
+                       ;
 
     for (k = 0; k < AFFINE_MAX_NUM_RB; k++)
     {
@@ -4020,6 +4345,9 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
 #endif
     , u16 avail_lr
     , EVC_SH * sh
+#if EVC_TILE_SUPPORT
+    , u8* map_tidx
+#endif
 )
 {
     int lidx, i, k;
@@ -4065,6 +4393,13 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
             valid_flag[4] = x_scu > 0 && y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[4]]) && !MCU_GET_IF(map_scu[neb_addr[4]]) && MCU_GET_AFF(map_scu[neb_addr[4]]);
         }
 
+#if EVC_TILE_SUPPORT
+        valid_flag[0] = valid_flag[0] && (map_tidx[scup] == map_tidx[neb_addr[0]]);
+        valid_flag[1] = valid_flag[1] && (map_tidx[scup] == map_tidx[neb_addr[1]]);
+        valid_flag[2] = valid_flag[2] && (map_tidx[scup] == map_tidx[neb_addr[2]]);
+        valid_flag[3] = valid_flag[3] && (map_tidx[scup] == map_tidx[neb_addr[3]]);
+        valid_flag[4] = valid_flag[4] && (map_tidx[scup] == map_tidx[neb_addr[4]]);
+#endif
         for(k = 0; k < 5; k++)
         {
             if(valid_flag[k])
@@ -4163,6 +4498,12 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
         valid_flag_lt[0] = x_scu > 0 && y_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lt[0]]) && !MCU_GET_IF(map_scu[neb_addr_lt[0]]) && !MCU_GET_IBC(map_scu[neb_addr_lt[0]]);
         valid_flag_lt[1] = y_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lt[1]]) && !MCU_GET_IF(map_scu[neb_addr_lt[1]]) && !MCU_GET_IBC(map_scu[neb_addr_lt[1]]);
         valid_flag_lt[2] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lt[2]]) && !MCU_GET_IF(map_scu[neb_addr_lt[2]]) && !MCU_GET_IBC(map_scu[neb_addr_lt[2]]);
+        
+#if EVC_TILE_SUPPORT
+        valid_flag_lt[0] = valid_flag_lt[0] && (map_tidx[scup] == map_tidx[neb_addr_lt[0]]);
+        valid_flag_lt[1] = valid_flag_lt[1] && (map_tidx[scup] == map_tidx[neb_addr_lt[1]]);
+        valid_flag_lt[2] = valid_flag_lt[2] && (map_tidx[scup] == map_tidx[neb_addr_lt[2]]);
+#endif
 
         for (k = 0; k < AFFINE_MAX_NUM_LT; k++)
         {
@@ -4201,6 +4542,12 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
         neb_addr_rt[2] = scup + scuw;                 // RIGHT
         valid_flag_rt[2] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr_rt[2]]) && !MCU_GET_IF(map_scu[neb_addr_rt[2]]) && !MCU_GET_IBC(map_scu[neb_addr_rt[2]]);
 
+#if EVC_TILE_SUPPORT
+        valid_flag_rt[0] = valid_flag_rt[0] && (map_tidx[scup] == map_tidx[neb_addr_rt[0]]);
+        valid_flag_rt[1] = valid_flag_rt[1] && (map_tidx[scup] == map_tidx[neb_addr_rt[1]]);
+        valid_flag_rt[2] = valid_flag_rt[2] && (map_tidx[scup] == map_tidx[neb_addr_rt[2]]);
+#endif
+
         for (k = 0; k < AFFINE_MAX_NUM_RT; k++)
         {
             if (valid_flag_rt[k])
@@ -4236,6 +4583,11 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
             valid_flag_lb[0] = x_scu > 0 && y_scu + scuh < h_scu && MCU_GET_COD(map_scu[neb_addr_lb[0]]) && !MCU_GET_IF(map_scu[neb_addr_lb[0]]) && !MCU_GET_IBC(map_scu[neb_addr_lb[0]]);
             valid_flag_lb[1] = x_scu > 0 && MCU_GET_COD(map_scu[neb_addr_lb[1]]) && !MCU_GET_IF(map_scu[neb_addr_lb[1]]) && !MCU_GET_IBC(map_scu[neb_addr_lb[1]]);
 
+#if EVC_TILE_SUPPORT
+            valid_flag_lb[0] = valid_flag_lb[0] && (map_tidx[scup] == map_tidx[neb_addr_lb[0]]);
+            valid_flag_lb[1] = valid_flag_lb[1] && (map_tidx[scup] == map_tidx[neb_addr_lb[1]]);
+#endif
+
             for (k = 0; k < AFFINE_MAX_NUM_LB; k++)
             {
                 if (valid_flag_lb[k])
@@ -4267,6 +4619,10 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
             valid_flag_lb[0] = x_scu > 0 && (y_scu + scuh < h_scu) && SameCtuRow;
 #else
             valid_flag_lb[0] = x_scu > 0 && y_scu + scuh < h_scu;
+#endif
+
+#if EVC_TILE_SUPPORT
+            valid_flag_lb[0] = valid_flag_lb[0] && (map_tidx[scup] == map_tidx[neb_addr_lb[0]]) && (map_tidx[scup] == map_tidx[scup-1]);
 #endif
             if (valid_flag_lb[0])
             {
@@ -4318,6 +4674,11 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
             neb_addr_rb[1] = scup + w_scu * (scuh - 1) + scuw;
             valid_flag_rb[1] = x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr_rb[1]]) && !MCU_GET_IF(map_scu[neb_addr_rb[1]]) && !MCU_GET_IBC(map_scu[neb_addr_rb[1]]);
 
+#if EVC_TILE_SUPPORT
+            valid_flag_rb[0] = valid_flag_rb[0] && (map_tidx[scup] == map_tidx[neb_addr_rb[0]]);
+            valid_flag_rb[1] = valid_flag_rb[1] && (map_tidx[scup] == map_tidx[neb_addr_rb[1]]);
+#endif
+
             for (k = 0; k < AFFINE_MAX_NUM_RB; k++)
             {
                 if (valid_flag_rb[k])
@@ -4346,7 +4707,11 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
         {
             s32 isSameCtuLine = ((y_scu + scuh) << MIN_CU_LOG2 >> log2_max_cuwh) == (y_scu << MIN_CU_LOG2 >> log2_max_cuwh);
             valid_flag_rb[0] = x_scu + scuw < w_scu && y_scu + scuh < h_scu && isSameCtuLine;
-
+            
+#if EVC_TILE_SUPPORT
+            neb_addr_rb[0] = ((x_scu + scuw) >> 1 << 1) + ((y_scu + scuh) >> 1 << 1) * w_scu; // 8x8 grid
+            valid_flag_rb[0] = valid_flag_rb[0] && (map_tidx[scup] == map_tidx[neb_addr_rb[0]]);
+#endif
             if (valid_flag_rb[0])
             {
                 s16 tmvp[REFP_NUM][MV_D];
@@ -4760,67 +5125,37 @@ int evc_get_transform_shift(int log2_size, int type)
     return (type == 0) ? TX_SHIFT1(log2_size) : TX_SHIFT2(log2_size);
 }
 
-void evc_eco_sbac_ctx_initialize(SBAC_CTX_MODEL *ctx, s16 *ctx_init_model, u16 num_ctx, u8 slice_type, u8 slice_qp)
-{
-    int i, slope, offset;
-    u16 cmps, p0, p1;
-    int qp = EVC_CLIP3(0, 51, slice_qp);
-    int is_inter_slice = (slice_type == SLICE_B || slice_type == SLICE_P);
-#if CTX_REPRESENTATION_IMPROVEMENT
-    ctx_init_model += (is_inter_slice * num_ctx * 1);
-#else
-    ctx_init_model += (is_inter_slice * num_ctx * 2);
-#endif
+void evc_eco_sbac_ctx_initialize(SBAC_CTX_MODEL *model, s16 *ctx_init_model, u16 num_ctx, u8 slice_type, u8 slice_qp)
+{    
+    s32 i, slope, offset;
+    u16 mps, state;
+    const int qp = EVC_CLIP3(0, 51, slice_qp);
+    const int is_inter_slice = (slice_type == SLICE_B || slice_type == SLICE_P);
+
+    ctx_init_model += (is_inter_slice * num_ctx);
+
     for(i = 0; i < num_ctx; i++)
     {
-#if CTX_REPRESENTATION_IMPROVEMENT
-        int tmp = *(ctx_init_model);
-        int m;
-        int SLOPE_BITS = 4;
-        m = (tmp & 14) >> 1;  //(tmp & 0b1110)
-        m = m << 5;
-        m = (tmp & 1) ? -m : m;
-        
-        tmp = *(ctx_init_model) >> SLOPE_BITS;
-        int c;
-        c = (tmp & 62) >> 1;    //(tmp & 0b111110)
-        c = c << 8;
-        c = (tmp & 1) ? -c : c;;
-        c += 4096;
-        slope = m;
-        offset = c;
-#else
-        slope = *(ctx_init_model);
-        offset = *(ctx_init_model + 1);
-#endif
+        const int init_value = *(ctx_init_model);
+        slope = (init_value & 14) << 4;
+        slope = (init_value & 1) ? -slope : slope;
+        offset = ((init_value >> 4) & 62) << 7;
+        offset = ((init_value >> 4) & 1) ? -offset : offset;
+        offset += 4096;
 
-        int p = slope * qp + offset;
-        int shift = MCABAC_PROB_BITS - 13;
-        if (shift < 0)
+        state = EVC_CLIP3(1, 511, (slope * qp + offset) >> 4);
+        if(state > 256)
         {
-            p >>= (-shift);
+            state = 512 - state;
+            mps = 0;
         }
         else
         {
-            p <<= shift;
+            mps = 1;
         }
+        model[i] = (state << 1) + mps;
 
-        p0 = (u16)EVC_CLIP3(1, MAX_PROB - 1, p);
-
-        p1 = p0;
-        cmps = 1;
-        if(p0 + p1 > MAX_PROB)
-        {
-            p0 = MAX_PROB - p0;
-            p1 = MAX_PROB - p1;
-            cmps = 0;
-        }
-        ctx[i] = (p0 << MPS_SHIFT) + (p1 << 1) + cmps;
-#if CTX_REPRESENTATION_IMPROVEMENT
-        ctx_init_model += 1;
-#else
-        ctx_init_model += 2;
-#endif
+        ctx_init_model++;
     }
 }
 

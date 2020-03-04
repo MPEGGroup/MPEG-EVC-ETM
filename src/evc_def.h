@@ -97,8 +97,6 @@
 #define M52290_MVCLIP_THRESH                         1
 #endif
 
-
-
 /* Profiles definitions */
 #define PROFILE_BASELINE                             0
 #define PROFILE_MAIN                                 1
@@ -108,12 +106,13 @@
 //loop filter
 #define DBF_LONGF                                    0
 #define DBF_IMPROVE                                  1
-#define DBF                                          2  // Deblocking filter: 0 - without DBF, 1 - h.263, 2 - AVC, 3 - HEVC   !!! NOTE: THE SWITCH MAY BE BROKEN !!!
 
 //TILE support
 #define TILE_SUPPORT                                 1
 #if     TILE_SUPPORT
 #define EVC_TILE_SUPPORT                             1
+#define EVC_CONCURENCY                               1
+#define TEST_ALF_BIT_CALC                            1
 #endif
 
 //fast algorithm
@@ -129,6 +128,9 @@
 
 #define DQP_EVC                                      1
 #if DQP_EVC
+#if EVC_TILE_SUPPORT
+#define EVC_TILE_DQP                                 1
+#endif
 #define DQP                                          1
 #define DQP_RDO                                      1
 #define GET_QP(qp,dqp)                               ((qp + dqp + 52) % 52)
@@ -181,27 +183,9 @@
 #define SPLIT_CHECK_NUM                    6
 /* Partitioning (END) */
 
-/* MCABAC (START) */
-#define MCABAC_PROB_BITS                  9 
-#define MPS_SHIFT                         (MCABAC_PROB_BITS + 1)
-#define PROB_MASK                         ((1 << MCABAC_PROB_BITS) - 1)
-#define MAX_PROB                          (1 << MCABAC_PROB_BITS)
-#define MAX_PROB_2                        (MAX_PROB << 1)
-
-#define MCABAC_SHIFT_0                     5
-
-#define MCABAC_OFFSET_0                   (1 << (MCABAC_SHIFT_0 - 1))
-#define PROB_INIT                         ((1 << (MCABAC_PROB_BITS << 1)) + (1 << MCABAC_PROB_BITS)) /* 1/2 of initialization */
-
-#define VARIABLE_RANGE                     1
-#if VARIABLE_RANGE
-#define RANGE_BITS                         14 /* Can be set between 11 and 16 */
-#define MAX_RANGE                          (1<<RANGE_BITS)
-#define HALF_RANGE                         (1<<(RANGE_BITS-1))
-#endif
-
-#define CTX_REPRESENTATION_IMPROVEMENT     1 /* Init state stored in 10 bits per context model */
-/* MCABAC (END) */
+/* CABAC (START) */
+#define PROB_INIT                         (512) /* 1/2 of initialization with mps = 0 */
+/* CABAC (END) */
 
 /* Multiple Referene (START) */
 #define MAX_NUM_ACTIVE_REF_FRAME_B         2  /* Maximum number of active reference frames for RA condition */
@@ -226,14 +210,6 @@
 /* AMVR (END)  */
 
 /* DBF (START) */
-#define DBF_NONE                           0
-#define DBF_H263                           1
-#define DBF_AVC                            2
-#define DBF_HEVC                           3
-
-#if DBF != DBF_NONE && DBF != DBF_H263 && DBF != DBF_AVC && DBF != DBF_HEVC
-#error "Wrong DBF value"
-#endif
 #if DBF_IMPROVE
 #define DBF_8_8_GRID                       1  // Filter edges which are aligned with an 8 x 8 grid
 #define FIX_PARALLEL_DBF                   1  // Fix Parallel deblocking for "longer tap" filter especially for vertical edges
@@ -243,11 +219,11 @@
 // Constants
 #define DBF_LENGTH                         4
 #define DBF_LENGTH_CHROMA                  2
-#define DBF_AVC_BS_INTRA_STRONG            4
-#define DBF_AVC_BS_INTRA                   3
-#define DBF_AVC_BS_CODED                   2
-#define DBF_AVC_BS_DIFF_REFS               1
-#define DBF_AVC_BS_OTHERS                  0
+#define DBF_ADDB_BS_INTRA_STRONG           4
+#define DBF_ADDB_BS_INTRA                  3
+#define DBF_ADDB_BS_CODED                  2
+#define DBF_ADDB_BS_DIFF_REFS              1
+#define DBF_ADDB_BS_OTHERS                 0
 /* DBF (END) */
 
 /* MERGE (START) */
@@ -490,6 +466,7 @@ typedef int BOOL;
 #define TRACE_COSTS                        0 //!< Trace cost information
 #define TRACE_REMOVE_COUNTER               0 //!< Remove trace counter
 #define TRACE_ADDITIONAL_FLAGS             1 
+#define TRACE_DBF                          0 //!< Trace only DBF
 #if TRACE_RDO
 #define TRACE_RDO_EXCLUDE_I                0 //!< Exclude I frames
 #endif
@@ -912,7 +889,7 @@ typedef enum _TRANS_TYPE
 #define MCU_GET_LOGW(m)          (int)(((m)>>24)&0x0F)
 #define MCU_GET_LOGH(m)          (int)(((m)>>28)&0x0F)
 
-typedef u32 SBAC_CTX_MODEL;
+typedef u16 SBAC_CTX_MODEL;
 
 #define NUM_SBAC_CTX_MMVD_FLAG             1
 #define NUM_SBAC_CTX_MMVD_GRP_IDX         (MMVD_GRP_NUM - 1)
@@ -1386,7 +1363,7 @@ typedef struct _EVC_SH
     u8               qp;
     u8               qp_u;
     u8               qp_v;
-    int              entry_point_offset_minus1[MAX_NUM_TILES_ROW * MAX_NUM_TILES_COL];
+    u32              entry_point_offset_minus1[MAX_NUM_TILES_ROW * MAX_NUM_TILES_COL];
 #if DQP
     /*QP of previous cu in decoding order (used for dqp)*/
     u8               qp_prev_eco;
@@ -1402,6 +1379,9 @@ typedef struct _EVC_SH
     int              aps_id_ch;
     EVC_APS*         aps;
     evc_AlfSliceParam alf_sh_param;
+#if EVC_TILE_SUPPORT
+    u16              num_tiles_in_slice;
+#endif
 } EVC_SH;
 
 #if EVC_TILE_SUPPORT
@@ -1418,6 +1398,10 @@ typedef struct _EVC_TILE
     u32             f_ctb;
     /* first ctb address in raster scan order */
     u16             ctba_rs_first;
+#if EVC_TILE_DQP
+    u8              qp;
+    u8              qp_prev_eco;
+#endif
 } EVC_TILE;
 
 /*****************************************************************************/

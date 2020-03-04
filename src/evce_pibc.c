@@ -68,7 +68,9 @@ __inline u32 get_exp_golomb_bits(u32 abs_mvd)
 static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_cuw, int log2_cuh,
     pel pred[2][N_C][MAX_CU_DIM], s16 coef[N_C][MAX_CU_DIM], u8 mvp_idx, s16 match_pos[MV_D])
 {
+
     EVCE_PIBC *pi = &ctx->pibc;
+
     int   *nnz, tnnz, w[N_C], h[N_C], log2_w[N_C], log2_h[N_C];
     int    cuw;
     int    cuh;
@@ -87,8 +89,16 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 #endif
     core->ats_inter_info = 0;
 #if M50761_CHROMA_NOT_SPLIT
-    int start_c = evce_check_luma(ctx) ? Y_C : U_C;
-    int end_c = evce_check_chroma(ctx) ? N_C : U_C;
+    int start_c = evce_check_luma(ctx
+#if EVC_CONCURENCY
+        , core
+#endif
+    ) ? Y_C : U_C;
+    int end_c = evce_check_chroma(ctx
+#if EVC_CONCURENCY
+        , core
+#endif
+    ) ? N_C : U_C;
 #endif
     rec = pi->unfiltered_rec_buf;
     nnz = core->nnz;
@@ -108,7 +118,12 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 
     evc_IBC_mc(x, y, log2_cuw, log2_cuh, match_pos, pi->pic_m, pred[0]
 #if M50761_CHROMA_NOT_SPLIT
-      , ctx->tree_cons
+      
+#if EVC_CONCURENCY
+        , core->tree_cons
+#else
+        , ctx->tree_cons
+#endif
 #endif
     );
 
@@ -128,7 +143,14 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 #endif
       , core->nnz_sub, 0, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt, 0, 0, 0, ctx->sps.tool_adcc
 #if M50761_CHROMA_NOT_SPLIT
-      , ctx->tree_cons
+#if EVC_CONCURENCY
+        , core->tree_cons
+#else
+        , ctx->tree_cons
+#endif
+#endif
+#if EVC_CONCURENCY
+    , core
 #endif
     );
     if (tnnz)
@@ -162,14 +184,22 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
         }
 #if RDO_DBK
         //filter rec and calculate ssd
-        calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, rec, cuw, x, y, core->avail_lr, 0, nnz[Y_C] != 0, NULL, pi->mv, is_from_mv_field, 0);
+        calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, rec, cuw, x, y, core->avail_lr, 0, nnz[Y_C] != 0, NULL, pi->mv, is_from_mv_field, 0
+#if EVC_CONCURENCY || EVC_TILE_SUPPORT
+            , core
+#endif
+        );
 #if M50761_CHROMA_NOT_SPLIT
         for (i = start_c; i < end_c; i++)
 #else
         for (i = 0; i < N_C; i++)
 #endif
         {
+#if EVC_CONCURENCY            
+            dist[i] += core->delta_dist[i];
+#else
             dist[i] += ctx->delta_dist[i];
+#endif
 #if M50761_CHROMA_NOT_SPLIT
             nnz[i] = nnz_store[i];
 #endif
@@ -184,9 +214,17 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
         cost = (double)dist[Y_C] + (((double)dist[U_C] * ctx->dist_chroma_weight[0]) + ((double)dist[V_C] * ctx->dist_chroma_weight[1]));
 #else
         cost = 0.0;
-        if (evce_check_luma(ctx))
+        if (evce_check_luma(ctx
+#if EVC_CONCURENCY
+            , core
+#endif
+        ))
             cost += (double)dist[Y_C];
-        if (evce_check_chroma(ctx))
+        if (evce_check_chroma(ctx
+#if EVC_CONCURENCY
+            , core
+#endif
+        ))
             cost += (((double)dist[U_C] * ctx->dist_chroma_weight[0]) + ((double)dist[V_C] * ctx->dist_chroma_weight[1]));
 #endif
 
@@ -258,21 +296,37 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
             dist[i] = evce_ssd_16b(log2_w[i], log2_h[i], rec[i], org[i], w[i], pi->s_o[i]);
         }
 #if RDO_DBK
-        calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, rec, cuw, x, y, core->avail_lr, 0, 0, NULL, pi->mv, is_from_mv_field, 0);
+        calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, rec, cuw, x, y, core->avail_lr, 0, 0, NULL, pi->mv, is_from_mv_field, 0
+#if EVC_CONCURENCY || EVC_TILE_SUPPORT
+            , core
+#endif
+        );
 #if M50761_CHROMA_NOT_SPLIT
         for (i = start_c; i < end_c; i++)
 #else
         for (i = 0; i < N_C; i++)
 #endif
         {
+#if EVC_CONCURENCY 
+            dist[i] += core->delta_dist[i];
+#else
             dist[i] += ctx->delta_dist[i];
+#endif
         }
 #endif
 #if M50761_CHROMA_NOT_SPLIT
         cost_best = 0.0;
-        if (evce_check_luma(ctx))
+        if (evce_check_luma(ctx
+#if EVC_CONCURENCY
+            , core
+#endif
+        ))
             cost_best += (double)dist[Y_C];
-        if (evce_check_chroma(ctx))
+        if (evce_check_chroma(ctx
+#if EVC_CONCURENCY
+            , core
+#endif
+        ))
             cost_best += (((double)dist[U_C] * ctx->dist_chroma_weight[0]) + ((double)dist[V_C] * ctx->dist_chroma_weight[1]));
 #else
         cost_best = (double)dist[Y_C] + (ctx->dist_chroma_weight[0] * (double)dist[U_C]) + (ctx->dist_chroma_weight[1] * (double)dist[V_C]);
@@ -524,6 +578,7 @@ static int pibc_search_estimation(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_PIBC *pi,
 
     EVC_PIC *ref_pic = ctx->pibc.pic_m;
 
+
     pel *org = pi->o[Y_C] + cu_y * pi->s_o[Y_C] + cu_x;
 
     pel *rec = ref_pic->y + cu_y * ref_pic->s_l + cu_x;
@@ -536,6 +591,7 @@ static int pibc_search_estimation(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_PIBC *pi,
 
     ibc_set_search_range(ctx, core, cu_x, cu_y, log2_cuw, log2_cuh, ctx->pibc.search_range_x,
         ctx->pibc.search_range_y, mv_search_range_left, mv_search_range_right);
+
 
     srch_rng_hor_left = mv_search_range_left[0];
     srch_rng_hor_right = mv_search_range_right[0];
@@ -564,7 +620,11 @@ static int pibc_search_estimation(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_PIBC *pi,
         for (int y = EVC_MAX(srch_rng_ver_top, 0 - cu_pel_y); y <= boundY; ++y)
         {
             if (!is_bv_valid(ctx, cu_pel_x, cu_pel_y, roi_width, roi_height, log2_cuw, log2_cuh,
-                pic_width, pic_height, 0, y, lcu_width))
+                pic_width, pic_height, 0, y, lcu_width
+#if EVC_TILE_SUPPORT
+                , core
+#endif
+            ))
             {
                 continue;
             }
@@ -594,7 +654,11 @@ static int pibc_search_estimation(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_PIBC *pi,
         const int boundX = EVC_MAX(srch_rng_hor_left, -cu_pel_x);
         for (int x = 0 - roi_width - pu_pel_offset_x; x >= boundX; --x)
         {
-            if (!is_bv_valid(ctx, cu_pel_x, cu_pel_y, roi_width, roi_height, log2_cuw, log2_cuh, pic_width, pic_height, x, 0, lcu_width))
+            if (!is_bv_valid(ctx, cu_pel_x, cu_pel_y, roi_width, roi_height, log2_cuw, log2_cuh, pic_width, pic_height, x, 0, lcu_width
+#if EVC_TILE_SUPPORT
+                , core
+#endif
+            ))
             {
                 continue;
             }
@@ -654,7 +718,11 @@ static int pibc_search_estimation(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_PIBC *pi,
                     if ((x == 0) || ((int)(cu_pel_x + x + roi_width) >= pic_width))
                         continue;
 
-                    if (!is_bv_valid(ctx, cu_pel_x, cu_pel_y, roi_width, roi_height, log2_cuw, log2_cuh, pic_width, pic_height, x, y, lcu_width))
+                    if (!is_bv_valid(ctx, cu_pel_x, cu_pel_y, roi_width, roi_height, log2_cuw, log2_cuh, pic_width, pic_height, x, y, lcu_width
+#if  EVC_TILE_SUPPORT
+                        , core
+#endif
+                    ))
                     {
                         continue;
                     }
@@ -705,7 +773,11 @@ static int pibc_search_estimation(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_PIBC *pi,
                     if ((x == 0) || ((int)(cu_pel_x + x + roi_width) >= pic_width))
                         continue;
 
-                    if (!is_bv_valid(ctx, cu_pel_x, cu_pel_y, roi_width, roi_height, log2_cuw, log2_cuh, pic_width, pic_height, x, y, lcu_width))
+                    if (!is_bv_valid(ctx, cu_pel_x, cu_pel_y, roi_width, roi_height, log2_cuw, log2_cuh, pic_width, pic_height, x, y, lcu_width
+#if EVC_TILE_SUPPORT
+                        , core
+#endif
+                    ))
                     {
                         continue;
                     }
@@ -775,7 +847,11 @@ static int pibc_search_estimation(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_PIBC *pi,
                     if ((x == 0) || ((int)(cu_pel_x + x + roi_width) >= pic_width))
                         continue;
 
-                    if (!is_bv_valid(ctx, cu_pel_x, cu_pel_y, roi_width, roi_height, log2_cuw, log2_cuh, pic_width, pic_height, x, y, lcu_width))
+                    if (!is_bv_valid(ctx, cu_pel_x, cu_pel_y, roi_width, roi_height, log2_cuw, log2_cuh, pic_width, pic_height, x, y, lcu_width
+#if  EVC_TILE_SUPPORT
+                    ,core
+#endif
+                    ))
                     {
                         continue;
                     }
@@ -836,11 +912,19 @@ static u32 pibc_me_search(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_PIBC *pi, int x, 
 
     if (ctx->param.ibc_hash_search_flag
 #if M50761_CHROMA_NOT_SPLIT
-        && evce_check_luma(ctx)
+        && evce_check_luma(ctx
+#if EVC_CONCURENCY
+            , core
+#endif
+        )
 #endif
         )
     {
-        cost = search_ibc_hash_match(ctx, ctx->ibc_hash_handle, x, y, log2_cuw, log2_cuh, mvp, mv_temp);
+        cost = search_ibc_hash_match(ctx, ctx->ibc_hash_handle, x, y, log2_cuw, log2_cuh, mvp, mv_temp
+#if  EVC_TILE_SUPPORT
+            , core
+#endif
+        );
     }
 
     if (mv_temp[0] == 0 && mv_temp[1] == 0)
@@ -873,11 +957,20 @@ static double pibc_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int 
   u8 found_available_ibc = 0;
   core->ats_inter_info = 0;
 #if M50761_CHROMA_NOT_SPLIT
-  int start_c = evce_check_luma(ctx) ? Y_C : U_C;
-  int end_c = evce_check_chroma(ctx) ? N_C : U_C;
+  int start_c = evce_check_luma(ctx
+#if EVC_CONCURENCY
+      , core
+#endif
+  ) ? Y_C : U_C;
+  int end_c = evce_check_chroma(ctx
+#if EVC_CONCURENCY
+      , core
+#endif
+  ) ? N_C : U_C;
 #endif
 
   pi = &ctx->pibc;
+
   cuw = (1 << log2_cuw);
   cuh = (1 << log2_cuh);
 
@@ -1032,8 +1125,10 @@ static int pibc_init_frame(EVCE_CTX *ctx)
 void reset_ibc_search_range(EVCE_CTX *ctx, int cu_x, int cu_y, int log2_cuw, int log2_cuh)
 {
     int hashHitRatio = 0;
+
     ctx->pibc.search_range_x = ctx->param.ibc_search_range_x;
     ctx->pibc.search_range_y = ctx->param.ibc_search_range_y;
+
 
     hashHitRatio = get_hash_hit_ratio(ctx, ctx->ibc_hash_handle, cu_x, cu_y, log2_cuw, log2_cuh); // in percent
 
@@ -1042,6 +1137,7 @@ void reset_ibc_search_range(EVCE_CTX *ctx, int cu_x, int cu_y, int log2_cuw, int
         ctx->pibc.search_range_x >>= 1;
         ctx->pibc.search_range_y >>= 1;
     }
+
 }
 
 static int pibc_init_lcu(EVCE_CTX *ctx, EVCE_CORE *core)
@@ -1049,6 +1145,7 @@ static int pibc_init_lcu(EVCE_CTX *ctx, EVCE_CORE *core)
     EVCE_PIBC *pi;
 
     pi = &ctx->pibc;
+
     pi->lambda_mv = (u32)floor(65536.0 * ctx->sqrt_lambda[0]);
     pi->qp_y = core->qp_y;
     pi->qp_u = core->qp_u;
@@ -1061,6 +1158,7 @@ static int pibc_set_complexity(EVCE_CTX *ctx, int complexity)
 {
     EVCE_PIBC *pi;
 
+
     pi = &ctx->pibc;
 
     /* default values *************************************************/
@@ -1071,6 +1169,7 @@ static int pibc_set_complexity(EVCE_CTX *ctx, int complexity)
 
     pi->complexity = complexity;
 
+
     return EVC_OK;
 }
 
@@ -1080,6 +1179,7 @@ int evce_pibc_create(EVCE_CTX *ctx, int complexity)
     ctx->fn_pibc_init_frame = pibc_init_frame;
     ctx->fn_pibc_init_lcu = pibc_init_lcu;
     ctx->fn_pibc_set_complexity = pibc_set_complexity;
+
 
     /* set maximum/minimum value of search range */
     ctx->pibc.min_clip[MV_X] = -MAX_CU_SIZE + 1;
