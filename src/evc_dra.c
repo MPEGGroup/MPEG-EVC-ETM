@@ -693,7 +693,7 @@ void evce_initDRA(WCGDDRAControl *p_DRAMapping, int totalChangePoints, int *luma
     scaleCbDRA = EVC_CLIP3(0, 1 << p_DRAMapping->m_numIntBitsScale, scaleCbDRA);
     p_DRAMapping->m_intScaleCbDRA = (int)(scaleCbDRA * (1 << p_DRAMapping->m_numFracBitsScale) + 0.5);
     scaleCrDRA = EVC_CLIP3(0, 1 << p_DRAMapping->m_numIntBitsScale, scaleCrDRA);
-    p_DRAMapping->m_intScaleCrDRA = (int)(scaleCbDRA * (1 << p_DRAMapping->m_numFracBitsScale) + 0.5);
+    p_DRAMapping->m_intScaleCrDRA = (int)(scaleCrDRA * (1 << p_DRAMapping->m_numFracBitsScale) + 0.5);
 
     int configID = 0; // 0: HDR, 1: SDR
 
