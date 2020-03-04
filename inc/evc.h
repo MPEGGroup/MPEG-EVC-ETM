@@ -52,11 +52,7 @@ extern "C"
 #define QC_IN_RANGE_NUM_BITS     10  // # bits of input
 #define DRA_LUT_MAXSIZE 1024
 
-#if QC_DRA_LUT_SUBSAMPLE_TWO
-#define NUM_CHROMA_QP_OFFSET_LOG              65
-#else
-#define NUM_CHROMA_QP_OFFSET_LOG              130
-#endif
+#define NUM_CHROMA_QP_OFFSET_LOG              55
 #define NUM_CHROMA_QP_SCALE_EXP               25
 #endif
 

@@ -815,7 +815,6 @@ int evce_eco_udata_hdr(EVCE_CTX * ctx, EVC_BSW * bs, u8* pic_sign)
     EVC_IMGB *imgb_hdr_md5 = NULL;
     WCGDDRAControl* control_rda_md5 = malloc(sizeof(WCGDDRAControl));
     memcpy(&(control_rda_md5->m_lumaInvScaleLUT[0]), g_lumaInvScaleLUT, DRA_LUT_MAXSIZE * sizeof(int));
-    memcpy(&(control_rda_md5->m_chromaInvScaleLUT[0][0]), g_chromaInvScaleLUT, 2 * DRA_LUT_MAXSIZE * sizeof(double));
     memcpy(&(control_rda_md5->m_intChromaInvScaleLUT[0][0]), g_intChromaInvScaleLUT, 2 * DRA_LUT_MAXSIZE * sizeof(int));
     imgb_hdr_md5 = imgb_alloc1(PIC_CURR(ctx)->imgb->w[0], PIC_CURR(ctx)->imgb->h[0],
         EVC_COLORSPACE_YUV420_10LE);

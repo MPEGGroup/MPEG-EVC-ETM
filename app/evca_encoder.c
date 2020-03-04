@@ -3055,7 +3055,6 @@ int main(int argc, const char **argv)
 #if HDR_MD5_CHECK
         if (evce_get_pps_dra_flag(id)) {
             memcpy(g_lumaInvScaleLUT, &(p_g_dra_control->m_lumaInvScaleLUT[0]), DRA_LUT_MAXSIZE * sizeof(int));
-            memcpy(g_chromaInvScaleLUT, &(p_g_dra_control->m_chromaInvScaleLUT[0][0]), 2 * DRA_LUT_MAXSIZE * sizeof(double));
             memcpy(g_intChromaInvScaleLUT, &(p_g_dra_control->m_intChromaInvScaleLUT[0][0]), 2 * DRA_LUT_MAXSIZE * sizeof(int));
         }
 #endif
