@@ -3934,9 +3934,9 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                              , &remaining_split, ctx->sps.sps_btt_flag
 #if M50761_CHROMA_NOT_SPLIT
 #if EVC_CONCURENCY
-            , core->tree_cons
+        , core->tree_cons.mode_cons
 #else
-            , ctx->tree_cons
+	, ctx->tree_cons.mode_cons
 #endif
 #endif
         );
@@ -4320,28 +4320,27 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                         }
                     }
                 }
-                evc_split_get_part_structure(split_mode, x0, y0, cuw, cuh, cup, cud, ctx->log2_culine, &split_struct
-#if M50761_CHROMA_NOT_SPLIT
-                    ,  tree_cons
-#endif
-                );
+                evc_split_get_part_structure( split_mode, x0, y0, cuw, cuh, cup, cud, ctx->log2_culine, &split_struct );
 
                 if(split_allow[split_mode])
                 {
 #if M50761_CHROMA_NOT_SPLIT
-                    if (split_mode == SPLIT_QUAD)
+                    split_struct.tree_cons = tree_cons;
+
+                    BOOL mode_cons_changed = FALSE;
+                    BOOL mode_cons_signal = FALSE;
+
+                    if ( ctx->sps.tool_admvp && ctx->sps.sps_btt_flag ) // TODO: Tim, is special check needed here? create the specific variable for local dual tree ON/OFF
                     {
-                        // No processing of small chroma blocks in base line
-                        split_struct.tree_cons = evc_get_default_tree_cons();
+                        split_struct.tree_cons.changed = tree_cons.mode_cons == eAll && !evc_is_chroma_split_allowed( cuw, cuh, split_mode );
+#if EVC_CONCURENCY
+                        mode_cons_changed = evc_signal_mode_cons( &core->tree_cons, &split_struct.tree_cons );
+#else
+                        mode_cons_changed = evc_signal_mode_cons(&ctx->tree_cons, &split_struct.tree_cons);
+#endif  
+                        mode_cons_signal = mode_cons_changed && ( ctx->sh.slice_type != SLICE_I ) && ( evc_get_mode_cons_by_split( split_mode, cuw, cuh ) == eAll );
                     }
 
-#if EVC_CONCURENCY
-                              BOOL mode_cons_changed = evc_signal_mode_cons(&core->tree_cons, &split_struct.tree_cons);
-#else
-                    BOOL mode_cons_changed = evc_signal_mode_cons(&ctx->tree_cons, &split_struct.tree_cons);
-#endif                        
-
-                    BOOL mode_cons_signal = mode_cons_changed && (ctx->sh.slice_type != SLICE_I) && (evc_get_mode_cons_by_split(split_mode, cuw, cuh) == eAll);
                     for (int mode_num = 0; mode_num < (mode_cons_signal ? 2 : 1); ++mode_num)
                     {
                         if (mode_cons_changed)
@@ -4400,9 +4399,8 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                                 evc_set_suco_flag(suco_flag, cud, 0, cuw, cuh, cuw, core->cu_data_temp[log2_cuw - 2][log2_cuh - 2].suco_flag);
                             }
 #if M50761_CHROMA_NOT_SPLIT
-                            if (split_mode != SPLIT_QUAD)       // Only for main profile
+                            if ( ctx->sps.tool_admvp && ctx->sps.sps_btt_flag && mode_cons_signal )       // TODO: Tim, is special check needed here? create the specific variable for local dual tree ON/OFF
                             {
-                                if (mode_cons_signal)
 #if EVC_CONCURENCY
                                     evce_eco_mode_constr(&core->bs_temp, split_struct.tree_cons.mode_cons, core->ctx_flags[CNID_MODE_CONS]);
 #else
@@ -5207,3 +5205,10 @@ int evce_mode_create(EVCE_CTX *ctx, int complexity)
 
     return ctx->fn_mode_set_complexity(ctx, complexity);
 }
+
+#if M50761_CHROMA_NOT_SPLIT
+BOOL evc_signal_mode_cons(TREE_CONS* parent, TREE_CONS* cur_split)
+{
+    return parent->mode_cons == eAll && cur_split->changed;
+}
+#endif

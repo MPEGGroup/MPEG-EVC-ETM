@@ -2884,9 +2884,9 @@ int evce_eco_split_mode(EVC_BSW *bs, EVCE_CTX *c, EVCE_CORE *core, int cud, int 
                          , NULL, c->sps.sps_btt_flag
 #if M50761_CHROMA_NOT_SPLIT
 #if EVC_CONCURENCY
-        , core->tree_cons
+        , core->tree_cons.mode_cons
 #else
-        , c->tree_cons
+        , c->tree_cons.mode_cons
 #endif
 #endif
     );

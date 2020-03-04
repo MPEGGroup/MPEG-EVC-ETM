@@ -68,7 +68,13 @@
 //MPEG 128 adoptions
 #define M50761                                       1
 #if M50761
+
 #define M50761_CHROMA_NOT_SPLIT                      1 //chroma no split for avoiding 2x2, 2x4 and 4x2 chroma blocks
+
+#if M50761_CHROMA_NOT_SPLIT
+#define M50761_CHROMA_NOT_SPLIT_CLEANUP              1
+#endif
+
 #endif
 
 #if M52223
@@ -1438,6 +1444,13 @@ typedef struct _TREE_CONS
     TREE_TYPE       tree_type;
     MODE_CONS       mode_cons;
 } TREE_CONS;
+
+typedef struct _TREE_CONS_NEW
+{
+    TREE_TYPE       tree_type;
+    MODE_CONS       mode_cons;
+} TREE_CONS_NEW;
+
 #endif
 /*****************************************************************************
  * for binary and triple tree structure

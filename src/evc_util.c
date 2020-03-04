@@ -2855,6 +2855,7 @@ int evc_get_split_mode(s8 *split_mode, int cud, int cup, int cuw, int cuh, int l
     return ret;
 }
 
+#if !M50761_CHROMA_NOT_SPLIT_CLEANUP
 int evc_set_split_mode(s8 split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8 (*split_mode_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU])
 {
     int ret = EVC_OK;
@@ -2870,13 +2871,23 @@ int evc_set_split_mode(s8 split_mode, int cud, int cup, int cuw, int cuh, int lc
 
     return ret;
 }
+#else
+void evc_set_split_mode(s8 split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8 (*split_mode_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU])
+{
+    int pos = cup + (((cuh >> 1) >> MIN_CU_LOG2) * (lcu_s >> MIN_CU_LOG2) + ((cuw >> 1) >> MIN_CU_LOG2));
+    int shape = SQUARE + (CONV_LOG2(cuw) - CONV_LOG2(cuh));
+
+    if(cuw >= 8 || cuh >= 8)
+        split_mode_buf[cud][shape][pos] = split_mode;
+}
+#endif
 
 void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boundary, int boundary_b, int boundary_r, int log2_max_cuwh
                           , const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth
                           , int x, int y, int im_w, int im_h
                           , u8 *remaining_split, int sps_btt_flag
 #if M50761_CHROMA_NOT_SPLIT
-                          , TREE_CONS tree_cons
+                          , MODE_CONS mode_cons
 #endif
 )
 {
@@ -3059,15 +3070,12 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
     }
 #endif
 #if M50761_CHROMA_NOT_SPLIT
-    if (tree_cons.mode_cons == eOnlyInter)
+    if (mode_cons == eOnlyInter)
     {
         int cuw = 1 << log2_cuw;
         int cuh = 1 << log2_cuh;
         for (int mode = SPLIT_BI_VER; mode < SPLIT_QUAD; ++mode)
             split_allow[mode] &= evc_get_mode_cons_by_split(mode, cuw, cuh) == eAll;
-
-        if (sps_btt_flag)
-            split_allow[SPLIT_QUAD] &= evc_get_mode_cons_by_split(SPLIT_QUAD, cuw, cuh) == eAll;
     }
 #endif
 }
@@ -3089,6 +3097,7 @@ int evc_get_suco_flag(s8* suco_flag, int cud, int cup, int cuw, int cuh, int lcu
     return ret;
 }
 
+#if !M50761_CHROMA_NOT_SPLIT_CLEANUP
 int evc_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU])
 {
     int ret = EVC_OK;
@@ -3106,6 +3115,18 @@ int evc_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lcu
 
     return ret;
 }
+#else
+void evc_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU])
+{
+    int pos = cup + (((cuh >> 1) >> MIN_CU_LOG2) * (lcu_s >> MIN_CU_LOG2) + ((cuw >> 1) >> MIN_CU_LOG2));
+    int shape = SQUARE + (CONV_LOG2(cuw) - CONV_LOG2(cuh));
+
+    if(cuw >= 8 || cuh >= 8)
+    {
+        suco_flag_buf[cud][shape][pos] = suco_flag;
+    }
+}
+#endif
 
 u8 evc_check_suco_cond(int cuw, int cuh, s8 split_mode, int boundary, u8 log2_max_cuwh, u8 suco_max_depth, u8 suco_depth)
 {
@@ -5198,11 +5219,7 @@ int evc_split_get_part_size_idx(int split_mode, int part_num, int length_idx)
     return ans;
 }
 
-void evc_split_get_part_structure(int split_mode, int x0, int y0, int cuw, int cuh, int cup, int cud, int log2_culine, EVC_SPLIT_STRUCT* split_struct
-#if M50761_CHROMA_NOT_SPLIT
-    , TREE_CONS tree_cons /*, u8 slice_type */
-#endif
-)
+void evc_split_get_part_structure(int split_mode, int x0, int y0, int cuw, int cuh, int cup, int cud, int log2_culine, EVC_SPLIT_STRUCT* split_struct)
 {
     int i;
     int log_cuw, log_cuh;
@@ -5214,13 +5231,6 @@ void evc_split_get_part_structure(int split_mode, int x0, int y0, int cuw, int c
     split_struct->x_pos[0] = x0;
     split_struct->y_pos[0] = y0;
     split_struct->cup[0] = cup;
-#if M50761_CHROMA_NOT_SPLIT
-    split_struct->tree_cons = tree_cons;
-    if (!tree_cons.changed && !evc_tree_split_allowed(cuw, cuh, split_mode))
-    {
-        split_struct->tree_cons.changed = TRUE;
-    }
-#endif
 
     switch(split_mode)
     {
@@ -5726,12 +5736,10 @@ u8 evc_check_chroma_split_allowed(int luma_width, int luma_height)
 }
 
 
-u8 evc_tree_split_allowed(int w, int h, SPLIT_MODE split)
+u8 evc_is_chroma_split_allowed(int w, int h, SPLIT_MODE split)
 {
     switch (split)
     {
-    case SPLIT_QUAD:
-        return evc_check_chroma_split_allowed(w >> 1, h >> 1);
     case SPLIT_BI_VER:
         return evc_check_chroma_split_allowed(w >> 1, h);
     case SPLIT_BI_HOR:
@@ -5741,10 +5749,9 @@ u8 evc_tree_split_allowed(int w, int h, SPLIT_MODE split)
     case SPLIT_TRI_HOR:
         return evc_check_chroma_split_allowed(w, h >> 2);
     default:
-        evc_assert(0);
+        evc_assert(!"This check is for BTT only");
         return 0;
     }
-
 }
 
 enum TQC_RUN evc_get_run(enum TQC_RUN run_list, TREE_CONS tree_cons)
@@ -5817,11 +5824,6 @@ void evc_set_tree_mode(TREE_CONS* dest, MODE_CONS mode)
     }
 }
 
-BOOL evc_signal_mode_cons(TREE_CONS* parent, TREE_CONS* cur_split)
-{
-    return !parent->changed && cur_split->changed;
-}
-
 MODE_CONS evc_get_mode_cons_by_split(SPLIT_MODE split_mode, int cuw, int cuh)
 {
     int small_cuw = cuw;
@@ -5840,12 +5842,8 @@ MODE_CONS evc_get_mode_cons_by_split(SPLIT_MODE split_mode, int cuw, int cuh)
     case SPLIT_TRI_VER:
         small_cuw >>= 2;
         break;
-    case SPLIT_QUAD:
-        small_cuw >>= 1;
-        small_cuh >>= 1;
-        break;
     default:
-        evc_assert(0);
+        evc_assert(!"For BTT only");
     }
     return (small_cuh == 4 && small_cuw == 4) ? eOnlyIntra : eAll;
 }

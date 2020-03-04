@@ -219,11 +219,7 @@ int evc_split_get_part_size(int split_mode, int part_num, int length);
 //! Get partition size log
 int evc_split_get_part_size_idx(int split_mode, int part_num, int length_idx);
 //! Get partition split structure
-void evc_split_get_part_structure(int split_mode, int x0, int y0, int cuw, int cuh, int cup, int cud, int log2_culine, EVC_SPLIT_STRUCT* split_struct
-#if M50761_CHROMA_NOT_SPLIT
-    , TREE_CONS tree_cons /*, u8 slice_type */
-#endif
-);
+void evc_split_get_part_structure(int split_mode, int x0, int y0, int cuw, int cuh, int cup, int cud, int log2_culine, EVC_SPLIT_STRUCT* split_struct);
 //! Get array of split modes tried sequentially in RDO
 void evc_split_get_split_rdo_order(int cuw, int cuh, SPLIT_MODE splits[MAX_SPLIT_NUM]);
 //! Get split direction. Quad will return vertical direction.
@@ -248,10 +244,19 @@ int evc_get_avail_cu(int neb_scua[MAX_NEB2], u32 * map_cu
 int evc_scan_tbl_init();
 int evc_scan_tbl_delete();
 int evc_get_split_mode(s8* split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*split_mode_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]);
-int evc_set_split_mode(s8  split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*split_mode_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]);
+#if !M50761_CHROMA_NOT_SPLIT_CLEANUP
+int
+#else
+void 
+#endif
+evc_set_split_mode(s8  split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*split_mode_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]);
 int evc_get_suco_flag(s8* suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]);
-int evc_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]);
-
+#if !M50761_CHROMA_NOT_SPLIT_CLEANUP
+int
+#else
+void
+#endif
+evc_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]);
 u8  evc_check_suco_cond(int cuw, int cuh, s8 split_mode, int boundary, u8 log2_max_cuwh, u8 suco_max_depth, u8 suco_depth);
 u16 evc_check_nev_avail(int x_scu, int y_scu, int cuw, int cuh, int w_scu, int h_scu, u32 * map_scu
 #if EVC_TILE_SUPPORT
@@ -334,7 +339,7 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                           , int x, int y, int im_w, int im_h
                           , u8* remaining_split, int sps_btt_flag
 #if M50761_CHROMA_NOT_SPLIT
-                          , TREE_CONS tree_cons
+                          , MODE_CONS mode_cons
 #endif
 );
 
@@ -372,7 +377,7 @@ void evc_block_copy(s16 * src, int src_stride, s16 * dst, int dst_stride, int lo
 
 #if M50761_CHROMA_NOT_SPLIT
 u8 evc_check_chroma_split_allowed(int luma_width, int luma_height);
-u8 evc_tree_split_allowed(int w, int h, SPLIT_MODE split);
+u8 evc_is_chroma_split_allowed(int w, int h, SPLIT_MODE split);
 int evc_get_luma_cup(int x_scu, int y_scu, int cu_w_scu, int cu_h_scu, int w_scu);
 enum TQC_RUN evc_get_run(enum TQC_RUN run_list, TREE_CONS tree_cons);
 u8 evc_check_luma(TREE_CONS tree_cons);
@@ -384,7 +389,6 @@ u8 evc_check_all_preds(TREE_CONS tree_cons);
 //u8 evc_get_cur_tree(TREE_CONS tree_cons);       // Return current tree type: 0 - luma (or dual) and 1 - chroma.
 TREE_CONS evc_get_default_tree_cons();
 void evc_set_tree_mode(TREE_CONS* dest, MODE_CONS mode);
-BOOL evc_signal_mode_cons(TREE_CONS* parent, TREE_CONS* cur_split);
 MODE_CONS evc_get_mode_cons_by_split(SPLIT_MODE split_mode, int cuw, int cuh);
 #endif
 
