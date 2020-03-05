@@ -329,7 +329,7 @@ static int eco_cbf(EVC_BSR * bs, EVCD_SBAC * sbac, u8 pred_mode, u8 cbf[N_C], in
     /* decode allcbf */
     if(pred_mode != MODE_INTRA
 #if M50761_CHROMA_NOT_SPLIT 
-        && !evc_check_only_intra(tree_cons)
+       && tree_cons.tree_type == TREE_LC
 #endif
         )
     {
@@ -1632,8 +1632,8 @@ void evcd_eco_inter_pred_idc(EVCD_CTX * ctx, EVCD_CORE * core)
 
 s8 evcd_eco_split_mode(EVCD_CTX * c, EVC_BSR *bs, EVCD_SBAC *sbac, int cuw, int cuh, const int parent_split, int* same_layer_split,
                         const int node_idx, const int* parent_split_allow, int* curr_split_allow, int qt_depth, int btt_depth, int x, int y
-#if EVC_CONCURENCY
-    , EVCD_CORE * core
+#if M50761_CHROMA_NOT_SPLIT
+                       , MODE_CONS mode_cons
 #endif
 )
 {
@@ -1666,11 +1666,7 @@ s8 evcd_eco_split_mode(EVCD_CTX * c, EVC_BSR *bs, EVCD_SBAC *sbac, int cuw, int 
                           , x, y, c->w, c->h
                           , NULL, c->sps.sps_btt_flag
 #if M50761_CHROMA_NOT_SPLIT
-#if EVC_CONCURENCY
-        , core->tree_cons
-#else
-        , c->tree_cons
-#endif
+                          , mode_cons
 #endif
     );
 
@@ -1883,6 +1879,7 @@ int evcd_eco_affine_mvd_flag(EVCD_CTX * ctx, EVCD_CORE * core, int refi)
     return t0;
 }
 
+#if !M50761_CHROMA_NOT_SPLIT_CLEANUP
 void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
 {
     EVCD_SBAC   *sbac;
@@ -2034,6 +2031,63 @@ void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
             core->pred_mode = MODE_INTRA;
         }
 }
+#else
+void evcd_eco_pred_mode( EVCD_CTX * ctx, EVCD_CORE * core )
+{
+    EVC_BSR     *bs = &ctx->bs;
+    EVCD_SBAC   *sbac = GET_SBAC_DEC( bs );
+    BOOL        pred_mode_flag = FALSE;
+#if EVC_CONCURENCY
+    TREE_CONS   tree_cons = core->tree_cons;
+    u8*         ctx_flags = core->ctx_flags;
+#else
+    TREE_CONS   tree_cons = ctx->tree_cons;
+    u8*         ctx_flags = ctx->ctx_flags;
+#endif
+
+    MODE_CONS   pred_mode_constraint = tree_cons.mode_cons; //TODO: Tim changed place
+
+    if ( pred_mode_constraint == eAll )
+        pred_mode_flag = evcd_sbac_decode_bin( bs, sbac, sbac->ctx.pred_mode + ctx_flags[CNID_PRED_MODE] );
+
+    BOOL isIbcAllowed = ctx->sps.ibc_flag &&
+        core->log2_cuw <= ctx->sps.ibc_log_max_size && core->log2_cuh <= ctx->sps.ibc_log_max_size &&
+        tree_cons.tree_type != TREE_C &&
+        pred_mode_constraint != eOnlyInter &&
+        !( pred_mode_constraint == eAll && pred_mode_flag );
+
+    core->ibc_flag = FALSE;
+
+    if ( isIbcAllowed )
+        core->ibc_flag = evcd_sbac_decode_bin( bs, sbac, sbac->ctx.ibc_flag + ctx_flags[CNID_IBC_FLAG] );
+
+    if ( core->ibc_flag )
+        core->pred_mode = MODE_IBC;
+    else if ( pred_mode_constraint == eOnlyInter )
+        core->pred_mode = MODE_INTER;
+    else if( pred_mode_constraint == eOnlyIntra )
+        core->pred_mode = MODE_INTRA;
+    else 
+        core->pred_mode = pred_mode_flag ? MODE_INTRA : MODE_INTER;
+
+    EVC_TRACE_COUNTER;
+    EVC_TRACE_STR( "pred mode " );
+    EVC_TRACE_INT( core->pred_mode );
+    EVC_TRACE_STR( "\n" );
+
+#if TRACE_ADDITIONAL_FLAGS
+    if ( isIbcAllowed )
+    {
+        EVC_TRACE_COUNTER;
+        EVC_TRACE_STR( "ibc pred mode " );
+        EVC_TRACE_INT( !!core->ibc_flag );
+        EVC_TRACE_STR( "ctx " );
+        EVC_TRACE_INT( ctx->ctx_flags[CNID_IBC_FLAG] );
+        EVC_TRACE_STR( "\n" );
+    }
+#endif
+}
+#endif
 
 void evcd_eco_cu_skip_flag(EVCD_CTX * ctx, EVCD_CORE * core)
 {
@@ -2068,23 +2122,13 @@ void evcd_eco_cu_skip_flag(EVCD_CTX * ctx, EVCD_CORE * core)
 }
 
 #if M50761_CHROMA_NOT_SPLIT
-MODE_CONS evcd_eco_mode_constr(EVCD_CTX * ctx
-#if EVC_CONCURENCY
-    , EVCD_CORE *core
-#endif
-)
+MODE_CONS evcd_eco_mode_constr( EVC_BSR *bs, u8 ctx_num )
 {
     EVCD_SBAC   *sbac;
-    EVC_BSR     *bs;
     u32          t0;
 
-    bs = &ctx->bs;
     sbac = GET_SBAC_DEC(bs);
-#if EVC_CONCURENCY
-    t0 = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.mode_cons + core->ctx_flags[CNID_MODE_CONS]);
-#else
-    t0 = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.mode_cons + ctx->ctx_flags[CNID_MODE_CONS]);
-#endif
+    t0 = evcd_sbac_decode_bin( bs, sbac, sbac->ctx.mode_cons + ctx_num );
     EVC_TRACE_COUNTER;
     EVC_TRACE_STR("mode_constr ");
     EVC_TRACE_INT(t0);
@@ -2157,15 +2201,11 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
 #endif
     );    
 
+#if !M50761_CHROMA_NOT_SPLIT
     if (ctx->sh.slice_type != SLICE_I && !(ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2)
-#if M50761_CHROMA_NOT_SPLIT
-#if EVC_CONCURENCY
-        && (evcd_check_only_inter(ctx, core) || evcd_check_all_preds(ctx, core))
 #else
-        && (evcd_check_only_inter(ctx) || evcd_check_all_preds(ctx))
+    if ( !evcd_check_only_intra(ctx, core) )
 #endif
-#endif
-        )
     {
         /* CU skip flag */
         evcd_eco_cu_skip_flag(ctx, core); /* cu_skip_flag */
@@ -2208,7 +2248,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
             }
         }
 
-        core->is_coef[Y_C] = core->is_coef[U_C] = core->is_coef[V_C] = 0;
+        core->is_coef[Y_C] = core->is_coef[U_C] = core->is_coef[V_C] = 0;   //TODO: Tim why we need to duplicate code here?
         evc_mset(core->is_coef_sub, 0, sizeof(int) * N_C * MAX_SUB_TB_NUM);
 #if DQP //need to check
         if(ctx->pps.cu_qp_delta_enabled_flag)
@@ -2454,14 +2494,9 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                 else
                 {
                     int luma_cup = evc_get_luma_cup(core->x_scu, core->y_scu, PEL2SCU(cuw), PEL2SCU(cuh), ctx->w_scu);
-                    if(MCU_GET_IF(ctx->map_scu[luma_cup]))
-                    {
-                        luma_ipm = ctx->map_ipm[luma_cup];
-                    }
-                    else
-                    {
-                        luma_ipm = IPD_DC_B;
-                    }
+                    assert( MCU_GET_IF( ctx->map_scu[luma_cup] ) && "IBC is forbidden for this case (EIPD off)");
+  
+                    luma_ipm = ctx->map_ipm[luma_cup];
                 }
                 if(evcd_check_chroma(ctx
 #if EVC_CONCURENCY

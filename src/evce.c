@@ -1143,30 +1143,33 @@ static int evce_eco_tree(EVCE_CTX * ctx, EVCE_CORE * core, int x0, int y0, int c
         evce_eco_suco_flag(bs, ctx, core, cud, cup, cuw, cuh, ctx->max_cuwh, split_mode, bound, ctx->log2_max_cuwh);
         EVC_SPLIT_STRUCT split_struct;
         int suco_order[SPLIT_MAX_PART_COUNT];
-        evc_split_get_part_structure(split_mode, x0, y0, cuw, cuh, cup, cud, ctx->log2_culine, &split_struct
-#if M50761_CHROMA_NOT_SPLIT
-            , tree_cons
-#endif
-        );
+        evc_split_get_part_structure(split_mode, x0, y0, cuw, cuh, cup, cud, ctx->log2_culine, &split_struct);
+
         evc_split_get_suco_order(suco_flag, split_mode, suco_order);
 #if M50761_CHROMA_NOT_SPLIT
-        BOOL mode_cons_changed = evc_signal_mode_cons(            
-#if EVC_CONCURENCY
-            &core->tree_cons 
-#else
-            &ctx->tree_cons 
-#endif
-            , &split_struct.tree_cons);
+        split_struct.tree_cons = tree_cons;
 
-        BOOL mode_cons_signal = mode_cons_changed && (ctx->sh.slice_type != SLICE_I) && (evc_get_mode_cons_by_split(split_mode, cuw, cuh) == eAll);
-        if (mode_cons_changed)
-        {
-            MODE_CONS mode = evce_derive_mode_cons(ctx, core->lcu_num, cup);
-            evc_set_tree_mode(&split_struct.tree_cons, mode);
-        }
+        BOOL mode_cons_changed = FALSE;
 
-        if (split_mode != SPLIT_QUAD )       // Only for main profile
+        if ( ctx->sps.sps_btt_flag && ctx->sps.tool_admvp )       // TODO: Tim create the specific variable for local dual tree ON/OFF
         {
+            split_struct.tree_cons.changed = tree_cons.mode_cons == eAll && !evc_is_chroma_split_allowed( cuw, cuh, split_mode );
+
+            mode_cons_changed = evc_signal_mode_cons(
+                                                    #if EVC_CONCURENCY
+                                                                    &core->tree_cons 
+                                                    #else
+                                                                    &ctx->tree_cons 
+                                                    #endif
+                                                    ,               &split_struct.tree_cons);
+
+            BOOL mode_cons_signal = mode_cons_changed && (ctx->sh.slice_type != SLICE_I) && (evc_get_mode_cons_by_split(split_mode, cuw, cuh) == eAll);
+            if (mode_cons_changed)
+            {
+                MODE_CONS mode = evce_derive_mode_cons(ctx, core->lcu_num, cup);
+                evc_set_tree_mode(&split_struct.tree_cons, mode);
+            }
+
             if (mode_cons_signal)
             {
 
@@ -1608,24 +1611,26 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
     {
         EVC_SPLIT_STRUCT split_struct;
         int suco_order[SPLIT_MAX_PART_COUNT];
-        evc_split_get_part_structure(split_mode, x, y, cuw, cuh, cup, cud, ctx->log2_culine, &split_struct
-#if M50761_CHROMA_NOT_SPLIT
-            , tree_cons
-#endif
-        );
+        evc_split_get_part_structure( split_mode, x, y, cuw, cuh, cup, cud, ctx->log2_culine, &split_struct );
+
         evc_split_get_suco_order(suco_flag, split_mode, suco_order);
         
 #if M50761_CHROMA_NOT_SPLIT
-        BOOL mode_cons_changed = evc_signal_mode_cons(            
-#if EVC_CONCURENCY
-            &core->tree_cons 
-#else
-            &ctx->tree_cons 
-#endif
-            , &split_struct.tree_cons);
+        split_struct.tree_cons = tree_cons;
 
-        if (split_mode != SPLIT_QUAD )       // Only for main profile
+        BOOL mode_cons_changed = FALSE;
+
+        if ( ctx->sps.tool_admvp && ctx->sps.sps_btt_flag )       // TODO: Tim create the specific variable for local dual tree ON/OFF
         {
+            split_struct.tree_cons.changed = tree_cons.mode_cons == eAll && !evc_is_chroma_split_allowed( cuw, cuh, split_mode );
+            mode_cons_changed = evc_signal_mode_cons(
+                                                        #if EVC_CONCURENCY
+                                                                        &core->tree_cons 
+                                                        #else
+                                                                        &ctx->tree_cons 
+                                                        #endif
+                                                                        , &split_struct.tree_cons);
+
             if (mode_cons_changed)
             {
                 MODE_CONS mode = evce_derive_mode_cons(ctx, lcu_num, cup);
@@ -1634,9 +1639,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
         }
         else
         {
-            // In base profile we have small chroma blocks
             split_struct.tree_cons = evc_get_default_tree_cons();
-            mode_cons_changed = FALSE;
         }
 #endif
         for(int part_num = 0; part_num < split_struct.part_count; ++part_num)
