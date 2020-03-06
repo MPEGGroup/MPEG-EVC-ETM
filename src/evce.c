@@ -329,6 +329,55 @@ static void set_nalu(EVC_NALU * nalu, int nalu_type)
     nalu->nuh_reserved_zero_5bits = 0;
     nalu->nuh_extension_flag = 0;
 }
+#if EVC_VUI_FIX
+// Dummy VUI initialization 
+static void set_vui(EVCE_CTX * ctx, EVC_VUI * vui) 
+{
+    vui->aspect_ratio_info_present_flag = 1;
+    vui->aspect_ratio_idc = 1;
+    vui->sar_width = 1;
+    vui->sar_height = 1;
+    vui->overscan_info_present_flag = 1; 
+    vui->overscan_appropriate_flag = 1;
+    vui->video_signal_type_present_flag = 1;
+    vui->video_format = 1;
+    vui->video_full_range_flag = 1;
+    vui->colour_description_present_flag = 1;
+    vui->colour_primaries = 1;
+    vui->transfer_characteristics = 1;
+    vui->matrix_coefficients = 1;
+    vui->chroma_loc_info_present_flag = 1;
+    vui->chroma_sample_loc_type_top_field = 1;
+    vui->chroma_sample_loc_type_bottom_field = 1;
+    vui->neutral_chroma_indication_flag = 1;
+    vui->timing_info_present_flag = 1;
+    vui->num_units_in_tick = 1;
+    vui->time_scale = 1;
+    vui->fixed_pic_rate_flag = 1;
+    vui->nal_hrd_parameters_present_flag = 1;
+    vui->vcl_hrd_parameters_present_flag = 1;
+    vui->low_delay_hrd_flag = 1;
+    vui->pic_struct_present_flag = 1;
+    vui->bitstream_restriction_flag = 1;
+    vui->motion_vectors_over_pic_boundaries_flag = 1;
+    vui->max_bytes_per_pic_denom = 1;
+    vui->max_bits_per_mb_denom = 1;
+    vui->log2_max_mv_length_horizontal = 1;
+    vui->log2_max_mv_length_vertical = 1;
+    vui->num_reorder_pics = 1;
+    vui->max_dec_pic_buffering = 1;
+    vui->hrd_parameters.cpb_cnt_minus1 = 1;
+    vui->hrd_parameters.bit_rate_scale = 1;
+    vui->hrd_parameters.cpb_size_scale = 1;
+    memset(&(vui->hrd_parameters.bit_rate_value_minus1), 0, sizeof(int)*NUM_CPB);
+    memset(&(vui->hrd_parameters.cpb_size_value_minus1), 0, sizeof(int)*NUM_CPB);
+    memset(&(vui->hrd_parameters.cbr_flag), 0, sizeof(int)*NUM_CPB);
+    vui->hrd_parameters.initial_cpb_removal_delay_length_minus1 = 1;
+    vui->hrd_parameters.cpb_removal_delay_length_minus1 = 1;
+    vui->hrd_parameters.dpb_output_delay_length_minus1 = 1;
+    vui->hrd_parameters.time_offset_length = 1;
+}
+#endif
 
 static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
 {
@@ -449,6 +498,9 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     memcpy(sps->rpls_l1, ctx->cdsc.rpls_l1, ctx->cdsc.rpls_l1_cfg_num * sizeof(sps->rpls_l1[0]));
 
     sps->vui_parameters_present_flag = 0;
+#if EVC_VUI_FIX
+    set_vui(ctx, &(sps->vui_parameters));
+#endif
 
 #if DQP
     sps->dquant_flag = ctx->cdsc.profile == 0 ? 0 : 1;                 /*Baseline : Active SPSs shall have sps_dquant_flag equal to 0 only*/
@@ -532,9 +584,11 @@ static void set_pps(EVCE_CTX * ctx, EVC_PPS * pps)
 #endif
 }
 
+#if !M52291_HDR_DRA
 static void set_aps(EVCE_CTX * ctx, EVC_APS * aps)
 {
 }
+#endif
 
 typedef struct _QP_ADAPT_PARAM
 {
@@ -3157,33 +3211,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             ret = evce_eco_nalu(bs, aps_nalu);
             evc_assert_rv(ret == EVC_OK, ret);
 
-#if EVC_TILE_SUPPORT
-            u8 * tmp_ptr;
-            tmp_ptr = bs->cur;
-#endif
-#if M52291_HDR_DRA
-            evc_AlfSliceParam* p_aps_data = (evc_AlfSliceParam*)aps_alf->aps_data;
-            aps_alf->aps_id = aps->aps_id;
-            memcpy(p_aps_data, &(aps->alf_aps_param), sizeof(evc_AlfSliceParam));
-            evc_assert_rv(evce_eco_aps_gen(bs, aps_alf) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
-#else
-            /* Write ALF-APS */
-            set_aps(ctx, aps); // TBD: empty function call
-            evc_assert_rv(evce_eco_aps(bs, aps) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
-#endif
-
-            evc_bsw_deinit(bs);
-#if EVC_TILE_SUPPORT
-            aps_nalu.nal_unit_size = (int)((bs)->cur - tmp_ptr);
-            tmp_ptr1[0] = aps_nalu.nal_unit_size & 0x000000ff; //TBC(@Chernyak): is there a better way?
-            tmp_ptr1[1] = (aps_nalu.nal_unit_size & 0x0000ff00) >> 8;
-            tmp_ptr1[2] = (aps_nalu.nal_unit_size & 0x00ff0000) >> 16;
-            tmp_ptr1[3] = (aps_nalu.nal_unit_size & 0xff000000) >> 24;
-            aps_nalu_size = aps_nalu.nal_unit_size + 4;
-#else
-            aps_nalu.nal_unit_size = evce_bsw_write_nalu_size(bs);
-            aps_nalu_size = aps_nalu.nal_unit_size + 4;
-#endif
             /* Write DRA-APS */
             evc_assert_rv(evce_eco_aps_gen(bs, aps_dra) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
             evc_bsw_deinit(bs);

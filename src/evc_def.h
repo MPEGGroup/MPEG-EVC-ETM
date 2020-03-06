@@ -423,7 +423,6 @@ typedef struct _evc_AlfFilterShape
 
 /* HDR (START) */
 #if M52291_HDR_DRA
-#define QC_DRA_LUT_SUBSAMPLE_TWO           0 
 #define DBF_CLIP_FIX                       1
 #define HDR_MD5_CHECK                      1
 #endif
@@ -1146,6 +1145,72 @@ typedef struct _EVC_NALU
     int nuh_extension_flag;
 } EVC_NALU;
 
+
+#if EVC_VUI_FIX
+#define     EXTENDED_SAR 255
+#define     NUM_CPB 32
+
+/*****************************************************************************
+* Hypothetical Reference Decoder (HRD) parameters, part of VUI
+*****************************************************************************/
+typedef struct _EVC_HRD
+{
+    int cpb_cnt_minus1;
+    int bit_rate_scale;
+    int cpb_size_scale;
+    int bit_rate_value_minus1[NUM_CPB];
+    int cpb_size_value_minus1[NUM_CPB];
+    int cbr_flag[NUM_CPB];
+    int    initial_cpb_removal_delay_length_minus1;
+    int cpb_removal_delay_length_minus1;
+    int dpb_output_delay_length_minus1;
+    int time_offset_length;
+} EVC_HRD;
+
+/*****************************************************************************
+* video usability information (VUI) part of SPS
+*****************************************************************************/
+typedef struct _EVC_VUI
+{
+
+    int aspect_ratio_info_present_flag;
+    int aspect_ratio_idc;
+    int sar_width;
+    int sar_height;
+    int overscan_info_present_flag;
+    int overscan_appropriate_flag;
+    int video_signal_type_present_flag;
+    int video_format;
+    int video_full_range_flag;
+    int colour_description_present_flag;
+    int colour_primaries;
+    int transfer_characteristics;
+    int matrix_coefficients;
+    int chroma_loc_info_present_flag;
+    int chroma_sample_loc_type_top_field;
+    int chroma_sample_loc_type_bottom_field;
+    int neutral_chroma_indication_flag;
+    int timing_info_present_flag;
+    int num_units_in_tick;
+    int time_scale;
+    int fixed_pic_rate_flag;
+    int nal_hrd_parameters_present_flag;
+    int vcl_hrd_parameters_present_flag;
+    int low_delay_hrd_flag;
+    int pic_struct_present_flag;
+    int bitstream_restriction_flag;
+    int motion_vectors_over_pic_boundaries_flag;
+    int max_bytes_per_pic_denom;
+    int max_bits_per_mb_denom;
+    int log2_max_mv_length_horizontal;
+    int log2_max_mv_length_vertical;
+    int num_reorder_pics;
+    int max_dec_pic_buffering;
+
+    EVC_HRD hrd_parameters;
+} EVC_VUI;
+#endif
+
 /*****************************************************************************
  * sequence parameter set
  *****************************************************************************/
@@ -1226,6 +1291,9 @@ typedef struct _EVC_SPS
     int              vui_parameters_present_flag;
 #if M52291_HDR_DRA
     int tool_dra;
+#endif
+#if EVC_VUI_FIX
+    EVC_VUI vui_parameters;
 #endif
 } EVC_SPS;
 

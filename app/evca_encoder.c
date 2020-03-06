@@ -1404,14 +1404,9 @@ static int get_conf(EVCE_CDSC * cdsc)
             } while (1);
             evc_assert(l_chroma_qp_table.num_points_in_qp_table_minus1[1] + 1 == j);
         }
-#if M52291_HDR_DRA
         evca_parse_chroma_qp_mapping_params(&(cdsc->chroma_qp_table_struct), &l_chroma_qp_table);  // parse input params and create chroma_qp_table_struct structure
         evc_derived_chroma_qp_mapping_tables(&(cdsc->chroma_qp_table_struct));
-#endif
     }
-#if !M52291_HDR_DRA
-    evca_parse_chroma_qp_mapping_params(&(cdsc->chroma_qp_table_struct), &l_chroma_qp_table);  // parse input params and create chroma_qp_table_struct structure
-#endif
     for (int i = 0; i < MAX_NUM_RPLS && op_rpl0[i][0] != 0; ++i)
     {
         cdsc->rpls_l0[i].pic_type = get_pic_type(strtok(op_rpl0[i], " "));
@@ -3055,7 +3050,6 @@ int main(int argc, const char **argv)
 #if HDR_MD5_CHECK
         if (evce_get_pps_dra_flag(id)) {
             memcpy(g_lumaInvScaleLUT, &(p_g_dra_control->m_lumaInvScaleLUT[0]), DRA_LUT_MAXSIZE * sizeof(int));
-            memcpy(g_chromaInvScaleLUT, &(p_g_dra_control->m_chromaInvScaleLUT[0][0]), 2 * DRA_LUT_MAXSIZE * sizeof(double));
             memcpy(g_intChromaInvScaleLUT, &(p_g_dra_control->m_intChromaInvScaleLUT[0][0]), 2 * DRA_LUT_MAXSIZE * sizeof(int));
         }
 #endif

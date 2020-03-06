@@ -889,32 +889,13 @@ const float g_RGB2XYZ_REC[5][9] =
 #endif
 #if M52291_HDR_DRA
 // input to table is in the range 0<input<256, as a result of multiplication of 2 scales with max value of <16.
-#if QC_DRA_LUT_SUBSAMPLE_TWO
 const int g_dra_chroma_qp_offset_tbl[NUM_CHROMA_QP_OFFSET_LOG] =  // Approximation of Log function at accuracy 1<<9 bits
 {
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 10
-  1, 1, 1, 1, 1, 2, 2, 3, 4, 4,    // 20
-  6, 7, 9, 11, 14, 18, 23, 29, 36, 45, //30
-  57, 72, 91, 114, 144, 181, 228, 287, 362, 456, //40
-  575, 724, 912, 1149, 1448, 1825, 2299,
-  2896, 3649, 4598, 5793, 7298, 9195,
-  11585, 14596, 18390, 23170, 29193, 36781,
-  46341, 58386, 73562, 92682, 116772
+  0, 1, 1, 1, 1, 1, 2, 2, 3, 4, 4, 6, 7, 9, 11, 14, 18, 23, 29, 36, 45, 
+  57, 72, 91, 114, 144, 181, 228, 287, 362, 456, 575, 724, 912, 1149, 1448, 1825, 2299,
+  2896, 3649, 4598, 5793, 7298, 9195, 11585, 14596, 18390, 23170, 29193, 36781, 46341, 58386, 73562, 92682, 116772
 };
-#else
-const int g_dra_chroma_qp_offset_tbl[NUM_CHROMA_QP_OFFSET_LOG] =  // Approximation of Log function at accuracy 1<<9 bits
-{
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 4,
-  5, 6, 6, 7, 8, 9, 10, 11, 13, 14, 16, 18, 20, 23, 25, 29, 32, 36, 40, 45,
-  51, 57, 64, 72, 81, 91, 102, 114, 128, 144, 161, 181, 203, 228, 256, 287,
-  323, 362, 406, 456, 512,
-  575, 645, 724, 813, 912, 1024, 1149, 1290, 1448, 1625, 1825, 2048, 2299,
-  2580, 2896, 3251, 3649, 4096, 4598, 5161, 5793, 6502, 7298, 8192, 9195, 10321,
-  11585, 13004, 14596, 16384, 18390, 20643, 23170, 26008, 29193, 32768, 36781, 41285,
-  46341, 52016, 58386, 65536, 73562, 82570, 92682, 104032, 116772, 131072
-};
-#endif
+
 // input to this table is deltaQP introduced to QPi (lumaQP+chromaQPoffset) by the chromaQPOffset table. Currently max offset 6 is supported, increase to 12 (?). 
 const int g_dra_exp_nom_v2[NUM_CHROMA_QP_SCALE_EXP] =   // Approximation of exp function at accuracy 1 << 9 bits
 {

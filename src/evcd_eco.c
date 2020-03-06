@@ -2596,11 +2596,89 @@ int evcd_eco_rlp(EVC_BSR * bs, EVC_RPL * rpl)
     return EVC_OK;
 }
 
+#if EVC_VUI_FIX
+int evcd_eco_hrd_parameters(EVC_BSR * bs, EVC_HRD * hrd) {
+    hrd->cpb_cnt_minus1 = (u32)evc_bsr_read_ue(bs);
+    hrd->bit_rate_scale = evc_bsr_read(bs, 4);
+    hrd->cpb_size_scale = evc_bsr_read(bs, 4);
+    for (int SchedSelIdx = 0; SchedSelIdx <= hrd->cpb_cnt_minus1; SchedSelIdx++) {
+        hrd->bit_rate_value_minus1[SchedSelIdx] = (u32)evc_bsr_read_ue(bs);
+        hrd->cpb_size_value_minus1[SchedSelIdx] = (u32)evc_bsr_read_ue(bs);
+        hrd->cbr_flag[SchedSelIdx] = evc_bsr_read1(bs);
+    }
+    hrd->initial_cpb_removal_delay_length_minus1 = evc_bsr_read(bs, 5);
+    hrd->cpb_removal_delay_length_minus1 = evc_bsr_read(bs, 5);
+    hrd->dpb_output_delay_length_minus1 = evc_bsr_read(bs, 5);
+    hrd->time_offset_length = evc_bsr_read(bs, 5);
+
+    return EVC_OK;
+}
+
+int evcd_eco_vui(EVC_BSR * bs, EVC_VUI * vui)
+{
+    vui->aspect_ratio_info_present_flag = evc_bsr_read1(bs);
+    if (vui->aspect_ratio_info_present_flag) {
+        vui->aspect_ratio_idc = evc_bsr_read(bs, 8);
+        if (vui->aspect_ratio_idc == EXTENDED_SAR) {
+            vui->sar_width = evc_bsr_read(bs, 16);
+            vui->sar_height = evc_bsr_read(bs, 16);
+        }
+    }
+    vui->overscan_info_present_flag = evc_bsr_read1(bs);
+    if (vui->overscan_info_present_flag)
+        vui->overscan_appropriate_flag = evc_bsr_read1(bs);
+    vui->video_signal_type_present_flag = evc_bsr_read1(bs);
+    if (vui->video_signal_type_present_flag) {
+        vui->video_format = evc_bsr_read(bs, 3);
+        vui->video_full_range_flag = evc_bsr_read1(bs);
+        vui->colour_description_present_flag = evc_bsr_read1(bs);
+        if (vui->colour_description_present_flag) {
+            vui->colour_primaries = evc_bsr_read(bs, 8);
+            vui->transfer_characteristics = evc_bsr_read(bs, 8);
+            vui->matrix_coefficients = evc_bsr_read(bs, 8);
+        }
+    }
+    vui->chroma_loc_info_present_flag = evc_bsr_read1(bs);
+    if (vui->chroma_loc_info_present_flag) {
+        vui->chroma_sample_loc_type_top_field = (u32)evc_bsr_read_ue(bs);
+        vui->chroma_sample_loc_type_bottom_field = (u32)evc_bsr_read_ue(bs);
+    }
+    vui->neutral_chroma_indication_flag = evc_bsr_read1(bs);
+    vui->timing_info_present_flag = evc_bsr_read1(bs);
+    if (vui->timing_info_present_flag) {
+        vui->num_units_in_tick = evc_bsr_read(bs, 32);
+        vui->time_scale = evc_bsr_read(bs, 32);
+        vui->fixed_pic_rate_flag = evc_bsr_read1(bs);
+    }
+    vui->nal_hrd_parameters_present_flag = evc_bsr_read1(bs);
+    if (vui->nal_hrd_parameters_present_flag)
+        evcd_eco_hrd_parameters(bs, &(vui->hrd_parameters));
+    vui->vcl_hrd_parameters_present_flag = evc_bsr_read1(bs);
+    if (vui->vcl_hrd_parameters_present_flag)
+        evcd_eco_hrd_parameters(bs, &(vui->hrd_parameters));
+    if (vui->nal_hrd_parameters_present_flag || vui->vcl_hrd_parameters_present_flag)
+        vui->low_delay_hrd_flag = evc_bsr_read1(bs);
+    vui->pic_struct_present_flag = evc_bsr_read1(bs);
+    vui->bitstream_restriction_flag = evc_bsr_read1(bs);
+    if (vui->bitstream_restriction_flag) {
+        vui->motion_vectors_over_pic_boundaries_flag = evc_bsr_read1(bs);
+        vui->max_bytes_per_pic_denom = (u32)evc_bsr_read_ue(bs);
+        vui->max_bits_per_mb_denom = (u32)evc_bsr_read_ue(bs);
+        vui->log2_max_mv_length_horizontal = (u32)evc_bsr_read_ue(bs);
+        vui->log2_max_mv_length_vertical = (u32)evc_bsr_read_ue(bs);
+        vui->num_reorder_pics = (u32)evc_bsr_read_ue(bs);
+        vui->max_dec_pic_buffering = (u32)evc_bsr_read_ue(bs);
+    }
+
+    return EVC_OK;
+}
+
+#else
 int evcd_eco_vui(EVC_BSR * bs)
 {
     return EVC_OK;
 }
-
+#endif
 
 
 int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
@@ -2751,7 +2829,11 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
 
     sps->vui_parameters_present_flag = evc_bsr_read1(bs);
     if (sps->vui_parameters_present_flag)
+#if EVC_VUI_FIX
+        evcd_eco_vui(bs, &(sps->vui_parameters));
+#else
         evcd_eco_vui(bs); //To be implemented
+#endif
     
     while (!EVC_BSR_IS_BYTE_ALIGN(bs))
     {

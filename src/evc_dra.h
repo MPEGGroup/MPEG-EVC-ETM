@@ -3,7 +3,7 @@
 *  and contributor rights, including patent rights, and no such rights are
 *  granted under this license.
 *
-*  Copyright (c) 2019, ISO/IEC
+*  Copyright (c) 2020, ISO/IEC
 *  All rights reserved.
 *
 *  Redistribution and use in source and binary forms, with or without
@@ -84,6 +84,11 @@ typedef struct _WCGDDRAControl
     BOOL m_flagEnabled;
     DRAScaleMapping m_draScaleMap;
     DRAChromaOffControl m_chromaQPModel;
+    
+    //------ Signalled DRA Params ------//
+    int m_numFracBitsScale;
+    int m_numIntBitsScale;
+    SignalledParamsDRA m_signalledDRA;
 
     //------ DRA Model ------//
     int m_atfNumRanges;
@@ -96,53 +101,36 @@ typedef struct _WCGDDRAControl
     int m_intScaleCrDRA;
     int m_atfIntOutRanges[33];
     int m_atfIntDraScales[33 - 1];
-    int m_atfIntDraOffsets[33 - 1];
     int m_atfIntInvDraScales[33 - 1];
     int m_atfIntInvDraOffsets[33 - 1];
     int m_atfIntChromaDraScales[2][33 - 1];
     int m_atfIntChromaInvDraScales[2][33 - 1];
-
-    int m_intChromaScaleLUT[2][DRA_LUT_MAXSIZE];               // LUT for chroma scales 
-    int m_intChromaInvScaleLUT[2][DRA_LUT_MAXSIZE];               // LUT for chroma scales 
-
-    int m_atfNumRangesBase;
-    int m_atfInRangesBase[33];
-    double m_atfOutRangesBase[33];
-    double m_atfDraScalesBase[33 - 1];
-    double m_atfDraOffsetsBase[33 - 1];
-    double m_atfChromaDraScales[2][33 - 1];
-
+       
     //------ DRA LUT ------//
     int m_lumaScaleLUT[DRA_LUT_MAXSIZE];               // LUT for luma and correspionding QP offset
     int m_lumaInvScaleLUT[DRA_LUT_MAXSIZE];               // LUT for luma and correspionding QP offset
-    double m_chromaScaleLUT[2][DRA_LUT_MAXSIZE];               // LUT for chroma scales 
-    double m_chromaInvScaleLUT[2][DRA_LUT_MAXSIZE];               // LUT for chroma scales 
-                                                              //------ Gammut mapping ------//
-    double m_scaleCbDRA;
-    double m_scaleCrDRA;
-
+    int m_intChromaScaleLUT[2][DRA_LUT_MAXSIZE];               // LUT for chroma scales 
+    int m_intChromaInvScaleLUT[2][DRA_LUT_MAXSIZE];               // LUT for chroma scales 
+                                                                  //------ Gammut mapping ------//
     //------ Adaptive mapping ------//
     double m_draHistNorm;
     int    m_globalOffset;
     int    m_globalEnd;
-    SignalledParamsDRA m_signalledDRA;
-    int m_numFracBitsScale;
-    int m_numIntBitsScale;
-    int m_uiNumEqualRanges;
-    int dra_qp_y;
-    int dra_qp_u;
-    int dra_qp_v;
+
 } WCGDDRAControl;
 
-void evcd_constructDra(WCGDDRAControl *p_DRAMapping);
-void evcd_initDRA(WCGDDRAControl *p_DRAMapping);
-void evcd_getSignalledParamsDRA(WCGDDRAControl *p_DRAMapping);
-void     prec_quantize_entry_d(quantParamDRA *p_quantParamEntry, double const value, int const fracBits, int const intBits);
-int getMValue(quantParamDRA *p_quantParamEntry);
+/* Encoder side functions are listed below: */
 void evce_initDRA(WCGDDRAControl *p_DRAMapping, int totalChangePoints, int *lumaChangePoints, int* qps);
 BOOL evce_analyzeInputPic(WCGDDRAControl *p_DRAMapping);
+
+/* Decoder side functions are listed below: */
+void evcd_initDRA(WCGDDRAControl *p_DRAMapping);
+
+/* DRA applicaton (sample processing) functions are listed below: */
 void evc_apply_dra_luma_plane(EVC_IMGB * dst, EVC_IMGB * src, WCGDDRAControl *p_DRAMapping, int planeId, int backwardMap);
 void evc_apply_dra_chroma_plane(EVC_IMGB * dst, EVC_IMGB * src, WCGDDRAControl *p_DRAMapping, int planeId, int backwardMap);
+
+/* DRA APS buffer functions are listed below: */
 void evc_addDraApsToBuffer(SignalledParamsDRA* p_g_dra_control_array, EVC_APS_GEN *p_aps_gen_array);
 void evc_resetApsGenReadBuffer(EVC_APS_GEN *p_aps_gen_array);
 #endif
