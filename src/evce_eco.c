@@ -87,10 +87,88 @@ int evce_eco_ref_pic_list_mod(EVC_BSW * bs)
     return EVC_OK;
 }
 
+#if EVC_VUI_FIX
+int evce_eco_hrd_parameters(EVC_BSW * bs, EVC_HRD * hrd) {
+    evc_bsw_write_ue(bs, hrd->cpb_cnt_minus1);
+    evc_bsw_write(bs, hrd->bit_rate_scale, 4);
+    evc_bsw_write(bs, hrd->cpb_size_scale, 4);
+    for (int SchedSelIdx = 0; SchedSelIdx <= hrd->cpb_cnt_minus1; SchedSelIdx++) {
+        evc_bsw_write_ue(bs, hrd->bit_rate_value_minus1[SchedSelIdx]);
+        evc_bsw_write_ue(bs, hrd->cpb_size_value_minus1[SchedSelIdx]);
+        evc_bsw_write1(bs, hrd->cbr_flag[SchedSelIdx]);
+    }
+    evc_bsw_write(bs, hrd->initial_cpb_removal_delay_length_minus1, 5);
+    evc_bsw_write(bs, hrd->cpb_removal_delay_length_minus1, 5);
+    evc_bsw_write(bs, hrd->dpb_output_delay_length_minus1, 5);
+    evc_bsw_write(bs, hrd->time_offset_length, 5);
+
+    return EVC_OK;
+}
+
+int evce_eco_vui(EVC_BSW * bs, EVC_VUI * vui)
+{
+    evc_bsw_write1(bs, vui->aspect_ratio_info_present_flag);
+    if (vui->aspect_ratio_info_present_flag) {
+        evc_bsw_write(bs, vui->aspect_ratio_idc, 8);
+        if (vui->aspect_ratio_idc == EXTENDED_SAR) {
+            evc_bsw_write(bs, vui->sar_width, 16);
+            evc_bsw_write(bs, vui->sar_height, 16);
+        }
+    }
+    evc_bsw_write1(bs, vui->overscan_info_present_flag);
+    if (vui->overscan_info_present_flag)
+        evc_bsw_write1(bs, vui->overscan_appropriate_flag);
+    evc_bsw_write1(bs, vui->video_signal_type_present_flag);
+    if (vui->video_signal_type_present_flag) {
+        evc_bsw_write(bs, vui->video_format, 3);
+        evc_bsw_write1(bs, vui->video_full_range_flag);
+        evc_bsw_write1(bs, vui->colour_description_present_flag);
+        if (vui->colour_description_present_flag) {
+            evc_bsw_write(bs, vui->colour_primaries, 8);
+            evc_bsw_write(bs, vui->transfer_characteristics, 8);
+            evc_bsw_write(bs, vui->matrix_coefficients, 8);
+        }
+    }
+    evc_bsw_write1(bs, vui->chroma_loc_info_present_flag);
+    if (vui->chroma_loc_info_present_flag) {
+        evc_bsw_write_ue(bs, vui->chroma_sample_loc_type_top_field);
+        evc_bsw_write_ue(bs, vui->chroma_sample_loc_type_bottom_field);
+    }
+    evc_bsw_write1(bs, vui->neutral_chroma_indication_flag);
+    evc_bsw_write1(bs, vui->timing_info_present_flag);
+    if (vui->timing_info_present_flag) {
+        evc_bsw_write(bs, vui->num_units_in_tick, 32);
+        evc_bsw_write(bs, vui->time_scale, 32);
+        evc_bsw_write1(bs, vui->fixed_pic_rate_flag);
+    }
+    evc_bsw_write1(bs, vui->nal_hrd_parameters_present_flag);
+    if (vui->nal_hrd_parameters_present_flag)
+        evce_eco_hrd_parameters(bs, &(vui->hrd_parameters));
+    evc_bsw_write1(bs, vui->vcl_hrd_parameters_present_flag);
+    if (vui->vcl_hrd_parameters_present_flag)
+        evce_eco_hrd_parameters(bs, &(vui->hrd_parameters));
+    if (vui->nal_hrd_parameters_present_flag || vui->vcl_hrd_parameters_present_flag)
+        evc_bsw_write1(bs, vui->low_delay_hrd_flag);
+    evc_bsw_write1(bs, vui->pic_struct_present_flag);
+    evc_bsw_write1(bs, vui->bitstream_restriction_flag);
+    if (vui->bitstream_restriction_flag) {
+        evc_bsw_write1(bs, vui->motion_vectors_over_pic_boundaries_flag);
+        evc_bsw_write_ue(bs, vui->max_bytes_per_pic_denom);
+        evc_bsw_write_ue(bs, vui->max_bits_per_mb_denom);
+        evc_bsw_write_ue(bs, vui->log2_max_mv_length_horizontal);
+        evc_bsw_write_ue(bs, vui->log2_max_mv_length_vertical);
+        evc_bsw_write_ue(bs, vui->num_reorder_pics);
+        evc_bsw_write_ue(bs, vui->max_dec_pic_buffering);
+    }
+
+    return EVC_OK;
+}
+#else
 int evce_eco_vui(EVC_BSW * bs)
 {
     return EVC_OK;
 }
+#endif
 
 
 int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
@@ -235,7 +313,11 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
 
     evc_bsw_write1(bs, sps->vui_parameters_present_flag);
     if (sps->vui_parameters_present_flag)
+#if EVC_VUI_FIX
+        evce_eco_vui(bs, &(sps->vui_parameters));
+#else
         evce_eco_vui(bs); //To be implemented
+#endif
 
     while(!EVC_BSW_IS_BYTE_ALIGN(bs))
     {

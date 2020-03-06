@@ -35,6 +35,7 @@
 #ifndef _EVC_H_
 #define _EVC_H_
 
+#define EVC_VUI_FIX                     1
 #define ETM_HDR_REPORT_METRIC_FLAG      1
 #define M52291_HDR_DRA                          1
 #define ADDB_FLAG_FIX                1

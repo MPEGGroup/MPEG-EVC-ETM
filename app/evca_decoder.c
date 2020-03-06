@@ -500,6 +500,12 @@ int main(int argc, const char **argv)
                 pps_dra_enable_flag = evcd_get_pps_dra_flag(id);
                 if ( (sps_dra_enable_flag == 1) && (pps_dra_enable_flag == 1) )
                 {
+                    // Assigned effective DRA controls as specified by PPS
+                    int pps_dra_id = evcd_get_pps_dra_id(id);
+                    assert((pps_dra_id > -1) && (pps_dra_id < 32) && (g_dra_control_array[pps_dra_id].m_signal_dra_flag == 1));
+                    memcpy(&(g_dra_control_effective.m_signalledDRA), &(g_dra_control_array[pps_dra_id]), sizeof(SignalledParamsDRA));
+                    evcd_assign_pps_draParam(id, &(g_dra_control_effective.m_signalledDRA));
+
                     if (g_dra_control_effective.m_flagEnabled)
                     {
                         evcd_initDRA(&g_dra_control_effective);
