@@ -2786,7 +2786,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         update_core_loc_param(ctx, core);
 
 #if FIX_DQP_ON
+#if EVC_TILE_DQP
+        int bef_cu_qp = ctx->tile[i].qp_prev_eco;
+#else
         int bef_cu_qp = ctx->sh.qp;
+#endif
 #endif
       
             col_bd = 0;
@@ -2832,7 +2836,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
                 reset_ibc_search_range(ctx, core->x_pel, core->y_pel, ctx->max_cuwh, ctx->max_cuwh);
             }
 #if FIX_DQP_ON
+#if EVC_TILE_DQP
+            ctx->tile[i].qp_prev_eco = bef_cu_qp;
+#else
             ctx->sh.qp_prev_eco = bef_cu_qp;
+#endif
 #endif
             /* entropy coding ************************************************/
             ret = evce_eco_tree(ctx, core, core->x_pel, core->y_pel, 0, ctx->max_cuwh, ctx->max_cuwh, 0, 1
@@ -2845,7 +2853,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #endif
             );
 #if FIX_DQP_ON
+#if EVC_TILE_DQP
+            bef_cu_qp = ctx->tile[i].qp_prev_eco;
+#else
             bef_cu_qp = ctx->sh.qp_prev_eco;
+#endif
 #endif
 #if GRAB_STAT
             evc_stat_set_enc_state(FALSE);
