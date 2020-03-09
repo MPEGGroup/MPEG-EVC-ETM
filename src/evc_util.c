@@ -319,7 +319,8 @@ void scaling_mv(int ratio, s16 mvp[MV_D], s16 mv[MV_D])
     mv[MV_Y] = EVC_CLIP3(-(1 << 15), (1 << 15) - 1, tmp_mv);
 }
 
-void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int h_scu, int scup, u16 avail, int log2_cuw, int log2_cuh, int slice_t, int real_mv[][2][3], u32 *map_scu, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME], u16 avail_lr
+void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int h_scu, int scup, u16 avail, int log2_cuw, int log2_cuh, int slice_t
+    , int real_mv[][2][3], u32 *map_scu, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME], u16 avail_lr
 #if M52166_MMVD
     , u32 curr_ptr, u8 num_refp[REFP_NUM]
 #endif
@@ -327,10 +328,9 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 #if EVC_TILE_SUPPORT
     , u8* map_tidx
 #endif
+    , int mmvd_idx
 )
-
 {
-    int idx0, idx1, cnt;
     int ref_mvd = 0;
     int ref_mvd1 = 0;
     int list0_weight;
@@ -343,58 +343,31 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
     int hor1var[MMVD_MAX_REFINE_NUM] = { 0 };
     int ver1Var[MMVD_MAX_REFINE_NUM] = { 0 };
     int base_mv_idx = 0;
-    int c_num = 0;
     int base_mv[25][2][3];
-    int k;
-    s16 mvp[MAX_NUM_MVP][MV_D];
-    s16 mvp1[MAX_NUM_MVP][MV_D];
-    s8 refi[MAX_NUM_MVP];
-    s8 refi1[MAX_NUM_MVP];
     s16 smvp[REFP_NUM][MAX_NUM_MVP][MV_D];
     s8 srefi[REFP_NUM][MAX_NUM_MVP];
     int base_mv_t[25][2][3];
     int base_type[3][MAX_NUM_MVP];
     int cur_set;
     int total_num = MMVD_BASE_MV_NUM * MMVD_MAX_REFINE_NUM;
-    int sld1[MMVD_BASE_MV_NUM];
-    int sld2[MMVD_BASE_MV_NUM];
-    int sld[MMVD_BASE_MV_NUM*MMVD_BASE_MV_NUM][2];
-    int s, z, a;
-    int c_win = 0;
-    int comp;
+    int k;
     int cuw = (1 << log2_cuw);
     int cuh = (1 << log2_cuh);
     int list0_r;
     int list1_r;
     int poc0, poc1, poc_c;
-#if !M52166_MMVD
-    int poc0_t, poc1_t;
-#endif
-    int base_mv_p[25][3][3];
-    int small_cu = 0;
-    if (cuw*cuh <= NUM_SAMPLES_BLOCK)
-        small_cu = 1;
-    for (s = 0; s < MMVD_BASE_MV_NUM; s++)
-    {
-        sld1[s] = s;
-        sld2[s] = s;
-    }
 
-    for (z = 0; z < MMVD_BASE_MV_NUM; z++)
-    {
-        comp = z;
-        for (s = 0; s < MMVD_BASE_MV_NUM; s++)
-        {
-            a = s + comp;
-            if (a >= MMVD_BASE_MV_NUM)
-            {
-                a = a - MMVD_BASE_MV_NUM;
-            }
-            sld[c_win][0] = sld1[s];
-            sld[c_win][1] = sld2[a];
-            c_win++;
-        }
-    }
+    int base_mv_p[25][3][3];
+    int small_cu = (cuw*cuh <= NUM_SAMPLES_BLOCK) ? 1 : 0;
+
+    int base_st = mmvd_idx == -1 ? 0 : (mmvd_idx & 127) >> 5;
+    int base_ed = mmvd_idx == -1 ? MMVD_BASE_MV_NUM : base_st + 1;
+
+    int group_st = mmvd_idx == -1 ? 0 : mmvd_idx >> 7;
+    int group_ed = mmvd_idx == -1 ? (small_cu ? 1 : 3) : group_st + 1;
+
+    int mmvd_v_st = mmvd_idx == -1 ? 0 : (mmvd_idx & 31);
+    int mmvd_v_ed = mmvd_idx == -1 ? MMVD_MAX_REFINE_NUM : mmvd_v_st + 1;
 
     if (admvp_flag == 0)
     {
@@ -417,84 +390,54 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
         );
     }
 
-    for (z = 0; z < MAX_NUM_MVP; z++)
-    {
-        mvp[z][MV_X] = smvp[REFP_0][z][MV_X];
-        mvp[z][MV_Y] = smvp[REFP_0][z][MV_Y];
-        mvp1[z][MV_X] = smvp[REFP_1][z][MV_X];
-        mvp1[z][MV_Y] = smvp[REFP_1][z][MV_Y];
-        refi[z] = srefi[REFP_0][z];
-        refi1[z] = srefi[REFP_1][z];
-    }
-
     if (slice_t == SLICE_B)
     {
-        for(k = 0; k < MMVD_BASE_MV_NUM; k++)
+        for (k = base_st; k < base_ed; k++)
         {
-            base_mv[c_num][0][MV_X] = mvp[sld[k][0]][MV_X];
-            base_mv[c_num][0][MV_Y] = mvp[sld[k][0]][MV_Y];
-            base_mv[c_num][1][MV_X] = mvp1[sld[k][1]][MV_X];
-            base_mv[c_num][1][MV_Y] = mvp1[sld[k][1]][MV_Y];
-            base_mv[c_num][0][2] = refi[sld[k][0]];
-            base_mv[c_num][1][2] = refi1[sld[k][1]];
-
-            c_num++;
+            base_mv[k][REFP_0][MV_X] = smvp[REFP_0][k][MV_X];
+            base_mv[k][REFP_0][MV_Y] = smvp[REFP_0][k][MV_Y];
+            base_mv[k][REFP_1][MV_X] = smvp[REFP_1][k][MV_X];
+            base_mv[k][REFP_1][MV_Y] = smvp[REFP_1][k][MV_Y];
+            base_mv[k][REFP_0][REFI] = srefi[REFP_0][k];
+            base_mv[k][REFP_1][REFI] = srefi[REFP_1][k];
         }
     }
     else
     {
-#if INCREASE_MVP_NUM
-        for (idx0 = 0; idx0 < ORG_MAX_NUM_MVP; idx0++)
-#else
-        for (idx0 = 0; idx0 < MAX_NUM_MVP; idx0++)
-#endif
+        for (k = base_st; k < base_ed; k++)
         {
-#if INCREASE_MVP_NUM
-            cnt = (slice_t == SLICE_B ? ORG_MAX_NUM_MVP : 1);
-#else
-            cnt = (slice_t == SLICE_B ? MAX_NUM_MVP : 1);
-#endif
-            for (idx1 = 0; idx1 < cnt; idx1++)
-            {
-                base_mv[c_num][0][MV_X] = mvp[idx0][MV_X];
-                base_mv[c_num][0][MV_Y] = mvp[idx0][MV_Y];
-                base_mv[c_num][1][MV_X] = mvp1[idx1][MV_X];
-                base_mv[c_num][1][MV_Y] = mvp1[idx1][MV_Y];
-                base_mv[c_num][0][2] = refi[idx0];
-                base_mv[c_num][1][2] = refi1[idx1];
-
-                c_num++;
-            }
+            base_mv[k][REFP_0][MV_X] = smvp[REFP_0][k][MV_X];
+            base_mv[k][REFP_0][MV_Y] = smvp[REFP_0][k][MV_Y];
+            base_mv[k][REFP_1][MV_X] = smvp[REFP_1][0][MV_X];
+            base_mv[k][REFP_1][MV_Y] = smvp[REFP_1][0][MV_Y];
+            base_mv[k][REFP_0][REFI] = srefi[REFP_0][k];
+            base_mv[k][REFP_1][REFI] = srefi[REFP_1][0];
         }
     }
 
-#if INCREASE_MVP_NUM
-    for (k = 0; k < ORG_MAX_NUM_MVP; k++)
-#else
-    for (k = 0; k < MAX_NUM_MVP; k++)
-#endif
+    for (k = base_st; k < base_ed; k++)
     {
         ref_sign = 1;
         ref_sign1 = 1;
 
-        base_mv_t[k][0][0] = base_mv[k][0][0];
-        base_mv_t[k][0][1] = base_mv[k][0][1];
-        base_mv_t[k][0][2] = base_mv[k][0][2];
+        base_mv_t[k][REFP_0][MV_X] = base_mv[k][REFP_0][MV_X];
+        base_mv_t[k][REFP_0][MV_Y] = base_mv[k][REFP_0][MV_Y];
+        base_mv_t[k][REFP_0][REFI] = base_mv[k][REFP_0][REFI];
 
-        base_mv_t[k][1][0] = base_mv[k][1][0];
-        base_mv_t[k][1][1] = base_mv[k][1][1];
-        base_mv_t[k][1][2] = base_mv[k][1][2];
+        base_mv_t[k][REFP_1][MV_X] = base_mv[k][REFP_1][MV_X];
+        base_mv_t[k][REFP_1][MV_Y] = base_mv[k][REFP_1][MV_Y];
+        base_mv_t[k][REFP_1][REFI] = base_mv[k][REFP_1][REFI];
 
-        list0_r = base_mv_t[k][0][2];
-        list1_r = base_mv_t[k][1][2];
+        list0_r = base_mv_t[k][REFP_0][REFI];
+        list1_r = base_mv_t[k][REFP_1][REFI];
 
-        if ((base_mv_t[k][0][2] >= 0) && (base_mv_t[k][1][2] >= 0))
+        if ((base_mv_t[k][REFP_0][REFI] != REFI_INVALID) && (base_mv_t[k][REFP_1][REFI] != REFI_INVALID))
         {
             base_type[0][k] = 0;
             base_type[1][k] = 1;
             base_type[2][k] = 2;
         }
-        else if ((base_mv_t[k][0][2] >= 0) && !(base_mv_t[k][1][2] >= 0))
+        else if ((base_mv_t[k][REFP_0][REFI] != REFI_INVALID) && (base_mv_t[k][REFP_1][REFI] == REFI_INVALID))
         {
             if (slice_t == SLICE_P)
             {
@@ -509,22 +452,22 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 
                 if (cur_ref_num == 1)
                 {
-                    base_mv_p[k][0][2] = base_mv_t[k][0][2];
-                    base_mv_p[k][1][2] = base_mv_t[k][0][2];
-                    base_mv_p[k][2][2] = base_mv_t[k][0][2];
+                    base_mv_p[k][0][REFI] = base_mv_t[k][REFP_0][REFI];
+                    base_mv_p[k][1][REFI] = base_mv_t[k][REFP_0][REFI];
+                    base_mv_p[k][2][REFI] = base_mv_t[k][REFP_0][REFI];
                 }
                 else
                 {
 #if M52166_MMVD
-                    base_mv_p[k][0][2] = base_mv_t[k][0][2];
-                    base_mv_p[k][1][2] = !base_mv_t[k][0][2];
+                    base_mv_p[k][0][REFI] = base_mv_t[k][REFP_0][REFI];
+                    base_mv_p[k][1][REFI] = !base_mv_t[k][REFP_0][REFI];
                     if (cur_ref_num < 3)
                     {
-                        base_mv_p[k][2][2] = base_mv_t[k][0][2];
+                        base_mv_p[k][2][REFI] = base_mv_t[k][REFP_0][REFI];
                     }
                     else
                     {
-                        base_mv_p[k][2][2] = base_mv_t[k][0][2] < 2 ? 2 : 1;
+                        base_mv_p[k][2][REFI] = base_mv_t[k][REFP_0][REFI] < 2 ? 2 : 1;
                     }
 #else
                     int app_idx = 0;
@@ -562,57 +505,57 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 
                 if (cur_ref_num == 1)
                 {
-                    base_mv_p[k][0][0] = base_mv_t[k][0][0];
-                    base_mv_p[k][0][1] = base_mv_t[k][0][1];
+                    base_mv_p[k][0][MV_X] = base_mv_t[k][REFP_0][MV_X];
+                    base_mv_p[k][0][MV_Y] = base_mv_t[k][REFP_0][MV_Y];
 
-                    base_mv_p[k][1][0] = base_mv_t[k][0][0] + 3;
-                    base_mv_p[k][1][1] = base_mv_t[k][0][1];
+                    base_mv_p[k][1][MV_X] = base_mv_t[k][REFP_0][MV_X] + 3;
+                    base_mv_p[k][1][MV_Y] = base_mv_t[k][REFP_0][MV_Y];
 
-                    base_mv_p[k][2][0] = base_mv_t[k][0][0] - 3;
-                    base_mv_p[k][2][1] = base_mv_t[k][0][1];
+                    base_mv_p[k][2][MV_X] = base_mv_t[k][REFP_0][MV_X] - 3;
+                    base_mv_p[k][2][MV_Y] = base_mv_t[k][REFP_0][MV_Y];
                 }
                 else if (cur_ref_num == 2)
                 {
-                    base_mv_p[k][0][0] = base_mv_t[k][0][0];
-                    base_mv_p[k][0][1] = base_mv_t[k][0][1];
+                    base_mv_p[k][0][MV_X] = base_mv_t[k][REFP_0][MV_X];
+                    base_mv_p[k][0][MV_Y] = base_mv_t[k][REFP_0][MV_Y];
 
-                    poc0 = REF_SET[0][base_mv_p[k][0][2]];
+                    poc0 = REF_SET[0][base_mv_p[k][0][REFI]];
 #if M52166_MMVD
                     poc_c = curr_ptr;
 #else
                     poc_c = REF_SET[2][0];
 #endif
-                    poc1 = REF_SET[0][base_mv_p[k][1][2]];
+                    poc1 = REF_SET[0][base_mv_p[k][1][REFI]];
 
                     list0_weight = ((poc_c - poc0) << MVP_SCALING_PRECISION) / ((poc_c - poc1));
                     ref_sign = 1;
-                    base_mv_p[k][1][0] = EVC_CLIP3(-32768, 32767, ref_sign * ((EVC_ABS(list0_weight * base_mv_t[k][0][0]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
-                    base_mv_p[k][1][1] = EVC_CLIP3(-32768, 32767, ref_sign1 * ((EVC_ABS(list0_weight * base_mv_t[k][0][1]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
+                    base_mv_p[k][1][MV_X] = EVC_CLIP3(-32768, 32767, ref_sign  * ((EVC_ABS(list0_weight * base_mv_t[k][REFP_0][MV_X]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
+                    base_mv_p[k][1][MV_Y] = EVC_CLIP3(-32768, 32767, ref_sign1 * ((EVC_ABS(list0_weight * base_mv_t[k][REFP_0][MV_Y]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
 #if M52166_MMVD
-                    base_mv_p[k][2][0] = base_mv_t[k][0][0] - 3;
+                    base_mv_p[k][2][MV_X] = base_mv_t[k][REFP_0][MV_X] - 3;
 #else
                     base_mv_p[k][2][0] = base_mv_t[k][0][0] + 3;
 #endif
-                    base_mv_p[k][2][1] = base_mv_t[k][0][1];
+                    base_mv_p[k][2][MV_Y] = base_mv_t[k][REFP_0][MV_Y];
                 }
                 else if (cur_ref_num >= 3)
                 {
-                    base_mv_p[k][0][0] = base_mv_t[k][0][0];
-                    base_mv_p[k][0][1] = base_mv_t[k][0][1];
-                    base_mv_p[k][0][2] = base_mv_p[k][0][2];
+                    base_mv_p[k][0][MV_X] = base_mv_t[k][REFP_0][MV_X];
+                    base_mv_p[k][0][MV_Y] = base_mv_t[k][REFP_0][MV_Y];
+                    base_mv_p[k][0][REFI] = base_mv_p[k][REFP_0][REFI];
 
-                    poc0 = REF_SET[0][base_mv_p[k][0][2]];
+                    poc0 = REF_SET[0][base_mv_p[k][0][REFI]];
 #if M52166_MMVD
                     poc_c = curr_ptr;
 #else
                     poc_c = REF_SET[2][0];
 #endif
-                    poc1 = REF_SET[0][base_mv_p[k][1][2]];
+                    poc1 = REF_SET[0][base_mv_p[k][1][REFI]];
 
                     list0_weight = ((poc_c - poc0) << MVP_SCALING_PRECISION) / ((poc_c - poc1));
                     ref_sign = 1;
-                    base_mv_p[k][1][0] = EVC_CLIP3(-32768, 32767, ref_sign * ((EVC_ABS(list0_weight * base_mv_t[k][0][0]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
-                    base_mv_p[k][1][1] = EVC_CLIP3(-32768, 32767, ref_sign1 * ((EVC_ABS(list0_weight * base_mv_t[k][0][1]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
+                    base_mv_p[k][1][MV_X] = EVC_CLIP3(-32768, 32767, ref_sign  * ((EVC_ABS(list0_weight * base_mv_t[k][REFP_0][MV_X]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
+                    base_mv_p[k][1][MV_Y] = EVC_CLIP3(-32768, 32767, ref_sign1 * ((EVC_ABS(list0_weight * base_mv_t[k][REFP_0][MV_Y]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
 
                     poc0 = REF_SET[0][base_mv_p[k][0][2]];
 #if M52166_MMVD
@@ -624,72 +567,73 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
 
                     list0_weight = ((poc_c - poc0) << MVP_SCALING_PRECISION) / ((poc_c - poc1));
                     ref_sign = 1;
-                    base_mv_p[k][2][0] = EVC_CLIP3(-32768, 32767, ref_sign * ((EVC_ABS(list0_weight * base_mv_t[k][0][0]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
-                    base_mv_p[k][2][1] = EVC_CLIP3(-32768, 32767, ref_sign1 * ((EVC_ABS(list0_weight * base_mv_t[k][0][1]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
+                    base_mv_p[k][2][MV_X] = EVC_CLIP3(-32768, 32767, ref_sign  * ((EVC_ABS(list0_weight * base_mv_t[k][REFP_0][MV_X]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
+                    base_mv_p[k][2][MV_Y] = EVC_CLIP3(-32768, 32767, ref_sign1 * ((EVC_ABS(list0_weight * base_mv_t[k][REFP_0][MV_Y]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
                 }
             }
             else
             {
-            base_type[0][k] = 1;
-            base_type[1][k] = 0;
-            base_type[2][k] = 2;
+                base_type[0][k] = 1;
+                base_type[1][k] = 0;
+                base_type[2][k] = 2;
 #if M52166_MMVD
-            list0_weight = 1 << MVP_SCALING_PRECISION;
-            list1_weight = 1 << MVP_SCALING_PRECISION;
-            poc0 = REF_SET[REFP_0][list0_r];
-            poc_c = curr_ptr;
-            if ((num_refp[REFP_1] > 1) && ((REF_SET[REFP_1][1] - poc_c) == (poc_c - poc0)))
-            {
-                base_mv_t[k][1][2] = 1;
-            }
-            else
-            {
-                base_mv_t[k][1][2] = 0;
-            }
-            poc1 = REF_SET[REFP_1][base_mv_t[k][1][2]];
+                list0_weight = 1 << MVP_SCALING_PRECISION;
+                list1_weight = 1 << MVP_SCALING_PRECISION;
+                poc0 = REF_SET[REFP_0][list0_r];
+                poc_c = curr_ptr;
+                if ((num_refp[REFP_1] > 1) && ((REF_SET[REFP_1][1] - poc_c) == (poc_c - poc0)))
+                {
+                    base_mv_t[k][REFP_1][REFI] = 1;
+                }
+                else
+                {
+                    base_mv_t[k][REFP_1][REFI] = 0;
+                }
+                poc1 = REF_SET[REFP_1][base_mv_t[k][REFP_1][REFI]];
 #else
-            poc0 = REF_SET[0][list0_r];
-            poc_c = REF_SET[2][0];
-            poc1_t = (poc_c - poc0) + poc_c;
-            list0_weight = 1 << MVP_SCALING_PRECISION;
-            list1_weight = 1 << MVP_SCALING_PRECISION;
+                poc0 = REF_SET[0][list0_r];
+                poc_c = REF_SET[2][0];
+                poc1_t = (poc_c - poc0) + poc_c;
+                list0_weight = 1 << MVP_SCALING_PRECISION;
+                list1_weight = 1 << MVP_SCALING_PRECISION;
 
-            if ((poc1_t == REF_SET[1][0]) || (poc1_t == REF_SET[1][1]))
-            {
-                if (poc1_t == REF_SET[1][0])
+                if ((poc1_t == REF_SET[1][0]) || (poc1_t == REF_SET[1][1]))
+                {
+                    if (poc1_t == REF_SET[1][0])
+                    {
+                        base_mv_t[k][1][2] = 0;
+                    }
+                    else if (poc1_t == REF_SET[1][1])
+                    {
+                        base_mv_t[k][1][2] = 1;
+                    }
+                    poc1 = REF_SET[1][base_mv_t[k][1][2]];
+                }
+                else
                 {
                     base_mv_t[k][1][2] = 0;
+                    poc1 = REF_SET[1][base_mv_t[k][1][2]];
                 }
-                else if (poc1_t == REF_SET[1][1])
-                {
-                    base_mv_t[k][1][2] = 1;
-                }
-                poc1 = REF_SET[1][base_mv_t[k][1][2]];
-            }
-            else
-            {
-                base_mv_t[k][1][2] = 0;
-                poc1 = REF_SET[1][base_mv_t[k][1][2]];
-            }
 #endif
-            list1_weight = ((poc_c - poc1) << MVP_SCALING_PRECISION) / ((poc_c - poc0));
-            if ((list1_weight * base_mv_t[k][0][0]) < 0)
-            {
-                ref_sign = -1;
-            }
 
-            base_mv_t[k][1][0] = EVC_CLIP3(-32768, 32767, ref_sign * ((EVC_ABS(list1_weight * base_mv_t[k][0][0]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
+                list1_weight = ((poc_c - poc1) << MVP_SCALING_PRECISION) / ((poc_c - poc0));
+                if ((list1_weight * base_mv_t[k][0][0]) < 0)
+                {
+                    ref_sign = -1;
+                }
 
-            list1_weight = ((poc_c - poc1) << MVP_SCALING_PRECISION) / ((poc_c - poc0));
-            if ((list1_weight * base_mv_t[k][0][1]) < 0)
-            {
-                ref_sign1 = -1;
-            }
+                base_mv_t[k][REFP_1][MV_X] = EVC_CLIP3(-32768, 32767, ref_sign * ((EVC_ABS(list1_weight * base_mv_t[k][REFP_0][MV_X]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
 
-            base_mv_t[k][1][1] = EVC_CLIP3(-32768, 32767, ref_sign1 * ((EVC_ABS(list1_weight * base_mv_t[k][0][1]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
+                list1_weight = ((poc_c - poc1) << MVP_SCALING_PRECISION) / ((poc_c - poc0));
+                if ((list1_weight * base_mv_t[k][0][1]) < 0)
+                {
+                    ref_sign1 = -1;
+                }
+
+                base_mv_t[k][REFP_1][MV_Y] = EVC_CLIP3(-32768, 32767, ref_sign1 * ((EVC_ABS(list1_weight * base_mv_t[k][REFP_0][MV_Y]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
             }
-}
-        else if (!(base_mv_t[k][0][2] >= 0) && (base_mv_t[k][1][2] >= 0))
+        }
+        else if ((base_mv_t[k][REFP_0][REFI] == REFI_INVALID) && (base_mv_t[k][REFP_1][REFI] != REFI_INVALID))
         {
             base_type[0][k] = 2;
             base_type[1][k] = 0;
@@ -701,13 +645,13 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
             poc_c = curr_ptr;
             if ((num_refp[REFP_0] > 1) && ((REF_SET[REFP_0][1] - poc_c) == (poc_c - poc1)))
             {
-                base_mv_t[k][0][2] = 1;
+                base_mv_t[k][REFP_0][REFI] = 1;
             }
             else
             {
-                base_mv_t[k][0][2] = 0;
+                base_mv_t[k][REFP_0][REFI] = 0;
             }
-            poc0 = REF_SET[REFP_0][base_mv_t[k][0][2]];
+            poc0 = REF_SET[REFP_0][base_mv_t[k][REFP_0][REFI]];
 #else
             poc1 = REF_SET[1][list1_r];
             poc_c = REF_SET[2][0];
@@ -733,19 +677,20 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                 poc0 = REF_SET[0][base_mv_t[k][0][2]];
             }
 #endif
+
             list0_weight = ((poc_c - poc0) << MVP_SCALING_PRECISION) / ((poc_c - poc1));
-            if ((list0_weight * base_mv_t[k][1][0]) < 0)
+            if ((list0_weight * base_mv_t[k][REFP_1][MV_X]) < 0)
             {
                 ref_sign = -1;
             }
-            base_mv_t[k][0][0] = EVC_CLIP3(-32768, 32767, ref_sign * ((EVC_ABS(list0_weight * base_mv_t[k][1][0]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
+            base_mv_t[k][REFP_0][MV_X] = EVC_CLIP3(-32768, 32767, ref_sign * ((EVC_ABS(list0_weight * base_mv_t[k][REFP_1][MV_X]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
 
             list0_weight = ((poc_c - poc0) << MVP_SCALING_PRECISION) / ((poc_c - poc1));
-            if ((list0_weight * base_mv_t[k][1][1]) < 0)
+            if ((list0_weight * base_mv_t[k][REFP_1][MV_Y]) < 0)
             {
                 ref_sign1 = -1;
             }
-            base_mv_t[k][0][1] = EVC_CLIP3(-32768, 32767, ref_sign1 * ((EVC_ABS(list0_weight * base_mv_t[k][1][1]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
+            base_mv_t[k][REFP_0][MV_Y] = EVC_CLIP3(-32768, 32767, ref_sign1 * ((EVC_ABS(list0_weight * base_mv_t[k][REFP_1][MV_Y]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
         }
         else
         {
@@ -755,65 +700,63 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
         }
     }
 
-    for(base_mv_idx = 0; base_mv_idx < MMVD_BASE_MV_NUM; base_mv_idx++)
+    for (base_mv_idx = base_st; base_mv_idx < base_ed; base_mv_idx++)
     {
         int list0_r, list1_r;
         int poc0, poc1, poc_c;
-        int group_num = 3;
 
         if (small_cu)
         {
-            group_num = 1;
             base_type[0][base_mv_idx] = 1;
         }
 
-        for (cur_set = 0; cur_set < group_num; cur_set++)
+        for (cur_set = group_st; cur_set < group_ed; cur_set++)
         {
             if (base_type[cur_set][base_mv_idx] == 0)
             {
-                base_mv[base_mv_idx][0][0] = base_mv_t[base_mv_idx][0][0];
-                base_mv[base_mv_idx][0][1] = base_mv_t[base_mv_idx][0][1];
-                base_mv[base_mv_idx][0][2] = base_mv_t[base_mv_idx][0][2];
+                base_mv[base_mv_idx][REFP_0][MV_X] = base_mv_t[base_mv_idx][REFP_0][MV_X];
+                base_mv[base_mv_idx][REFP_0][MV_Y] = base_mv_t[base_mv_idx][REFP_0][MV_Y];
+                base_mv[base_mv_idx][REFP_0][REFI] = base_mv_t[base_mv_idx][REFP_0][REFI];
 
-                base_mv[base_mv_idx][1][0] = base_mv_t[base_mv_idx][1][0];
-                base_mv[base_mv_idx][1][1] = base_mv_t[base_mv_idx][1][1];
-                base_mv[base_mv_idx][1][2] = base_mv_t[base_mv_idx][1][2];
+                base_mv[base_mv_idx][REFP_1][MV_X] = base_mv_t[base_mv_idx][REFP_1][MV_X];
+                base_mv[base_mv_idx][REFP_1][MV_Y] = base_mv_t[base_mv_idx][REFP_1][MV_Y];
+                base_mv[base_mv_idx][REFP_1][REFI] = base_mv_t[base_mv_idx][REFP_1][REFI];
             }
             else if (base_type[cur_set][base_mv_idx] == 1)
             {
                 if (slice_t == SLICE_P)
                 {
-                    base_mv[base_mv_idx][0][2] = base_mv_p[base_mv_idx][cur_set][2];
-                    base_mv[base_mv_idx][1][2] = -1;
+                    base_mv[base_mv_idx][REFP_0][REFI] = base_mv_p[base_mv_idx][cur_set][REFI];
+                    base_mv[base_mv_idx][REFP_1][REFI] = -1;
 
-                    base_mv[base_mv_idx][0][0] = base_mv_p[base_mv_idx][cur_set][0];
-                    base_mv[base_mv_idx][0][1] = base_mv_p[base_mv_idx][cur_set][1];
+                    base_mv[base_mv_idx][REFP_0][MV_X] = base_mv_p[base_mv_idx][cur_set][MV_X];
+                    base_mv[base_mv_idx][REFP_0][MV_Y] = base_mv_p[base_mv_idx][cur_set][MV_Y];
                 }
                 else
                 {
-                    base_mv[base_mv_idx][0][2] = base_mv_t[base_mv_idx][0][2];
-                    base_mv[base_mv_idx][1][2] = -1;
+                    base_mv[base_mv_idx][REFP_0][REFI] = base_mv_t[base_mv_idx][REFP_0][REFI];
+                    base_mv[base_mv_idx][REFP_1][REFI] = -1;
 
-                    base_mv[base_mv_idx][0][0] = base_mv_t[base_mv_idx][0][0];
-                    base_mv[base_mv_idx][0][1] = base_mv_t[base_mv_idx][0][1];
+                    base_mv[base_mv_idx][REFP_0][MV_X] = base_mv_t[base_mv_idx][REFP_0][MV_X];
+                    base_mv[base_mv_idx][REFP_0][MV_Y] = base_mv_t[base_mv_idx][REFP_0][MV_Y];
                 }
             }
             else if (base_type[cur_set][base_mv_idx] == 2)
             {
-                base_mv[base_mv_idx][0][2] = -1;
-                base_mv[base_mv_idx][1][2] = base_mv_t[base_mv_idx][1][2];
+                base_mv[base_mv_idx][REFP_0][REFI] = -1;
+                base_mv[base_mv_idx][REFP_1][REFI] = base_mv_t[base_mv_idx][REFP_1][REFI];
 
-                base_mv[base_mv_idx][1][0] = base_mv_t[base_mv_idx][1][0];
-                base_mv[base_mv_idx][1][1] = base_mv_t[base_mv_idx][1][1];
+                base_mv[base_mv_idx][REFP_1][MV_X] = base_mv_t[base_mv_idx][REFP_1][MV_X];
+                base_mv[base_mv_idx][REFP_1][MV_Y] = base_mv_t[base_mv_idx][REFP_1][MV_Y];
             }
             else if (base_type[cur_set][base_mv_idx] == 3)
             {
-                base_mv[base_mv_idx][0][2] = -1;
-                base_mv[base_mv_idx][1][2] = -1;
+                base_mv[base_mv_idx][REFP_0][REFI] = -1;
+                base_mv[base_mv_idx][REFP_1][REFI] = -1;
             }
 
-            list0_r = base_mv[base_mv_idx][0][2];
-            list1_r = base_mv[base_mv_idx][1][2];
+            list0_r = base_mv[base_mv_idx][REFP_0][REFI];
+            list1_r = base_mv[base_mv_idx][REFP_1][REFI];
 
             ref_sign = 1;
             if (slice_t == SLICE_B)
@@ -834,7 +777,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                 }
             }
 
-            for(k = 0; k < MMVD_MAX_REFINE_NUM; k++)
+            for (k = mmvd_v_st; k < mmvd_v_ed; k++)
             {
                 list0_weight = 1 << MVP_SCALING_PRECISION;
                 list1_weight = 1 << MVP_SCALING_PRECISION;
@@ -895,13 +838,13 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                     ver1Var[k] = ref_mvd1 * -1 * ref_sign;
                 }
 
-                real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][0][MV_X] = base_mv[base_mv_idx][0][MV_X] + hor0var[k];
-                real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][0][MV_Y] = base_mv[base_mv_idx][0][MV_Y] + ver0var[k];
-                real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][1][MV_X] = base_mv[base_mv_idx][1][MV_X] + hor1var[k];
-                real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][1][MV_Y] = base_mv[base_mv_idx][1][MV_Y] + ver1Var[k];
+                real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][REFP_0][MV_X] = base_mv[base_mv_idx][REFP_0][MV_X] + hor0var[k];
+                real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][REFP_0][MV_Y] = base_mv[base_mv_idx][REFP_0][MV_Y] + ver0var[k];
+                real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][REFP_1][MV_X] = base_mv[base_mv_idx][REFP_1][MV_X] + hor1var[k];
+                real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][REFP_1][MV_Y] = base_mv[base_mv_idx][REFP_1][MV_Y] + ver1Var[k];
 
-                real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][0][2] = base_mv[base_mv_idx][0][2];
-                real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][1][2] = base_mv[base_mv_idx][1][2];
+                real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][REFP_0][REFI] = base_mv[base_mv_idx][REFP_0][REFI];
+                real_mv[cur_set*total_num + base_mv_idx * MMVD_MAX_REFINE_NUM + k][REFP_1][REFI] = base_mv[base_mv_idx][REFP_1][REFI];
             }
         }
     }
