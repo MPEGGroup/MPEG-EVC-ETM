@@ -5315,17 +5315,7 @@ static double pinter_analyze_cu_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, 
             mvp_idx[lidx] = pi->mvp_idx[PRED_SKIP][lidx];
 
             /* motion search ********************/
-            u8 skip_me = 0;
-            if(skip_me)
-            {
-                mecost = EVC_UINT32_MAX;
-                mv[MV_X] = mvp[mvp_idx[lidx]][MV_X];
-                mv[MV_Y] = mvp[mvp_idx[lidx]][MV_Y];
-            }
-            else
-            {
-                mecost = pi->fn_me(pi, x, y, log2_cuw, log2_cuh, &refi_cur, lidx, mvp[mvp_idx[lidx]], mv, 0);
-            }
+            mecost = pi->fn_me(pi, x, y, log2_cuw, log2_cuh, &refi_cur, lidx, mvp[mvp_idx[lidx]], mv, 0);
 
             pi->mv_scale[lidx][refi_cur][MV_X] = mv[MV_X];
             pi->mv_scale[lidx][refi_cur][MV_Y] = mv[MV_Y];
@@ -5576,6 +5566,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 #if EVC_TILE_SUPPORT
             , ctx->map_tidx
 #endif
+            , -1
         );
     }
     mmvd_base_skip(ctx, core, real_mv, log2_cuw, log2_cuh, ctx->slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], ctx->w_scu, core->avail_cu, REF_SET

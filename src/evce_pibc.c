@@ -984,18 +984,7 @@ static double pibc_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int 
   mvp_idx = 0;
 
   /* motion search ********************/
-  u8 skip_me = 0;
-
-  if (skip_me)
-  {
-    mecost = EVC_UINT32_MAX;
-    mv[MV_X] = mvp[mvp_idx][MV_X];
-    mv[MV_Y] = mvp[mvp_idx][MV_Y];
-  }
-  else
-  {
-    mecost = pibc_me_search(ctx, core, pi, x, y, log2_cuw, log2_cuh, mvp[mvp_idx], mv);
-  }
+  mecost = pibc_me_search(ctx, core, pi, x, y, log2_cuw, log2_cuh, mvp[mvp_idx], mv);
 
   if (mv[MV_X] != 0 || mv[MV_Y] != 0)
   {

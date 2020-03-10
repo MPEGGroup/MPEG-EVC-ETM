@@ -959,6 +959,7 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #if EVC_TILE_SUPPORT
         , ctx->map_tidx
 #endif
+        , core->mmvd_idx
     );
 
     core->mv[REFP_0][MV_X] = real_mv[core->mmvd_idx][0][MV_X];

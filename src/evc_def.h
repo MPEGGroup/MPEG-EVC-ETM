@@ -531,6 +531,8 @@ extern int fp_trace_started;
 #define MV_Y                               1
 /* Maximum count (dimension) of motion */
 #define MV_D                               2
+/* Reference index indicator */
+#define REFI                               2
 
 #define N_REF                              3  /* left, up, right */
 #define NUM_NEIB                           4  /* LR: 00, 10, 01, 11*/
