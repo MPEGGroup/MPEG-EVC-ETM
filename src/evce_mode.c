@@ -1029,7 +1029,7 @@ static int init_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh, int q
     cuw_scu = 1 << (log2_cuw - MIN_CU_LOG2);
     cuh_scu = 1 << (log2_cuh - MIN_CU_LOG2);
 
-    for(i = 0; i < MAX_CU_DEPTH; i++)
+    for(i = 0; i < NUM_CU_DEPTH; i++)
     {
         for(j = 0; j < NUM_BLOCK_SHAPE; j++)
         {
@@ -1110,7 +1110,7 @@ static int copy_cu_data(EVCE_CU_DATA *dst, EVCE_CU_DATA *src, int x, int y, int 
         idx_src = j * cuw_scu;
 
         size = cuw_scu * sizeof(s8);
-        for(k = cud; k < MAX_CU_DEPTH; k++)
+        for(k = cud; k < NUM_CU_DEPTH; k++)
         {
             for(i = 0; i < NUM_BLOCK_SHAPE; i++)
             {

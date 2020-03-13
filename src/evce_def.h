@@ -525,8 +525,8 @@ typedef struct _EVCE_DQP
 #endif
 typedef struct _EVCE_CU_DATA
 {
-    s8  split_mode[MAX_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
-    s8  suco_flag[MAX_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
+    s8  split_mode[NUM_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
+    s8  suco_flag[NUM_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
     u8  *qp_y;
     u8  *qp_u;
     u8  *qp_v;
