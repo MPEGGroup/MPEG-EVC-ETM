@@ -561,8 +561,8 @@ const s16 init_cbf[2][NUM_QT_CBF_CTX] =
 #if DQP
 const s16 init_dqp[2][NUM_DELTA_QP_CTX] =
 {
-    { 1028, },
-    { 1028, },
+    {    4, },
+    {    4, },
 };
 #endif
 
