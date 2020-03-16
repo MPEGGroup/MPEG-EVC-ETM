@@ -135,9 +135,9 @@ typedef struct _EVCD_CORE
     /* top pel position of current LCU */
     u16            y_pel;
     /* split mode map for current LCU */
-    s8             split_mode[MAX_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
+    s8             split_mode[NUM_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
     /* SUCO flag for current LCU */
-    s8             suco_flag[MAX_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
+    s8             suco_flag[NUM_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
     /* platform specific data, if needed */
     void          *pf;
     s16            mmvd_idx;
@@ -244,8 +244,8 @@ struct _EVCD_CTX
     /* SCU map for CU information */
     u32                   * map_scu;
     /* LCU split information */
-    s8                   (* map_split)[MAX_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
-    s8                   (* map_suco)[MAX_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
+    s8                   (* map_split)[NUM_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
+    s8                   (* map_suco)[NUM_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
     /* decoded motion vector for every blocks */
     s16                  (* map_mv)[REFP_NUM][MV_D];
 #if DMVR_LAG

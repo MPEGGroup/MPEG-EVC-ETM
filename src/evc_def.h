@@ -544,6 +544,7 @@ extern int fp_trace_started;
 #define MAX_CU_DIM                        (MAX_CU_SIZE * MAX_CU_SIZE)
 #define MIN_CU_DIM                        (MIN_CU_SIZE * MIN_CU_SIZE)
 #define MAX_CU_DEPTH                       10  /* 128x128 ~ 4x4 */
+#define NUM_CU_DEPTH                      (MAX_CU_DEPTH + 1)
 
 #define MAX_TR_LOG2                        6  /* 64x64 */
 #define MIN_TR_LOG2                        1  /* 2x2 */

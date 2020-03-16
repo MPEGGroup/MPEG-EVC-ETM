@@ -190,7 +190,7 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
     /* alloc map for CU split flag */
     if(ctx->map_split == NULL)
     {
-        size = sizeof(s8) * ctx->f_lcu * MAX_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU;
+        size = sizeof(s8) * ctx->f_lcu * NUM_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU;
         ctx->map_split = evc_malloc(size);
         evc_assert_gv(ctx->map_split, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
         evc_mset_x64a(ctx->map_split, 0, size);
@@ -199,7 +199,7 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
     /* alloc map for LCU suco flag */
     if(ctx->map_suco == NULL)
     {
-        size = sizeof(s8) * ctx->f_lcu * MAX_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU;
+        size = sizeof(s8) * ctx->f_lcu * NUM_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU;
         ctx->map_suco = evc_malloc(size);
         evc_assert_gv(ctx->map_suco, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
         evc_mset_x64a(ctx->map_suco, 0, size);
@@ -2227,7 +2227,7 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
             }
 
             /* invoke coding_tree() recursion */
-            evc_mset(core->split_mode, 0, sizeof(s8) * MAX_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
+            evc_mset(core->split_mode, 0, sizeof(s8) * NUM_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
 
             evc_AlfSliceParam* alfSliceParam = &(ctx->sh.alf_sh_param);
             if ((alfSliceParam->isCtbAlfOn) && (ctx->sh.alf_on))
@@ -2251,8 +2251,8 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
             evc_assert_g(EVC_SUCCEEDED(ret), ERR);
 
             /* set split flags to map */
-            evc_mcpy(ctx->map_split[core->lcu_num], core->split_mode, sizeof(s8) * MAX_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
-            evc_mcpy(ctx->map_suco[core->lcu_num], core->suco_flag, sizeof(s8) * MAX_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
+            evc_mcpy(ctx->map_split[core->lcu_num], core->split_mode, sizeof(s8) * NUM_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
+            evc_mcpy(ctx->map_suco[core->lcu_num], core->suco_flag, sizeof(s8) * NUM_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
 
             lcu_cnt_in_tile--;
             ctx->NumCtb--;
@@ -2292,7 +2292,7 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
         }
 
         /* invoke coding_tree() recursion */
-        evc_mset(core->split_mode, 0, sizeof(s8) * MAX_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
+        evc_mset(core->split_mode, 0, sizeof(s8) * NUM_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
         evc_AlfSliceParam* alfSliceParam = &(ctx->sh.alf_sh_param);
         if ((alfSliceParam->isCtbAlfOn) && (ctx->sh.alf_on))
         {
@@ -2314,8 +2314,8 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
         evc_assert_g(EVC_SUCCEEDED(ret), ERR);
 
         /* set split flags to map */
-        evc_mcpy(ctx->map_split[core->lcu_num], core->split_mode, sizeof(s8) * MAX_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
-        evc_mcpy(ctx->map_suco[core->lcu_num], core->suco_flag, sizeof(s8) * MAX_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
+        evc_mcpy(ctx->map_split[core->lcu_num], core->split_mode, sizeof(s8) * NUM_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
+        evc_mcpy(ctx->map_suco[core->lcu_num], core->suco_flag, sizeof(s8) * NUM_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
 
         /* read end_of_picture_flag */
         if(evcd_eco_slice_end_flag(bs, sbac))
