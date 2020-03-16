@@ -654,13 +654,13 @@ int evce_eco_signature(EVCE_CTX * ctx, EVC_BSW * bs)
 #if HDR_MD5_CHECK
         }
 #endif
-
+#if HDR_MD5_CHECK
         if (ctx->sps.tool_dra)
         {
             ret = evce_eco_udata_hdr(ctx, bs, pic_sign);
             evc_assert_rv(ret == EVC_OK, ret);
         }
-
+#endif
         evc_bsw_write(bs, EVC_UD_PIC_SIGNATURE, 8);
         evc_bsw_write(bs, hash_size, 8);
 
