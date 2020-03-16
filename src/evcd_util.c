@@ -198,7 +198,7 @@ int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16], int tool_dra, v
         return EVC_OK;
 }
 #endif
-#if !HDR_METRIC
+#if !HDR_MD5_CHECK
 int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16])
 {
     u8 pic_sign[16];
