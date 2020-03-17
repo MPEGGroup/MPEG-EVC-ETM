@@ -3222,7 +3222,7 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
             {
                 if(sps_cm_init_flag == 1)
                 {
-                    ctx[i] = min(ctx[i], NUM_SBAC_CTX_SKIP_FLAG - 1);
+                    ctx[i] = min(ctx[i], NUM_CTX_SKIP_FLAG - 1);
                 }
                 else
                 {
@@ -3233,7 +3233,7 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
             {
               if (sps_cm_init_flag == 1)
               {
-                ctx[i] = min(ctx[i], NUM_SBAC_CTX_IBC_FLAG - 1);
+                ctx[i] = min(ctx[i], NUM_CTX_IBC_FLAG - 1);
               }
               else
               {
@@ -3244,7 +3244,7 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
             {
                 if(sps_cm_init_flag == 1)
                 {
-                    ctx[i] = min(ctx[i], NUM_PRED_MODE_CTX - 1);
+                    ctx[i] = min(ctx[i], NUM_CTX_PRED_MODE - 1);
                 }
                 else
                 {
@@ -3256,7 +3256,7 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
             {
                 if (sps_cm_init_flag == 1)
                 {
-                    ctx[i] = min(ctx[i], NUM_MODE_CONS_CTX - 1);
+                    ctx[i] = min(ctx[i], NUM_CTX_MODE_CONS - 1);
                 }
                 else
                 {
@@ -3268,7 +3268,7 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
             {
                 if(sps_cm_init_flag == 1)
                 {
-                    ctx[i] = min(ctx[i], NUM_SBAC_CTX_AFFINE_FLAG - 1);
+                    ctx[i] = min(ctx[i], NUM_CTX_AFFINE_FLAG - 1);
                 }
                 else
                 {
@@ -4774,7 +4774,7 @@ void evc_get_ctx_last_pos_xy_para(int ch_type, int width, int height, int *resul
     }
 }
 
-int evc_get_ctx_gt0_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type)
+int evc_get_ctx_sig_coeff_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type)
 {
     const s16 *pdata = pcoeff + blkpos;
     const int width_m1 = width - 1;
@@ -4783,33 +4783,33 @@ int evc_get_ctx_gt0_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_t
     const int pos_y = blkpos >> log2_w;
     const int pos_x = blkpos - (pos_y << log2_w);
     int diag = pos_x + pos_y;
-    int num_gt0 = 0;
+    int num_sig_coeff = 0;
     int ctx_idx;
     int ctx_ofs;
 
     if(pos_x < width_m1)
     {
-        num_gt0 += pdata[1] != 0;
+        num_sig_coeff += pdata[1] != 0;
         if(pos_x < width_m1 - 1)
         {
-            num_gt0 += pdata[2] != 0;
+            num_sig_coeff += pdata[2] != 0;
         }
         if(pos_y < height_m1)
         {
-            num_gt0 += pdata[width + 1] != 0;
+            num_sig_coeff += pdata[width + 1] != 0;
         }
     }
 
     if(pos_y < height_m1)
     {
-        num_gt0 += pdata[width] != 0;
+        num_sig_coeff += pdata[width] != 0;
         if(pos_y < height_m1 - 1)
         {
-            num_gt0 += pdata[2 * width] != 0;
+            num_sig_coeff += pdata[2 * width] != 0;
         }
     }
 
-    ctx_idx = EVC_MIN(num_gt0, 4) + 1;
+    ctx_idx = EVC_MIN(num_sig_coeff, 4) + 1;
 
     if(diag < 2)
     {
@@ -5480,7 +5480,7 @@ void get_tu_pos_offset(u8 ats_inter_info, int log2_cuw, int log2_cuh, int* x_off
     }
 }
 
-void get_ats_inter_trs(u8 ats_inter_info, int log2_cuw, int log2_cuh, u8* ats_cu, u8* ats_tu)
+void get_ats_inter_trs(u8 ats_inter_info, int log2_cuw, int log2_cuh, u8* ats_cu, u8* ats_mode)
 {
     if (ats_inter_info == 0)
     {
@@ -5490,7 +5490,7 @@ void get_ats_inter_trs(u8 ats_inter_info, int log2_cuw, int log2_cuh, u8* ats_cu
     if (log2_cuw > 5 || log2_cuh > 5)
     {
         *ats_cu = 0;
-        *ats_tu = 0;
+        *ats_mode = 0;
     }
     else
     {
@@ -5513,7 +5513,7 @@ void get_ats_inter_trs(u8 ats_inter_info, int log2_cuw, int log2_cuh, u8* ats_cu
             t_idx_h = ats_inter_pos == 0 ? 1 : 0;
         }
         *ats_cu = 1;
-        *ats_tu = (t_idx_h << 1) | t_idx_v;
+        *ats_mode = (t_idx_h << 1) | t_idx_v;
     }
 }
 

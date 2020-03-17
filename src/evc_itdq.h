@@ -35,10 +35,10 @@
 #define _EVC_ITDQ_H_
 #include "evc_def.h"
 
-void evc_itdq(s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag, u8 ats_intra_cu, u8 ats_tu);
+void evc_itdq(s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag, u8 ats_intra_cu, u8 ats_mode);
 
 void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int flag[N_C], int nnz_sub[N_C][MAX_SUB_TB_NUM], int iqt_flag
-                        , u8 ats_intra_cu, u8 ats_tu, u8 ats_inter_info);
+                        , u8 ats_intra_cu, u8 ats_mode, u8 ats_inter_info);
 
 void evc_init_multi_tbl();
 void evc_init_multi_inv_tbl();

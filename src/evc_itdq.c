@@ -581,7 +581,7 @@ INV_TRANS *evc_itrans_map_tbl[16][5] =
     { NULL, evc_itrans_ats_intra_DST7_B4, evc_itrans_ats_intra_DST7_B8, evc_itrans_ats_intra_DST7_B16, evc_itrans_ats_intra_DST7_B32 },
 };
 
-void evc_itrans_ats_intra(s16 *coef, int log2_cuw, int log2_cuh, u8 ats_tu, int skip_w, int skip_h);
+void evc_itrans_ats_intra(s16 *coef, int log2_cuw, int log2_cuh, u8 ats_mode, int skip_w, int skip_h);
 void evc_it_MxN_ats_intra(s16 *coef, int tuw, int tuh, int bit_depth, const int max_log2_tr_dynamic_range, u8 ats_intra_tridx, int skip_w, int skip_h);
 
 void evc_init_multi_tbl()
@@ -1257,9 +1257,9 @@ void evc_itrans(s16 *coef, int log2_cuw, int log2_cuh, int iqt_flag)
 }
 
 
-void evc_itrans_ats_intra(s16* coef, int log2_w, int log2_h, u8 ats_tu, int skip_w, int skip_h)
+void evc_itrans_ats_intra(s16* coef, int log2_w, int log2_h, u8 ats_mode, int skip_w, int skip_h)
 {
-    evc_it_MxN_ats_intra(coef, (1 << log2_w), (1 << log2_h), BIT_DEPTH, 15, ats_tu, skip_w, skip_h);
+    evc_it_MxN_ats_intra(coef, (1 << log2_w), (1 << log2_h), BIT_DEPTH, 15, ats_mode, skip_w, skip_h);
 }
 
 static void evc_dquant(s16 *coef, int log2_w, int log2_h, int scale, s32 offset, u8 shift)
@@ -1275,7 +1275,7 @@ static void evc_dquant(s16 *coef, int log2_w, int log2_h, int scale, s32 offset,
     }
 }
 
-void evc_itdq(s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag, u8 ats_intra_cu, u8 ats_tu)
+void evc_itdq(s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag, u8 ats_intra_cu, u8 ats_mode)
 {
     s32 offset;
     u8 shift;
@@ -1323,7 +1323,7 @@ void evc_itdq(s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag, u8 ats
 
     if(ats_intra_cu)
     {
-        evc_itrans_ats_intra(coef, log2_w, log2_h, ats_tu, skip_w, skip_h);
+        evc_itrans_ats_intra(coef, log2_w, log2_h, ats_mode, skip_w, skip_h);
     }
     else
     {
@@ -1332,7 +1332,7 @@ void evc_itdq(s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag, u8 ats
 }
 
 void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int flag[N_C], int nnz_sub[N_C][MAX_SUB_TB_NUM], int iqt_flag
-                        , u8 ats_intra_cu, u8 ats_tu, u8 ats_inter_info)
+                        , u8 ats_intra_cu, u8 ats_mode, u8 ats_inter_info)
 {
     s16 *coef_temp[N_C];
     s16 coef_temp_buf[N_C][MAX_TR_DIM];
@@ -1346,7 +1346,7 @@ void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u
     u8 qp[N_C] = { qp_y, qp_u, qp_v };
     int scale = 0;
     u8 ats_intra_cu_on = 0;
-    u8 ats_tu_mode = 0;
+    u8 ats_mode_idx = 0;
 
     if (ats_inter_info)
     {
@@ -1361,11 +1361,11 @@ void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u
             for(c = 0; c < N_C; c++)
             {
                 ats_intra_cu_on = (c == 0)? ats_intra_cu : 0;
-                ats_tu_mode = (c == 0) ? ats_tu : 0;
+                ats_mode_idx = (c == 0) ? ats_mode : 0;
 
                 if (c == 0)
                 {
-                    get_ats_inter_trs(ats_inter_info, log2_cuw, log2_cuh, &ats_intra_cu_on, &ats_tu_mode);
+                    get_ats_inter_trs(ats_inter_info, log2_cuw, log2_cuh, &ats_intra_cu_on, &ats_mode_idx);
                 }
 
                 if(nnz_sub[c][(j << 1) | i])
@@ -1392,7 +1392,7 @@ void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u
                         scale = evc_tbl_dq_scale_b[qp[c] % 6] << (qp[c] / 6);
                     }
 
-                    evc_itdq(coef_temp[c], log2_w_sub - !!c, log2_h_sub - !!c, scale, iqt_flag, ats_intra_cu_on, ats_tu_mode);
+                    evc_itdq(coef_temp[c], log2_w_sub - !!c, log2_h_sub - !!c, scale, iqt_flag, ats_intra_cu_on, ats_mode_idx);
 
                     if(loop_h + loop_w > 2)
                     {

@@ -1474,19 +1474,19 @@ int evce_ready(EVCE_CTX * ctx)
         evc_assert_gv(ctx->map_ats_intra_cu, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
         evc_mset(ctx->map_ats_intra_cu, 0, size);
     }
-    if (ctx->map_ats_tu_h == NULL)
+    if (ctx->map_ats_mode_h == NULL)
     {
         size = sizeof(u8) * ctx->f_scu;
-        ctx->map_ats_tu_h = evc_malloc_fast(size);
-        evc_assert_gv(ctx->map_ats_tu_h, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
-        evc_mset(ctx->map_ats_tu_h, 0, size);
+        ctx->map_ats_mode_h = evc_malloc_fast(size);
+        evc_assert_gv(ctx->map_ats_mode_h, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
+        evc_mset(ctx->map_ats_mode_h, 0, size);
     }
-    if (ctx->map_ats_tu_v == NULL)
+    if (ctx->map_ats_mode_v == NULL)
     {
         size = sizeof(u8) * ctx->f_scu;
-        ctx->map_ats_tu_v = evc_malloc_fast(size);
-        evc_assert_gv(ctx->map_ats_tu_v, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
-        evc_mset(ctx->map_ats_tu_v, 0, size);
+        ctx->map_ats_mode_v = evc_malloc_fast(size);
+        evc_assert_gv(ctx->map_ats_mode_v, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
+        evc_mset(ctx->map_ats_mode_v, 0, size);
     }
 
     if (ctx->map_ats_inter == NULL)
@@ -1569,8 +1569,8 @@ ERR:
     evc_mfree_fast(ctx->map_depth);
     evc_mfree_fast(ctx->map_affine);
     evc_mfree_fast(ctx->map_ats_intra_cu);
-    evc_mfree_fast(ctx->map_ats_tu_h);
-    evc_mfree_fast(ctx->map_ats_tu_v);
+    evc_mfree_fast(ctx->map_ats_mode_h);
+    evc_mfree_fast(ctx->map_ats_mode_v);
     evc_mfree_fast(ctx->map_ats_inter);
 
     evc_mfree_fast(ctx->ats_inter_pred_dist);
@@ -1608,8 +1608,8 @@ void evce_flush(EVCE_CTX * ctx)
     evc_mfree_fast(ctx->map_depth);
     evc_mfree_fast(ctx->map_affine);
     evc_mfree_fast(ctx->map_ats_intra_cu);
-    evc_mfree_fast(ctx->map_ats_tu_h);
-    evc_mfree_fast(ctx->map_ats_tu_v);
+    evc_mfree_fast(ctx->map_ats_mode_h);
+    evc_mfree_fast(ctx->map_ats_mode_v);
     evc_mfree_fast(ctx->map_ats_inter);
     evc_mfree_fast(ctx->ats_inter_pred_dist);
     evc_mfree_fast(ctx->ats_inter_info_pred);
@@ -3088,7 +3088,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
                     sbac = GET_SBAC_ENC(bs);
                     EVC_TRACE_COUNTER;
                     EVC_TRACE_STR("Usage of ALF: ");
-                    evce_sbac_encode_bin((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)), sbac, sbac->ctx.ctb_alf_flag, bs);
+                    evce_sbac_encode_bin((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)), sbac, sbac->ctx.alf_ctb_flag, bs);
                     EVC_TRACE_INT((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)));
                     EVC_TRACE_STR("\n");
                 }
@@ -3321,7 +3321,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
                 sbac = GET_SBAC_ENC(bs);
                 EVC_TRACE_COUNTER;
                 EVC_TRACE_STR("Usage of ALF: ");
-                evce_sbac_encode_bin((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)), sbac, sbac->ctx.ctb_alf_flag, bs);
+                evce_sbac_encode_bin((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)), sbac, sbac->ctx.alf_ctb_flag, bs);
                 EVC_TRACE_INT((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)));
                 EVC_TRACE_STR("\n");
             }
@@ -3373,7 +3373,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             sbac = GET_SBAC_ENC(bs);
             EVC_TRACE_COUNTER;
             EVC_TRACE_STR("Usage of ALF: ");
-            evce_sbac_encode_bin((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)), sbac, sbac->ctx.ctb_alf_flag, bs);
+            evce_sbac_encode_bin((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)), sbac, sbac->ctx.alf_ctb_flag, bs);
             EVC_TRACE_INT((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)));
             EVC_TRACE_STR("\n");
         }
@@ -4036,8 +4036,8 @@ int evce_create_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
     evce_malloc_1d((void**)&cu_data->mmvd_flag, size_8b);
 
     evce_malloc_1d((void**)& cu_data->ats_intra_cu, size_8b);
-    evce_malloc_1d((void**)& cu_data->ats_tu_h, size_8b);
-    evce_malloc_1d((void**)& cu_data->ats_tu_v, size_8b);
+    evce_malloc_1d((void**)& cu_data->ats_mode_h, size_8b);
+    evce_malloc_1d((void**)& cu_data->ats_mode_v, size_8b);
 
     evce_malloc_1d((void**)&cu_data->ats_inter_info, size_8b);
 
@@ -4128,8 +4128,8 @@ int evce_delete_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
     evce_free_1d((void*)cu_data->affine_flag);
     evce_free_1d((void*)cu_data->map_affine);
     evce_free_1d((void*)cu_data->ats_intra_cu);
-    evce_free_1d((void*)cu_data->ats_tu_h);
-    evce_free_1d((void*)cu_data->ats_tu_v);
+    evce_free_1d((void*)cu_data->ats_mode_h);
+    evce_free_1d((void*)cu_data->ats_mode_v);
     evce_free_1d((void*)cu_data->ats_inter_info);
     evce_free_1d((void*)cu_data->map_cu_mode);
     evce_free_1d((void*)cu_data->depth);
