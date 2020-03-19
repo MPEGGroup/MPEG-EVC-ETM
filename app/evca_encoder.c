@@ -1526,7 +1526,7 @@ static void print_enc_conf(EVCE_CDSC * cdsc)
     printf("AFFINE: %d, ", cdsc->tool_affine);
     printf("DMVR: %d, ",   cdsc->tool_dmvr);
 #if ENC_DBF_CONTROL
-    printf("DBFxADDB: %d, %d", cdsc->use_deblock, cdsc->tool_addb);
+    printf("DBF.ADDB: %d.%d, ", cdsc->use_deblock, cdsc->tool_addb);
 #else
 #if ADDB_FLAG_FIX
     printf("ADDB: %d, ",   cdsc->tool_addb);
@@ -1542,14 +1542,12 @@ static void print_enc_conf(EVCE_CDSC * cdsc)
     printf("IBC: %d, ", cdsc->ibc_flag);
     printf("ATS: %d, ",    cdsc->tool_ats);
     printf("CONSTRAINED_INTRA_PRED: %d, ", cdsc->constrained_intra_pred);
-    printf("DBFOffsetA: %d, ", cdsc->deblock_aplha_offset);
-    printf("DBFOffsetB: %d, ", cdsc->deblock_beta_offset);
 #if EVC_TILE_SUPPORT
     printf("Uniform Tile Spacing: %d, ", cdsc->tile_uniform_spacing_flag);
     printf("Number of Tile Columns: %d, ", cdsc->tile_columns);
-    printf("Number of Tile  Rows: %d ", cdsc->tile_rows);
+    printf("Number of Tile  Rows: %d, ", cdsc->tile_rows);
 #endif
-    printf("ChromaQPTable: %d ", cdsc->chroma_qp_table_struct.chroma_qp_table_present_flag);
+    printf("ChromaQPTable: %d, ", cdsc->chroma_qp_table_struct.chroma_qp_table_present_flag);
 #if M52291_HDR_DRA
     printf("DRA: %d ", cdsc->tool_dra);
 #endif
