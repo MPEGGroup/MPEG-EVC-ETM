@@ -139,6 +139,9 @@ static int  op_cb_qp_offset       = 0;
 static int  op_cr_qp_offset       = 0;
 static int op_tool_ats            = 1; /* default on */
 static int  op_constrained_intra_pred = 0;
+#if ENC_DBF_CONTROL
+static int  op_tool_deblocking    = 1; /* default on */
+#endif
 static int  op_deblock_alpha_offset = 0; /* default offset 0*/
 static int  op_deblock_beta_offset = 0;  /* default offset 0*/
 
@@ -254,6 +257,9 @@ typedef enum _OP_FLAGS
     OP_CR_QP_OFFSET,
     OP_TOOL_ATS,
     OP_CONSTRAINED_INTRA_PRED,
+#if ENC_DBF_CONTROL
+    OP_TOOL_DBF,
+#endif
     OP_TOOL_DBFOFFSET,
 #if ETM_HDR_REPORT_METRIC_FLAG
     OP_HDR_METRIC_REPORT,
@@ -688,6 +694,13 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_CONSTRAINED_INTRA_PRED], &op_constrained_intra_pred,
         "constrained intra pred"
     },
+#if ENC_DBF_CONTROL
+    {
+        EVC_ARGS_NO_KEY,  "dbf", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_TOOL_DBF], &op_tool_deblocking,
+        "Deblocking filter on/off flag"
+    },
+#endif
     {
         EVC_ARGS_NO_KEY,  "dbfoffsetA", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_TOOL_DBFOFFSET], &op_deblock_alpha_offset,
@@ -1289,6 +1302,9 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->cr_qp_offset       = op_cr_qp_offset;
     cdsc->tool_ats           = op_tool_ats;
     cdsc->constrained_intra_pred = op_constrained_intra_pred;
+#if ENC_DBF_CONTROL
+    cdsc->use_deblock        = op_tool_deblocking;
+#endif
     cdsc->deblock_aplha_offset = op_deblock_alpha_offset;
     cdsc->deblock_beta_offset = op_deblock_beta_offset;
 #if ETM_HDR_REPORT_METRIC_FLAG
@@ -1509,8 +1525,12 @@ static void print_enc_conf(EVCE_CDSC * cdsc)
     printf("MMVD: %d, ",   cdsc->tool_mmvd);
     printf("AFFINE: %d, ", cdsc->tool_affine);
     printf("DMVR: %d, ",   cdsc->tool_dmvr);
+#if ENC_DBF_CONTROL
+    printf("DBFxADDB: %d, %d", cdsc->use_deblock, cdsc->tool_addb);
+#else
 #if ADDB_FLAG_FIX
     printf("ADDB: %d, ",   cdsc->tool_addb);
+#endif
 #endif
     printf("ALF: %d, ",    cdsc->tool_alf);
     printf("ADMVP: %d, ",  cdsc->tool_admvp);

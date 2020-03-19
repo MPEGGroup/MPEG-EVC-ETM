@@ -239,7 +239,11 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
     param->fps            = cdsc->fps;
     param->i_period       = cdsc->iperiod;
     param->f_ifrm         = 0;
+#if ENC_DBF_CONTROL
+    param->use_deblock    = cdsc->use_deblock;
+#else
     param->use_deblock    = 1;  
+#endif
     param->deblock_alpha_offset = cdsc->deblock_aplha_offset;
     param->deblock_beta_offset = cdsc->deblock_beta_offset;
     param->qp_max         = MAX_QUANT;
@@ -1764,10 +1768,13 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
 #endif
 #if EVC_TILE_SUPPORT
-                  , ctx->map_tidx
+                    , ctx->map_tidx
 #endif
 #if ADDB_FLAG_FIX
                     , ctx->sps.tool_addb
+#endif
+#if DEBLOCKING_FIX
+                    , ctx->map_ats_inter
 #endif
                 );
                 evc_deblock_cu_hor(pic, x, y + MAX_TR_SIZE, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, ctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
@@ -1775,14 +1782,17 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if EVC_CONCURENCY
                     , core->tree_cons
 #else
-                  , ctx->tree_cons
+                    , ctx->tree_cons
 #endif
 #endif
 #if EVC_TILE_SUPPORT
-                  , ctx->map_tidx
+                    , ctx->map_tidx
 #endif
 #if ADDB_FLAG_FIX
                     , ctx->sps.tool_addb
+#endif
+#if DEBLOCKING_FIX
+                    , ctx->map_ats_inter
 #endif
                 );
             }
@@ -1797,10 +1807,13 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
 #endif
 #if EVC_TILE_SUPPORT
-                  , ctx->map_tidx
+                    , ctx->map_tidx
 #endif
 #if ADDB_FLAG_FIX
                     , ctx->sps.tool_addb
+#endif
+#if DEBLOCKING_FIX
+                    , ctx->map_ats_inter
 #endif
                 );
             }
@@ -1816,16 +1829,19 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                   , ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
 #if EVC_CONCURENCY
-                    , core->tree_cons
+                  , core->tree_cons
 #else
-                    , ctx->tree_cons
+                  , ctx->tree_cons
 #endif
 #endif
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
 #endif
 #if ADDB_FLAG_FIX
-                    , ctx->sps.tool_addb
+                  , ctx->sps.tool_addb
+#endif
+#if DEBLOCKING_FIX
+                  , ctx->map_ats_inter
 #endif
                 );
                 evc_deblock_cu_ver(pic, x + MAX_TR_SIZE, y, cuw >> 1, cuh, ctx->map_scu, ctx->map_refi, ctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh
@@ -1836,16 +1852,19 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if M50761_CHROMA_NOT_SPLIT
                   
 #if EVC_CONCURENCY
-                    , core->tree_cons 
+                  , core->tree_cons 
 #else
-                    , ctx->tree_cons 
+                  , ctx->tree_cons 
 #endif
 #endif
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
 #endif
 #if ADDB_FLAG_FIX
-                    , ctx->sps.tool_addb
+                  , ctx->sps.tool_addb
+#endif
+#if DEBLOCKING_FIX
+                  , ctx->map_ats_inter
 #endif
                 );
             }
@@ -1858,16 +1877,19 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                   , ctx->refp, 0
 #if M50761_CHROMA_NOT_SPLIT
 #if EVC_CONCURENCY
-                    , core->tree_cons
+                  , core->tree_cons
 #else
-                    , ctx->tree_cons
+                  , ctx->tree_cons
 #endif
 #endif
 #if EVC_TILE_SUPPORT
                   , ctx->map_tidx
 #endif
 #if ADDB_FLAG_FIX
-                    , ctx->sps.tool_addb
+                  , ctx->sps.tool_addb
+#endif
+#if DEBLOCKING_FIX
+                  , ctx->map_ats_inter
 #endif
                 );
             }
@@ -2721,10 +2743,15 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     core->qp_y = ctx->sh.qp + 6 * (BIT_DEPTH - 8);
     core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][sh->qp_u] + 6 * (BIT_DEPTH - 8);
     core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][sh->qp_v] + 6 * (BIT_DEPTH - 8);
-
+#if HISTORY_UNDER_ADMVP_FIX
+    if (ctx->sps.tool_admvp)
+    {
+#endif
     ret = evce_hmvp_init(&(core->history_buffer));
     evc_assert_rv(ret == EVC_OK, ret);
-
+#if HISTORY_UNDER_ADMVP_FIX
+    }
+#endif
 #if !EVC_TILE_SUPPORT    
     /* initialize entropy coder */
     evce_sbac_reset(GET_SBAC_ENC(bs), ctx->sh.slice_type, ctx->sh.qp, ctx->sps.tool_cm_init);
@@ -2815,8 +2842,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             /* initialize structures *****************************************/
             ret = ctx->fn_mode_init_lcu(ctx, core);
             evc_assert_rv(ret == EVC_OK, ret);
-
-                    if (core->x_lcu == (ctx->tile[i].ctba_rs_first) % ctx->w_lcu) //This condition will reset history buffer
+#if HISTORY_UNDER_ADMVP_FIX
+            if (ctx->sps.tool_admvp && (core->x_lcu == (ctx->tile[i].ctba_rs_first) % ctx->w_lcu))
+#else
+            if (core->x_lcu == (ctx->tile[i].ctba_rs_first) % ctx->w_lcu) //This condition will reset history buffer
+#endif
             {
                 ret = evce_hmvp_init(&(core->history_buffer));
                 evc_assert_rv(ret == EVC_OK, ret);
@@ -2879,7 +2909,14 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             ctx->lcu_cnt--; //To be updated properly in case of multicore
 
 #if HISTORY_LCU_COPY_BUG_FIX
-            evc_mcpy(&core->history_buffer, &core->m_pBestMotLUTs[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], sizeof(core->history_buffer));
+#if HISTORY_UNDER_ADMVP_FIX
+            if (ctx->sps.tool_admvp)
+            {
+#endif
+                evc_mcpy(&core->history_buffer, &core->m_pBestMotLUTs[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], sizeof(core->history_buffer));
+#if HISTORY_UNDER_ADMVP_FIX
+            }
+#endif
 #endif
 #if 0
             if (ctb_cnt_in_tile > 0)
@@ -2904,8 +2941,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         /* initialize structures *****************************************/
         ret = ctx->fn_mode_init_lcu(ctx, core);
         evc_assert_rv(ret == EVC_OK, ret);
-
+#if HISTORY_UNDER_ADMVP_FIX
+        if (core->x_pel == 0 && ctx->sps.tool_admvp)
+#else
         if (core->x_pel == 0)
+#endif
         {
             ret = evce_hmvp_init(&(core->history_buffer));
             evc_assert_rv(ret == EVC_OK, ret);
@@ -2969,7 +3009,14 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         ctx->lcu_cnt--;
 
 #if HISTORY_LCU_COPY_BUG_FIX
-        evc_mcpy(&core->history_buffer, &core->m_pBestMotLUTs[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], sizeof(core->history_buffer));
+#if HISTORY_UNDER_ADMVP_FIX
+        if (ctx->sps.tool_admvp)
+        {
+#endif
+            evc_mcpy(&core->history_buffer, &core->m_pBestMotLUTs[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], sizeof(core->history_buffer));
+#if HISTORY_UNDER_ADMVP_FIX
+        }
+#endif
 #endif
 
         /* end_of_picture_flag */
@@ -2987,7 +3034,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #endif
          
     /* deblocking filter */
+#if ENC_DBF_CONTROL
+    if (sh->deblocking_filter_on)
+#else
     if (ctx->param.use_deblock)
+#endif
     {
 #if TRACE_DBF
         EVC_TRACE_SET(1);
