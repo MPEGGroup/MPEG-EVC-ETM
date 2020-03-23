@@ -298,7 +298,6 @@ enum SAD_POINT_INDEX
 #define AFFINE_MAX_NUM_RB                  2 ///< max number of motion candidates in right-bottom corner
 #define AFFINE_MIN_BLOCK_SIZE              4 ///< Minimum affine MC block size
 #define AFF_MAX_NUM_MVP                    2 // maximum affine inter candidates
-#define NUM_AFFINE_MVP_IDX_CTX             AFF_MAX_NUM_MVP - 1
 #define AFF_MAX_CAND                       5 // maximum affine merge candidates
 #define AFF_MODEL_CAND                     5 // maximum affine model based candidates
 
@@ -390,23 +389,21 @@ typedef struct _evc_AlfFilterShape
 #define LAST_SIGNIFICANT_GROUPS            14
 
 #if M52290_ADCC
-#define NUM_CTX_SCANR_LUMA                 18
-#define NUM_CTX_SCANR_CHROMA               3
-#define NUM_CTX_SCANR                      (NUM_CTX_SCANR_LUMA + NUM_CTX_SCANR_CHROMA)
+#define NUM_CTX_LAST_SIG_COEFF_LUMA        18
+#define NUM_CTX_LAST_SIG_COEFF_CHROMA      3
+#define NUM_CTX_LAST_SIG_COEFF             (NUM_CTX_LAST_SIG_COEFF_LUMA + NUM_CTX_LAST_SIG_COEFF_CHROMA)
 #else
-#define NUM_CTX_SCANR_LUMA                 25
-#define NUM_CTX_SCANR_CHROMA               3
-#define NUM_CTX_SCANR                      (NUM_CTX_SCANR_LUMA + NUM_CTX_SCANR_CHROMA)
+#define NUM_CTX_LAST_SIG_COEFF_LUMA        25
+#define NUM_CTX_LAST_SIG_COEFF_CHROMA      3
+#define NUM_CTX_LAST_SIG_COEFF             (NUM_CTX_LAST_SIG_COEFF_LUMA + NUM_CTX_LAST_SIG_COEFF_CHROMA)
 #endif
-
-#define NUM_CTX_GT0_LUMA                   39  /* number of context models for luma gt0 flag */
-#define NUM_CTX_GT0_CHROMA                 8   /* number of context models for chroma gt0 flag */
-#define NUM_CTX_GT0_LUMA_TU                13  /* number of context models for luma gt0 flag per TU */
-#define NUM_CTX_GT0                        (NUM_CTX_GT0_LUMA + NUM_CTX_GT0_CHROMA)  /* number of context models for gt0 flag */
-
-#define NUM_CTX_GTA_LUMA                   13
-#define NUM_CTX_GTA_CHROMA                 5     
-#define NUM_CTX_GTA                        (NUM_CTX_GTA_LUMA + NUM_CTX_GTA_CHROMA)  /* number of context models for gtA/B flag */
+#define NUM_CTX_SIG_COEFF_LUMA             39  /* number of context models for luma sig coeff flag */
+#define NUM_CTX_SIG_COEFF_CHROMA           8   /* number of context models for chroma sig coeff flag */
+#define NUM_CTX_SIG_COEFF_LUMA_TU          13  /* number of context models for luma sig coeff flag per TU */
+#define NUM_CTX_SIG_COEFF_FLAG             (NUM_CTX_SIG_COEFF_LUMA + NUM_CTX_SIG_COEFF_CHROMA)  /* number of context models for sig coeff flag */
+#define NUM_CTX_GTX_LUMA                   13
+#define NUM_CTX_GTX_CHROMA                 5     
+#define NUM_CTX_GTX                        (NUM_CTX_GTX_LUMA + NUM_CTX_GTX_CHROMA)  /* number of context models for gtA/B flag */
 
 #define COEF_SCAN_ZIGZAG                   0
 #define COEF_SCAN_DIAG                     1
@@ -893,95 +890,117 @@ typedef enum _TRANS_TYPE
 
 typedef u16 SBAC_CTX_MODEL;
 
-#define NUM_SBAC_CTX_MMVD_FLAG             1
-#define NUM_SBAC_CTX_MMVD_GRP_IDX         (MMVD_GRP_NUM - 1)
-#define NUM_SBAC_CTX_MMVD_MERGE_IDX       (MMVD_BASE_MV_NUM - 1)
-#define NUM_SBAC_CTX_MMVD_DIST_IDX        (MMVD_DIST_NUM - 1)
-#define NUM_SBAC_CTX_DIRECTION_IDX         2
-#define NUM_SBAC_CTX_AFFINE_MVD_FLAG       2
-#define NUM_SBAC_CTX_SKIP_FLAG             2
-#define NUM_SBAC_CTX_IBC_FLAG              2
-#define NUM_SBAC_CTX_BTT_SPLIT_FLAG        15
-#define NUM_SBAC_CTX_BTT_SPLIT_DIR         5
-#define NUM_SBAC_CTX_BTT_SPLIT_TYPE        1
-#define NUM_SBAC_CTX_SUCO_FLAG             14
-#define NUM_QT_CBF_CTX                     3       /* number of context models for QT CBF */
-#define NUM_QT_ROOT_CBF_CTX                1       /* number of context models for QT ROOT CBF */
-#define NUM_PRED_MODE_CTX                  3
+#define NUM_CTX_MMVD_FLAG                  1
+#define NUM_CTX_MMVD_GROUP_IDX            (MMVD_GRP_NUM - 1)
+#define NUM_CTX_MMVD_MERGE_IDX            (MMVD_BASE_MV_NUM - 1)
+#define NUM_CTX_MMVD_DIST_IDX             (MMVD_DIST_NUM - 1)
+#define NUM_CTX_MMVD_DIRECTION_IDX         2
+#define NUM_CTX_AFFINE_MVD_FLAG            2       /* number of context models for affine_mvd_flag_l0 and affine_mvd_flag_l1 (1st one is for affine_mvd_flag_l0 and 2nd one if for affine_mvd_flag_l1) */
+#define NUM_CTX_SKIP_FLAG                  2
+#define NUM_CTX_IBC_FLAG                   2
+#define NUM_CTX_BTT_SPLIT_FLAG             15
+#define NUM_CTX_BTT_SPLIT_DIR              5
+#define NUM_CTX_BTT_SPLIT_TYPE             1
+#define NUM_CTX_SUCO_FLAG                  14
+#define NUM_CTX_CBF_LUMA                   1
+#define NUM_CTX_CBF_CB                     1
+#define NUM_CTX_CBF_CR                     1
+#define NUM_CTX_CBF_ALL                    1
+#define NUM_CTX_PRED_MODE                  3
 #if M50761_CHROMA_NOT_SPLIT
-#define NUM_MODE_CONS_CTX                  3
+#define NUM_CTX_MODE_CONS                  3
 #endif
-#define NUM_INTER_DIR_CTX                  3       /* number of context models for inter prediction direction */
-#define NUM_REFI_CTX                       2
-#define NUM_MVP_IDX_CTX                    5
-#define NUM_MVR_IDX_CTX                    4
-#define NUM_BI_IDX_CTX                     2
-#define NUM_MV_RES_CTX                     1       /* number of context models for motion vector difference */
-#define NUM_INTRA_DIR_CTX                  3
-#define NUM_SBAC_CTX_AFFINE_FLAG           2
-#define NUM_SBAC_CTX_AFFINE_MODE           1
-#define NUM_SBAC_CTX_AFFINE_MRG            AFF_MAX_CAND
-#define NUM_SBAC_CTX_RUN                   24
-#define NUM_SBAC_CTX_LAST                  2
-#define NUM_SBAC_CTX_LEVEL                 24
-#define NUM_SBAC_CTX_ALF_FLAG              9
+#define NUM_CTX_INTER_PRED_IDC             2       /* number of context models for inter prediction direction */
+#define NUM_CTX_DIRECT_MODE_FLAG           1
+#define NUM_CTX_MERGE_MODE_FLAG            1
+#define NUM_CTX_REF_IDX                    2
+#define NUM_CTX_MERGE_IDX                  5
+#define NUM_CTX_MVP_IDX                    3
+#define NUM_CTX_AMVR_IDX                   4
+#define NUM_CTX_BI_PRED_IDX                2
+#define NUM_CTX_MVD                        1       /* number of context models for motion vector difference */
+#define NUM_CTX_INTRA_PRED_MODE            2
+#define NUM_CTX_INTRA_LUMA_PRED_MPM_FLAG   1
+#define NUM_CTX_INTRA_LUMA_PRED_MPM_IDX    1
+#define NUM_CTX_INTRA_CHROMA_PRED_MODE     1
+#define NUM_CTX_AFFINE_FLAG                2
+#define NUM_CTX_AFFINE_MODE                1
+#define NUM_CTX_AFFINE_MRG                 AFF_MAX_CAND
+#define NUM_CTX_AFFINE_MVP_IDX            (AFF_MAX_NUM_MVP - 1)
+#define NUM_CTX_CC_RUN                     24
+#define NUM_CTX_CC_LAST                    2
+#define NUM_CTX_CC_LEVEL                   24
+#define NUM_CTX_ALF_CTB_FLAG               1
+#define NUM_CTX_SPLIT_CU_FLAG              1
 #if DQP
-#define NUM_DELTA_QP_CTX                   1
+#define NUM_CTX_DELTA_QP                   1
 #endif
+#define NUM_CTX_ATS_INTRA_CU_FLAG          1
+#define NUM_CTX_ATS_MODE_FLAG              1
+#define NUM_CTX_ATS_INTER_FLAG             2
+#define NUM_CTX_ATS_INTER_QUAD_FLAG        1
+#define NUM_CTX_ATS_INTER_HOR_FLAG         3
+#define NUM_CTX_ATS_INTER_POS_FLAG         1
 
-#define NUM_ATS_INTRA_CU_FLAG_CTX          1
-#define NUM_ATS_INTRA_TU_FLAG_CTX          1
-#define NUM_SBAC_CTX_ATS_INTER_INFO        7
 /* context models for arithemetic coding */
 typedef struct _EVC_SBAC_CTX
 {
-    SBAC_CTX_MODEL   alf_flag        [NUM_SBAC_CTX_ALF_FLAG]; 
-    SBAC_CTX_MODEL   skip_flag       [NUM_SBAC_CTX_SKIP_FLAG];
-    SBAC_CTX_MODEL   ibc_flag[NUM_SBAC_CTX_IBC_FLAG];
-    SBAC_CTX_MODEL   mmvd_flag       [NUM_SBAC_CTX_MMVD_FLAG];
-    SBAC_CTX_MODEL   mmvd_merge_idx  [NUM_SBAC_CTX_MMVD_MERGE_IDX];
-    SBAC_CTX_MODEL   mmvd_distance_idx[NUM_SBAC_CTX_MMVD_DIST_IDX];
-    SBAC_CTX_MODEL   mmvd_direction_idx[2];
-    SBAC_CTX_MODEL   mmvd_group_idx  [NUM_SBAC_CTX_MMVD_GRP_IDX];
-    SBAC_CTX_MODEL   inter_dir       [NUM_INTER_DIR_CTX];
-    SBAC_CTX_MODEL   intra_dir       [NUM_INTRA_DIR_CTX];
-    SBAC_CTX_MODEL   pred_mode       [NUM_PRED_MODE_CTX];
+    SBAC_CTX_MODEL   skip_flag                     [NUM_CTX_SKIP_FLAG];
+    SBAC_CTX_MODEL   ibc_flag                      [NUM_CTX_IBC_FLAG];
+    SBAC_CTX_MODEL   mmvd_flag                     [NUM_CTX_MMVD_FLAG];
+    SBAC_CTX_MODEL   mmvd_merge_idx                [NUM_CTX_MMVD_MERGE_IDX];
+    SBAC_CTX_MODEL   mmvd_distance_idx             [NUM_CTX_MMVD_DIST_IDX];
+    SBAC_CTX_MODEL   mmvd_direction_idx            [NUM_CTX_MMVD_DIRECTION_IDX];
+    SBAC_CTX_MODEL   mmvd_group_idx                [NUM_CTX_MMVD_GROUP_IDX];
+    SBAC_CTX_MODEL   direct_mode_flag              [NUM_CTX_DIRECT_MODE_FLAG];
+    SBAC_CTX_MODEL   merge_mode_flag               [NUM_CTX_MERGE_MODE_FLAG];
+    SBAC_CTX_MODEL   inter_dir                     [NUM_CTX_INTER_PRED_IDC];
+    SBAC_CTX_MODEL   intra_dir                     [NUM_CTX_INTRA_PRED_MODE];
+    SBAC_CTX_MODEL   intra_luma_pred_mpm_flag      [NUM_CTX_INTRA_LUMA_PRED_MPM_FLAG];
+    SBAC_CTX_MODEL   intra_luma_pred_mpm_idx       [NUM_CTX_INTRA_LUMA_PRED_MPM_IDX];
+    SBAC_CTX_MODEL   intra_chroma_pred_mode        [NUM_CTX_INTRA_CHROMA_PRED_MODE];
+    SBAC_CTX_MODEL   pred_mode                     [NUM_CTX_PRED_MODE];
 #if M50761_CHROMA_NOT_SPLIT
-    SBAC_CTX_MODEL   mode_cons       [NUM_MODE_CONS_CTX];
-#endif
-    SBAC_CTX_MODEL   refi            [NUM_REFI_CTX];
-    SBAC_CTX_MODEL   mvp_idx         [NUM_MVP_IDX_CTX];
-    SBAC_CTX_MODEL   affine_mvp_idx  [NUM_AFFINE_MVP_IDX_CTX];
-    SBAC_CTX_MODEL   mvr_idx         [NUM_MVR_IDX_CTX];
-    SBAC_CTX_MODEL   bi_idx          [NUM_BI_IDX_CTX];
-    SBAC_CTX_MODEL   mvd             [NUM_MV_RES_CTX];
-    SBAC_CTX_MODEL   all_cbf         [NUM_QT_ROOT_CBF_CTX];
-    SBAC_CTX_MODEL   cbf             [NUM_QT_CBF_CTX];
-    SBAC_CTX_MODEL   run             [NUM_SBAC_CTX_RUN];
-    SBAC_CTX_MODEL   last            [NUM_SBAC_CTX_LAST];
-    SBAC_CTX_MODEL   level           [NUM_SBAC_CTX_LEVEL];
-
-    SBAC_CTX_MODEL   cc_gt0[NUM_CTX_GT0];
-    SBAC_CTX_MODEL   cc_gtA[NUM_CTX_GTA];
-    SBAC_CTX_MODEL   cc_scanr_x[NUM_CTX_SCANR];
-    SBAC_CTX_MODEL   cc_scanr_y[NUM_CTX_SCANR];
-
-    SBAC_CTX_MODEL   btt_split_flag  [NUM_SBAC_CTX_BTT_SPLIT_FLAG];
-    SBAC_CTX_MODEL   btt_split_dir   [NUM_SBAC_CTX_BTT_SPLIT_DIR];
-    SBAC_CTX_MODEL   btt_split_type  [NUM_SBAC_CTX_BTT_SPLIT_TYPE];
-    SBAC_CTX_MODEL   affine_flag     [NUM_SBAC_CTX_AFFINE_FLAG];
-    SBAC_CTX_MODEL   affine_mode     [NUM_SBAC_CTX_AFFINE_MODE];
-    SBAC_CTX_MODEL   affine_mrg      [NUM_SBAC_CTX_AFFINE_MRG];
-    SBAC_CTX_MODEL   affine_mvd_flag [2];
-    SBAC_CTX_MODEL   suco_flag       [NUM_SBAC_CTX_SUCO_FLAG];
-    SBAC_CTX_MODEL   ctb_alf_flag    [NUM_SBAC_CTX_ALF_FLAG]; //todo: add *3 for every component
+    SBAC_CTX_MODEL   mode_cons                     [NUM_CTX_MODE_CONS];
+#endif     
+    SBAC_CTX_MODEL   refi                          [NUM_CTX_REF_IDX];
+    SBAC_CTX_MODEL   merge_idx                     [NUM_CTX_MERGE_IDX];
+    SBAC_CTX_MODEL   mvp_idx                       [NUM_CTX_MVP_IDX];
+    SBAC_CTX_MODEL   affine_mvp_idx                [NUM_CTX_AFFINE_MVP_IDX];
+    SBAC_CTX_MODEL   mvr_idx                       [NUM_CTX_AMVR_IDX];
+    SBAC_CTX_MODEL   bi_idx                        [NUM_CTX_BI_PRED_IDX];
+    SBAC_CTX_MODEL   mvd                           [NUM_CTX_MVD];
+    SBAC_CTX_MODEL   cbf_all                       [NUM_CTX_CBF_ALL];
+    SBAC_CTX_MODEL   cbf_luma                      [NUM_CTX_CBF_LUMA];
+    SBAC_CTX_MODEL   cbf_cb                        [NUM_CTX_CBF_CB];
+    SBAC_CTX_MODEL   cbf_cr                        [NUM_CTX_CBF_CR];
+    SBAC_CTX_MODEL   run                           [NUM_CTX_CC_RUN];
+    SBAC_CTX_MODEL   last                          [NUM_CTX_CC_LAST];
+    SBAC_CTX_MODEL   level                         [NUM_CTX_CC_LEVEL];
+    SBAC_CTX_MODEL   sig_coeff_flag                [NUM_CTX_SIG_COEFF_FLAG];
+    SBAC_CTX_MODEL   coeff_abs_level_greaterAB_flag[NUM_CTX_GTX];
+    SBAC_CTX_MODEL   last_sig_coeff_x_prefix       [NUM_CTX_LAST_SIG_COEFF];
+    SBAC_CTX_MODEL   last_sig_coeff_y_prefix       [NUM_CTX_LAST_SIG_COEFF];
+    SBAC_CTX_MODEL   btt_split_flag                [NUM_CTX_BTT_SPLIT_FLAG];
+    SBAC_CTX_MODEL   btt_split_dir                 [NUM_CTX_BTT_SPLIT_DIR];
+    SBAC_CTX_MODEL   btt_split_type                [NUM_CTX_BTT_SPLIT_TYPE];
+    SBAC_CTX_MODEL   affine_flag                   [NUM_CTX_AFFINE_FLAG];
+    SBAC_CTX_MODEL   affine_mode                   [NUM_CTX_AFFINE_MODE];
+    SBAC_CTX_MODEL   affine_mrg                    [NUM_CTX_AFFINE_MRG];
+    SBAC_CTX_MODEL   affine_mvd_flag               [NUM_CTX_AFFINE_MVD_FLAG];
+    SBAC_CTX_MODEL   suco_flag                     [NUM_CTX_SUCO_FLAG];
+    SBAC_CTX_MODEL   alf_ctb_flag                  [NUM_CTX_ALF_CTB_FLAG];
+    SBAC_CTX_MODEL   split_cu_flag                 [NUM_CTX_SPLIT_CU_FLAG];
 #if DQP
-    SBAC_CTX_MODEL   delta_qp        [NUM_DELTA_QP_CTX];
+    SBAC_CTX_MODEL   delta_qp                      [NUM_CTX_DELTA_QP];
 #endif
+    SBAC_CTX_MODEL   ats_mode                      [NUM_CTX_ATS_MODE_FLAG];
+    SBAC_CTX_MODEL   ats_cu_inter_flag             [NUM_CTX_ATS_INTER_FLAG];
+    SBAC_CTX_MODEL   ats_cu_inter_quad_flag        [NUM_CTX_ATS_INTER_QUAD_FLAG];
+    SBAC_CTX_MODEL   ats_cu_inter_hor_flag         [NUM_CTX_ATS_INTER_HOR_FLAG];
+    SBAC_CTX_MODEL   ats_cu_inter_pos_flag         [NUM_CTX_ATS_INTER_POS_FLAG];
     int              sps_cm_init_flag;
-    SBAC_CTX_MODEL   ats_intra_cu          [NUM_ATS_INTRA_CU_FLAG_CTX];
-    SBAC_CTX_MODEL   ats_tu[NUM_ATS_INTRA_TU_FLAG_CTX];
-    SBAC_CTX_MODEL   ats_inter_info  [NUM_SBAC_CTX_ATS_INTER_INFO];
+    
 } EVC_SBAC_CTX;
 
 /* Maximum transform dynamic range (excluding sign bit) */

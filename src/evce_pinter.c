@@ -1105,9 +1105,9 @@ __inline static int mmvd_info_bit_cost(int mvp_idx, int type)
     var2 = mvp_idx - (var0 * MMVD_MAX_REFINE_NUM) - var1 * 4;
 
     /* mmvd_merge_idx */
-    bits += mmvd_bit_unary_sym(var0, NUM_SBAC_CTX_MMVD_MERGE_IDX, MMVD_BASE_MV_NUM); 
+    bits += mmvd_bit_unary_sym(var0, NUM_CTX_MMVD_MERGE_IDX, MMVD_BASE_MV_NUM);
     /* mmvd_distance_idx */
-    bits += mmvd_bit_unary_sym(var1, NUM_SBAC_CTX_MMVD_DIST_IDX, MMVD_DIST_NUM); 
+    bits += mmvd_bit_unary_sym(var1, NUM_CTX_MMVD_DIST_IDX, MMVD_DIST_NUM);
     /* mmvd_direction_idx */
     if(var2 == 0)
     {

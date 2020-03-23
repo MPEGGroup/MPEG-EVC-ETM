@@ -144,8 +144,8 @@ typedef struct _EVCD_CORE
     u8             mmvd_flag;
     /* ATS_INTRA flags */
     u8             ats_intra_cu;
-    u8             ats_intra_tu_h;
-    u8             ats_intra_tu_v;
+    u8             ats_intra_mode_h;
+    u8             ats_intra_mode_v;
 
     /* ATS_INTER info (index + position)*/
     u8             ats_inter_info;

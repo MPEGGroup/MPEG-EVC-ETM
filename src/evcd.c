@@ -345,7 +345,7 @@ static void make_stat(EVCD_CTX * ctx, int btype, EVCD_STAT * stat)
 static void evcd_itdq(EVCD_CTX * ctx, EVCD_CORE * core)
 {
     evc_sub_block_itdq(core->coef, core->log2_cuw, core->log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->is_coef, core->is_coef_sub, ctx->sps.tool_iqt
-                       , core->pred_mode == MODE_IBC ? 0 : core->ats_intra_cu, core->pred_mode == MODE_IBC ? 0 : ((core->ats_intra_tu_h << 1) | core->ats_intra_tu_v), core->pred_mode == MODE_IBC ? 0 : core->ats_inter_info);
+                       , core->pred_mode == MODE_IBC ? 0 : core->ats_intra_cu, core->pred_mode == MODE_IBC ? 0 : ((core->ats_intra_mode_h << 1) | core->ats_intra_mode_v), core->pred_mode == MODE_IBC ? 0 : core->ats_inter_info);
 }
 
 static void get_nbr_yuv(int x, int y, int cuw, int cuh, EVCD_CTX * ctx, EVCD_CORE * core)
@@ -971,7 +971,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 #endif
     EVC_TRACE_STR("\n");
 
-    core->ats_intra_cu = core->ats_intra_tu_h = core->ats_intra_tu_v = 0;
+    core->ats_intra_cu = core->ats_intra_mode_h = core->ats_intra_mode_v = 0;
 
     core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu
 #if EVC_TILE_SUPPORT
@@ -2234,7 +2234,7 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
             {
                 EVC_TRACE_COUNTER;
                 EVC_TRACE_STR("Usage of ALF: ");
-                *(alfSliceParam->alfCtuEnableFlag + core->lcu_num) = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ctb_alf_flag);
+                *(alfSliceParam->alfCtuEnableFlag + core->lcu_num) = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.alf_ctb_flag);
                 EVC_TRACE_INT((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)));
                 EVC_TRACE_STR("\n");
             }
@@ -2298,7 +2298,7 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
         {
             EVC_TRACE_COUNTER;
             EVC_TRACE_STR("Usage of ALF: ");
-            *(alfSliceParam->alfCtuEnableFlag + core->lcu_num) = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ctb_alf_flag);
+            *(alfSliceParam->alfCtuEnableFlag + core->lcu_num) = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.alf_ctb_flag);
             EVC_TRACE_INT((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)));
             EVC_TRACE_STR("\n");
         }

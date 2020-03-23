@@ -103,7 +103,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
         evce_diff_16b(log2_cuw, log2_cuh, org_luma, pred, s_org, cuw, cuw, pi->coef_tmp[Y_C]);
 
         evce_sub_block_tq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, pi->slice_type, core->nnz
-                          , core->nnz_sub, 1, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L, ctx->sps.tool_cm_init, ctx->sps.tool_iqt, core->ats_intra_cu, core->ats_tu, 0, ctx->sps.tool_adcc
+                          , core->nnz_sub, 1, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L, ctx->sps.tool_cm_init, ctx->sps.tool_iqt, core->ats_intra_cu, core->ats_mode, 0, ctx->sps.tool_adcc
 #if M50761_CHROMA_NOT_SPLIT
 #if EVC_CONCURENCY
             , core->tree_cons
@@ -130,7 +130,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
         evce_rdo_bit_cnt_cu_intra_luma(ctx, core, ctx->sh.slice_type, core->scup, pi->coef_tmp);
         bit_cnt = evce_get_bit_number(&core->s_temp_run);
 
-        evc_sub_block_itdq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->nnz, core->nnz_sub, ctx->sps.tool_iqt, core->ats_intra_cu, core->ats_tu, core->ats_inter_info);
+        evc_sub_block_itdq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->nnz, core->nnz_sub, ctx->sps.tool_iqt, core->ats_intra_cu, core->ats_mode, core->ats_inter_info);
         evc_recon(pi->coef_tmp[Y_C], pred, core->nnz[Y_C], cuw, cuh, cuw, pi->rec[Y_C], core->ats_inter_info);
 
         if(ctx->sps.tool_htdf == 1)
@@ -216,7 +216,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 #endif
         evce_sub_block_tq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, pi->slice_type, core->nnz, core->nnz_sub
                           , 1, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt
-                          , core->ats_intra_cu, core->ats_tu, 0, ctx->sps.tool_adcc
+                          , core->ats_intra_cu, core->ats_mode, 0, ctx->sps.tool_adcc
 #if M50761_CHROMA_NOT_SPLIT
 #if EVC_CONCURENCY
             , core->tree_cons
@@ -232,7 +232,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
         evc_mcpy(coef[U_C], pi->coef_tmp[U_C], sizeof(u16) * (cuw * cuh) >> 2);
         evc_mcpy(coef[V_C], pi->coef_tmp[V_C], sizeof(u16) * (cuw * cuh) >> 2);
 
-        evc_sub_block_itdq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->nnz, core->nnz_sub, ctx->sps.tool_iqt, core->ats_intra_cu, core->ats_tu, 0);
+        evc_sub_block_itdq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->nnz, core->nnz_sub, ctx->sps.tool_iqt, core->ats_intra_cu, core->ats_mode, 0);
 #if !(FIX_EIPD_OFF & M50761_CHROMA_NOT_SPLIT)
         if (!ctx->sps.tool_eipd)
         {
@@ -410,7 +410,7 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
     int sec_best_ipd = IPD_INVALID;
 
     u8 best_ats_intra_cu = 0;
-    u8 best_ats_tu = 0;
+    u8 best_ats_mode = 0;
     u8 ats_intra_usage = ctx->sps.tool_ats ? 2 : 1;
     u8 ats_intra_cu_flag = 0;
 #if ATS_INTRA_FAST
@@ -540,7 +540,7 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
 #endif
         for (ats_intra_tr_idx = 0; ats_intra_tr_idx < num_tr_idx_cands; ats_intra_tr_idx++) /* ats_intra tu loop */
         {
-            core->ats_tu = ats_intra_tr_idx;
+            core->ats_mode = ats_intra_tr_idx;
 
             for (j = 0; j < pred_cnt; j++) /* Y */
             {
@@ -609,7 +609,7 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
                     best_ipd = i;
 
                     best_ats_intra_cu = ats_intra_cu_flag;
-                    best_ats_tu = ats_intra_tr_idx;
+                    best_ats_mode = ats_intra_tr_idx;
 #if ATS_INTRA_FAST
                     best_nnz = core->nnz[Y_C];
 #endif
@@ -646,7 +646,7 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
 #endif
     }
     core->ats_intra_cu = best_ats_intra_cu;
-    core->ats_tu = best_ats_tu;
+    core->ats_mode = best_ats_mode;
 #if M50761_CHROMA_NOT_SPLIT 
     }
     else
@@ -798,7 +798,7 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
 #endif
     core->ipm[0] = best_ipd;
     core->ats_intra_cu = best_ats_intra_cu;
-    core->ats_tu = best_ats_tu;
+    core->ats_mode = best_ats_mode;
 #if ATS_INTRA_FAST
     if (!core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][core->bef_data_idx].visit)
     {
