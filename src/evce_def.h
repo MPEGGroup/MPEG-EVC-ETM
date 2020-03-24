@@ -232,8 +232,10 @@ struct _EVCE_PINTER
 {
     /* temporary prediction buffer (only used for ME)*/
     pel  pred_buf[MAX_CU_DIM];
+#if !CODE_CLEAN
     /* reconstruction buffer */
     pel  rec_buf[N_C][MAX_CU_DIM];
+#endif
     /* temporary buffer for analyze_cu */
     s8   refi[PRED_NUM][REFP_NUM];
     /* Ref idx predictor */

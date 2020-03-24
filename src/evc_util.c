@@ -1451,7 +1451,7 @@ void evc_get_motion(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[RE
     mvp[3][MV_X] = refp[0][lidx].map_mv[scup][0][MV_X];
     mvp[3][MV_Y] = refp[0][lidx].map_mv[scup][0][MV_Y];
 }
-
+#if !CODE_CLEAN
 void evc_get_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int num_refp, s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM],
                             int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][MV_D], s8 refi[MAX_NUM_MVP], u32* map_scu, u16 avail_lr
 #if DMVR_LAG
@@ -1571,7 +1571,7 @@ void evc_get_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int num_re
         mvp[cnt][MV_Y] = 0;
     }
 }
-
+#endif
 #if MERGE_MVP
 static int evc_get_right_below_scup_qc_merge(int scup, int cuw, int cuh, int w_scu, int h_scu, int bottom_right, int log2_max_cuwh)
 {

@@ -180,7 +180,7 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int poc, int scup, int lidx, s8 cur_ref
     , u8* map_tidx
 #endif
 );
-
+#if !CODE_CLEAN
 void evc_get_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int num_refp, \
                             s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
                             int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][MV_D], s8 refi_pred[MAX_NUM_MVP], u32* map_scu, u16 avail_lr
@@ -191,7 +191,7 @@ void evc_get_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int num_re
     , u8 * map_tidx
 #endif
 );
-
+#endif
 enum
 {
     SPLIT_MAX_PART_COUNT = 4
