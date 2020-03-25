@@ -2726,13 +2726,18 @@ void print_psnr(EVCE_STAT * stat, double * psnr, double ms_ssim, int bitrate, EV
             stat->poc, stat->tid, stype, stat->qp, psnr[0], psnr[1], psnr[2], \
             bitrate, evc_clk_msec(clk_end), ms_ssim);
     }
+
     for(i=0; i < 2; i++)
     {
         v1print("[L%d ", i);
         for(j=0; j < stat->refpic_num[i]; j++) v1print("%d ",stat->refpic[i][j]);
         v1print("] ");
     }
+
     v1print("\n");
+
+    fflush(stdout);
+    fflush(stderr);
 }
 
 int setup_bumping(EVCE id)
