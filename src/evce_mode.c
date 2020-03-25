@@ -624,23 +624,6 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
             evce_eco_mvr_idx(&core->bs_temp, mvr_idx);
         }
 
-        if(ctx->sps.tool_mmvd)
-        {
-            if(slice_type == SLICE_P)
-            {
-                if(mvr_idx == 0)
-                {
-                    evce_eco_mmvd_flag(&core->bs_temp, pidx == PRED_DIR_MMVD);
-                }
-
-                if((pidx == PRED_DIR_MMVD))
-                {
-                    evce_eco_mmvd_info(&core->bs_temp, pi->mmvd_idx[pidx], ctx->sh.mmvd_group_enable_flag && !((1 << core->log2_cuw)*(1 << core->log2_cuh) <= NUM_SAMPLES_BLOCK));
-                }
-            }
-        }
-
-        if(slice_type == SLICE_B)
         {
             int dir_flag = (pidx == PRED_DIR);
             dir_flag |= (pidx == PRED_DIR_MMVD);
