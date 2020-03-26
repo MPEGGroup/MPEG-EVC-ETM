@@ -1580,9 +1580,17 @@ int check_conf(EVCE_CDSC* cdsc)
     }
     else
     {
-#if RESTRICT_IBC_WITH_EIPD
+#if CHECK_TOOL_DEPENDENCIES
+        if (cdsc->tool_admvp == 0 && cdsc->tool_affine == 1) { v0print("AFFINE cannot be on when ADMVP is off\n"); success = 0; }
+        if (cdsc->tool_admvp == 0 && cdsc->tool_amvr == 1) { v0print("AMVR cannot be on when ADMVP is off\n"); success = 0; }
+        if (cdsc->tool_admvp == 0 && cdsc->tool_dmvr == 1) { v0print("DMVR cannot be on when ADMVP is off\n"); success = 0; }
+        if (cdsc->tool_admvp == 0 && cdsc->tool_mmvd == 1) { v0print("MMVD cannot be on when ADMVP is off\n"); success = 0; }
         if (cdsc->tool_eipd == 0 && cdsc->ibc_flag == 1) { v0print("IBC cannot be on when EIPD is off\n"); success = 0; }
+        if (cdsc->tool_iqt == 0 && cdsc->tool_ats == 1) { v0print("ATS cannot be on when IQT is off\n"); success = 0; }
+        if (cdsc->tool_cm_init == 0 && cdsc->tool_adcc == 1) { v0print("ADCC cannot be on when CM_INIT is off\n"); success = 0; }
+
 #endif
+
 #if !REMOVE_MAIN_RESTRICTION
         if (cdsc->tool_eipd    == 0) { v0print("EIPD cannot be off in main profile\n"); success = 0; }
         if (cdsc->tool_iqt     == 0) { v0print("IQT cannot be off in main profile\n"); success = 0; }
