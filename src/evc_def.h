@@ -37,10 +37,11 @@
 #include "evc.h"
 #include "evc_port.h"
 
-#define HISTORY_UNDER_ADMVP_FIX                         1
-#define DEBLOCKING_FIX                                 1
-#define CODE_CLEAN                                     1
-#define ENC_DBF_CONTROL                                 1
+#define CHECK_TOOL_DEPENDENCIES                      1
+#define HISTORY_UNDER_ADMVP_FIX                      1
+#define DEBLOCKING_FIX                               1
+#define CODE_CLEAN                                   1
+#define ENC_DBF_CONTROL                              1
 
 //bug fixes and platform changes to be applied
 #define QC_MISC_FIX                                  1 
@@ -58,7 +59,7 @@
 #define FIX_CONSTRAINT_PRED                          1
 #define FIX_TEMPORAL_ID_SET                          1
 #define FIX_EIPD_OFF                                 1
-#define RESTRICT_IBC_WITH_EIPD                       1
+
 #define CLEANUP_SUCO_4X4                             1
 
 #define FIX_DMVR_MV_RANGE                            1
