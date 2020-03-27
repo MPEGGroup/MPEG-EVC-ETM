@@ -135,9 +135,11 @@ static int  op_tool_eipd          = 1; /* default on */
 static int  op_tool_iqt           = 1; /* default on */
 static int  op_tool_cm_init       = 1; /* default on */
 static int  op_tool_adcc          = 1; /* default on */
+static int  op_tool_rpl           = 1; /* default on */
+static int  op_tool_pocs          = 1; /* default on */
 static int  op_cb_qp_offset       = 0;
 static int  op_cr_qp_offset       = 0;
-static int op_tool_ats            = 1; /* default on */
+static int  op_tool_ats            = 1; /* default on */
 static int  op_constrained_intra_pred = 0;
 static int  op_deblock_alpha_offset = 0; /* default offset 0*/
 static int  op_deblock_beta_offset = 0;  /* default offset 0*/
@@ -244,6 +246,8 @@ typedef enum _OP_FLAGS
     OP_TOOL_ADDB,
 #endif
     OP_TOOL_ALF,
+    OP_TOOL_RPL,
+    OP_TOOL_POCS,
     OP_TOOL_HTDF,
     OP_TOOL_ADMVP,
     OP_TOOL_EIPD,
@@ -667,6 +671,16 @@ static EVC_ARGS_OPTION options[] = \
         EVC_ARGS_NO_KEY,  "adcc", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_TOOL_ADCC], &op_tool_adcc,
         "adcc on/off flag"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "rpl", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_TOOL_RPL], &op_tool_rpl,
+        "rpl on/off flag"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "pocs", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_TOOL_POCS], &op_tool_pocs,
+        "pocs on/off flag"
     },
     {
         EVC_ARGS_NO_KEY,  "cb_qp_offset", EVC_ARGS_VAL_TYPE_INTEGER,
@@ -1285,6 +1299,8 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->tool_iqt           = op_tool_iqt;
     cdsc->tool_cm_init       = op_tool_cm_init;
     cdsc->tool_adcc          = op_tool_adcc;
+    cdsc->tool_rpl           = op_tool_rpl;
+    cdsc->tool_pocs          = op_tool_pocs;
     cdsc->cb_qp_offset       = op_cb_qp_offset;
     cdsc->cr_qp_offset       = op_cr_qp_offset;
     cdsc->tool_ats           = op_tool_ats;
@@ -1519,8 +1535,10 @@ static void print_enc_conf(EVCE_CDSC * cdsc)
     printf("IQT: %d, ",    cdsc->tool_iqt);
     printf("CM_INIT: %d ", cdsc->tool_cm_init);
     printf("ADCC: %d ",    cdsc->tool_adcc);
-    printf("IBC: %d, ", cdsc->ibc_flag);
+    printf("IBC: %d, ",    cdsc->ibc_flag);
     printf("ATS: %d, ",    cdsc->tool_ats);
+    printf("RPL: %d, ",    cdsc->tool_rpl);
+    printf("POCS: %d, ",   cdsc->tool_pocs);
     printf("CONSTRAINED_INTRA_PRED: %d, ", cdsc->constrained_intra_pred);
     printf("DBFOffsetA: %d, ", cdsc->deblock_aplha_offset);
     printf("DBFOffsetB: %d, ", cdsc->deblock_beta_offset);
@@ -1559,6 +1577,8 @@ int check_conf(EVCE_CDSC* cdsc)
         if (cdsc->tool_adcc    == 1) { v0print("ADCC cannot be on in base profile\n"); success = 0; }
         if (cdsc->tool_ats     == 1) { v0print("ATS_INTRA cannot be on in base profile\n"); success = 0; }
         if (cdsc->ibc_flag     == 1) { v0print("IBC cannot be on in base profile\n"); success = 0; }
+        if (cdsc->tool_rpl     == 1) { v0print("RPL cannot be on in base profile\n"); success = 0; }
+        if (cdsc->tool_pocs    == 1) { v0print("POCS cannot be on in base profile\n"); success = 0; }
     }
     else
     {

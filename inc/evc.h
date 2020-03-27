@@ -481,6 +481,8 @@ typedef struct _EVCE_CDSC
     int            tool_iqt;
     int            tool_cm_init;
     int            tool_adcc;
+    int            tool_rpl;
+    int            tool_pocs;
     int            cb_qp_offset;
     int            cr_qp_offset;
 #if DQP_CFG
