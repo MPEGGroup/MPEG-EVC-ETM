@@ -1638,7 +1638,7 @@ void evce_flush(EVCE_CTX * ctx)
     }
 }
 
-static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, int cuh, int cud, int cup, int is_hor
+static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, int cuh, int cud, int cup, int is_hor_edge
 #if M50761_CHROMA_NOT_SPLIT
     , TREE_CONS tree_cons
 #endif
@@ -1710,7 +1710,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 
             if(x_pos < ctx->w && y_pos < ctx->h)
             {
-                deblock_tree(ctx, pic, x_pos, y_pos, sub_cuw, sub_cuh, split_struct.cud[cur_part_num], split_struct.cup[cur_part_num], is_hor
+                deblock_tree(ctx, pic, x_pos, y_pos, sub_cuw, sub_cuh, split_struct.cud[cur_part_num], split_struct.cup[cur_part_num], is_hor_edge
 #if M50761_CHROMA_NOT_SPLIT
                     , split_struct.tree_cons
 #endif
@@ -1753,7 +1753,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
         u8 ats_inter_info = ctx->map_ats_inter[t];
         u8 ats_inter_idx = get_ats_inter_idx(ats_inter_info);
         u8 ats_inter_pos = get_ats_inter_pos(ats_inter_info);
-        if(is_hor)
+        if(is_hor_edge)
         {
             if (cuh > MAX_TR_SIZE)
             {
@@ -1950,7 +1950,11 @@ int evce_deblock_h263(EVCE_CTX * ctx, EVC_PIC * pic
     {
         for (i = x_l; i < x_r; i++)
         {
+#if DB_SPEC_ALIGNMENT1
+            deblock_tree(ctx, pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 0/*0 - horizontal filtering of vertical edge*/
+#else
             deblock_tree(ctx, pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 1
+#endif
 #if M50761_CHROMA_NOT_SPLIT
                 , evc_get_default_tree_cons()
 #endif
@@ -1974,7 +1978,11 @@ int evce_deblock_h263(EVCE_CTX * ctx, EVC_PIC * pic
     {
         for (i = x_l; i < x_r; i++)
         {
+#if DB_SPEC_ALIGNMENT1
+            deblock_tree(ctx, pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 1/*1 - vertical filtering of horizontal edge*/
+#else
             deblock_tree(ctx, pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 0
+#endif
 #if M50761_CHROMA_NOT_SPLIT
                 , evc_get_default_tree_cons()
 #endif

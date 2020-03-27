@@ -37,10 +37,11 @@
 #include "evc.h"
 #include "evc_port.h"
 
-#define HISTORY_UNDER_ADMVP_FIX                         1
-#define DEBLOCKING_FIX                                 1
-#define CODE_CLEAN                                     1
-#define ENC_DBF_CONTROL                                 1
+#define DB_SPEC_ALIGNMENT1                            0 
+#define HISTORY_UNDER_ADMVP_FIX                       1
+#define DEBLOCKING_FIX                                1
+#define CODE_CLEAN                                    1
+#define ENC_DBF_CONTROL                               1
 
 //bug fixes and platform changes to be applied
 #define QC_MISC_FIX                                  1 
