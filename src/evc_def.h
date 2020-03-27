@@ -459,15 +459,15 @@ typedef int BOOL;
 #if ENC_DEC_TRACE
 #define TRACE_ENC_CU_DATA                  0 ///< Trace CU index on encoder
 #define TRACE_ENC_CU_DATA_CHECK            0 ///< Trace CU index on encoder
-#define MVF_TRACE                          1 ///< use for tracing MVF
-#define TRACE_ENC_HISTORIC                 1
+#define MVF_TRACE                          0 ///< use for tracing MVF
+#define TRACE_ENC_HISTORIC                 0
 #define TRACE_COEFFS                       0 ///< Trace coefficients
 #define TRACE_RDO                          0 //!< Trace only encode stream (0), only RDO (1) or all of them (2)
-#define TRACE_BIN                          1 //!< trace each bin
+#define TRACE_BIN                          0 //!< trace each bin
 #define TRACE_START_POC                    0 //!< POC of frame from which we start to write output tracing information 
 #define TRACE_COSTS                        0 //!< Trace cost information
 #define TRACE_REMOVE_COUNTER               0 //!< Remove trace counter
-#define TRACE_ADDITIONAL_FLAGS             1 
+#define TRACE_ADDITIONAL_FLAGS             0 
 #define TRACE_DBF                          0 //!< Trace only DBF
 #if TRACE_RDO
 #define TRACE_RDO_EXCLUDE_I                0 //!< Exclude I frames
@@ -488,7 +488,7 @@ extern int fp_trace_started;
 #define EVC_TRACE_STR(STR) if(fp_trace_print) { fprintf(fp_trace, STR); fflush(fp_trace); }
 #define EVC_TRACE_DOUBLE(DOU) if(fp_trace_print) { fprintf(fp_trace, "%g", DOU); fflush(fp_trace); }
 #define EVC_TRACE_INT(INT) if(fp_trace_print) { fprintf(fp_trace, "%d ", INT); fflush(fp_trace); }
-#define EVC_TRACE_INT_HEX(INT) if(fp_trace_print) { fprintf(fp_trace, "0x%08lx ", INT); fflush(fp_trace); }
+#define EVC_TRACE_INT_HEX(INT) if(fp_trace_print) { fprintf(fp_trace, "0x%x ", INT); fflush(fp_trace); }
 #if TRACE_REMOVE_COUNTER
 #define EVC_TRACE_COUNTER 
 #else
