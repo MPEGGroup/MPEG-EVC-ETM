@@ -3625,7 +3625,11 @@ EVCE evce_create(EVCE_CDSC * cdsc, int * err)
     int          ret;
     
 #if ENC_DEC_TRACE
+#if TRACE_DBF
+    fp_trace = fopen("enc_trace_dbf.txt", "w+");
+#else
     fp_trace = fopen("enc_trace.txt", "w+");
+#endif
 #endif
 #if GRAB_STAT
     evc_stat_init("enc_stat.vtmbmsstats", esu_only_enc, 0, -1, ence_stat_cu);

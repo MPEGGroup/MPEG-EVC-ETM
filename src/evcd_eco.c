@@ -355,13 +355,16 @@ static int eco_cbf(EVC_BSR * bs, EVCD_SBAC * sbac, u8 pred_mode, u8 cbf[N_C], in
         }
 
         cbf[U_C] = evcd_sbac_decode_bin(bs, sbac, sbac_ctx->cbf_cb);
-        cbf[V_C] = evcd_sbac_decode_bin(bs, sbac, sbac_ctx->cbf_cr);
-
         EVC_TRACE_COUNTER;
         EVC_TRACE_STR("cbf U ");
         EVC_TRACE_INT(cbf[U_C]);
+        EVC_TRACE_STR("\n");
+
+        cbf[V_C] = evcd_sbac_decode_bin(bs, sbac, sbac_ctx->cbf_cr);
+        EVC_TRACE_COUNTER;
         EVC_TRACE_STR("cbf V ");
         EVC_TRACE_INT(cbf[V_C]);
+        EVC_TRACE_STR("\n");
 
         if (cbf[U_C] + cbf[V_C] == 0 && !is_sub)
         {
@@ -370,24 +373,29 @@ static int eco_cbf(EVC_BSR * bs, EVCD_SBAC * sbac, u8 pred_mode, u8 cbf[N_C], in
         else
         {
             cbf[Y_C] = evcd_sbac_decode_bin(bs, sbac, sbac_ctx->cbf_luma);
+            EVC_TRACE_COUNTER;
             EVC_TRACE_STR("cbf Y ");
             EVC_TRACE_INT(cbf[Y_C]);
+            EVC_TRACE_STR("\n");
         }
-        EVC_TRACE_STR("\n");
     }
     else
     {
-        EVC_TRACE_COUNTER;
 #if M50761_CHROMA_NOT_SPLIT 
         if (evc_check_chroma(tree_cons))
         {
 #endif
         cbf[U_C] = evcd_sbac_decode_bin(bs, sbac, sbac_ctx->cbf_cb);
-        cbf[V_C] = evcd_sbac_decode_bin(bs, sbac, sbac_ctx->cbf_cr);
+        EVC_TRACE_COUNTER;
         EVC_TRACE_STR("cbf U ");
         EVC_TRACE_INT(cbf[U_C]);
+        EVC_TRACE_STR("\n");
+
+        cbf[V_C] = evcd_sbac_decode_bin(bs, sbac, sbac_ctx->cbf_cr);
+        EVC_TRACE_COUNTER;
         EVC_TRACE_STR("cbf V ");
         EVC_TRACE_INT(cbf[V_C]);
+        EVC_TRACE_STR("\n");
 #if M50761_CHROMA_NOT_SPLIT 
         }
         else
@@ -398,8 +406,10 @@ static int eco_cbf(EVC_BSR * bs, EVCD_SBAC * sbac, u8 pred_mode, u8 cbf[N_C], in
         {
 #endif
         cbf[Y_C] = evcd_sbac_decode_bin(bs, sbac, sbac_ctx->cbf_luma);
+        EVC_TRACE_COUNTER;
         EVC_TRACE_STR("cbf Y ");
         EVC_TRACE_INT(cbf[Y_C]);
+        EVC_TRACE_STR("\n");
 #if M50761_CHROMA_NOT_SPLIT 
         }
         else
@@ -407,7 +417,6 @@ static int eco_cbf(EVC_BSR * bs, EVCD_SBAC * sbac, u8 pred_mode, u8 cbf[N_C], in
             cbf[Y_C] = 0;
         }
 #endif
-        EVC_TRACE_STR("\n");
     }
 
     return EVC_OK;
@@ -1860,12 +1869,12 @@ int evcd_eco_affine_mode(EVCD_CTX * ctx, EVCD_CORE * core)
     sbac = GET_SBAC_DEC(bs);
 
     t0 = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.affine_mode);
-
+#if TRACE_ADDITIONAL_FLAGS
     EVC_TRACE_COUNTER;
     EVC_TRACE_STR("affine mode ");
     EVC_TRACE_INT(t0);
     EVC_TRACE_STR("\n");
-
+#endif
     return t0;
 }
 
@@ -2051,8 +2060,14 @@ void evcd_eco_pred_mode( EVCD_CTX * ctx, EVCD_CORE * core )
 
     MODE_CONS   pred_mode_constraint = tree_cons.mode_cons; //TODO: Tim changed place
 
-    if ( pred_mode_constraint == eAll )
-        pred_mode_flag = evcd_sbac_decode_bin( bs, sbac, sbac->ctx.pred_mode + ctx_flags[CNID_PRED_MODE] );
+    if (pred_mode_constraint == eAll)
+    {
+        pred_mode_flag = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.pred_mode + ctx_flags[CNID_PRED_MODE]);
+        EVC_TRACE_COUNTER;
+        EVC_TRACE_STR("pred mode ");
+        EVC_TRACE_INT(pred_mode_flag ? MODE_INTRA : MODE_INTER);
+        EVC_TRACE_STR("\n");
+    }
 
     BOOL isIbcAllowed = ctx->sps.ibc_flag &&
         core->log2_cuw <= ctx->sps.ibc_log_max_size && core->log2_cuh <= ctx->sps.ibc_log_max_size &&
@@ -2074,11 +2089,6 @@ void evcd_eco_pred_mode( EVCD_CTX * ctx, EVCD_CORE * core )
     else 
         core->pred_mode = pred_mode_flag ? MODE_INTRA : MODE_INTER;
 
-    EVC_TRACE_COUNTER;
-    EVC_TRACE_STR( "pred mode " );
-    EVC_TRACE_INT( core->pred_mode );
-    EVC_TRACE_STR( "\n" );
-
 #if TRACE_ADDITIONAL_FLAGS
     if ( isIbcAllowed )
     {
@@ -2086,7 +2096,11 @@ void evcd_eco_pred_mode( EVCD_CTX * ctx, EVCD_CORE * core )
         EVC_TRACE_STR( "ibc pred mode " );
         EVC_TRACE_INT( !!core->ibc_flag );
         EVC_TRACE_STR( "ctx " );
+#if EVC_CONCURENCY
         EVC_TRACE_INT( ctx_flags[CNID_IBC_FLAG] );
+#else
+        EVC_TRACE_INT( ctx->ctx_flags[CNID_IBC_FLAG] );
+#endif
         EVC_TRACE_STR( "\n" );
     }
 #endif
