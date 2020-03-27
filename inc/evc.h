@@ -506,6 +506,7 @@ typedef struct _EVCE_CDSC
     int            arbitrary_slice_flag;
     int            num_remaining_tiles_in_slice_minus1;
 #endif
+    int            inter_slice_type;
     EVC_CHROMA_TABLE chroma_qp_table_struct;
 #if M52291_HDR_DRA
     void * m_DRAMappingApp; 

@@ -186,6 +186,8 @@ static int  op_use_dqp             = 0;  /* default cu_delta_qp is off */
 static int  op_cu_qp_delta_area    = 10; /* default cu_delta_qp_area is 10 */
 #endif
 
+static int op_inter_slice_type     = 0;
+
 typedef enum _OP_FLAGS
 {
     OP_FLAG_FNAME_CFG,
@@ -353,6 +355,7 @@ typedef enum _OP_FLAGS
 #endif
     //...
     OP_FLAG_RPL1_31,
+    OP_INTER_SLICE_TYPE,
 
     OP_FLAG_MAX
 } OP_FLAGS;
@@ -1119,6 +1122,11 @@ static EVC_ARGS_OPTION options[] = \
         "RPL1_25"
     },
 #endif
+    {
+        EVC_ARGS_NO_KEY,  "inter_slice_type", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_INTER_SLICE_TYPE], &op_inter_slice_type,
+        "INTER_SLICE_TYPE"
+    },
 
     {0, "", EVC_ARGS_VAL_TYPE_NONE, NULL, NULL, ""} /* termination */
 };
@@ -1320,7 +1328,7 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->num_slice_in_pic = op_num_slice_in_pic_minus1 + 1;
     cdsc->arbitrary_slice_flag = op_arbitrary_slice_flag;
     cdsc->num_remaining_tiles_in_slice_minus1 = op_num_remaining_tiles_in_slice_minus1;
-
+    cdsc->inter_slice_type = op_inter_slice_type == 0 ? SLICE_B : SLICE_P;
     if (!cdsc->tile_uniform_spacing_flag)
     {
         cdsc->tile_column_width_array[0] = atoi(strtok(op_tile_column_width_array, " "));
