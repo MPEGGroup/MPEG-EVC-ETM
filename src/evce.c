@@ -2245,7 +2245,7 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
     }
     else if(pic_imcnt % gop_size == 0)
     {
-        ctx->slice_type = SLICE_B;
+        ctx->slice_type = ctx->cdsc.inter_slice_type;
         ctx->slice_ref_flag = 1;
         ctx->slice_depth = FRM_DEPTH_1;
         ctx->poc.poc_val = pic_imcnt;
@@ -2255,7 +2255,7 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
     }
     else
     {
-        ctx->slice_type = SLICE_B;
+        ctx->slice_type = ctx->cdsc.inter_slice_type;
         if(ctx->param.use_hgop)
         {
             pos = (pic_imcnt % gop_size) - 1;
@@ -2336,7 +2336,7 @@ static void decide_slice_type(EVCE_CTX * ctx)
             }
             else
             {
-                ctx->slice_type = SLICE_B;
+                ctx->slice_type = ctx->cdsc.inter_slice_type;
 
                 if (ctx->param.use_hgop)
                 {
