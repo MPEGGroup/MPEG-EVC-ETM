@@ -2253,7 +2253,7 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
     }
     else if(pic_imcnt % gop_size == 0)
     {
-        ctx->slice_type = SLICE_B;
+        ctx->slice_type = ctx->cdsc.inter_slice_type;
         ctx->slice_ref_flag = 1;
         ctx->slice_depth = FRM_DEPTH_1;
         ctx->poc.poc_val = pic_imcnt;
@@ -2263,7 +2263,7 @@ static void decide_normal_gop(EVCE_CTX * ctx, u32 pic_imcnt)
     }
     else
     {
-        ctx->slice_type = SLICE_B;
+        ctx->slice_type = ctx->cdsc.inter_slice_type;
         if(ctx->param.use_hgop)
         {
             pos = (pic_imcnt % gop_size) - 1;
@@ -2344,7 +2344,7 @@ static void decide_slice_type(EVCE_CTX * ctx)
             }
             else
             {
-                ctx->slice_type = SLICE_B;
+                ctx->slice_type = ctx->cdsc.inter_slice_type;
 
                 if (ctx->param.use_hgop)
                 {
@@ -3633,7 +3633,11 @@ EVCE evce_create(EVCE_CDSC * cdsc, int * err)
     int          ret;
     
 #if ENC_DEC_TRACE
+#if TRACE_DBF
+    fp_trace = fopen("enc_trace_dbf.txt", "w+");
+#else
     fp_trace = fopen("enc_trace.txt", "w+");
+#endif
 #endif
 #if GRAB_STAT
     evc_stat_init("enc_stat.vtmbmsstats", esu_only_enc, 0, -1, ence_stat_cu);

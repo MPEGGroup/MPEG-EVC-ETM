@@ -961,17 +961,22 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
     EVC_TRACE_STR("height ");
     EVC_TRACE_INT(cuh);
 #if M50761_CHROMA_NOT_SPLIT
-    EVC_TRACE_STR("tree status ");
+#if ENC_DEC_TRACE
+    if (ctx->sh.slice_type != SLICE_I)
+    {
+        EVC_TRACE_STR("tree status ");
 #if EVC_CONCURENCY
-    EVC_TRACE_INT(core->tree_cons.tree_type);
+        EVC_TRACE_INT(core->tree_cons.tree_type);
 #else
-    EVC_TRACE_INT(ctx->tree_cons.tree_type);
+        EVC_TRACE_INT(ctx->tree_cons.tree_type);
 #endif
-    EVC_TRACE_STR("mode status ");
+        EVC_TRACE_STR("mode status ");
 #if EVC_CONCURENCY
-    EVC_TRACE_INT(core->tree_cons.mode_cons);
+        EVC_TRACE_INT(core->tree_cons.mode_cons);
 #else
-    EVC_TRACE_INT(ctx->tree_cons.mode_cons);
+        EVC_TRACE_INT(ctx->tree_cons.mode_cons);
+#endif
+    }
 #endif
 #endif
     EVC_TRACE_STR("\n");
@@ -2866,7 +2871,11 @@ EVCD evcd_create(EVCD_CDSC * cdsc, int * err)
     int ret;
 
 #if ENC_DEC_TRACE
+#if TRACE_DBF
+    fp_trace = fopen("dec_trace_dbf.txt", "w+");
+#else
     fp_trace = fopen("dec_trace.txt", "w+");
+#endif
 #endif
 #if GRAB_STAT
     evc_stat_init("dec_stat.vtmbmsstats", esu_only_enc, 0, -1, encd_stat_cu);

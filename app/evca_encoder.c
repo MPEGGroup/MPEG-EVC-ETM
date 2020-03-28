@@ -186,6 +186,8 @@ static int  op_use_dqp             = 0;  /* default cu_delta_qp is off */
 static int  op_cu_qp_delta_area    = 10; /* default cu_delta_qp_area is 10 */
 #endif
 
+static int op_inter_slice_type     = 0;
+
 typedef enum _OP_FLAGS
 {
     OP_FLAG_FNAME_CFG,
@@ -353,6 +355,7 @@ typedef enum _OP_FLAGS
 #endif
     //...
     OP_FLAG_RPL1_31,
+    OP_INTER_SLICE_TYPE,
 
     OP_FLAG_MAX
 } OP_FLAGS;
@@ -1119,6 +1122,11 @@ static EVC_ARGS_OPTION options[] = \
         "RPL1_25"
     },
 #endif
+    {
+        EVC_ARGS_NO_KEY,  "inter_slice_type", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_INTER_SLICE_TYPE], &op_inter_slice_type,
+        "INTER_SLICE_TYPE"
+    },
 
     {0, "", EVC_ARGS_VAL_TYPE_NONE, NULL, NULL, ""} /* termination */
 };
@@ -1320,7 +1328,7 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->num_slice_in_pic = op_num_slice_in_pic_minus1 + 1;
     cdsc->arbitrary_slice_flag = op_arbitrary_slice_flag;
     cdsc->num_remaining_tiles_in_slice_minus1 = op_num_remaining_tiles_in_slice_minus1;
-
+    cdsc->inter_slice_type = op_inter_slice_type == 0 ? SLICE_B : SLICE_P;
     if (!cdsc->tile_uniform_spacing_flag)
     {
         cdsc->tile_column_width_array[0] = atoi(strtok(op_tile_column_width_array, " "));
@@ -1580,9 +1588,17 @@ int check_conf(EVCE_CDSC* cdsc)
     }
     else
     {
-#if RESTRICT_IBC_WITH_EIPD
+#if CHECK_TOOL_DEPENDENCIES
+        if (cdsc->tool_admvp == 0 && cdsc->tool_affine == 1) { v0print("AFFINE cannot be on when ADMVP is off\n"); success = 0; }
+        if (cdsc->tool_admvp == 0 && cdsc->tool_amvr == 1) { v0print("AMVR cannot be on when ADMVP is off\n"); success = 0; }
+        if (cdsc->tool_admvp == 0 && cdsc->tool_dmvr == 1) { v0print("DMVR cannot be on when ADMVP is off\n"); success = 0; }
+        if (cdsc->tool_admvp == 0 && cdsc->tool_mmvd == 1) { v0print("MMVD cannot be on when ADMVP is off\n"); success = 0; }
         if (cdsc->tool_eipd == 0 && cdsc->ibc_flag == 1) { v0print("IBC cannot be on when EIPD is off\n"); success = 0; }
+        if (cdsc->tool_iqt == 0 && cdsc->tool_ats == 1) { v0print("ATS cannot be on when IQT is off\n"); success = 0; }
+        if (cdsc->tool_cm_init == 0 && cdsc->tool_adcc == 1) { v0print("ADCC cannot be on when CM_INIT is off\n"); success = 0; }
+
 #endif
+
 #if !REMOVE_MAIN_RESTRICTION
         if (cdsc->tool_eipd    == 0) { v0print("EIPD cannot be off in main profile\n"); success = 0; }
         if (cdsc->tool_iqt     == 0) { v0print("IQT cannot be off in main profile\n"); success = 0; }
@@ -2726,13 +2742,18 @@ void print_psnr(EVCE_STAT * stat, double * psnr, double ms_ssim, int bitrate, EV
             stat->poc, stat->tid, stype, stat->qp, psnr[0], psnr[1], psnr[2], \
             bitrate, evc_clk_msec(clk_end), ms_ssim);
     }
+
     for(i=0; i < 2; i++)
     {
         v1print("[L%d ", i);
         for(j=0; j < stat->refpic_num[i]; j++) v1print("%d ",stat->refpic[i][j]);
         v1print("] ");
     }
+
     v1print("\n");
+
+    fflush(stdout);
+    fflush(stderr);
 }
 
 int setup_bumping(EVCE id)
