@@ -37,7 +37,9 @@
 #include "evc.h"
 #include "evc_port.h"
 
+
 #define DB_SPEC_ALIGNMENT1                            1 
+#define CHECK_TOOL_DEPENDENCIES                       1
 #define HISTORY_UNDER_ADMVP_FIX                       1
 #define DEBLOCKING_FIX                                1
 #define CODE_CLEAN                                    1
