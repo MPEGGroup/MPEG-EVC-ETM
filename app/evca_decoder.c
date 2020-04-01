@@ -539,6 +539,8 @@ int main(int argc, const char **argv)
             imgb->release(imgb);
             pic_cnt++;
         }
+        fflush(stdout);
+        fflush(stderr);
     }
 
 END:

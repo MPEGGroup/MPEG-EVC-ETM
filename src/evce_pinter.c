@@ -1105,9 +1105,9 @@ __inline static int mmvd_info_bit_cost(int mvp_idx, int type)
     var2 = mvp_idx - (var0 * MMVD_MAX_REFINE_NUM) - var1 * 4;
 
     /* mmvd_merge_idx */
-    bits += mmvd_bit_unary_sym(var0, NUM_SBAC_CTX_MMVD_MERGE_IDX, MMVD_BASE_MV_NUM); 
+    bits += mmvd_bit_unary_sym(var0, NUM_CTX_MMVD_MERGE_IDX, MMVD_BASE_MV_NUM);
     /* mmvd_distance_idx */
-    bits += mmvd_bit_unary_sym(var1, NUM_SBAC_CTX_MMVD_DIST_IDX, MMVD_DIST_NUM); 
+    bits += mmvd_bit_unary_sym(var1, NUM_CTX_MMVD_DIST_IDX, MMVD_DIST_NUM);
     /* mmvd_direction_idx */
     if(var2 == 0)
     {
@@ -2693,7 +2693,6 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
             ad_best_costs[idx0] = cost;
         }
     }
-
     if(ctx->slice_type == SLICE_B)
     {
         assert(ctx->slice_type == SLICE_B);
@@ -2749,7 +2748,6 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
             }
         }
     }
-
 #if DMVR_FLAG
      core->dmvr_flag = best_dmvr;
 #endif
@@ -2804,7 +2802,6 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
         {
             continue;
         }
-
         mvp[REFP_0][MV_X] = pi->mvp[REFP_0][idx0][MV_X];
         mvp[REFP_0][MV_Y] = pi->mvp[REFP_0][idx0][MV_Y];
         mvp[REFP_1][MV_X] = pi->mvp[REFP_1][idx0][MV_X];
@@ -2831,7 +2828,6 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
 
         apply_dmvr = TRUE;
         cost = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[pidx], pi->coef[pidx], pidx, pi->mvp_idx[pidx], apply_dmvr);
-
         if(cost < cost_best)
         {
             tmp_mvp0 = idx0;
@@ -3623,10 +3619,10 @@ static int pinter_init_frame(EVCE_CTX *ctx)
 
     size = sizeof(pel) * MAX_CU_DIM;
     evc_mset(pi->pred_buf, 0, size);
-
+#if !CODE_CLEAN
     size = sizeof(pel) * N_C * MAX_CU_DIM;
     evc_mset(pi->rec_buf, 0, size);
-
+#endif
     size = sizeof(s8) * PRED_NUM * REFP_NUM;
     evc_mset(pi->refi, 0, size);
 
@@ -5577,7 +5573,6 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
     );
     /* skip mode */
     cost = cost_inter[PRED_SKIP] = analyze_skip(ctx, core, x, y, log2_cuw, log2_cuh);
-
     if(cost < cost_best)
     {
 #if DMVR_FLAG
@@ -5794,7 +5789,6 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                 pi->mvp_idx[pidx][lidx] = mvp_idx[lidx];
 
                 cost = cost_inter[pidx] = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[PRED_NUM], pi->coef[PRED_NUM], pidx, mvp_idx, FALSE);
-
                 if(cost < cost_best)
                 {
                     core->cu_mode = MODE_INTER;
@@ -5842,7 +5836,6 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                     pred_mode = (pi->curr_bi == 0) ? PRED_BI : ((pi->curr_bi == 1) ? PRED_FL0_BI : (pi->curr_bi == 2) ? PRED_FL1_BI : PRED_BI_REF);
                     pidx = pred_mode + mvr_offset;
                     cost = cost_inter[pidx] = analyze_bi(ctx, core, x, y, log2_cuw, log2_cuh, cost_inter);
-
                     if(cost < cost_best)
                     {
                         core->cu_mode = MODE_INTER;

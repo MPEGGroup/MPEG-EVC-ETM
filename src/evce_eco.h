@@ -73,7 +73,7 @@ void evce_sbac_encode_bin_trm(u32 bin, EVCE_SBAC *sbac, EVC_BSW *bs);
 int evce_eco_dqp(EVC_BSW * bs, int ref_qp, int cur_qp);
 #endif
 int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 pred_mode, int nnz_sub[N_C][MAX_SUB_TB_NUM], int b_no_cbf, int run_stats
-                  , int tool_ats, u8 ats_intra_cu, u8 ats_tu, u8 ats_inter_info
+                  , int tool_ats, u8 ats_intra_cu, u8 ats_mode, u8 ats_inter_info
 #if DQP
                   , EVCE_CTX * ctx
                   , EVCE_CORE * core, int enc_dqp, u8 cur_qp
@@ -100,12 +100,14 @@ void evce_eco_slice_end_flag(EVC_BSW * bs, int flag);
 #if EVC_TILE_SUPPORT
 void evce_eco_tile_end_flag(EVC_BSW * bs, int flag);
 #endif
-int evce_eco_mvp_idx(EVC_BSW *bs, int mvp_idx, int sps_admvp_flag);
+int evce_eco_merge_idx(EVC_BSW *bs, int merge_idx);
+int evce_eco_mvp_idx(EVC_BSW *bs, int mvp_idx);
 int evce_eco_affine_mvp_idx(EVC_BSW *bs, int mvp_idx);
 int evce_eco_mvd(EVC_BSW *bs, s16 mvd[MV_D]);
 int evce_eco_refi(EVC_BSW * bs, int num_refp, int refi);
-void evce_eco_inter_dir(EVC_BSW * bs, s8 refi[REFP_NUM], int slice_type, int cuw, int cuh, int is_sps_admvp);
-void evce_eco_inter_t_direct(EVC_BSW *bs, int t_direct_flag);
+void evce_eco_inter_pred_idc(EVC_BSW * bs, s8 refi[REFP_NUM], int slice_type, int cuw, int cuh, int is_sps_admvp);
+void evce_eco_merge_mode_flag(EVC_BSW *bs, int merge_mode_flag);
+void evce_eco_direct_mode_flag(EVC_BSW *bs, int direct_mode_flag);
 //! \todo Change list of arguments
 void evce_eco_xcoef(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num_sig, int ch_type, int tool_adcc);
 //! \todo Change list of arguments

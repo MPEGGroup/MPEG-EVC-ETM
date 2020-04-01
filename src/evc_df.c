@@ -562,15 +562,12 @@ static const u8 get_avc_bs(u32 mcu0, u32 x0, u32 y0, u32 mcu1, u32 x1, u32 y1, u
     EVC_TRACE_INT(MCU_GET_IBC(mcu1) ? 1 : 0);
 #endif
 
-    if (isIntraBlock 
-        && (!sameXLCU || !sameYLCU)
-        )
+    if (isIntraBlock && (!sameXLCU || !sameYLCU) )
     {
         // One of the blocks is Intra and blocks lies in the different LCUs
         bs = DBF_ADDB_BS_INTRA_STRONG;
     }
-    else 
-        if (isIntraBlock)
+    else if (isIntraBlock)
     {
         // One of the blocks is Intra
         bs = DBF_ADDB_BS_INTRA;
@@ -581,8 +578,7 @@ static const u8 get_avc_bs(u32 mcu0, u32 x0, u32 y0, u32 mcu1, u32 x1, u32 y1, u
         bs = DBF_ADDB_BS_INTRA;
     }
 #endif
-    else 
-       if (MCU_GET_CBFL(mcu0) == 1 || MCU_GET_CBFL(mcu1) == 1)
+    else if (MCU_GET_CBFL(mcu0) == 1 || MCU_GET_CBFL(mcu1) == 1)
     {
         // One of the blocks has coded residuals
         bs = DBF_ADDB_BS_CODED;
@@ -725,8 +721,11 @@ static void deblock_avc_set_pq(pel *buf, int offset, pel* p, pel* q, int size)
 #endif
     }
 }
-
+#if DEBLOCKING_FIX
+static const u8 deblock_line_avc_apply(pel *p, pel* q, u16 alpha, u8 beta)
+#else
 static const u8 deblock_line_avc_apply(pel *p, pel* q, u8 alpha, u8 beta)
+#endif
 {
     return (EVC_ABS(p[0] - q[0]) < alpha) && (EVC_ABS(p[1] - p[0]) < beta) && (EVC_ABS(q[1] - q[0]) < beta);
 }
@@ -734,6 +733,10 @@ static const u8 deblock_line_avc_apply(pel *p, pel* q, u8 alpha, u8 beta)
 static void deblock_line_avc_chroma_strong(pel* x, pel* y, pel* x_out)
 {
     x_out[0] = (2 * x[1] + x[0] + y[1] + 2) >> 2;
+#if DB_SPEC_ALIGNMENT1
+    x_out[1] = x[1];
+    x_out[2] = x[2];
+#endif
 }
 
 static void deblock_line_avc_luma_strong(pel* x, pel* y, pel* x_out)
@@ -742,8 +745,12 @@ static void deblock_line_avc_luma_strong(pel* x, pel* y, pel* x_out)
     x_out[1] = (x[2] + x[1] + x[0] + y[0] + 2) >> 2;
     x_out[2] = (2 * x[3] + 3 * x[2] + x[1] + x[0] + y[0] + 4) >> 3;
 }
-
-static void deblock_line_avc_check(u8 alpha, u8 beta, pel *p, pel* q, u8 *ap, u8 *aq){
+#if DEBLOCKING_FIX
+static void deblock_line_avc_check(u16 alpha, u8 beta, pel *p, pel* q, u8 *ap, u8 *aq)
+#else
+static void deblock_line_avc_check(u8 alpha, u8 beta, pel *p, pel* q, u8 *ap, u8 *aq)
+#endif
+{
     *ap = (EVC_ABS(p[0] - p[2]) < beta) ? 1 : 0;
     *aq = (EVC_ABS(q[0] - q[2]) < beta) ? 1 : 0;
 }
@@ -760,8 +767,11 @@ static pel deblock_line_avc_normal_delta1(u8 c1, pel* x, pel* y)
     return EVC_CLIP3(-(pel)c1, (pel)c1, ((((x[2] + x[0] + y[0]) * 3) - 8 * x[1] - y[1])) >> 4);
 }
 
-
+#if DEBLOCKING_FIX
+static void deblock_scu_avc_line_luma(pel *buf, int stride, u8 bs, u16 alpha, u8 beta, u8 c1)
+#else
 static void deblock_scu_avc_line_luma(pel *buf, int stride, u8 bs, u8 alpha, u8 beta, u8 c1)
+#endif
 {
 #if EVC_CONCURENCY    
     pel p[DBF_LENGTH], q[DBF_LENGTH];
@@ -845,6 +855,9 @@ static void deblock_scu_avc_line_luma(pel *buf, int stride, u8 bs, u8 alpha, u8 
             }
         }
         else
+#if DB_SPEC_ALIGNMENT1
+        if (bs > 0 )
+#endif
         {
             u8 c0;
             pel delta0, delta1;
@@ -905,8 +918,11 @@ static void deblock_scu_avc_line_luma(pel *buf, int stride, u8 bs, u8 alpha, u8 
     EVC_TRACE_STR("\n");
 #endif
 }
-
+#if DEBLOCKING_FIX
+static void deblock_scu_avc_line_chroma(pel *buf, int stride, u8 bs, u16 alpha, u8 beta, u8 c0)
+#else
 static void deblock_scu_avc_line_chroma(pel *buf, int stride, u8 bs, u8 alpha, u8 beta, u8 c0)
+#endif
 {
 #if EVC_CONCURENCY
     pel p[DBF_LENGTH_CHROMA], q[DBF_LENGTH_CHROMA];
@@ -957,6 +973,9 @@ static void deblock_scu_avc_line_chroma(pel *buf, int stride, u8 bs, u8 alpha, u
             deblock_line_avc_chroma_strong(q, p, q_out);
         }
         else
+#if DB_SPEC_ALIGNMENT1
+        if (bs > 0)
+#endif
         {
             pel delta0;
             int pel_max = (1 << BIT_DEPTH) - 1;
@@ -985,8 +1004,11 @@ static void deblock_scu_avc_line_chroma(pel *buf, int stride, u8 bs, u8 alpha, u
     EVC_TRACE_STR("\n");
 #endif
 }
-
+#if DEBLOCKING_FIX
+static void deblock_scu_avc_ver_luma(pel *buf, int stride, u8 bs, u16 alpha, u8 beta, u8 c1)
+#else
 static void deblock_scu_avc_ver_luma(pel *buf,int stride, u8 bs, u8 alpha, u8 beta, u8 c1)
+#endif
 {
     u8 i;
     pel *cur_buf = buf;
@@ -995,8 +1017,11 @@ static void deblock_scu_avc_ver_luma(pel *buf,int stride, u8 bs, u8 alpha, u8 be
         deblock_scu_avc_line_luma(cur_buf, 1, bs, alpha, beta, c1);
     }
 }
-
+#if DEBLOCKING_FIX
+static void deblock_scu_avc_hor_luma(pel *buf, int stride, u8 bs, u16 alpha, u8 beta, u8 c1)
+#else
 static void deblock_scu_avc_hor_luma(pel *buf, int stride, u8 bs, u8 alpha, u8 beta, u8 c1)
+#endif
 {
     u8 i;
     pel *cur_buf = buf;
@@ -1005,8 +1030,11 @@ static void deblock_scu_avc_hor_luma(pel *buf, int stride, u8 bs, u8 alpha, u8 b
         deblock_scu_avc_line_luma(cur_buf, stride, bs, alpha, beta, c1);
     }
 }
-
+#if DEBLOCKING_FIX
+static void deblock_scu_avc_ver_chroma(pel *buf, int stride, u8 bs, u16 alpha, u8 beta, u8 c0)
+#else
 static void deblock_scu_avc_ver_chroma(pel *buf, int stride, u8 bs, u8 alpha, u8 beta, u8 c0)
+#endif
 {
     u8 i;
     pel *cur_buf = buf;
@@ -1015,8 +1043,11 @@ static void deblock_scu_avc_ver_chroma(pel *buf, int stride, u8 bs, u8 alpha, u8
         deblock_scu_avc_line_chroma(cur_buf, 1, bs, alpha, beta, c0);
     }
 }
-
+#if DEBLOCKING_FIX
+static void deblock_scu_avc_hor_chroma(pel *buf, int stride, u8 bs, u16 alpha, u8 beta, u8 c0)
+#else
 static void deblock_scu_avc_hor_chroma(pel *buf, int stride, u8 bs, u8 alpha, u8 beta, u8 c0)
+#endif
 {
     u8 i;
     pel *cur_buf = buf;
@@ -1047,6 +1078,9 @@ static void deblock_addb_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
 #if EVC_TILE_SUPPORT
     , u8* map_tidx
 #endif
+#if DEBLOCKING_FIX
+    , u8* map_ats_inter
+#endif
 )
 {
     pel       * y, *u, *v;
@@ -1055,7 +1089,12 @@ static void deblock_addb_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
     int h = cuh >> MIN_CU_LOG2;
 
     u8 indexA, indexB;
+#if DEBLOCKING_FIX
+    u16 alpha;
+    u8 beta;
+#else
     u8 alpha, beta;
+#endif
     u8 c0, c1;
     u32 *map_scu_tmp;
     const int bitdepth_scale = (BIT_DEPTH - 8);
@@ -1088,6 +1127,9 @@ static void deblock_addb_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
     map_scu += t;
     map_refi += t;
     map_mv += t;
+#if DEBLOCKING_FIX
+    map_ats_inter += t;
+#endif
     map_scu_tmp = map_scu;
     s_l = pic->s_l;
     s_c = pic->s_c;
@@ -1143,8 +1185,14 @@ static void deblock_addb_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
                 u8 bs_cur = get_avc_bs(map_scu[i], cur_x_pel, y_pel, map_scu[i - w_scu], cur_x_pel, y_pel - 1, log2_max_cuwh, map_refi[i], map_refi[i - w_scu], map_mv[i], map_mv[i - w_scu]
                     , refp
                 );
-
+#if DEBLOCKING_FIX
+                u8 current_ats = map_ats_inter[i];
+                u8 neighbor_ats = map_ats_inter[i - w_scu];
+                u8 ats_present = current_ats || neighbor_ats;
+                if ((bs_cur < DBF_ADDB_BS_INTRA_STRONG) && ats_present)
+#else
                 if ( (bs_cur < DBF_ADDB_BS_INTRA_STRONG) && (ats_inter_mode > 0) )
+#endif
                 {
                     bs_cur = DBF_ADDB_BS_CODED;
                 }
@@ -1198,12 +1246,20 @@ static void deblock_addb_cu_ver_yuv(EVC_PIC *pic, int x_pel, int y_pel, int log2
 #if M50761_CHROMA_NOT_SPLIT
     , TREE_CONS tree_cons
 #endif
+#if DEBLOCKING_FIX
+    , u8* map_ats_inter
+#endif
 )
 {
     int i, t, qp;
     int h = cuh >> MIN_CU_LOG2;
     u8 indexA, indexB;
+#if DEBLOCKING_FIX
+    u16 alpha;
+    u8 beta;
+#else
     u8 alpha, beta;
+#endif
     u8 c0, c1;
     const int bitdepth_scale = (BIT_DEPTH - 8);
     for (i = 0; i < h; i++)
@@ -1227,11 +1283,22 @@ static void deblock_addb_cu_ver_yuv(EVC_PIC *pic, int x_pel, int y_pel, int log2
 
         {
             int cur_y_pel = y_pel + (i << MIN_CU_LOG2);
+#if CODE_CLEAN
+            u8 bs_cur = get_avc_bs(map_scu[0], x_pel, cur_y_pel, map_scu[-1], x_pel - 1, cur_y_pel, log2_max_cuwh, map_refi[0], map_refi[-1], map_mv[0], map_mv[-1]
+            , refp);
+#else
             u8 bs_cur = get_avc_bs(map_scu[0], x_pel-1, cur_y_pel, map_scu[-1], x_pel, cur_y_pel, log2_max_cuwh, map_refi[0], map_refi[-1], map_mv[0], map_mv[-1]
                 , refp
             );
-
+#endif
+#if DEBLOCKING_FIX
+            u8 current_ats = map_ats_inter[0];
+            u8 neighbor_ats = map_ats_inter[-1];
+            u8 ats_present = current_ats || neighbor_ats;
+            if ((bs_cur < DBF_ADDB_BS_INTRA_STRONG) && ats_present)
+#else
             if ((bs_cur < DBF_ADDB_BS_INTRA_STRONG) && (ats_inter_mode > 0))
+#endif
             {
                 bs_cur = DBF_ADDB_BS_CODED;
             }
@@ -1297,6 +1364,9 @@ static void deblock_addb_cu_ver_yuv(EVC_PIC *pic, int x_pel, int y_pel, int log2
             map_scu += w_scu;
             map_refi += w_scu;
             map_mv += w_scu;
+#if DEBLOCKING_FIX
+            map_ats_inter += w_scu;
+#endif
 #if FIX_PARALLEL_DBF
             //map_cu += w_scu;
 #endif
@@ -1317,6 +1387,9 @@ static void deblock_addb_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
 #if EVC_TILE_SUPPORT
     , u8* map_tidx
 #endif
+#if DEBLOCKING_FIX
+    , u8* map_ats_inter
+#endif
 )
 {
     pel       * y, *u, *v;
@@ -1326,6 +1399,9 @@ static void deblock_addb_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
     u32 *map_scu_tmp;
     s8(*map_refi_tmp)[REFP_NUM];
     s16(*map_mv_tmp)[REFP_NUM][MV_D];
+#if DEBLOCKING_FIX
+    u8 *map_ats_inter_tmp;
+#endif
 #if FIX_PARALLEL_DBF
     //int neb_w;
     u32  *map_cu_tmp;
@@ -1364,7 +1440,9 @@ static void deblock_addb_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
     map_scu += t;
     map_refi += t;
     map_mv += t;
-
+#if DEBLOCKING_FIX
+    map_ats_inter +=t;
+#endif
 #if FIX_PARALLEL_DBF
     map_cu += t;
 #endif
@@ -1379,13 +1457,16 @@ static void deblock_addb_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
     map_scu_tmp = map_scu;
     map_refi_tmp = map_refi;
     map_mv_tmp = map_mv;
-
+#if DEBLOCKING_FIX
+    map_ats_inter_tmp = map_ats_inter;
+#endif
 #if FIX_PARALLEL_DBF
     map_cu_tmp = map_cu;
 #endif
 
     /* vertical filtering */
 #if DBF_8_8_GRID
+#if !DEBLOCKING_FIX
 #if M52166_DBF
     if ((x_pel + cuw) % 8 == 0)
     {
@@ -1395,6 +1476,7 @@ static void deblock_addb_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
     {
         align_8_8_grid = 0;
     }
+#endif
 #endif
     if (align_8_8_grid && x_pel > 0 && MCU_GET_COD(map_scu[-1])
 #if EVC_TILE_SUPPORT
@@ -1421,18 +1503,33 @@ static void deblock_addb_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
 #if M50761_CHROMA_NOT_SPLIT
             , tree_cons
 #endif
+#if DEBLOCKING_FIX
+            , map_ats_inter
+#endif
         );
     }
 
     map_scu = map_scu_tmp;
     map_refi = map_refi_tmp;
     map_mv = map_mv_tmp;
-
+#if DEBLOCKING_FIX
+    map_ats_inter = map_ats_inter_tmp;
+#endif
 #if FIX_PARALLEL_DBF
     map_cu = map_cu_tmp;
 #endif
 
 #if DBF_8_8_GRID
+#if DEBLOCKING_FIX && M52166_DBF
+    if ((x_pel + cuw) % 8 == 0)
+    {
+        align_8_8_grid = 1;
+    }
+    else
+    {
+        align_8_8_grid = 0;
+    }
+#endif
     if (align_8_8_grid && x_pel + cuw < pic->w_l && MCU_GET_COD(map_scu[w])
 #if EVC_TILE_SUPPORT
         && (map_tidx[t_copy] == map_tidx[t2])
@@ -1464,9 +1561,15 @@ static void deblock_addb_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
         map_scu += w;
         map_refi += w;
         map_mv += w;
+#if DEBLOCKING_FIX
+        map_ats_inter += w;
+#endif
         deblock_addb_cu_ver_yuv(pic, x_pel + cuw, y_pel, log2_max_cuwh, y, u, v, s_l, s_c, cuh, map_scu, map_refi, map_mv, w_scu, refp, ats_inter_mode
 #if M50761_CHROMA_NOT_SPLIT
             , tree_cons
+#endif
+#if DEBLOCKING_FIX
+            , map_ats_inter
 #endif
         );
     }
@@ -1485,6 +1588,9 @@ void evc_deblock_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
 #if ADDB_FLAG_FIX
     , int tool_addb
 #endif
+#if DEBLOCKING_FIX
+    , u8* map_ats_inter
+#endif
 )
 {
     if (tool_addb)
@@ -1496,6 +1602,9 @@ void evc_deblock_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
 #endif
 #if EVC_TILE_SUPPORT
             , map_tidx
+#endif
+#if DEBLOCKING_FIX
+            , map_ats_inter
 #endif
         );
 }
@@ -1527,6 +1636,9 @@ void evc_deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
 #if ADDB_FLAG_FIX
     , int tool_addb
 #endif
+#if DEBLOCKING_FIX
+    , u8* map_ats_inter
+#endif
 )
 {
     if (tool_addb)
@@ -1542,6 +1654,9 @@ void evc_deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
 #endif
 #if EVC_TILE_SUPPORT
             , map_tidx
+#endif
+#if DEBLOCKING_FIX
+            , map_ats_inter
 #endif
         );
 }

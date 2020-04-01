@@ -136,8 +136,8 @@ typedef struct _EVCE_MODE
     s16   mv_sp[REFP_NUM][MV_D];
 #endif
     u8    ats_intra_cu;
-    u8    ats_intra_tu_h;
-    u8    ats_intra_tu_v;
+    u8    ats_intra_mode_h;
+    u8    ats_intra_mode_v;
 
 #if TRACE_ENC_CU_DATA
     u64   trace_cu_idx;
@@ -232,8 +232,10 @@ struct _EVCE_PINTER
 {
     /* temporary prediction buffer (only used for ME)*/
     pel  pred_buf[MAX_CU_DIM];
+#if !CODE_CLEAN
     /* reconstruction buffer */
     pel  rec_buf[N_C][MAX_CU_DIM];
+#endif
     /* temporary buffer for analyze_cu */
     s8   refi[PRED_NUM][REFP_NUM];
     /* Ref idx predictor */
@@ -562,8 +564,8 @@ typedef struct _EVCE_CU_DATA
     u8  *affine_flag;
     u32 *map_affine;
     u8* ats_intra_cu;
-    u8* ats_tu_h;
-    u8* ats_tu_v;
+    u8* ats_mode_h;
+    u8* ats_mode_v;
     u8  *ats_inter_info;
     u32 *map_cu_mode;
     s8  *depth;
@@ -682,7 +684,7 @@ typedef struct _EVCE_CORE
     /* affine flag for MODE_INTER */
     u8             affine_flag;
     u8             ats_intra_cu;
-    u8             ats_tu;
+    u8             ats_mode;
     /* ats_inter info (index + position)*/
     u8             ats_inter_info;
     /* width of current CU */
@@ -748,15 +750,17 @@ typedef struct _EVCE_CORE
     s64                    dist_nofilt[N_C]; //distortion of not filtered samples
     s64                    dist_filter[N_C]; //distortion of filtered samples
     /* RDOQ related variables*/
-    int rdoq_est_all_cbf[2];
-    int rdoq_est_cbf[NUM_QT_CBF_CTX][2];
-    int rdoq_est_gt0[NUM_CTX_GT0][2];
-    int rdoq_est_gtA[NUM_CTX_GTA][2];
-    int rdoq_est_scanr_x[NUM_CTX_SCANR][2];
-    int rdoq_est_scanr_y[NUM_CTX_SCANR][2];
-    s32 rdoq_est_run[NUM_SBAC_CTX_RUN][2];
-    s32 rdoq_est_level[NUM_SBAC_CTX_LEVEL][2];
-    s32 rdoq_est_last[NUM_SBAC_CTX_LAST][2];
+    int rdoq_est_cbf_all[2];
+    int rdoq_est_cbf_luma[2];
+    int rdoq_est_cbf_cb[2];
+    int rdoq_est_cbf_cr[2];
+    int rdoq_est_sig_coeff[NUM_CTX_SIG_COEFF_FLAG][2];
+    int rdoq_est_gtx[NUM_CTX_GTX][2];
+    int rdoq_est_last_sig_coeff_x[NUM_CTX_LAST_SIG_COEFF][2];
+    int rdoq_est_last_sig_coeff_y[NUM_CTX_LAST_SIG_COEFF][2];
+    s32 rdoq_est_run[NUM_CTX_CC_RUN][2];
+    s32 rdoq_est_level[NUM_CTX_CC_LEVEL][2];
+    s32 rdoq_est_last[NUM_CTX_CC_LAST][2];
 #endif
 } EVCE_CORE;
 
@@ -943,8 +947,8 @@ struct _EVCE_CTX
     double                 dist_chroma_weight[2];
     /* map for ats intra */
     u8                   * map_ats_intra_cu;
-    u8                   * map_ats_tu_h;
-    u8                   * map_ats_tu_v;
+    u8                   * map_ats_mode_h;
+    u8                   * map_ats_mode_v;
     u8                   * map_ats_inter;
 
     u32                  * ats_inter_pred_dist;

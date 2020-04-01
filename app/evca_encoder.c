@@ -141,6 +141,9 @@ static int  op_cb_qp_offset       = 0;
 static int  op_cr_qp_offset       = 0;
 static int  op_tool_ats            = 1; /* default on */
 static int  op_constrained_intra_pred = 0;
+#if ENC_DBF_CONTROL
+static int  op_tool_deblocking    = 1; /* default on */
+#endif
 static int  op_deblock_alpha_offset = 0; /* default offset 0*/
 static int  op_deblock_beta_offset = 0;  /* default offset 0*/
 
@@ -184,6 +187,8 @@ static char  op_rpl1[MAX_NUM_RPLS][256];
 static int  op_use_dqp             = 0;  /* default cu_delta_qp is off */
 static int  op_cu_qp_delta_area    = 10; /* default cu_delta_qp_area is 10 */
 #endif
+
+static int op_inter_slice_type     = 0;
 
 typedef enum _OP_FLAGS
 {
@@ -258,6 +263,9 @@ typedef enum _OP_FLAGS
     OP_CR_QP_OFFSET,
     OP_TOOL_ATS,
     OP_CONSTRAINED_INTRA_PRED,
+#if ENC_DBF_CONTROL
+    OP_TOOL_DBF,
+#endif
     OP_TOOL_DBFOFFSET,
 #if ETM_HDR_REPORT_METRIC_FLAG
     OP_HDR_METRIC_REPORT,
@@ -351,6 +359,7 @@ typedef enum _OP_FLAGS
 #endif
     //...
     OP_FLAG_RPL1_31,
+    OP_INTER_SLICE_TYPE,
 
     OP_FLAG_MAX
 } OP_FLAGS;
@@ -702,6 +711,13 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_CONSTRAINED_INTRA_PRED], &op_constrained_intra_pred,
         "constrained intra pred"
     },
+#if ENC_DBF_CONTROL
+    {
+        EVC_ARGS_NO_KEY,  "dbf", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_TOOL_DBF], &op_tool_deblocking,
+        "Deblocking filter on/off flag"
+    },
+#endif
     {
         EVC_ARGS_NO_KEY,  "dbfoffsetA", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_TOOL_DBFOFFSET], &op_deblock_alpha_offset,
@@ -1120,6 +1136,11 @@ static EVC_ARGS_OPTION options[] = \
         "RPL1_25"
     },
 #endif
+    {
+        EVC_ARGS_NO_KEY,  "inter_slice_type", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_INTER_SLICE_TYPE], &op_inter_slice_type,
+        "INTER_SLICE_TYPE"
+    },
 
     {0, "", EVC_ARGS_VAL_TYPE_NONE, NULL, NULL, ""} /* termination */
 };
@@ -1305,6 +1326,9 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->cr_qp_offset       = op_cr_qp_offset;
     cdsc->tool_ats           = op_tool_ats;
     cdsc->constrained_intra_pred = op_constrained_intra_pred;
+#if ENC_DBF_CONTROL
+    cdsc->use_deblock        = op_tool_deblocking;
+#endif
     cdsc->deblock_aplha_offset = op_deblock_alpha_offset;
     cdsc->deblock_beta_offset = op_deblock_beta_offset;
 #if ETM_HDR_REPORT_METRIC_FLAG
@@ -1320,7 +1344,7 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->num_slice_in_pic = op_num_slice_in_pic_minus1 + 1;
     cdsc->arbitrary_slice_flag = op_arbitrary_slice_flag;
     cdsc->num_remaining_tiles_in_slice_minus1 = op_num_remaining_tiles_in_slice_minus1;
-
+    cdsc->inter_slice_type = op_inter_slice_type == 0 ? SLICE_B : SLICE_P;
     if (!cdsc->tile_uniform_spacing_flag)
     {
         cdsc->tile_column_width_array[0] = atoi(strtok(op_tile_column_width_array, " "));
@@ -1525,8 +1549,12 @@ static void print_enc_conf(EVCE_CDSC * cdsc)
     printf("MMVD: %d, ",   cdsc->tool_mmvd);
     printf("AFFINE: %d, ", cdsc->tool_affine);
     printf("DMVR: %d, ",   cdsc->tool_dmvr);
+#if ENC_DBF_CONTROL
+    printf("DBF.ADDB: %d.%d, ", cdsc->use_deblock, cdsc->tool_addb);
+#else
 #if ADDB_FLAG_FIX
     printf("ADDB: %d, ",   cdsc->tool_addb);
+#endif
 #endif
     printf("ALF: %d, ",    cdsc->tool_alf);
     printf("ADMVP: %d, ",  cdsc->tool_admvp);
@@ -1540,14 +1568,12 @@ static void print_enc_conf(EVCE_CDSC * cdsc)
     printf("RPL: %d, ",    cdsc->tool_rpl);
     printf("POCS: %d, ",   cdsc->tool_pocs);
     printf("CONSTRAINED_INTRA_PRED: %d, ", cdsc->constrained_intra_pred);
-    printf("DBFOffsetA: %d, ", cdsc->deblock_aplha_offset);
-    printf("DBFOffsetB: %d, ", cdsc->deblock_beta_offset);
 #if EVC_TILE_SUPPORT
     printf("Uniform Tile Spacing: %d, ", cdsc->tile_uniform_spacing_flag);
     printf("Number of Tile Columns: %d, ", cdsc->tile_columns);
-    printf("Number of Tile  Rows: %d ", cdsc->tile_rows);
+    printf("Number of Tile  Rows: %d, ", cdsc->tile_rows);
 #endif
-    printf("ChromaQPTable: %d ", cdsc->chroma_qp_table_struct.chroma_qp_table_present_flag);
+    printf("ChromaQPTable: %d, ", cdsc->chroma_qp_table_struct.chroma_qp_table_present_flag);
 #if M52291_HDR_DRA
     printf("DRA: %d ", cdsc->tool_dra);
 #endif
@@ -1582,9 +1608,17 @@ int check_conf(EVCE_CDSC* cdsc)
     }
     else
     {
-#if RESTRICT_IBC_WITH_EIPD
+#if CHECK_TOOL_DEPENDENCIES
+        if (cdsc->tool_admvp == 0 && cdsc->tool_affine == 1) { v0print("AFFINE cannot be on when ADMVP is off\n"); success = 0; }
+        if (cdsc->tool_admvp == 0 && cdsc->tool_amvr == 1) { v0print("AMVR cannot be on when ADMVP is off\n"); success = 0; }
+        if (cdsc->tool_admvp == 0 && cdsc->tool_dmvr == 1) { v0print("DMVR cannot be on when ADMVP is off\n"); success = 0; }
+        if (cdsc->tool_admvp == 0 && cdsc->tool_mmvd == 1) { v0print("MMVD cannot be on when ADMVP is off\n"); success = 0; }
         if (cdsc->tool_eipd == 0 && cdsc->ibc_flag == 1) { v0print("IBC cannot be on when EIPD is off\n"); success = 0; }
+        if (cdsc->tool_iqt == 0 && cdsc->tool_ats == 1) { v0print("ATS cannot be on when IQT is off\n"); success = 0; }
+        if (cdsc->tool_cm_init == 0 && cdsc->tool_adcc == 1) { v0print("ADCC cannot be on when CM_INIT is off\n"); success = 0; }
+
 #endif
+
 #if !REMOVE_MAIN_RESTRICTION
         if (cdsc->tool_eipd    == 0) { v0print("EIPD cannot be off in main profile\n"); success = 0; }
         if (cdsc->tool_iqt     == 0) { v0print("IQT cannot be off in main profile\n"); success = 0; }
@@ -2728,13 +2762,18 @@ void print_psnr(EVCE_STAT * stat, double * psnr, double ms_ssim, int bitrate, EV
             stat->poc, stat->tid, stype, stat->qp, psnr[0], psnr[1], psnr[2], \
             bitrate, evc_clk_msec(clk_end), ms_ssim);
     }
+
     for(i=0; i < 2; i++)
     {
         v1print("[L%d ", i);
         for(j=0; j < stat->refpic_num[i]; j++) v1print("%d ",stat->refpic[i][j]);
         v1print("] ");
     }
+
     v1print("\n");
+
+    fflush(stdout);
+    fflush(stderr);
 }
 
 int setup_bumping(EVCE id)

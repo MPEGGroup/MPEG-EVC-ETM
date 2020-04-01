@@ -180,7 +180,7 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int poc, int scup, int lidx, s8 cur_ref
     , u8* map_tidx
 #endif
 );
-
+#if !CODE_CLEAN
 void evc_get_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int num_refp, \
                             s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
                             int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][MV_D], s8 refi_pred[MAX_NUM_MVP], u32* map_scu, u16 avail_lr
@@ -191,7 +191,7 @@ void evc_get_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int num_re
     , u8 * map_tidx
 #endif
 );
-
+#endif
 enum
 {
     SPLIT_MAX_PART_COUNT = 4
@@ -351,7 +351,7 @@ u8  *evc_get_dqp_used(int x_scu, int y_scu, int w_scu, u8 * map_dqp_input, int d
 void evc_init_scan_sr(int *scan, int size_x, int size_y, int width, int height, int scan_type);
 void evc_init_inverse_scan_sr(u16 *scan_inv, u16 *scan_orig, int width, int height, int scan_type);
 void evc_get_ctx_last_pos_xy_para(int ch_type, int width, int height, int *result_offset_x, int *result_offset_y, int *result_shift_x, int *result_shift_y);
-int evc_get_ctx_gt0_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type);
+int evc_get_ctx_sig_coeff_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type);
 int evc_get_ctx_gtA_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type);
 int evc_get_ctx_gtB_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type);
 int evc_get_ctx_remain_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y);
@@ -371,7 +371,7 @@ void clip_simd(const pel* src, int src_stride, pel *dst, int dst_stride, int wid
 u8 check_ats_inter_info_coded(int cuw, int cuh, int pred_mode, int tool_ats);
 void get_tu_size(u8 ats_inter_info, int log2_cuw, int log2_cuh, int* log2_tuw, int* log2_tuh);
 void get_tu_pos_offset(u8 ats_inter_info, int log2_cuw, int log2_cuh, int* x_offset, int* y_offset);
-void get_ats_inter_trs(u8 ats_inter_info, int log2_cuw, int log2_cuh, u8* ats_cu, u8* ats_tu);
+void get_ats_inter_trs(u8 ats_inter_info, int log2_cuw, int log2_cuh, u8* ats_cu, u8* ats_mode);
 void set_cu_cbf_flags(u8 cbf_y, u8 ats_inter_info, int log2_cuw, int log2_cuh, u32 *map_scu, int w_scu);
 BOOL check_bi_applicability(int slice_type, int cuw, int cuh, int is_sps_admvp);
 void evc_block_copy(s16 * src, int src_stride, s16 * dst, int dst_stride, int log2_copy_w, int log2_copy_h);

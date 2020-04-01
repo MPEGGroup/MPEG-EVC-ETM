@@ -35,6 +35,7 @@
 #ifndef _EVC_H_
 #define _EVC_H_
 
+#define ENC_DBF_CONTROL                 1
 #define EVC_VUI_FIX                     1
 #define ETM_HDR_REPORT_METRIC_FLAG      1
 #define M52291_HDR_DRA                          1
@@ -491,6 +492,9 @@ typedef struct _EVCE_CDSC
 #endif
     int            tool_ats;
     int            constrained_intra_pred;
+#if ENC_DBF_CONTROL
+    int            use_deblock;
+#endif
     int            deblock_aplha_offset;
     int            deblock_beta_offset;
 #if EVC_TILE_SUPPORT
@@ -504,6 +508,7 @@ typedef struct _EVCE_CDSC
     int            arbitrary_slice_flag;
     int            num_remaining_tiles_in_slice_minus1;
 #endif
+    int            inter_slice_type;
     EVC_CHROMA_TABLE chroma_qp_table_struct;
 #if M52291_HDR_DRA
     void * m_DRAMappingApp; 
