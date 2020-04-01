@@ -1609,7 +1609,7 @@ ERR:
     return ret;
 }
 
-static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, int cuh, int cud, int cup, int is_hor
+static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, int cuh, int cud, int cup, int is_hor_edge
 #if M50761_CHROMA_NOT_SPLIT
     , TREE_CONS_NEW tree_cons 
 #if EVC_CONCURENCY
@@ -1672,7 +1672,7 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 
             if(x_pos < ctx->w && y_pos < ctx->h)
             {
-                deblock_tree(ctx, pic, x_pos, y_pos, sub_cuw, sub_cuh, split_struct.cud[cur_part_num], split_struct.cup[cur_part_num], is_hor
+                deblock_tree(ctx, pic, x_pos, y_pos, sub_cuw, sub_cuh, split_struct.cud[cur_part_num], split_struct.cup[cur_part_num], is_hor_edge
 #if M50761_CHROMA_NOT_SPLIT
                      , tree_constrain_for_child
 #if EVC_CONCURENCY
@@ -1718,7 +1718,7 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
         u8 ats_inter_idx = get_ats_inter_idx(ats_inter_info);
         u8 ats_inter_pos = get_ats_inter_pos(ats_inter_info);
 #endif
-        if(is_hor)
+        if(is_hor_edge)
         {
             if (cuh > MAX_TR_SIZE)
             {
@@ -1923,7 +1923,11 @@ int evcd_deblock(EVCD_CTX * ctx
     {
         for (i = x_l; i < x_r; i++)
         {
+#if DB_SPEC_ALIGNMENT1
+            deblock_tree(ctx, ctx->pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 0/*0 - horizontal filtering of vertical edge*/
+#else
             deblock_tree(ctx, ctx->pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 1
+#endif
 #if M50761_CHROMA_NOT_SPLIT
                 , ( TREE_CONS_NEW ) {TREE_LC, eAll} //TODO: Tim this place could not work with "special main (advanced dbf off)"
 #if EVC_CONCURENCY
@@ -1947,7 +1951,11 @@ int evcd_deblock(EVCD_CTX * ctx
     {
         for (i = x_l; i < x_r; i++)
         {
+#if DB_SPEC_ALIGNMENT1
+            deblock_tree(ctx, ctx->pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 1/*1 - vertical filtering of horizontal edge*/
+#else
             deblock_tree(ctx, ctx->pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 0
+#endif
 #if M50761_CHROMA_NOT_SPLIT
                 , ( TREE_CONS_NEW ) {TREE_LC, eAll} //TODO: Tim this place could not work with "special main (advanced dbf off)"
 #if EVC_CONCURENCY

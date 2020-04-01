@@ -562,15 +562,12 @@ static const u8 get_avc_bs(u32 mcu0, u32 x0, u32 y0, u32 mcu1, u32 x1, u32 y1, u
     EVC_TRACE_INT(MCU_GET_IBC(mcu1) ? 1 : 0);
 #endif
 
-    if (isIntraBlock 
-        && (!sameXLCU || !sameYLCU)
-        )
+    if (isIntraBlock && (!sameXLCU || !sameYLCU) )
     {
         // One of the blocks is Intra and blocks lies in the different LCUs
         bs = DBF_ADDB_BS_INTRA_STRONG;
     }
-    else 
-        if (isIntraBlock)
+    else if (isIntraBlock)
     {
         // One of the blocks is Intra
         bs = DBF_ADDB_BS_INTRA;
@@ -581,8 +578,7 @@ static const u8 get_avc_bs(u32 mcu0, u32 x0, u32 y0, u32 mcu1, u32 x1, u32 y1, u
         bs = DBF_ADDB_BS_INTRA;
     }
 #endif
-    else 
-       if (MCU_GET_CBFL(mcu0) == 1 || MCU_GET_CBFL(mcu1) == 1)
+    else if (MCU_GET_CBFL(mcu0) == 1 || MCU_GET_CBFL(mcu1) == 1)
     {
         // One of the blocks has coded residuals
         bs = DBF_ADDB_BS_CODED;
@@ -737,6 +733,10 @@ static const u8 deblock_line_avc_apply(pel *p, pel* q, u8 alpha, u8 beta)
 static void deblock_line_avc_chroma_strong(pel* x, pel* y, pel* x_out)
 {
     x_out[0] = (2 * x[1] + x[0] + y[1] + 2) >> 2;
+#if DB_SPEC_ALIGNMENT1
+    x_out[1] = x[1];
+    x_out[2] = x[2];
+#endif
 }
 
 static void deblock_line_avc_luma_strong(pel* x, pel* y, pel* x_out)
@@ -855,6 +855,9 @@ static void deblock_scu_avc_line_luma(pel *buf, int stride, u8 bs, u8 alpha, u8 
             }
         }
         else
+#if DB_SPEC_ALIGNMENT1
+        if (bs > 0 )
+#endif
         {
             u8 c0;
             pel delta0, delta1;
@@ -970,6 +973,9 @@ static void deblock_scu_avc_line_chroma(pel *buf, int stride, u8 bs, u8 alpha, u
             deblock_line_avc_chroma_strong(q, p, q_out);
         }
         else
+#if DB_SPEC_ALIGNMENT1
+        if (bs > 0)
+#endif
         {
             pel delta0;
             int pel_max = (1 << BIT_DEPTH) - 1;
