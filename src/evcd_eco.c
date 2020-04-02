@@ -1217,8 +1217,8 @@ int evcd_eco_coef(EVCD_CTX * ctx, EVCD_CORE * core)
                 core->qp_y = GET_LUMA_QP(core->qp);
             }
 
-            qp_i_cb = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_u));
-            qp_i_cr = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_v));
+            qp_i_cb = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + ctx->sh.qp_u_offset);
+            qp_i_cr = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + ctx->sh.qp_v_offset);
             core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][qp_i_cb] + 6 * (BIT_DEPTH - 8);
             core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][qp_i_cr] + 6 * (BIT_DEPTH - 8);
             
@@ -2283,8 +2283,8 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
 #endif
             core->qp_y = GET_LUMA_QP(core->qp);
 
-            qp_i_cb = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_u));
-            qp_i_cr = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_v));
+            qp_i_cb = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + ctx->sh.qp_u_offset);
+            qp_i_cr = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + ctx->sh.qp_v_offset);
 
             core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][qp_i_cb] + 6 * (BIT_DEPTH - 8);
             core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][qp_i_cr] + 6 * (BIT_DEPTH - 8);
@@ -2296,8 +2296,8 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
             core->qp = ctx->sh.qp;
             core->qp_y = GET_LUMA_QP(core->qp);
 
-            qp_i_cb = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_u));
-            qp_i_cr = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + (ctx->sh.qp - ctx->sh.qp_v));
+            qp_i_cb = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + ctx->sh.qp_u_offset);
+            qp_i_cr = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + ctx->sh.qp_v_offset);
 
             core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][qp_i_cb] + 6 * (BIT_DEPTH - 8);
             core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][qp_i_cr] + 6 * (BIT_DEPTH - 8);
@@ -3511,8 +3511,17 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
     }
 #endif
     sh->qp = evc_bsr_read(bs, 6);
-    sh->qp_u = sh->qp - evc_bsr_read_se(bs);
-    sh->qp_v = sh->qp - evc_bsr_read_se(bs);
+    if (sh->qp < 0 || sh->qp > 51)
+    {
+        printf("malformed bitstream: slice_qp should be in the range of 0 to 51\n");
+        return EVC_ERR_MALFORMED_BITSTREAM;
+    }
+
+    sh->qp_u_offset = evc_bsr_read_se(bs);
+    sh->qp_v_offset = evc_bsr_read_se(bs);
+
+    sh->qp_u = (s8)EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, sh->qp + sh->qp_u_offset);
+    sh->qp_v = (s8)EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, sh->qp + sh->qp_v_offset);
 
     if (!sh->single_tile_in_slice_flag)
     {

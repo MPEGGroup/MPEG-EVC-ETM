@@ -1092,6 +1092,8 @@ typedef struct _EVC_PIC
     u8               m_alfCtuEnableFlag[3][510]; //510 = 30*17 -> class A1 resolution with CU ~ 128
     int              pic_deblock_alpha_offset;
     int              pic_deblock_beta_offset;
+    int              pic_qp_u_offset;
+    int              pic_qp_v_offset;
 } EVC_PIC;
 
 /*****************************************************************************
@@ -1459,8 +1461,10 @@ typedef struct _EVC_SH
     int              sh_deblock_alpha_offset;
     int              sh_deblock_beta_offset;
     u8               qp;
-    u8               qp_u;
-    u8               qp_v;
+    s8               qp_u;
+    s8               qp_v;
+    s8               qp_u_offset;
+    s8               qp_v_offset;
     u32              entry_point_offset_minus1[MAX_NUM_TILES_ROW * MAX_NUM_TILES_COL];
 #if DQP
     /*QP of previous cu in decoding order (used for dqp)*/

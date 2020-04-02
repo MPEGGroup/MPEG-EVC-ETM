@@ -612,8 +612,8 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
     }
 #endif
     evc_bsw_write(bs, sh->qp, 6);
-    evc_bsw_write_se(bs, (int)sh->qp - (int)sh->qp_u);
-    evc_bsw_write_se(bs, (int)sh->qp - (int)sh->qp_v);
+    evc_bsw_write_se(bs, sh->qp_u_offset);
+    evc_bsw_write_se(bs, sh->qp_v_offset);
 
     if (!sh->single_tile_in_slice_flag)
     {

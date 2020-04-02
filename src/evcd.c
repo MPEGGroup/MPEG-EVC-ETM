@@ -1886,6 +1886,8 @@ int evcd_deblock(EVCD_CTX * ctx
    
     ctx->pic->pic_deblock_alpha_offset = ctx->sh.sh_deblock_alpha_offset;
     ctx->pic->pic_deblock_beta_offset = ctx->sh.sh_deblock_beta_offset;
+    ctx->pic->pic_qp_u_offset = ctx->sh.qp_u_offset;
+    ctx->pic->pic_qp_v_offset = ctx->sh.qp_v_offset;
 
 #if EVC_TILE_SUPPORT
     int x_l, x_r, y_l, y_r, l_scu, r_scu, t_scu, b_scu;
@@ -2575,6 +2577,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         memset(sh->alf_sh_param.alfCtuEnableFlag, 1, N_C * ctx->f_lcu * sizeof(u8));
 
         ret = evcd_eco_sh(bs, &ctx->sps, &ctx->pps, sh, ctx->nalu.nal_unit_type_plus1 - 1);
+        evc_assert_rv(EVC_SUCCEEDED(ret), ret);
 
 #if EVC_TILE_SUPPORT  
         ret = set_tile_info(ctx, ctx->core, pps);
