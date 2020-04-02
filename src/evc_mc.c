@@ -6185,8 +6185,10 @@ s32 evc_DMVR_cost(int w, int h, pel *src1, pel *src2, int s_src1, int s_src2
 {
     s32 sad = 0;
     s32 i, j;
+#if !MRSAD_FIX
     s32 row_sum_l0, row_sum_l1;
     s32 delta = 0;
+#endif
     pel *src1_temp;
     pel *src2_temp;
 #if USE_MR_SAD
@@ -6196,15 +6198,23 @@ s32 evc_DMVR_cost(int w, int h, pel *src1, pel *src2, int s_src1, int s_src2
     src2_temp = src2;
     for (i = 0; i < h; i++)
     {
+#if !MRSAD_FIX
         row_sum_l0 = 0;
         row_sum_l1 = 0;
+#endif
         for (j = 0; j < w; j++)
         {
+#if MRSAD_FIX
+            sad += abs(src1_temp[j] - src2_temp[j]);
+#else
             sad += abs(src1_temp[j] - src2_temp[j] - delta);
             row_sum_l0 += src1_temp[j];
             row_sum_l1 += src2_temp[j];
+#endif
         }
+#if !MRSAD_FIX
         delta = ((row_sum_l0 - row_sum_l1) / w);
+#endif
         src1_temp += s_src1;
         src2_temp += s_src2;
     }
@@ -6805,8 +6815,11 @@ void processDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_
 #endif
                     );
                 }
-
+#if EARLY_TERMINATION_FIX
+                if ((i>0 && minCost == 0) || (i==0 && minCost < dy*dx))
+#else
                 if (minCost == 0)
+#endif
                 {
                     notZeroCost = 0;
                     break;
