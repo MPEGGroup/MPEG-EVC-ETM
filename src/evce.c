@@ -463,6 +463,8 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->tool_adcc = ctx->cdsc.tool_adcc;
     sps->tool_cm_init = ctx->cdsc.tool_cm_init;
     sps->tool_ats = ctx->cdsc.tool_ats;
+    sps->tool_rpl = ctx->cdsc.tool_rpl;
+    sps->tool_pocs = ctx->cdsc.tool_pocs;
 
     if(sps->profile_idc == PROFILE_MAIN)
     {
@@ -471,13 +473,9 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
 #else
         sps->log2_ctu_size_minus2 = ctx->log2_max_cuwh - 2;
 #endif
-        sps->tool_rpl = 1;
-        sps->tool_pocs = 1;
     }
     else
     {
-        sps->tool_rpl = 0;
-        sps->tool_pocs = 0;
         sps->log2_sub_gop_length = (int)(log2(ctx->param.gop_size) + .5);
         ctx->ref_pic_gap_length = ctx->param.ref_pic_gap_length;
         sps->log2_ref_pic_gap_length = (int)(log2(ctx->param.ref_pic_gap_length) + .5);
