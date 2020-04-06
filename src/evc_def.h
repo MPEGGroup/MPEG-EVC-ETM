@@ -38,6 +38,7 @@
 #include "evc_port.h"
 
 
+#define RPL_CLEANUP                                   1
 #define DB_SPEC_ALIGNMENT1                            1 
 #define CHECK_TOOL_DEPENDENCIES                       1
 #define HISTORY_UNDER_ADMVP_FIX                       1
