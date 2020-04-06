@@ -948,9 +948,11 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
         qp += qp_offset;
     }
 
-    sh->qp = (u8)EVC_CLIP3(-(6 * (BIT_DEPTH - 8)), MAX_QUANT, qp);
-    sh->qp_u = (u8)(sh->qp + ctx->cdsc.cb_qp_offset); 
-    sh->qp_v = (u8)(sh->qp + ctx->cdsc.cr_qp_offset);
+    sh->qp   = (u8)EVC_CLIP3(0, MAX_QUANT, qp);
+    sh->qp_u_offset = ctx->cdsc.cb_qp_offset;
+    sh->qp_v_offset = ctx->cdsc.cr_qp_offset;
+    sh->qp_u = (s8)EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, sh->qp + sh->qp_u_offset);
+    sh->qp_v = (s8)EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, sh->qp + sh->qp_v_offset);
     sh->sh_deblock_alpha_offset = ctx->cdsc.deblock_aplha_offset;
     sh->sh_deblock_beta_offset = ctx->cdsc.deblock_beta_offset;
 
@@ -1658,6 +1660,8 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 
     pic->pic_deblock_alpha_offset = ctx->sh.sh_deblock_alpha_offset;
     pic->pic_deblock_beta_offset = ctx->sh.sh_deblock_beta_offset;
+    pic->pic_qp_u_offset = ctx->sh.qp_u_offset;
+    pic->pic_qp_v_offset = ctx->sh.qp_v_offset;
 
     lcu_num = (x >> ctx->log2_max_cuwh) + (y >> ctx->log2_max_cuwh) * ctx->w_lcu;
     evc_get_split_mode(&split_mode, cud, cup, cuw, cuh, ctx->max_cuwh, ctx->map_cu_data[lcu_num].split_mode);
