@@ -244,8 +244,10 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
 #if ADDB_FLAG_FIX
     evc_bsw_write1(bs, sps->tool_addb);
 #endif
+#if !DB_SPEC_ALIGNMENT2
 #if M52291_HDR_DRA
     evc_bsw_write1(bs, sps->tool_dra);
+#endif
 #endif
     evc_bsw_write1(bs, sps->tool_alf);
     evc_bsw_write1(bs, sps->tool_htdf);
@@ -253,6 +255,11 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
     evc_bsw_write1(bs, sps->tool_pocs);
 #if DQP
     evc_bsw_write1(bs, sps->dquant_flag);
+#endif
+#if DB_SPEC_ALIGNMENT2
+#if M52291_HDR_DRA
+    evc_bsw_write1(bs, sps->tool_dra);
+#endif
 #endif
     if (sps->tool_pocs)
     {
@@ -374,8 +381,16 @@ int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps)
     if (sps->tool_dra)
     {
         evc_bsw_write1(bs, pps->pic_dra_enabled_present_flag);
+#if DB_SPEC_ALIGNMENT2
+        if (pps->pic_dra_enabled_present_flag) {
+            evc_bsw_write1(bs, pps->pic_dra_enabled_flag);
+            if (pps->pic_dra_enabled_flag)
+                evc_bsw_write(bs, pps->pic_dra_aps_id, APS_TYPE_ID_BITS);
+        }
+#else
         evc_bsw_write1(bs, pps->pic_dra_enabled_flag);
         evc_bsw_write(bs, pps->pic_dra_aps_id, APS_TYPE_ID_BITS);
+#endif
     }
 #endif
     evc_bsw_write1(bs, pps->arbitrary_slice_present_flag);
@@ -4375,8 +4390,8 @@ void evce_eco_alf_filter(EVC_BSW * bs, evc_AlfSliceParam asp, const BOOL isChrom
 int evce_eco_dra_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps)
 {
     SignalledParamsDRA *p_dra_param = (SignalledParamsDRA *)aps->aps_data;
-    evc_bsw_write(bs, (u32)p_dra_param->m_numFracBitsScale, 4);
-    evc_bsw_write(bs, (u32)p_dra_param->m_numIntBitsScale, 4);
+    evc_bsw_write(bs, (u32)p_dra_param->m_dra_descriptor1, 4);
+    evc_bsw_write(bs, (u32)p_dra_param->m_dra_descriptor2, 4);
     evc_bsw_write_ue(bs, (u32)p_dra_param->m_numRanges - 1);
     evc_bsw_write1(bs, p_dra_param->m_equalRangesFlag);
     evc_bsw_write(bs, (u32)p_dra_param->m_inRanges[0], QC_IN_RANGE_NUM_BITS); // delta_luma_dqp_change_point
@@ -4392,7 +4407,7 @@ int evce_eco_dra_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps)
         }
     }
 
-    int numBits = p_dra_param->m_numFracBitsScale + p_dra_param->m_numIntBitsScale;
+    int numBits = p_dra_param->m_dra_descriptor1 + p_dra_param->m_dra_descriptor2;
     for (int i = 0; i < p_dra_param->m_numRanges; i++)
     {
         evc_bsw_write(bs, p_dra_param->m_intDraScales[i], numBits);

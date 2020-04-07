@@ -51,7 +51,7 @@ extern "C"
 #define QC_SCALE_NUMFBITS     9   // # frac. bits for scale (Y/Cb/Cr)
 #define QC_INVSCALE_NUMFBITS  9   // # frac. bits for inv. scale (Y/Cb/Cr)
 #define QC_OFFSET_NUMFBITS    7   // # frac. bits for offset (Y/Cb/Cr)
-#define QC_IN_RANGE_NUM_BITS     10  // # bits of input
+#define QC_IN_RANGE_NUM_BITS     BIT_DEPTH  // # bits of input
 #define DRA_LUT_MAXSIZE 1024
 
 #define NUM_CHROMA_QP_OFFSET_LOG              55

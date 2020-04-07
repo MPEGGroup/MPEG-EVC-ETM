@@ -72,8 +72,8 @@ typedef struct _SignalledParamsDRA
     int  m_deltaVal;
     int m_numRanges;
     int m_inRanges[33];
-    int m_numFracBitsScale;
-    int m_numIntBitsScale;
+    int m_dra_descriptor2;
+    int m_dra_descriptor1;
     int m_intScaleCbDRA;
     int m_intScaleCrDRA;
     int m_intDraScales[33 - 1];
@@ -86,8 +86,8 @@ typedef struct _WCGDDRAControl
     DRAChromaOffControl m_chromaQPModel;
     
     //------ Signalled DRA Params ------//
-    int m_numFracBitsScale;
-    int m_numIntBitsScale;
+    int m_dra_descriptor2;
+    int m_dra_descriptor1;
     SignalledParamsDRA m_signalledDRA;
 
     //------ DRA Model ------//
