@@ -584,6 +584,47 @@ static void set_pps(EVCE_CTX * ctx, EVC_PPS * pps)
     }
 #endif
 #endif
+
+#if RPL_CLEANUP
+    if(ctx->sps.tool_rpl)
+    {
+        int hist[REFP_NUM][MAX_NUM_RPLS + 1];
+        int tmp_num_ref_idx_default_active[REFP_NUM] = {0, 0};
+        int max_val[REFP_NUM] = {0, 0};
+
+        for(int i = 0; i < (MAX_NUM_RPLS + 1); i++)
+        {
+            hist[REFP_0][i] = 0;
+            hist[REFP_1][i] = 0;
+        }
+
+        for(int i = 0; i < ctx->sps.num_ref_pic_lists_in_sps0; i++)
+        {
+            hist[REFP_0][ctx->sps.rpls_l0->ref_pic_active_num]++;
+            hist[REFP_1][ctx->sps.rpls_l1->ref_pic_active_num]++;
+        }
+
+        for(int i = 0; i < (MAX_NUM_RPLS + 1); i++)
+        {
+            for(int j = 0; j < REFP_NUM; j++)
+            {
+                if(hist[j][i] > max_val[j])
+                {
+                    max_val[j] = hist[j][i];
+                    tmp_num_ref_idx_default_active[j] = i;
+                }
+            }
+        }
+
+        pps->num_ref_idx_default_active_minus1[REFP_0] = tmp_num_ref_idx_default_active[REFP_0] - 1;
+        pps->num_ref_idx_default_active_minus1[REFP_1] = tmp_num_ref_idx_default_active[REFP_1] - 1;
+    }
+    else
+    {
+        pps->num_ref_idx_default_active_minus1[REFP_0] = 0; /* To be checked */
+        pps->num_ref_idx_default_active_minus1[REFP_1] = 0; /* To be checked */
+    }
+#endif
 }
 
 #if !M52291_HDR_DRA
@@ -2708,6 +2749,18 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
                 }
             }
         }
+
+#if RPL_CLEANUP
+        if((sh->rpl_l0.ref_pic_active_num - 1) == ctx->pps.num_ref_idx_default_active_minus1[REFP_0]
+           && (sh->rpl_l1.ref_pic_active_num - 1) == ctx->pps.num_ref_idx_default_active_minus1[REFP_1])
+        {
+            sh->num_ref_idx_active_override_flag = 0;
+        }
+        else
+        {
+            sh->num_ref_idx_active_override_flag = 1;
+        }
+#endif
 
         /* reference picture marking */
         ret = evc_picman_refpic_marking(&ctx->rpm, sh, ctx->poc.poc_val);

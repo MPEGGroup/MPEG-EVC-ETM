@@ -3499,8 +3499,13 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
         }
         else
         {
+#if RPL_CLEANUP
+            sh->rpl_l0.ref_pic_active_num = pps->num_ref_idx_default_active_minus1[REFP_0] + 1;
+            sh->rpl_l1.ref_pic_active_num = pps->num_ref_idx_default_active_minus1[REFP_1] + 1;
+#else
             sh->rpl_l0.ref_pic_active_num = 2;  //Temporarily i set it to 2. this should be set equal to the signalled num_ref_idx_default_active_minus1[0] + 1.
             sh->rpl_l1.ref_pic_active_num = 2;  //Temporarily i set it to 2. this should be set equal to the signalled num_ref_idx_default_active_minus1[1] + 1.
+#endif
         }
 
         if (sps->tool_admvp)
