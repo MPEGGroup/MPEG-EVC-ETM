@@ -1531,8 +1531,8 @@ static int get_conf(EVCE_CDSC * cdsc)
         p_dra_control->m_chromaQPModel.chromaCrQpScale = atof(op_dra_chroma_cr_scale);
         p_dra_control->m_chromaQPModel.chromaQpScale = atof(op_dra_chroma_qp_scale);
         p_dra_control->m_chromaQPModel.chromaQpOffset = atof(op_dra_chroma_qp_offset);
-        p_dra_control->m_numFracBitsScale = QC_SCALE_NUMFBITS;
-        p_dra_control->m_numIntBitsScale = 4;
+        p_dra_control->m_dra_descriptor2 = QC_SCALE_NUMFBITS;
+        p_dra_control->m_dra_descriptor1 = 4;
     }
 #endif
     return 0;

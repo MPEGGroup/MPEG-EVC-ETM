@@ -39,6 +39,7 @@
 
 
 #define DB_SPEC_ALIGNMENT1                            1 
+#define DB_SPEC_ALIGNMENT2                            1  // SW restructuring, spec alighnment, no impact on performance.
 #define CHECK_TOOL_DEPENDENCIES                       1
 #define HISTORY_UNDER_ADMVP_FIX                       1
 #define DEBLOCKING_FIX                                1

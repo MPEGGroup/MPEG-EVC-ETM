@@ -820,7 +820,11 @@ static void deblock_scu_avc_line_luma(pel *buf, int stride, u8 bs, u8 alpha, u8 
     }
     EVC_TRACE_STR("}.");
 #endif
+#if DB_SPEC_ALIGNMENT1
+    if (bs && deblock_line_avc_apply(p, q, alpha, beta))
+#else
     if (deblock_line_avc_apply(p, q, alpha, beta))
+#endif
     {
         assert(BIT_DEPTH == 10 || BIT_DEPTH == 8);
         int tcAdjShift = ( BIT_DEPTH == 10 ) ? 1 : 0;
@@ -834,6 +838,24 @@ static void deblock_scu_avc_line_luma(pel *buf, int stride, u8 bs, u8 alpha, u8 
 #endif
         if (bs == DBF_ADDB_BS_INTRA_STRONG)
         {
+#if DB_SPEC_ALIGNMENT2
+            if (ap && (EVC_ABS(p[0] - q[0]) < ((alpha >> 2) + 2)))
+            {
+                deblock_line_avc_luma_strong(p, q, p_out);
+            }
+            else
+            {
+                deblock_line_avc_chroma_strong(p, q, p_out);
+            }
+            if (aq && (EVC_ABS(p[0] - q[0]) < ((alpha >> 2) + 2)))
+            {
+                deblock_line_avc_luma_strong(q, p, q_out);
+            }
+            else
+            {
+                deblock_line_avc_chroma_strong(q, p, q_out);
+            }
+#else
             if (EVC_ABS(p[0] - q[0]) < ((alpha >> 2) + 2))
             {
                 if (ap)
@@ -859,11 +881,9 @@ static void deblock_scu_avc_line_luma(pel *buf, int stride, u8 bs, u8 alpha, u8 
                 deblock_line_avc_chroma_strong(p, q, p_out);
                 deblock_line_avc_chroma_strong(q, p, q_out);
             }
+#endif
         }
         else
-#if DB_SPEC_ALIGNMENT1
-        if (bs > 0 )
-#endif
         {
             u8 c0;
             pel delta0, delta1;
@@ -971,7 +991,11 @@ static void deblock_scu_avc_line_chroma(pel *buf, int stride, u8 bs, u8 alpha, u
     }
     EVC_TRACE_STR("}.");
 #endif
+#if DB_SPEC_ALIGNMENT1
+    if (bs && deblock_line_avc_apply(p, q, alpha, beta))
+#else
     if (deblock_line_avc_apply(p, q, alpha, beta))
+#endif
     {
         if (bs == DBF_ADDB_BS_INTRA_STRONG)
         {
@@ -979,9 +1003,6 @@ static void deblock_scu_avc_line_chroma(pel *buf, int stride, u8 bs, u8 alpha, u
             deblock_line_avc_chroma_strong(q, p, q_out);
         }
         else
-#if DB_SPEC_ALIGNMENT1
-        if (bs > 0)
-#endif
         {
             pel delta0;
             int pel_max = (1 << BIT_DEPTH) - 1;
