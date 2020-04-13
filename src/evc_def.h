@@ -38,6 +38,7 @@
 #include "evc_port.h"
 
 
+#define CLEANUP_AMVR                                  1
 #define RPL_CLEANUP                                   1
 #define DB_SPEC_ALIGNMENT1                            1 
 #define DB_SPEC_ALIGNMENT2                            1  // SW restructuring, spec alighnment, no impact on performance.
