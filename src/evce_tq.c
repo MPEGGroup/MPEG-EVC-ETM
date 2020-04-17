@@ -1761,7 +1761,7 @@ int evce_rdoq_run_length_cc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, 
     return nnz;
 }
 
-int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s16 *dst_tmp, int log2_cuw, int log2_cuh, int ch_type, int sps_cm_init_flag
+int ifvce_rdoq_method_adcc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s16 *dst_tmp, int log2_cuw, int log2_cuh, int ch_type, int sps_cm_init_flag
 #if EVC_CONCURENCY
  , EVCE_CORE * core
 #endif
@@ -2147,7 +2147,7 @@ int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw,
     {
         if (tool_adcc)
         {
-            nnz = ifvce_rdoq_method_ccA(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type, sps_cm_init_flag
+            nnz = ifvce_rdoq_method_adcc(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type, sps_cm_init_flag
 #if EVC_CONCURENCY
                 , core
 #endif

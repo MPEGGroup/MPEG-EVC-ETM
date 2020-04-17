@@ -4910,7 +4910,7 @@ int evc_get_ctx_gtB_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_t
     return num_gtB;
 }
 
-int evc_get_ctx_remain_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y)
+int evc_get_ctx_remain_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type)
 {
     const s16 *pdata = pcoeff + blkpos;
     const int width_m1 = width - 1;

@@ -1076,7 +1076,7 @@ static void sbac_write_truncate_unary_sym(u32 sym, u32 num_ctx, u32 max_num, EVC
     }
 }
 
-static void sbac_encode_bins_ep_msb(u32 value, int num_bin, EVCE_SBAC *sbac, EVC_BSW *bs)
+static void sbac_encode_bins_ep(u32 value, int num_bin, EVCE_SBAC *sbac, EVC_BSW *bs)
 {
     int bin = 0;
     for(bin = num_bin - 1; bin >= 0; bin--)
@@ -1544,7 +1544,7 @@ void evce_eco_run_length_cc(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int 
 #endif
 }
 
-static void code_positionLastXY(EVC_BSW *bs, int sr_x, int sr_y, int width, int height, int ch_type)
+static void code_positionLastXY(EVC_BSW *bs, int last_x, int last_y, int width, int height, int ch_type)
 {
     EVCE_SBAC *sbac = GET_SBAC_ENC(bs);
     SBAC_CTX_MODEL* cm_x = sbac->ctx.last_sig_coeff_x_prefix + (ch_type == Y_C ? 0 : (sbac->ctx.sps_cm_init_flag == 1 ? NUM_CTX_LAST_SIG_COEFF_LUMA : 11));
@@ -1556,8 +1556,8 @@ static void code_positionLastXY(EVC_BSW *bs, int sr_x, int sr_y, int width, int 
     int blk_offset_x, blk_offset_y, shift_x, shift_y;
     int i, cnt;
 
-    group_idx_x = g_group_idx[sr_x];
-    group_idx_y = g_group_idx[sr_y];
+    group_idx_x = g_group_idx[last_x];
+    group_idx_y = g_group_idx[last_y];
     if (sbac->ctx.sps_cm_init_flag == 1)
     {
         evc_get_ctx_last_pos_xy_para(ch_type, width, height, &blk_offset_x, &blk_offset_y, &shift_x, &shift_y);
@@ -1595,20 +1595,20 @@ static void code_positionLastXY(EVC_BSW *bs, int sr_x, int sr_y, int width, int 
     if (group_idx_x > 3)
     {
         cnt = (group_idx_x - 2) >> 1;
-        sr_x = sr_x - g_min_in_group[group_idx_x];
+        last_x = last_x - g_min_in_group[group_idx_x];
         for (i = cnt - 1; i >= 0; i--)
         {
-            sbac_encode_bin_ep((sr_x >> i) & 1, sbac, bs);
+            sbac_encode_bin_ep((last_x >> i) & 1, sbac, bs);
         }
     }
     // last_sig_coeff_y_suffix
     if (group_idx_y > 3)
     {
         cnt = (group_idx_y - 2) >> 1;
-        sr_y = sr_y - g_min_in_group[group_idx_y];
+        last_y = last_y - g_min_in_group[group_idx_y];
         for (i = cnt - 1; i >= 0; i--)
         {
-            sbac_encode_bin_ep((sr_y >> i) & 1, sbac, bs);
+            sbac_encode_bin_ep((last_y >> i) & 1, sbac, bs);
         }
     }
 }
@@ -1621,8 +1621,8 @@ static void code_coef_remain_exgolomb(EVC_BSW *bs, int symbol, int rparam)
     if (code_number < (g_go_rice_range[rparam] << rparam))
     {
         length = code_number >> rparam;
-        sbac_encode_bins_ep_msb((1 << (length + 1)) - 2, length + 1, sbac, bs);
-        sbac_encode_bins_ep_msb((code_number % (1 << rparam)), rparam, sbac, bs);
+        sbac_encode_bins_ep((1 << (length + 1)) - 2, length + 1, sbac, bs);
+        sbac_encode_bins_ep((code_number % (1 << rparam)), rparam, sbac, bs);
     }
     else
     {
@@ -1632,8 +1632,8 @@ static void code_coef_remain_exgolomb(EVC_BSW *bs, int symbol, int rparam)
         {
             code_number -= (1 << (length++));
         }
-        sbac_encode_bins_ep_msb((1 << (g_go_rice_range[rparam] + length + 1 - rparam)) - 2, g_go_rice_range[rparam] + length + 1 - rparam, sbac, bs);
-        sbac_encode_bins_ep_msb(code_number, length, sbac, bs);
+        sbac_encode_bins_ep((1 << (g_go_rice_range[rparam] + length + 1 - rparam)) - 2, g_go_rice_range[rparam] + length + 1 - rparam, sbac, bs);
+        sbac_encode_bins_ep(code_number, length, sbac, bs);
     }
 }
 
@@ -1650,7 +1650,7 @@ int countNonZeroCoeffs(s16 *pcCoef, int *scan, int uiSize)
     return count;
 }
 
-static void evce_eco_ccA(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num_sig, int ch_type)
+static void evce_eco_adcc(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num_sig, int ch_type)
 {
     int width = 1 << log2_w;
     int height = 1 << log2_h;
@@ -1662,7 +1662,7 @@ static void evce_eco_ccA(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num
     int log2_block_size = min(log2_w, log2_h);
     u16 *scan;
     int scan_pos_last = -1;
-    int sr_x = 0, sr_y = 0;
+    int last_x = 0, last_y = 0;
     int ipos;
     int last_scan_set;
     int rice_param;
@@ -1697,15 +1697,15 @@ static void evce_eco_ccA(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num
 
         if (coef[scan_pos] != 0)
         {
-            sr_y = scan_pos >> log2_w;
-            sr_x = scan_pos - (sr_y << log2_w);
+            last_y = scan_pos >> log2_w;
+            last_x = scan_pos - (last_y << log2_w);
 
             numNonZeroCoefs++;
             last_pos_in_scan = blk_pos;
             last_pos_in_raster_from_scan = scan_pos;
         }
     }
-    code_positionLastXY(bs, sr_x, sr_y, width, height, ch_type);
+    code_positionLastXY(bs, last_x, last_y, width, height, ch_type);
 
     //===== code significance flag =====
     last_scan_set = last_pos_in_scan >> cg_log2_size;
@@ -1837,7 +1837,7 @@ static void evce_eco_ccA(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num
                         }
                     }
                 }
-                sbac_encode_bins_ep_msb(coef_signs_group, num_nz, sbac, bs);
+                sbac_encode_bins_ep(coef_signs_group, num_nz, sbac, bs);
             }
         }
     }
@@ -1889,7 +1889,7 @@ void evce_eco_xcoef(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num_sig,
 {
     if (tool_adcc)
     {
-        evce_eco_ccA(bs, coef, log2_w, log2_h, num_sig, (ch_type == Y_C ? 0 : 1));
+        evce_eco_adcc(bs, coef, log2_w, log2_h, num_sig, (ch_type == Y_C ? 0 : 1));
     }
     else
     {
@@ -2335,14 +2335,14 @@ static void intra_mode_write_trunc_binary(int symbol, int max_symbol, EVCE_SBAC 
 
     if(symbol < val - b)
     {
-        sbac_encode_bins_ep_msb(symbol, threshold, sbac, bs);
+        sbac_encode_bins_ep(symbol, threshold, sbac, bs);
     }
     else
     {
         symbol += val - b;
         assert(symbol < (val << 1));
         assert((symbol >> 1) >= val - b);
-        sbac_encode_bins_ep_msb(symbol, threshold + 1, sbac, bs);
+        sbac_encode_bins_ep(symbol, threshold + 1, sbac, bs);
     }
 }
 
