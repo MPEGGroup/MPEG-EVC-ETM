@@ -474,12 +474,10 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
         sps->log2_ctu_size_minus2 = ctx->log2_max_cuwh - 2;
 #endif
     }
-    else
-    {
-        sps->log2_sub_gop_length = (int)(log2(ctx->param.gop_size) + .5);
-        ctx->ref_pic_gap_length = ctx->param.ref_pic_gap_length;
-        sps->log2_ref_pic_gap_length = (int)(log2(ctx->param.ref_pic_gap_length) + .5);
-    }
+
+      sps->log2_sub_gop_length = (int)(log2(ctx->param.gop_size) + .5);
+      ctx->ref_pic_gap_length = ctx->param.ref_pic_gap_length;
+      sps->log2_ref_pic_gap_length = (int)(log2(ctx->param.ref_pic_gap_length) + .5);
 
     sps->long_term_ref_pics_flag = 0;
 
@@ -919,10 +917,12 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
 
     QP_ADAPT_PARAM *qp_adapt_param = ctx->param.max_b_frames == 0 ?
         (ctx->param.i_period == 1 ? qp_adapt_param_ai : qp_adapt_param_ld) : qp_adapt_param_ra;
-
+    if (ctx->sps.tool_pocs)
+    {
+      sh->poc_lsb = ctx->poc.poc_val & ((1 << (ctx->sps.log2_max_pic_order_cnt_lsb_minus4 + 4)) - 1);
+    }
     if (ctx->sps.tool_rpl)
     {
-        sh->poc_lsb = ctx->poc.poc_val & ((1 << (ctx->sps.log2_max_pic_order_cnt_lsb_minus4 + 4))-1);
         select_assign_rpl_for_sh(ctx, sh);
         sh->num_ref_idx_active_override_flag = 1;
     }
@@ -2447,7 +2447,7 @@ static void decide_slice_type(EVCE_CTX * ctx)
     }
     if (ctx->param.use_hgop && (gop_size > 1 || ctx->sps.tool_rpl))
     {
-        if (ctx->sps.tool_rpl)
+        if (ctx->sps.tool_pocs)
         {
             ctx->nalu.nuh_temporal_id = ctx->slice_depth;
         } else
