@@ -2445,7 +2445,7 @@ static void decide_slice_type(EVCE_CTX * ctx)
             decide_normal_gop(ctx, pic_imcnt);
         }
     }
-    if (ctx->param.use_hgop && (gop_size > 1 || ctx->sps.tool_rpl))
+    if (ctx->param.use_hgop && gop_size > 1)
     {
         if (ctx->sps.tool_pocs)
         {
