@@ -1328,6 +1328,9 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int poc, int scup, int lidx, s8 cur_ref
     {
         t0 = poc - refp[i][lidx].poc;
 
+#if CLEANUP_AMVR
+        ratio[i] = ((poc - poc_refi_cur) << MVP_SCALING_PRECISION) / t0;
+#else
         if(t0 != 0)
         {
             ratio[i] = ((poc - poc_refi_cur) << MVP_SCALING_PRECISION) / t0;
@@ -1337,6 +1340,7 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int poc, int scup, int lidx, s8 cur_ref
         {
             ratio[i] = 1 << MVP_SCALING_PRECISION;
         }
+#endif
     }
 
     assert(mvr_idx < 5);
@@ -1397,8 +1401,20 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int poc, int scup, int lidx, s8 cur_ref
     else
     {
         refi[0] = default_refi;
+#if CLEANUP_AMVR
+        if(refi[0] == cur_refi)
+        {
+            mvp_temp[MV_X] = default_mv[MV_X];
+            mvp_temp[MV_Y] = default_mv[MV_Y];
+        }
+        else
+        {
+            scaling_mv(ratio[refi[0]], default_mv, mvp_temp);
+        }
+#else
         mvp_temp[MV_X] = default_mv[MV_X];
         mvp_temp[MV_Y] = default_mv[MV_Y];
+#endif
     }
     mvp[0][MV_X] = (mvp_temp[MV_X] >= 0) ? (((mvp_temp[MV_X] + rounding) >> mvr_idx) << mvr_idx) : -(((-mvp_temp[MV_X] + rounding) >> mvr_idx) << mvr_idx);
     mvp[0][MV_Y] = (mvp_temp[MV_Y] >= 0) ? (((mvp_temp[MV_Y] + rounding) >> mvr_idx) << mvr_idx) : -(((-mvp_temp[MV_Y] + rounding) >> mvr_idx) << mvr_idx);
