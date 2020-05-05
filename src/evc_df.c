@@ -529,7 +529,11 @@ static const u8 get_avc_index(const u8 qp, const u8 offset)
     return EVC_CLIP3(0, MAX_QP, qp + offset);
 }
 
-static const u8 get_avc_bs(u32 mcu0, u32 x0, u32 y0, u32 mcu1, u32 x1, u32 y1, u32 log2_max_cuwh, s8 *refi0, s8 *refi1, s16(*mv0)[MV_D], s16(*mv1)[MV_D], EVC_REFP(*refp)[REFP_NUM])
+static const u8 get_avc_bs(u32 mcu0, u32 x0, u32 y0, u32 mcu1, u32 x1, u32 y1, u32 log2_max_cuwh, s8 *refi0, s8 *refi1, s16(*mv0)[MV_D], s16(*mv1)[MV_D], EVC_REFP(*refp)[REFP_NUM]
+#if M53608_DB_2
+    , u8 ats_present
+#endif
+)
 {
     u8 bs = DBF_ADDB_BS_OTHERS;
     u8 isIntraBlock = MCU_GET_IF(mcu0) || MCU_GET_IF(mcu1);
@@ -584,7 +588,11 @@ static const u8 get_avc_bs(u32 mcu0, u32 x0, u32 y0, u32 mcu1, u32 x1, u32 y1, u
         bs = DBF_ADDB_BS_INTRA;
     }
 #endif
+#if M53608_DB_2
+    else if ((MCU_GET_CBFL(mcu0) == 1 || MCU_GET_CBFL(mcu1) == 1) || ats_present)
+#else
     else if (MCU_GET_CBFL(mcu0) == 1 || MCU_GET_CBFL(mcu1) == 1)
+#endif
     {
         // One of the blocks has coded residuals
         bs = DBF_ADDB_BS_CODED;
@@ -827,7 +835,9 @@ static void deblock_scu_avc_line_luma(pel *buf, int stride, u8 bs, u8 alpha, u8 
 #endif
     {
         assert(BIT_DEPTH == 10 || BIT_DEPTH == 8);
+#if !M53608_DB_1
         int tcAdjShift = ( BIT_DEPTH == 10 ) ? 1 : 0;
+#endif
         u8 ap, aq;
         deblock_line_avc_check(alpha, beta, p, q, &ap, &aq);
 #if TRACE_DBF
@@ -888,8 +898,12 @@ static void deblock_scu_avc_line_luma(pel *buf, int stride, u8 bs, u8 alpha, u8 
             u8 c0;
             pel delta0, delta1;
             int pel_max = (1 << BIT_DEPTH) - 1;
+#if M53608_DB_1
+            c0 = c1 + ( (ap + aq ) << EVC_MAX(0, BIT_DEPTH - 9) );
+#else
             c1 = c1 >> tcAdjShift;
             c0 = c1 + (ap << tcAdjShift) + (aq << tcAdjShift);
+#endif
 #if TRACE_DBF
             EVC_TRACE_STR(" c1 = ");
             EVC_TRACE_INT(c1);
@@ -1209,9 +1223,18 @@ static void deblock_addb_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
             {
                 t = (i << MIN_CU_LOG2);
                 int cur_x_pel = x_pel + t;
+#if M53608_DB_2
+                u8 current_ats = map_ats_inter[i];
+                u8 neighbor_ats = map_ats_inter[i - w_scu];
+                u8 ats_present = current_ats || neighbor_ats;
+#endif
                 u8 bs_cur = get_avc_bs(map_scu[i], cur_x_pel, y_pel, map_scu[i - w_scu], cur_x_pel, y_pel - 1, log2_max_cuwh, map_refi[i], map_refi[i - w_scu], map_mv[i], map_mv[i - w_scu]
                     , refp
+#if M53608_DB_2
+                    , ats_present
+#endif
                 );
+#if !M53608_DB_2
 #if DEBLOCKING_FIX
                 u8 current_ats = map_ats_inter[i];
                 u8 neighbor_ats = map_ats_inter[i - w_scu];
@@ -1223,7 +1246,7 @@ static void deblock_addb_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
                 {
                     bs_cur = DBF_ADDB_BS_CODED;
                 }
-
+#endif
                 qp = (MCU_GET_QP(map_scu[i]) + MCU_GET_QP(map_scu[i - w_scu]) + 1) >> 1;
 
                 indexA = get_avc_index(qp, pic->pic_deblock_alpha_offset);            //! \todo Add offset for IndexA
@@ -1231,7 +1254,11 @@ static void deblock_addb_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
 
                 alpha = ALPHA_TABLE[indexA] << bitdepth_scale;
                 beta = BETA_TABLE[indexB] << bitdepth_scale;
+#if M53608_DB_1
+                c1 = CLIP_TAB[indexA][bs_cur] <<  EVC_MAX(0, (BIT_DEPTH - 9));
+#else
                 c1 = CLIP_TAB[indexA][bs_cur] << bitdepth_scale;
+#endif
 
 #if M50761_CHROMA_NOT_SPLIT
                 if (evc_check_luma(tree_cons))
@@ -1249,8 +1276,13 @@ static void deblock_addb_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
                     indexB = get_avc_index(p_evc_tbl_qp_chroma_dynamic[0][qp_u], pic->pic_deblock_beta_offset);
                     alpha = ALPHA_TABLE[indexA] << bitdepth_scale;
                     beta = BETA_TABLE[indexB] << bitdepth_scale;
+#if M53608_DB_1
+                    c1 = CLIP_TAB[indexA][bs_cur];
+                    c0 = (c1 + 1) << EVC_MAX(0, (BIT_DEPTH - 9));
+#else
                     c1 = CLIP_TAB[indexA][bs_cur] << bitdepth_scale;
                     c0 = c1 + 1;
+#endif
                     deblock_scu_avc_hor_chroma(u + t, s_c, bs_cur, alpha, beta, c0);
 
                     int qp_v = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, qp + pic->pic_qp_v_offset);
@@ -1258,8 +1290,13 @@ static void deblock_addb_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
                     indexB = get_avc_index(p_evc_tbl_qp_chroma_dynamic[1][qp_v], pic->pic_deblock_beta_offset);
                     alpha = ALPHA_TABLE[indexA] << bitdepth_scale;
                     beta = BETA_TABLE[indexB] << bitdepth_scale;
+#if M53608_DB_1
+                    c1 = CLIP_TAB[indexA][bs_cur];
+                    c0 = (c1 + 1) << EVC_MAX(0, (BIT_DEPTH - 9));
+#else
                     c1 = CLIP_TAB[indexA][bs_cur] << bitdepth_scale;
                     c0 = c1 + 1;
+#endif
                     deblock_scu_avc_hor_chroma(v + t, s_c, bs_cur, alpha, beta, c0);
 #if M50761_CHROMA_NOT_SPLIT
                 }
@@ -1312,14 +1349,27 @@ static void deblock_addb_cu_ver_yuv(EVC_PIC *pic, int x_pel, int y_pel, int log2
 
         {
             int cur_y_pel = y_pel + (i << MIN_CU_LOG2);
+#if M53608_DB_2
+            u8 current_ats = map_ats_inter[0];
+            u8 neighbor_ats = map_ats_inter[-1];
+            u8 ats_present = current_ats || neighbor_ats;
+#endif
 #if CODE_CLEAN
             u8 bs_cur = get_avc_bs(map_scu[0], x_pel, cur_y_pel, map_scu[-1], x_pel - 1, cur_y_pel, log2_max_cuwh, map_refi[0], map_refi[-1], map_mv[0], map_mv[-1]
-            , refp);
+            , refp
+#if M53608_DB_2
+            , ats_present
+#endif
+            );
 #else
             u8 bs_cur = get_avc_bs(map_scu[0], x_pel-1, cur_y_pel, map_scu[-1], x_pel, cur_y_pel, log2_max_cuwh, map_refi[0], map_refi[-1], map_mv[0], map_mv[-1]
                 , refp
+#if M53608_DB_2
+                , ats_present
+#endif
             );
 #endif
+#if !M53608_DB_2
 #if DEBLOCKING_FIX
             u8 current_ats = map_ats_inter[0];
             u8 neighbor_ats = map_ats_inter[-1];
@@ -1331,7 +1381,7 @@ static void deblock_addb_cu_ver_yuv(EVC_PIC *pic, int x_pel, int y_pel, int log2
             {
                 bs_cur = DBF_ADDB_BS_CODED;
             }
-
+#endif
             qp = (MCU_GET_QP(map_scu[0]) + MCU_GET_QP(map_scu[-1]) + 1) >> 1;
 
             t = (i << MIN_CU_LOG2);
@@ -1355,7 +1405,11 @@ static void deblock_addb_cu_ver_yuv(EVC_PIC *pic, int x_pel, int y_pel, int log2
 
             alpha = ALPHA_TABLE[indexA] << bitdepth_scale;
             beta = BETA_TABLE[indexB] << bitdepth_scale;
+#if M53608_DB_1
+            c1 = CLIP_TAB[indexA][bs_cur] << EVC_MAX(0, (BIT_DEPTH - 9));
+#else
             c1 = CLIP_TAB[indexA][bs_cur] << bitdepth_scale;
+#endif
 
             deblock_scu_avc_ver_luma(y, s_l, bs_cur, alpha, beta, c1
 #if  DBF_LONGF
@@ -1373,8 +1427,14 @@ static void deblock_addb_cu_ver_yuv(EVC_PIC *pic, int x_pel, int y_pel, int log2
 
                 alpha = ALPHA_TABLE[indexA] << bitdepth_scale;
                 beta = BETA_TABLE[indexB] << bitdepth_scale;
+
+#if M53608_DB_1
+                c1 = CLIP_TAB[indexA][bs_cur];
+                c0 = ( c1 + 1) << EVC_MAX(0, (BIT_DEPTH - 9));
+#else
                 c1 = CLIP_TAB[indexA][bs_cur] << bitdepth_scale;
                 c0 = c1 + 1;
+#endif
                 deblock_scu_avc_ver_chroma(u, s_c, bs_cur, alpha, beta, c0);
 
                 int qp_v = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, qp + pic->pic_qp_v_offset);
@@ -1383,8 +1443,15 @@ static void deblock_addb_cu_ver_yuv(EVC_PIC *pic, int x_pel, int y_pel, int log2
 
                 alpha = ALPHA_TABLE[indexA] << bitdepth_scale;
                 beta = BETA_TABLE[indexB] << bitdepth_scale;
+
+#if M53608_DB_1
+                c1 = CLIP_TAB[indexA][bs_cur];
+                c0 = (c1 + 1) << EVC_MAX(0, (BIT_DEPTH - 9));
+#else
                 c1 = CLIP_TAB[indexA][bs_cur] << bitdepth_scale;
                 c0 = c1 + 1;
+#endif
+
                 deblock_scu_avc_ver_chroma(v, s_c, bs_cur, alpha, beta, c0);
 #if M50761_CHROMA_NOT_SPLIT
             }

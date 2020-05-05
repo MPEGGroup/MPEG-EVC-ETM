@@ -917,6 +917,7 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
 
     QP_ADAPT_PARAM *qp_adapt_param = ctx->param.max_b_frames == 0 ?
         (ctx->param.i_period == 1 ? qp_adapt_param_ai : qp_adapt_param_ld) : qp_adapt_param_ra;
+
     if (ctx->sps.tool_pocs)
     {
       sh->poc_lsb = ctx->poc.poc_val & ((1 << (ctx->sps.log2_max_pic_order_cnt_lsb_minus4 + 4)) - 1);
@@ -3206,6 +3207,20 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
                     EVC_TRACE_INT((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)));
                     EVC_TRACE_STR("\n");
                 }
+#if M53608_ALF_14
+                if ((ctx->sh.alfChromaMapSignalled) && (ctx->sh.alf_on))
+                {
+                    EVCE_SBAC *sbac;
+                    sbac = GET_SBAC_ENC(bs);
+                    evce_sbac_encode_bin((int)(*(alfSliceParam->alfCtuEnableFlagChroma + core->lcu_num)), sbac, sbac->ctx.alf_ctb_flag, bs);
+                }
+                if ((ctx->sh.alfChroma2MapSignalled) && (ctx->sh.alf_on))
+                {
+                    EVCE_SBAC *sbac;
+                    sbac = GET_SBAC_ENC(bs);
+                    evce_sbac_encode_bin((int)(*(alfSliceParam->alfCtuEnableFlagChroma2 + core->lcu_num)), sbac, sbac->ctx.alf_ctb_flag, bs);
+                }
+#endif
                 ret = evce_eco_tree(ctx, core, core->x_pel, core->y_pel, 0, ctx->max_cuwh, ctx->max_cuwh, 0, 1, NO_SPLIT, split_mode_child, 0, split_allow, 0, 0
 #if DQP
                     , 0
