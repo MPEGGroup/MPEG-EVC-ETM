@@ -354,7 +354,7 @@ void evc_get_ctx_last_pos_xy_para(int ch_type, int width, int height, int *resul
 int evc_get_ctx_sig_coeff_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type);
 int evc_get_ctx_gtA_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type);
 int evc_get_ctx_gtB_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type);
-int evc_get_ctx_remain_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type, int sr_x, int sr_y);
+int evc_get_ctx_remain_inc(s16 *pcoeff, int blkpos, int width, int height, int ch_type);
 int get_rice_para(s16 *pcoeff, int blkpos, int width, int height, int base_level);
 #ifdef __cplusplus
 }
