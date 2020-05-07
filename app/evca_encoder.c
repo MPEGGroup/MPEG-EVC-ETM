@@ -721,12 +721,12 @@ static EVC_ARGS_OPTION options[] = \
     {
         EVC_ARGS_NO_KEY,  "dbfoffsetA", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_TOOL_DBFOFFSET], &op_deblock_alpha_offset,
-        "AVC Deblocking filter offset for alpha"
+        "ADDB Deblocking filter offset for alpha"
     },
     {
         EVC_ARGS_NO_KEY,  "dbfoffsetB", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_TOOL_DBFOFFSET], &op_deblock_beta_offset,
-        "AVC Deblocking filter offset for beta"
+        "ADDB Deblocking filter offset for beta"
     },
 #if ETM_HDR_REPORT_METRIC_FLAG
     {

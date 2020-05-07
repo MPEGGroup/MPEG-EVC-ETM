@@ -523,7 +523,7 @@ static int evcd_eco_ats_mode_v(EVC_BSR * bs, EVCD_SBAC * sbac)
     return t0;
 }
 
-static void parse_positionLastXY(EVC_BSR *bs, EVCD_SBAC *sbac, int* sr_x, int* sr_y, int width, int height, int ch_type)
+static void parse_positionLastXY(EVC_BSR *bs, EVCD_SBAC *sbac, int* last_x, int* last_y, int width, int height, int ch_type)
 {
     EVC_SBAC_CTX *sbac_ctx = &sbac->ctx;
     SBAC_CTX_MODEL* cm_x = sbac_ctx->last_sig_coeff_x_prefix + (ch_type == Y_C ? 0 : (sbac->ctx.sps_cm_init_flag == 1 ? NUM_CTX_LAST_SIG_COEFF_LUMA : 11));
@@ -589,8 +589,8 @@ static void parse_positionLastXY(EVC_BSR *bs, EVCD_SBAC *sbac, int* sr_x, int* s
         pos_y = g_min_in_group[pos_y] + tmp;
     }
 
-    *sr_x = pos_x;
-    *sr_y = pos_y;
+    *last_x = pos_x;
+    *last_y = pos_y;
 }
 static int parse_coef_remain_exgolomb(EVC_BSR *bs, EVCD_SBAC *sbac, int rparam)
 {
@@ -609,26 +609,18 @@ static int parse_coef_remain_exgolomb(EVC_BSR *bs, EVCD_SBAC *sbac, int rparam)
     code_word = 0;
     if (prefix < g_go_rice_range[rparam])
     {
-#if INTRA_PACKAGE
-        code_word = sbac_decode_bins_ep_msb(bs, sbac, rparam);
-#else
         code_word = sbac_decode_bins_ep(bs, sbac, rparam);
-#endif
         symbol = (prefix << rparam) + code_word;
     }
     else
     {
-#if INTRA_PACKAGE
-        code_word = sbac_decode_bins_ep_msb(bs, sbac, prefix - g_go_rice_range[rparam] + rparam);
-#else
         code_word = sbac_decode_bins_ep(bs, sbac, prefix - g_go_rice_range[rparam] + rparam);
-#endif
         symbol = (((1 << (prefix - g_go_rice_range[rparam])) + g_go_rice_range[rparam] - 1) << rparam) + code_word;
     }
 
     return symbol;
 }
-static int evcd_eco_ccA(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int log2_w, int log2_h, int ch_type)
+static int evcd_eco_adcc(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int log2_w, int log2_h, int ch_type)
 {
     int width = 1 << log2_w;
     int height = 1 << log2_h;
@@ -641,7 +633,7 @@ static int evcd_eco_ccA(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int log2_w, int
     u16 *scan;
     u16 *scan_inv;
     int scan_pos_last = -1;
-    int sr_x = 0, sr_y = 0;
+    int last_x = 0, last_y = 0;
     int num_coeff;
     int ipos;
     int last_scan_set;
@@ -660,13 +652,13 @@ static int evcd_eco_ccA(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int log2_w, int
     u32 sig_coeff_flag;
 
     // decode last position
-    parse_positionLastXY(bs, sbac, &sr_x, &sr_y, width, height, ch_type);
+    parse_positionLastXY(bs, sbac, &last_x, &last_y, width, height, ch_type);
     int max_num_coef = width * height;
 
     scan = evc_scan_tbl[scan_type][log2_w - 1][log2_h - 1];
     scan_inv = evc_inv_scan_tbl[scan_type][log2_w - 1][log2_h - 1];
 
-    int last_pos_in_raster = sr_x + sr_y * width;
+    int last_pos_in_raster = last_x + last_y * width;
     int last_pos_in_scan = scan_inv[last_pos_in_raster];
     num_coeff = last_pos_in_scan + 1;
     //===== code significance flag =====
@@ -843,7 +835,7 @@ static int evcd_eco_xcoef(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int log2_w, i
 
     if (tool_adcc)
     {
-        evcd_eco_ccA(bs, sbac, coef, log2_w, log2_h, (ch_type == Y_C ? 0 : 1));
+        evcd_eco_adcc(bs, sbac, coef, log2_w, log2_h, (ch_type == Y_C ? 0 : 1));
     }
     else
     {
@@ -2970,7 +2962,6 @@ int evcd_eco_aps_gen(EVC_BSR * bs, EVC_APS_GEN * aps)
 
         EVC_APS local_alf_aps;
         evcd_eco_alf_aps_param(bs, &local_alf_aps); // parse ALF filter parameter (except ALF map)
-
         evc_AlfSliceParam * p_alf_data = &(local_alf_aps.alf_aps_param);
         evc_AlfSliceParam * p_aps_data = (evc_AlfSliceParam *)(aps->aps_data);
         memcpy(p_aps_data, p_alf_data, sizeof(evc_AlfSliceParam));

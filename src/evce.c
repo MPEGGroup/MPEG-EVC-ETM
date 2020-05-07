@@ -1948,7 +1948,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
 }
 
-int evce_deblock_h263(EVCE_CTX * ctx, EVC_PIC * pic
+int evce_deblock(EVCE_CTX * ctx, EVC_PIC * pic
 #if EVC_TILE_SUPPORT
     , int tile_idx
 #endif
@@ -3659,7 +3659,7 @@ int evce_platform_init(EVCE_CTX * ctx)
     ctx->fn_enc_pic_prepare = evce_enc_pic_prepare;
     ctx->fn_enc_pic_finish = evce_enc_pic_finish;
     ctx->fn_push = evce_push_frm;
-    ctx->fn_deblock = evce_deblock_h263;
+    ctx->fn_deblock = evce_deblock;
     ctx->fn_picbuf_expand = evce_picbuf_expand;
     ctx->fn_get_inbuf = evce_picbuf_get_inbuf;
     ctx->pf = NULL;
