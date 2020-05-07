@@ -1299,8 +1299,8 @@ __inline static int get_coded_level(
     s64     level_double,           //< reference to unscaled quantized level
     int     max_abs_level,          //< scaled quantized level
     int     ctx_sig_coeff,          //< current ctxInc for coeff_abs_significant_flag
-    int     ctx_gtA,          //< current ctxInc for coeff_abs_level_greater1 (1st bin of coeff_abs_level_minus1 in AVC)
-    int     ctx_gtB,          //< current ctxInc for coeff_abs_level_greater2 (remaining bins of coeff_abs_level_minus1 in AVC)
+    int     ctx_gtA,          //< current ctxInc for coeff_abs_level_greater1 
+    int     ctx_gtB,          //< current ctxInc for coeff_abs_level_greater2 
     int     rparam,          //< current Rice parameter for coeff_abs_level_minus3
     int     c1_idx,                  //< 
     int     c2_idx,                  //< 
