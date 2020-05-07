@@ -290,8 +290,13 @@ static int slice_init(EVCD_CTX * ctx, EVCD_CORE * core, EVC_SH * sh)
     {
         ctx->last_intra_poc = ctx->poc.poc_val;
     }
+
 #if HISTORY_UNDER_ADMVP_FIX
+#if M53737
+    if (ctx->sps.tool_hmvp)
+#else
     if (ctx->sps.tool_admvp)
+#endif
     {
 #endif
         evcd_hmvp_init(core);
@@ -785,7 +790,11 @@ void evcd_get_inter_motion(EVCD_CTX * ctx, EVCD_CORE * core)
                         , ctx->map_unrefined_mv
 #endif
                         , core->history_buffer
+#if M53737
+                        , ctx->sps.tool_hmvp
+#else
                         , ctx->sps.tool_admvp
+#endif
 #if EVC_TILE_SUPPORT
                         , ctx->map_tidx
 #endif
@@ -797,7 +806,12 @@ void evcd_get_inter_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #if DMVR_LAG
                     , ctx->map_unrefined_mv
 #endif
-                    , core->history_buffer, ctx->sps.tool_admvp
+                    , core->history_buffer
+#if M53737
+                    , ctx->sps.tool_hmvp
+#else
+                    , ctx->sps.tool_admvp
+#endif
 #if EVC_TILE_SUPPORT
                     , ctx->map_tidx
 #endif
@@ -1164,13 +1178,16 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 #endif
             )
 #if HISTORY_UNDER_ADMVP_FIX
+#if M53737
+            && ctx->sps.tool_hmvp
+#else
             && ctx->sps.tool_admvp
+#endif
 #endif
 #endif
             )
         {
-            update_history_buffer_parse_affine(core, ctx->sh.slice_type
-            );
+            update_history_buffer_parse_affine(core, ctx->sh.slice_type);
         }
 
 #endif
@@ -2260,13 +2277,21 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
 
 #if EVC_TILE_SUPPORT
 #if HISTORY_UNDER_ADMVP_FIX
+#if M53737
+            if (ctx->sps.tool_hmvp && (core->x_lcu == (ctx->tile[i].ctba_rs_first) % ctx->w_lcu)) //This condition will reset history buffer
+#else
             if (ctx->sps.tool_admvp && (core->x_lcu == (ctx->tile[i].ctba_rs_first) % ctx->w_lcu)) //This condition will reset history buffer
+#endif
 #else
             if (core->x_lcu == (ctx->tile[i].ctba_rs_first) % ctx->w_lcu) //This condition will reset history buffer
 #endif
 #else
 #if HISTORY_UNDER_ADMVP_FIX
+#if M53737
+            if ((core->x_pel == 0) && ctx->sps.tool_hmvp)
+#else
             if ((core->x_pel == 0) && ctx->sps.tool_admvp)
+#endif
 #else
             if (core->x_pel == 0)
 #endif
@@ -2342,13 +2367,21 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
 
 #if EVC_TILE_SUPPORT
 #if HISTORY_UNDER_ADMVP_FIX
+#if M53737
+        if (ctx->sps.tool_hmvp && (core->x_lcu == (ctx->tile[i].ctba_rs_first) % ctx->w_lcu)) //This condition will reset history buffer
+#else
         if (ctx->sps.tool_admvp && (core->x_lcu == (ctx->tile[i].ctba_rs_first) % ctx->w_lcu)) //This condition will reset history buffer
+#endif
 #else
         if (core->x_lcu == (ctx->tile[i].ctba_rs_first) % ctx->w_lcu) //This condition will reset history buffer
 #endif
 #else
 #if HISTORY_UNDER_ADMVP_FIX
+#if M53737
+        if ((core->x_pel == 0) && ctx->sps.tool_hmvp)
+#else
         if ((core->x_pel == 0) && ctx->sps.tool_admvp)
+#endif
 #else
         if (core->x_pel == 0)
 #endif

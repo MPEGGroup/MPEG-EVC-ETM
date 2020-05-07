@@ -458,6 +458,9 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->tool_alf = ctx->cdsc.tool_alf;
     sps->tool_htdf = ctx->cdsc.tool_htdf;
     sps->tool_admvp = ctx->cdsc.tool_admvp;
+#if M53737
+    sps->tool_hmvp = ctx->cdsc.tool_hmvp;
+#endif
     sps->tool_eipd = ctx->cdsc.tool_eipd;
     sps->tool_iqt = ctx->cdsc.tool_iqt;
     sps->tool_adcc = ctx->cdsc.tool_adcc;
@@ -2807,8 +2810,13 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     core->qp_y = ctx->sh.qp + 6 * (BIT_DEPTH - 8);
     core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][sh->qp_u] + 6 * (BIT_DEPTH - 8);
     core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][sh->qp_v] + 6 * (BIT_DEPTH - 8);
+
 #if HISTORY_UNDER_ADMVP_FIX
+#if M53737
+    if (ctx->sps.tool_hmvp)
+#else
     if (ctx->sps.tool_admvp)
+#endif
     {
 #endif
     ret = evce_hmvp_init(&(core->history_buffer));
@@ -2907,7 +2915,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             ret = ctx->fn_mode_init_lcu(ctx, core);
             evc_assert_rv(ret == EVC_OK, ret);
 #if HISTORY_UNDER_ADMVP_FIX
+#if M53737
+            if (ctx->sps.tool_hmvp && (core->x_lcu == (ctx->tile[i].ctba_rs_first) % ctx->w_lcu))
+#else
             if (ctx->sps.tool_admvp && (core->x_lcu == (ctx->tile[i].ctba_rs_first) % ctx->w_lcu))
+#endif
 #else
             if (core->x_lcu == (ctx->tile[i].ctba_rs_first) % ctx->w_lcu) //This condition will reset history buffer
 #endif
@@ -2974,7 +2986,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
 #if HISTORY_LCU_COPY_BUG_FIX
 #if HISTORY_UNDER_ADMVP_FIX
+#if M53737
+            if (ctx->sps.tool_hmvp)
+#else
             if (ctx->sps.tool_admvp)
+#endif
             {
 #endif
                 evc_mcpy(&core->history_buffer, &core->m_pBestMotLUTs[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], sizeof(core->history_buffer));
@@ -3006,7 +3022,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         ret = ctx->fn_mode_init_lcu(ctx, core);
         evc_assert_rv(ret == EVC_OK, ret);
 #if HISTORY_UNDER_ADMVP_FIX
+#if M53737
+        if (core->x_pel == 0 && ctx->sps.tool_hmvp)
+#else
         if (core->x_pel == 0 && ctx->sps.tool_admvp)
+#endif
 #else
         if (core->x_pel == 0)
 #endif
@@ -3074,7 +3094,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
 #if HISTORY_LCU_COPY_BUG_FIX
 #if HISTORY_UNDER_ADMVP_FIX
+#if M53737
+        if (ctx->sps.tool_hmvp)
+#else
         if (ctx->sps.tool_admvp)
+#endif
         {
 #endif
             evc_mcpy(&core->history_buffer, &core->m_pBestMotLUTs[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], sizeof(core->history_buffer));
