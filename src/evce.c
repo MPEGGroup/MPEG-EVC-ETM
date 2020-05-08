@@ -974,16 +974,8 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
         double dqp_offset;
         int qp_offset;
 
-        if (ctx->sps.tool_rpl)
-        {
-            qp += qp_adapt_param[ctx->nalu.nuh_temporal_id].qp_offset_layer;
-            dqp_offset = qp * qp_adapt_param[ctx->nalu.nuh_temporal_id].qp_offset_model_scale + qp_adapt_param[ctx->nalu.nuh_temporal_id].qp_offset_model_offset + 0.5;
-        }
-        else
-        {
-            qp += qp_adapt_param[ctx->slice_depth].qp_offset_layer;
-            dqp_offset = qp * qp_adapt_param[ctx->slice_depth].qp_offset_model_scale + qp_adapt_param[ctx->slice_depth].qp_offset_model_offset + 0.5;
-        }
+        qp += qp_adapt_param[ctx->slice_depth].qp_offset_layer;
+        dqp_offset = qp * qp_adapt_param[ctx->slice_depth].qp_offset_model_scale + qp_adapt_param[ctx->slice_depth].qp_offset_model_offset + 0.5;
 
         qp_offset = (int)floor(EVC_CLIP3(0.0, 3.0, dqp_offset));
         qp += qp_offset;
