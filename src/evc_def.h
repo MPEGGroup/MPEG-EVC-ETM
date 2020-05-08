@@ -269,7 +269,9 @@
 /* DMVR (START) */
 #define USE_MR_SAD                         0
 #define MRSAD_FIX                          1
-#define EARLY_TERMINATION_FIX              0
+#if M53744
+#define EARLY_TERMINATION_FIX              1
+#endif
 #define DMVR_SUBCU                         1
 #if DMVR_SUBCU
 #define DMVR_SUBCU_SIZE                    16
