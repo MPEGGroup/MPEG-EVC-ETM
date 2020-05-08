@@ -312,16 +312,21 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
         evc_bsw_write_ue(bs, (u32)sps->picture_crop_bottom_offset);
     }
 
-    evc_bsw_write1(bs, sps->chroma_qp_table_struct.chroma_qp_table_present_flag);
-    if (sps->chroma_qp_table_struct.chroma_qp_table_present_flag)
+#if M53744
+    if (sps->chroma_format_idc != 0)
+#endif
     {
-        evc_bsw_write1(bs, sps->chroma_qp_table_struct.same_qp_table_for_chroma);
-        evc_bsw_write1(bs, sps->chroma_qp_table_struct.global_offset_flag);
-        for (int i = 0; i < (sps->chroma_qp_table_struct.same_qp_table_for_chroma ? 1 : 2); i++) {
-            evc_bsw_write_ue(bs, (u32)sps->chroma_qp_table_struct.num_points_in_qp_table_minus1[i]);
-            for (int j = 0; j <= sps->chroma_qp_table_struct.num_points_in_qp_table_minus1[i]; j++) {
-                evc_bsw_write(bs, sps->chroma_qp_table_struct.delta_qp_in_val_minus1[i][j], 6);
-                evc_bsw_write_se(bs, (u32)sps->chroma_qp_table_struct.delta_qp_out_val[i][j]);
+        evc_bsw_write1(bs, sps->chroma_qp_table_struct.chroma_qp_table_present_flag);
+        if (sps->chroma_qp_table_struct.chroma_qp_table_present_flag)
+        {
+            evc_bsw_write1(bs, sps->chroma_qp_table_struct.same_qp_table_for_chroma);
+            evc_bsw_write1(bs, sps->chroma_qp_table_struct.global_offset_flag);
+            for (int i = 0; i < (sps->chroma_qp_table_struct.same_qp_table_for_chroma ? 1 : 2); i++) {
+                evc_bsw_write_ue(bs, (u32)sps->chroma_qp_table_struct.num_points_in_qp_table_minus1[i]);
+                for (int j = 0; j <= sps->chroma_qp_table_struct.num_points_in_qp_table_minus1[i]; j++) {
+                    evc_bsw_write(bs, sps->chroma_qp_table_struct.delta_qp_in_val_minus1[i][j], 6);
+                    evc_bsw_write_se(bs, (u32)sps->chroma_qp_table_struct.delta_qp_out_val[i][j]);
+                }
             }
         }
     }
