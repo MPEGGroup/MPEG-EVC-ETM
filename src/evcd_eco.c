@@ -3602,13 +3602,17 @@ int evcd_eco_alf_sh_param(EVC_BSR * bs, EVC_SH * sh)
 
 int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut)
 {
-
     int NumTilesInSlice = 0;
 
-
     sh->slice_pic_parameter_set_id = evc_bsr_read_ue(bs);
-    sh->single_tile_in_slice_flag = evc_bsr_read1(bs);
-    sh->first_tile_id = evc_bsr_read(bs, pps->tile_id_len_minus1 + 1);
+
+#if M53744
+    if (pps->single_tile_in_pic_flag)
+#endif
+    {
+        sh->single_tile_in_slice_flag = evc_bsr_read1(bs);
+        sh->first_tile_id = evc_bsr_read(bs, pps->tile_id_len_minus1 + 1);
+    }
 
     if (!sh->single_tile_in_slice_flag)
     {

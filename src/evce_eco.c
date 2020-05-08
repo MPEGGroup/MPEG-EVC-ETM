@@ -508,8 +508,13 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
 #endif
 
     evc_bsw_write_ue(bs, sh->slice_pic_parameter_set_id);
-    evc_bsw_write1(bs, sh->single_tile_in_slice_flag);
-    evc_bsw_write(bs, sh->first_tile_id, pps->tile_id_len_minus1 + 1);
+#if M53744
+    if (pps->single_tile_in_pic_flag)
+#endif
+    {
+        evc_bsw_write1(bs, sh->single_tile_in_slice_flag);
+        evc_bsw_write(bs, sh->first_tile_id, pps->tile_id_len_minus1 + 1);
+    }
 
     if (!sh->single_tile_in_slice_flag)
     {
