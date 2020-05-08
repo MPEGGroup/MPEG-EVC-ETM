@@ -2801,13 +2801,18 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
         }
 
     }
-    sps->max_dec_pic_buffering_minus1 = (u32)evc_bsr_read_ue(bs);
+#if !M53744
+    sps->sps_max_dec_pic_buffering_minus1 = (u32)evc_bsr_read_ue(bs);
+#endif
     if (!sps->tool_rpl)
     {
         sps->max_num_ref_pics = (u32)evc_bsr_read_ue(bs);
     }
     else
     {
+#if M53744
+        sps->sps_max_dec_pic_buffering_minus1 = (u32)evc_bsr_read_ue(bs);
+#endif
         sps->long_term_ref_pics_flag = evc_bsr_read1(bs);
         sps->rpl1_same_as_rpl0_flag = (u32)evc_bsr_read1(bs);
         sps->num_ref_pic_lists_in_sps0 = (u32)evc_bsr_read_ue(bs);

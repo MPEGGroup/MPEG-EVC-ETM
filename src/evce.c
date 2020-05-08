@@ -397,7 +397,7 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->ibc_flag = (ctx->param.use_ibc_flag) ? 1 : 0;
     sps->ibc_log_max_size = IBC_MAX_CU_LOG2;
     sps->log2_max_pic_order_cnt_lsb_minus4 = POC_LSB_BIT - 4;
-    sps->max_dec_pic_buffering_minus1 = 0; //[TBF]
+    sps->sps_max_dec_pic_buffering_minus1 = 0; //[TBF]
 
     if(ctx->param.max_b_frames > 0)
     {

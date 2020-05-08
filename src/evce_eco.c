@@ -276,13 +276,18 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
             evc_bsw_write_ue(bs, sps->log2_ref_pic_gap_length);
         }
     }
-    evc_bsw_write_ue(bs, (u32)sps->max_dec_pic_buffering_minus1);
+#if !M53744
+    evc_bsw_write_ue(bs, (u32)sps->sps_max_dec_pic_buffering_minus1);
+#endif
     if (!sps->tool_rpl)
     {
         evc_bsw_write_ue(bs, (u32)sps->max_num_ref_pics);
     }
     else
     {
+#if M53744
+        evc_bsw_write_ue(bs, (u32)sps->sps_max_dec_pic_buffering_minus1);
+#endif
         evc_bsw_write1(bs, sps->long_term_ref_pics_flag);
         evc_bsw_write1(bs, sps->rpl1_same_as_rpl0_flag);
 

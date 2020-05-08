@@ -38,9 +38,6 @@
 #include "evc_port.h"
 
 #define M53744                                        1
-#if M53744
-#define 
-#endif
 
 #define INTEGR_M53608                                 1
 #if INTEGR_M53608
