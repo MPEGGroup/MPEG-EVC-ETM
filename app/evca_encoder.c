@@ -721,12 +721,12 @@ static EVC_ARGS_OPTION options[] = \
     {
         EVC_ARGS_NO_KEY,  "dbfoffsetA", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_TOOL_DBFOFFSET], &op_deblock_alpha_offset,
-        "AVC Deblocking filter offset for alpha"
+        "ADDB Deblocking filter offset for alpha"
     },
     {
         EVC_ARGS_NO_KEY,  "dbfoffsetB", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_TOOL_DBFOFFSET], &op_deblock_beta_offset,
-        "AVC Deblocking filter offset for beta"
+        "ADDB Deblocking filter offset for beta"
     },
 #if ETM_HDR_REPORT_METRIC_FLAG
     {
@@ -1523,7 +1523,7 @@ static int get_conf(EVCE_CDSC * cdsc)
             p_dra_control->m_draScaleMap.m_draScaleMapY[p_dra_control->m_atfNumRanges][1] = p_dra_control->m_draScaleMap.m_draScaleMapY[p_dra_control->m_atfNumRanges - 1][1];
         }
 
-        p_dra_control->m_chromaQPModel.m_baseLumaQP = cdsc->qp;
+        p_dra_control->m_chromaQPModel.dra_table_idx = cdsc->qp;
         p_dra_control->m_chromaQPModel.m_draChromaCbQpOffset = cdsc->cb_qp_offset;
         p_dra_control->m_chromaQPModel.m_draChromaCrQpOffset = cdsc->cr_qp_offset;
         p_dra_control->m_chromaQPModel.enabled = 1;

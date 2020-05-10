@@ -37,6 +37,28 @@
 #include "evc.h"
 #include "evc_port.h"
 
+#define INTEGR_M53608                              1
+#if INTEGR_M53608
+#define M53608_DRA                                  1
+
+#define M53608_DB_1                                   1    // Change of chroma (tc+1) for bitdepth, clean up for luma bitdepth.
+#define M53608_DB_2                                    1   // modifiy BS during BS derivation process instead of overwrite after derivation
+
+#define M53608_ALF_1                                  1  // SW bug-fix in Cb/Cr filtering order
+#define M53608_ALF_2                                  1  // Optimization of ALF classifier scale
+#define M53608_ALF_3                                  1 // simplification of ALF signaling, tb(v)/tu(v) removal
+#define M53608_ALF_4                                  1 // align usage of coeff delta flag between SW and spec
+#define M53608_ALF_5                                  1 // alf luma enable flag only for control alf luma info parsing
+#define M53608_ALF_6                                  1 // Fix to spec/SW misalignment: filter pattern mapping, SW aligned to spec
+#define M53608_ALF_7                                  1 // fix usage of fixed filter index 0, separate fixed filter usage and index flag
+#define M53608_ALF_8                                  1 // fix luma shape idx usage during ALF RDO process
+#define M53608_ALF_9                                  1 // separate RD for Cb and Cr
+#define M53608_ALF_10                                 1 // fix luma filter type signaling
+#define M53608_ALF_11                                 1 // filter 5x5 align
+#define M53608_ALF_12                                 1 // Improve readability of delta filter coefficients parsing 
+#define M53608_ALF_13                                 1 // Improve readability of delta filter coefficients reconstruction 
+#define M53608_ALF_14                                 1 // Moving chroma_idc signaling from APS to slice header.
+#endif
 
 #define CLEANUP_AMVR                                  1
 #define RPL_CLEANUP                                   1
@@ -1375,6 +1397,10 @@ typedef struct _evc_AlfSliceParam
 {
     BOOL isCtbAlfOn;
     u8 *alfCtuEnableFlag;
+#if M53608_ALF_14
+    u8 *alfCtuEnableFlagChroma;
+    u8 *alfCtuEnableFlagChroma2;
+#endif
 
     BOOL                         enabledFlag[3];                                          // alf_slice_enable_flag, alf_chroma_idc
     int                          lumaFilterType;                                          // filter_type_flag
@@ -1389,12 +1415,18 @@ typedef struct _evc_AlfSliceParam
 
     int fixedFilterPattern;
     int fixedFilterIdx[MAX_NUM_ALF_CLASSES];
+#if M53608_ALF_7
+    u8  fixedFilterUsageFlag[MAX_NUM_ALF_CLASSES];
+#endif
     int tLayer;
     BOOL temporalAlfFlag;
     int prevIdx;
     int prevIdxComp[2];
     BOOL resetALFBufferFlag;
     BOOL store2ALFBufferFlag;
+#if M53608_ALF_14
+    BOOL chromaFilterPresent;
+#endif
 
 } evc_AlfSliceParam;
 
@@ -1414,6 +1446,9 @@ typedef struct _evc_SignalledALFParam
 
     int fixedFilterPattern;
     int fixedFilterIdx[MAX_NUM_ALF_CLASSES];
+#if M53608_ALF_7
+    u8  fixedFilterUsageFlag[MAX_NUM_ALF_CLASSES];
+#endif
     int prevIdx;
 
 } evc_SignalledALFParam;
@@ -1488,6 +1523,14 @@ typedef struct _EVC_SH
     evc_AlfSliceParam alf_sh_param;
 #if EVC_TILE_SUPPORT
     u16              num_tiles_in_slice;
+#endif
+#if M53608_ALF_14
+    u8                 alfChromaIdc;
+    u8                 ChromaAlfEnabledFlag;
+    u8                 ChromaAlfEnabled2Flag;
+    u8                 alfChromaMapSignalled;
+    u8                 alfChroma2MapSignalled;
+    int              aps_id_ch2;
 #endif
 } EVC_SH;
 

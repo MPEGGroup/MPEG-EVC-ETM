@@ -2288,7 +2288,16 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
                 EVC_TRACE_INT((int)(*(alfSliceParam->alfCtuEnableFlag + core->lcu_num)));
                 EVC_TRACE_STR("\n");
             }
-
+#if M53608_ALF_14
+            if ((ctx->sh.alfChromaMapSignalled) && (ctx->sh.alf_on))
+            {
+                *(alfSliceParam->alfCtuEnableFlagChroma + core->lcu_num) = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.alf_ctb_flag);
+            }
+            if ((ctx->sh.alfChroma2MapSignalled) && (ctx->sh.alf_on))
+            {
+                *(alfSliceParam->alfCtuEnableFlagChroma2 + core->lcu_num) = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.alf_ctb_flag);
+            }
+#endif
             ret = evcd_eco_tree(ctx, core, core->x_pel, core->y_pel, ctx->log2_max_cuwh, ctx->log2_max_cuwh, 0, 0, bs, sbac, 1
                 , 0, NO_SPLIT, same_layer_split, 0, split_allow, 0, 0
 #if DQP
@@ -2578,7 +2587,6 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 
         ret = evcd_eco_sh(bs, &ctx->sps, &ctx->pps, sh, ctx->nalu.nal_unit_type_plus1 - 1);
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
-
 #if EVC_TILE_SUPPORT  
         ret = set_tile_info(ctx, ctx->core, pps);
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
