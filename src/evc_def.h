@@ -1316,6 +1316,9 @@ typedef struct _EVC_SPS
     int              tool_alf;
     int              tool_htdf;
     int              tool_admvp;
+#if M53737
+    int              tool_hmvp;
+#endif
     int              tool_eipd;
     int              tool_iqt;
     int              tool_cm_init;

@@ -2742,6 +2742,9 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
         sps->tool_amvr = evc_bsr_read1(bs);
         sps->tool_dmvr = evc_bsr_read1(bs);
         sps->tool_mmvd = evc_bsr_read1(bs);
+#if M53737
+        sps->tool_hmvp = evc_bsr_read1(bs);
+#endif
     }
 
     sps->tool_eipd = evc_bsr_read1(bs);

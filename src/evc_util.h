@@ -135,16 +135,25 @@ void evc_get_default_motion(int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag
                             , int w_scu
 #endif
                             , EVC_HISTORY_BUFFER history_buffer
-                            , int admvp_flag);
+#if M53737
+                            , int hmvp_flag
+#else
+                            , int admvp_flag
+#endif
+);
 
 s8 evc_get_first_refi(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int cuw, int cuh, int w_scu, int h_scu, u32 *map_scu, u8 mvr_idx, u16 avail_lr
 #if DMVR_LAG
                       , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
                       , EVC_HISTORY_BUFFER history_buffer
+#if M53737
+                      , int hmvp_flag
+#else
                       , int admvp_flag
+#endif
 #if EVC_TILE_SUPPORT
-    , u8 * map_tidx
+                      , u8 * map_tidx
 #endif
 );
 
@@ -175,9 +184,13 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int poc, int scup, int lidx, s8 cur_ref
                              , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
                              , EVC_HISTORY_BUFFER history_buffer
+#if M53737
+                             , int hmvp_flag
+#else
                              , int admvp_flag
+#endif
 #if EVC_TILE_SUPPORT
-    , u8* map_tidx
+                             , u8* map_tidx
 #endif
 );
 #if !CODE_CLEAN

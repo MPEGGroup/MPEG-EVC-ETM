@@ -218,6 +218,9 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
         evc_bsw_write1(bs, sps->tool_amvr);
         evc_bsw_write1(bs, sps->tool_dmvr);
         evc_bsw_write1(bs, sps->tool_mmvd);
+#if M53737
+        evc_bsw_write1(bs, sps->tool_hmvp);
+#endif
     }
 
     evc_bsw_write1(bs, sps->tool_eipd);

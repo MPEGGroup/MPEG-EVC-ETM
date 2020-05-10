@@ -130,6 +130,9 @@ static int  op_tool_addb          = 1; /* default on */
 #endif
 static int  op_tool_alf           = 1; /* default on */
 static int  op_tool_admvp         = 1; /* default on */
+#if M53737
+static int  op_tool_hmvp = 1; /* default on */
+#endif
 static int  op_tool_htdf          = 1; /* default on */
 static int  op_tool_eipd          = 1; /* default on */
 static int  op_tool_iqt           = 1; /* default on */
@@ -255,6 +258,9 @@ typedef enum _OP_FLAGS
     OP_TOOL_POCS,
     OP_TOOL_HTDF,
     OP_TOOL_ADMVP,
+#if M53737
+    OP_TOOL_HMVP,
+#endif
     OP_TOOL_EIPD,
     OP_TOOL_IQT,
     OP_TOOL_CM_INIT,
@@ -661,6 +667,13 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_TOOL_ADMVP], &op_tool_admvp,
         "admvp on/off flag"
     },
+#if M53737
+    {
+        EVC_ARGS_NO_KEY,  "hmvp", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_TOOL_HMVP], &op_tool_hmvp,
+        "hmvp on/off flag"
+    },
+#endif
     {
         EVC_ARGS_NO_KEY,  "eipd", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_TOOL_EIPD], &op_tool_eipd,
@@ -1315,6 +1328,9 @@ static int get_conf(EVCE_CDSC * cdsc)
 #endif
     cdsc->tool_alf           = op_tool_alf;
     cdsc->tool_admvp         = op_tool_admvp;
+#if M53737
+    cdsc->tool_hmvp          = op_tool_hmvp;
+#endif
     cdsc->tool_htdf          = op_tool_htdf;
     cdsc->tool_eipd          = op_tool_eipd;
     cdsc->tool_iqt           = op_tool_iqt;
@@ -1558,6 +1574,9 @@ static void print_enc_conf(EVCE_CDSC * cdsc)
 #endif
     printf("ALF: %d, ",    cdsc->tool_alf);
     printf("ADMVP: %d, ",  cdsc->tool_admvp);
+#if M53737
+    printf("HMVP: %d, ",   cdsc->tool_hmvp);
+#endif
     printf("HTDF: %d ",    cdsc->tool_htdf);
     printf("EIPD: %d, ",   cdsc->tool_eipd);
     printf("IQT: %d, ",    cdsc->tool_iqt);
@@ -1590,6 +1609,9 @@ int check_conf(EVCE_CDSC* cdsc)
         if (cdsc->tool_affine  == 1) { v0print("Affine cannot be on in base profile\n"); success = 0; }
         if (cdsc->tool_dmvr    == 1) { v0print("DMVR cannot be on in base profile\n"); success = 0; }
         if (cdsc->tool_admvp   == 1) { v0print("ADMVP cannot be on in base profile\n"); success = 0; }
+#if M53737
+        if (cdsc->tool_hmvp    == 1) { v0print("HMVP cannot be on in base profile\n"); success = 0; }
+#endif
 #if ADDB_FLAG_FIX
         if (cdsc->tool_addb    == 1) { v0print("ADDB cannot be on in base profile\n"); success = 0; }
 #endif

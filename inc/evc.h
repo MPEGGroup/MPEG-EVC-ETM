@@ -35,6 +35,8 @@
 #ifndef _EVC_H_
 #define _EVC_H_
 
+#define M53737                          1
+
 #define ENC_DBF_CONTROL                 1
 #define EVC_VUI_FIX                     1
 #define ETM_HDR_REPORT_METRIC_FLAG      1
@@ -478,6 +480,9 @@ typedef struct _EVCE_CDSC
     int            tool_alf;
     int            tool_htdf;
     int            tool_admvp;
+#if M53737
+    int            tool_hmvp;
+#endif
     int            tool_eipd;
     int            tool_iqt;
     int            tool_cm_init;
