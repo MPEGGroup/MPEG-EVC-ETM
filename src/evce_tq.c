@@ -1299,8 +1299,8 @@ __inline static int get_coded_level(
     s64     level_double,           //< reference to unscaled quantized level
     int     max_abs_level,          //< scaled quantized level
     int     ctx_sig_coeff,          //< current ctxInc for coeff_abs_significant_flag
-    int     ctx_gtA,          //< current ctxInc for coeff_abs_level_greater1 (1st bin of coeff_abs_level_minus1 in AVC)
-    int     ctx_gtB,          //< current ctxInc for coeff_abs_level_greater2 (remaining bins of coeff_abs_level_minus1 in AVC)
+    int     ctx_gtA,          //< current ctxInc for coeff_abs_level_greater1 
+    int     ctx_gtB,          //< current ctxInc for coeff_abs_level_greater2 
     int     rparam,          //< current Rice parameter for coeff_abs_level_minus3
     int     c1_idx,                  //< 
     int     c2_idx,                  //< 
@@ -1761,7 +1761,7 @@ int evce_rdoq_run_length_cc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, 
     return nnz;
 }
 
-int ifvce_rdoq_method_ccA(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s16 *dst_tmp, int log2_cuw, int log2_cuh, int ch_type, int sps_cm_init_flag
+int ifvce_rdoq_method_adcc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s16 *dst_tmp, int log2_cuw, int log2_cuh, int ch_type, int sps_cm_init_flag
 #if EVC_CONCURENCY
  , EVCE_CORE * core
 #endif
@@ -2147,7 +2147,7 @@ int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw,
     {
         if (tool_adcc)
         {
-            nnz = ifvce_rdoq_method_ccA(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type, sps_cm_init_flag
+            nnz = ifvce_rdoq_method_adcc(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type, sps_cm_init_flag
 #if EVC_CONCURENCY
                 , core
 #endif

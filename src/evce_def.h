@@ -1050,7 +1050,7 @@ void evce_platform_deinit(EVCE_CTX * ctx);
 int evce_enc_pic_prepare(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
 int evce_enc_pic_finish(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
 int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
-int evce_deblock_h263(EVCE_CTX * ctx, EVC_PIC * pic
+int evce_deblock(EVCE_CTX * ctx, EVC_PIC * pic
 #if EVC_TILE_SUPPORT
     , int tile_idx
 #endif

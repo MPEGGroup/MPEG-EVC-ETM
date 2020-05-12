@@ -3364,9 +3364,14 @@ static double analyze_bi(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_
 #if DMVR_LAG
                                                       , ctx->map_unrefined_mv
 #endif
-                                                      , core->history_buffer, ctx->sps.tool_admvp
+                                                      , core->history_buffer
+#if M53737
+                                                      , ctx->sps.tool_hmvp
+#else                                                 
+                                                      , ctx->sps.tool_admvp
+#endif
 #if EVC_TILE_SUPPORT
-            , ctx->map_tidx
+                                                      , ctx->map_tidx
 #endif
         );
 
@@ -3403,9 +3408,14 @@ static double analyze_bi(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_
 #if DMVR_LAG
                                             , ctx->map_unrefined_mv
 #endif
-                                            , core->history_buffer, ctx->sps.tool_admvp
+                                            , core->history_buffer
+#if M53737
+                                            , ctx->sps.tool_hmvp
+#else                                       
+                                            , ctx->sps.tool_admvp
+#endif
 #if EVC_TILE_SUPPORT
-            , ctx->map_tidx
+                                            , ctx->map_tidx
 #endif
         );                                            
         refi[lidx_cnd] = REFI_INVALID;
@@ -5718,9 +5728,13 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                                             , ctx->map_unrefined_mv
 #endif
                                             , core->history_buffer
+#if M53737
+                                            , ctx->sps.tool_hmvp
+#else
                                             , ctx->sps.tool_admvp
+#endif
 #if EVC_TILE_SUPPORT
-                        , ctx->map_tidx
+                                            , ctx->map_tidx
 #endif
                     );
                     mvp_idx[lidx] = 0;

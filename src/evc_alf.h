@@ -242,6 +242,9 @@ struct AlfSliceParam
   int                          fixedFilterPattern;                                     //0: no pred from pre-defined filters; 1: all are predicted but could be different values; 2: some predicted and some not
                                                                                        //when ALF_LOWDELAY is 1, fixedFilterPattern 0: all are predected, fixedFilterPattern 1: some predicted and some not
   int                          fixedFilterIdx[MAX_NUM_ALF_CLASSES];
+#if M53608_ALF_7
+  u8                           fixedFilterUsageFlag[MAX_NUM_ALF_CLASSES];
+#endif
   int                          tLayer;
   BOOL                         temporalAlfFlag;         //indicate whether reuse previous ALF coefficients
   int                          prevIdx;                 //index of the reused ALF coefficients
@@ -253,6 +256,9 @@ struct AlfSliceParam
   u32 m_filterPoc;  // store POC value for which filter was produced
   u32 m_minIdrPoc;  // Minimal of 2 IDR POC available for current coded nalu  (to identify availability of this filter for temp prediction)
   u32 m_maxIdrPoc;  // Max of 2 IDR POC available for current coded nalu  (to identify availability of this filter for temp prediction)
+#if M53608_ALF_14
+  BOOL chromaFilterPresent;
+#endif
 };
 #endif
 
@@ -318,7 +324,11 @@ extern void copyAlfParam(AlfSliceParam* dst, AlfSliceParam* src);
 extern void copyAlfParamChroma(AlfSliceParam* dst, AlfSliceParam* src);
 void store_alf_paramline_from_aps(AlfSliceParam* pAlfParam, u8 idx);
 void load_alf_paramline_from_aps_buffer(AlfSliceParam* pAlfParam, u8 idx);
-void load_alf_paramline_from_aps_buffer2(AlfSliceParam* pAlfParam, u8 idxY, u8 idxUV);
+void load_alf_paramline_from_aps_buffer2(AlfSliceParam* pAlfParam, u8 idxY, u8 idxUV
+#if M53608_ALF_14
+    , u8 alfChromaIdc
+#endif
+);
 extern u8 m_nextFreeAlfIdxInBuffer;
 extern void resetAlfParam(AlfSliceParam* dst);
 extern void resetIdrIndexListBufferAPS();

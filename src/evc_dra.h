@@ -52,8 +52,7 @@ typedef struct _DRAChromaOffControl
     double chromaCrQpScale; ///< Chroma Cr QP Scale (1.0:default)
     double chromaQpScale;   ///< Chroma QP Scale (0.0:default)
     double chromaQpOffset;  ///< Chroma QP Offset (0.0:default)
-
-    int m_baseLumaQP;
+    int dra_table_idx;
     int m_draChromaCbQpOffset;
     int m_draChromaCrQpOffset;
 
@@ -67,16 +66,16 @@ typedef struct _DRAScaleMapping
 typedef struct _SignalledParamsDRA
 {
     int m_signal_dra_flag;
-    int m_baseLumaQP;
+    int dra_table_idx;
     BOOL m_equalRangesFlag;
     int  m_deltaVal;
     int m_numRanges;
     int m_inRanges[33];
     int m_dra_descriptor2;
     int m_dra_descriptor1;
-    int m_intScaleCbDRA;
-    int m_intScaleCrDRA;
-    int m_intDraScales[33 - 1];
+    int m_dra_cb_scale_value;
+    int m_dra_cr_scale_value;
+    int m_dra_scale_value[33 - 1];
 }SignalledParamsDRA;
 
 typedef struct _WCGDDRAControl
@@ -97,8 +96,8 @@ typedef struct _WCGDDRAControl
     double m_atfDraScales[33 - 1];
     double m_atfDraOffsets[33 - 1];
 
-    int m_intScaleCbDRA;
-    int m_intScaleCrDRA;
+    int m_dra_cb_scale_value;
+    int m_dra_cr_scale_value;
     int m_atfIntOutRanges[33];
     int m_atfIntDraScales[33 - 1];
     int m_atfIntInvDraScales[33 - 1];

@@ -218,6 +218,9 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
         evc_bsw_write1(bs, sps->tool_amvr);
         evc_bsw_write1(bs, sps->tool_dmvr);
         evc_bsw_write1(bs, sps->tool_mmvd);
+#if M53737
+        evc_bsw_write1(bs, sps->tool_hmvp);
+#endif
     }
 
     evc_bsw_write1(bs, sps->tool_eipd);
@@ -273,13 +276,18 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
             evc_bsw_write_ue(bs, sps->log2_ref_pic_gap_length);
         }
     }
-    evc_bsw_write_ue(bs, (u32)sps->max_dec_pic_buffering_minus1);
+#if !M53744
+    evc_bsw_write_ue(bs, (u32)sps->sps_max_dec_pic_buffering_minus1);
+#endif
     if (!sps->tool_rpl)
     {
         evc_bsw_write_ue(bs, (u32)sps->max_num_ref_pics);
     }
     else
     {
+#if M53744
+        evc_bsw_write_ue(bs, (u32)sps->sps_max_dec_pic_buffering_minus1);
+#endif
         evc_bsw_write1(bs, sps->long_term_ref_pics_flag);
         evc_bsw_write1(bs, sps->rpl1_same_as_rpl0_flag);
 
@@ -304,16 +312,21 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
         evc_bsw_write_ue(bs, (u32)sps->picture_crop_bottom_offset);
     }
 
-    evc_bsw_write1(bs, sps->chroma_qp_table_struct.chroma_qp_table_present_flag);
-    if (sps->chroma_qp_table_struct.chroma_qp_table_present_flag)
+#if M53744
+    if (sps->chroma_format_idc != 0)
+#endif
     {
-        evc_bsw_write1(bs, sps->chroma_qp_table_struct.same_qp_table_for_chroma);
-        evc_bsw_write1(bs, sps->chroma_qp_table_struct.global_offset_flag);
-        for (int i = 0; i < (sps->chroma_qp_table_struct.same_qp_table_for_chroma ? 1 : 2); i++) {
-            evc_bsw_write_ue(bs, (u32)sps->chroma_qp_table_struct.num_points_in_qp_table_minus1[i]);
-            for (int j = 0; j <= sps->chroma_qp_table_struct.num_points_in_qp_table_minus1[i]; j++) {
-                evc_bsw_write(bs, sps->chroma_qp_table_struct.delta_qp_in_val_minus1[i][j], 6);
-                evc_bsw_write_se(bs, (u32)sps->chroma_qp_table_struct.delta_qp_out_val[i][j]);
+        evc_bsw_write1(bs, sps->chroma_qp_table_struct.chroma_qp_table_present_flag);
+        if (sps->chroma_qp_table_struct.chroma_qp_table_present_flag)
+        {
+            evc_bsw_write1(bs, sps->chroma_qp_table_struct.same_qp_table_for_chroma);
+            evc_bsw_write1(bs, sps->chroma_qp_table_struct.global_offset_flag);
+            for (int i = 0; i < (sps->chroma_qp_table_struct.same_qp_table_for_chroma ? 1 : 2); i++) {
+                evc_bsw_write_ue(bs, (u32)sps->chroma_qp_table_struct.num_points_in_qp_table_minus1[i]);
+                for (int j = 0; j <= sps->chroma_qp_table_struct.num_points_in_qp_table_minus1[i]; j++) {
+                    evc_bsw_write(bs, sps->chroma_qp_table_struct.delta_qp_in_val_minus1[i][j], 6);
+                    evc_bsw_write_se(bs, (u32)sps->chroma_qp_table_struct.delta_qp_out_val[i][j]);
+                }
             }
         }
     }
@@ -495,8 +508,13 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
 #endif
 
     evc_bsw_write_ue(bs, sh->slice_pic_parameter_set_id);
-    evc_bsw_write1(bs, sh->single_tile_in_slice_flag);
-    evc_bsw_write(bs, sh->first_tile_id, pps->tile_id_len_minus1 + 1);
+#if M53744
+    if (pps->single_tile_in_pic_flag)
+#endif
+    {
+        evc_bsw_write1(bs, sh->single_tile_in_slice_flag);
+        evc_bsw_write(bs, sh->first_tile_id, pps->tile_id_len_minus1 + 1);
+    }
 
     if (!sh->single_tile_in_slice_flag)
     {
@@ -540,9 +558,52 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
         if (sh->alf_on)
         {
             evc_bsw_write(bs, sh->aps_id_y, APS_MAX_NUM_IN_BITS);
-            evc_bsw_write(bs, sh->aps_id_ch, APS_MAX_NUM_IN_BITS);
             evce_eco_alf_sh_param(bs, sh); // signaling ALF map
+#if M53608_ALF_14
+            sh->alfChromaIdc = ((sh->alf_sh_param.enabledFlag[2]) << 1) + sh->alf_sh_param.enabledFlag[1];
+            evc_bsw_write(bs, sh->alfChromaIdc, 2);
+            if (sh->alfChromaIdc == 1)
+            {
+                sh->ChromaAlfEnabledFlag = 1;
+                sh->ChromaAlfEnabled2Flag = 0;
+            }
+            else if (sh->alfChromaIdc == 2)
+            {
+                sh->ChromaAlfEnabledFlag = 0;
+                sh->ChromaAlfEnabled2Flag = 1;
+            }
+            else if (sh->alfChromaIdc == 3)
+            {
+                sh->ChromaAlfEnabledFlag = 1;
+                sh->ChromaAlfEnabled2Flag = 1;
+            }
+            else
+            {
+                sh->ChromaAlfEnabledFlag = 0;
+                sh->ChromaAlfEnabled2Flag = 0;
+            }
+#endif
+#if M53608_ALF_14
+            if (sh->alfChromaIdc && (sps->chroma_format_idc == 1 || sps->chroma_format_idc == 2))
+            {
+#endif
+                evc_bsw_write(bs, sh->aps_id_ch, APS_MAX_NUM_IN_BITS);
+#if M53608_ALF_14
+            }
+#endif
         }
+#if M53608_ALF_14
+        if (sps->chroma_format_idc == 3 && sh->ChromaAlfEnabledFlag)
+        {
+            evc_bsw_write(bs, sh->aps_id_ch, APS_MAX_NUM_IN_BITS);
+            evc_bsw_write1(bs, sh->alfChromaMapSignalled);
+        }
+        if (sps->chroma_format_idc == 3 && sh->ChromaAlfEnabled2Flag)
+        {
+            evc_bsw_write(bs, sh->aps_id_ch2, APS_MAX_NUM_IN_BITS);
+            evc_bsw_write1(bs, sh->alfChroma2MapSignalled);
+        }
+#endif
     }
 
     if (nut != EVC_IDR_NUT)
@@ -1076,7 +1137,7 @@ static void sbac_write_truncate_unary_sym(u32 sym, u32 num_ctx, u32 max_num, EVC
     }
 }
 
-static void sbac_encode_bins_ep_msb(u32 value, int num_bin, EVCE_SBAC *sbac, EVC_BSW *bs)
+static void sbac_encode_bins_ep(u32 value, int num_bin, EVCE_SBAC *sbac, EVC_BSW *bs)
 {
     int bin = 0;
     for(bin = num_bin - 1; bin >= 0; bin--)
@@ -1544,7 +1605,7 @@ void evce_eco_run_length_cc(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int 
 #endif
 }
 
-static void code_positionLastXY(EVC_BSW *bs, int sr_x, int sr_y, int width, int height, int ch_type)
+static void code_positionLastXY(EVC_BSW *bs, int last_x, int last_y, int width, int height, int ch_type)
 {
     EVCE_SBAC *sbac = GET_SBAC_ENC(bs);
     SBAC_CTX_MODEL* cm_x = sbac->ctx.last_sig_coeff_x_prefix + (ch_type == Y_C ? 0 : (sbac->ctx.sps_cm_init_flag == 1 ? NUM_CTX_LAST_SIG_COEFF_LUMA : 11));
@@ -1556,8 +1617,8 @@ static void code_positionLastXY(EVC_BSW *bs, int sr_x, int sr_y, int width, int 
     int blk_offset_x, blk_offset_y, shift_x, shift_y;
     int i, cnt;
 
-    group_idx_x = g_group_idx[sr_x];
-    group_idx_y = g_group_idx[sr_y];
+    group_idx_x = g_group_idx[last_x];
+    group_idx_y = g_group_idx[last_y];
     if (sbac->ctx.sps_cm_init_flag == 1)
     {
         evc_get_ctx_last_pos_xy_para(ch_type, width, height, &blk_offset_x, &blk_offset_y, &shift_x, &shift_y);
@@ -1595,20 +1656,20 @@ static void code_positionLastXY(EVC_BSW *bs, int sr_x, int sr_y, int width, int 
     if (group_idx_x > 3)
     {
         cnt = (group_idx_x - 2) >> 1;
-        sr_x = sr_x - g_min_in_group[group_idx_x];
+        last_x = last_x - g_min_in_group[group_idx_x];
         for (i = cnt - 1; i >= 0; i--)
         {
-            sbac_encode_bin_ep((sr_x >> i) & 1, sbac, bs);
+            sbac_encode_bin_ep((last_x >> i) & 1, sbac, bs);
         }
     }
     // last_sig_coeff_y_suffix
     if (group_idx_y > 3)
     {
         cnt = (group_idx_y - 2) >> 1;
-        sr_y = sr_y - g_min_in_group[group_idx_y];
+        last_y = last_y - g_min_in_group[group_idx_y];
         for (i = cnt - 1; i >= 0; i--)
         {
-            sbac_encode_bin_ep((sr_y >> i) & 1, sbac, bs);
+            sbac_encode_bin_ep((last_y >> i) & 1, sbac, bs);
         }
     }
 }
@@ -1621,8 +1682,8 @@ static void code_coef_remain_exgolomb(EVC_BSW *bs, int symbol, int rparam)
     if (code_number < (g_go_rice_range[rparam] << rparam))
     {
         length = code_number >> rparam;
-        sbac_encode_bins_ep_msb((1 << (length + 1)) - 2, length + 1, sbac, bs);
-        sbac_encode_bins_ep_msb((code_number % (1 << rparam)), rparam, sbac, bs);
+        sbac_encode_bins_ep((1 << (length + 1)) - 2, length + 1, sbac, bs);
+        sbac_encode_bins_ep((code_number % (1 << rparam)), rparam, sbac, bs);
     }
     else
     {
@@ -1632,8 +1693,8 @@ static void code_coef_remain_exgolomb(EVC_BSW *bs, int symbol, int rparam)
         {
             code_number -= (1 << (length++));
         }
-        sbac_encode_bins_ep_msb((1 << (g_go_rice_range[rparam] + length + 1 - rparam)) - 2, g_go_rice_range[rparam] + length + 1 - rparam, sbac, bs);
-        sbac_encode_bins_ep_msb(code_number, length, sbac, bs);
+        sbac_encode_bins_ep((1 << (g_go_rice_range[rparam] + length + 1 - rparam)) - 2, g_go_rice_range[rparam] + length + 1 - rparam, sbac, bs);
+        sbac_encode_bins_ep(code_number, length, sbac, bs);
     }
 }
 
@@ -1650,7 +1711,7 @@ int countNonZeroCoeffs(s16 *pcCoef, int *scan, int uiSize)
     return count;
 }
 
-static void evce_eco_ccA(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num_sig, int ch_type)
+static void evce_eco_adcc(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num_sig, int ch_type)
 {
     int width = 1 << log2_w;
     int height = 1 << log2_h;
@@ -1662,7 +1723,7 @@ static void evce_eco_ccA(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num
     int log2_block_size = min(log2_w, log2_h);
     u16 *scan;
     int scan_pos_last = -1;
-    int sr_x = 0, sr_y = 0;
+    int last_x = 0, last_y = 0;
     int ipos;
     int last_scan_set;
     int rice_param;
@@ -1697,15 +1758,15 @@ static void evce_eco_ccA(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num
 
         if (coef[scan_pos] != 0)
         {
-            sr_y = scan_pos >> log2_w;
-            sr_x = scan_pos - (sr_y << log2_w);
+            last_y = scan_pos >> log2_w;
+            last_x = scan_pos - (last_y << log2_w);
 
             numNonZeroCoefs++;
             last_pos_in_scan = blk_pos;
             last_pos_in_raster_from_scan = scan_pos;
         }
     }
-    code_positionLastXY(bs, sr_x, sr_y, width, height, ch_type);
+    code_positionLastXY(bs, last_x, last_y, width, height, ch_type);
 
     //===== code significance flag =====
     last_scan_set = last_pos_in_scan >> cg_log2_size;
@@ -1837,7 +1898,7 @@ static void evce_eco_ccA(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num
                         }
                     }
                 }
-                sbac_encode_bins_ep_msb(coef_signs_group, num_nz, sbac, bs);
+                sbac_encode_bins_ep(coef_signs_group, num_nz, sbac, bs);
             }
         }
     }
@@ -1889,7 +1950,7 @@ void evce_eco_xcoef(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num_sig,
 {
     if (tool_adcc)
     {
-        evce_eco_ccA(bs, coef, log2_w, log2_h, num_sig, (ch_type == Y_C ? 0 : 1));
+        evce_eco_adcc(bs, coef, log2_w, log2_h, num_sig, (ch_type == Y_C ? 0 : 1));
     }
     else
     {
@@ -2335,14 +2396,14 @@ static void intra_mode_write_trunc_binary(int symbol, int max_symbol, EVCE_SBAC 
 
     if(symbol < val - b)
     {
-        sbac_encode_bins_ep_msb(symbol, threshold, sbac, bs);
+        sbac_encode_bins_ep(symbol, threshold, sbac, bs);
     }
     else
     {
         symbol += val - b;
         assert(symbol < (val << 1));
         assert((symbol >> 1) >= val - b);
-        sbac_encode_bins_ep_msb(symbol, threshold + 1, sbac, bs);
+        sbac_encode_bins_ep(symbol, threshold + 1, sbac, bs);
     }
 }
 
@@ -4410,16 +4471,74 @@ int evce_eco_dra_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps)
     int numBits = p_dra_param->m_dra_descriptor1 + p_dra_param->m_dra_descriptor2;
     for (int i = 0; i < p_dra_param->m_numRanges; i++)
     {
-        evc_bsw_write(bs, p_dra_param->m_intDraScales[i], numBits);
+        evc_bsw_write(bs, p_dra_param->m_dra_scale_value[i], numBits);
     }
 
-    evc_bsw_write(bs, p_dra_param->m_intScaleCbDRA, numBits);
-    evc_bsw_write(bs, p_dra_param->m_intScaleCrDRA, numBits);
-    evc_bsw_write_ue(bs, (u32)p_dra_param->m_baseLumaQP);
+    evc_bsw_write(bs, p_dra_param->m_dra_cb_scale_value, numBits);
+    evc_bsw_write(bs, p_dra_param->m_dra_cr_scale_value, numBits);
+    evc_bsw_write_ue(bs, (u32)p_dra_param->dra_table_idx);
 
     return EVC_OK;
 }
 #endif
+
+#if INTEGR_M53608
+int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps)
+{
+    evc_AlfSliceParam *p_alfSliceParam = (evc_AlfSliceParam *)aps->aps_data;
+    evc_AlfSliceParam alfSliceParam = *p_alfSliceParam;
+
+    evc_bsw_write1(bs, alfSliceParam.enabledFlag[0]); //"alf_slice_enable_flag"
+    u8 alfChromaSignalled = (alfSliceParam.enabledFlag[1] || alfSliceParam.enabledFlag[2]);
+    evc_bsw_write1(bs, alfChromaSignalled); //"alf_chroma_enable_flag"
+    if (alfSliceParam.enabledFlag[0])
+    {
+
+        evc_bsw_write_ue(bs, alfSliceParam.numLumaFilters - 1);
+        evc_bsw_write1(bs, alfSliceParam.lumaFilterType); //  "filter_type_flag"
+
+        if (alfSliceParam.numLumaFilters > 1)
+        {
+            for (int i = 0; i < MAX_NUM_ALF_CLASSES; i++)
+            {
+                evc_bsw_write(bs, (u32)(alfSliceParam.filterCoeffDeltaIdx[i]), evc_tbl_log2[alfSliceParam.numLumaFilters - 1] + 1);
+            }
+        }
+        const int iNumFixedFilterPerClass = 16;
+        {
+            evc_alfGolombEncode(bs, alfSliceParam.fixedFilterPattern, 0);
+
+            if (alfSliceParam.fixedFilterPattern == 2)
+            {
+                for (int classIdx = 0; classIdx < MAX_NUM_ALF_CLASSES; classIdx++)
+                {
+                    evc_bsw_write1(bs, alfSliceParam.fixedFilterUsageFlag[classIdx] ? 1 : 0); // "fixed_filter_flag"
+                }
+            }
+            if (alfSliceParam.fixedFilterPattern > 0)
+            {
+                for (int classIdx = 0; classIdx < MAX_NUM_ALF_CLASSES; classIdx++)
+                {
+                    if (alfSliceParam.fixedFilterUsageFlag[classIdx] > 0)
+                    {
+                        evc_bsw_write(bs, alfSliceParam.fixedFilterIdx[classIdx], evc_tbl_log2[iNumFixedFilterPerClass - 1] + 1);
+                    }
+                }
+            }
+        }
+
+        evce_eco_alf_filter(bs, alfSliceParam, FALSE);
+    }
+    if (alfChromaSignalled)
+    {
+        {
+            evce_eco_alf_filter(bs, alfSliceParam, TRUE);
+        }
+    }
+    return EVC_OK;
+}
+
+#else
 #if M52291_HDR_DRA
 int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps)
 {
@@ -4433,44 +4552,90 @@ int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS * aps)
 #endif
 
     evc_bsw_write1(bs, alfSliceParam.enabledFlag[0]); //"alf_slice_enable_flag"
+#if !M53608_ALF_5
     if (!alfSliceParam.enabledFlag[0])
     {
         return 0;
     }
-
+#endif
+#if M53608_ALF_14
+    u8 alfChromaSignalled = (alfSliceParam.enabledFlag[1] || alfSliceParam.enabledFlag[2]);
+    evc_bsw_write1(bs, alfChromaSignalled); //"alf_chroma_enable_flag"
+#else
     const int alfChromaIdc = alfSliceParam.enabledFlag[1] * 2 + alfSliceParam.enabledFlag[2];
     evce_truncatedUnaryEqProb(bs, alfChromaIdc, 3);
+#endif
+#if M53608_ALF_5
+    if (alfSliceParam.enabledFlag[0])
+#endif
     {
+#if M53608_ALF_3
+        evc_bsw_write_ue(bs, alfSliceParam.numLumaFilters - 1);
+#else
         evce_xWriteTruncBinCode(bs, alfSliceParam.numLumaFilters - 1, MAX_NUM_ALF_CLASSES);
+#endif
+#if M53608_ALF_10
+        evc_bsw_write1(bs, alfSliceParam.lumaFilterType); //  "filter_type_flag"
+#else
         evc_bsw_write1(bs, !alfSliceParam.lumaFilterType); //  "filter_type_flag"
+#endif
 
         if (alfSliceParam.numLumaFilters > 1)
         {
             for (int i = 0; i < MAX_NUM_ALF_CLASSES; i++)
             {
+#if M53608_ALF_3
+                evc_bsw_write(bs, (u32)(alfSliceParam.filterCoeffDeltaIdx[i]), evc_tbl_log2[alfSliceParam.numLumaFilters - 1] + 1);
+#else
                 evce_xWriteTruncBinCode(bs, (u32)(alfSliceParam.filterCoeffDeltaIdx[i]), alfSliceParam.numLumaFilters);  //filter_coeff_delta[i]
+#endif
             }
         }
-
+#if !M53608_ALF_6 
         char codetab_pred[3] = { 1, 0, 2 };
+#endif
         const int iNumFixedFilterPerClass = 16;
         {
+#if M53608_ALF_6 
+            evc_alfGolombEncode(bs, alfSliceParam.fixedFilterPattern, 0);
+#else
             evc_alfGolombEncode(bs, codetab_pred[alfSliceParam.fixedFilterPattern], 0);
+#endif
 
             if (alfSliceParam.fixedFilterPattern == 2)
             {
                 for (int classIdx = 0; classIdx < MAX_NUM_ALF_CLASSES; classIdx++)
                 {
+#if M53608_ALF_7
+                    evc_bsw_write1(bs, alfSliceParam.fixedFilterUsageFlag[classIdx] ? 1 : 0); // "fixed_filter_flag"
+#else
                     evc_bsw_write1(bs, alfSliceParam.fixedFilterIdx[classIdx] > 0 ? 1 : 0); // "fixed_filter_flag"
+#endif
                 }
             }
             if (alfSliceParam.fixedFilterPattern > 0)
             {
                 for (int classIdx = 0; classIdx < MAX_NUM_ALF_CLASSES; classIdx++)
                 {
+#if M53608_ALF_7
+                    if (alfSliceParam.fixedFilterUsageFlag[classIdx] > 0)
+#else
                     if (alfSliceParam.fixedFilterIdx[classIdx] > 0)
+#endif
                     {
+#if M53608_ALF_3
+#if M53608_ALF_7
+                        evc_bsw_write(bs, alfSliceParam.fixedFilterIdx[classIdx], evc_tbl_log2[iNumFixedFilterPerClass - 1] + 1);
+#else
+                        evc_bsw_write(bs, alfSliceParam.fixedFilterIdx[classIdx] - 1, evc_tbl_log2[iNumFixedFilterPerClass - 1] + 1);
+#endif
+#else
+#if M53608_ALF_7
+                        evce_xWriteTruncBinCode(bs, alfSliceParam.fixedFilterIdx[classIdx], iNumFixedFilterPerClass);
+#else
                         evce_xWriteTruncBinCode(bs, alfSliceParam.fixedFilterIdx[classIdx] - 1, iNumFixedFilterPerClass);
+#endif
+#endif
                     }
                 }
             }
@@ -4478,8 +4643,11 @@ int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS * aps)
 
         evce_eco_alf_filter(bs, alfSliceParam, FALSE);
     }
-
+#if M53608_ALF_14
+    if (alfChromaSignalled)
+#else
     if (alfChromaIdc)
+#endif
     {
         {
             evce_eco_alf_filter(bs, alfSliceParam, TRUE);
@@ -4488,7 +4656,7 @@ int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS * aps)
 
     return EVC_OK;
 }
-
+#endif
 int evce_eco_alf_sh_param(EVC_BSW * bs, EVC_SH * sh)
 {
     evc_AlfSliceParam alfSliceParam = sh->alf_sh_param;
