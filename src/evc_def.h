@@ -37,12 +37,14 @@
 #include "evc.h"
 #include "evc_port.h"
 
-#define INTEGR_M53608                              1
+#define M53744                                        1
+
+#define INTEGR_M53608                                 1
 #if INTEGR_M53608
-#define M53608_DRA                                  1
+#define M53608_DRA                                    1
 
 #define M53608_DB_1                                   1    // Change of chroma (tc+1) for bitdepth, clean up for luma bitdepth.
-#define M53608_DB_2                                    1   // modifiy BS during BS derivation process instead of overwrite after derivation
+#define M53608_DB_2                                   1   // modifiy BS during BS derivation process instead of overwrite after derivation
 
 #define M53608_ALF_1                                  1  // SW bug-fix in Cb/Cr filtering order
 #define M53608_ALF_2                                  1  // Optimization of ALF classifier scale
@@ -267,7 +269,9 @@
 /* DMVR (START) */
 #define USE_MR_SAD                         0
 #define MRSAD_FIX                          1
-#define EARLY_TERMINATION_FIX              0
+#if M53744
+#define EARLY_TERMINATION_FIX              1
+#endif
 #define DMVR_SUBCU                         1
 #if DMVR_SUBCU
 #define DMVR_SUBCU_SIZE                    16
@@ -1329,7 +1333,7 @@ typedef struct _EVC_SPS
     int              log2_ref_pic_gap_length;
     int              tool_adcc;
     int              log2_max_pic_order_cnt_lsb_minus4;
-    int              max_dec_pic_buffering_minus1;
+    int              sps_max_dec_pic_buffering_minus1;
     int              max_num_ref_pics;
     u8               long_term_ref_pics_flag;
     /* HLS_RPL  */
