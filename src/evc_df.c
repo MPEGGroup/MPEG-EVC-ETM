@@ -747,10 +747,6 @@ static const u8 deblock_line_apply(pel *p, pel* q, u8 alpha, u8 beta)
 static void deblock_line_chroma_strong(pel* x, pel* y, pel* x_out)
 {
     x_out[0] = (2 * x[1] + x[0] + y[1] + 2) >> 2;
-#if DB_SPEC_ALIGNMENT1
-    x_out[1] = x[1];
-    x_out[2] = x[2];
-#endif
 }
 
 static void deblock_line_luma_strong(pel* x, pel* y, pel* x_out)
