@@ -78,6 +78,110 @@ void evc_bsw_deinit(EVC_BSW * bs)
     bs->fn_flush(bs);
 }
 
+
+#if TRACE_HLS
+void evc_bsw_write_ue_trace(EVC_BSW * bs, u32 val, char * name)
+{
+    int   len_i, len_c, info, nn;
+    u32  code;
+
+    if (name)
+    {
+        EVC_TRACE_STR(name);
+        EVC_TRACE_STR(" ");
+        EVC_TRACE_INT(val);
+        EVC_TRACE_STR("\n");
+    }
+
+    nn = ((val + 1) >> 1);
+    for (len_i = 0; len_i < 16 && nn != 0; len_i++)
+    {
+        nn >>= 1;
+    }
+
+    info = val + 1 - (1 << len_i);
+    code = (1 << len_i) | ((info)& ((1 << len_i) - 1));
+
+    len_c = (len_i << 1) + 1;
+
+    evc_bsw_write_trace(bs, code, 0, len_c);
+}
+
+int evc_bsw_write_trace(EVC_BSW * bs, u32 val, char * name, int len) /* len(1 ~ 32) */
+{
+    int leftbits;
+
+    evc_assert(bs);
+    
+    if (name)
+    {
+        EVC_TRACE_STR(name);
+        EVC_TRACE_STR(" ");
+        EVC_TRACE_INT(val);
+        EVC_TRACE_STR("\n");
+    }
+
+    leftbits = bs->leftbits;
+    val <<= (32 - len);
+    bs->code |= (val >> (32 - leftbits));
+
+    if (len < leftbits)
+    {
+        bs->leftbits -= len;
+    }
+    else
+    {
+        evc_assert_rv(bs->cur + 4 <= bs->end, -1);
+
+        bs->leftbits = 0;
+        bs->fn_flush(bs);
+        bs->code = (leftbits < 32 ? val << leftbits : 0);
+        bs->leftbits = 32 - (len - leftbits);
+    }
+
+    return 0;
+}
+
+int evc_bsw_write1_trace(EVC_BSW * bs, int val, char * name)
+{
+    evc_assert(bs);
+
+    if (name)
+    {
+        EVC_TRACE_STR(name);
+        EVC_TRACE_STR(" ");
+        EVC_TRACE_INT(val);
+        EVC_TRACE_STR("\n");
+    }
+
+    bs->leftbits--;
+    bs->code |= ((val & 0x1) << bs->leftbits);
+
+    if (bs->leftbits == 0)
+    {
+        evc_assert_rv(bs->cur <= bs->end, -1);
+        bs->fn_flush(bs);
+
+        bs->code = 0;
+        bs->leftbits = 32;
+    }
+
+    return 0;
+}
+
+void evc_bsw_write_se_trace(EVC_BSW * bs, int val, char * name)
+{
+    if (name)
+    {
+        EVC_TRACE_STR(name);
+        EVC_TRACE_STR(" ");
+        EVC_TRACE_INT(val);
+        EVC_TRACE_STR("\n");
+    }
+
+    evc_bsw_write_ue_trace(bs, val <= 0 ? (-val * 2) : (val * 2 - 1), 0);
+}
+#else
 int evc_bsw_write1(EVC_BSW * bs, int val)
 {
     evc_assert(bs);
@@ -85,7 +189,7 @@ int evc_bsw_write1(EVC_BSW * bs, int val)
     bs->leftbits--;
     bs->code |= ((val & 0x1) << bs->leftbits);
 
-    if(bs->leftbits == 0)
+    if (bs->leftbits == 0)
     {
         evc_assert_rv(bs->cur <= bs->end, -1);
         bs->fn_flush(bs);
@@ -147,3 +251,4 @@ void evc_bsw_write_se(EVC_BSW * bs, int val)
 {
     evc_bsw_write_ue(bs, val <= 0 ? (-val * 2) : (val * 2 - 1));
 }
+#endif

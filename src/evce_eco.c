@@ -47,35 +47,45 @@
 #endif
 #pragma warning(disable:4018)
 
-int evce_eco_nalu(EVC_BSW * bs, EVC_NALU nalu)
+int evce_eco_nalu(EVC_BSW * bs, EVC_NALU * nalu)
 {
-    evc_bsw_write(bs, nalu.nal_unit_size, 32);
-    evc_bsw_write(bs, nalu.forbidden_zero_bit, 1);
-    evc_bsw_write(bs, nalu.nal_unit_type_plus1, 6);
-    evc_bsw_write(bs, nalu.nuh_temporal_id, 3);
-    evc_bsw_write(bs, nalu.nuh_reserved_zero_5bits, 5);
-    evc_bsw_write(bs, nalu.nuh_extension_flag, 1);
+#if TRACE_HLS
+    evc_bsw_write_trace(bs, nalu->nal_unit_size, 0, 32);
+#else
+    evc_bsw_write(bs, nalu->nal_unit_size, 32);
+#endif
+    evc_bsw_write(bs, nalu->forbidden_zero_bit, 1);
+    evc_bsw_write(bs, nalu->nal_unit_type_plus1, 6);
+    evc_bsw_write(bs, nalu->nuh_temporal_id, 3);
+    evc_bsw_write(bs, nalu->nuh_reserved_zero_5bits, 5);
+    evc_bsw_write(bs, nalu->nuh_extension_flag, 1);
     return EVC_OK;
 }
 
 int evce_eco_rlp(EVC_BSW * bs, EVC_RPL * rpl)
 {
-    evc_bsw_write_ue(bs, (u32) rpl->ref_pic_num);
+    u32 delta_poc_st, strp_entry_sign_flag;
+    evc_bsw_write_ue(bs, rpl->ref_pic_num);
     if (rpl->ref_pic_num > 0)
     {
-        evc_bsw_write_ue(bs, (u32)abs(rpl->ref_pics[0]));
+        delta_poc_st = (u32)abs(rpl->ref_pics[0]);
+        evc_bsw_write_ue(bs, delta_poc_st);
         if (rpl->ref_pics[0] != 0)
         {
-            evc_bsw_write1(bs, rpl->ref_pics[0] < 0);
+            strp_entry_sign_flag = rpl->ref_pics[0] < 0;
+            evc_bsw_write1(bs, strp_entry_sign_flag);
         }
-    }
-    for (int i = 1; i < rpl->ref_pic_num; ++i)
-    {
-        int deltaRefPic = rpl->ref_pics[i] - rpl->ref_pics[i - 1];
-        evc_bsw_write_ue(bs, (u32)abs(deltaRefPic));
-        if (deltaRefPic != 0)
+
+        for (int i = 1; i < rpl->ref_pic_num; ++i)
         {
-            evc_bsw_write1(bs, deltaRefPic < 0);
+            delta_poc_st = (u32)abs(rpl->ref_pics[i] - rpl->ref_pics[i - 1]);
+            strp_entry_sign_flag = rpl->ref_pics[i - 1] > rpl->ref_pics[i];
+
+            evc_bsw_write_ue(bs, delta_poc_st);
+            if (delta_poc_st != 0)
+            {                
+                evc_bsw_write1(bs, strp_entry_sign_flag);
+            }
         }
     }
 
@@ -173,42 +183,46 @@ int evce_eco_vui(EVC_BSW * bs)
 
 int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
 {
-    evc_bsw_write_ue(bs, (u32)sps->sps_seq_parameter_set_id);
-    evc_bsw_write(bs, (u32)sps->profile_idc, 8);
-    evc_bsw_write(bs, (u32)sps->level_idc, 8);
-    evc_bsw_write(bs, (u32)sps->toolset_idc_h, 32);
-    evc_bsw_write(bs, (u32)sps->toolset_idc_l, 32);
-    evc_bsw_write_ue(bs, (u32)sps->chroma_format_idc);
-    evc_bsw_write_ue(bs, (u32)sps->pic_width_in_luma_samples);
-    evc_bsw_write_ue(bs, (u32)sps->pic_height_in_luma_samples);
-    evc_bsw_write_ue(bs, (u32)sps->bit_depth_luma_minus8);
-    evc_bsw_write_ue(bs, (u32)sps->bit_depth_chroma_minus8);
-    evc_bsw_write1(bs, (u32)sps->sps_btt_flag);
+#if TRACE_HLS
+    EVC_TRACE_STR("***********************************\n");
+    EVC_TRACE_STR("************ SPS Start ************\n");
+#endif
+    evc_bsw_write_ue(bs, sps->sps_seq_parameter_set_id);
+    evc_bsw_write(bs, sps->profile_idc, 8);
+    evc_bsw_write(bs, sps->level_idc, 8);
+    evc_bsw_write(bs, sps->toolset_idc_h, 32);
+    evc_bsw_write(bs, sps->toolset_idc_l, 32);
+    evc_bsw_write_ue(bs, sps->chroma_format_idc);
+    evc_bsw_write_ue(bs, sps->pic_width_in_luma_samples);
+    evc_bsw_write_ue(bs, sps->pic_height_in_luma_samples);
+    evc_bsw_write_ue(bs, sps->bit_depth_luma_minus8);
+    evc_bsw_write_ue(bs, sps->bit_depth_chroma_minus8);
+    evc_bsw_write1(bs, sps->sps_btt_flag);
     if (sps->sps_btt_flag)
     {
 #if M52166_PARTITION
-        evc_bsw_write_ue(bs, (u32)sps->log2_ctu_size_minus5);
-        evc_bsw_write_ue(bs, (u32)sps->log2_min_cb_size_minus2);
-        evc_bsw_write_ue(bs, (u32)sps->log2_diff_ctu_max_14_cb_size);
-        evc_bsw_write_ue(bs, (u32)sps->log2_diff_ctu_max_tt_cb_size);
-        evc_bsw_write_ue(bs, (u32)sps->log2_diff_min_cb_min_tt_cb_size_minus2);
+        evc_bsw_write_ue(bs, sps->log2_ctu_size_minus5);
+        evc_bsw_write_ue(bs, sps->log2_min_cb_size_minus2);
+        evc_bsw_write_ue(bs, sps->log2_diff_ctu_max_14_cb_size);
+        evc_bsw_write_ue(bs, sps->log2_diff_ctu_max_tt_cb_size);
+        evc_bsw_write_ue(bs, sps->log2_diff_min_cb_min_tt_cb_size_minus2);
 #else
-        evc_bsw_write_ue(bs, (u32)sps->log2_ctu_size_minus2);
-        evc_bsw_write_ue(bs, (u32)sps->log2_diff_ctu_max_11_cb_size);
-        evc_bsw_write_ue(bs, (u32)sps->log2_diff_max_11_min_11_cb_size);
-        evc_bsw_write_ue(bs, (u32)sps->log2_diff_max_11_max_12_cb_size);
-        evc_bsw_write_ue(bs, (u32)sps->log2_diff_min_11_min_12_cb_size_minus1);
-        evc_bsw_write_ue(bs, (u32)sps->log2_diff_max_12_max_14_cb_size_minus1);
-        evc_bsw_write_ue(bs, (u32)sps->log2_diff_min_12_min_14_cb_size_minus1);
-        evc_bsw_write_ue(bs, (u32)sps->log2_diff_max_11_max_tt_cb_size_minus1);
-        evc_bsw_write_ue(bs, (u32)sps->log2_diff_min_11_min_tt_cb_size_minus2);
+        evc_bsw_write_ue(bs, sps->log2_ctu_size_minus2);
+        evc_bsw_write_ue(bs, sps->log2_diff_ctu_max_11_cb_size);
+        evc_bsw_write_ue(bs, sps->log2_diff_max_11_min_11_cb_size);
+        evc_bsw_write_ue(bs, sps->log2_diff_max_11_max_12_cb_size);
+        evc_bsw_write_ue(bs, sps->log2_diff_min_11_min_12_cb_size_minus1);
+        evc_bsw_write_ue(bs, sps->log2_diff_max_12_max_14_cb_size_minus1);
+        evc_bsw_write_ue(bs, sps->log2_diff_min_12_min_14_cb_size_minus1);
+        evc_bsw_write_ue(bs, sps->log2_diff_max_11_max_tt_cb_size_minus1);
+        evc_bsw_write_ue(bs, sps->log2_diff_min_11_min_tt_cb_size_minus2);
 #endif
     }
-    evc_bsw_write1(bs, (u32)sps->sps_suco_flag);
+    evc_bsw_write1(bs, sps->sps_suco_flag);
     if (sps->sps_suco_flag)
     {
-        evc_bsw_write_ue(bs, (u32)sps->log2_diff_ctu_size_max_suco_cb_size);
-        evc_bsw_write_ue(bs, (u32)sps->log2_diff_max_suco_min_suco_cb_size);
+        evc_bsw_write_ue(bs, sps->log2_diff_ctu_size_max_suco_cb_size);
+        evc_bsw_write_ue(bs, sps->log2_diff_max_suco_min_suco_cb_size);
     }
 
     evc_bsw_write1(bs, sps->tool_admvp);
@@ -229,7 +243,7 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
         evc_bsw_write1(bs, sps->ibc_flag);
         if (sps->ibc_flag)
         {
-            evc_bsw_write_ue(bs, (u32)(sps->ibc_log_max_size - 2));
+            evc_bsw_write_ue(bs, (sps->ibc_log_max_size - 2));
         }
     }
 
@@ -266,38 +280,38 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
 #endif
     if (sps->tool_pocs)
     {
-        evc_bsw_write_ue(bs, (u32)sps->log2_max_pic_order_cnt_lsb_minus4);
+        evc_bsw_write_ue(bs, sps->log2_max_pic_order_cnt_lsb_minus4);
     }
     if (!sps->tool_rpl || !sps->tool_pocs)
     {
-        evc_bsw_write_ue(bs, (u32)sps->log2_sub_gop_length);
+        evc_bsw_write_ue(bs, sps->log2_sub_gop_length);
         if (sps->log2_sub_gop_length == 0)
         {
             evc_bsw_write_ue(bs, sps->log2_ref_pic_gap_length);
         }
     }
 #if !M53744
-    evc_bsw_write_ue(bs, (u32)sps->sps_max_dec_pic_buffering_minus1);
+    evc_bsw_write_ue(bs, sps->sps_max_dec_pic_buffering_minus1);
 #endif
     if (!sps->tool_rpl)
     {
-        evc_bsw_write_ue(bs, (u32)sps->max_num_ref_pics);
+        evc_bsw_write_ue(bs, sps->max_num_ref_pics);
     }
     else
     {
 #if M53744
-        evc_bsw_write_ue(bs, (u32)sps->sps_max_dec_pic_buffering_minus1);
+        evc_bsw_write_ue(bs, sps->sps_max_dec_pic_buffering_minus1);
 #endif
         evc_bsw_write1(bs, sps->long_term_ref_pics_flag);
         evc_bsw_write1(bs, sps->rpl1_same_as_rpl0_flag);
 
-        evc_bsw_write_ue(bs, (u32)sps->num_ref_pic_lists_in_sps0);
+        evc_bsw_write_ue(bs, sps->num_ref_pic_lists_in_sps0);
         for (int i = 0; i < sps->num_ref_pic_lists_in_sps0; ++i)
             evce_eco_rlp(bs, &sps->rpls_l0[i]);
 
         if (!sps->rpl1_same_as_rpl0_flag)
         {
-                evc_bsw_write_ue(bs, (u32)sps->num_ref_pic_lists_in_sps1);
+                evc_bsw_write_ue(bs, sps->num_ref_pic_lists_in_sps1);
                 for (int i = 0; i < sps->num_ref_pic_lists_in_sps1; ++i)
                 evce_eco_rlp(bs, &sps->rpls_l1[i]);
         }
@@ -306,10 +320,10 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
     evc_bsw_write1(bs, sps->picture_cropping_flag);
     if (sps->picture_cropping_flag)
     {
-        evc_bsw_write_ue(bs, (u32)sps->picture_crop_left_offset);
-        evc_bsw_write_ue(bs, (u32)sps->picture_crop_right_offset);
-        evc_bsw_write_ue(bs, (u32)sps->picture_crop_top_offset);
-        evc_bsw_write_ue(bs, (u32)sps->picture_crop_bottom_offset);
+        evc_bsw_write_ue(bs, sps->picture_crop_left_offset);
+        evc_bsw_write_ue(bs, sps->picture_crop_right_offset);
+        evc_bsw_write_ue(bs, sps->picture_crop_top_offset);
+        evc_bsw_write_ue(bs, sps->picture_crop_bottom_offset);
     }
 
 #if M53744
@@ -321,9 +335,11 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
         {
             evc_bsw_write1(bs, sps->chroma_qp_table_struct.same_qp_table_for_chroma);
             evc_bsw_write1(bs, sps->chroma_qp_table_struct.global_offset_flag);
-            for (int i = 0; i < (sps->chroma_qp_table_struct.same_qp_table_for_chroma ? 1 : 2); i++) {
+            for (int i = 0; i < (sps->chroma_qp_table_struct.same_qp_table_for_chroma ? 1 : 2); i++)
+            {
                 evc_bsw_write_ue(bs, (u32)sps->chroma_qp_table_struct.num_points_in_qp_table_minus1[i]);
-                for (int j = 0; j <= sps->chroma_qp_table_struct.num_points_in_qp_table_minus1[i]; j++) {
+                for (int j = 0; j <= sps->chroma_qp_table_struct.num_points_in_qp_table_minus1[i]; j++)
+                {
                     evc_bsw_write(bs, sps->chroma_qp_table_struct.delta_qp_in_val_minus1[i][j], 6);
                     evc_bsw_write_se(bs, (u32)sps->chroma_qp_table_struct.delta_qp_out_val[i][j]);
                 }
@@ -338,46 +354,53 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
 #else
         evce_eco_vui(bs); //To be implemented
 #endif
-
+    u32 t0 = 0;
     while(!EVC_BSW_IS_BYTE_ALIGN(bs))
     {
-        evc_bsw_write1(bs, 0);
+        evc_bsw_write1(bs, t0);
     }
-
+#if TRACE_HLS
+    EVC_TRACE_STR("************ SPS End   ************\n");
+    EVC_TRACE_STR("***********************************\n");
+#endif
     return EVC_OK;
 }
 
 int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps)
 {
-    evc_bsw_write_ue(bs, (u32)pps->pps_pic_parameter_set_id);
-    evc_bsw_write_ue(bs, (u32)pps->pps_seq_parameter_set_id);
-    evc_bsw_write_ue(bs, (u32)pps->num_ref_idx_default_active_minus1[0]);
-    evc_bsw_write_ue(bs, (u32)pps->num_ref_idx_default_active_minus1[1]);
-    evc_bsw_write_ue(bs, (u32)pps->additional_lt_poc_lsb_len);
+#if TRACE_HLS
+    EVC_TRACE_STR("***********************************\n");
+    EVC_TRACE_STR("************ PPS Start ************\n");
+#endif
+    evc_bsw_write_ue(bs, pps->pps_pic_parameter_set_id);
+    evc_bsw_write_ue(bs, pps->pps_seq_parameter_set_id);
+    evc_bsw_write_ue(bs, pps->num_ref_idx_default_active_minus1[0]);
+    evc_bsw_write_ue(bs, pps->num_ref_idx_default_active_minus1[1]);
+    evc_bsw_write_ue(bs, pps->additional_lt_poc_lsb_len);
     evc_bsw_write1(bs, pps->rpl1_idx_present_flag);
     evc_bsw_write1(bs, pps->single_tile_in_pic_flag);
 
     if (!pps->single_tile_in_pic_flag)
     {
-        evc_bsw_write_ue(bs, (u32)pps->num_tile_columns_minus1);
-        evc_bsw_write_ue(bs, (u32)pps->num_tile_rows_minus1);
+        evc_bsw_write_ue(bs, pps->num_tile_columns_minus1);
+        evc_bsw_write_ue(bs, pps->num_tile_rows_minus1);
         evc_bsw_write1(bs, pps->uniform_tile_spacing_flag);
         if (!pps->uniform_tile_spacing_flag)
         {
             for (int i = 0; i < pps->num_tile_columns_minus1; ++i)
             {
-                evc_bsw_write_ue(bs, (u32)pps->tile_column_width_minus1[i]);
+                evc_bsw_write_ue(bs, pps->tile_column_width_minus1[i]);
             }
             for (int i = 0; i < pps->num_tile_rows_minus1; ++i)
             {
-                evc_bsw_write_ue(bs, (u32)pps->tile_row_height_minus1[i]);
+                evc_bsw_write_ue(bs, pps->tile_row_height_minus1[i]);
             }
         }
         evc_bsw_write1(bs, pps->loop_filter_across_tiles_enabled_flag);
-        evc_bsw_write_ue(bs, (u32)pps->tile_offset_lens_minus1);
+        evc_bsw_write_ue(bs, pps->tile_offset_lens_minus1);
     }
 
-    evc_bsw_write_ue(bs, (u32)pps->tile_id_len_minus1);
+    evc_bsw_write_ue(bs, pps->tile_id_len_minus1);
     evc_bsw_write1(bs, pps->explicit_tile_id_flag);
     if (pps->explicit_tile_id_flag)
     {
@@ -385,7 +408,7 @@ int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps)
         {
             for (int j = 0; j <= pps->num_tile_columns_minus1; ++j)
             {
-                evc_bsw_write(bs, (u32)pps->tile_id_val[i][j], pps->tile_id_len_minus1 + 1);
+                evc_bsw_write(bs, pps->tile_id_val[i][j], pps->tile_id_len_minus1 + 1);
             }
         }
     }
@@ -410,25 +433,38 @@ int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps)
     evc_bsw_write1(bs, pps->constrained_intra_pred_flag); 
 
 #if DQP
-    evc_bsw_write1(bs, pps->cu_qp_delta_enabled_flag != 0 ? 1 : 0);
+
+    evc_bsw_write1(bs, pps->cu_qp_delta_enabled_flag);
     if (pps->cu_qp_delta_enabled_flag)
     {
         evc_bsw_write_ue(bs, pps->cu_qp_delta_area - 6);
     }
 #endif
-
+    u32 t0 = 0;
     while (!EVC_BSW_IS_BYTE_ALIGN(bs))
     {
-        evc_bsw_write1(bs, 0);
+        evc_bsw_write1(bs, t0);
     }
-
+#if TRACE_HLS    
+    EVC_TRACE_STR("************ PPS End   ************\n");
+    EVC_TRACE_STR("***********************************\n");
+#endif
     return EVC_OK;
 }
 #if M52291_HDR_DRA
 int evce_eco_aps_gen(EVC_BSW * bs, EVC_APS_GEN * aps)
 {
+#if TRACE_HLS        
+    EVC_TRACE_STR("***********************************\n");
+    EVC_TRACE_STR("************ APS Start ************\n");
+    u32 aps_id = aps->aps_id;
+    u32 aps_type_id = aps->aps_type_id;
+    evc_bsw_write(bs, aps_id, APS_MAX_NUM_IN_BITS); // signal APS ID
+    evc_bsw_write(bs, aps_type_id, APS_TYPE_ID_BITS); // signal APS TYPE ID
+#else
     evc_bsw_write(bs, aps->aps_id, APS_MAX_NUM_IN_BITS); // signal APS ID
     evc_bsw_write(bs, aps->aps_type_id, APS_TYPE_ID_BITS); // signal APS TYPE ID
+#endif
     if (aps->aps_type_id == 0)
     {
         EVC_APS local_aps;
@@ -454,11 +490,15 @@ int evce_eco_aps_gen(EVC_BSW * bs, EVC_APS_GEN * aps)
         }
     }
 
+    u32 t0 = 0;
     while (!EVC_BSW_IS_BYTE_ALIGN(bs))
     {
-        evc_bsw_write1(bs, 0);
+        evc_bsw_write1(bs, t0);
     }
-
+#if TRACE_HLS    
+    EVC_TRACE_STR("************ APS End   ************\n");
+    EVC_TRACE_STR("***********************************\n");
+#endif
     return EVC_OK;
 }
 #else
@@ -493,6 +533,10 @@ int evce_eco_aps(EVC_BSW * bs, EVC_APS * aps)
 
 int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut)
 {
+#if TRACE_HLS    
+    EVC_TRACE_STR("***********************************\n");
+    EVC_TRACE_STR("************ SH  Start ************\n");    
+#endif
     int NumTilesInSlice;
 #if EVC_TILE_SUPPORT
     if (!sh->arbitrary_slice_flag)
@@ -656,10 +700,12 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
         evc_bsw_write1(bs, sh->num_ref_idx_active_override_flag);
         if (sh->num_ref_idx_active_override_flag)
         {
-            evc_bsw_write_ue(bs, (u32)(sh->rpl_l0).ref_pic_active_num - 1);
+            u32 num_ref_idx_active_minus1 = sh->rpl_l0.ref_pic_active_num - 1;
+            evc_bsw_write_ue(bs, num_ref_idx_active_minus1);
             if (sh->slice_type == SLICE_B)
             {
-                evc_bsw_write_ue(bs, (u32)(sh->rpl_l1).ref_pic_active_num - 1);
+                num_ref_idx_active_minus1 = sh->rpl_l1.ref_pic_active_num - 1;
+                evc_bsw_write_ue(bs, num_ref_idx_active_minus1);
             }
         }
 
@@ -705,11 +751,15 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
     }
 
     /* byte align */
+    u32 t0 = 0;
     while(!EVC_BSW_IS_BYTE_ALIGN(bs))
     {
-        evc_bsw_write1(bs, 0);
+        evc_bsw_write1(bs, t0);
     }
-
+#if TRACE_HLS    
+    EVC_TRACE_STR("************ SH  End   ************\n");
+    EVC_TRACE_STR("***********************************\n");
+#endif
     return EVC_OK;
 }
 
@@ -717,7 +767,7 @@ int evce_eco_signature(EVCE_CTX * ctx, EVC_BSW * bs)
 {
     if (ctx->param.use_pic_sign)
     {
-        int i, ret, hash_size = 16;
+        int i, ret, payload_size = 16;
         u8 pic_sign[16];
 
         /* get picture signature */
@@ -737,12 +787,13 @@ int evce_eco_signature(EVCE_CTX * ctx, EVC_BSW * bs)
             evc_assert_rv(ret == EVC_OK, ret);
         }
 #endif
-        evc_bsw_write(bs, EVC_UD_PIC_SIGNATURE, 8);
-        evc_bsw_write(bs, hash_size, 8);
+        u32 payload_type = EVC_UD_PIC_SIGNATURE;
+        evc_bsw_write(bs, payload_type, 8);
+        evc_bsw_write(bs, payload_size, 8);
 
-        for (i = 0; i < hash_size; i++)
+        for (i = 0; i < payload_size; i++)
         {
-                evc_bsw_write(bs, pic_sign[i], 8);
+            evc_bsw_write(bs, pic_sign[i], 8);
         }
     }
 
@@ -1015,13 +1066,21 @@ static void sbac_put_byte(u8 writing_byte, EVCE_SBAC *sbac, EVC_BSW *bs)
                 if(sbac->is_bitcount)
                     evc_bsw_write_est(sbac, 0x00, 8);
                 else
+#if TRACE_HLS
+                    evc_bsw_write_trace(bs, 0x00, 0, 8);
+#else
                     evc_bsw_write(bs, 0x00, 8);
+#endif
                 sbac->stacked_zero--;
             }
             if(sbac->is_bitcount)
                 evc_bsw_write_est(sbac, sbac->pending_byte, 8);
             else
+#if TRACE_HLS
+                evc_bsw_write_trace(bs, sbac->pending_byte, 0, 8);
+#else
                 evc_bsw_write(bs, sbac->pending_byte, 8);
+#endif
         }
     }
     sbac->pending_byte = writing_byte;
@@ -1386,22 +1445,38 @@ void evce_sbac_finish(EVC_BSW *bs)
 
     while(sbac->stacked_zero > 0)
     {
+#if TRACE_HLS
+        evc_bsw_write_trace(bs, 0x00, 0, 8);
+#else
         evc_bsw_write(bs, 0x00, 8);
+#endif
         sbac->stacked_zero--;
     }
     if(sbac->pending_byte != 0)
     {
+#if TRACE_HLS
+        evc_bsw_write_trace(bs, sbac->pending_byte, 0, 8);
+#else
         evc_bsw_write(bs, sbac->pending_byte, 8);
+#endif
     }
     else
     {
         if(sbac->code_bits < 4)
         {
+#if TRACE_HLS
+            evc_bsw_write_trace(bs, 0, 0, 4 - sbac->code_bits);
+#else
             evc_bsw_write(bs, 0, 4 - sbac->code_bits);
+#endif
 
             while(!EVC_BSW_IS_BYTE_ALIGN(bs))
             {
+#if TRACE_HLS
+                evc_bsw_write1_trace(bs, 0, 0);
+#else
                 evc_bsw_write1(bs, 0);
+#endif
             }
         }
     }
@@ -3356,7 +3431,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
     EVC_TRACE_INT(cuh);
 #if M50761_CHROMA_NOT_SPLIT
 #if ENC_DEC_TRACE
-    if (ctx->sh.slice_type != SLICE_I)
+    if (ctx->sh.slice_type != SLICE_I && ctx->sps.sps_btt_flag)
     {
 #if EVC_CONCURENCY
         EVC_TRACE_STR("tree status ");
@@ -4285,21 +4360,37 @@ void evc_alfGolombEncode(EVC_BSW * bs, int coeff, int k)
 
     for(int i = 0; i < q; i++)
     {
+#if TRACE_HLS
+        evc_bsw_write1_trace(bs, 1, 0);
+#else
         evc_bsw_write1(bs, 1);
+#endif
     }
+#if TRACE_HLS
+    evc_bsw_write1_trace(bs, 0, 0);
+#else
     evc_bsw_write1(bs, 0);
+#endif
     // write one zero
 
     for(int i = 0; i < k; i++)
     {
+#if TRACE_HLS
+        evc_bsw_write1_trace(bs, symbol & 0x01, 0);
+#else
         evc_bsw_write1(bs, symbol & 0x01);
+#endif
         symbol >>= 1;
     }
 
     if(coeff != 0)
     {
         int sign = (coeff > 0) ? 1 : 0;
+#if TRACE_HLS
+        evc_bsw_write1_trace(bs, sign, 0);
+#else
         evc_bsw_write1(bs, sign);
+#endif
     }
 };
 
@@ -4368,34 +4459,34 @@ void evce_xWriteTruncBinCode(EVC_BSW * bs, u32 uiSymbol, const int uiMaxSymbol)
 
 void evce_eco_alf_filter(EVC_BSW * bs, evc_AlfSliceParam asp, const BOOL isChroma)
 {
-    const evc_AlfSliceParam alfSliceParam = asp;
+    const evc_AlfSliceParam * alfSliceParam = &asp;
     if (!isChroma)
     {
-        evc_bsw_write1(bs, alfSliceParam.coeffDeltaFlag); // "alf_coefficients_delta_flag"
-        if (!alfSliceParam.coeffDeltaFlag)
+        evc_bsw_write1(bs, alfSliceParam->coeffDeltaFlag); // "alf_coefficients_delta_flag"
+        if (!alfSliceParam->coeffDeltaFlag)
         {
-            if (alfSliceParam.numLumaFilters > 1)
+            if (alfSliceParam->numLumaFilters > 1)
             {
-                evc_bsw_write1(bs, alfSliceParam.coeffDeltaPredModeFlag); // "coeff_delta_pred_mode_flag"
+                evc_bsw_write1(bs, alfSliceParam->coeffDeltaPredModeFlag); // "coeff_delta_pred_mode_flag"
             }
         }
     }
 
     // this logic need to be moved to ALF files
     evc_AlfFilterShape alfShape;
-    init_AlfFilterShape( &alfShape, isChroma ? 5 : ( alfSliceParam.lumaFilterType == ALF_FILTER_5 ? 5 : 7 ) );
+    init_AlfFilterShape( &alfShape, isChroma ? 5 : ( alfSliceParam->lumaFilterType == ALF_FILTER_5 ? 5 : 7 ) );
 
     int bitsCoeffScan[m_MAX_SCAN_VAL][m_MAX_EXP_GOLOMB];
     memset(bitsCoeffScan, 0, m_MAX_SCAN_VAL*m_MAX_EXP_GOLOMB * sizeof(int));
 
     const int maxGolombIdx = alfShape.filterType == 0 ? 2 : 3;
-    const short* coeff = isChroma ? alfSliceParam.chromaCoeff : alfSliceParam.lumaCoeff;
-    const int numFilters = isChroma ? 1 : alfSliceParam.numLumaFilters;
+    const short* coeff = isChroma ? alfSliceParam->chromaCoeff : alfSliceParam->lumaCoeff;
+    const int numFilters = isChroma ? 1 : alfSliceParam->numLumaFilters;
 
     // vlc for all
     for (int ind = 0; ind < numFilters; ++ind)
     {
-        if (isChroma || !alfSliceParam.coeffDeltaFlag || alfSliceParam.filterCoeffFlag[ind])
+        if (isChroma || !alfSliceParam->coeffDeltaFlag || alfSliceParam->filterCoeffFlag[ind])
         {
             for (int i = 0; i < alfShape.numCoeff - 1; i++)
             {
@@ -4413,22 +4504,23 @@ void evce_eco_alf_filter(EVC_BSW * bs, evc_AlfSliceParam asp, const BOOL isChrom
     int kMin = evc_getGolombKMin(&alfShape, numFilters, kMinTab, bitsCoeffScan);
 
     // Golomb parameters
-    evc_bsw_write_ue(bs, kMin - 1); //"min_golomb_order" 
+    u32 alf_luma_min_eg_order_minus1 = kMin - 1;
+    evc_bsw_write_ue(bs, alf_luma_min_eg_order_minus1);
 
     for (int idx = 0; idx < maxGolombIdx; idx++)
     {
-        BOOL golombOrderIncreaseFlag = (kMinTab[idx] != kMin) ? TRUE : FALSE;
-        evc_bsw_write1(bs, golombOrderIncreaseFlag);
+        BOOL alf_eg_order_increase_flag = (kMinTab[idx] != kMin) ? TRUE : FALSE;
+        evc_bsw_write1(bs, alf_eg_order_increase_flag);
         kMin = kMinTab[idx];
     }
 
     if (!isChroma)
     {
-        if (alfSliceParam.coeffDeltaFlag)
+        if (alfSliceParam->coeffDeltaFlag)
         {
             for (int ind = 0; ind < numFilters; ++ind)
             {
-                evc_bsw_write1(bs, alfSliceParam.filterCoeffFlag[ind]);  // WRITE_FLAG(alfSliceParam.filterCoeffFlag[ind], "filter_coefficient_flag[i]");
+                evc_bsw_write1(bs, alfSliceParam->filterCoeffFlag[ind]);  // WRITE_FLAG(alfSliceParam.filterCoeffFlag[ind], "filter_coefficient_flag[i]");
             }
         }
     }
@@ -4436,7 +4528,7 @@ void evce_eco_alf_filter(EVC_BSW * bs, evc_AlfSliceParam asp, const BOOL isChrom
     // Filter coefficients
     for (int ind = 0; ind < numFilters; ++ind)
     {
-        if (!isChroma && !alfSliceParam.filterCoeffFlag[ind] && alfSliceParam.coeffDeltaFlag)
+        if (!isChroma && !alfSliceParam->filterCoeffFlag[ind] && alfSliceParam->coeffDeltaFlag)
         {
             continue;
         }
@@ -4488,20 +4580,25 @@ int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps)
     evc_AlfSliceParam *p_alfSliceParam = (evc_AlfSliceParam *)aps->aps_data;
     evc_AlfSliceParam alfSliceParam = *p_alfSliceParam;
 
-    evc_bsw_write1(bs, alfSliceParam.enabledFlag[0]); //"alf_slice_enable_flag"
-    u8 alfChromaSignalled = (alfSliceParam.enabledFlag[1] || alfSliceParam.enabledFlag[2]);
-    evc_bsw_write1(bs, alfChromaSignalled); //"alf_chroma_enable_flag"
+    u32 alf_luma_filter_signal_flag = alfSliceParam.enabledFlag[0];
+    u8  alf_chroma_filter_signal_flag = (alfSliceParam.enabledFlag[1] || alfSliceParam.enabledFlag[2]);
+
+    evc_bsw_write1(bs, alf_luma_filter_signal_flag);
+    evc_bsw_write1(bs, alf_chroma_filter_signal_flag);
+
     if (alfSliceParam.enabledFlag[0])
     {
-
-        evc_bsw_write_ue(bs, alfSliceParam.numLumaFilters - 1);
-        evc_bsw_write1(bs, alfSliceParam.lumaFilterType); //  "filter_type_flag"
+        u32 alf_luma_num_filters_signalled_minus1 = alfSliceParam.numLumaFilters - 1;
+        u32 alf_luma_type_flag = alfSliceParam.lumaFilterType;
+        evc_bsw_write_ue(bs, alf_luma_num_filters_signalled_minus1);
+        evc_bsw_write1(bs, alf_luma_type_flag); //  "filter_type_flag"
 
         if (alfSliceParam.numLumaFilters > 1)
         {
+            s16 * alf_luma_coeff_delta_idx = alfSliceParam.filterCoeffDeltaIdx;
             for (int i = 0; i < MAX_NUM_ALF_CLASSES; i++)
             {
-                evc_bsw_write(bs, (u32)(alfSliceParam.filterCoeffDeltaIdx[i]), evc_tbl_log2[alfSliceParam.numLumaFilters - 1] + 1);
+                evc_bsw_write(bs, alf_luma_coeff_delta_idx[i], evc_tbl_log2[alfSliceParam.numLumaFilters - 1] + 1);
             }
         }
         const int iNumFixedFilterPerClass = 16;
@@ -4510,18 +4607,20 @@ int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps)
 
             if (alfSliceParam.fixedFilterPattern == 2)
             {
+                u8 * alf_luma_fixed_filter_usage_flag = alfSliceParam.fixedFilterUsageFlag;
                 for (int classIdx = 0; classIdx < MAX_NUM_ALF_CLASSES; classIdx++)
                 {
-                    evc_bsw_write1(bs, alfSliceParam.fixedFilterUsageFlag[classIdx] ? 1 : 0); // "fixed_filter_flag"
+                    evc_bsw_write1(bs, alf_luma_fixed_filter_usage_flag[classIdx]); 
                 }
             }
             if (alfSliceParam.fixedFilterPattern > 0)
             {
+                s32 * alf_luma_fixed_filter_set_idx = alfSliceParam.fixedFilterIdx;
                 for (int classIdx = 0; classIdx < MAX_NUM_ALF_CLASSES; classIdx++)
                 {
                     if (alfSliceParam.fixedFilterUsageFlag[classIdx] > 0)
                     {
-                        evc_bsw_write(bs, alfSliceParam.fixedFilterIdx[classIdx], evc_tbl_log2[iNumFixedFilterPerClass - 1] + 1);
+                        evc_bsw_write(bs, alf_luma_fixed_filter_set_idx[classIdx], evc_tbl_log2[iNumFixedFilterPerClass - 1] + 1);
                     }
                 }
             }
@@ -4529,7 +4628,7 @@ int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps)
 
         evce_eco_alf_filter(bs, alfSliceParam, FALSE);
     }
-    if (alfChromaSignalled)
+    if (alf_chroma_filter_signal_flag)
     {
         {
             evce_eco_alf_filter(bs, alfSliceParam, TRUE);
@@ -4659,9 +4758,9 @@ int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS * aps)
 #endif
 int evce_eco_alf_sh_param(EVC_BSW * bs, EVC_SH * sh)
 {
-    evc_AlfSliceParam alfSliceParam = sh->alf_sh_param;
+    evc_AlfSliceParam * alfSliceParam = &sh->alf_sh_param;
 
-    evc_bsw_write1(bs, alfSliceParam.isCtbAlfOn);
+    evc_bsw_write1(bs, alfSliceParam->isCtbAlfOn);
     return EVC_OK;
 }
 
