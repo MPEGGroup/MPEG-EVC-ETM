@@ -976,7 +976,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
     EVC_TRACE_INT(cuh);
 #if M50761_CHROMA_NOT_SPLIT
 #if ENC_DEC_TRACE
-    if (ctx->sh.slice_type != SLICE_I)
+    if (ctx->sh.slice_type != SLICE_I && ctx->sps.sps_btt_flag)
     {
         EVC_TRACE_STR("tree status ");
 #if EVC_CONCURENCY

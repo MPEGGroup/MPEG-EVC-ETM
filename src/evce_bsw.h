@@ -83,12 +83,24 @@ void evc_bsw_init(EVC_BSW * bs, u8 * buf, int size, EVC_BSW_FN_FLUSH fn_flush);
 void evc_bsw_init_slice(EVC_BSW * bs, u8 * buf, int size, EVC_BSW_FN_FLUSH fn_flush);
 #endif
 void evc_bsw_deinit(EVC_BSW * bs);
+#if TRACE_HLS
+#define evc_bsw_write1(A, B) evc_bsw_write1_trace(A, B, #B)
+int evc_bsw_write1_trace(EVC_BSW * bs, int val, char* name);
 
+#define evc_bsw_write(A, B, C) evc_bsw_write_trace(A, B, #B, C)
+int evc_bsw_write_trace(EVC_BSW * bs, u32 val, char* name, int len);
+
+#define evc_bsw_write_ue(A, B) evc_bsw_write_ue_trace(A, B, #B)
+void evc_bsw_write_ue_trace(EVC_BSW * bs, u32 val, char* name);
+
+#define evc_bsw_write_se(A, B) evc_bsw_write_se_trace(A, B, #B)
+void evc_bsw_write_se_trace(EVC_BSW * bs, int val, char* name);
+#else
 int evc_bsw_write1(EVC_BSW * bs, int val);
 int evc_bsw_write(EVC_BSW * bs, u32 val, int len);
-
 void evc_bsw_write_ue(EVC_BSW * bs, u32 val);
 void evc_bsw_write_se(EVC_BSW * bs, int val);
+#endif
 
 #ifdef __cplusplus
 }
