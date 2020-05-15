@@ -386,6 +386,8 @@ int main(int argc, const char **argv)
                     }
                     break;
                 case EVC_PPS_NUT:
+                    ret = evcd_eco_pps(bsr, sps, pps);
+                    evc_assert_rv(EVC_SUCCEEDED(ret), ret);
                     if (!bs_num)
                     {
                         fwrite(tmp_size, 1, 4, fp_bs_write);
