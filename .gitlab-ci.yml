@@ -1,0 +1,11 @@
+image: gcc
+
+before_script:
+    # Install build dependencies
+    #- apt-get update && apt-get -y install cmake
+
+simple_target:
+    stage: build
+    script:
+        - cd build/linux
+        - make -j 8

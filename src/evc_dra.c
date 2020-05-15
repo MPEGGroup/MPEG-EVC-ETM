@@ -404,7 +404,7 @@ void evce_zoomInRangeLUT(WCGDDRAControl *p_DRAMapping, int sdrFlag) {
         return;
     }
 
-    int deltas[33];
+    int deltas[33] = {0};
     double SCALE_MAX = 1.7;
     m_lumRenorm = (double)(DRA_LUT_MAXSIZE) / (double)(DRA_LUT_MAXSIZE - (p_DRAMapping->m_globalOffset + DRA_LUT_MAXSIZE - p_DRAMapping->m_globalEnd));
 

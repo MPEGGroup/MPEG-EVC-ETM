@@ -1772,7 +1772,7 @@ void evc_get_merge_insert_mv(s8* refi_dst, s16 *mvp_dst_L0, s16 *mvp_dst_L1, s8*
         }
         else if (!check_bi_applicability(slice_type, cuw, cuh, is_sps_admvp))
         {
-            refi_dst[REFP_1 * MAX_NUM_MVP] = REFI_INVALID;
+            refi_dst[REFP_1 * MAX_NUM_MVP] = REFI_INVALID; // TBD: gcc10 triggers stringop-overflow at this line
             mvp_dst_L1[MV_X] = 0;
             mvp_dst_L1[MV_Y] = 0;
         }
