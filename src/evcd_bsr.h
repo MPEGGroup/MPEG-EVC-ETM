@@ -87,11 +87,25 @@ struct _EVC_BSR
 
 void evc_bsr_init(EVC_BSR * bs, u8 * buf, int size, EVC_BSR_FN_FLUSH fn_flush);
 int evc_bsr_flush(EVC_BSR * bs, int byte);
-u32 evc_bsr_read(EVC_BSR * bs, int size);
-int evc_bsr_read1(EVC_BSR * bs);
 int evc_bsr_clz_in_code(u32 code);
-u32 evc_bsr_read_ue(EVC_BSR * bs);
-int evc_bsr_read_se(EVC_BSR * bs);
+#if TRACE_HLS
+#define evc_bsr_read(A, B, C) evc_bsr_read_trace(A, B, #B, C)
+void evc_bsr_read_trace(EVC_BSR * bs, u32 * val, char * name, int size);
+
+#define evc_bsr_read1(A, B) evc_bsr_read1_trace(A, B, #B)
+void evc_bsr_read1_trace(EVC_BSR * bs, u32 * val, char * name);
+
+#define evc_bsr_read_ue(A, B) evc_bsr_read_ue_trace(A, B, #B)
+void evc_bsr_read_ue_trace(EVC_BSR * bs, u32 * val, char * name);
+
+#define evc_bsr_read_se(A, B) evc_bsr_read_se_trace(A, B, #B)
+void evc_bsr_read_se_trace(EVC_BSR * bs, s32 * val, char * name);
+#else
+void evc_bsr_read(EVC_BSR * bs, u32 * val, int size);
+void evc_bsr_read1(EVC_BSR * bs, u32 * val);
+void evc_bsr_read_ue(EVC_BSR * bs, u32 * val);
+void evc_bsr_read_se(EVC_BSR * bs, s32 * val);
+#endif
 
 #ifdef __cplusplus
 }

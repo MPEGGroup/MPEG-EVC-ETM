@@ -502,6 +502,7 @@ typedef int BOOL;
 #define TRACE_REMOVE_COUNTER               0 //!< Remove trace counter
 #define TRACE_ADDITIONAL_FLAGS             0 
 #define TRACE_DBF                          0 //!< Trace only DBF
+#define TRACE_HLS                          0 //!< Trace SPS, PPS, APS, Slice Header, etc.
 #if TRACE_RDO
 #define TRACE_RDO_EXCLUDE_I                0 //!< Exclude I frames
 #endif
@@ -1224,7 +1225,7 @@ typedef struct _EVC_HRD
     int bit_rate_value_minus1[NUM_CPB];
     int cpb_size_value_minus1[NUM_CPB];
     int cbr_flag[NUM_CPB];
-    int    initial_cpb_removal_delay_length_minus1;
+    int initial_cpb_removal_delay_length_minus1;
     int cpb_removal_delay_length_minus1;
     int dpb_output_delay_length_minus1;
     int time_offset_length;
@@ -1285,8 +1286,8 @@ typedef struct _EVC_SPS
     int              toolset_idc_h;
     int              toolset_idc_l;
     int              chroma_format_idc;
-    u16              pic_width_in_luma_samples;  
-    u16              pic_height_in_luma_samples; 
+    u32              pic_width_in_luma_samples;  
+    u32              pic_height_in_luma_samples; 
     int              bit_depth_luma_minus8;
     int              bit_depth_chroma_minus8;
     int              sps_btt_flag;
@@ -1335,7 +1336,7 @@ typedef struct _EVC_SPS
     int              log2_max_pic_order_cnt_lsb_minus4;
     int              sps_max_dec_pic_buffering_minus1;
     int              max_num_ref_pics;
-    u8               long_term_ref_pics_flag;
+    u32              long_term_ref_pics_flag;
     /* HLS_RPL  */
     int              rpl1_same_as_rpl0_flag;
     int              num_ref_pic_lists_in_sps0;
@@ -1352,7 +1353,7 @@ typedef struct _EVC_SPS
     int              dquant_flag;              /*1 specifies the improved delta qp signaling processes is used*/
 #endif
     EVC_CHROMA_TABLE chroma_qp_table_struct;
-    u8               ibc_flag;                   /* 1 bit : flag of enabling IBC or not */
+    u32              ibc_flag;                   /* 1 bit : flag of enabling IBC or not */
     int              ibc_log_max_size;           /* log2 max ibc size */
     int              vui_parameters_present_flag;
 #if M52291_HDR_DRA
@@ -1496,22 +1497,22 @@ typedef struct _EVC_SH
     s32              poc_lsb;
 
     /*   HLS_RPL */
-    u8               ref_pic_list_sps_flag[2];
+    u32              ref_pic_list_sps_flag[2];
     int              rpl_l0_idx;                            //-1 means this slice does not use RPL candidate in SPS for RPL0
     int              rpl_l1_idx;                            //-1 means this slice does not use RPL candidate in SPS for RPL1
 
     EVC_RPL          rpl_l0;
     EVC_RPL          rpl_l1;
 
-    u8               num_ref_idx_active_override_flag;
+    u32              num_ref_idx_active_override_flag;
     int              deblocking_filter_on;
     int              sh_deblock_alpha_offset;
     int              sh_deblock_beta_offset;
-    u8               qp;
-    s8               qp_u;
-    s8               qp_v;
-    s8               qp_u_offset;
-    s8               qp_v_offset;
+    int              qp;
+    int              qp_u;
+    int              qp_v;
+    int              qp_u_offset;
+    int              qp_v_offset;
     u32              entry_point_offset_minus1[MAX_NUM_TILES_ROW * MAX_NUM_TILES_COL];
 #if DQP
     /*QP of previous cu in decoding order (used for dqp)*/
@@ -1519,8 +1520,8 @@ typedef struct _EVC_SH
     u8               dqp;
     u8               qp_prev_mode;
 #endif
-    u8               alf_on;
-    u8               mmvd_group_enable_flag;
+    u32              alf_on;
+    u32              mmvd_group_enable_flag;
     u8               ctb_alf_on;
     u16              num_ctb;
     int              aps_signaled;
@@ -1532,11 +1533,11 @@ typedef struct _EVC_SH
     u16              num_tiles_in_slice;
 #endif
 #if M53608_ALF_14
-    u8                 alfChromaIdc;
-    u8                 ChromaAlfEnabledFlag;
-    u8                 ChromaAlfEnabled2Flag;
-    u8                 alfChromaMapSignalled;
-    u8                 alfChroma2MapSignalled;
+    u32              alfChromaIdc;
+    u32              ChromaAlfEnabledFlag;
+    u32              ChromaAlfEnabled2Flag;
+    u32              alfChromaMapSignalled;
+    u32              alfChroma2MapSignalled;
     int              aps_id_ch2;
 #endif
 } EVC_SH;

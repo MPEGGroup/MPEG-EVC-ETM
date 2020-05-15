@@ -81,49 +81,6 @@ int evc_bsr_flush(EVC_BSR * bs, int byte)
     return 0;
 }
 
-u32 evc_bsr_read(EVC_BSR * bs, int size)
-{
-    u32 code = 0;
-
-    evc_assert(size > 0);
-
-    if(bs->leftbits < size)
-    {
-        code = bs->code >> (32 - size);
-        size -= bs->leftbits;
-
-        if(bs->fn_flush(bs, 4))
-        {
-            evc_trace("already reached the end of bitstream\n");
-            return ((u32)-1);
-        }
-    }
-    code |= bs->code >> (32 - size);
-
-    EVC_BSR_SKIP_CODE(bs, size);
-
-    return code;
-}
-
-int evc_bsr_read1(EVC_BSR * bs)
-{
-    int code;
-    if(bs->leftbits == 0)
-    {
-        if(bs->fn_flush(bs, 4))
-        {
-            evc_trace("already reached the end of bitstream\n");
-            return -1;
-        }
-    }
-    code = (int)(bs->code >> 31);
-
-    bs->code    <<= 1;
-    bs->leftbits -= 1;
-
-    return code;
-}
-
 int evc_bsr_clz_in_code(u32 code)
 {
     int clz, bits4, shift;
@@ -143,7 +100,189 @@ int evc_bsr_clz_in_code(u32 code)
     return clz;
 }
 
-u32 evc_bsr_read_ue(EVC_BSR * bs)
+#if TRACE_HLS
+void evc_bsr_read_trace(EVC_BSR * bs, u32 * val, char * name, int size)
+{
+    u32 code = 0;
+
+    evc_assert(size > 0);
+
+    if (bs->leftbits < size)
+    {
+        code = bs->code >> (32 - size);
+        size -= bs->leftbits;
+
+        if (bs->fn_flush(bs, 4))
+        {
+            evc_trace("already reached the end of bitstream\n");
+            *val = (u32)-1;
+            return;
+        }
+    }
+    code |= bs->code >> (32 - size);
+
+    EVC_BSR_SKIP_CODE(bs, size);
+
+    *val = code;
+
+    if (name)
+    {
+        EVC_TRACE_STR(name + 1);
+        EVC_TRACE_STR(" ");
+        EVC_TRACE_INT(*val);
+        EVC_TRACE_STR("\n");
+    }
+}
+
+void evc_bsr_read1_trace(EVC_BSR * bs, u32 * val, char * name)
+{
+    int code;
+    if (bs->leftbits == 0)
+    {
+        if (bs->fn_flush(bs, 4))
+        {
+            evc_trace("already reached the end of bitstream\n");
+            return;
+        }
+    }
+    code = (int)(bs->code >> 31);
+
+    bs->code <<= 1;
+    bs->leftbits -= 1;
+
+    *val = code;
+    if (name)
+    {
+        EVC_TRACE_STR(name + 1);
+        EVC_TRACE_STR(" ");
+        EVC_TRACE_INT(*val);
+        EVC_TRACE_STR("\n");
+    }
+}
+void evc_bsr_read_ue_trace(EVC_BSR * bs, u32 * val, char * name)
+{
+    int clz, len;
+
+    if ((bs->code >> 31) == 1)
+    {
+        /* early termination.
+        we don't have to worry about leftbits == 0 case, because if the bs->code
+        is not equal to zero, that means leftbits is not zero */
+        bs->code <<= 1;
+        bs->leftbits -= 1;
+        *val = 0;
+        if (name)
+        {
+            EVC_TRACE_STR(name+1);
+            EVC_TRACE_STR(" ");
+            EVC_TRACE_INT(*val);
+            EVC_TRACE_STR("\n");
+        }
+        return;
+    }
+
+    clz = 0;
+    if (bs->code == 0)
+    {
+        clz = bs->leftbits;
+
+        bs->fn_flush(bs, 4);
+    }
+
+    len = evc_bsr_clz_in_code(bs->code);
+
+    clz += len;
+
+    if (clz == 0)
+    {
+        /* early termination */
+        bs->code <<= 1;
+        bs->leftbits--;
+        *val = 0;
+        if (name)
+        {
+            EVC_TRACE_STR(name+1);
+            EVC_TRACE_STR(" ");
+            EVC_TRACE_INT(*val);
+            EVC_TRACE_STR("\n");
+        }
+        return;
+    }
+
+    evc_assert(bs->leftbits >= 0);
+    evc_bsr_read_trace(bs, val, 0, len + clz + 1);
+    *val -= 1;
+
+    if (name)
+    {
+        EVC_TRACE_STR(name+1);
+        EVC_TRACE_STR(" ");
+        EVC_TRACE_INT(*val);
+        EVC_TRACE_STR("\n");
+    }
+}
+
+void evc_bsr_read_se_trace(EVC_BSR * bs, s32 * val, char * name)
+{
+    evc_assert(bs != NULL);
+
+    evc_bsr_read_ue_trace(bs, val, 0);
+
+    *val = ((*val & 0x01) ? ((*val + 1) >> 1) : -(*val >> 1));
+
+    if (name)
+    {
+        EVC_TRACE_STR(name + 1);
+        EVC_TRACE_STR(" ");
+        EVC_TRACE_INT(*val);
+        EVC_TRACE_STR("\n");
+    }
+}
+#else
+void evc_bsr_read(EVC_BSR * bs, u32 * val, int size)
+{
+    u32 code = 0;
+
+    evc_assert(size > 0);
+
+    if (bs->leftbits < size)
+    {
+        code = bs->code >> (32 - size);
+        size -= bs->leftbits;
+
+        if (bs->fn_flush(bs, 4))
+        {
+            evc_trace("already reached the end of bitstream\n");
+            *val = (u32)-1;
+            return;
+        }
+    }
+    code |= bs->code >> (32 - size);
+
+    EVC_BSR_SKIP_CODE(bs, size);
+
+    *val = code;
+}
+
+void evc_bsr_read1(EVC_BSR * bs, u32 * val)
+{
+    int code;
+    if (bs->leftbits == 0)
+    {
+        if (bs->fn_flush(bs, 4))
+        {
+            evc_trace("already reached the end of bitstream\n");
+            return;
+        }
+    }
+    code = (int)(bs->code >> 31);
+
+    bs->code <<= 1;
+    bs->leftbits -= 1;
+
+    *val = code;
+}
+void evc_bsr_read_ue(EVC_BSR * bs, u32 * val)
 {
     int clz, len;
 
@@ -154,7 +293,8 @@ u32 evc_bsr_read_ue(EVC_BSR * bs)
         is not equal to zero, that means leftbits is not zero */
         bs->code <<= 1;
         bs->leftbits -= 1;
-        return 0;
+        *val = 0;
+        return;
     }
 
     clz = 0;
@@ -174,20 +314,22 @@ u32 evc_bsr_read_ue(EVC_BSR * bs)
         /* early termination */
         bs->code <<= 1;
         bs->leftbits--;
-        return 0;
+        *val = 0;
+        return;
     }
 
     evc_assert(bs->leftbits >= 0);
-    return (evc_bsr_read(bs, len + clz + 1) - 1);
+    evc_bsr_read(bs, val, len + clz + 1);
+    *val -= 1;
 }
 
-int evc_bsr_read_se(EVC_BSR * bs)
+void evc_bsr_read_se(EVC_BSR * bs, s32 * val)
 {
-    int val;
-
     evc_assert(bs != NULL);
 
-    val = evc_bsr_read_ue(bs);
+    evc_bsr_read_ue(bs, val);
 
-    return ((val & 0x01) ? ((val + 1) >> 1) : -(val >> 1));
+    *val = ((*val & 0x01) ? ((*val + 1) >> 1) : -(*val >> 1));
 }
+#endif
+

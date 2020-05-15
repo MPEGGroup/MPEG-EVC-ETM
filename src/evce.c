@@ -1330,8 +1330,7 @@ static int evce_eco_tree(EVCE_CTX * ctx, EVCE_CORE * core, int x0, int y0, int c
             evc_assert(x0 + cuw <= PIC_ORIG(ctx)->w_l && y0 + cuh <= PIC_ORIG(ctx)->h_l);
             TREE_CONS local_tree_cons = split_struct.tree_cons;
             local_tree_cons.tree_type = TREE_C;
-            ret = evce_eco_unit(ctx, core, x0, y0, cup, cuw, cuh, local_tree_cons
-            );
+            ret = evce_eco_unit(ctx, core, x0, y0, cup, cuw, cuh, local_tree_cons);
 #if EVC_CONCURENCY
             core->tree_cons = tree_cons;
 #else
@@ -2240,7 +2239,7 @@ int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #else
     set_nalu(&nalu, EVC_SPS_NUT);
 #endif
-    evce_eco_nalu(bs, nalu);
+    evce_eco_nalu(bs, &nalu);
 
     /* sequence parameter set*/
     set_sps(ctx, sps);
@@ -2535,7 +2534,7 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
         int* size_field = (int*)(*(&bs->cur));
         u8* cur_tmp = bs->cur;
 
-        evce_eco_nalu(bs, sei_nalu);
+        evce_eco_nalu(bs, &sei_nalu);
 
         ret = evce_eco_sei(ctx, bs);
         evc_assert_rv(ret == EVC_OK, ret);
@@ -3330,7 +3329,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
                 /* Encode APS nalu header */
                 int* size_field = (int*)(*(&bs->cur));
                 u8* cur_tmp = bs->cur;
-                ret = evce_eco_nalu(bs, aps_nalu);
+                ret = evce_eco_nalu(bs, &aps_nalu);
                 evc_assert_rv(ret == EVC_OK, ret);
 
                 /* Write ALF-APS */
@@ -3365,7 +3364,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             u8* cur_tmp = bs->cur;
     
             /* Encode APS nalu header */
-            ret = evce_eco_nalu(bs, aps_nalu);
+            ret = evce_eco_nalu(bs, &aps_nalu);
             evc_assert_rv(ret == EVC_OK, ret);
 
             /* Write DRA-APS */
@@ -3383,7 +3382,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     u8* cur_tmp = bs->cur;
 
     /* Encode nalu header */
-    ret = evce_eco_nalu(bs, ctx->nalu);
+    ret = evce_eco_nalu(bs, &ctx->nalu);
     evc_assert_rv(ret == EVC_OK, ret);
 
     /* Encode slice header */
@@ -3391,6 +3390,9 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #if EVC_TILE_SUPPORT
         EVC_BSW bs_sh;
         evc_mcpy(&bs_sh, bs, sizeof(EVC_BSW));
+#endif
+#if TRACE_HLS
+    s32 tmp_fp_point = ftell(fp_trace);
 #endif
     ret = evce_eco_sh(bs, &ctx->sps, &ctx->pps, sh, ctx->nalu.nal_unit_type_plus1 - 1);
     evc_assert_rv(ret == EVC_OK, ret);
@@ -3558,8 +3560,15 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
     /* Bit-stream re-writing (END) */
 #if EVC_TILE_SUPPORT
+#if TRACE_HLS
+    s32 tmp_fp_point2 = ftell(fp_trace);
+    fseek(fp_trace, tmp_fp_point, SEEK_SET);
+#endif
     ret = evce_eco_sh(&bs_sh, &ctx->sps, &ctx->pps, sh, ctx->nalu.nal_unit_type_plus1 - 1);
     evc_assert_rv(ret == EVC_OK, ret);
+#if TRACE_HLS    
+    fseek(fp_trace, tmp_fp_point2, SEEK_SET);
+#endif
 #endif
 #if EVC_TILE_SUPPORT    
     evc_bsw_deinit(bs);
@@ -3724,6 +3733,9 @@ EVCE evce_create(EVCE_CDSC * cdsc, int * err)
 #else
     fp_trace = fopen("enc_trace.txt", "w+");
 #endif
+#if TRACE_HLS
+    EVC_TRACE_SET(1);
+#endif
 #endif
 #if GRAB_STAT
     evc_stat_init("enc_stat.vtmbmsstats", esu_only_enc, 0, -1, ence_stat_cu);
@@ -3838,7 +3850,7 @@ int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
 #else
     set_nalu(&nalu, EVC_SPS_NUT);
 #endif
-    evce_eco_nalu(bs, nalu);
+    evce_eco_nalu(bs, &nalu);
 
     /* sequence parameter set*/
     set_sps(ctx, sps);
@@ -3885,7 +3897,7 @@ int evce_encode_pps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
 #else
     set_nalu(&nalu, EVC_PPS_NUT);
 #endif
-    evce_eco_nalu(bs, nalu);
+    evce_eco_nalu(bs, &nalu);
 
     /* sequence parameter set*/
     set_pps(ctx, pps);
