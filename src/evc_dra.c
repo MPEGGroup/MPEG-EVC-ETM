@@ -877,8 +877,6 @@ void evc_apply_dra_chroma_plane(EVC_IMGB * dst, EVC_IMGB * src, WCGDDRAControl *
     int offsetValue = 0;
     int intScale = 1;
     double scale = 0;
-    int width = 0;
-    int height = 0;
 
     short* refPlane;
     short* srcPlane;
@@ -892,8 +890,6 @@ void evc_apply_dra_chroma_plane(EVC_IMGB * dst, EVC_IMGB * src, WCGDDRAControl *
         refPlane = (short*)src->a[0]; //luma reference
         srcPlane = (short*)src->a[i];
         dstPlane = (short*)dst->a[i];
-        width = src->w[i];
-        height = src->h[i];
 
         for (j = 0; j < src->h[i]; j++)
         {

@@ -6598,7 +6598,9 @@ void final_paddedMC_forDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8
 )
 {
     int i;
+#if DMVR_PADDING
     EVC_PIC    *ref_pic;
+#endif
     s16          mv_temp[REFP_NUM][MV_D];
     for (i = 0; i < REFP_NUM; ++i)
     {

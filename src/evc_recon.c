@@ -63,7 +63,7 @@ void evc_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, p
             u8  ats_inter_pos = get_ats_inter_pos(ats_inter_info);
             assert(ats_inter_idx >= 1 && ats_inter_idx <= 4);
             int tu0_w, tu0_h;
-            int tu1_w, tu1_h;
+            int tu1_w;
             pel resi;
             if (!is_ats_inter_horizontal(ats_inter_idx))
             {
@@ -90,7 +90,6 @@ void evc_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, p
             {
                 tu0_h = is_ats_inter_quad_size(ats_inter_idx) ? (cuh / 4) : (cuh / 2);
                 tu0_h = ats_inter_pos == 0 ? tu0_h : cuh - tu0_h;
-                tu1_h = cuh - tu0_h;
                 for (j = 0; j < cuw; j++)
                 {
                     for (i = 0; i < tu0_h; i++)
