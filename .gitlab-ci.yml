@@ -2,10 +2,18 @@ image: gcc
 
 before_script:
     # Install build dependencies
-    #- apt-get update && apt-get -y install cmake
+    - apt-get update && apt-get -y install cmake
 
-simple_target:
+makefile_build:
     stage: build
     script:
         - cd build/linux
+        - make -j 8
+        
+cmake_build:
+    stage: build
+    script:
+        - mkdir tbuild
+        - cd tbuild
+        - cmake ..
         - make -j 8
