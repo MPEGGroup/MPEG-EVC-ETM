@@ -1321,7 +1321,7 @@ void evcd_eco_sbac_reset(EVC_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_in
         sbac->value = ((sbac->value << 1) | t0) & 0xFFFF;
     }
 
-    evc_mset(sbac_ctx, 0x00, sizeof(sbac_ctx));
+    evc_mset(sbac_ctx, 0x00, sizeof(EVC_SBAC_CTX));
 
     sbac_ctx->sps_cm_init_flag = sps_cm_init_flag;
 
