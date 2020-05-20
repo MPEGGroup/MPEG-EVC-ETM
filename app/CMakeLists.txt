@@ -28,8 +28,8 @@ set_target_properties(evca_bitstream_merge PROPERTIES
 target_include_directories( evca_bitstream_merge PUBLIC . .. ../inc/ ../src/dec ../src/enc)
 
 if( MSVC )                      
-	target_compile_definitions( evca_encoder PUBLIC _CRT_SECURE_NO_WARNINGS )
-	target_compile_definitions( evca_decoder PUBLIC _CRT_SECURE_NO_WARNINGS )
-	target_compile_definitions( evca_bitstream_merge PUBLIC _CRT_SECURE_NO_WARNINGS )
+    target_compile_definitions( evca_encoder PUBLIC _CRT_SECURE_NO_WARNINGS )
+    target_compile_definitions( evca_decoder PUBLIC _CRT_SECURE_NO_WARNINGS )
+    target_compile_definitions( evca_bitstream_merge PUBLIC _CRT_SECURE_NO_WARNINGS )
 endif()
 

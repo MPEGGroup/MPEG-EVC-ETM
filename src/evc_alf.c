@@ -225,7 +225,6 @@ void init_AlfFilterShape(void* _th, int size) {
   }
 }
 
-#if EVC_TILE_SUPPORT 
 /*
 * tmpYuv -  destination, temporary buffer
 * pointer tmpYuv is assumed to point to interior point inside margins
@@ -268,7 +267,6 @@ void copy_and_extend_tile(pel* tmpYuv, const int s, const pel* recYuv, const int
         memcpy(p - (y + 1) * s, p, sizeof(pel) * (w + (m << 1)));
     }
 }
-#endif
 
 /*
  * tmpYuv -  destination, temporary buffer
@@ -438,305 +436,291 @@ void tile_boundary_check(int* availableL, int* availableR, int* availableT, int*
 
 void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSliceParam)
 {
-  if (!alfSliceParam->enabledFlag[COMPONENT_Y] && !alfSliceParam->enabledFlag[COMPONENT_Cb] && !alfSliceParam->enabledFlag[COMPONENT_Cr])
-  {
-    return;
-  }
-
-  EVCD_CTX* ctx = (EVCD_CTX*)(cs->pCtx);
-
-  // set available filter shapes
-  alfSliceParam->filterShapes = &m_filterShapes[0];
-
-  // set CTU enable flags
-  for (int compIdx = 0; compIdx < MAX_NUM_COMPONENT; compIdx++)
-  {
-     m_ctuEnableFlag[compIdx] = alfSliceParam->alfCtuEnableFlag + ctx->f_lcu * compIdx;
-  }
-
-  reconstructCoeff(alfSliceParam, CHANNEL_TYPE_LUMA, FALSE, TRUE);
-  if( alfSliceParam->enabledFlag[COMPONENT_Cb] || alfSliceParam->enabledFlag[COMPONENT_Cr] )
-    reconstructCoeff(alfSliceParam, CHANNEL_TYPE_CHROMA, FALSE, FALSE);
-#if EVC_TILE_SUPPORT // Processing ALF Tile by Tile 
-  int ii, x_l, x_r, y_l, y_r, w_tile, h_tile;
-  const int h = cs->pPic->h_l;
-  const int w = cs->pPic->w_l;
-  const int m = MAX_ALF_FILTER_LENGTH >> 1;
-  const int s = w + m + m;
-  int col_bd = 0;
-  u32 k = 0;
-  ii = 0;
-  int NumTilesInSlice = ctx->NumTilesInSlice;
-  while (NumTilesInSlice)
-  {
-      ii = ctx->tile_in_slice[k++];
-      col_bd = 0;
-      if (ii% (ctx->pps.num_tile_columns_minus1 + 1))
-      {
-          int temp = ii - 1;
-          while (temp >= 0)
-          {
-              col_bd += ctx->tile[temp].w_ctb;
-              if (!(temp% (ctx->pps.num_tile_columns_minus1 + 1))) break;
-              temp--;
-          }
-      }
-      else
-      {
-          col_bd = 0;
-      }
-      int x_loc = ((ctx->tile[ii].ctba_rs_first) % ctx->w_lcu);
-      int y_loc = ((ctx->tile[ii].ctba_rs_first) / ctx->w_lcu);
-      int ctuIdx = x_loc + y_loc * ctx->w_lcu;
-      x_l = x_loc << ctx->log2_max_cuwh; //entry point lcu's x location
-      y_l = y_loc << ctx->log2_max_cuwh; // entry point lcu's y location
-      x_r = x_l + ((int)(ctx->tile[ii].w_ctb) << ctx->log2_max_cuwh);
-      y_r = y_l + ((int)(ctx->tile[ii].h_ctb) << ctx->log2_max_cuwh);
-      w_tile = x_r > ((int)ctx->w_scu << MIN_CU_LOG2) ? ((int)ctx->w_scu << MIN_CU_LOG2) - x_l : x_r - x_l;
-      h_tile = y_r > ((int)ctx->h_scu << MIN_CU_LOG2) ? ((int)ctx->h_scu << MIN_CU_LOG2) - y_l : y_r - y_l;
-      x_r = x_r > ((int)ctx->w_scu << MIN_CU_LOG2) ? ((int)ctx->w_scu << MIN_CU_LOG2) : x_r;
-      y_r = y_r > ((int)ctx->h_scu << MIN_CU_LOG2) ? ((int)ctx->h_scu << MIN_CU_LOG2) : y_r;
-
-      pel * recYuv = cs->pPic->y;
-      pel * tmpYuv = m_tempBuf + s*m + m;
-      //chroma (for 4:2:0 only)
-      const int s1 = (w >> 1) + m + m;
-      pel * recYuv1 = cs->pPic->u;
-      pel * tmpYuv1 = m_tempBuf1 + s1*m + m; //m, not m-1, is left for unification with VVC
-      pel * recYuv2 = cs->pPic->v;
-      pel * tmpYuv2 = m_tempBuf2 + s1*m + m; //m, not m-1, is left for unification with VVC
-
-      Pel * recLuma0_tile = tmpYuv + x_l + y_l * s;
-      Pel * recLuma1_tile = tmpYuv1 + (x_l >> 1) + (y_l >> 1) * (s1);
-      Pel * recLuma2_tile = tmpYuv2 + (x_l >> 1) + (y_l >> 1) * (s1);
-
-      Pel * recoYuv0_tile = recYuv + x_l + y_l * cs->pPic->s_l;
-      Pel * recoYuv1_tile = recYuv1 + (x_l >> 1) + (y_l >> 1) * cs->pPic->s_c;
-      Pel * recoYuv2_tile = recYuv2 + (x_l >> 1) + (y_l >> 1) * cs->pPic->s_c;
-
-      copy_and_extend_tile(recLuma0_tile, s, recoYuv0_tile, cs->pPic->s_l, w_tile, h_tile, m);
-      copy_and_extend_tile(recLuma1_tile, s1, recoYuv1_tile, cs->pPic->s_c, (w_tile >> 1), (h_tile >> 1), m);
-      copy_and_extend_tile(recLuma2_tile, s1, recoYuv2_tile, cs->pPic->s_c, (w_tile >> 1), (h_tile >> 1), m);
-
-      int l_zero_offset = (MAX_CU_SIZE + m + m) * m + m;
-      int l_stride = MAX_CU_SIZE + 2 * (MAX_ALF_FILTER_LENGTH >> 1);
-      pel l_buffer[(MAX_CU_SIZE + 2 * (MAX_ALF_FILTER_LENGTH >> 1)) *(MAX_CU_SIZE + 2 * (MAX_ALF_FILTER_LENGTH >> 1))];
-      pel *p_buffer = l_buffer + l_zero_offset;
-      int l_zero_offset_chroma = ((MAX_CU_SIZE >> 1) + m + m) * m + m;
-      int l_stride_chroma = (MAX_CU_SIZE >> 1) + 2 * (MAX_ALF_FILTER_LENGTH >> 1);
-      pel l_buffer_cb[((MAX_CU_SIZE >> 1) + 2 * (MAX_ALF_FILTER_LENGTH >> 1)) *((MAX_CU_SIZE >> 1) + 2 * (MAX_ALF_FILTER_LENGTH >> 1))];
-      pel l_buffer_cr[((MAX_CU_SIZE >> 1) + 2 * (MAX_ALF_FILTER_LENGTH >> 1)) *((MAX_CU_SIZE >> 1) + 2 * (MAX_ALF_FILTER_LENGTH >> 1))];
-      pel *p_buffer_cr = l_buffer_cr + l_zero_offset_chroma;
-      pel *p_buffer_cb = l_buffer_cb + l_zero_offset_chroma;
-
-      for (int yPos = y_l; yPos < y_r; yPos += ctx->max_cuwh)
-      {
-          for (int xPos = x_l; xPos < x_r; xPos += ctx->max_cuwh)
-          {
-              const int width = (xPos + ctx->max_cuwh > cs->pPic->w_l) ? (cs->pPic->w_l - xPos) : ctx->max_cuwh;
-              const int height = (yPos + ctx->max_cuwh > cs->pPic->h_l) ? (cs->pPic->h_l - yPos) : ctx->max_cuwh;
-              int availableL, availableR, availableT, availableB;
-              availableL = availableR = availableT = availableB = 1;
-              if (!(ctx->pps.loop_filter_across_tiles_enabled_flag))
-              {
-                  tile_boundary_check(&availableL, &availableR, &availableT, &availableB, width, height, xPos, yPos, x_l, x_r, y_l, y_r);
-              }
-              for (int i = m; i < height + m; i++) {
-                  int dstPos = i * l_stride - l_zero_offset;
-                  int srcPos_offset = xPos + yPos * s;
-                  int stride = (width == ctx->max_cuwh ? l_stride : width + m + m);
-                  memcpy(p_buffer + dstPos + m, tmpYuv + srcPos_offset + (i - m) * s, sizeof(pel) * (stride - 2 * m));
-                  for (int j = 0; j < m; j++)
-                  {
-                      if (availableL)
-                          p_buffer[dstPos + j] = tmpYuv[srcPos_offset + (i - m) * s - m + j];
-                      else
-                          p_buffer[dstPos + j] = tmpYuv[srcPos_offset + (i - m) * s + m - j];
-                      if (availableR)
-                          p_buffer[dstPos + j + width + m] = tmpYuv[srcPos_offset + (i - m) * s + width + j];
-                      else
-                          p_buffer[dstPos + j + width + m] = tmpYuv[srcPos_offset + (i - m) * s + width - j - 2];
-                  }
-              }
-
-              for (int i = 0; i < m; i++) {
-                  int dstPos = i * l_stride - l_zero_offset;
-                  int srcPos_offset = xPos + yPos * s;
-                  int stride = (width == ctx->max_cuwh ? l_stride : width + m + m);
-                  if (availableT)
-                      memcpy(p_buffer + dstPos, tmpYuv + srcPos_offset - (m - i) * s - m, sizeof(pel) * stride);
-                  else
-                      memcpy(p_buffer + dstPos, p_buffer + dstPos + (2 * m - 2 * i) * l_stride, sizeof(pel) * stride);
-              }
-
-              for (int i = height + m; i < height + m + m; i++) {
-                  int dstPos = i * l_stride - l_zero_offset;
-                  int srcPos_offset = xPos + yPos * s;
-                  int stride = (width == ctx->max_cuwh ? l_stride : width + m + m);
-                  if (availableB)
-                      memcpy(p_buffer + dstPos, tmpYuv + srcPos_offset + (i - m) * s - m, sizeof(pel) * stride);
-                  else
-                      memcpy(p_buffer + dstPos, p_buffer + dstPos - (2 * (i - height - m) + 2) * l_stride, sizeof(pel) * stride);
-              }
-
-              if (m_ctuEnableFlag[COMPONENT_Y][ctuIdx])
-              {
-                  Area blk = { 0, 0, width, height };
-                  {
-                      deriveClassification(m_classifier, p_buffer, l_stride, &blk);
-                      p->m_filter7x7Blk(m_classifier, recYuv + xPos + yPos * (cs->pPic->s_l), cs->pPic->s_l, p_buffer, l_stride, &blk, COMPONENT_Y, m_coeffFinal, &(m_clpRngs.comp[COMPONENT_Y]));
-                  }
-              }
-
-              for (int i = m; i < ((height >> 1) + m); i++) {
-                  int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
-                  int srcPos_offset = (xPos >> 1) + (yPos >> 1) * s1;
-                  int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> 1) + m + m);
-                  memcpy(p_buffer_cb + dstPos + m, tmpYuv1 + srcPos_offset + (i - m) * s1, sizeof(pel) * (stride - 2 * m));
-                  memcpy(p_buffer_cr + dstPos + m, tmpYuv2 + srcPos_offset + (i - m) * s1, sizeof(pel) * (stride - 2 * m));
-                  for (int j = 0; j < m; j++)
-                  {
-                      if (availableL)
-                      {
-                          p_buffer_cb[dstPos + j] = tmpYuv1[srcPos_offset + (i - m) * s1 - m + j];
-                          p_buffer_cr[dstPos + j] = tmpYuv2[srcPos_offset + (i - m) * s1 - m + j];
-                      }
-                      else
-                      {
-                          p_buffer_cb[dstPos + j] = tmpYuv1[srcPos_offset + (i - m) * s1 + m - j];
-                          p_buffer_cr[dstPos + j] = tmpYuv2[srcPos_offset + (i - m) * s1 + m - j];
-                      }
-                      if (availableR)
-                      {
-                          p_buffer_cb[dstPos + j + (width >> 1) + m] = tmpYuv1[srcPos_offset + (i - m) * s1 + (width >> 1) + j];
-                          p_buffer_cr[dstPos + j + (width >> 1) + m] = tmpYuv2[srcPos_offset + (i - m) * s1 + (width >> 1) + j];
-                      }
-                      else
-                      {
-                          p_buffer_cb[dstPos + j + (width >> 1) + m] = tmpYuv1[srcPos_offset + (i - m) * s1 + (width >> 1) - j - 2];
-                          p_buffer_cr[dstPos + j + (width >> 1) + m] = tmpYuv2[srcPos_offset + (i - m) * s1 + (width >> 1) - j - 2];
-                      }
-                  }
-              }
-
-              for (int i = 0; i < m; i++) {
-                  int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
-                  int srcPos_offset = (xPos >> 1) + (yPos >> 1) * s1;
-                  int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> 1) + m + m);
-                  if (availableT)
-                      memcpy(p_buffer_cb + dstPos, tmpYuv1 + srcPos_offset - (m - i) * s1 - m, sizeof(pel) * stride);
-                  else
-                      memcpy(p_buffer_cb + dstPos, p_buffer_cb + dstPos + (2 * m - 2 * i) * l_stride_chroma, sizeof(pel) * stride);
-                  if (availableT)
-                      memcpy(p_buffer_cr + dstPos, tmpYuv2 + srcPos_offset - (m - i) * s1 - m, sizeof(pel) * stride);
-                  else
-                      memcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos + (2 * m - 2 * i) * l_stride_chroma, sizeof(pel) * stride);
-              }
-
-              for (int i = ((height >> 1) + m); i < ((height >> 1) + m + m); i++) {
-                  int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
-                  int srcPos_offset = (xPos >> 1) + (yPos >> 1) * s1;
-                  int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> 1) + m + m);
-                  if (availableB)
-                      memcpy(p_buffer_cb + dstPos, tmpYuv1 + srcPos_offset + (i - m) * s1 - m, sizeof(pel) * stride);
-                  else
-                      memcpy(p_buffer_cb + dstPos, p_buffer_cb + dstPos - (2 * (i - (height >> 1) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
-                  if (availableB)
-                      memcpy(p_buffer_cr + dstPos, tmpYuv2 + srcPos_offset + (i - m) * s1 - m, sizeof(pel) * stride);
-                  else
-                      memcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos - (2 * (i - (height >> 1) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
-              }
-
-              for (int compIdx = 1; compIdx < MAX_NUM_COMPONENT; compIdx++)
-              {
-                  ComponentID compID = (ComponentID)(compIdx);
-                  const int chromaScaleX = 1; //getComponentScaleX(compID, tmpYuv.chromaFormat);
-                  const int chromaScaleY = 1; //getComponentScaleY(compID, tmpYuv.chromaFormat);
-#if M53608_ALF_1
-                  if ( alfSliceParam->enabledFlag[compIdx] )
-                  {
-                      assert(m_ctuEnableFlag[compIdx][ctuIdx] == 1);
-                      Area blk = { 0, 0, width >> chromaScaleX, height >> chromaScaleY };
-                      if (compIdx == 1)
-                          p->m_filter5x5Blk(m_classifier, recYuv1 + (xPos >> 1) + (yPos >> 1) * (cs->pPic->s_c), cs->pPic->s_c, p_buffer_cb, l_stride_chroma, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
-                      else if (compIdx == 2)
-                          p->m_filter5x5Blk(m_classifier, recYuv2 + (xPos >> 1) + (yPos >> 1) * (cs->pPic->s_c), cs->pPic->s_c, p_buffer_cr, l_stride_chroma, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
-#else
-                  if (alfSliceParam->enabledFlag[compIdx] && m_ctuEnableFlag[compIdx][ctuIdx])
-                  {
-                      Area blk = { 0, 0, width >> chromaScaleX, height >> chromaScaleY };
-                      p->m_filter5x5Blk(m_classifier, recYuv1 + (xPos >> 1) + (yPos >> 1) * (cs->pPic->s_c), cs->pPic->s_c, p_buffer_cb, l_stride_chroma, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
-                      p->m_filter5x5Blk(m_classifier, recYuv2 + (xPos >> 1) + (yPos >> 1) * (cs->pPic->s_c), cs->pPic->s_c, p_buffer_cr, l_stride_chroma, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
-#endif
-                  }
-              }
-              x_loc++;
-              if (x_loc >= ctx->tile[ii].w_ctb + col_bd)
-              {
-                  x_loc = ((ctx->tile[ii].ctba_rs_first) % ctx->w_lcu);
-                  y_loc++;
-              }
-              ctuIdx = x_loc + y_loc * ctx->w_lcu;
-          }
-      }
-      NumTilesInSlice--;
-  }
-#else
-  const int h = cs->pPic->h_l;
-  const int w = cs->pPic->w_l;
-  const int m = MAX_ALF_FILTER_LENGTH >> 1;
-  const int s = w + m + m;
-
-  pel * recYuv = cs->pPic->y;
-  pel * tmpYuv = m_tempBuf + s*m + m;
-
-  copy_and_extend( tmpYuv, s, recYuv, cs->pPic->s_l, w, h, m );
-
-  //chroma (for 4:2:0 only)
-  const int s1 = (w >> 1) + m + m;
-  pel * recYuv1 = cs->pPic->u;
-  pel * tmpYuv1 = m_tempBuf1 + s1*m + m; //m, not m-1, is left for unification with VVC
-  pel * recYuv2 = cs->pPic->v;
-  pel * tmpYuv2 = m_tempBuf2 + s1*m + m; //m, not m-1, is left for unification with VVC
-
-  copy_and_extend( tmpYuv1, s1, recYuv1, cs->pPic->s_c, (w >> 1), (h >> 1), m );
-  copy_and_extend( tmpYuv2, s1, recYuv2, cs->pPic->s_c, (w >> 1), (h >> 1), m );
-  
-  int ctuIdx = 0;
-
-  for (int yPos = 0; yPos < cs->pPic->h_l; yPos += ctx->max_cuwh )
-  {
-    for (int xPos = 0; xPos < cs->pPic->w_l; xPos += ctx->max_cuwh )
+    if (!alfSliceParam->enabledFlag[COMPONENT_Y] && !alfSliceParam->enabledFlag[COMPONENT_Cb] && !alfSliceParam->enabledFlag[COMPONENT_Cr])
     {
-      const int width = (xPos + ctx->max_cuwh > cs->pPic->w_l) ? (cs->pPic->w_l - xPos) : ctx->max_cuwh;
-      const int height = (yPos + ctx->max_cuwh > cs->pPic->h_l) ? (cs->pPic->h_l - yPos) : ctx->max_cuwh;
-
-      if (m_ctuEnableFlag[COMPONENT_Y][ctuIdx])
-      {
-        Area blk = {xPos, yPos, width, height};
-        {
-          deriveClassification(m_classifier, tmpYuv, s, &blk);
-          p->m_filter7x7Blk(m_classifier, recYuv, cs->pPic->s_l, tmpYuv, s, &blk, COMPONENT_Y, m_coeffFinal, &(m_clpRngs.comp[COMPONENT_Y]));
-        }
-      }
-
-      for (int compIdx = 1; compIdx < MAX_NUM_COMPONENT; compIdx++)
-      {
-        ComponentID compID = (ComponentID)(compIdx);
-        const int chromaScaleX = 1; //getComponentScaleX(compID, tmpYuv.chromaFormat);
-        const int chromaScaleY = 1; //getComponentScaleY(compID, tmpYuv.chromaFormat);
-
-        if ( alfSliceParam->enabledFlag[compIdx] && m_ctuEnableFlag[compIdx][ctuIdx] )
-        {
-          Area blk = {xPos >> chromaScaleX, yPos >> chromaScaleY, width >> chromaScaleX, height >> chromaScaleY };
-          p->m_filter5x5Blk(m_classifier, recYuv1, cs->pPic->s_c, tmpYuv1, s1, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
-          p->m_filter5x5Blk(m_classifier, recYuv2, cs->pPic->s_c, tmpYuv2, s1, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
-        }
-      }
-      ctuIdx++;
+        return;
     }
-  }
+
+    EVCD_CTX* ctx = (EVCD_CTX*)(cs->pCtx);
+
+    // set available filter shapes
+    alfSliceParam->filterShapes = &m_filterShapes[0];
+
+    // set CTU enable flags
+    for (int compIdx = 0; compIdx < MAX_NUM_COMPONENT; compIdx++)
+    {
+        m_ctuEnableFlag[compIdx] = alfSliceParam->alfCtuEnableFlag + ctx->f_lcu * compIdx;
+    }
+
+    reconstructCoeff(alfSliceParam, CHANNEL_TYPE_LUMA, FALSE, TRUE);
+    if (alfSliceParam->enabledFlag[COMPONENT_Cb] || alfSliceParam->enabledFlag[COMPONENT_Cr])
+    {
+        reconstructCoeff(alfSliceParam, CHANNEL_TYPE_CHROMA, FALSE, FALSE);
+    }
+    int ii, x_l, x_r, y_l, y_r, w_tile, h_tile;
+    const int h = cs->pPic->h_l;
+    const int w = cs->pPic->w_l;
+    const int m = MAX_ALF_FILTER_LENGTH >> 1;
+    const int s = w + m + m;
+    int col_bd = 0;
+    u32 k = 0;
+    ii = 0;
+    int num_tiles_in_slice = ctx->num_tiles_in_slice;
+    while (num_tiles_in_slice)
+    {
+        ii = ctx->tile_in_slice[k++];
+        col_bd = 0;
+        if (ii % (ctx->pps.num_tile_columns_minus1 + 1))
+        {
+            int temp = ii - 1;
+            while (temp >= 0)
+            {
+                col_bd += ctx->tile[temp].w_ctb;
+                if (!(temp % (ctx->pps.num_tile_columns_minus1 + 1))) break;
+                temp--;
+            }
+        }
+        else
+        {
+            col_bd = 0;
+        }
+        int x_loc = ((ctx->tile[ii].ctba_rs_first) % ctx->w_lcu);
+        int y_loc = ((ctx->tile[ii].ctba_rs_first) / ctx->w_lcu);
+        int ctuIdx = x_loc + y_loc * ctx->w_lcu;
+        x_l = x_loc << ctx->log2_max_cuwh; //entry point lcu's x location
+        y_l = y_loc << ctx->log2_max_cuwh; // entry point lcu's y location
+        x_r = x_l + ((int)(ctx->tile[ii].w_ctb) << ctx->log2_max_cuwh);
+        y_r = y_l + ((int)(ctx->tile[ii].h_ctb) << ctx->log2_max_cuwh);
+        w_tile = x_r > ((int)ctx->w_scu << MIN_CU_LOG2) ? ((int)ctx->w_scu << MIN_CU_LOG2) - x_l : x_r - x_l;
+        h_tile = y_r > ((int)ctx->h_scu << MIN_CU_LOG2) ? ((int)ctx->h_scu << MIN_CU_LOG2) - y_l : y_r - y_l;
+        x_r = x_r > ((int)ctx->w_scu << MIN_CU_LOG2) ? ((int)ctx->w_scu << MIN_CU_LOG2) : x_r;
+        y_r = y_r > ((int)ctx->h_scu << MIN_CU_LOG2) ? ((int)ctx->h_scu << MIN_CU_LOG2) : y_r;
+
+        pel * recYuv = cs->pPic->y;
+        pel * tmpYuv = m_tempBuf + s * m + m;
+        //chroma (for 4:2:0 only)
+        const int s1 = (w >> 1) + m + m;
+        pel * recYuv1 = cs->pPic->u;
+        pel * tmpYuv1 = m_tempBuf1 + s1 * m + m; //m, not m-1, is left for unification with VVC
+        pel * recYuv2 = cs->pPic->v;
+        pel * tmpYuv2 = m_tempBuf2 + s1 * m + m; //m, not m-1, is left for unification with VVC
+
+        Pel * recLuma0_tile = tmpYuv + x_l + y_l * s;
+        Pel * recLuma1_tile = tmpYuv1 + (x_l >> 1) + (y_l >> 1) * (s1);
+        Pel * recLuma2_tile = tmpYuv2 + (x_l >> 1) + (y_l >> 1) * (s1);
+
+        Pel * recoYuv0_tile = recYuv + x_l + y_l * cs->pPic->s_l;
+        Pel * recoYuv1_tile = recYuv1 + (x_l >> 1) + (y_l >> 1) * cs->pPic->s_c;
+        Pel * recoYuv2_tile = recYuv2 + (x_l >> 1) + (y_l >> 1) * cs->pPic->s_c;
+
+        copy_and_extend_tile(recLuma0_tile, s, recoYuv0_tile, cs->pPic->s_l, w_tile, h_tile, m);
+        copy_and_extend_tile(recLuma1_tile, s1, recoYuv1_tile, cs->pPic->s_c, (w_tile >> 1), (h_tile >> 1), m);
+        copy_and_extend_tile(recLuma2_tile, s1, recoYuv2_tile, cs->pPic->s_c, (w_tile >> 1), (h_tile >> 1), m);
+
+        int l_zero_offset = (MAX_CU_SIZE + m + m) * m + m;
+        int l_stride = MAX_CU_SIZE + 2 * (MAX_ALF_FILTER_LENGTH >> 1);
+        pel l_buffer[(MAX_CU_SIZE + 2 * (MAX_ALF_FILTER_LENGTH >> 1)) *(MAX_CU_SIZE + 2 * (MAX_ALF_FILTER_LENGTH >> 1))];
+        pel *p_buffer = l_buffer + l_zero_offset;
+        int l_zero_offset_chroma = ((MAX_CU_SIZE >> 1) + m + m) * m + m;
+        int l_stride_chroma = (MAX_CU_SIZE >> 1) + 2 * (MAX_ALF_FILTER_LENGTH >> 1);
+        pel l_buffer_cb[((MAX_CU_SIZE >> 1) + 2 * (MAX_ALF_FILTER_LENGTH >> 1)) *((MAX_CU_SIZE >> 1) + 2 * (MAX_ALF_FILTER_LENGTH >> 1))];
+        pel l_buffer_cr[((MAX_CU_SIZE >> 1) + 2 * (MAX_ALF_FILTER_LENGTH >> 1)) *((MAX_CU_SIZE >> 1) + 2 * (MAX_ALF_FILTER_LENGTH >> 1))];
+        pel *p_buffer_cr = l_buffer_cr + l_zero_offset_chroma;
+        pel *p_buffer_cb = l_buffer_cb + l_zero_offset_chroma;
+
+        for (int yPos = y_l; yPos < y_r; yPos += ctx->max_cuwh)
+        {
+            for (int xPos = x_l; xPos < x_r; xPos += ctx->max_cuwh)
+            {
+                const int width = (xPos + ctx->max_cuwh > cs->pPic->w_l) ? (cs->pPic->w_l - xPos) : ctx->max_cuwh;
+                const int height = (yPos + ctx->max_cuwh > cs->pPic->h_l) ? (cs->pPic->h_l - yPos) : ctx->max_cuwh;
+                int availableL, availableR, availableT, availableB;
+                availableL = availableR = availableT = availableB = 1;
+                if (!(ctx->pps.loop_filter_across_tiles_enabled_flag))
+                {
+                    tile_boundary_check(&availableL, &availableR, &availableT, &availableB, width, height, xPos, yPos, x_l, x_r, y_l, y_r);
+                }
+                else
+                {
+                    tile_boundary_check(&availableL, &availableR, &availableT, &availableB, width, height, xPos, yPos,
+                        0, ctx->sps.pic_width_in_luma_samples - 1, 0, ctx->sps.pic_height_in_luma_samples - 1);
+                }
+                for (int i = m; i < height + m; i++)
+                {
+                    int dstPos = i * l_stride - l_zero_offset;
+                    int srcPos_offset = xPos + yPos * s;
+                    int stride = (width == ctx->max_cuwh ? l_stride : width + m + m);
+                    memcpy(p_buffer + dstPos + m, tmpYuv + srcPos_offset + (i - m) * s, sizeof(pel) * (stride - 2 * m));
+                    for (int j = 0; j < m; j++)
+                    {
+                        if (availableL)
+                        {
+                            p_buffer[dstPos + j] = tmpYuv[srcPos_offset + (i - m) * s - m + j];
+                        }
+                        else
+                        {
+                            p_buffer[dstPos + j] = tmpYuv[srcPos_offset + (i - m) * s + m - j];
+                        }
+
+                        if (availableR)
+                        {
+                            p_buffer[dstPos + j + width + m] = tmpYuv[srcPos_offset + (i - m) * s + width + j];
+                        }
+                        else
+                        {
+                            p_buffer[dstPos + j + width + m] = tmpYuv[srcPos_offset + (i - m) * s + width - j - 2];
+                        }
+                    }
+                }
+
+                for (int i = 0; i < m; i++)
+                {
+                    int dstPos = i * l_stride - l_zero_offset;
+                    int srcPos_offset = xPos + yPos * s;
+                    int stride = (width == ctx->max_cuwh ? l_stride : width + m + m);
+                    if (availableT)
+                        memcpy(p_buffer + dstPos, tmpYuv + srcPos_offset - (m - i) * s - m, sizeof(pel) * stride);
+                    else
+                        memcpy(p_buffer + dstPos, p_buffer + dstPos + (2 * m - 2 * i) * l_stride, sizeof(pel) * stride);
+                }
+
+                for (int i = height + m; i < height + m + m; i++)
+                {
+                    int dstPos = i * l_stride - l_zero_offset;
+                    int srcPos_offset = xPos + yPos * s;
+                    int stride = (width == ctx->max_cuwh ? l_stride : width + m + m);
+                    if (availableB)
+                    {
+                        memcpy(p_buffer + dstPos, tmpYuv + srcPos_offset + (i - m) * s - m, sizeof(pel) * stride);
+                    }
+                    else
+                    {
+                        memcpy(p_buffer + dstPos, p_buffer + dstPos - (2 * (i - height - m) + 2) * l_stride, sizeof(pel) * stride);
+                    }
+                }
+
+                if (m_ctuEnableFlag[COMPONENT_Y][ctuIdx])
+                {
+                    Area blk = { 0, 0, width, height };
+                    {
+                        deriveClassification(m_classifier, p_buffer, l_stride, &blk);
+                        p->m_filter7x7Blk(m_classifier, recYuv + xPos + yPos * (cs->pPic->s_l), cs->pPic->s_l, p_buffer, l_stride, &blk, COMPONENT_Y, m_coeffFinal, &(m_clpRngs.comp[COMPONENT_Y]));
+                    }
+                }
+
+                for (int i = m; i < ((height >> 1) + m); i++)
+                {
+                    int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
+                    int srcPos_offset = (xPos >> 1) + (yPos >> 1) * s1;
+                    int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> 1) + m + m);
+                    memcpy(p_buffer_cb + dstPos + m, tmpYuv1 + srcPos_offset + (i - m) * s1, sizeof(pel) * (stride - 2 * m));
+                    memcpy(p_buffer_cr + dstPos + m, tmpYuv2 + srcPos_offset + (i - m) * s1, sizeof(pel) * (stride - 2 * m));
+                    for (int j = 0; j < m; j++)
+                    {
+                        if (availableL)
+                        {
+                            p_buffer_cb[dstPos + j] = tmpYuv1[srcPos_offset + (i - m) * s1 - m + j];
+                            p_buffer_cr[dstPos + j] = tmpYuv2[srcPos_offset + (i - m) * s1 - m + j];
+                        }
+                        else
+                        {
+                            p_buffer_cb[dstPos + j] = tmpYuv1[srcPos_offset + (i - m) * s1 + m - j];
+                            p_buffer_cr[dstPos + j] = tmpYuv2[srcPos_offset + (i - m) * s1 + m - j];
+                        }
+                        if (availableR)
+                        {
+                            p_buffer_cb[dstPos + j + (width >> 1) + m] = tmpYuv1[srcPos_offset + (i - m) * s1 + (width >> 1) + j];
+                            p_buffer_cr[dstPos + j + (width >> 1) + m] = tmpYuv2[srcPos_offset + (i - m) * s1 + (width >> 1) + j];
+                        }
+                        else
+                        {
+                            p_buffer_cb[dstPos + j + (width >> 1) + m] = tmpYuv1[srcPos_offset + (i - m) * s1 + (width >> 1) - j - 2];
+                            p_buffer_cr[dstPos + j + (width >> 1) + m] = tmpYuv2[srcPos_offset + (i - m) * s1 + (width >> 1) - j - 2];
+                        }
+                    }
+                }
+
+                for (int i = 0; i < m; i++)
+                {
+                    int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
+                    int srcPos_offset = (xPos >> 1) + (yPos >> 1) * s1;
+                    int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> 1) + m + m);
+                    if (availableT)
+                    {
+                        memcpy(p_buffer_cb + dstPos, tmpYuv1 + srcPos_offset - (m - i) * s1 - m, sizeof(pel) * stride);
+                    }
+                    else
+                    {
+                        memcpy(p_buffer_cb + dstPos, p_buffer_cb + dstPos + (2 * m - 2 * i) * l_stride_chroma, sizeof(pel) * stride);
+                    }
+                    if (availableT)
+                    {
+                        memcpy(p_buffer_cr + dstPos, tmpYuv2 + srcPos_offset - (m - i) * s1 - m, sizeof(pel) * stride);
+                    }
+                    else
+                    {
+                        memcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos + (2 * m - 2 * i) * l_stride_chroma, sizeof(pel) * stride);
+                    }
+                }
+
+                for (int i = ((height >> 1) + m); i < ((height >> 1) + m + m); i++)
+                {
+                    int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
+                    int srcPos_offset = (xPos >> 1) + (yPos >> 1) * s1;
+                    int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> 1) + m + m);
+                    if (availableB)
+                    {
+                        memcpy(p_buffer_cb + dstPos, tmpYuv1 + srcPos_offset + (i - m) * s1 - m, sizeof(pel) * stride);
+                    }
+                    else
+                    {
+                        memcpy(p_buffer_cb + dstPos, p_buffer_cb + dstPos - (2 * (i - (height >> 1) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
+                    }
+
+                    if (availableB)
+                    {
+                        memcpy(p_buffer_cr + dstPos, tmpYuv2 + srcPos_offset + (i - m) * s1 - m, sizeof(pel) * stride);
+                    }
+                    else
+                    {
+                        memcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos - (2 * (i - (height >> 1) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
+                    }
+                }
+
+                for (int compIdx = 1; compIdx < MAX_NUM_COMPONENT; compIdx++)
+                {
+                    ComponentID compID = (ComponentID)(compIdx);
+                    const int chromaScaleX = 1; //getComponentScaleX(compID, tmpYuv.chromaFormat);
+                    const int chromaScaleY = 1; //getComponentScaleY(compID, tmpYuv.chromaFormat);
+#if M53608_ALF_1
+                    if (alfSliceParam->enabledFlag[compIdx])
+                    {
+                        assert(m_ctuEnableFlag[compIdx][ctuIdx] == 1);
+                        Area blk = { 0, 0, width >> chromaScaleX, height >> chromaScaleY };
+                        if (compIdx == 1)
+                            p->m_filter5x5Blk(m_classifier, recYuv1 + (xPos >> 1) + (yPos >> 1) * (cs->pPic->s_c), cs->pPic->s_c, p_buffer_cb, l_stride_chroma, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
+                        else if (compIdx == 2)
+                            p->m_filter5x5Blk(m_classifier, recYuv2 + (xPos >> 1) + (yPos >> 1) * (cs->pPic->s_c), cs->pPic->s_c, p_buffer_cr, l_stride_chroma, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
+#else
+                    if (alfSliceParam->enabledFlag[compIdx] && m_ctuEnableFlag[compIdx][ctuIdx])
+                    {
+                        Area blk = { 0, 0, width >> chromaScaleX, height >> chromaScaleY };
+                        p->m_filter5x5Blk(m_classifier, recYuv1 + (xPos >> 1) + (yPos >> 1) * (cs->pPic->s_c), cs->pPic->s_c, p_buffer_cb, l_stride_chroma, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
+                        p->m_filter5x5Blk(m_classifier, recYuv2 + (xPos >> 1) + (yPos >> 1) * (cs->pPic->s_c), cs->pPic->s_c, p_buffer_cr, l_stride_chroma, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
 #endif
+                    }
+                }
+                x_loc++;
+                if (x_loc >= ctx->tile[ii].w_ctb + col_bd)
+                {
+                    x_loc = ((ctx->tile[ii].ctba_rs_first) % ctx->w_lcu);
+                    y_loc++;
+                }
+                ctuIdx = x_loc + y_loc * ctx->w_lcu;
+            }
+        }
+        num_tiles_in_slice--;
+    }
 }
 
 #if INTEGR_M53608

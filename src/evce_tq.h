@@ -36,11 +36,7 @@
 
 #include "evce_def.h"
 
-int evce_tq_nnz(u8 qp, double lambda, s16 * coef, int log2_cuw, int log2_cuh, u16 scale, int slice_type, int ch_type, int is_intra, int sps_cm_init_flag, int iqt_flag, u8 ats_intra_cu, u8 ats_mode, int tool_adcc
-#if EVC_CONCURENCY
-    , EVCE_CORE * core
-#endif
-);
+int evce_tq_nnz(u8 qp, double lambda, s16 * coef, int log2_cuw, int log2_cuh, u16 scale, int slice_type, int ch_type, int is_intra, int sps_cm_init_flag, int iqt_flag, u8 ats_intra_cu, u8 ats_mode, int tool_adcc, EVCE_CORE * core);
 
 //! \todo Change list of arguments
 int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int slice_type, int nnz[N_C]
@@ -49,10 +45,7 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
 #if M50761_CHROMA_NOT_SPLIT
                       , TREE_CONS tree_cons
 #endif
-
-#if EVC_CONCURENCY
-    , EVCE_CORE * core
-#endif
+                      , EVCE_CORE * core
 );
 void evce_init_err_scale();
 

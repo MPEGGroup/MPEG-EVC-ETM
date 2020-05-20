@@ -33,11 +33,8 @@
 
 #include "evcd_def.h"
 
-void evc_get_nbr_b(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_cu, pel nb[N_C][N_REF][MAX_CU_SIZE * 3], int scup, u32 * map_scu, int w_scu, int h_scu, int ch_type, int constrained_intra_pred 
-#if EVC_TILE_SUPPORT    
-    ,u8* map_tidx
-#endif
-)
+void evc_get_nbr_b(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_cu, pel nb[N_C][N_REF][MAX_CU_SIZE * 3], int scup, u32 * map_scu
+                 , int w_scu, int h_scu, int ch_type, int constrained_intra_pred ,u8* map_tidx)
 {
     int  i, j;
     int  scuw = (ch_type == Y_C) ? (cuw >> MIN_CU_LOG2) : (cuw >> (MIN_CU_LOG2 - 1));
@@ -49,11 +46,8 @@ void evc_get_nbr_b(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avai
     pel *left = nb[ch_type][0] + 2;
     pel *up = nb[ch_type][1] + cuh;
 
-    if (IS_AVAIL(avail_cu, AVAIL_UP_LE) && (!constrained_intra_pred || MCU_GET_IF(map_scu[scup - w_scu - 1]))
-#if EVC_TILE_SUPPORT
-        &&(map_tidx[scup] == map_tidx[scup - w_scu - 1])
-#endif
-        )
+    if (IS_AVAIL(avail_cu, AVAIL_UP_LE) && (!constrained_intra_pred || MCU_GET_IF(map_scu[scup - w_scu - 1])) &&
+        (map_tidx[scup] == map_tidx[scup - w_scu - 1]))
     {
         evc_mcpy(up - 1, src - s_src - 1, cuw * sizeof(pel));
     }
@@ -65,11 +59,8 @@ void evc_get_nbr_b(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avai
     for (i = 0; i < (scuw + scuh); i++)   
     {
         int is_avail = (y_scu > 0) && (x_scu + i < w_scu);
-        if (is_avail && MCU_GET_COD(map_scu[scup - w_scu + i]) && (!constrained_intra_pred || MCU_GET_IF(map_scu[scup - w_scu + i]))
-#if EVC_TILE_SUPPORT
-            && (map_tidx[scup] == map_tidx[scup - w_scu + i])
-#endif
-            )
+        if (is_avail && MCU_GET_COD(map_scu[scup - w_scu + i]) && (!constrained_intra_pred || MCU_GET_IF(map_scu[scup - w_scu + i])) &&
+            (map_tidx[scup] == map_tidx[scup - w_scu + i]))
         {
             evc_mcpy(up + i * unit_size, src - s_src + i * unit_size, unit_size * sizeof(pel));
         }
@@ -83,11 +74,8 @@ void evc_get_nbr_b(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avai
     for (i = 0; i < (scuh + scuw); ++i)
     {
         int is_avail = (x_scu > 0) && (y_scu + i < h_scu);
-        if (is_avail && MCU_GET_COD(map_scu[scup - 1 + i * w_scu]) && (!constrained_intra_pred || MCU_GET_IF(map_scu[scup - 1 + i * w_scu]))
-#if EVC_TILE_SUPPORT
-            && (map_tidx[scup] == map_tidx[scup - 1 + i * w_scu])
-#endif
-            )
+        if (is_avail && MCU_GET_COD(map_scu[scup - 1 + i * w_scu]) && (!constrained_intra_pred || MCU_GET_IF(map_scu[scup - 1 + i * w_scu])) &&
+            (map_tidx[scup] == map_tidx[scup - 1 + i * w_scu]))
         {
             for (j = 0; j < unit_size; ++j)
             {
@@ -104,12 +92,8 @@ void evc_get_nbr_b(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avai
     left[-1] = up[-1];
 }
 
-void evc_get_nbr(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_cu, pel nb[N_C][N_REF][MAX_CU_SIZE * 3], int scup, u32 * map_scu, int w_scu, int h_scu, int ch_type
-                 , int constrained_intra_pred
-#if EVC_TILE_SUPPORT
-    , u8 * map_tidx
-#endif
-)
+void evc_get_nbr(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_cu, pel nb[N_C][N_REF][MAX_CU_SIZE * 3], int scup, u32 * map_scu
+               , int w_scu, int h_scu, int ch_type, int constrained_intra_pred, u8 * map_tidx)
 {
     int  i, j;
     int  scuw = (ch_type == Y_C) ? (cuw >> MIN_CU_LOG2) : (cuw >> (MIN_CU_LOG2 - 1));
@@ -122,11 +106,8 @@ void evc_get_nbr(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_
     pel *up = nb[ch_type][1] + cuh;
     pel *right = nb[ch_type][2] + 2;
 
-    if (IS_AVAIL(avail_cu, AVAIL_UP_LE) && (!constrained_intra_pred || MCU_GET_IF(map_scu[scup - w_scu - 1]))
-#if EVC_TILE_SUPPORT
-        && (map_tidx[scup] == map_tidx[scup - w_scu - 1])  
-#endif
-        )
+    if (IS_AVAIL(avail_cu, AVAIL_UP_LE) && (!constrained_intra_pred || MCU_GET_IF(map_scu[scup - w_scu - 1])) &&
+        (map_tidx[scup] == map_tidx[scup - w_scu - 1])  )
     {
         evc_mcpy(up - 1, src - s_src - 1, cuw * sizeof(pel));
     }
@@ -138,11 +119,8 @@ void evc_get_nbr(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_
     for (i = 0; i < (scuw + scuh); i++)
     {
         int is_avail = (y_scu > 0) && (x_scu + i < w_scu);
-        if (is_avail && MCU_GET_COD(map_scu[scup - w_scu + i]) && (!constrained_intra_pred || MCU_GET_IF(map_scu[scup - w_scu + i]))
-#if EVC_TILE_SUPPORT
-            && (map_tidx[scup] == map_tidx[scup - w_scu + i])
-#endif
-            )
+        if (is_avail && MCU_GET_COD(map_scu[scup - w_scu + i]) && (!constrained_intra_pred || MCU_GET_IF(map_scu[scup - w_scu + i])) &&
+            (map_tidx[scup] == map_tidx[scup - w_scu + i]))
         {
             evc_mcpy(up + i * unit_size, src - s_src + i * unit_size, unit_size * sizeof(pel));
         }
@@ -156,12 +134,8 @@ void evc_get_nbr(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_
     {
         for (i = 0; i < scuh; i++)
         {
-            if (scup > 0 && y_scu > 0 && (x_scu - 1 - i >= 0) && MCU_GET_COD(map_scu[scup - w_scu - 1 - i]) 
-                && (!constrained_intra_pred || MCU_GET_IF(map_scu[scup - w_scu - 1 - i]))
-#if EVC_TILE_SUPPORT
-                && (map_tidx[scup] == map_tidx[scup - w_scu - 1 - i])
-#endif
-                )
+            if (scup > 0 && y_scu > 0 && (x_scu - 1 - i >= 0) && MCU_GET_COD(map_scu[scup - w_scu - 1 - i]) &&
+                (!constrained_intra_pred || MCU_GET_IF(map_scu[scup - w_scu - 1 - i])) && (map_tidx[scup] == map_tidx[scup - w_scu - 1 - i]))
             {
                 evc_mcpy(up - (i + 1) * unit_size, src - s_src - (i + 1) * unit_size, unit_size * sizeof(pel));
             }
@@ -182,11 +156,8 @@ void evc_get_nbr(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_
     for (i = 0; i < (scuh + scuw); ++i)
     {
         int is_avail = (x_scu > 0) && (y_scu + i < h_scu);
-        if (is_avail && MCU_GET_COD(map_scu[scup - 1 + i * w_scu]) && (!constrained_intra_pred || MCU_GET_IF(map_scu[scup - 1 + i * w_scu]))
-#if EVC_TILE_SUPPORT
-            && (map_tidx[scup] == map_tidx[scup - 1 + i * w_scu])
-#endif
-            )
+        if (is_avail && MCU_GET_COD(map_scu[scup - 1 + i * w_scu]) && (!constrained_intra_pred || MCU_GET_IF(map_scu[scup - 1 + i * w_scu])) &&
+            (map_tidx[scup] == map_tidx[scup - 1 + i * w_scu]))
         {
             for (j = 0; j < unit_size; ++j)
             {
@@ -211,11 +182,8 @@ void evc_get_nbr(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_
     for (i = 0; i < (scuh + scuw); i++)
     {
         int is_avail = (x_scu < w_scu) && (y_scu + i < h_scu);
-        if (is_avail && MCU_GET_COD(map_scu[scup + scuw + i * w_scu]) && (!constrained_intra_pred || MCU_GET_IF(map_scu[scup + scuw + i * w_scu]))
-#if EVC_TILE_SUPPORT
-            && (map_tidx[scup] == map_tidx[scup + scuw + i * w_scu])
-#endif
-            )
+        if (is_avail && MCU_GET_COD(map_scu[scup + scuw + i * w_scu]) && (!constrained_intra_pred || MCU_GET_IF(map_scu[scup + scuw + i * w_scu])) &&
+            (map_tidx[scup] == map_tidx[scup + scuw + i * w_scu]))
         {
             for (j = 0; j < unit_size; ++j)
             {
@@ -1006,27 +974,15 @@ int intra_mode_list[IPD_CNT] = {
 };
 
 void evc_get_mpm_b(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_ipm, int scup, int w_scu,
-                   u8 ** mpm, u16 avail_lr, u8 mpm_ext[8], u8 pms[IPD_CNT] /* 10 third MPM */
-#if EVC_TILE_SUPPORT
-    , u8 * map_tidx
-#endif
-)
+                   u8 ** mpm, u16 avail_lr, u8 mpm_ext[8], u8 pms[IPD_CNT] /* 10 third MPM */, u8 * map_tidx)
 {
     u8 ipm_l = IPD_DC, ipm_u = IPD_DC;
 
-    if(x_scu > 0 && MCU_GET_IF(map_scu[scup - 1]) && MCU_GET_COD(map_scu[scup - 1])
-#if EVC_TILE_SUPPORT
-        && (map_tidx[scup] == map_tidx[scup - 1])
-#endif
-        )
+    if(x_scu > 0 && MCU_GET_IF(map_scu[scup - 1]) && MCU_GET_COD(map_scu[scup - 1]) && (map_tidx[scup] == map_tidx[scup - 1]))
     {
         ipm_l = map_ipm[scup - 1] + 1;
     }
-    if(y_scu > 0 && MCU_GET_IF(map_scu[scup - w_scu]) && MCU_GET_COD(map_scu[scup - w_scu])
-#if EVC_TILE_SUPPORT
-        && (map_tidx[scup] == map_tidx[scup - w_scu])
-#endif
-        )
+    if(y_scu > 0 && MCU_GET_IF(map_scu[scup - w_scu]) && MCU_GET_COD(map_scu[scup - w_scu]) && (map_tidx[scup] == map_tidx[scup - w_scu]))
     {
         ipm_u = map_ipm[scup - w_scu] + 1;
     }
@@ -1034,12 +990,7 @@ void evc_get_mpm_b(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map
 }
 
 void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_ipm, int scup, int w_scu,
-    u8 mpm[2],
-                   u16 avail_lr, u8 mpm_ext[8], u8 pms[IPD_CNT] /* 10 third MPM */
-#if EVC_TILE_SUPPORT
-    , u8 * map_tidx
-#endif
-)
+                 u8 mpm[2], u16 avail_lr, u8 mpm_ext[8], u8 pms[IPD_CNT] /* 10 third MPM */, u8 * map_tidx)
 {
     u8 ipm_l = IPD_DC, ipm_u = IPD_DC;
     u8 ipm_r = IPD_DC;
@@ -1054,31 +1005,19 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
 
     evc_mset(included_mode, 0, sizeof(included_mode));
 
-    if(x_scu > 0 && MCU_GET_IF(map_scu[scup - 1]) && MCU_GET_COD(map_scu[scup - 1])
-#if EVC_TILE_SUPPORT
-        && (map_tidx[scup] == map_tidx[scup - 1])
-#endif
-        )
+    if(x_scu > 0 && MCU_GET_IF(map_scu[scup - 1]) && MCU_GET_COD(map_scu[scup - 1]) && (map_tidx[scup] == map_tidx[scup - 1]))
     {
         ipm_l = map_ipm[scup - 1];
         valid_l = 1;
     }
 
-    if(y_scu > 0 && MCU_GET_IF(map_scu[scup - w_scu]) && MCU_GET_COD(map_scu[scup - w_scu])
-#if EVC_TILE_SUPPORT
-        && (map_tidx[scup] == map_tidx[scup - w_scu])
-#endif
-        )
+    if(y_scu > 0 && MCU_GET_IF(map_scu[scup - w_scu]) && MCU_GET_COD(map_scu[scup - w_scu]) && (map_tidx[scup] == map_tidx[scup - w_scu]))
     {
         ipm_u = map_ipm[scup - w_scu];
         valid_u = 1;
     }
 
-    if(x_scu + scuw < w_scu && MCU_GET_IF(map_scu[scup + scuw]) && MCU_GET_COD(map_scu[scup + scuw])
-#if EVC_TILE_SUPPORT
-        && (map_tidx[scup] == map_tidx[scup + scuw])
-#endif
-        )
+    if(x_scu + scuw < w_scu && MCU_GET_IF(map_scu[scup + scuw]) && MCU_GET_COD(map_scu[scup + scuw]) && (map_tidx[scup] == map_tidx[scup + scuw]))
     {
         ipm_r = map_ipm[scup + scuw];
 

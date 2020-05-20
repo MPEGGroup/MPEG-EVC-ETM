@@ -1449,18 +1449,11 @@ void save_ats_inter_info_pred(EVCE_CTX *ctx, EVCE_CORE *core, u32 dist_pu, u8 at
 
 }
 
-#if !EVC_CONCURENCY
-static s16    coef_t[N_C][MAX_CU_DIM];
-#endif
-
 static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_cuw, int log2_cuh, pel pred[2][N_C][MAX_CU_DIM], s16 coef[N_C][MAX_CU_DIM], int pidx, u8 *mvp_idx, BOOL apply_dmvr)
 {
 
     EVCE_PINTER *pi = &ctx->pinter;
-
-#if EVC_CONCURENCY
     s16    coef_t[N_C][MAX_CU_DIM];
-#endif
     int   *nnz, tnnz, w[N_C], h[N_C], log2_w[N_C], log2_h[N_C];
     int    cuw;
     int    cuh;
@@ -1604,327 +1597,169 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 #if DQP_RDO
         tnnz = evce_sub_block_tq(coef, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, pi->slice_type, nnz
 #else
-    tnnz = evce_sub_block_tq(coef, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, pi->slice_type, nnz
+        tnnz = evce_sub_block_tq(coef, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, pi->slice_type, nnz
 #endif
                              , core->nnz_sub, 0, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt, 0, 0
                              , core->ats_inter_info, ctx->sps.tool_adcc
 #if M50761_CHROMA_NOT_SPLIT
-#if EVC_CONCURENCY
-        , core->tree_cons
-#else
-        , ctx->tree_cons
-#endif
-#endif
-#if EVC_CONCURENCY
-        , core
-#endif
-    );
+                             , core->tree_cons
 
-    if(tnnz)
-    {
-        for(i = 0; i < N_C; i++)
-        {
-            int size = (cuw * cuh) >> (i == 0 ? 0 : 2);
-            int ats_inter_idx = get_ats_inter_idx(core->ats_inter_info);
-            size = (core->ats_inter_info == 0) ? size : (size >> (is_ats_inter_quad_size(ats_inter_idx) ? 2 : 1));
-            evc_mcpy(coef_t[i], coef[i], sizeof(s16) * size);
-
-            cbf_idx[i] = 0;
-            nnz_store[i] = nnz[i];
-            evc_mcpy(nnz_sub_store[i], core->nnz_sub[i], sizeof(int) * MAX_SUB_TB_NUM);
-        }
-
-        evc_sub_block_itdq(coef_t, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, nnz, core->nnz_sub, ctx->sps.tool_iqt, 0, 0, core->ats_inter_info);
-
-#if RDO_DBK
-        if (core->ats_inter_info == 0)
-        {
-            calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pred[0], cuw, x, y, core->avail_lr, 0, 0, pi->refi[pidx], pi->mv[pidx], is_from_mv_field, core->ats_inter_info
-#if EVC_CONCURENCY || EVC_TILE_SUPPORT
-            , core
 #endif
+                             , core
         );
-        }
-#endif
 
-        for(i = 0; i < N_C; i++)
+        if (tnnz)
         {
-            if(nnz[i])
+            for (i = 0; i < N_C; i++)
             {
-                evc_recon(coef_t[i], pred[0][i], nnz[i], w[i], h[i], w[i], rec[i], core->ats_inter_info);
+                int size = (cuw * cuh) >> (i == 0 ? 0 : 2);
+                int ats_inter_idx = get_ats_inter_idx(core->ats_inter_info);
+                size = (core->ats_inter_info == 0) ? size : (size >> (is_ats_inter_quad_size(ats_inter_idx) ? 2 : 1));
+                evc_mcpy(coef_t[i], coef[i], sizeof(s16) * size);
 
-                if(ctx->sps.tool_htdf == 1 && i == Y_C)
-                {
-                    const int s_mod = pi->s_m[Y_C];
-                    u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu
-#if EVC_TILE_SUPPORT
-                        , ctx->map_tidx
-#endif
-                    );
-
-#if FIX_CONSTRAINT_PRED
-                    int constrained_intra_flag = 0 && ctx->pps.constrained_intra_pred_flag;
-#endif
-#if EVC_TILE_DQP
-                    evc_htdf(rec[i], ctx->tile[core->tile_idx].qp, cuw, cuh, cuw, FALSE, pi->m[Y_C] + (y * s_mod) + x, s_mod, avail_cu
-#if FIX_CONSTRAINT_PRED
-                             , core->scup, ctx->w_scu, ctx->h_scu, ctx->map_scu, constrained_intra_flag
-#endif
-                            );
-#else
-                    evc_htdf(rec[i], ctx->sh.qp, cuw, cuh, cuw, FALSE, pi->m[Y_C] + (y * s_mod) + x, s_mod, avail_cu
-#if FIX_CONSTRAINT_PRED
-                             , core->scup, ctx->w_scu, ctx->h_scu, ctx->map_scu, constrained_intra_flag
-#endif
-                            );
-#endif
-
-                }
-                dist[1][i] = evce_ssd_16b(log2_w[i], log2_h[i], rec[i], org[i], w[i], pi->s_o[i]);
+                cbf_idx[i] = 0;
+                nnz_store[i] = nnz[i];
+                evc_mcpy(nnz_sub_store[i], core->nnz_sub[i], sizeof(int) * MAX_SUB_TB_NUM);
             }
-            else
-            {
-                dist[1][i] = dist_no_resi[i];
-            }
+
+            evc_sub_block_itdq(coef_t, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, nnz, core->nnz_sub, ctx->sps.tool_iqt, 0, 0, core->ats_inter_info);
+
 #if RDO_DBK
             if (core->ats_inter_info == 0)
             {
-#if EVC_CONCURENCY
-                dist[0][i] += core->delta_dist[i];
-#else
-                dist[0][i] += ctx->delta_dist[i];
-#endif
+                calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pred[0], cuw, x, y, core->avail_lr, 0, 0, pi->refi[pidx]
+                                              , pi->mv[pidx], is_from_mv_field, core->ats_inter_info, core);
             }
 #endif
-        }
-#if RDO_DBK
-        //complete rec
-        for(i = 0; i < N_C; i++)
-        {
-            if(nnz[i] == 0)
-            {
-                evc_recon(coef_t[i], pred[0][i], nnz[i], w[i], h[i], w[i], rec[i], core->ats_inter_info);
-            }
-        }
-        //filter rec and calculate ssd
-        calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, rec, cuw, x, y, core->avail_lr, 0, nnz[Y_C] != 0, pi->refi[pidx], pi->mv[pidx], is_from_mv_field, core->ats_inter_info
-#if EVC_CONCURENCY || EVC_TILE_SUPPORT
-            , core
-#endif
-        );
-        for(i = 0; i < N_C; i++)
-        {
-#if EVC_CONCURENCY           
-            dist[1][i] += core->delta_dist[i];
-#else
-            dist[1][i] += ctx->delta_dist[i];
-#endif
-        }
-#endif
 
-        if (pidx != AFF_DIR && pidx != PRED_DIR_MMVD && pidx != PRED_DIR && core->ats_inter_info == 0)
-        {
-            /* test all zero case */
-            idx_y = 0;
-            idx_u = 0;
-            idx_v = 0;
-            nnz[Y_C] = 0;
-            nnz[U_C] = 0;
-            nnz[V_C] = 0;
-            evc_mset(core->nnz_sub, 0, sizeof(int) * N_C * MAX_SUB_TB_NUM);
-
-            cost = (double)dist[idx_y][Y_C] + (((double)dist[idx_u][U_C] * ctx->dist_chroma_weight[0]) + ((double)dist[idx_v][V_C] * ctx->dist_chroma_weight[1]));
-
-            SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
-#if DQP_RDO
-            DQP_LOAD(core->dqp_temp_run, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2]);
-#endif
-            evce_sbac_bit_reset(&core->s_temp_run);
-
-            if(IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
-            {
-                pi->mvd[pidx][REFP_0][MV_X] >>= pi->mvr_idx[pidx];
-                pi->mvd[pidx][REFP_0][MV_Y] >>= pi->mvr_idx[pidx];
-            }
-            if(ctx->sh.slice_type == SLICE_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
-            {
-                pi->mvd[pidx][REFP_1][MV_X] >>= pi->mvr_idx[pidx];
-                pi->mvd[pidx][REFP_1][MV_Y] >>= pi->mvr_idx[pidx];
-            }
-
-            evce_rdo_bit_cnt_cu_inter(ctx, core, ctx->sh.slice_type, core->scup, pi->refi[pidx], pi->mvd[pidx], coef, pidx, mvp_idx, pi->mvr_idx[pidx], pi->bi_idx[pidx], pi->affine_mvd[pidx]);
-
-            if(IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
-            {
-                pi->mvd[pidx][REFP_0][MV_X] <<= pi->mvr_idx[pidx];
-                pi->mvd[pidx][REFP_0][MV_Y] <<= pi->mvr_idx[pidx];
-            }
-            if(ctx->sh.slice_type == SLICE_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
-            {
-                pi->mvd[pidx][REFP_1][MV_X] <<= pi->mvr_idx[pidx];
-                pi->mvd[pidx][REFP_1][MV_Y] <<= pi->mvr_idx[pidx];
-            }
-
-            bit_cnt = evce_get_bit_number(&core->s_temp_run);
-            cost += RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);
-
-            if(cost < cost_best)
-            {
-                cost_best = cost;
-                cbf_idx[Y_C] = idx_y;
-                cbf_idx[U_C] = idx_u;
-                cbf_idx[V_C] = idx_v;
-                SBAC_STORE(core->s_temp_best, core->s_temp_run);
-#if DQP_RDO
-                DQP_STORE(core->dqp_temp_best, core->dqp_temp_run);
-#endif
-                ats_inter_info_best = core->ats_inter_info;
-                core->cost_best = cost < core->cost_best ? cost : core->cost_best;
-                if (ats_inter_mode_idx == 0)
-                {
-                    dist_ats_inter0 = (s64)(cost_best - RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt));
-                    cost_ats_inter0 = cost_best;
-                    root_cbf_ats_inter0 = 0;
-                }
-            }
-        } // forced zero
-
-        /* test as it is */
-        idx_y = nnz_store[Y_C] > 0 ? 1 : 0;
-        idx_u = nnz_store[U_C] > 0 ? 1 : 0;
-        idx_v = nnz_store[V_C] > 0 ? 1 : 0;
-        nnz[Y_C] = nnz_store[Y_C];
-        nnz[U_C] = nnz_store[U_C];
-        nnz[V_C] = nnz_store[V_C];
-        evc_mcpy(core->nnz_sub, nnz_sub_store, sizeof(int) * N_C * MAX_SUB_TB_NUM);
-
-        cost = (double)dist[idx_y][Y_C] + (((double)dist[idx_u][U_C] * ctx->dist_chroma_weight[0]) + ((double)dist[idx_v][V_C] * ctx->dist_chroma_weight[1]));
-
-        SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
-#if DQP_RDO
-        DQP_LOAD(core->dqp_temp_run, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2]);
-#endif
-        evce_sbac_bit_reset(&core->s_temp_run);
-
-        if(IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
-        {
-            pi->mvd[pidx][REFP_0][MV_X] >>= pi->mvr_idx[pidx];
-            pi->mvd[pidx][REFP_0][MV_Y] >>= pi->mvr_idx[pidx];
-        }
-        if(ctx->sh.slice_type == SLICE_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
-        {
-            pi->mvd[pidx][REFP_1][MV_X] >>= pi->mvr_idx[pidx];
-            pi->mvd[pidx][REFP_1][MV_Y] >>= pi->mvr_idx[pidx];
-        }
-
-        evce_rdo_bit_cnt_cu_inter(ctx, core, ctx->sh.slice_type, core->scup, pi->refi[pidx], pi->mvd[pidx], coef, pidx, mvp_idx, pi->mvr_idx[pidx], pi->bi_idx[pidx], pi->affine_mvd[pidx]);
-
-        if(IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
-        {
-            pi->mvd[pidx][REFP_0][MV_X] <<= pi->mvr_idx[pidx];
-            pi->mvd[pidx][REFP_0][MV_Y] <<= pi->mvr_idx[pidx];
-        }
-        if(ctx->sh.slice_type == SLICE_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
-        {
-            pi->mvd[pidx][REFP_1][MV_X] <<= pi->mvr_idx[pidx];
-            pi->mvd[pidx][REFP_1][MV_Y] <<= pi->mvr_idx[pidx];
-        }
-
-        bit_cnt = evce_get_bit_number(&core->s_temp_run);
-        cost += RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);
-
-        if(cost < cost_best)
-        {
-            cost_best = cost;
-            cbf_idx[Y_C] = idx_y;
-            cbf_idx[U_C] = idx_u;
-            cbf_idx[V_C] = idx_v;
-            SBAC_STORE(core->s_temp_best, core->s_temp_run);
-#if DQP_RDO
-            DQP_STORE(core->dqp_temp_best, core->dqp_temp_run);
-#endif
-            ats_inter_info_best = core->ats_inter_info;
-            core->cost_best = cost < core->cost_best ? cost : core->cost_best;
-            if (ats_inter_mode_idx == 0)
-            {
-                dist_ats_inter0 = (s64)(cost_best - RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt));
-                cost_ats_inter0 = cost_best;
-                root_cbf_ats_inter0 = (idx_y + idx_u + idx_v) != 0;
-            }
-        }
-
-        SBAC_LOAD(core->s_temp_prev_comp_best, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
-        /* cbf test for each component */
-        for(i = 0; i < N_C; i++)
-        {
-            if(nnz_store[i] > 0)
-            {
-                cost_comp_best = MAX_COST;
-                SBAC_LOAD(core->s_temp_prev_comp_run, core->s_temp_prev_comp_best);
-                for(j = 0; j < 2; j++)
-                {
-                    cost = dist[j][i] * (i == 0 ? 1 : ctx->dist_chroma_weight[i - 1]);
-                    nnz[i] = j ? nnz_store[i] : 0;
-                    if (j)
-                    {
-                        evc_mcpy(core->nnz_sub[i], nnz_sub_store[i], sizeof(int) * MAX_SUB_TB_NUM);
-                    }
-                    else
-                    {
-                        evc_mset(core->nnz_sub[i], 0, sizeof(int) * MAX_SUB_TB_NUM);
-                    }
-
-                    SBAC_LOAD(core->s_temp_run, core->s_temp_prev_comp_run);
-                    evce_sbac_bit_reset(&core->s_temp_run);
-                    evce_rdo_bit_cnt_cu_inter_comp(core, coef, i, pidx, ctx
-#if M50761_CHROMA_NOT_SPLIT
-#if EVC_CONCURENCY
-                        , core->tree_cons
-#else
-                        , ctx->tree_cons
-#endif
-#endif
-                    );
-
-                    bit_cnt = evce_get_bit_number(&core->s_temp_run);
-                    cost += RATE_TO_COST_LAMBDA(ctx->lambda[i], bit_cnt);
-                    if(cost < cost_comp_best)
-                    {
-                        cost_comp_best = cost;
-                        idx_best[i] = j;
-                        SBAC_STORE(core->s_temp_prev_comp_best, core->s_temp_run);
-                    }
-                }
-            }
-            else
-            {
-                idx_best[i] = 0;
-            }
-        }
-
-        if(idx_best[Y_C] != 0 || idx_best[U_C] != 0 || idx_best[V_C] != 0)
-        {
-            idx_y = idx_best[Y_C];
-            idx_u = idx_best[U_C];
-            idx_v = idx_best[V_C];
-            nnz[Y_C] = idx_y ? nnz_store[Y_C] : 0;
-            nnz[U_C] = idx_u ? nnz_store[U_C] : 0;
-            nnz[V_C] = idx_v ? nnz_store[V_C] : 0;
             for (i = 0; i < N_C; i++)
             {
-                if (idx_best[i])
+                if (nnz[i])
                 {
-                    evc_mcpy(core->nnz_sub[i], nnz_sub_store[i], sizeof(int) * MAX_SUB_TB_NUM);
+                    evc_recon(coef_t[i], pred[0][i], nnz[i], w[i], h[i], w[i], rec[i], core->ats_inter_info);
+
+                    if (ctx->sps.tool_htdf == 1 && i == Y_C)
+                    {
+                        const int s_mod = pi->s_m[Y_C];
+                        u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu, ctx->map_tidx);
+
+#if FIX_CONSTRAINT_PRED
+                        int constrained_intra_flag = 0 && ctx->pps.constrained_intra_pred_flag;
+#endif
+                        evc_htdf(rec[i], ctx->tile[core->tile_idx].qp, cuw, cuh, cuw, FALSE, pi->m[Y_C] + (y * s_mod) + x, s_mod, avail_cu
+#if FIX_CONSTRAINT_PRED
+                            , core->scup, ctx->w_scu, ctx->h_scu, ctx->map_scu, constrained_intra_flag
+#endif
+                        );
+
+                    }
+                    dist[1][i] = evce_ssd_16b(log2_w[i], log2_h[i], rec[i], org[i], w[i], pi->s_o[i]);
                 }
                 else
                 {
-                    evc_mset(core->nnz_sub[i], 0, sizeof(int) * MAX_SUB_TB_NUM);
+                    dist[1][i] = dist_no_resi[i];
+                }
+#if RDO_DBK
+                if (core->ats_inter_info == 0)
+                {
+                    dist[0][i] += core->delta_dist[i];
+                }
+#endif
+            }
+#if RDO_DBK
+            //complete rec
+            for (i = 0; i < N_C; i++)
+            {
+                if (nnz[i] == 0)
+                {
+                    evc_recon(coef_t[i], pred[0][i], nnz[i], w[i], h[i], w[i], rec[i], core->ats_inter_info);
                 }
             }
-        }
+            //filter rec and calculate ssd
+            calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, rec, cuw, x, y, core->avail_lr, 0
+                                          , nnz[Y_C] != 0, pi->refi[pidx], pi->mv[pidx], is_from_mv_field, core->ats_inter_info, core);
+            for (i = 0; i < N_C; i++)
+            {
+                dist[1][i] += core->delta_dist[i];
+            }
+#endif
 
-        if(nnz[Y_C] != nnz_store[Y_C] || nnz[U_C] != nnz_store[U_C] || nnz[V_C] != nnz_store[V_C])
-        {
+            if (pidx != AFF_DIR && pidx != PRED_DIR_MMVD && pidx != PRED_DIR && core->ats_inter_info == 0)
+            {
+                /* test all zero case */
+                idx_y = 0;
+                idx_u = 0;
+                idx_v = 0;
+                nnz[Y_C] = 0;
+                nnz[U_C] = 0;
+                nnz[V_C] = 0;
+                evc_mset(core->nnz_sub, 0, sizeof(int) * N_C * MAX_SUB_TB_NUM);
+
+                cost = (double)dist[idx_y][Y_C] + (((double)dist[idx_u][U_C] * ctx->dist_chroma_weight[0]) + ((double)dist[idx_v][V_C] * ctx->dist_chroma_weight[1]));
+
+                SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
+#if DQP_RDO
+                DQP_LOAD(core->dqp_temp_run, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2]);
+#endif
+                evce_sbac_bit_reset(&core->s_temp_run);
+
+                if (IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
+                {
+                    pi->mvd[pidx][REFP_0][MV_X] >>= pi->mvr_idx[pidx];
+                    pi->mvd[pidx][REFP_0][MV_Y] >>= pi->mvr_idx[pidx];
+                }
+                if (ctx->sh.slice_type == SLICE_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+                {
+                    pi->mvd[pidx][REFP_1][MV_X] >>= pi->mvr_idx[pidx];
+                    pi->mvd[pidx][REFP_1][MV_Y] >>= pi->mvr_idx[pidx];
+                }
+
+                evce_rdo_bit_cnt_cu_inter(ctx, core, ctx->sh.slice_type, core->scup, pi->refi[pidx], pi->mvd[pidx], coef, pidx, mvp_idx, pi->mvr_idx[pidx], pi->bi_idx[pidx], pi->affine_mvd[pidx]);
+
+                if (IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
+                {
+                    pi->mvd[pidx][REFP_0][MV_X] <<= pi->mvr_idx[pidx];
+                    pi->mvd[pidx][REFP_0][MV_Y] <<= pi->mvr_idx[pidx];
+                }
+                if (ctx->sh.slice_type == SLICE_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+                {
+                    pi->mvd[pidx][REFP_1][MV_X] <<= pi->mvr_idx[pidx];
+                    pi->mvd[pidx][REFP_1][MV_Y] <<= pi->mvr_idx[pidx];
+                }
+
+                bit_cnt = evce_get_bit_number(&core->s_temp_run);
+                cost += RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);
+
+                if (cost < cost_best)
+                {
+                    cost_best = cost;
+                    cbf_idx[Y_C] = idx_y;
+                    cbf_idx[U_C] = idx_u;
+                    cbf_idx[V_C] = idx_v;
+                    SBAC_STORE(core->s_temp_best, core->s_temp_run);
+#if DQP_RDO
+                    DQP_STORE(core->dqp_temp_best, core->dqp_temp_run);
+#endif
+                    ats_inter_info_best = core->ats_inter_info;
+                    core->cost_best = cost < core->cost_best ? cost : core->cost_best;
+                    if (ats_inter_mode_idx == 0)
+                    {
+                        dist_ats_inter0 = (s64)(cost_best - RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt));
+                        cost_ats_inter0 = cost_best;
+                        root_cbf_ats_inter0 = 0;
+                    }
+                }
+            } // forced zero
+
+            /* test as it is */
+            idx_y = nnz_store[Y_C] > 0 ? 1 : 0;
+            idx_u = nnz_store[U_C] > 0 ? 1 : 0;
+            idx_v = nnz_store[V_C] > 0 ? 1 : 0;
+            nnz[Y_C] = nnz_store[Y_C];
+            nnz[U_C] = nnz_store[U_C];
+            nnz[V_C] = nnz_store[V_C];
+            evc_mcpy(core->nnz_sub, nnz_sub_store, sizeof(int) * N_C * MAX_SUB_TB_NUM);
+
             cost = (double)dist[idx_y][Y_C] + (((double)dist[idx_u][U_C] * ctx->dist_chroma_weight[0]) + ((double)dist[idx_v][V_C] * ctx->dist_chroma_weight[1]));
 
             SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
@@ -1933,12 +1768,12 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 #endif
             evce_sbac_bit_reset(&core->s_temp_run);
 
-            if(IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
+            if (IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
             {
                 pi->mvd[pidx][REFP_0][MV_X] >>= pi->mvr_idx[pidx];
                 pi->mvd[pidx][REFP_0][MV_Y] >>= pi->mvr_idx[pidx];
             }
-            if(ctx->sh.slice_type == SLICE_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+            if (ctx->sh.slice_type == SLICE_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
             {
                 pi->mvd[pidx][REFP_1][MV_X] >>= pi->mvr_idx[pidx];
                 pi->mvd[pidx][REFP_1][MV_Y] >>= pi->mvr_idx[pidx];
@@ -1946,12 +1781,12 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 
             evce_rdo_bit_cnt_cu_inter(ctx, core, ctx->sh.slice_type, core->scup, pi->refi[pidx], pi->mvd[pidx], coef, pidx, mvp_idx, pi->mvr_idx[pidx], pi->bi_idx[pidx], pi->affine_mvd[pidx]);
 
-            if(IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
+            if (IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
             {
                 pi->mvd[pidx][REFP_0][MV_X] <<= pi->mvr_idx[pidx];
                 pi->mvd[pidx][REFP_0][MV_Y] <<= pi->mvr_idx[pidx];
             }
-            if(ctx->sh.slice_type == SLICE_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+            if (ctx->sh.slice_type == SLICE_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
             {
                 pi->mvd[pidx][REFP_1][MV_X] <<= pi->mvr_idx[pidx];
                 pi->mvd[pidx][REFP_1][MV_Y] <<= pi->mvr_idx[pidx];
@@ -1960,7 +1795,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
             bit_cnt = evce_get_bit_number(&core->s_temp_run);
             cost += RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);
 
-            if(cost < cost_best)
+            if (cost < cost_best)
             {
                 cost_best = cost;
                 cbf_idx[Y_C] = idx_y;
@@ -1979,140 +1814,256 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
                     root_cbf_ats_inter0 = (idx_y + idx_u + idx_v) != 0;
                 }
             }
-        }
 
-        for(i = 0; i < N_C; i++)
-        {
-            nnz[i] = (cbf_idx[i] ? nnz_store[i] : 0);
-            if (cbf_idx[i])
-            {
-                evc_mcpy(core->nnz_sub[i], nnz_sub_store[i], sizeof(int) * MAX_SUB_TB_NUM);
-            }
-            else
-            {
-                evc_mset(core->nnz_sub[i], 0, sizeof(int) * MAX_SUB_TB_NUM);
-            }
-            if(nnz[i] == 0 && nnz_store[i] != 0)
-            {
-                evc_mset(core->nnz_sub[i], 0, sizeof(int) * MAX_SUB_TB_NUM);
-                evc_mset(coef[i], 0, sizeof(s16) * ((cuw * cuh) >> (i == 0 ? 0 : 2)));
-            }
-        }
-
-        //save the best coeff
-        if (ats_inter_info_best == core->ats_inter_info && ats_inter_avail)
-        {
+            SBAC_LOAD(core->s_temp_prev_comp_best, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
+            /* cbf test for each component */
             for (i = 0; i < N_C; i++)
             {
-                nnz_best[i] = nnz[i];
-                if (nnz[i] > 0)
+                if (nnz_store[i] > 0)
                 {
-                    memcpy(pi->coff_save[i], coef[i], sizeof(s16) * ((cuw * cuh) >> (i == 0 ? 0 : 2)));
+                    cost_comp_best = MAX_COST;
+                    SBAC_LOAD(core->s_temp_prev_comp_run, core->s_temp_prev_comp_best);
+                    for (j = 0; j < 2; j++)
+                    {
+                        cost = dist[j][i] * (i == 0 ? 1 : ctx->dist_chroma_weight[i - 1]);
+                        nnz[i] = j ? nnz_store[i] : 0;
+                        if (j)
+                        {
+                            evc_mcpy(core->nnz_sub[i], nnz_sub_store[i], sizeof(int) * MAX_SUB_TB_NUM);
+                        }
+                        else
+                        {
+                            evc_mset(core->nnz_sub[i], 0, sizeof(int) * MAX_SUB_TB_NUM);
+                        }
+
+                        SBAC_LOAD(core->s_temp_run, core->s_temp_prev_comp_run);
+                        evce_sbac_bit_reset(&core->s_temp_run);
+                        evce_rdo_bit_cnt_cu_inter_comp(core, coef, i, pidx, ctx
+#if M50761_CHROMA_NOT_SPLIT
+                            , core->tree_cons
+#endif
+                        );
+
+                        bit_cnt = evce_get_bit_number(&core->s_temp_run);
+                        cost += RATE_TO_COST_LAMBDA(ctx->lambda[i], bit_cnt);
+                        if (cost < cost_comp_best)
+                        {
+                            cost_comp_best = cost;
+                            idx_best[i] = j;
+                            SBAC_STORE(core->s_temp_prev_comp_best, core->s_temp_run);
+                        }
+                    }
+                }
+                else
+                {
+                    idx_best[i] = 0;
+                }
+            }
+
+            if (idx_best[Y_C] != 0 || idx_best[U_C] != 0 || idx_best[V_C] != 0)
+            {
+                idx_y = idx_best[Y_C];
+                idx_u = idx_best[U_C];
+                idx_v = idx_best[V_C];
+                nnz[Y_C] = idx_y ? nnz_store[Y_C] : 0;
+                nnz[U_C] = idx_u ? nnz_store[U_C] : 0;
+                nnz[V_C] = idx_v ? nnz_store[V_C] : 0;
+                for (i = 0; i < N_C; i++)
+                {
+                    if (idx_best[i])
+                    {
+                        evc_mcpy(core->nnz_sub[i], nnz_sub_store[i], sizeof(int) * MAX_SUB_TB_NUM);
+                    }
+                    else
+                    {
+                        evc_mset(core->nnz_sub[i], 0, sizeof(int) * MAX_SUB_TB_NUM);
+                    }
+                }
+            }
+
+            if (nnz[Y_C] != nnz_store[Y_C] || nnz[U_C] != nnz_store[U_C] || nnz[V_C] != nnz_store[V_C])
+            {
+                cost = (double)dist[idx_y][Y_C] + (((double)dist[idx_u][U_C] * ctx->dist_chroma_weight[0]) + ((double)dist[idx_v][V_C] * ctx->dist_chroma_weight[1]));
+
+                SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
+#if DQP_RDO
+                DQP_LOAD(core->dqp_temp_run, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2]);
+#endif
+                evce_sbac_bit_reset(&core->s_temp_run);
+
+                if (IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
+                {
+                    pi->mvd[pidx][REFP_0][MV_X] >>= pi->mvr_idx[pidx];
+                    pi->mvd[pidx][REFP_0][MV_Y] >>= pi->mvr_idx[pidx];
+                }
+                if (ctx->sh.slice_type == SLICE_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+                {
+                    pi->mvd[pidx][REFP_1][MV_X] >>= pi->mvr_idx[pidx];
+                    pi->mvd[pidx][REFP_1][MV_Y] >>= pi->mvr_idx[pidx];
+                }
+
+                evce_rdo_bit_cnt_cu_inter(ctx, core, ctx->sh.slice_type, core->scup, pi->refi[pidx], pi->mvd[pidx], coef, pidx, mvp_idx, pi->mvr_idx[pidx], pi->bi_idx[pidx], pi->affine_mvd[pidx]);
+
+                if (IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
+                {
+                    pi->mvd[pidx][REFP_0][MV_X] <<= pi->mvr_idx[pidx];
+                    pi->mvd[pidx][REFP_0][MV_Y] <<= pi->mvr_idx[pidx];
+                }
+                if (ctx->sh.slice_type == SLICE_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+                {
+                    pi->mvd[pidx][REFP_1][MV_X] <<= pi->mvr_idx[pidx];
+                    pi->mvd[pidx][REFP_1][MV_Y] <<= pi->mvr_idx[pidx];
+                }
+
+                bit_cnt = evce_get_bit_number(&core->s_temp_run);
+                cost += RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);
+
+                if (cost < cost_best)
+                {
+                    cost_best = cost;
+                    cbf_idx[Y_C] = idx_y;
+                    cbf_idx[U_C] = idx_u;
+                    cbf_idx[V_C] = idx_v;
+                    SBAC_STORE(core->s_temp_best, core->s_temp_run);
+#if DQP_RDO
+                    DQP_STORE(core->dqp_temp_best, core->dqp_temp_run);
+#endif
+                    ats_inter_info_best = core->ats_inter_info;
+                    core->cost_best = cost < core->cost_best ? cost : core->cost_best;
+                    if (ats_inter_mode_idx == 0)
+                    {
+                        dist_ats_inter0 = (s64)(cost_best - RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt));
+                        cost_ats_inter0 = cost_best;
+                        root_cbf_ats_inter0 = (idx_y + idx_u + idx_v) != 0;
+                    }
+                }
+            }
+
+            for (i = 0; i < N_C; i++)
+            {
+                nnz[i] = (cbf_idx[i] ? nnz_store[i] : 0);
+                if (cbf_idx[i])
+                {
+                    evc_mcpy(core->nnz_sub[i], nnz_sub_store[i], sizeof(int) * MAX_SUB_TB_NUM);
+                }
+                else
+                {
+                    evc_mset(core->nnz_sub[i], 0, sizeof(int) * MAX_SUB_TB_NUM);
+                }
+                if (nnz[i] == 0 && nnz_store[i] != 0)
+                {
+                    evc_mset(core->nnz_sub[i], 0, sizeof(int) * MAX_SUB_TB_NUM);
+                    evc_mset(coef[i], 0, sizeof(s16) * ((cuw * cuh) >> (i == 0 ? 0 : 2)));
+                }
+            }
+
+            //save the best coeff
+            if (ats_inter_info_best == core->ats_inter_info && ats_inter_avail)
+            {
+                for (i = 0; i < N_C; i++)
+                {
+                    nnz_best[i] = nnz[i];
+                    if (nnz[i] > 0)
+                    {
+                        memcpy(pi->coff_save[i], coef[i], sizeof(s16) * ((cuw * cuh) >> (i == 0 ? 0 : 2)));
+                    }
                 }
             }
         }
-    }
-    else
-    {
-#if DQP_RDO
-        if(ctx->pps.cu_qp_delta_enabled_flag)
+        else
         {
-            if(core->cu_qp_delta_code_mode != 2)
+#if DQP_RDO
+            if (ctx->pps.cu_qp_delta_enabled_flag)
             {
-                evce_set_qp(ctx, core, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2].prev_QP);
+                if (core->cu_qp_delta_code_mode != 2)
+                {
+                    evce_set_qp(ctx, core, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2].prev_QP);
+                }
             }
-        }
 #endif
 
-        if(ctx->sps.tool_admvp == 1 && (pidx == AFF_DIR || pidx == PRED_DIR_MMVD || pidx == PRED_DIR))
-        {
-            if (ats_inter_info_match != 0 && ats_inter_info_match != 255 && core->ats_inter_info)
+            if (ctx->sps.tool_admvp == 1 && (pidx == AFF_DIR || pidx == PRED_DIR_MMVD || pidx == PRED_DIR))
             {
-                return MAX_COST;
+                if (ats_inter_info_match != 0 && ats_inter_info_match != 255 && core->ats_inter_info)
+                {
+                    return MAX_COST;
+                }
+                continue;
             }
-            continue;
-        }
 
-        core->ats_inter_info = 0;
-        if (cost_best != MAX_COST)
-        {
-            continue;
-        }
+            core->ats_inter_info = 0;
+            if (cost_best != MAX_COST)
+            {
+                continue;
+            }
 
-        for(i = 0; i < N_C; i++)
-        {
-            nnz[i] = 0;
-            evc_mset(core->nnz_sub[i], 0, sizeof(int) * MAX_SUB_TB_NUM);
-        }
+            for (i = 0; i < N_C; i++)
+            {
+                nnz[i] = 0;
+                evc_mset(core->nnz_sub[i], 0, sizeof(int) * MAX_SUB_TB_NUM);
+            }
 
 #if RDO_DBK
-        calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pred[0], cuw, x, y, core->avail_lr, 0, 0, pi->refi[pidx], pi->mv[pidx], is_from_mv_field, core->ats_inter_info
-#if EVC_CONCURENCY || EVC_TILE_SUPPORT
-            , core
+            calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pred[0], cuw, x, y, core->avail_lr, 0, 0
+                                          , pi->refi[pidx], pi->mv[pidx], is_from_mv_field, core->ats_inter_info, core);
 #endif
-        );
-#endif
-        for(i = 0; i < N_C; i++)
-        {
-            dist[0][i] = dist_no_resi[i];
+            for (i = 0; i < N_C; i++)
+            {
+                dist[0][i] = dist_no_resi[i];
 #if RDO_DBK
-#if EVC_CONCURENCY
-            dist[0][i] += core->delta_dist[i];
-#else
-            dist[0][i] += ctx->delta_dist[i];
+                dist[0][i] += core->delta_dist[i];
 #endif
-#endif
-        }
-        cost_best = (double)dist[0][Y_C] + (ctx->dist_chroma_weight[0] * (double)dist[0][U_C]) + (ctx->dist_chroma_weight[1] * (double)dist[0][V_C]);
+            }
+            cost_best = (double)dist[0][Y_C] + (ctx->dist_chroma_weight[0] * (double)dist[0][U_C]) + (ctx->dist_chroma_weight[1] * (double)dist[0][V_C]);
 
-        SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
+            SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
 #if DQP_RDO
-        DQP_LOAD(core->dqp_temp_run, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2]);
+            DQP_LOAD(core->dqp_temp_run, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2]);
 #endif
 
-        evce_sbac_bit_reset(&core->s_temp_run);
+            evce_sbac_bit_reset(&core->s_temp_run);
 
-        if(IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
-        {
-            pi->mvd[pidx][REFP_0][MV_X] >>= pi->mvr_idx[pidx];
-            pi->mvd[pidx][REFP_0][MV_Y] >>= pi->mvr_idx[pidx];
-        }
-        if(ctx->sh.slice_type == SLICE_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
-        {
-            pi->mvd[pidx][REFP_1][MV_X] >>= pi->mvr_idx[pidx];
-            pi->mvd[pidx][REFP_1][MV_Y] >>= pi->mvr_idx[pidx];
-        }
+            if (IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
+            {
+                pi->mvd[pidx][REFP_0][MV_X] >>= pi->mvr_idx[pidx];
+                pi->mvd[pidx][REFP_0][MV_Y] >>= pi->mvr_idx[pidx];
+            }
+            if (ctx->sh.slice_type == SLICE_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+            {
+                pi->mvd[pidx][REFP_1][MV_X] >>= pi->mvr_idx[pidx];
+                pi->mvd[pidx][REFP_1][MV_Y] >>= pi->mvr_idx[pidx];
+            }
 
-        evce_rdo_bit_cnt_cu_inter(ctx, core, ctx->sh.slice_type, core->scup, pi->refi[pidx], pi->mvd[pidx], coef, pidx, mvp_idx, pi->mvr_idx[pidx], pi->bi_idx[pidx], pi->affine_mvd[pidx]);
+            evce_rdo_bit_cnt_cu_inter(ctx, core, ctx->sh.slice_type, core->scup, pi->refi[pidx], pi->mvd[pidx], coef, pidx, mvp_idx, pi->mvr_idx[pidx], pi->bi_idx[pidx], pi->affine_mvd[pidx]);
 
-        if(IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
-        {
-            pi->mvd[pidx][REFP_0][MV_X] <<= pi->mvr_idx[pidx];
-            pi->mvd[pidx][REFP_0][MV_Y] <<= pi->mvr_idx[pidx];
-        }
-        if(ctx->sh.slice_type == SLICE_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
-        {
-            pi->mvd[pidx][REFP_1][MV_X] <<= pi->mvr_idx[pidx];
-            pi->mvd[pidx][REFP_1][MV_Y] <<= pi->mvr_idx[pidx];
-        }
+            if (IS_INTER_SLICE(ctx->sh.slice_type) && REFI_IS_VALID(pi->refi[pidx][REFP_0]))
+            {
+                pi->mvd[pidx][REFP_0][MV_X] <<= pi->mvr_idx[pidx];
+                pi->mvd[pidx][REFP_0][MV_Y] <<= pi->mvr_idx[pidx];
+            }
+            if (ctx->sh.slice_type == SLICE_B && REFI_IS_VALID(pi->refi[pidx][REFP_1]))
+            {
+                pi->mvd[pidx][REFP_1][MV_X] <<= pi->mvr_idx[pidx];
+                pi->mvd[pidx][REFP_1][MV_Y] <<= pi->mvr_idx[pidx];
+            }
 
-        bit_cnt = evce_get_bit_number(&core->s_temp_run);
-        cost_best += RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);
-        SBAC_STORE(core->s_temp_best, core->s_temp_run);
+            bit_cnt = evce_get_bit_number(&core->s_temp_run);
+            cost_best += RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);
+            SBAC_STORE(core->s_temp_best, core->s_temp_run);
 #if DQP_RDO
-        DQP_STORE(core->dqp_temp_best, core->dqp_temp_run);
+            DQP_STORE(core->dqp_temp_best, core->dqp_temp_run);
 #endif
-        assert(core->ats_inter_info == 0);
-        ats_inter_info_best = core->ats_inter_info;
-        nnz_best[Y_C] = nnz_best[U_C] = nnz_best[V_C] = 0;
-        core->cost_best = cost_best < core->cost_best ? cost_best : core->cost_best;
-        if (ats_inter_mode_idx == 0)
-        {
-            dist_ats_inter0 = (s64)(cost_best - (s64)RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt));
-            cost_ats_inter0 = cost_best;
-            root_cbf_ats_inter0 = 0;
+            assert(core->ats_inter_info == 0);
+            ats_inter_info_best = core->ats_inter_info;
+            nnz_best[Y_C] = nnz_best[U_C] = nnz_best[V_C] = 0;
+            core->cost_best = cost_best < core->cost_best ? cost_best : core->cost_best;
+            if (ats_inter_mode_idx == 0)
+            {
+                dist_ats_inter0 = (s64)(cost_best - (s64)RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt));
+                cost_ats_inter0 = cost_best;
+                root_cbf_ats_inter0 = 0;
+            }
         }
-    }
     }
 
     if (ats_inter_avail)
@@ -2235,20 +2186,11 @@ static double analyze_skip_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y
             cv = evce_ssd_16b(log2_cuw - 1, log2_cuh - 1, pi->pred[PRED_NUM][0][V_C], v_org, cuw >> 1, pi->s_o[V_C]);
 
 #if RDO_DBK
-            calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->pred[PRED_NUM][0], cuw, x, y, core->avail_lr, 0, 0, refi, mvp, 0, core->ats_inter_info
-#if EVC_CONCURENCY || EVC_TILE_SUPPORT
-                , core
-#endif
-            );
-#if EVC_CONCURENCY
+            calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->pred[PRED_NUM][0], cuw, x, y, core->avail_lr, 0, 0
+                                          , refi, mvp, 0, core->ats_inter_info, core);
             cy += core->delta_dist[Y_C];
             cu += core->delta_dist[U_C];
             cv += core->delta_dist[V_C];
-#else
-            cy += ctx->delta_dist[Y_C];
-            cu += ctx->delta_dist[U_C];
-            cv += ctx->delta_dist[V_C];
-#endif
 #endif
 
             cost = (double)cy + (ctx->dist_chroma_weight[0] * (double)cu) + (ctx->dist_chroma_weight[1] * (double)cv);
@@ -2374,12 +2316,7 @@ static void mmvd_base_skip(EVCE_CTX *ctx, EVCE_CORE *core, int real_mv[][2][3], 
 #if DMVR_LAG
                                   , NULL
 #endif
-                                  , history_buffer, 0, (EVC_REFP(*)[2])refp, sh, log2_max_cuwh
-#if EVC_TILE_SUPPORT
-                                  ,ctx->map_tidx
-#endif
-                                 );
-
+                                  , history_buffer, 0, (EVC_REFP(*)[2])refp, sh, log2_max_cuwh, ctx->map_tidx);
     }
 
     for (z = 0; z < MAX_NUM_MVP; z++)
@@ -2551,12 +2488,7 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
 #if DMVR_LAG
             , ctx->map_unrefined_mv
 #endif
-
-            , core->history_buffer, core->ibc_flag, (EVC_REFP(*)[2])ctx->refp[0], &ctx->sh, ctx->log2_max_cuwh
-#if EVC_TILE_SUPPORT
-            , ctx->map_tidx
-#endif
-        );
+            , core->history_buffer, core->ibc_flag, (EVC_REFP(*)[2])ctx->refp[0], &ctx->sh, ctx->log2_max_cuwh, ctx->map_tidx);
     }
 
 #if DQP_RDO
@@ -2610,20 +2542,10 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
             cv = evce_ssd_16b(log2_cuw - 1, log2_cuh - 1, pi->pred[PRED_NUM][0][V_C], v_org, cuw >> 1, pi->s_o[V_C]);
 
 #if RDO_DBK
-            calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->pred[PRED_NUM][0], cuw, x, y, core->avail_lr, 0, 0, refi, mvp, 0, core->ats_inter_info
-#if EVC_CONCURENCY || EVC_TILE_SUPPORT
-                , core
-#endif
-            );
-#if EVC_CONCURENCY
+            calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->pred[PRED_NUM][0], cuw, x, y, core->avail_lr, 0, 0, refi, mvp, 0, core->ats_inter_info, core);
             cy += core->delta_dist[Y_C];
             cu += core->delta_dist[U_C];
             cv += core->delta_dist[V_C];
-#else
-            cy += ctx->delta_dist[Y_C];
-            cu += ctx->delta_dist[U_C];
-            cv += ctx->delta_dist[V_C];
-#endif
 #endif
 
             cost = (double)cy + (ctx->dist_chroma_weight[0] * (double)cu) + (ctx->dist_chroma_weight[1] * (double)cv);
@@ -2788,12 +2710,7 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
 #if DMVR_LAG
             , ctx->map_unrefined_mv
 #endif
-            , core->history_buffer, core->ibc_flag, (EVC_REFP(*)[2])ctx->refp[0], &ctx->sh, ctx->log2_max_cuwh
-#if EVC_TILE_SUPPORT
-            , ctx->map_tidx
-#endif
-        );
-
+            , core->history_buffer, core->ibc_flag, (EVC_REFP(*)[2])ctx->refp[0], &ctx->sh, ctx->log2_max_cuwh, ctx->map_tidx);
     }
 
     for(idx0 = 0; idx0 < (cuw*cuh <= NUM_SAMPLES_BLOCK ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP); idx0++)
@@ -3034,20 +2951,10 @@ static double analyze_skip_mmvd(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, 
         cv = evce_ssd_16b(log2_cuw - 1, log2_cuh - 1, pi->pred[PRED_NUM][0][V_C], v_org, cuw >> 1, pi->s_o[V_C]);
 
 #if RDO_DBK
-        calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->pred[PRED_NUM][0], cuw, x, y, core->avail_lr, 0, 0, refi, mvp, 0, core->ats_inter_info
-#if EVC_CONCURENCY || EVC_TILE_SUPPORT
-            , core
-#endif
-        );
-#if EVC_CONCURENCY
+        calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->pred[PRED_NUM][0], cuw, x, y, core->avail_lr, 0, 0, refi, mvp, 0, core->ats_inter_info, core);
         cy += core->delta_dist[Y_C];
         cu += core->delta_dist[U_C];
         cv += core->delta_dist[V_C];
-#else
-        cy += ctx->delta_dist[Y_C];
-        cu += ctx->delta_dist[U_C];
-        cv += ctx->delta_dist[V_C];
-#endif
 #endif
 
         cost = (double)cy + (ctx->dist_chroma_weight[0] * (double)cu) + (ctx->dist_chroma_weight[1] * (double)cv);
@@ -3370,10 +3277,7 @@ static double analyze_bi(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_
 #else                                                 
                                                       , ctx->sps.tool_admvp
 #endif
-#if EVC_TILE_SUPPORT
-                                                      , ctx->map_tidx
-#endif
-        );
+                                                      , ctx->map_tidx);
 
         pi->mv[pidx][lidx_ref][MV_X] = pi->mvp_scale[lidx_ref][pi->refi[pidx][lidx_ref]][pi->mvp_idx[pidx][lidx_ref]][MV_X];
         pi->mv[pidx][lidx_ref][MV_Y] = pi->mvp_scale[lidx_ref][pi->refi[pidx][lidx_ref]][pi->mvp_idx[pidx][lidx_ref]][MV_Y];
@@ -3414,10 +3318,7 @@ static double analyze_bi(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_
 #else                                       
                                             , ctx->sps.tool_admvp
 #endif
-#if EVC_TILE_SUPPORT
-                                            , ctx->map_tidx
-#endif
-        );                                            
+                                            , ctx->map_tidx);                                            
         refi[lidx_cnd] = REFI_INVALID;
 
         for(refi_cur = refi[lidx_ref]; refi_cur < refi[lidx_ref] + 1; refi_cur++)
@@ -5085,22 +4986,18 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
     u_org = pi->o[U_C] + (x >> 1) + ((y >> 1) * pi->s_o[U_C]);
     v_org = pi->o[V_C] + (x >> 1) + ((y >> 1) * pi->s_o[V_C]);
 
-    mrg_cnt = evc_get_affine_merge_candidate(ctx->poc.poc_val, ctx->slice_type, core->scup, ctx->map_refi, ctx->map_mv, pi->refp, cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, mrg_list_refi, mrg_list_cp_mv, mrg_list_cp_num, ctx->map_scu, ctx->map_affine
-                                             , ctx->log2_max_cuwh
+    mrg_cnt = evc_get_affine_merge_candidate(ctx->poc.poc_val, ctx->slice_type, core->scup, ctx->map_refi, ctx->map_mv, pi->refp, cuw, cuh, ctx->w_scu, ctx->h_scu
+                                           , core->avail_cu, mrg_list_refi, mrg_list_cp_mv, mrg_list_cp_num, ctx->map_scu, ctx->map_affine, ctx->log2_max_cuwh
 #if DMVR_LAG
-                                             , ctx->map_unrefined_mv
+                                           , ctx->map_unrefined_mv
 #endif
-                                             , core->avail_lr
-
-                                             , &ctx->sh
-#if EVC_TILE_SUPPORT
-                                             , ctx->map_tidx
-#endif
-    );
+                                           , core->avail_lr, &ctx->sh, ctx->map_tidx);
 
 
-    if(mrg_cnt == 0)
+    if (mrg_cnt == 0)
+    {
         return MAX_COST;
+    }
 
     for(idx = 0; idx < mrg_cnt; idx++)
     {
@@ -5153,20 +5050,11 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
 
 #if RDO_DBK
             evc_set_affine_mvf(ctx, core, cuw, cuh, mrg_list_refi[idx], mrg_list_cp_mv[idx], mrg_list_cp_num[idx]);
-            calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->pred[PRED_NUM][0], cuw, x, y, core->avail_lr, 0, 0, mrg_list_refi[idx], pi->mv[pidx], 1, core->ats_inter_info
-#if EVC_CONCURENCY || EVC_TILE_SUPPORT
-                , core
-#endif
-            );
-#if EVC_CONCURENCY
+            calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->pred[PRED_NUM][0], cuw, x, y, core->avail_lr, 0, 0
+                                          , mrg_list_refi[idx], pi->mv[pidx], 1, core->ats_inter_info, core);
             cy += core->delta_dist[Y_C];
             cu += core->delta_dist[U_C];
             cv += core->delta_dist[V_C];
-#else
-            cy += ctx->delta_dist[Y_C];
-            cu += ctx->delta_dist[U_C];
-            cv += ctx->delta_dist[V_C];
-#endif
 #endif
 
             cost = (double)cy + (ctx->dist_chroma_weight[0] * (double)cu) + (ctx->dist_chroma_weight[1] * (double)cv);
@@ -5426,11 +5314,7 @@ static double pinter_analyze_cu_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, 
         if (ctx->sps.tool_htdf == 1 && i == Y_C && pi->nnz_best[best_idx][i])
         {
             const int s_mod = pi->s_m[Y_C];
-            u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu
-#if EVC_TILE_SUPPORT
-                , ctx->map_tidx
-#endif
-            );
+            u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu, ctx->map_tidx);
 #if FIX_CONSTRAINT_PRED
             int constrained_intra_flag = 0 && ctx->pps.constrained_intra_pred_flag;
 #endif
@@ -5568,12 +5452,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 #if M52166_MMVD
             , ctx->poc.poc_val, ctx->rpm.num_refp
 #endif
-            , core->history_buffer, ctx->sps.tool_admvp, &ctx->sh, ctx->log2_max_cuwh
-#if EVC_TILE_SUPPORT
-            , ctx->map_tidx
-#endif
-            , -1
-        );
+            , core->history_buffer, ctx->sps.tool_admvp, &ctx->sh, ctx->log2_max_cuwh, ctx->map_tidx, -1);
     }
     mmvd_base_skip(ctx, core, real_mv, log2_cuw, log2_cuh, ctx->slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], ctx->w_scu, core->avail_cu, REF_SET
                    , ctx->h_scu, ctx->map_scu, core->avail_lr, core->history_buffer, ctx->sps.tool_admvp, &ctx->sh, ctx->log2_max_cuwh
@@ -5733,10 +5612,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 #else
                                             , ctx->sps.tool_admvp
 #endif
-#if EVC_TILE_SUPPORT
-                                            , ctx->map_tidx
-#endif
-                    );
+                                            , ctx->map_tidx);
                     mvp_idx[lidx] = 0;
 
                     /* motion search ********************/
@@ -5998,72 +5874,67 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 #if DMVR_LAG
                                                           , ctx->map_unrefined_mv
 #endif
-#if EVC_TILE_SUPPORT
-                                , ctx->map_tidx
-#endif
-                            );
+                                                          , ctx->map_tidx);
+                            
+                            u32 mvp_best = EVC_UINT32_MAX;
+                            u32 mvp_temp = EVC_UINT32_MAX;
+                            s8  refi_t[REFP_NUM];
+                            EVC_PIC* refp = pi->refp[refi_cur][lidx].pic;
+                            pel *pred = pi->pred_buf;
+                            pel *org = pi->o[Y_C] + x + y * pi->s_o[Y_C];
+                            pel s_org = pi->s_o[Y_C];
+
+                            for(i = 0; i < AFF_MAX_NUM_MVP; i++)
                             {
-                                u32 mvp_best = EVC_UINT32_MAX;
-                                u32 mvp_temp = EVC_UINT32_MAX;
-                                s8  refi_t[REFP_NUM];
-
-                                EVC_PIC* refp = pi->refp[refi_cur][lidx].pic;
-                                pel *pred = pi->pred_buf;
-                                pel *org = pi->o[Y_C] + x + y * pi->s_o[Y_C];
-                                pel s_org = pi->s_o[Y_C];
-
-                                for(i = 0; i < AFF_MAX_NUM_MVP; i++)
-                                {
-                                    evc_affine_mc_l(x, y, refp->w_l, refp->h_l, cuw, cuh, affine_mvp[i], refp, pred, vertex_num, core->eif_tmp_buffer);
-                                    mvp_temp = evce_satd_16b(log2_cuw, log2_cuh, org, pred, s_org, cuw);
-                                    mebits = 1; // zero mvd flag
-                                    mebits += evce_tbl_mvp_idx_bits[AFF_MAX_NUM_MVP][i]; // mvp idx
-                                    mvp_temp += MV_COST(pi, mebits);
-
-                                    if(mvp_temp < mvp_best)
-                                    {
-                                        mvp_idx[lidx] = i;
-                                        mvp_best = mvp_temp;
-                                    }
-                                }
-
-                                mv_trans[refi_cur][lidx][MV_X] = save_translation_mv[lidx][refi_cur][MV_X];
-                                mv_trans[refi_cur][lidx][MV_Y] = save_translation_mv[lidx][refi_cur][MV_Y];
-
-                                refi_t[lidx] = refi_cur;
-                                refi_t[1 - lidx] = -1;
-                                mv_clip(x, y, ctx->w, ctx->h, cuw, cuh, refi_t, mv_trans[refi_cur], mv_trans[refi_cur]);
-
-                                for(vertex = 0; vertex < vertex_num; vertex++)
-                                {
-                                    tmp_mv_array[vertex][MV_X] = mv_trans[refi_cur][lidx][MV_X];
-                                    tmp_mv_array[vertex][MV_Y] = mv_trans[refi_cur][lidx][MV_Y];
-                                }
-
-                                evc_affine_mc_l(x, y, refp->w_l, refp->h_l, cuw, cuh, tmp_mv_array, refp, pred, vertex_num, core->eif_tmp_buffer);
-                                cost_trans[lidx][refi_cur] = evce_satd_16b(log2_cuw, log2_cuh, org, pred, s_org, cuw);
-                                mebits = get_affine_mv_bits(tmp_mv_array, affine_mvp[mvp_idx[lidx]], pi->num_refp, refi_cur, vertex_num);
-                                mebits += evce_tbl_mvp_idx_bits[AFF_MAX_NUM_MVP][mvp_idx[lidx]];
-                                mvp_temp = cost_trans[lidx][refi_cur] + MV_COST(pi, mebits);
+                                evc_affine_mc_l(x, y, refp->w_l, refp->h_l, cuw, cuh, affine_mvp[i], refp, pred, vertex_num, core->eif_tmp_buffer);
+                                mvp_temp = evce_satd_16b(log2_cuw, log2_cuh, org, pred, s_org, cuw);
+                                mebits = 1; // zero mvd flag
+                                mebits += evce_tbl_mvp_idx_bits[AFF_MAX_NUM_MVP][i]; // mvp idx
+                                mvp_temp += MV_COST(pi, mebits);
 
                                 if(mvp_temp < mvp_best)
                                 {
-                                    for(vertex = 0; vertex < vertex_num; vertex++)
-                                    {
-                                        affine_mv[vertex][MV_X] = mv_trans[refi_cur][lidx][MV_X];
-                                        affine_mv[vertex][MV_Y] = mv_trans[refi_cur][lidx][MV_Y];
-                                    }
-                                }
-                                else
-                                {
-                                    for(vertex = 0; vertex < vertex_num; vertex++)
-                                    {
-                                        affine_mv[vertex][MV_X] = affine_mvp[mvp_idx[lidx]][vertex][MV_X];
-                                        affine_mv[vertex][MV_Y] = affine_mvp[mvp_idx[lidx]][vertex][MV_Y];
-                                    }
+                                    mvp_idx[lidx] = i;
+                                    mvp_best = mvp_temp;
                                 }
                             }
 
+                            mv_trans[refi_cur][lidx][MV_X] = save_translation_mv[lidx][refi_cur][MV_X];
+                            mv_trans[refi_cur][lidx][MV_Y] = save_translation_mv[lidx][refi_cur][MV_Y];
+
+                            refi_t[lidx] = refi_cur;
+                            refi_t[1 - lidx] = -1;
+                            mv_clip(x, y, ctx->w, ctx->h, cuw, cuh, refi_t, mv_trans[refi_cur], mv_trans[refi_cur]);
+
+                            for(vertex = 0; vertex < vertex_num; vertex++)
+                            {
+                                tmp_mv_array[vertex][MV_X] = mv_trans[refi_cur][lidx][MV_X];
+                                tmp_mv_array[vertex][MV_Y] = mv_trans[refi_cur][lidx][MV_Y];
+                            }
+
+                            evc_affine_mc_l(x, y, refp->w_l, refp->h_l, cuw, cuh, tmp_mv_array, refp, pred, vertex_num, core->eif_tmp_buffer);
+                            cost_trans[lidx][refi_cur] = evce_satd_16b(log2_cuw, log2_cuh, org, pred, s_org, cuw);
+                            mebits = get_affine_mv_bits(tmp_mv_array, affine_mvp[mvp_idx[lidx]], pi->num_refp, refi_cur, vertex_num);
+                            mebits += evce_tbl_mvp_idx_bits[AFF_MAX_NUM_MVP][mvp_idx[lidx]];
+                            mvp_temp = cost_trans[lidx][refi_cur] + MV_COST(pi, mebits);
+
+                            if(mvp_temp < mvp_best)
+                            {
+                                for(vertex = 0; vertex < vertex_num; vertex++)
+                                {
+                                    affine_mv[vertex][MV_X] = mv_trans[refi_cur][lidx][MV_X];
+                                    affine_mv[vertex][MV_Y] = mv_trans[refi_cur][lidx][MV_Y];
+                                }
+                            }
+                            else
+                            {
+                                for(vertex = 0; vertex < vertex_num; vertex++)
+                                {
+                                    affine_mv[vertex][MV_X] = affine_mvp[mvp_idx[lidx]][vertex][MV_X];
+                                    affine_mv[vertex][MV_Y] = affine_mvp[mvp_idx[lidx]][vertex][MV_Y];
+                                }
+                            }
+                            
                             /* affine motion search */
                             mecost = pi->fn_affine_me(pi, x, y, log2_cuw, log2_cuh, &refi_cur, lidx, affine_mvp[mvp_idx[lidx]], affine_mv, 0, vertex_num, core->eif_tmp_buffer);
 
@@ -6125,38 +5996,36 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                         affine_mv[2][MV_Y] = affine_mv[0][MV_Y] + (affine_mv[1][MV_X] - affine_mv[0][MV_X]) * cuh / cuw;
                         affine_mv[3][MV_X] = affine_mv[1][MV_X] - (affine_mv[1][MV_Y] - affine_mv[0][MV_Y]) * cuh / cuw;
                         affine_mv[3][MV_Y] = affine_mv[1][MV_Y] + (affine_mv[1][MV_X] - affine_mv[0][MV_X]) * cuh / cuw;
+                        
+                        cost = cost_inter[pidx] = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[PRED_NUM], pi->coef[PRED_NUM], pidx, mvp_idx, FALSE);
 
+
+                        if(cost < cost_best)
                         {
-                            cost = cost_inter[pidx] = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[PRED_NUM], pi->coef[PRED_NUM], pidx, mvp_idx, FALSE);
-
-
-                            if(cost < cost_best)
-                            {
-                                best_affine_mode = core->affine_flag;
+                            best_affine_mode = core->affine_flag;
 #if DMVR_FLAG
-                                best_dmvr = 0;
+                            best_dmvr = 0;
 #endif
-                                core->cu_mode = MODE_INTER;
-                                best_idx = pidx;
-                                pi->mvp_idx[best_idx][lidx] = mvp_idx[lidx];
-                                cost_inter[best_idx] = cost_best = cost;
-                                pi->bi_idx[best_idx] = BI_NON;
+                            core->cu_mode = MODE_INTER;
+                            best_idx = pidx;
+                            pi->mvp_idx[best_idx][lidx] = mvp_idx[lidx];
+                            cost_inter[best_idx] = cost_best = cost;
+                            pi->bi_idx[best_idx] = BI_NON;
 
-                                SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best);
+                            SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best);
 #if DQP_RDO
-                                DQP_STORE(core->dqp_next_best[log2_cuw - 2][log2_cuh - 2], core->dqp_temp_best);
+                            DQP_STORE(core->dqp_next_best[log2_cuw - 2][log2_cuh - 2], core->dqp_temp_best);
 #endif
 
-                                for(j = 0; j < N_C; j++)
-                                {
-                                    int size_tmp = (cuw * cuh) >> (j == 0 ? 0 : 2);
-                                    pi->nnz_best[pidx][j] = core->nnz[j];
-                                    evc_mcpy(pi->nnz_sub_best[pidx][j], core->nnz_sub[j], sizeof(int) * MAX_SUB_TB_NUM);
-                                    evc_mcpy(pred[0][j], pi->pred[PRED_NUM][0][j], size_tmp * sizeof(pel));
-                                    evc_mcpy(coef_t[j], pi->coef[PRED_NUM][j], size_tmp * sizeof(s16));
-                                }
-                                pi->ats_inter_info_mode[pidx] = core->ats_inter_info;
+                            for(j = 0; j < N_C; j++)
+                            {
+                                int size_tmp = (cuw * cuh) >> (j == 0 ? 0 : 2);
+                                pi->nnz_best[pidx][j] = core->nnz[j];
+                                evc_mcpy(pi->nnz_sub_best[pidx][j], core->nnz_sub[j], sizeof(int) * MAX_SUB_TB_NUM);
+                                evc_mcpy(pred[0][j], pi->pred[PRED_NUM][0][j], size_tmp * sizeof(pel));
+                                evc_mcpy(coef_t[j], pi->coef[PRED_NUM][j], size_tmp * sizeof(s16));
                             }
+                            pi->ats_inter_info_mode[pidx] = core->ats_inter_info;
                         }
                     }
 
@@ -6208,78 +6077,73 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                                 evc_get_affine_motion_scaling(ctx->poc.poc_val, core->scup, lidx, refi_cur, pi->num_refp, ctx->map_mv, ctx->map_refi, pi->refp,
                                                               core->cuw, core->cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, affine_mvp, pi->refi_pred[lidx],
                                                               ctx->map_scu, ctx->map_affine, vertex_num, core->avail_lr
-                                                              , ctx->log2_max_cuwh
+                                                            , ctx->log2_max_cuwh
 #if DMVR_LAG
-                                                              , ctx->map_unrefined_mv
+                                                            , ctx->map_unrefined_mv
 #endif
-#if EVC_TILE_SUPPORT
-                                    , ctx->map_tidx
-#endif
-                                );
+                                                            , ctx->map_tidx);
 
+                                u32 mvp_best = EVC_UINT32_MAX;
+                                u32 mvp_temp = EVC_UINT32_MAX;
+
+                                EVC_PIC* refp = pi->refp[refi_cur][lidx].pic;
+                                pel *pred = pi->pred_buf;
+                                pel *org = pi->o[Y_C] + x + y * pi->s_o[Y_C];
+                                pel s_org = pi->s_o[Y_C];
+                                for(i = 0; i < AFF_MAX_NUM_MVP; i++)
                                 {
-                                    u32 mvp_best = EVC_UINT32_MAX;
-                                    u32 mvp_temp = EVC_UINT32_MAX;
-
-                                    EVC_PIC* refp = pi->refp[refi_cur][lidx].pic;
-                                    pel *pred = pi->pred_buf;
-                                    pel *org = pi->o[Y_C] + x + y * pi->s_o[Y_C];
-                                    pel s_org = pi->s_o[Y_C];
-                                    for(i = 0; i < AFF_MAX_NUM_MVP; i++)
-                                    {
-                                        evc_affine_mc_l(x, y, refp->w_l, refp->h_l, cuw, cuh, affine_mvp[i], refp, pred, vertex_num, core->eif_tmp_buffer);
-
-                                        mvp_temp = evce_satd_16b(log2_cuw, log2_cuh, org, pred, s_org, cuw);
-                                        mebits = 1; // zero mvd flag
-                                        mebits += evce_tbl_mvp_idx_bits[AFF_MAX_NUM_MVP][i]; // mvp idx
-                                        mvp_temp += MV_COST(pi, mebits);
-
-                                        if(mvp_temp < mvp_best)
-                                        {
-                                            mvp_idx[lidx] = i;
-                                            mvp_best = mvp_temp;
-                                        }
-                                    }
-
-                                    affine_mv[0][MV_X] = pi->affine_mv_scale[lidx][refi_cur][0][MV_X];
-                                    affine_mv[0][MV_Y] = pi->affine_mv_scale[lidx][refi_cur][0][MV_Y];
-                                    affine_mv[1][MV_X] = pi->affine_mv_scale[lidx][refi_cur][1][MV_X];
-                                    affine_mv[1][MV_Y] = pi->affine_mv_scale[lidx][refi_cur][1][MV_Y];
-                                    affine_mv[2][MV_X] = affine_mv[0][MV_X] - (affine_mv[1][MV_Y] - affine_mv[0][MV_Y]) * cuh / cuw;
-                                    affine_mv[2][MV_Y] = affine_mv[0][MV_Y] + (affine_mv[1][MV_X] - affine_mv[0][MV_X]) * cuh / cuw;
-                                    evc_affine_mc_l(x, y, refp->w_l, refp->h_l, cuw, cuh, affine_mv, refp, pred, vertex_num, core->eif_tmp_buffer);
+                                    evc_affine_mc_l(x, y, refp->w_l, refp->h_l, cuw, cuh, affine_mvp[i], refp, pred, vertex_num, core->eif_tmp_buffer);
 
                                     mvp_temp = evce_satd_16b(log2_cuw, log2_cuh, org, pred, s_org, cuw);
-
-                                    // 4 parameter AFFINE MV
-                                    mebits = get_affine_mv_bits(affine_mv, affine_mvp[mvp_idx[lidx]], pi->num_refp, refi_cur, vertex_num);
-                                    mebits += evce_tbl_mvp_idx_bits[AFF_MAX_NUM_MVP][mvp_idx[lidx]]; // mvp idx
+                                    mebits = 1; // zero mvd flag
+                                    mebits += evce_tbl_mvp_idx_bits[AFF_MAX_NUM_MVP][i]; // mvp idx
                                     mvp_temp += MV_COST(pi, mebits);
-                                    // translation MV
+
+                                    if(mvp_temp < mvp_best)
+                                    {
+                                        mvp_idx[lidx] = i;
+                                        mvp_best = mvp_temp;
+                                    }
+                                }
+
+                                affine_mv[0][MV_X] = pi->affine_mv_scale[lidx][refi_cur][0][MV_X];
+                                affine_mv[0][MV_Y] = pi->affine_mv_scale[lidx][refi_cur][0][MV_Y];
+                                affine_mv[1][MV_X] = pi->affine_mv_scale[lidx][refi_cur][1][MV_X];
+                                affine_mv[1][MV_Y] = pi->affine_mv_scale[lidx][refi_cur][1][MV_Y];
+                                affine_mv[2][MV_X] = affine_mv[0][MV_X] - (affine_mv[1][MV_Y] - affine_mv[0][MV_Y]) * cuh / cuw;
+                                affine_mv[2][MV_Y] = affine_mv[0][MV_Y] + (affine_mv[1][MV_X] - affine_mv[0][MV_X]) * cuh / cuw;
+                                evc_affine_mc_l(x, y, refp->w_l, refp->h_l, cuw, cuh, affine_mv, refp, pred, vertex_num, core->eif_tmp_buffer);
+
+                                mvp_temp = evce_satd_16b(log2_cuw, log2_cuh, org, pred, s_org, cuw);
+
+                                // 4 parameter AFFINE MV
+                                mebits = get_affine_mv_bits(affine_mv, affine_mvp[mvp_idx[lidx]], pi->num_refp, refi_cur, vertex_num);
+                                mebits += evce_tbl_mvp_idx_bits[AFF_MAX_NUM_MVP][mvp_idx[lidx]]; // mvp idx
+                                mvp_temp += MV_COST(pi, mebits);
+                                // translation MV
+                                for(vertex = 0; vertex < vertex_num; vertex++)
+                                {
+                                    tmp_mv_array[vertex][MV_X] = mv_trans[refi_cur][lidx][MV_X];
+                                    tmp_mv_array[vertex][MV_Y] = mv_trans[refi_cur][lidx][MV_Y];
+                                }
+                                mebits = get_affine_mv_bits(tmp_mv_array, affine_mvp[mvp_idx[lidx]], pi->num_refp, refi_cur, vertex_num);
+                                mebits += evce_tbl_mvp_idx_bits[AFF_MAX_NUM_MVP][mvp_idx[lidx]];
+                                cost_trans[lidx][refi_cur] += MV_COST(pi, mebits);
+
+                                if(mvp_best <= mvp_temp && mvp_best <= cost_trans[lidx][refi_cur])
+                                {
                                     for(vertex = 0; vertex < vertex_num; vertex++)
                                     {
-                                        tmp_mv_array[vertex][MV_X] = mv_trans[refi_cur][lidx][MV_X];
-                                        tmp_mv_array[vertex][MV_Y] = mv_trans[refi_cur][lidx][MV_Y];
+                                        affine_mv[vertex][MV_X] = affine_mvp[mvp_idx[lidx]][vertex][MV_X];
+                                        affine_mv[vertex][MV_Y] = affine_mvp[mvp_idx[lidx]][vertex][MV_Y];
                                     }
-                                    mebits = get_affine_mv_bits(tmp_mv_array, affine_mvp[mvp_idx[lidx]], pi->num_refp, refi_cur, vertex_num);
-                                    mebits += evce_tbl_mvp_idx_bits[AFF_MAX_NUM_MVP][mvp_idx[lidx]];
-                                    cost_trans[lidx][refi_cur] += MV_COST(pi, mebits);
-
-                                    if(mvp_best <= mvp_temp && mvp_best <= cost_trans[lidx][refi_cur])
+                                }
+                                else if(mvp_best <= mvp_temp && cost_trans[lidx][refi_cur] < mvp_best)
+                                {
+                                    for(vertex = 0; vertex < vertex_num; vertex++)
                                     {
-                                        for(vertex = 0; vertex < vertex_num; vertex++)
-                                        {
-                                            affine_mv[vertex][MV_X] = affine_mvp[mvp_idx[lidx]][vertex][MV_X];
-                                            affine_mv[vertex][MV_Y] = affine_mvp[mvp_idx[lidx]][vertex][MV_Y];
-                                        }
-                                    }
-                                    else if(mvp_best <= mvp_temp && cost_trans[lidx][refi_cur] < mvp_best)
-                                    {
-                                        for(vertex = 0; vertex < vertex_num; vertex++)
-                                        {
-                                            affine_mv[vertex][MV_X] = mv_trans[refi_cur][lidx][MV_X];
-                                            affine_mv[vertex][MV_Y] = mv_trans[refi_cur][lidx][MV_Y];
-                                        }
+                                        affine_mv[vertex][MV_X] = mv_trans[refi_cur][lidx][MV_X];
+                                        affine_mv[vertex][MV_Y] = mv_trans[refi_cur][lidx][MV_Y];
                                     }
                                 }
 
@@ -6342,36 +6206,34 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                             affine_mv[3][MV_X] = affine_mv[1][MV_X] + affine_mv[2][MV_X] - affine_mv[0][MV_X];
                             affine_mv[3][MV_Y] = affine_mv[1][MV_Y] + affine_mv[2][MV_Y] - affine_mv[0][MV_Y];
 
+                            cost = cost_inter[pidx] = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[PRED_NUM], pi->coef[PRED_NUM], pidx, mvp_idx, FALSE);
+
+                            if(cost < cost_best)
                             {
-                                cost = cost_inter[pidx] = pinter_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred[PRED_NUM], pi->coef[PRED_NUM], pidx, mvp_idx, FALSE);
-
-                                if(cost < cost_best)
-                                {
-                                    best_affine_mode = core->affine_flag;
+                                best_affine_mode = core->affine_flag;
 #if DMVR_FLAG
-                                    best_dmvr = 0;
+                                best_dmvr = 0;
 #endif
-                                    core->cu_mode = MODE_INTER;
-                                    best_idx = pidx;
-                                    pi->mvp_idx[best_idx][lidx] = mvp_idx[lidx];
-                                    cost_inter[best_idx] = cost_best = cost;
-                                    pi->bi_idx[best_idx] = BI_NON;
+                                core->cu_mode = MODE_INTER;
+                                best_idx = pidx;
+                                pi->mvp_idx[best_idx][lidx] = mvp_idx[lidx];
+                                cost_inter[best_idx] = cost_best = cost;
+                                pi->bi_idx[best_idx] = BI_NON;
 
-                                    SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best);
+                                SBAC_STORE(core->s_next_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_best);
 #if DQP_RDO
-                                    DQP_STORE(core->dqp_next_best[log2_cuw - 2][log2_cuh - 2], core->dqp_temp_best);
+                                DQP_STORE(core->dqp_next_best[log2_cuw - 2][log2_cuh - 2], core->dqp_temp_best);
 #endif
 
-                                    for(j = 0; j < N_C; j++)
-                                    {
-                                        int size_tmp = (cuw * cuh) >> (j == 0 ? 0 : 2);
-                                        pi->nnz_best[pidx][j] = core->nnz[j];
-                                        evc_mcpy(pi->nnz_sub_best[pidx][j], core->nnz_sub[j], sizeof(int) * MAX_SUB_TB_NUM);
-                                        evc_mcpy(pred[0][j], pi->pred[PRED_NUM][0][j], size_tmp * sizeof(pel));
-                                        evc_mcpy(coef_t[j], pi->coef[PRED_NUM][j], size_tmp * sizeof(s16));
-                                    }
-                                    pi->ats_inter_info_mode[pidx] = core->ats_inter_info;
+                                for(j = 0; j < N_C; j++)
+                                {
+                                    int size_tmp = (cuw * cuh) >> (j == 0 ? 0 : 2);
+                                    pi->nnz_best[pidx][j] = core->nnz[j];
+                                    evc_mcpy(pi->nnz_sub_best[pidx][j], core->nnz_sub[j], sizeof(int) * MAX_SUB_TB_NUM);
+                                    evc_mcpy(pred[0][j], pi->pred[PRED_NUM][0][j], size_tmp * sizeof(pel));
+                                    evc_mcpy(coef_t[j], pi->coef[PRED_NUM][j], size_tmp * sizeof(s16));
                                 }
+                                pi->ats_inter_info_mode[pidx] = core->ats_inter_info;
                             }
                         }
 
@@ -6436,30 +6298,16 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
         if (ctx->sps.tool_htdf == 1 && i == Y_C && pi->nnz_best[best_idx][i])
         {
             const int s_mod = pi->s_m[Y_C];
-            u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu
-#if EVC_TILE_SUPPORT
-                , ctx->map_tidx
-#endif
-            );
+            u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu, ctx->map_tidx);
 
 #if FIX_CONSTRAINT_PRED
             int constrained_intra_flag = 0 && ctx->pps.constrained_intra_pred_flag;
 #endif
-
-#if EVC_TILE_DQP
             evc_htdf(rec[i], ctx->tile[core->tile_idx].qp, cuw, cuh, cuw, FALSE, pi->m[Y_C] + (y * s_mod) + x, s_mod, avail_cu
 #if FIX_CONSTRAINT_PRED
                      , core->scup, ctx->w_scu, ctx->h_scu, ctx->map_scu, constrained_intra_flag
 #endif
                     );
-#else
-            evc_htdf(rec[i], ctx->sh.qp, cuw, cuh, cuw, FALSE, pi->m[Y_C] + (y * s_mod) + x, s_mod, avail_cu
-#if FIX_CONSTRAINT_PRED
-                     , core->scup, ctx->w_scu, ctx->h_scu, ctx->map_scu, constrained_intra_flag
-#endif
-                     ;
-#endif
-
         }
 
         core->nnz[i] = pi->nnz_best[best_idx][i];

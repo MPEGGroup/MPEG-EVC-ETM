@@ -275,93 +275,37 @@ void evce_split_tbl_init(EVCE_CTX *ctx)
 }
 
 #if M50761_CHROMA_NOT_SPLIT
-u8 evce_check_luma(EVCE_CTX *ctx
-#if EVC_CONCURENCY
-    , EVCE_CORE * core
-#endif
-)
+u8 evce_check_luma(EVCE_CTX *ctx, EVCE_CORE * core)
 {
-#if EVC_CONCURENCY
-    return evc_check_luma(core->tree_cons);
-#else
-    return evc_check_luma(ctx->tree_cons);
-#endif
-    
+    return evc_check_luma(core->tree_cons);    
 }
 
-u8 evce_check_chroma(EVCE_CTX *ctx
-#if EVC_CONCURENCY
-    , EVCE_CORE * core
-#endif
-)
+u8 evce_check_chroma(EVCE_CTX *ctx, EVCE_CORE * core)
 {
-#if EVC_CONCURENCY
-    return evc_check_chroma(core->tree_cons);
-#else
-    return evc_check_chroma(ctx->tree_cons);
-#endif
-    
+    return evc_check_chroma(core->tree_cons);    
 }
-u8 evce_check_all(EVCE_CTX *ctx
-#if EVC_CONCURENCY
-    , EVCE_CORE * core
-#endif
-)
+u8 evce_check_all(EVCE_CTX *ctx, EVCE_CORE * core)
 {
-    
-#if EVC_CONCURENCY
-    return evc_check_all(core->tree_cons);
-#else
-    return evc_check_all(ctx->tree_cons);
-#endif
-    
+    return evc_check_all(core->tree_cons);    
 }
 
-u8 evce_check_only_intra(EVCE_CTX *ctx
-#if EVC_CONCURENCY
-    , EVCE_CORE * core
-#endif
-)
+u8 evce_check_only_intra(EVCE_CTX *ctx, EVCE_CORE * core)
 {
-#if EVC_CONCURENCY
     return evc_check_only_intra(core->tree_cons);
-#else
-    return evc_check_only_intra(ctx->tree_cons);
-#endif 
-    
 }
 
-u8 evce_check_only_inter(EVCE_CTX *ctx
-#if EVC_CONCURENCY
-    , EVCE_CORE * core
-#endif
-)
+u8 evce_check_only_inter(EVCE_CTX *ctx, EVCE_CORE * core)
 {
-    
-#if EVC_CONCURENCY
     return evc_check_only_inter(core->tree_cons);
-#else
-    return evc_check_only_inter(ctx->tree_cons);
-#endif 
-    
 }
 
-u8 evce_check_all_preds(EVCE_CTX *ctx
-#if EVC_CONCURENCY
-    , EVCE_CORE * core
-#endif
-)
+u8 evce_check_all_preds(EVCE_CTX *ctx, EVCE_CORE * core)
 {
-#if EVC_CONCURENCY
-    return evc_check_all_preds(core->tree_cons);
-#else
-    return evc_check_all_preds(ctx->tree_cons);
-#endif 
-    
+    return evc_check_all_preds(core->tree_cons);       
 }
 
 MODE_CONS evce_derive_mode_cons(EVCE_CTX *ctx, int lcu_num, int cup)
 {
-        return ((ctx->map_cu_data[lcu_num].pred_mode[cup] == MODE_INTRA) || (ctx->map_cu_data[lcu_num].pred_mode[cup] == MODE_IBC) ) ? eOnlyIntra : eOnlyInter;
+    return ((ctx->map_cu_data[lcu_num].pred_mode[cup] == MODE_INTRA) || (ctx->map_cu_data[lcu_num].pred_mode[cup] == MODE_IBC) ) ? eOnlyIntra : eOnlyInter;
 }
 #endif
