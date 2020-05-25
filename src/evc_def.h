@@ -463,6 +463,13 @@ typedef struct _evc_AlfFilterShape
 #endif
 /* HDR (END) */
 
+/* CABAC ZERO WORD (START) */
+#define CABAC_ZERO_WORD                    1
+#if CABAC_ZERO_WORD
+#define CABAC_ZERO_PARAM                   32
+#endif
+/* CABAC ZERO WORD (END) */
+
 /* Common routines (START) */
 #define max(x, y) (((x) > (y)) ? (x) : (y))
 #define min(x, y) (((x) < (y)) ? (x) : (y))

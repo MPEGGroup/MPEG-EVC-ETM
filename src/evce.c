@@ -3024,6 +3024,16 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     }
 #endif
 #endif
+
+#if CABAC_ZERO_WORD // init Bin counter
+        EVCE_SBAC* t_sbac;
+        t_sbac = GET_SBAC_ENC(bs);
+        t_sbac->bin_counter = 0;
+
+        unsigned int bin_counts_in_units = 0;
+        unsigned int num_bytes_in_units = 0;
+#endif 
+
         /* Send available APSs */
         int aps_nalu_size = 0;
     
@@ -3207,10 +3217,42 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
                 }
             } //End of LCU encoding loop in a tile
 
+#if CABAC_ZERO_WORD
+            EVCE_SBAC* tmp_sbac;
+            tmp_sbac = GET_SBAC_ENC(bs);
+            bin_counts_in_units += tmp_sbac->bin_counter;
+#endif
             total_tiles_in_slice--;
 
             sh->entry_point_offset_minus1[k - 1] = (u32)((bs)->cur - bs_beg.cur - 4 + (4 - (bs->leftbits >> 3)) + (bs_beg.leftbits >> 3) - 1);
         } // End to tile encoding loop in a slice
+
+#if CABAC_ZERO_WORD
+        num_bytes_in_units = (int)(bs->cur - cur_tmp) - 4;
+
+        int log2_sub_widthC_subHeightC = 2; // 4:2:0 only, to be updated
+        int min_cu_w = MIN_CU_SIZE;
+        int min_cu_h = MIN_CU_SIZE;
+        int padded_w = ((ctx->w + min_cu_w - 1) / min_cu_w) * min_cu_w;
+        int padded_h = ((ctx->h + min_cu_h - 1) / min_cu_h) * min_cu_h;
+        int raw_bits = padded_w * padded_w * ((ctx->sps.bit_depth_luma_minus8 + 8) + 2 * ((ctx->sps.bit_depth_chroma_minus8 + 8) >> log2_sub_widthC_subHeightC));
+        unsigned int threshold = (CABAC_ZERO_PARAM / 3) * num_bytes_in_units + (raw_bits / 32);
+
+        if (bin_counts_in_units >= threshold)
+        {
+            unsigned int target_num_bytes_in_units = ((bin_counts_in_units - (raw_bits / 32)) * 3 + (CABAC_ZERO_PARAM - 1)) / CABAC_ZERO_PARAM;
+            if (target_num_bytes_in_units > num_bytes_in_units)
+            {
+                unsigned int num_add_bytes_needed = target_num_bytes_in_units - num_bytes_in_units;
+                unsigned int num_add_cabac_zero_words = (num_add_bytes_needed + 2) / 3;
+                unsigned int num_add_cabac_zero_bytes = num_add_cabac_zero_words * 3;
+                for (unsigned int i = 0; i < num_add_cabac_zero_words; i++)
+                {
+                    evc_bsw_write(bs, 0, 16); //2 bytes (=00 00))
+                }
+            }
+        }
+#endif 
 
         /* Bit-stream re-writing (END) */
 #if TRACE_HLS

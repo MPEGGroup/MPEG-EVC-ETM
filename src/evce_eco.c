@@ -1111,6 +1111,10 @@ static void sbac_carry_propagate(EVCE_SBAC *sbac, EVC_BSW *bs)
 
 static void sbac_encode_bin_ep(u32 bin, EVCE_SBAC *sbac, EVC_BSW *bs)
 {
+#if CABAC_ZERO_WORD // increase bin counter
+    sbac->bin_counter++;
+#endif 
+
     (sbac->range) >>= 1;
 
     if(bin != 0)
@@ -1201,6 +1205,10 @@ void evce_sbac_encode_bin(u32 bin, EVCE_SBAC *sbac, SBAC_CTX_MODEL *model, EVC_B
     u32 lps;
     u16 mps, state;
 
+#if CABAC_ZERO_WORD // increase bin counter
+    sbac->bin_counter++;
+#endif 
+
     state = (*model) >> 1;
     mps = (*model) & 1;
 
@@ -1258,6 +1266,10 @@ void evce_sbac_encode_bin(u32 bin, EVCE_SBAC *sbac, SBAC_CTX_MODEL *model, EVC_B
 
 void evce_sbac_encode_bin_trm(u32 bin, EVCE_SBAC *sbac, EVC_BSW *bs)
 {
+#if CABAC_ZERO_WORD // increase bin counter
+    sbac->bin_counter++;
+#endif 
+
     sbac->range--;
 
     if(bin)
@@ -1291,6 +1303,9 @@ void evce_sbac_reset(EVCE_SBAC *sbac, u8 slice_type, u8 slice_qp, int sps_cm_ini
     sbac->is_pending_byte = 0;
     sbac->stacked_ff = 0;
     sbac->stacked_zero = 0;
+#if CABAC_ZERO_WORD // init Bin counter
+    sbac->bin_counter = 0;
+#endif 
 
     evc_mset(sbac_ctx, 0x00, sizeof(*sbac_ctx));
 

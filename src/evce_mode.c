@@ -55,6 +55,9 @@ void evce_sbac_bit_reset(EVCE_SBAC * sbac)
     sbac->stacked_ff      = 0;
     sbac->stacked_zero    = 0;
     sbac->bitcounter      = 0;
+#if CABAC_ZERO_WORD // init Bin counter
+    sbac->bin_counter = 0;
+#endif 
 }
 
 u32 evce_get_bit_number(EVCE_SBAC *sbac)
