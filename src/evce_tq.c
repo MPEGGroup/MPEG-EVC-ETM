@@ -39,18 +39,6 @@
 
 static s64 err_scale_tbl[6][MAX_CU_DEPTH];
 
-#if !EVC_CONCURENCY
-extern int rdoq_est_all_cbf[2];
-extern int rdoq_est_cbf[NUM_QT_CBF_CTX][2];
-extern int rdoq_est_sig_coeff[NUM_CTX_SIG_COEFF_FLAG][2];
-extern int rdoq_est_gtx[NUM_CTX_GTX][2];
-extern int rdoq_est_last_sig_coeff_x[NUM_CTX_LAST_SIG_COEFF][2];
-extern int rdoq_est_last_sig_coeff_y[NUM_CTX_LAST_SIG_COEFF][2];
-extern s32 rdoq_est_run[NUM_CTX_CC_RUN][2];
-extern s32 rdoq_est_level[NUM_CTX_CC_LEVEL][2];
-extern s32 rdoq_est_last[NUM_CTX_CC_LAST][2];
-#endif
-
 const int quant_scale[6] = {26214, 23302, 20560, 18396, 16384, 14564};
 
 void evce_trans_DST7_B4(s16* block, s16* coeff, s32 shift, s32 line, int skip_line, int skip_line_2);
@@ -1119,11 +1107,7 @@ void evce_init_err_scale()
 #define GET_I_COST(rate, lamba)  (rate*lamba)
 #define GET_IEP_RATE             (32768)
 
-__inline static s64 get_rate_positionLastXY(int pos_x, int pos_y, int width, int height, int ch_type, s64 lambda, int sps_cm_init_flag
-#if EVC_CONCURENCY
-    , EVCE_CORE * core
-#endif
-)
+__inline static s64 get_rate_positionLastXY(int pos_x, int pos_y, int width, int height, int ch_type, s64 lambda, int sps_cm_init_flag, EVCE_CORE * core)
 {
     int group_idx_x;
     int group_idx_y;
@@ -1152,38 +1136,22 @@ __inline static s64 get_rate_positionLastXY(int pos_x, int pos_y, int width, int
 
     for (bin = 0; bin < group_idx_x; bin++)
     {
-#if EVC_CONCURENCY
         rate += core->rdoq_est_last_sig_coeff_x[offset_x + blk_offset_x + (bin >> shift_x)][1];
-#else
-        rate += rdoq_est_last_sig_coeff_x[offset_x + blk_offset_x + (bin >> shift_x)][1];
-#endif
     }
     if (group_idx_x < g_group_idx[width - 1])
     {
-#if EVC_CONCURENCY
         rate += core->rdoq_est_last_sig_coeff_x[offset_x + blk_offset_x + (bin >> shift_x)][0];
-#else
-        rate += rdoq_est_last_sig_coeff_x[offset_x + blk_offset_x + (bin >> shift_x)][0];
-#endif
     }
 
     // posY
 
     for (bin = 0; bin < group_idx_y; bin++)
     {
-#if EVC_CONCURENCY
         rate += core->rdoq_est_last_sig_coeff_y[offset_y + blk_offset_y + (bin >> shift_y)][1];
-#else
-        rate += rdoq_est_last_sig_coeff_y[offset_y + blk_offset_y + (bin >> shift_y)][1];
-#endif
     }
     if (group_idx_y < g_group_idx[height - 1])
     {
-#if EVC_CONCURENCY
         rate += core->rdoq_est_last_sig_coeff_y[offset_y + blk_offset_y + (bin >> shift_y)][0];
-#else
-        rate += rdoq_est_last_sig_coeff_y[offset_y + blk_offset_y + (bin >> shift_y)][0];
-#endif
     }
 
     // EP-coded part
@@ -1204,26 +1172,14 @@ __inline static s64 get_rate_positionLastXY(int pos_x, int pos_y, int width, int
     return GET_I_COST(rate, lambda);
 }
 
-__inline static s64 get_rate_sig_coeff(int significance, int ctx_sig_coeff, s64 lambda
-#if EVC_CONCURENCY
-    , EVCE_CORE * core
-#endif
+__inline static s64 get_rate_sig_coeff(int significance, int ctx_sig_coeff, s64 lambda, EVCE_CORE * core
 )
-{
-#if EVC_CONCURENCY
-    s64 rate = core->rdoq_est_sig_coeff[ctx_sig_coeff][significance];
-#else
-    s64 rate = rdoq_est_sig_coeff[ctx_sig_coeff][significance];
-#endif
+{    s64 rate = core->rdoq_est_sig_coeff[ctx_sig_coeff][significance];
     return GET_I_COST(rate, lambda);
 }
 
 
-__inline static int get_ic_rate(int abs_level, int ctx_gtA, int ctx_gtB, int rparam, int c1_idx, int c2_idx, int num_gtA, int num_gtB
-#if EVC_CONCURENCY
- , EVCE_CORE * core
-#endif
-)
+__inline static int get_ic_rate(int abs_level, int ctx_gtA, int ctx_gtB, int rparam, int c1_idx, int c2_idx, int num_gtA, int num_gtB, EVCE_CORE * core)
 {
     int rate = GET_IEP_RATE; // cost of sign bit
     int base_level = (c1_idx < num_gtA) ? (2 + (c2_idx < num_gtB ? 1 : 0)) : 1;
@@ -1251,38 +1207,22 @@ __inline static int get_ic_rate(int abs_level, int ctx_gtA, int ctx_gtB, int rpa
 
         if (c1_idx < num_gtA)
         {
-#if EVC_CONCURENCY
             rate += core->rdoq_est_gtx[ctx_gtA][1];
-#else
-            rate += rdoq_est_gtx[ctx_gtA][1];
-#endif
+
             if (c2_idx < num_gtB)
             {
-#if EVC_CONCURENCY
                 rate += core->rdoq_est_gtx[ctx_gtB][1];
-#else
-                rate += rdoq_est_gtx[ctx_gtB][1];
-#endif
             }
         }
     }
     else if (abs_level == 1)
     {
-#if EVC_CONCURENCY
         rate += core->rdoq_est_gtx[ctx_gtA][0];
-#else
-        rate += rdoq_est_gtx[ctx_gtA][0];
-#endif
     }
     else if (abs_level == 2)
     {
-#if EVC_CONCURENCY
         rate += core->rdoq_est_gtx[ctx_gtA][1];
         rate += core->rdoq_est_gtx[ctx_gtB][0];
-#else
-        rate += rdoq_est_gtx[ctx_gtA][1];
-        rate += rdoq_est_gtx[ctx_gtB][0];
-#endif
     }
     else
     {
@@ -1309,10 +1249,8 @@ __inline static int get_coded_level(
     int     qbits,                 //< quantization step size
     s64     error_scale,             //< 
     s64     lambda,
-    int     bypass_sigmap
-#if EVC_CONCURENCY
-    , EVCE_CORE * core
-#endif
+    int     bypass_sigmap,
+    EVCE_CORE * core
 )
 {
     s64 curr_cost_sig = 0;
@@ -1326,11 +1264,7 @@ __inline static int get_coded_level(
 
     if (bypass_sigmap == 0 && max_abs_level < 3)
     {
-        *rd_coded_cost_sig = get_rate_sig_coeff(0, ctx_sig_coeff, lambda
-#if EVC_CONCURENCY
-        , core
-#endif
-        );
+        *rd_coded_cost_sig = get_rate_sig_coeff(0, ctx_sig_coeff, lambda, core);
         *rd_coded_cost = *rd_coded_cost0 + *rd_coded_cost_sig;
 
         if (max_abs_level == 0)
@@ -1345,22 +1279,14 @@ __inline static int get_coded_level(
 
     if (bypass_sigmap == 0)
     {
-        curr_cost_sig = get_rate_sig_coeff(1, ctx_sig_coeff, lambda
-#if EVC_CONCURENCY
-            , core
-#endif
-        );
+        curr_cost_sig = get_rate_sig_coeff(1, ctx_sig_coeff, lambda, core);
     }
 
     min_abs_level = (max_abs_level > 1 ? max_abs_level - 1 : 1);
     for (abs_level = max_abs_level; abs_level >= min_abs_level; abs_level--)
     {
         s64 err = (s64)(level_double - ((s64)abs_level << qbits));
-        rate = get_ic_rate(abs_level, ctx_gtA, ctx_gtB, rparam, c1_idx, c2_idx, num_gtA, num_gtB
-#if EVC_CONCURENCY
-            , core
-#endif
-        );
+        rate = get_ic_rate(abs_level, ctx_gtA, ctx_gtB, rparam, c1_idx, c2_idx, num_gtA, num_gtB, core);
         err = (err * error_scale) >> ERR_SCALE_PRECISION_BITS;
         curr_cost = err * err + GET_I_COST(rate, lambda);
         curr_cost += curr_cost_sig;
@@ -1459,11 +1385,7 @@ __inline static int get_ctx_sig_coeff_inc_rdoq(s16 *pcoeff, int blkpos, int widt
     return ctx_ofs + ctx_idx;
 }
 
-static __inline s64 get_ic_rate_cost_rl(u32 abs_level, u32 run, s32 ctx_run, u32 ctx_level, s64 lambda
-#if EVC_CONCURENCY
- , EVCE_CORE * core
-#endif
-)
+static __inline s64 get_ic_rate_cost_rl(u32 abs_level, u32 run, s32 ctx_run, u32 ctx_level, s64 lambda, EVCE_CORE * core)
 {
     s32 rate;
     if(abs_level == 0)
@@ -1471,19 +1393,11 @@ static __inline s64 get_ic_rate_cost_rl(u32 abs_level, u32 run, s32 ctx_run, u32
         rate = 0;
         if(run == 0)
         {
-#if EVC_CONCURENCY
             rate += core->rdoq_est_run[ctx_run][1];
-#else
-            rate += rdoq_est_run[ctx_run][1];
-#endif
         }
         else
         {
-#if EVC_CONCURENCY
             rate += core->rdoq_est_run[ctx_run + 1][1];
-#else
-            rate += rdoq_est_run[ctx_run + 1][1];
-#endif
         }
     }
     else
@@ -1491,51 +1405,29 @@ static __inline s64 get_ic_rate_cost_rl(u32 abs_level, u32 run, s32 ctx_run, u32
         rate = GET_IEP_RATE;
         if(run == 0)
         {
-#if EVC_CONCURENCY
             rate += core->rdoq_est_run[ctx_run][0];
-#else
-            rate += rdoq_est_run[ctx_run][0];
-#endif
         }
         else
         {
-#if EVC_CONCURENCY
             rate += core->rdoq_est_run[ctx_run + 1][0];
-#else
-            rate += rdoq_est_run[ctx_run + 1][0];
-#endif
         }
 
         if(abs_level == 1)
         {
-#if EVC_CONCURENCY
             rate += core->rdoq_est_level[ctx_level][0];
-#else
-            rate += rdoq_est_level[ctx_level][0];
-#endif
         }
         else
         {
-#if EVC_CONCURENCY
             rate += core->rdoq_est_level[ctx_level][1];
             rate += core->rdoq_est_level[ctx_level + 1][1] * (s32)(abs_level - 2);
             rate += core->rdoq_est_level[ctx_level + 1][0];
-#else
-            rate += rdoq_est_level[ctx_level][1];
-            rate += rdoq_est_level[ctx_level + 1][1] * (s32)(abs_level - 2);
-            rate += rdoq_est_level[ctx_level + 1][0];
-#endif
         }
     }
     return (s64)GET_I_COST(rate, lambda);
 }
 
 static __inline u32 get_coded_level_rl(s64* rd64_uncoded_cost, s64* rd64_coded_cost, s64 level_double, u32 max_abs_level,
-                                       u32 run, u16 ctx_run, u16 ctx_level, s32 q_bits, s64 err_scale, s64 lambda
-#if EVC_CONCURENCY
-                                         , EVCE_CORE * core
-#endif
-                                       )
+                                       u32 run, u16 ctx_run, u16 ctx_level, s32 q_bits, s64 err_scale, s64 lambda, EVCE_CORE * core)
 
 {
     u32 best_abs_level = 0;
@@ -1544,24 +1436,14 @@ static __inline u32 get_coded_level_rl(s64* rd64_uncoded_cost, s64* rd64_coded_c
     u32 abs_level;
 
     *rd64_uncoded_cost = err1 * err1;
-    *rd64_coded_cost = *rd64_uncoded_cost + get_ic_rate_cost_rl(0, run, ctx_run, ctx_level, lambda
-#if EVC_CONCURENCY
-        , core
-#endif
-      );
+    *rd64_coded_cost = *rd64_uncoded_cost + get_ic_rate_cost_rl(0, run, ctx_run, ctx_level, lambda, core);
 
     min_abs_level = (max_abs_level > 1 ? max_abs_level - 1 : 1);
     for(abs_level = max_abs_level; abs_level >= min_abs_level; abs_level--)
     {
         s64 i64Delta = level_double - ((s64)abs_level << q_bits);
         s64 err = (i64Delta * err_scale) >> ERR_SCALE_PRECISION_BITS;
-
-        s64 dCurrCost = err * err + get_ic_rate_cost_rl(abs_level, run, ctx_run, ctx_level, lambda
-#if EVC_CONCURENCY
-                   , core
-#endif
-        );
-
+        s64 dCurrCost = err * err + get_ic_rate_cost_rl(abs_level, run, ctx_run, ctx_level, lambda, core);
 
         if(dCurrCost < *rd64_coded_cost)
         {
@@ -1572,11 +1454,7 @@ static __inline u32 get_coded_level_rl(s64* rd64_uncoded_cost, s64* rd64_coded_c
     return best_abs_level;
 }
 
-int evce_rdoq_run_length_cc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s16 *dst_tmp, int log2_cuw, int log2_cuh, int ch_type, int sps_cm_init_flag
-#if EVC_CONCURENCY
- ,EVCE_CORE * core
-#endif
-)
+int evce_rdoq_run_length_cc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s16 *dst_tmp, int log2_cuw, int log2_cuh, int ch_type, int sps_cm_init_flag, EVCE_CORE * core)
 {
     const int qp_rem = qp % 6;
     const int ns_shift = ((log2_cuw + log2_cuh) & 1) ? 7 : 0;
@@ -1644,17 +1522,11 @@ int evce_rdoq_run_length_cc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, 
 
     if (!is_intra && ch_type == Y_C)
     {
-#if EVC_CONCURENCY
         d64_best_cost = d64_block_uncoded_cost + GET_I_COST(core->rdoq_est_cbf_all[0], lambda);
         d64_base_cost = d64_block_uncoded_cost + GET_I_COST(core->rdoq_est_cbf_all[1], lambda);
-#else
-        d64_best_cost = d64_block_uncoded_cost + GET_I_COST(rdoq_est_cbf_all[0], lambda);
-        d64_base_cost = d64_block_uncoded_cost + GET_I_COST(rdoq_est_cbf_all[1], lambda);
-#endif
     }
     else
     {
-#if EVC_CONCURENCY
         if (ch_type == Y_C)
         {
             d64_best_cost = d64_block_uncoded_cost + GET_I_COST(core->rdoq_est_cbf_luma[0], lambda);
@@ -1669,24 +1541,7 @@ int evce_rdoq_run_length_cc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, 
         {
             d64_best_cost = d64_block_uncoded_cost + GET_I_COST(core->rdoq_est_cbf_cr[0], lambda);
             d64_base_cost = d64_block_uncoded_cost + GET_I_COST(core->rdoq_est_cbf_cr[1], lambda);
-        }        
-#else
-        if (ch_type == Y_C)
-        {
-            d64_best_cost = d64_block_uncoded_cost + GET_I_COST(rdoq_est_cbf_luma[0], lambda);
-            d64_base_cost = d64_block_uncoded_cost + GET_I_COST(rdoq_est_cbf_luma[1], lambda);
-        }
-        else if (ch_type == U_C)
-        {
-            d64_best_cost = d64_block_uncoded_cost + GET_I_COST(rdoq_est_cbf_cb[0], lambda);
-            d64_base_cost = d64_block_uncoded_cost + GET_I_COST(rdoq_est_cbf_cb[1], lambda);
-        }
-        else //if (ch_type == U_C)
-        {
-            d64_best_cost = d64_block_uncoded_cost + GET_I_COST(rdoq_est_cbf_cr[0], lambda);
-            d64_base_cost = d64_block_uncoded_cost + GET_I_COST(rdoq_est_cbf_cr[1], lambda);
-        }
-#endif
+        }     
     }
 
     run = 0;
@@ -1699,11 +1554,7 @@ int evce_rdoq_run_length_cc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, 
         int ctx_run = sps_cm_init_flag == 1 ? ((EVC_MIN(prev_level - 1, 5)) << 1) + (ch_type == Y_C ? 0 : 12) : (ch_type == Y_C ? 0 : 2);
         int ctx_level = sps_cm_init_flag == 1 ? ((EVC_MIN(prev_level - 1, 5)) << 1) + (ch_type == Y_C ? 0 : 12) : (ch_type == Y_C ? 0 : 2);
 
-        level = get_coded_level_rl(&d64_uncoded_cost, &d64_coded_cost, tmp_level_double[blk_pos], EVC_ABS(tmp_coef[blk_pos]), run, ctx_run, ctx_level, q_bits, err_scale, lambda
-#if EVC_CONCURENCY
-            ,  core
-#endif
-        );
+        level = get_coded_level_rl(&d64_uncoded_cost, &d64_coded_cost, tmp_level_double[blk_pos], EVC_ABS(tmp_coef[blk_pos]), run, ctx_run, ctx_level, q_bits, err_scale, lambda,  core);
         tmp_dst_coef[blk_pos] = tmp_coef[blk_pos] < 0 ? -(s32)(level) : level;
         d64_base_cost -= d64_uncoded_cost;
         d64_base_cost += d64_coded_cost;
@@ -1711,16 +1562,9 @@ int evce_rdoq_run_length_cc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, 
         if (level)
         {
             /* ----- check for last flag ----- */
-
-#if EVC_CONCURENCY
-                  s64 d64_cost_last_zero = GET_I_COST(core->rdoq_est_last[ctx_last][0], lambda);
-                  s64 d64_cost_last_one = GET_I_COST(core->rdoq_est_last[ctx_last][1], lambda);
-                  s64 d64_cur_is_last_cost = d64_base_cost + d64_cost_last_one;
-#else
-            s64 d64_cost_last_zero = GET_I_COST(rdoq_est_last[ctx_last][0], lambda);
-            s64 d64_cost_last_one = GET_I_COST(rdoq_est_last[ctx_last][1], lambda);
+            s64 d64_cost_last_zero = GET_I_COST(core->rdoq_est_last[ctx_last][0], lambda);
+            s64 d64_cost_last_one = GET_I_COST(core->rdoq_est_last[ctx_last][1], lambda);
             s64 d64_cur_is_last_cost = d64_base_cost + d64_cost_last_one;
-#endif
 
             d64_base_cost += d64_cost_last_zero;
 
@@ -1761,11 +1605,7 @@ int evce_rdoq_run_length_cc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, 
     return nnz;
 }
 
-int ifvce_rdoq_method_adcc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s16 *dst_tmp, int log2_cuw, int log2_cuh, int ch_type, int sps_cm_init_flag
-#if EVC_CONCURENCY
- , EVCE_CORE * core
-#endif
-)
+int evce_rdoq_method_adcc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s16 *dst_tmp, int log2_cuw, int log2_cuh, int ch_type, int sps_cm_init_flag, EVCE_CORE * core)
 {
     const int ns_shift = ((log2_cuw + log2_cuh) & 1) ? 7 : 0;
     const int ns_scale = ((log2_cuw + log2_cuh) & 1) ? 181 : 1;
@@ -1805,22 +1645,14 @@ int ifvce_rdoq_method_adcc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s
     s64 pdcost_coeff[MAX_TR_DIM];
     s64 pdcost_sig[MAX_TR_DIM];
     s64 pdcost_coeff0[MAX_TR_DIM];
-#if EVC_CONCURENCY
-      int sig_rate_delta[MAX_TR_DIM];
+    int sig_rate_delta[MAX_TR_DIM];
     int delta_u[MAX_TR_DIM];
     s16 coef_dst[MAX_TR_DIM];
-#else
-    static int sig_rate_delta[MAX_TR_DIM];
-    static int delta_u[MAX_TR_DIM];
-    static s16 coef_dst[MAX_TR_DIM];
-#endif    
+    
     int sum_all = 0;
     int blk_pos;
-#if EVC_CONCURENCY
     s64 tmp_level_double[MAX_TR_DIM];
-#else
-    static s64 tmp_level_double[MAX_TR_DIM];
-#endif
+
     int num_nz = 0;
     int is_last_x = 0;
     int is_last_y = 0;
@@ -1914,30 +1746,15 @@ int ifvce_rdoq_method_adcc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s
                 ctx_gtB += offset1;
                 rice_param = get_rice_para(coef_dst, blk_pos, width, height, base_level);
                 level = get_coded_level(&pdcost_coeff[blk_pos], &pdcost_coeff0[blk_pos], &pdcost_sig[blk_pos], level_double, max_abs_level, ctx_sig_coeff, ctx_gtA, ctx_gtB, rice_param,
-                                        c1_idx, c2_idx, num_gtA, num_gtB, q_bits, err_scale, lambda, bypass_sigmap
-
-#if EVC_CONCURENCY
-                                                  , core
-#endif
-                );
-
-
-#if EVC_CONCURENCY
+                                        c1_idx, c2_idx, num_gtA, num_gtB, q_bits, err_scale, lambda, bypass_sigmap, core);
+                
                 sig_rate_delta[blk_pos] = core->rdoq_est_sig_coeff[ctx_sig_coeff][1] - core->rdoq_est_sig_coeff[ctx_sig_coeff][0];
                 delta_u[blk_pos] = (int)((level_double - (((s64)level) << q_bits)) >> (q_bits - 8));
                 sig_cost_delta[blk_pos] = GET_I_COST(sig_rate_delta[blk_pos], lambda);
                 sig_last_cost[blk_pos] = GET_I_COST(core->rdoq_est_sig_coeff[offset0][!!(level)], lambda);
                 sig_last_cost0[blk_pos] = GET_I_COST(core->rdoq_est_sig_coeff[offset0][0], lambda);
                 coef_dst[blk_pos] = (s16)level;
-#else
-                sig_rate_delta[blk_pos] = rdoq_est_sig_coeff[ctx_sig_coeff][1] - rdoq_est_sig_coeff[ctx_sig_coeff][0];
-                delta_u[blk_pos] = (int)((level_double - (((s64)level) << q_bits)) >> (q_bits - 8));
-                sig_cost_delta[blk_pos] = GET_I_COST(sig_rate_delta[blk_pos], lambda);
-                sig_last_cost[blk_pos] = GET_I_COST(rdoq_est_sig_coeff[offset0][!!(level)], lambda);
-                sig_last_cost0[blk_pos] = GET_I_COST(rdoq_est_sig_coeff[offset0][0], lambda);
-                coef_dst[blk_pos] = (s16)level;
-#endif
-
+                
                 if(level > 0)
                 {
                     if (is_last_nz == 0)
@@ -1990,18 +1807,12 @@ int ifvce_rdoq_method_adcc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s
 
     if(is_intra == 0 && ch_type == Y_C)
     {
-#if EVC_CONCURENCY        
         cost_best = dcost_block_uncoded + GET_I_COST(core->rdoq_est_cbf_all[0], lambda);
         cbf_cost = GET_I_COST(core->rdoq_est_cbf_all[1], lambda);
-#else
-        cost_best = dcost_block_uncoded + GET_I_COST(core->rdoq_est_cbf_all[0], lambda);
-        cbf_cost = GET_I_COST(core->rdoq_est_cbf_all[1], lambda);
-#endif
         cost_base += cbf_cost;
     }
     else
     {
-#if EVC_CONCURENCY
         if(ch_type == Y_C)
         {
             cost_best = dcost_block_uncoded + GET_I_COST(core->rdoq_est_cbf_luma[0], lambda);
@@ -2017,68 +1828,45 @@ int ifvce_rdoq_method_adcc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s
             cost_best = dcost_block_uncoded + GET_I_COST(core->rdoq_est_cbf_cr[0], lambda);
             cbf_cost = GET_I_COST(core->rdoq_est_cbf_cr[1], lambda);
         }
-#else
-        if (ch_type == Y_C)
-        {
-            cost_best = dcost_block_uncoded + GET_I_COST(rdoq_est_cbf_luma[0], lambda);
-            cbf_cost = GET_I_COST(rdoq_est_cbf_luma[1], lambda);
-        }
-        else if (ch_type == U_C)
-        {
-            cost_best = dcost_block_uncoded + GET_I_COST(rdoq_est_cbf_cb[0], lambda);
-            cbf_cost = GET_I_COST(rdoq_est_cbf_cb[1], lambda);
-        }
-        else if (ch_type == V_C)
-        {
-            cost_best = dcost_block_uncoded + GET_I_COST(rdoq_est_cbf_cr[0], lambda);
-            cbf_cost = GET_I_COST(rdoq_est_cbf_cr[1], lambda);
-        }
-#endif
         cost_base += cbf_cost;
     }
-
+    
+    best_last_idx_p1 = 0;
+    found_last = 0;
+    for (ipos = last_pos_in_scan; ipos >= 0; ipos--)
     {
-        best_last_idx_p1 = 0;
-        found_last = 0;
-        for (ipos = last_pos_in_scan; ipos >= 0; ipos--)
+        blk_pos = scan[ipos];
+        if (coef_dst[blk_pos] > 0)
         {
-            blk_pos = scan[ipos];
-            if (coef_dst[blk_pos] > 0)
+            u32 pos_y = blk_pos >> log2_cuw;
+            u32 pos_x = blk_pos - (pos_y << log2_cuw);
+
+            s64 cost_last = get_rate_positionLastXY(pos_x, pos_y, width, height, ch_type, lambda, sps_cm_init_flag, core);
+            s64 total_cost = cost_base + cost_last - pdcost_sig[blk_pos];
+
+            if (total_cost < cost_best)
             {
-                u32 pos_y = blk_pos >> log2_cuw;
-                u32 pos_x = blk_pos - (pos_y << log2_cuw);
-
-                s64 cost_last = get_rate_positionLastXY(pos_x, pos_y, width, height, ch_type, lambda, sps_cm_init_flag
-#if EVC_CONCURENCY
-                , core
-#endif
-                );
-                s64 total_cost = cost_base + cost_last - pdcost_sig[blk_pos];
-
-                if (total_cost < cost_best)
-                {
-                    best_last_idx_p1 = ipos + 1;
-                    cost_best = total_cost;
-                }
-                if (coef_dst[blk_pos] > 1)
-                {
-                    found_last = 1;
-                    break;
-                }
-                cost_base -= pdcost_coeff[blk_pos];
-                cost_base += pdcost_coeff0[blk_pos];
+                best_last_idx_p1 = ipos + 1;
+                cost_best = total_cost;
             }
-            else
+            if (coef_dst[blk_pos] > 1)
             {
-                cost_base -= pdcost_sig[blk_pos];
-            }
-
-            if (found_last > 0)
-            {
+                found_last = 1;
                 break;
             }
+            cost_base -= pdcost_coeff[blk_pos];
+            cost_base += pdcost_coeff0[blk_pos];
         }
-    }
+        else
+        {
+            cost_base -= pdcost_sig[blk_pos];
+        }
+
+        if (found_last > 0)
+        {
+            break;
+        }
+    }    
 
     nnz = 0;
     for (ipos = 0; ipos < best_last_idx_p1; ipos++)
@@ -2097,11 +1885,7 @@ int ifvce_rdoq_method_adcc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s
     return nnz;
 }
 
-int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw, int log2_cuh, u16 scale, int ch_type, int slice_type, int sps_cm_init_flag, int tool_adcc
-#if EVC_CONCURENCY
-    , EVCE_CORE * core
-#endif
-)
+int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw, int log2_cuh, u16 scale, int ch_type, int slice_type, int sps_cm_init_flag, int tool_adcc, EVCE_CORE * core)
 {
     int nnz = 0;
 
@@ -2147,19 +1931,11 @@ int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw,
     {
         if (tool_adcc)
         {
-            nnz = ifvce_rdoq_method_adcc(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type, sps_cm_init_flag
-#if EVC_CONCURENCY
-                , core
-#endif
-            );
+            nnz = evce_rdoq_method_adcc(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type, sps_cm_init_flag, core);
         }
         else
         {
-            nnz = evce_rdoq_run_length_cc(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type, sps_cm_init_flag
-#if EVC_CONCURENCY
-                , core
-#endif
-            );
+            nnz = evce_rdoq_run_length_cc(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type, sps_cm_init_flag, core);
         }
     }
     else
@@ -2193,11 +1969,7 @@ int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw,
 
 
 int evce_tq_nnz(u8 qp, double lambda, s16 * coef, int log2_cuw, int log2_cuh, u16 scale, int slice_type, int ch_type, int is_intra, int sps_cm_init_flag, int iqt_flag
-                , u8 ats_intra_cu, u8 ats_mode, int tool_adcc
-#if EVC_CONCURENCY
-    , EVCE_CORE * core
-#endif
-)
+              , u8 ats_intra_cu, u8 ats_mode, int tool_adcc, EVCE_CORE * core)
 {
     if (ats_intra_cu)
     {
@@ -2208,22 +1980,16 @@ int evce_tq_nnz(u8 qp, double lambda, s16 * coef, int log2_cuw, int log2_cuh, u1
         evce_trans(coef, log2_cuw, log2_cuh, iqt_flag);
     }
 
-    return evce_quant_nnz(qp, lambda, is_intra, coef, log2_cuw, log2_cuh, scale, ch_type, slice_type, sps_cm_init_flag, tool_adcc
-#if EVC_CONCURENCY
-        , core
-#endif
-    );
+    return evce_quant_nnz(qp, lambda, is_intra, coef, log2_cuw, log2_cuh, scale, ch_type, slice_type, sps_cm_init_flag, tool_adcc, core);
 }
 
 int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int slice_type, int nnz[N_C]
                       , int nnz_sub[N_C][MAX_SUB_TB_NUM], int is_intra, double lambda_y, double lambda_u, double lambda_v, int run_stats, int sps_cm_init_flag, int iqt_flag
                       , u8 ats_intra_cu, u8 ats_mode, u8 ats_inter_info, int tool_adcc
 #if M50761_CHROMA_NOT_SPLIT
-                     , TREE_CONS tree_cons
+                      , TREE_CONS tree_cons
 #endif
-#if EVC_CONCURENCY
-    , EVCE_CORE * core
-#endif
+                      , EVCE_CORE * core
 )
 {
 #if M50761_CHROMA_NOT_SPLIT
@@ -2283,11 +2049,7 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
 
                     int scale = quant_scale[qp[c] % 6];
                     nnz_sub[c][(j << 1) | i] = evce_tq_nnz(qp[c], lambda[c], coef_temp[c], log2_w_sub - !!c, log2_h_sub - !!c, scale, slice_type, c, is_intra, sps_cm_init_flag, iqt_flag
-                            , ats_intra_cu_on, ats_mode_idx, tool_adcc
-#if EVC_CONCURENCY
-                        ,  core
-#endif
-                    );
+                                                         , ats_intra_cu_on, ats_mode_idx, tool_adcc,  core);
                     nnz_temp[c] += nnz_sub[c][(j << 1) | i];
 
                     if(loop_h + loop_w > 2)

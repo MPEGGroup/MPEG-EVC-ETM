@@ -23,7 +23,7 @@ set( ENC_LIB_NAME evc_encoder_lib )
 
 file (GLOB ENC_LIB_FUNCTION_SRC "evce*.c")
 file (GLOB ENC_LIB_FUNCTION_SRC_CXX "evce*.cpp" "Enc*.cpp")
-file (GLOB ENC_LIB_FUNCTION_INC "enc*.h")
+file (GLOB ENC_LIB_FUNCTION_INC "enc*.h" "evce*.h")
 
 include_directories (.)
 

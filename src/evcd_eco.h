@@ -63,13 +63,9 @@ s8 evcd_eco_split_mode(EVCD_CTX * ctx, EVC_BSR *bs, EVCD_SBAC *sbac, int cuw, in
 #endif
 );
 s8 evcd_eco_suco_flag(EVC_BSR *bs, EVCD_SBAC *sbac, EVCD_CTX *c, EVCD_CORE *core, int cuw, int cuh, s8 split_mode, int boundary, u8 log2_max_cuwh, int parent_suco);
-#define evcd_eco_slice_end_flag(bs, sbac) \
-    ((int)evcd_sbac_decode_bin_trm((bs), (sbac)))
 
-#if EVC_TILE_SUPPORT
 #define evcd_eco_tile_end_flag(bs, sbac) \
     ((int)evcd_sbac_decode_bin_trm((bs), (sbac)))
-#endif
 
 int evcd_eco_affine_mrg_idx(EVC_BSR * bs, EVCD_SBAC * sbac);
 #if M50761_CHROMA_NOT_SPLIT

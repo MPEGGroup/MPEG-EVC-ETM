@@ -89,16 +89,8 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 #endif
     core->ats_inter_info = 0;
 #if M50761_CHROMA_NOT_SPLIT
-    int start_c = evce_check_luma(ctx
-#if EVC_CONCURENCY
-        , core
-#endif
-    ) ? Y_C : U_C;
-    int end_c = evce_check_chroma(ctx
-#if EVC_CONCURENCY
-        , core
-#endif
-    ) ? N_C : U_C;
+    int start_c = evce_check_luma(ctx, core) ? Y_C : U_C;
+    int end_c = evce_check_chroma(ctx, core) ? N_C : U_C;
 #endif
     rec = pi->unfiltered_rec_buf;
     nnz = core->nnz;
@@ -118,12 +110,7 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 
     evc_IBC_mc(x, y, log2_cuw, log2_cuh, match_pos, pi->pic_m, pred[0]
 #if M50761_CHROMA_NOT_SPLIT
-      
-#if EVC_CONCURENCY
         , core->tree_cons
-#else
-        , ctx->tree_cons
-#endif
 #endif
     );
 
@@ -143,16 +130,10 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 #endif
       , core->nnz_sub, 0, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt, 0, 0, 0, ctx->sps.tool_adcc
 #if M50761_CHROMA_NOT_SPLIT
-#if EVC_CONCURENCY
-        , core->tree_cons
-#else
-        , ctx->tree_cons
+      , core->tree_cons
 #endif
-#endif
-#if EVC_CONCURENCY
-    , core
-#endif
-    );
+      , core);
+
     if (tnnz)
     {
 
@@ -184,22 +165,14 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
         }
 #if RDO_DBK
         //filter rec and calculate ssd
-        calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, rec, cuw, x, y, core->avail_lr, 0, nnz[Y_C] != 0, NULL, pi->mv, is_from_mv_field, 0
-#if EVC_CONCURENCY || EVC_TILE_SUPPORT
-            , core
-#endif
-        );
+        calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, rec, cuw, x, y, core->avail_lr, 0, nnz[Y_C] != 0, NULL, pi->mv, is_from_mv_field, 0, core);
 #if M50761_CHROMA_NOT_SPLIT
         for (i = start_c; i < end_c; i++)
 #else
         for (i = 0; i < N_C; i++)
 #endif
         {
-#if EVC_CONCURENCY            
             dist[i] += core->delta_dist[i];
-#else
-            dist[i] += ctx->delta_dist[i];
-#endif
 #if M50761_CHROMA_NOT_SPLIT
             nnz[i] = nnz_store[i];
 #endif
@@ -214,21 +187,15 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
         cost = (double)dist[Y_C] + (((double)dist[U_C] * ctx->dist_chroma_weight[0]) + ((double)dist[V_C] * ctx->dist_chroma_weight[1]));
 #else
         cost = 0.0;
-        if (evce_check_luma(ctx
-#if EVC_CONCURENCY
-            , core
-#endif
-        ))
+        if (evce_check_luma(ctx, core))
+        {
             cost += (double)dist[Y_C];
-        if (evce_check_chroma(ctx
-#if EVC_CONCURENCY
-            , core
-#endif
-        ))
+        }
+        if (evce_check_chroma(ctx, core))
+        {
             cost += (((double)dist[U_C] * ctx->dist_chroma_weight[0]) + ((double)dist[V_C] * ctx->dist_chroma_weight[1]));
+        }
 #endif
-
-
         SBAC_LOAD(core->s_temp_run, core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
 #if DQP_RDO
         DQP_LOAD(core->dqp_temp_run, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2]);
@@ -268,9 +235,9 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
     {
 
 #if DQP_RDO
-        if(ctx->pps.cu_qp_delta_enabled_flag)
+        if (ctx->pps.cu_qp_delta_enabled_flag)
         {
-            if(core->cu_qp_delta_code_mode != 2)
+            if (core->cu_qp_delta_code_mode != 2)
             {
                 evce_set_qp(ctx, core, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2].prev_QP);
             }
@@ -296,38 +263,26 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
             dist[i] = evce_ssd_16b(log2_w[i], log2_h[i], rec[i], org[i], w[i], pi->s_o[i]);
         }
 #if RDO_DBK
-        calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, rec, cuw, x, y, core->avail_lr, 0, 0, NULL, pi->mv, is_from_mv_field, 0
-#if EVC_CONCURENCY || EVC_TILE_SUPPORT
-            , core
-#endif
-        );
+        calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, rec, cuw, x, y, core->avail_lr, 0, 0, NULL, pi->mv, is_from_mv_field, 0, core);
 #if M50761_CHROMA_NOT_SPLIT
         for (i = start_c; i < end_c; i++)
 #else
         for (i = 0; i < N_C; i++)
 #endif
         {
-#if EVC_CONCURENCY 
             dist[i] += core->delta_dist[i];
-#else
-            dist[i] += ctx->delta_dist[i];
-#endif
         }
 #endif
 #if M50761_CHROMA_NOT_SPLIT
         cost_best = 0.0;
-        if (evce_check_luma(ctx
-#if EVC_CONCURENCY
-            , core
-#endif
-        ))
+        if (evce_check_luma(ctx, core))
+        {
             cost_best += (double)dist[Y_C];
-        if (evce_check_chroma(ctx
-#if EVC_CONCURENCY
-            , core
-#endif
-        ))
+        }
+        if (evce_check_chroma(ctx, core))
+        {
             cost_best += (((double)dist[U_C] * ctx->dist_chroma_weight[0]) + ((double)dist[V_C] * ctx->dist_chroma_weight[1]));
+        }
 #else
         cost_best = (double)dist[Y_C] + (ctx->dist_chroma_weight[0] * (double)dist[U_C]) + (ctx->dist_chroma_weight[1] * (double)dist[V_C]);
 #endif
@@ -611,85 +566,204 @@ static int pibc_search_estimation(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_PIBC *pi,
     const int pic_width = ctx->w;
     const int pic_height = ctx->h;
 
+
+    u32 tempSadBest = 0;
+
+    int srLeft = srch_rng_hor_left, srRight = srch_rng_hor_right, srTop = srch_rng_ver_top, srBottom = srch_rng_ver_bottom;
+
+    const int boundY = (0 - roi_height - pu_pel_offset_y);
+    for (int y = EVC_MAX(srch_rng_ver_top, 0 - cu_pel_y); y <= boundY; ++y)
     {
-        u32 tempSadBest = 0;
-
-        int srLeft = srch_rng_hor_left, srRight = srch_rng_hor_right, srTop = srch_rng_ver_top, srBottom = srch_rng_ver_bottom;
-
-        const int boundY = (0 - roi_height - pu_pel_offset_y);
-        for (int y = EVC_MAX(srch_rng_ver_top, 0 - cu_pel_y); y <= boundY; ++y)
+        if (!is_bv_valid(ctx, cu_pel_x, cu_pel_y, roi_width, roi_height, log2_cuw, log2_cuh, pic_width, pic_height, 0, y, lcu_width, core))
         {
-            if (!is_bv_valid(ctx, cu_pel_x, cu_pel_y, roi_width, roi_height, log2_cuw, log2_cuh,
-                pic_width, pic_height, 0, y, lcu_width
-#if EVC_TILE_SUPPORT
-                , core
-#endif
-            ))
-            {
-                continue;
-            }
-
-            mv_bits = get_bv_cost_bits(0, y);
-            sad = GET_MV_COST(ctx, mv_bits);
-
-            /* get sad */
-            ref = rec + ref_pic->s_l * y;
-            sad += evce_sad_16b(log2_cuw, log2_cuh, org, ref, pi->s_o[Y_C], ref_pic->s_l);
-
-            update_ibc_mv_cand(sad, 0, y, sad_best_cand, mv_cand);
-            tempSadBest = sad_best_cand[0];
-            if (sad_best_cand[0] <= 3)
-            {
-                bestX = mv_cand[0][0];
-                bestY = mv_cand[0][1];
-                sad_best = sad_best_cand[0];
-                best_mv_bits = mv_bits;
-                mv[0] = bestX;
-                mv[1] = bestY;
-                rui_cost = sad_best;
-                goto end;
-            }
+            continue;
         }
 
-        const int boundX = EVC_MAX(srch_rng_hor_left, -cu_pel_x);
-        for (int x = 0 - roi_width - pu_pel_offset_x; x >= boundX; --x)
+        mv_bits = get_bv_cost_bits(0, y);
+        sad = GET_MV_COST(ctx, mv_bits);
+
+        /* get sad */
+        ref = rec + ref_pic->s_l * y;
+        sad += evce_sad_16b(log2_cuw, log2_cuh, org, ref, pi->s_o[Y_C], ref_pic->s_l);
+
+        update_ibc_mv_cand(sad, 0, y, sad_best_cand, mv_cand);
+        tempSadBest = sad_best_cand[0];
+        if (sad_best_cand[0] <= 3)
         {
-            if (!is_bv_valid(ctx, cu_pel_x, cu_pel_y, roi_width, roi_height, log2_cuw, log2_cuh, pic_width, pic_height, x, 0, lcu_width
-#if EVC_TILE_SUPPORT
-                , core
+            bestX = mv_cand[0][0];
+            bestY = mv_cand[0][1];
+            sad_best = sad_best_cand[0];
+            best_mv_bits = mv_bits;
+            mv[0] = bestX;
+            mv[1] = bestY;
+            rui_cost = sad_best;
+            goto end;
+        }
+    }
+
+    const int boundX = EVC_MAX(srch_rng_hor_left, -cu_pel_x);
+    for (int x = 0 - roi_width - pu_pel_offset_x; x >= boundX; --x)
+    {
+        if (!is_bv_valid(ctx, cu_pel_x, cu_pel_y, roi_width, roi_height, log2_cuw, log2_cuh, pic_width, pic_height, x, 0, lcu_width, core))
+        {
+            continue;
+        }
+
+        mv_bits = get_bv_cost_bits(x, 0);
+        sad = GET_MV_COST(ctx, mv_bits);
+
+        /* get sad */
+        ref = rec + x;
+        sad += evce_sad_16b(log2_cuw, log2_cuh, org, ref, pi->s_o[Y_C], ref_pic->s_l);
+
+        update_ibc_mv_cand(sad, x, 0, sad_best_cand, mv_cand);
+        tempSadBest = sad_best_cand[0];
+        if (sad_best_cand[0] <= 3)
+        {
+            bestX = mv_cand[0][0];
+            bestY = mv_cand[0][1];
+            sad_best = sad_best_cand[0];
+            best_mv_bits = mv_bits;
+            mv[0] = bestX;
+            mv[1] = bestY;
+            rui_cost = sad_best;
+            goto end;
+        }
+    }
+
+    bestX = mv_cand[0][0];
+    bestY = mv_cand[0][1];
+    sad_best = sad_best_cand[0];
+    sad = GET_MV_COST(ctx, mv_bits);
+    if ((!bestX && !bestY) || (sad_best - sad <= 32))
+    {
+#if ENABLE_IBC_CHROMA_REFINE
+        //chroma refine
+        best_cand_idx = refine_ibc_chroma_mv(ctx, core, pi, cu_x, cu_y, log2_cuw, log2_cuh, pic_width, pic_height, sad_best_cand, mv_cand);
+#else
+        best_cand_idx = 0;
 #endif
-            ))
+        bestX = mv_cand[best_cand_idx][0];
+        bestY = mv_cand[best_cand_idx][1];
+        sad_best = sad_best_cand[best_cand_idx];
+        mv[0] = bestX;
+        mv[1] = bestY;
+        rui_cost = sad_best;
+        goto end;
+    }
+
+    if ((1 << log2_cuw) < 16 && (1 << log2_cuh) < 16)
+    {
+        for (int y = EVC_MAX(srch_rng_ver_top, -cu_pel_y); y <= srch_rng_ver_bottom; y += 2)
+        {
+            if ((y == 0) || ((int)(cu_pel_y + y + roi_height) >= pic_height))
             {
                 continue;
             }
 
-            mv_bits = get_bv_cost_bits(x, 0);
-            sad = GET_MV_COST(ctx, mv_bits);
-
-            /* get sad */
-            ref = rec + x;
-            sad += evce_sad_16b(log2_cuw, log2_cuh, org, ref, pi->s_o[Y_C], ref_pic->s_l);
-
-            update_ibc_mv_cand(sad, x, 0, sad_best_cand, mv_cand);
-            tempSadBest = sad_best_cand[0];
-            if (sad_best_cand[0] <= 3)
+            for (int x = EVC_MAX(srch_rng_hor_left, -cu_pel_x); x <= srch_rng_hor_right; x++)
             {
-                bestX = mv_cand[0][0];
-                bestY = mv_cand[0][1];
-                sad_best = sad_best_cand[0];
-                best_mv_bits = mv_bits;
-                mv[0] = bestX;
-                mv[1] = bestY;
-                rui_cost = sad_best;
-                goto end;
+                if ((x == 0) || ((int)(cu_pel_x + x + roi_width) >= pic_width))
+                {
+                    continue;
+                }
+
+                if (!is_bv_valid(ctx, cu_pel_x, cu_pel_y, roi_width, roi_height, log2_cuw, log2_cuh, pic_width, pic_height, x, y, lcu_width, core))
+                {
+                    continue;
+                }
+
+                mv_bits = get_bv_cost_bits(x, y);
+                sad = GET_MV_COST(ctx, mv_bits);
+
+                /* get sad */
+                ref = rec + y * ref_pic->s_l + x;
+                sad += evce_sad_16b(log2_cuw, log2_cuh, org, ref, pi->s_o[Y_C], ref_pic->s_l);
+
+                update_ibc_mv_cand(sad, x, y, sad_best_cand, mv_cand);
             }
         }
 
         bestX = mv_cand[0][0];
         bestY = mv_cand[0][1];
         sad_best = sad_best_cand[0];
+
+        mv_bits = get_bv_cost_bits(bestX, bestY);
         sad = GET_MV_COST(ctx, mv_bits);
-        if ((!bestX && !bestY) || (sad_best - sad <= 32))
+
+        if (sad_best - sad <= 16)
+        {
+#if ENABLE_IBC_CHROMA_REFINE
+            //chroma refine
+            best_cand_idx = refine_ibc_chroma_mv(ctx, core, pi, cu_x, cu_y, log2_cuw, log2_cuh, pic_width, pic_height, sad_best_cand, mv_cand);
+#else
+            best_cand_idx = 0;
+#endif         
+            bestX = mv_cand[0][0];
+            bestY = mv_cand[0][1];
+            sad_best = sad_best_cand[best_cand_idx];
+            best_mv_bits = mv_bits;
+            mv[0] = bestX;
+            mv[1] = bestY;
+            rui_cost = sad_best;
+            goto end;
+        }
+
+        for (int y = (EVC_MAX(srch_rng_ver_top, -cu_pel_y) + 1); y <= srch_rng_ver_bottom; y += 2)
+        {
+            if ((y == 0) || ((int)(cu_pel_y + y + roi_height) >= pic_height))
+            {
+                continue;
+            }
+
+            for (int x = EVC_MAX(srch_rng_hor_left, -cu_pel_x); x <= srch_rng_hor_right; x += 2)
+            {
+                if ((x == 0) || ((int)(cu_pel_x + x + roi_width) >= pic_width))
+                {
+                    continue;
+                }
+
+                if (!is_bv_valid(ctx, cu_pel_x, cu_pel_y, roi_width, roi_height, log2_cuw, log2_cuh, pic_width, pic_height, x, y, lcu_width, core))
+                {
+                    continue;
+                }
+
+                mv_bits = get_bv_cost_bits(x, y);
+                sad = GET_MV_COST(ctx, mv_bits);
+
+                /* get sad */
+                ref = rec + y * ref_pic->s_l + x;
+                sad += evce_sad_16b(log2_cuw, log2_cuh, org, ref, pi->s_o[Y_C], ref_pic->s_l);
+
+                update_ibc_mv_cand(sad, x, y, sad_best_cand, mv_cand);
+                tempSadBest = sad_best_cand[0];
+                if (sad_best_cand[0] <= 5)
+                {
+#if ENABLE_IBC_CHROMA_REFINE
+                    //chroma refine & return
+                    best_cand_idx = refine_ibc_chroma_mv(ctx, core, pi, cu_x, cu_y, log2_cuw, log2_cuh, pic_width, pic_height, sad_best_cand, mv_cand);
+#else
+                    best_cand_idx = 0;
+#endif
+                    bestX = mv_cand[best_cand_idx][0];
+                    bestY = mv_cand[best_cand_idx][1];
+                    sad_best = sad_best_cand[best_cand_idx];
+                    mv[0] = bestX;
+                    mv[1] = bestY;
+                    rui_cost = sad_best;
+                    goto end;
+                }
+            }
+        }
+
+        bestX = mv_cand[0][0];
+        bestY = mv_cand[0][1];
+        sad_best = sad_best_cand[0];
+
+        mv_bits = get_bv_cost_bits(bestX, bestY);
+        sad = GET_MV_COST(ctx, mv_bits);
+
+        if ((sad_best >= tempSadBest) || ((sad_best - sad) <= 32))
         {
 #if ENABLE_IBC_CHROMA_REFINE
             //chroma refine
@@ -706,185 +780,57 @@ static int pibc_search_estimation(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_PIBC *pi,
             goto end;
         }
 
-        if ((1 << log2_cuw) < 16 && (1 << log2_cuh) < 16)
+        tempSadBest = sad_best_cand[0];
+
+        for (int y = (EVC_MAX(srch_rng_ver_top, -cu_pel_y) + 1); y <= srch_rng_ver_bottom; y += 2)
         {
-            for (int y = EVC_MAX(srch_rng_ver_top, -cu_pel_y); y <= srch_rng_ver_bottom; y += 2)
+            if ((y == 0) || ((int)(cu_pel_y + y + roi_height) >= pic_height))
             {
-                if ((y == 0) || ((int)(cu_pel_y + y + roi_height) >= pic_height))
-                    continue;
+                continue;
+            }
+    
+            for (int x = (EVC_MAX(srch_rng_hor_left, -cu_pel_x) + 1); x <= srch_rng_hor_right; x += 2)
+            {
 
-                for (int x = EVC_MAX(srch_rng_hor_left, -cu_pel_x); x <= srch_rng_hor_right; x++)
+                if ((x == 0) || ((int)(cu_pel_x + x + roi_width) >= pic_width))
                 {
-                    if ((x == 0) || ((int)(cu_pel_x + x + roi_width) >= pic_width))
-                        continue;
-
-                    if (!is_bv_valid(ctx, cu_pel_x, cu_pel_y, roi_width, roi_height, log2_cuw, log2_cuh, pic_width, pic_height, x, y, lcu_width
-#if  EVC_TILE_SUPPORT
-                        , core
-#endif
-                    ))
-                    {
-                        continue;
-                    }
-
-                    mv_bits = get_bv_cost_bits(x, y);
-                    sad = GET_MV_COST(ctx, mv_bits);
-
-                    /* get sad */
-                    ref = rec + y * ref_pic->s_l + x;
-                    sad += evce_sad_16b(log2_cuw, log2_cuh, org, ref, pi->s_o[Y_C], ref_pic->s_l);
-
-                    update_ibc_mv_cand(sad, x, y, sad_best_cand, mv_cand);
+                    continue;
                 }
-            }
 
-            bestX = mv_cand[0][0];
-            bestY = mv_cand[0][1];
-            sad_best = sad_best_cand[0];
-
-            mv_bits = get_bv_cost_bits(bestX, bestY);
-            sad = GET_MV_COST(ctx, mv_bits);
-
-            if (sad_best - sad <= 16)
-            {
-#if ENABLE_IBC_CHROMA_REFINE
-                //chroma refine
-                best_cand_idx = refine_ibc_chroma_mv(ctx, core, pi, cu_x, cu_y, log2_cuw, log2_cuh, pic_width, pic_height, sad_best_cand, mv_cand);
-#else
-                best_cand_idx = 0;
-#endif         
-                bestX = mv_cand[0][0];
-                bestY = mv_cand[0][1];
-                sad_best = sad_best_cand[best_cand_idx];
-                best_mv_bits = mv_bits;
-                mv[0] = bestX;
-                mv[1] = bestY;
-                rui_cost = sad_best;
-                goto end;
-            }
-
-            for (int y = (EVC_MAX(srch_rng_ver_top, -cu_pel_y) + 1); y <= srch_rng_ver_bottom; y += 2)
-            {
-                if ((y == 0) || ((int)(cu_pel_y + y + roi_height) >= pic_height))
-                    continue;
-
-                for (int x = EVC_MAX(srch_rng_hor_left, -cu_pel_x); x <= srch_rng_hor_right; x += 2)
+                if (!is_bv_valid(ctx, cu_pel_x, cu_pel_y, roi_width, roi_height, log2_cuw, log2_cuh, pic_width, pic_height, x, y, lcu_width, core))
                 {
-                    if ((x == 0) || ((int)(cu_pel_x + x + roi_width) >= pic_width))
-                        continue;
-
-                    if (!is_bv_valid(ctx, cu_pel_x, cu_pel_y, roi_width, roi_height, log2_cuw, log2_cuh, pic_width, pic_height, x, y, lcu_width
-#if EVC_TILE_SUPPORT
-                        , core
-#endif
-                    ))
-                    {
-                        continue;
-                    }
-
-                    mv_bits = get_bv_cost_bits(x, y);
-                    sad = GET_MV_COST(ctx, mv_bits);
-
-                    /* get sad */
-                    ref = rec + y * ref_pic->s_l + x;
-                    sad += evce_sad_16b(log2_cuw, log2_cuh, org, ref, pi->s_o[Y_C], ref_pic->s_l);
-
-                    update_ibc_mv_cand(sad, x, y, sad_best_cand, mv_cand);
-                    tempSadBest = sad_best_cand[0];
-                    if (sad_best_cand[0] <= 5)
-                    {
-#if ENABLE_IBC_CHROMA_REFINE
-                        //chroma refine & return
-                        best_cand_idx = refine_ibc_chroma_mv(ctx, core, pi, cu_x, cu_y, log2_cuw, log2_cuh, pic_width, pic_height, sad_best_cand, mv_cand);
-#else
-                        best_cand_idx = 0;
-#endif
-                        bestX = mv_cand[best_cand_idx][0];
-                        bestY = mv_cand[best_cand_idx][1];
-                        sad_best = sad_best_cand[best_cand_idx];
-                        mv[0] = bestX;
-                        mv[1] = bestY;
-                        rui_cost = sad_best;
-                        goto end;
-                    }
+                    continue;
                 }
-            }
 
-            bestX = mv_cand[0][0];
-            bestY = mv_cand[0][1];
-            sad_best = sad_best_cand[0];
+                mv_bits = get_bv_cost_bits(x, y);
+                sad = GET_MV_COST(ctx, mv_bits);
 
-            mv_bits = get_bv_cost_bits(bestX, bestY);
-            sad = GET_MV_COST(ctx, mv_bits);
+                /* get sad */
+                ref = rec + y * ref_pic->s_l + x;
+                sad += evce_sad_16b(log2_cuw, log2_cuh, org, ref, pi->s_o[Y_C], ref_pic->s_l);
 
-            if ((sad_best >= tempSadBest) || ((sad_best - sad) <= 32))
-            {
-#if ENABLE_IBC_CHROMA_REFINE
-                //chroma refine
-                best_cand_idx = refine_ibc_chroma_mv(ctx, core, pi, cu_x, cu_y, log2_cuw, log2_cuh, pic_width, pic_height, sad_best_cand, mv_cand);
-#else
-                best_cand_idx = 0;
-#endif
-                bestX = mv_cand[best_cand_idx][0];
-                bestY = mv_cand[best_cand_idx][1];
-                sad_best = sad_best_cand[best_cand_idx];
-                mv[0] = bestX;
-                mv[1] = bestY;
-                rui_cost = sad_best;
-                goto end;
-            }
-
-            tempSadBest = sad_best_cand[0];
-
-            for (int y = (EVC_MAX(srch_rng_ver_top, -cu_pel_y) + 1); y <= srch_rng_ver_bottom; y += 2)
-            {
-                if ((y == 0) || ((int)(cu_pel_y + y + roi_height) >= pic_height))
-                    continue;
-
-                for (int x = (EVC_MAX(srch_rng_hor_left, -cu_pel_x) + 1); x <= srch_rng_hor_right; x += 2)
+                update_ibc_mv_cand(sad, x, y, sad_best_cand, mv_cand);
+                tempSadBest = sad_best_cand[0];
+                if (sad_best_cand[0] <= 5)
                 {
-
-                    if ((x == 0) || ((int)(cu_pel_x + x + roi_width) >= pic_width))
-                        continue;
-
-                    if (!is_bv_valid(ctx, cu_pel_x, cu_pel_y, roi_width, roi_height, log2_cuw, log2_cuh, pic_width, pic_height, x, y, lcu_width
-#if  EVC_TILE_SUPPORT
-                    ,core
-#endif
-                    ))
-                    {
-                        continue;
-                    }
-
-                    mv_bits = get_bv_cost_bits(x, y);
-                    sad = GET_MV_COST(ctx, mv_bits);
-
-                    /* get sad */
-                    ref = rec + y * ref_pic->s_l + x;
-                    sad += evce_sad_16b(log2_cuw, log2_cuh, org, ref, pi->s_o[Y_C], ref_pic->s_l);
-
-                    update_ibc_mv_cand(sad, x, y, sad_best_cand, mv_cand);
-                    tempSadBest = sad_best_cand[0];
-                    if (sad_best_cand[0] <= 5)
-                    {
 #if ENABLE_IBC_CHROMA_REFINE
-                        //chroma refine & return
-                        best_cand_idx = refine_ibc_chroma_mv(ctx, core, pi, cu_x, cu_y, log2_cuw, log2_cuh, pic_width, pic_height, sad_best_cand, mv_cand);
+                    //chroma refine & return
+                    best_cand_idx = refine_ibc_chroma_mv(ctx, core, pi, cu_x, cu_y, log2_cuw, log2_cuh, pic_width, pic_height, sad_best_cand, mv_cand);
 #else
-                        best_cand_idx = 0;
+                    best_cand_idx = 0;
 #endif                       
-                        bestX = mv_cand[best_cand_idx][0];
-                        bestY = mv_cand[best_cand_idx][1];
-                        sad_best = sad_best_cand[best_cand_idx];
-                        mv[0] = bestX;
-                        mv[1] = bestY;
-                        rui_cost = sad_best;
-                        goto end;
-                    }
+                    bestX = mv_cand[best_cand_idx][0];
+                    bestY = mv_cand[best_cand_idx][1];
+                    sad_best = sad_best_cand[best_cand_idx];
+                    mv[0] = bestX;
+                    mv[1] = bestY;
+                    rui_cost = sad_best;
+                    goto end;
                 }
             }
         }
     }
+
 
 #if ENABLE_IBC_CHROMA_REFINE
     //chroma refine
@@ -912,19 +858,11 @@ static u32 pibc_me_search(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_PIBC *pi, int x, 
 
     if (ctx->param.ibc_hash_search_flag
 #if M50761_CHROMA_NOT_SPLIT
-        && evce_check_luma(ctx
-#if EVC_CONCURENCY
-            , core
-#endif
-        )
+        && evce_check_luma(ctx, core)
 #endif
         )
     {
-        cost = search_ibc_hash_match(ctx, ctx->ibc_hash_handle, x, y, log2_cuw, log2_cuh, mvp, mv_temp
-#if  EVC_TILE_SUPPORT
-            , core
-#endif
-        );
+        cost = search_ibc_hash_match(ctx, ctx->ibc_hash_handle, x, y, log2_cuw, log2_cuh, mvp, mv_temp, core);
     }
 
     if (mv_temp[0] == 0 && mv_temp[1] == 0)
@@ -947,114 +885,106 @@ static u32 pibc_me_search(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_PIBC *pi, int x, 
 static double pibc_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_cuw, int log2_cuh,
   EVCE_MODE *mi, s16 coef[N_C][MAX_CU_DIM], pel *rec[N_C], int s_rec[N_C])
 {
-  EVCE_PIBC *pi;
-  u32 mecost, best_mecost;
-  s16(*mvp)[MV_D], *mv, *mvd;
-  int cuw, cuh, i, j;
-  u8 mvp_idx = 0;
-  double cost, cost_best = MAX_COST;
-  double cost_ibc;
-  u8 found_available_ibc = 0;
-  core->ats_inter_info = 0;
+    EVCE_PIBC *pi;
+    u32 mecost, best_mecost;
+    s16(*mvp)[MV_D], *mv, *mvd;
+    int cuw, cuh, i, j;
+    u8 mvp_idx = 0;
+    double cost, cost_best = MAX_COST;
+    double cost_ibc;
+    u8 found_available_ibc = 0;
+    core->ats_inter_info = 0;
 #if M50761_CHROMA_NOT_SPLIT
-  int start_c = evce_check_luma(ctx
-#if EVC_CONCURENCY
-      , core
-#endif
-  ) ? Y_C : U_C;
-  int end_c = evce_check_chroma(ctx
-#if EVC_CONCURENCY
-      , core
-#endif
-  ) ? N_C : U_C;
+    int start_c = evce_check_luma(ctx, core) ? Y_C : U_C;
+    int end_c = evce_check_chroma(ctx, core) ? N_C : U_C;
 #endif
 
-  pi = &ctx->pibc;
+    pi = &ctx->pibc;
 
-  cuw = (1 << log2_cuw);
-  cuh = (1 << log2_cuh);
+    cuw = (1 << log2_cuw);
+    cuh = (1 << log2_cuh);
 
-  mv = pi->mv[0];
-  mvd = pi->mvd;
+    mv = pi->mv[0];
+    mvd = pi->mvd;
 
-  best_mecost = EVC_UINT32_MAX;
+    best_mecost = EVC_UINT32_MAX;
 
-  mvp = pi->mvp;
+    mvp = pi->mvp;
 
-  mvp_idx = 0;
+    mvp_idx = 0;
 
-  /* motion search ********************/
-  mecost = pibc_me_search(ctx, core, pi, x, y, log2_cuw, log2_cuh, mvp[mvp_idx], mv);
+    /* motion search ********************/
+    mecost = pibc_me_search(ctx, core, pi, x, y, log2_cuw, log2_cuh, mvp[mvp_idx], mv);
 
-  if (mv[MV_X] != 0 || mv[MV_Y] != 0)
-  {
-    found_available_ibc = 1;
-    if (mecost < best_mecost)
+    if (mv[MV_X] != 0 || mv[MV_Y] != 0)
     {
-      best_mecost = mecost;
-    }
+        found_available_ibc = 1;
+        if (mecost < best_mecost)
+        {
+            best_mecost = mecost;
+        }
 
-    pi->mv[1][MV_X] = mv[MV_X];
-    pi->mv[1][MV_Y] = mv[MV_Y];
+        pi->mv[1][MV_X] = mv[MV_X];
+        pi->mv[1][MV_Y] = mv[MV_Y];
 
-    mvd[MV_X] = mv[MV_X];
-    mvd[MV_Y] = mv[MV_Y];
+        mvd[MV_X] = mv[MV_X];
+        mvd[MV_Y] = mv[MV_Y];
 
-    pi->mvp_idx = mvp_idx;
+        pi->mvp_idx = mvp_idx;
 
-    pi->pred_mode = MODE_IBC;
-    pi->ibc_flag = 1;
+        pi->pred_mode = MODE_IBC;
+        pi->ibc_flag = 1;
 
-    cost = cost_ibc = pibc_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred, pi->coef, mvp_idx, pi->mv[1]);
+        cost = cost_ibc = pibc_residue_rdo(ctx, core, x, y, log2_cuw, log2_cuh, pi->pred, pi->coef, mvp_idx, pi->mv[1]);
 
-    if (cost < cost_best)
-    {
-      pi->mvp_idx = mvp_idx;
-      cost_ibc = cost_best = cost;
+        if (cost < cost_best)
+        {
+            pi->mvp_idx = mvp_idx;
+            cost_ibc = cost_best = cost;
 
 #if M50761_CHROMA_NOT_SPLIT
-      for (j = start_c; j < end_c; j++)
+            for (j = start_c; j < end_c; j++)
 #else
-      for (j = 0; j < N_C; j++)
+            for (j = 0; j < N_C; j++)
 #endif
-      {
-        int size_tmp = (cuw * cuh) >> (j == 0 ? 0 : 2);
-        pi->nnz_best[j] = core->nnz[j];
-      }
+            {
+                int size_tmp = (cuw * cuh) >> (j == 0 ? 0 : 2);
+                pi->nnz_best[j] = core->nnz[j];
+            }
+        }
     }
-  }
 
-  if (found_available_ibc)
-  {
-    /* reconstruct */
-#if M50761_CHROMA_NOT_SPLIT
-    for (j = start_c; j < end_c; j++)
-#else
-    for (j = 0; j < N_C; j++)
-#endif
+    if (found_available_ibc)
     {
-      int size_tmp = (cuw * cuh) >> (j == 0 ? 0 : 2);
-      evc_mcpy(coef[j], pi->coef[j], sizeof(s16) * size_tmp);
-    }
+        /* reconstruct */
+#if M50761_CHROMA_NOT_SPLIT
+        for (j = start_c; j < end_c; j++)
+#else
+        for (j = 0; j < N_C; j++)
+#endif
+        {
+            int size_tmp = (cuw * cuh) >> (j == 0 ? 0 : 2);
+            evc_mcpy(coef[j], pi->coef[j], sizeof(s16) * size_tmp);
+        }
 
 
 #if M50761_CHROMA_NOT_SPLIT
-    for (i = start_c; i < end_c; i++)
+        for (i = start_c; i < end_c; i++)
 #else
-    for (i = 0; i < N_C; i++)
+        for (i = 0; i < N_C; i++)
 #endif
-    {
-      rec[i] = pi->unfiltered_rec_buf[i];
-      s_rec[i] = (i == 0 ? cuw : cuw >> 1);
-      core->nnz[i] = pi->nnz_best[i];
-    }
+        {
+            rec[i] = pi->unfiltered_rec_buf[i];
+            s_rec[i] = (i == 0 ? cuw : cuw >> 1);
+            core->nnz[i] = pi->nnz_best[i];
+        }
 
-    return cost_ibc;
-  }
-  else
-  {
-    return MAX_COST;
-  }
+        return cost_ibc;
+    }
+    else
+    {
+        return MAX_COST;
+    }
 }
 
 static int pibc_init_frame(EVCE_CTX *ctx)

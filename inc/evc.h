@@ -65,7 +65,6 @@ extern "C"
 
 #define USE_TILE_GROUP_DQP              1
 #define DQP_CFG                         1
-#define EVC_TILE_SUPPORT                1
 /*****************************************************************************
  * return values and error code
  *****************************************************************************/
@@ -502,7 +501,6 @@ typedef struct _EVCE_CDSC
 #endif
     int            deblock_aplha_offset;
     int            deblock_beta_offset;
-#if EVC_TILE_SUPPORT
     int            tile_uniform_spacing_flag;
     int            tile_columns;
     int            tile_rows;
@@ -512,7 +510,7 @@ typedef struct _EVCE_CDSC
     int            slice_boundary_array[2 * 600];
     int            arbitrary_slice_flag;
     int            num_remaining_tiles_in_slice_minus1;
-#endif
+    int            loop_filter_across_tiles_enabled_flag;
     int            inter_slice_type;
     EVC_CHROMA_TABLE chroma_qp_table_struct;
 #if M52291_HDR_DRA

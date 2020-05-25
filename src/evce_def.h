@@ -484,7 +484,6 @@ typedef struct _EVCE_PARAM
     int                 cu_qp_delta_area;
 #endif
     int                 qp_incread_frame;           /* 10 bits*/
-#if EVC_TILE_SUPPORT
     /* number of tile' columns (1-20)*/
     int                 tile_columns;
     /* number of tile' rows (1-22) */
@@ -498,7 +497,6 @@ typedef struct _EVCE_PARAM
     int            slice_boundary_array[2 * 600];
     int            arbitrary_slice_flag;
     u32            num_remaining_tiles_in_slice_minus1;
-#endif
 } EVCE_PARAM;
 
 typedef struct _EVCE_SBAC
@@ -701,18 +699,18 @@ typedef struct _EVCE_CORE
     /* platform specific data, if needed */
     void          *pf;
     /* bitstream structure for RDO */
-    EVC_BSW       bs_temp;
+    EVC_BSW        bs_temp;
     /* SBAC structure for full RDO */
-    EVCE_SBAC     s_curr_best[MAX_CU_DEPTH][MAX_CU_DEPTH];
-    EVCE_SBAC     s_next_best[MAX_CU_DEPTH][MAX_CU_DEPTH];
-    EVCE_SBAC     s_temp_best;
-    EVCE_SBAC     s_temp_best_merge;
-    EVCE_SBAC     s_temp_run;
-    EVCE_SBAC     s_temp_prev_comp_best;
-    EVCE_SBAC     s_temp_prev_comp_run;
-    EVCE_SBAC     s_curr_before_split[MAX_CU_DEPTH][MAX_CU_DEPTH];
+    EVCE_SBAC      s_curr_best[MAX_CU_DEPTH][MAX_CU_DEPTH];
+    EVCE_SBAC      s_next_best[MAX_CU_DEPTH][MAX_CU_DEPTH];
+    EVCE_SBAC      s_temp_best;
+    EVCE_SBAC      s_temp_best_merge;
+    EVCE_SBAC      s_temp_run;
+    EVCE_SBAC      s_temp_prev_comp_best;
+    EVCE_SBAC      s_temp_prev_comp_run;
+    EVCE_SBAC      s_curr_before_split[MAX_CU_DEPTH][MAX_CU_DEPTH];
 #if DQP_RDO 
-    EVCE_BEF_DATA bef_data[MAX_CU_DEPTH][MAX_CU_DEPTH][MAX_CU_CNT_IN_LCU][MAX_BEF_DATA_NUM];
+    EVCE_BEF_DATA  bef_data[MAX_CU_DEPTH][MAX_CU_DEPTH][MAX_CU_CNT_IN_LCU][MAX_BEF_DATA_NUM];
 #else
     EVCE_BEF_DATA bef_data[MAX_CU_DEPTH][MAX_CU_DEPTH][MAX_CU_CNT_IN_LCU][NUM_NEIB];
 #endif
@@ -725,43 +723,39 @@ typedef struct _EVCE_CORE
     pel            eif_tmp_buffer[(MAX_CU_SIZE + 2) * (MAX_CU_SIZE + 2)];
     u8             au8_eval_mvp_idx[MAX_NUM_MVP];
 #if DMVR_FLAG
-    u8            dmvr_flag;
+    u8             dmvr_flag;
 #endif
 #if TRACE_ENC_CU_DATA
     u64  trace_idx;
 #endif
-#if EVC_TILE_SUPPORT 
-    int          tile_num;
+    int            tile_num;
     /* current tile index */
     int            tile_idx;
-#endif
-#if EVC_CONCURENCY
 
 #if M50761_CHROMA_NOT_SPLIT
-    TREE_CONS            tree_cons;                //!< Tree status
+    TREE_CONS      tree_cons;                //!< Tree status
 #endif    
     
     u8             ctx_flags[NUM_CNID]; 
-    int split_mode_child[4];
-    int parent_split_allow[6];
+    int            split_mode_child[4];
+    int            parent_split_allow[6];
     
     //one picture that arranges cu pixels and neighboring pixels for deblocking (just to match the interface of deblocking functions)
-    s64                    delta_dist[N_C];  //delta distortion from filtering (negative values mean distortion reduced)
-    s64                    dist_nofilt[N_C]; //distortion of not filtered samples
-    s64                    dist_filter[N_C]; //distortion of filtered samples
+    s64            delta_dist[N_C];  //delta distortion from filtering (negative values mean distortion reduced)
+    s64            dist_nofilt[N_C]; //distortion of not filtered samples
+    s64            dist_filter[N_C]; //distortion of filtered samples
     /* RDOQ related variables*/
-    int rdoq_est_cbf_all[2];
-    int rdoq_est_cbf_luma[2];
-    int rdoq_est_cbf_cb[2];
-    int rdoq_est_cbf_cr[2];
-    int rdoq_est_sig_coeff[NUM_CTX_SIG_COEFF_FLAG][2];
-    int rdoq_est_gtx[NUM_CTX_GTX][2];
-    int rdoq_est_last_sig_coeff_x[NUM_CTX_LAST_SIG_COEFF][2];
-    int rdoq_est_last_sig_coeff_y[NUM_CTX_LAST_SIG_COEFF][2];
-    s32 rdoq_est_run[NUM_CTX_CC_RUN][2];
-    s32 rdoq_est_level[NUM_CTX_CC_LEVEL][2];
-    s32 rdoq_est_last[NUM_CTX_CC_LAST][2];
-#endif
+    int            rdoq_est_cbf_all[2];
+    int            rdoq_est_cbf_luma[2];
+    int            rdoq_est_cbf_cb[2];
+    int            rdoq_est_cbf_cr[2];
+    int            rdoq_est_sig_coeff[NUM_CTX_SIG_COEFF_FLAG][2];
+    int            rdoq_est_gtx[NUM_CTX_GTX][2];
+    int            rdoq_est_last_sig_coeff_x[NUM_CTX_LAST_SIG_COEFF][2];
+    int            rdoq_est_last_sig_coeff_y[NUM_CTX_LAST_SIG_COEFF][2];
+    s32            rdoq_est_run[NUM_CTX_CC_RUN][2];
+    s32            rdoq_est_level[NUM_CTX_CC_LEVEL][2];
+    s32            rdoq_est_last[NUM_CTX_CC_LAST][2];
 } EVCE_CORE;
 
 /******************************************************************************
@@ -930,18 +924,10 @@ struct _EVCE_CTX
     s8                   * map_depth;
 #if RDO_DBK
     EVC_PIC              * pic_dbk;          //one picture that arranges cu pixels and neighboring pixels for deblocking (just to match the interface of deblocking functions)
-#if !EVC_CONCURENCY    
-    s64                    delta_dist[N_C];  //delta distortion from filtering (negative values mean distortion reduced)
-    s64                    dist_nofilt[N_C]; //distortion of not filtered samples
-    s64                    dist_filter[N_C]; //distortion of filtered samples
-#endif
 #endif
     /* affine map (width in SCU x height in SCU) of raster scan order in a frame */
     u32                  * map_affine;
     u32                  * map_cu_mode;
-#if !EVC_CONCURENCY    
-    u8                     ctx_flags[NUM_CNID];
-#endif
     double                 lambda[3];
     double                 sqrt_lambda[3];
     double                 dist_chroma_weight[2];
@@ -955,7 +941,6 @@ struct _EVCE_CTX
     u8                   * ats_inter_info_pred;   //best-mode ats_inter info
     u8                   * ats_inter_num_pred;
 
-#if EVC_TILE_SUPPORT
     /* Tile information for each index */
     EVC_TILE             * tile;
     /* Total number of tiles in the picture*/
@@ -969,7 +954,6 @@ struct _EVCE_CTX
     u8                   * map_tidx;
     u8                    tile_to_slice_map[MAX_NUM_TILES_COL * MAX_NUM_TILES_ROW];
     u8                    tiles_in_slice[MAX_NUM_TILES_COL * MAX_NUM_TILES_ROW];
-#endif
 
     int (*fn_ready)(EVCE_CTX * ctx);
     void (*fn_flush)(EVCE_CTX * ctx);
@@ -981,15 +965,7 @@ struct _EVCE_CTX
     int (*fn_enc_pic_finish)(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
 
     int (*fn_push)(EVCE_CTX * ctx, EVC_IMGB * img);
-    int (*fn_deblock)(EVCE_CTX * ctx, EVC_PIC * pic
-#if EVC_TILE_SUPPORT
-        , int tile_idx
-#endif
-#if EVC_CONCURENCY
-        , EVCE_CORE * core
-#endif
-
-        );
+    int (*fn_deblock)(EVCE_CTX * ctx, EVC_PIC * pic, int tile_idx, int filter_across_boundary, EVCE_CORE * core);
 
     void* enc_alf;
     int(*fn_alf)(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh, EVC_APS* aps);
@@ -1038,11 +1014,6 @@ struct _EVCE_CTX
     int(*fn_pibc_set_complexity)(EVCE_CTX * ctx, int complexity);
     /* platform specific data, if needed */
     void                  * pf;
-#if M50761_CHROMA_NOT_SPLIT
-#if !EVC_CONCURENCY
-    TREE_CONS            tree_cons;                //!< Tree status
-#endif
-#endif
 };
 
 int evce_platform_init(EVCE_CTX * ctx);
@@ -1050,14 +1021,7 @@ void evce_platform_deinit(EVCE_CTX * ctx);
 int evce_enc_pic_prepare(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
 int evce_enc_pic_finish(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
 int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
-int evce_deblock(EVCE_CTX * ctx, EVC_PIC * pic
-#if EVC_TILE_SUPPORT
-    , int tile_idx
-#endif
-#if EVC_CONCURENCY
-    , EVCE_CORE * core
-#endif
-);
+int evce_deblock(EVCE_CTX * ctx, EVC_PIC * pic, int tile_idx, int filter_across_boundary, EVCE_CORE * core);
 int evce_enc(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
 int evce_push_frm(EVCE_CTX * ctx, EVC_IMGB * img);
 int evce_ready(EVCE_CTX * ctx);

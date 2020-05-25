@@ -44,9 +44,7 @@ extern "C"
 #if M50761_CHROMA_NOT_SPLIT
     , TREE_CONS tree_cons
 #endif
-#if EVC_TILE_SUPPORT
-    , u8* map_tidx
-#endif
+    , u8* map_tidx, int boundary_filtering
 #if ADDB_FLAG_FIX
     , int tool_addb
 #endif
@@ -63,9 +61,7 @@ void evc_deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
 #if M50761_CHROMA_NOT_SPLIT
     , TREE_CONS tree_cons
 #endif
-#if EVC_TILE_SUPPORT
-    , u8 *map_tidx
-#endif
+    , u8 *map_tidx, int boundary_filtering
 #if ADDB_FLAG_FIX
     , int tool_addb
 #endif

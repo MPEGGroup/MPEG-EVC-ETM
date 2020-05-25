@@ -172,15 +172,10 @@ typedef struct _EVCD_CORE
     int            bi_idx;
     int            affine_bzero[REFP_NUM];
     s16            affine_mvd[REFP_NUM][3][MV_D];
-#if EVC_TILE_SUPPORT
-    int                    tile_num;
-#endif
-#if EVC_CONCURENCY
-    u8                     ctx_flags[NUM_CNID];
-    
+    int            tile_num;
+    u8             ctx_flags[NUM_CNID];
 #if M50761_CHROMA_NOT_SPLIT
-    TREE_CONS               tree_cons;
-#endif
+    TREE_CONS      tree_cons;
 #endif
 } EVCD_CORE;
 
@@ -259,9 +254,6 @@ struct _EVCD_CTX
     u32                   * map_affine;
     /* new coding tool flag*/
     u32                   * map_cu_mode;
-#if !EVC_CONCURENCY
-    u8                      ctx_flags[NUM_CNID];
-#endif
     /* ats_inter info map */
     u8                    * map_ats_inter;
     /**************************************************************************/
@@ -307,7 +299,6 @@ struct _EVCD_CTX
     u8                      pic_sign[16];
     /* flag to indicate picture signature existing or not */
     u8                      pic_sign_exist;
-#if EVC_TILE_SUPPORT     
     /* tile index map (width in SCU x height in SCU) of
     raster scan order in a frame */
     u8                    * map_tidx;
@@ -320,11 +311,10 @@ struct _EVCD_CTX
     /* number of tile rows */
     u16                     h_tile;
     /* tile to slice map */
-    u16                 tile_in_slice[MAX_NUM_TILES_COL*MAX_NUM_TILES_ROW];
+    u16                     tile_in_slice[MAX_NUM_TILES_COL*MAX_NUM_TILES_ROW];
      /* Number of tiles in slice*/
-    u16                 NumTilesInSlice;
-    u32                   NumCtb;
-#endif
+    u16                     num_tiles_in_slice;
+    u32                     num_ctb;
     /* address of ready function */
     int  (* fn_ready)(EVCD_CTX * ctx);
     /* address of flush function */
@@ -336,35 +326,22 @@ struct _EVCD_CTX
     /* function address of pulling decoded picture */
     int  (* fn_pull)(EVCD_CTX * ctx, EVC_IMGB ** img);
     /* function address of deblocking filter */
-    int  (* fn_deblock)(EVCD_CTX * ctx
-#if EVC_TILE_SUPPORT
-        , int    tile_idx
-#endif
-        );
+    int  (* fn_deblock)(EVCD_CTX * ctx, int    tile_idx, int filter_across_boundary);
     /* function address of ALF */
-    int (*fn_alf)(EVCD_CTX * ctx, EVC_PIC * pic);
+    int  (* fn_alf)(EVCD_CTX * ctx, EVC_PIC * pic);
     /* function address of picture buffer expand */
     void (* fn_picbuf_expand)(EVCD_CTX * ctx, EVC_PIC * pic);
     /* platform specific data, if needed */
     void                  * pf;
-#if M50761_CHROMA_NOT_SPLIT
-#if !EVC_CONCURENCY
-    TREE_CONS               tree_cons;
-#endif
-#endif
 };
 
 /* prototypes of internal functions */
-int evcd_platform_init(EVCD_CTX * ctx);
+int  evcd_platform_init(EVCD_CTX * ctx);
 void evcd_platform_deinit(EVCD_CTX * ctx);
-int evcd_ready(EVCD_CTX * ctx);
+int  evcd_ready(EVCD_CTX * ctx);
 void evcd_flush(EVCD_CTX * ctx);
-int evcd_deblock(EVCD_CTX * ctx
-#if EVC_TILE_SUPPORT
-    , int tile_idx
-#endif
-);
-int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core);
+int  evcd_deblock(EVCD_CTX * ctx, int tile_idx, int filter_across_boundar);
+int  evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core);
 
 #include "evcd_util.h"
 #include "evcd_eco.h"

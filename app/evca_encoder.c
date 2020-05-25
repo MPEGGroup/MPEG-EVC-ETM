@@ -150,17 +150,16 @@ static int  op_tool_deblocking    = 1; /* default on */
 static int  op_deblock_alpha_offset = 0; /* default offset 0*/
 static int  op_deblock_beta_offset = 0;  /* default offset 0*/
 
-#if EVC_TILE_SUPPORT
 static int  op_tile_uniform_spacing = 1;
-static int  op_num_tile_columns_minus1 = 0;     //default 1
-static int  op_num_tile_rows_minus1 = 0;        //default 1
+static int  op_num_tile_columns     = 1;          //default 1
+static int  op_num_tile_rows        = 1;          //default 1
 static char op_tile_column_width_array[MAX_NUM_TILES_COL];
 static char op_tile_row_height_array[MAX_NUM_TILES_ROW];
-static int  op_num_slice_in_pic_minus1 = 0;     // default 1 
+static int  op_num_slice_in_pic     = 1;         // default 1 
 static char op_slice_boundary_array[2 * 600];   // Max. slices can be 600 for the highest level 6.2
 static int  op_arbitrary_slice_flag = 0; //default  0
-static int  op_num_remaining_tiles_in_slice_minus1 = 0; // only in case of arbitrary slices
-#endif
+static int  op_num_remaining_tiles_in_slice = 0; // only in case of arbitrary slices
+static int  op_loop_filter_across_tiles_enabled_flag = 0; // by default disabled
 
 static int  op_chroma_qp_table_present_flag = 0;
 static char op_chroma_qp_num_points_in_table[256] = {0};
@@ -276,17 +275,16 @@ typedef enum _OP_FLAGS
 #if ETM_HDR_REPORT_METRIC_FLAG
     OP_HDR_METRIC_REPORT,
 #endif
-#if EVC_TILE_SUPPORT
     OP_TILE_UNIFORM_SPACING,
-    OP_NUM_TILE_COLUMNS_MINUS1,
-    OP_NUM_TILE_ROWS_MINUS1,
+    OP_NUM_TILE_COLUMNS,
+    OP_NUM_TILE_ROWS,
     OP_TILE_COLUMN_WIDTH_ARRAY,
     OP_TILE_ROW_HEIGHT_ARRAY,
-    OP_NUM_SLICE_IN_PIC_MINUS1,
+    OP_NUM_SLICE_IN_PIC,
     OP_SLICE_BOUNDARY_ARRAY,
     OP_ARBITRAY_SLICE_FLAG,
-    OP_NUM_REMAINING_TILES_IN_SLICE_MINUS1,
-#endif
+    OP_NUM_REMAINING_TILES_IN_SLICE,
+    OP_LOOP_FILTER_ACROSS_TILES_ENABLED_FLAG,
     OP_CHROMA_QP_TABLE_PRESENT_FLAG,
     OP_CHROMA_QP_NUM_POINTS_IN_TABLE,
     OP_CHROMA_QP_DELTA_IN_VAL_CB,
@@ -748,21 +746,20 @@ static EVC_ARGS_OPTION options[] = \
         "hdr matric report on/off flag"
     },
 #endif
-#if EVC_TILE_SUPPORT
     {
         EVC_ARGS_NO_KEY,  "tile_uniform_spacing", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_TILE_UNIFORM_SPACING], &op_tile_uniform_spacing,
         "uniform or non-uniform tile spacing"
     },
     {
-        EVC_ARGS_NO_KEY,  "num_tile_columns_minus1", EVC_ARGS_VAL_TYPE_INTEGER,
-        &op_flag[OP_NUM_TILE_COLUMNS_MINUS1], &op_num_tile_columns_minus1,
-        "Number of tile columns minus 1"
+        EVC_ARGS_NO_KEY,  "num_tile_columns", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_NUM_TILE_COLUMNS], &op_num_tile_columns,
+        "Number of tile columns"
     },
     {
-        EVC_ARGS_NO_KEY,  "num_tile_rows_minus1", EVC_ARGS_VAL_TYPE_INTEGER,
-        &op_flag[OP_NUM_TILE_ROWS_MINUS1], &op_num_tile_rows_minus1,
-        "Number of tile rows minus 1"
+        EVC_ARGS_NO_KEY,  "num_tile_rows", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_NUM_TILE_ROWS], &op_num_tile_rows,
+        "Number of tile rows"
     },
     {
         EVC_ARGS_NO_KEY,  "tile_column_width_array", EVC_ARGS_VAL_TYPE_STRING,
@@ -775,9 +772,9 @@ static EVC_ARGS_OPTION options[] = \
         "Array of Tile Row Height"
     },
     {
-        EVC_ARGS_NO_KEY,  "num_slices_in_pic_minus1", EVC_ARGS_VAL_TYPE_INTEGER,
-        &op_flag[OP_NUM_SLICE_IN_PIC_MINUS1], &op_num_slice_in_pic_minus1,
-        "Number of slices in the pic minus 1"
+        EVC_ARGS_NO_KEY,  "num_slices_in_pic", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_NUM_SLICE_IN_PIC], &op_num_slice_in_pic,
+        "Number of slices in the pic"
     },
     {
         EVC_ARGS_NO_KEY,  "slices_boundary_array", EVC_ARGS_VAL_TYPE_STRING,
@@ -785,15 +782,20 @@ static EVC_ARGS_OPTION options[] = \
         "Array of Slice Boundaries"
     },
     {
-        EVC_ARGS_NO_KEY,  "ArbitrarySliceflag", EVC_ARGS_VAL_TYPE_INTEGER,
+        EVC_ARGS_NO_KEY,  "arbitrary_slice_flag", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_ARBITRAY_SLICE_FLAG], &op_arbitrary_slice_flag,
         "Array of Slice Boundaries"
     },
     {
-        EVC_ARGS_NO_KEY,  "NumRemainingTilesInSliceMinus1", EVC_ARGS_VAL_TYPE_INTEGER,
-        &op_flag[OP_NUM_REMAINING_TILES_IN_SLICE_MINUS1], &op_num_remaining_tiles_in_slice_minus1,
-        "Array of Slice Boundaries"},
-#endif
+        EVC_ARGS_NO_KEY,  "num_remaining_tiles_in_slice", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_NUM_REMAINING_TILES_IN_SLICE], &op_num_remaining_tiles_in_slice,
+        "Array of Slice Boundaries"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "lp_filter_across_tiles_en_flag", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_LOOP_FILTER_ACROSS_TILES_ENABLED_FLAG], &op_loop_filter_across_tiles_enabled_flag,
+        "Loop filter across tiles enabled or disabled"
+    },
     {
         EVC_ARGS_NO_KEY,  "chroma_qp_table_present_flag", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_CHROMA_QP_TABLE_PRESENT_FLAG], &op_chroma_qp_table_present_flag,
@@ -1353,14 +1355,14 @@ static int get_conf(EVCE_CDSC * cdsc)
 #if M52291_HDR_DRA
     cdsc->tool_dra = op_dra_enable_flag;
 #endif
-#if EVC_TILE_SUPPORT
     cdsc->tile_uniform_spacing_flag = op_tile_uniform_spacing;
-    cdsc->tile_columns = op_num_tile_columns_minus1 + 1;
-    cdsc->tile_rows = op_num_tile_rows_minus1 + 1;
-    cdsc->num_slice_in_pic = op_num_slice_in_pic_minus1 + 1;
+    cdsc->tile_columns = op_num_tile_columns;
+    cdsc->tile_rows = op_num_tile_rows;
+    cdsc->num_slice_in_pic = op_num_slice_in_pic;
     cdsc->arbitrary_slice_flag = op_arbitrary_slice_flag;
-    cdsc->num_remaining_tiles_in_slice_minus1 = op_num_remaining_tiles_in_slice_minus1;
+    cdsc->num_remaining_tiles_in_slice_minus1 = op_num_remaining_tiles_in_slice - 1;
     cdsc->inter_slice_type = op_inter_slice_type == 0 ? SLICE_B : SLICE_P;
+    cdsc->loop_filter_across_tiles_enabled_flag = op_loop_filter_across_tiles_enabled_flag;
     if (!cdsc->tile_uniform_spacing_flag)
     {
         cdsc->tile_column_width_array[0] = atoi(strtok(op_tile_column_width_array, " "));
@@ -1404,7 +1406,6 @@ static int get_conf(EVCE_CDSC * cdsc)
     int num_tiles = cdsc->tile_columns * cdsc->tile_rows;
     if (num_tiles < cdsc->num_slice_in_pic) result = -1;
 
-#endif
     EVC_CHROMA_TABLE l_chroma_qp_table;
     memset(&l_chroma_qp_table, 0, sizeof(EVC_CHROMA_TABLE));
 
@@ -1569,29 +1570,29 @@ static void print_enc_conf(EVCE_CDSC * cdsc)
     printf("DBF.ADDB: %d.%d, ", cdsc->use_deblock, cdsc->tool_addb);
 #else
 #if ADDB_FLAG_FIX
-    printf("ADDB: %d, ",   cdsc->tool_addb);
+    printf("ADDB: %d, ",    cdsc->tool_addb);
 #endif
 #endif
-    printf("ALF: %d, ",    cdsc->tool_alf);
-    printf("ADMVP: %d, ",  cdsc->tool_admvp);
+    printf("ALF: %d, ",     cdsc->tool_alf);
+    printf("ADMVP: %d, ",   cdsc->tool_admvp);
 #if M53737
-    printf("HMVP: %d, ",   cdsc->tool_hmvp);
+    printf("HMVP: %d, ",    cdsc->tool_hmvp);
 #endif
-    printf("HTDF: %d ",    cdsc->tool_htdf);
-    printf("EIPD: %d, ",   cdsc->tool_eipd);
-    printf("IQT: %d, ",    cdsc->tool_iqt);
-    printf("CM_INIT: %d ", cdsc->tool_cm_init);
-    printf("ADCC: %d ",    cdsc->tool_adcc);
-    printf("IBC: %d, ",    cdsc->ibc_flag);
-    printf("ATS: %d, ",    cdsc->tool_ats);
-    printf("RPL: %d, ",    cdsc->tool_rpl);
-    printf("POCS: %d, ",   cdsc->tool_pocs);
+    printf("HTDF: %d ",     cdsc->tool_htdf);
+    printf("EIPD: %d, ",    cdsc->tool_eipd);
+    printf("IQT: %d, ",     cdsc->tool_iqt);
+    printf("CM_INIT: %d, ", cdsc->tool_cm_init);
+    printf("ADCC: %d, ",    cdsc->tool_adcc);
+    printf("IBC: %d, ",     cdsc->ibc_flag);
+    printf("ATS: %d, ",     cdsc->tool_ats);
+    printf("RPL: %d, ",     cdsc->tool_rpl);
+    printf("POCS: %d, ",    cdsc->tool_pocs);
     printf("CONSTRAINED_INTRA_PRED: %d, ", cdsc->constrained_intra_pred);
-#if EVC_TILE_SUPPORT
-    printf("Uniform Tile Spacing: %d, ", cdsc->tile_uniform_spacing_flag);
+    printf("Uniform Tile Spacing: %d, ",   cdsc->tile_uniform_spacing_flag);
     printf("Number of Tile Columns: %d, ", cdsc->tile_columns);
-    printf("Number of Tile  Rows: %d, ", cdsc->tile_rows);
-#endif
+    printf("Number of Tile  Rows: %d, ",   cdsc->tile_rows);
+    printf("Number of Slices: %d, ",       cdsc->num_slice_in_pic);
+    printf("Loop Filter Across Tile Enabled: %d, ", cdsc->loop_filter_across_tiles_enabled_flag);
     printf("ChromaQPTable: %d, ", cdsc->chroma_qp_table_struct.chroma_qp_table_present_flag);
 #if M52291_HDR_DRA
     printf("DRA: %d ", cdsc->tool_dra);

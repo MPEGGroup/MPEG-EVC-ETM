@@ -91,11 +91,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
     if(mode == 0)
     {
 #if M50761_CHROMA_NOT_SPLIT
-#if EVC_CONCURENCY
         evc_assert(evce_check_luma(ctx, core));
-#else
-        evc_assert(evce_check_luma(ctx));
-#endif
 #endif
         pel * pred = 0;
 
@@ -105,15 +101,9 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
         evce_sub_block_tq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, pi->slice_type, core->nnz
                           , core->nnz_sub, 1, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L, ctx->sps.tool_cm_init, ctx->sps.tool_iqt, core->ats_intra_cu, core->ats_mode, 0, ctx->sps.tool_adcc
 #if M50761_CHROMA_NOT_SPLIT
-#if EVC_CONCURENCY
-            , core->tree_cons
-#else
-            , ctx->tree_cons
+                          , core->tree_cons
 #endif
-#endif
-#if EVC_CONCURENCY
-            , core
-#endif
+                          , core
         );
 
         if (core->ats_intra_cu != 0 && core->nnz[Y_C] == 0)
@@ -135,42 +125,22 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 
         if(ctx->sps.tool_htdf == 1)
         {
-
 #if FIX_CONSTRAINT_PRED
             int constrained_intra_flag = 1 && ctx->pps.constrained_intra_pred_flag;
 #endif
 
-#if EVC_TILE_DQP
             evc_htdf(pi->rec[Y_C], ctx->tile[core->tile_idx].qp, cuw, cuh, cuw, TRUE, pi->m[Y_C] + (y * pi->s_m[Y_C]) + x, pi->s_m[Y_C], core->avail_cu
 #if FIX_CONSTRAINT_PRED
                      , core->scup, ctx->w_scu, ctx->h_scu, ctx->map_scu, constrained_intra_flag
 #endif
             );
-#else
-            evc_htdf(pi->rec[Y_C], ctx->sh.qp, cuw, cuh, cuw, TRUE, pi->m[Y_C] + (y * pi->s_m[Y_C]) + x, pi->s_m[Y_C], core->avail_cu
-#if FIX_CONSTRAINT_PRED
-                     , core->scup, ctx->w_scu, ctx->h_scu, ctx->map_scu, constrained_intra_flag
-#endif
-            );
-#endif
-
         }
 
         cost += evce_ssd_16b(log2_cuw, log2_cuh, pi->rec[Y_C], org_luma, cuw, s_org);
 
-#if RDO_DBK
-        {
-            calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->rec, cuw, x, y, core->avail_lr, 1, core->nnz[Y_C] != 0, NULL, NULL, 0, core->ats_inter_info
-#if EVC_CONCURENCY || EVC_TILE_SUPPORT
-                , core
-#endif
-            );
-#if EVC_CONCURENCY
-            cost += core->delta_dist[Y_C];
-#else
-            cost += ctx->delta_dist[Y_C];
-#endif
-        }
+#if RDO_DBK        
+        calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->rec, cuw, x, y, core->avail_lr, 1, core->nnz[Y_C] != 0, NULL, NULL, 0, core->ats_inter_info, core);
+        cost += core->delta_dist[Y_C];        
 #endif
         *dist = (s32)cost;
         cost += RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);
@@ -178,11 +148,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
     else
     {
 #if M50761_CHROMA_NOT_SPLIT
-#if EVC_CONCURENCY
         evc_assert(evce_check_chroma(ctx, core));
-#else
-        evc_assert(evce_check_chroma(ctx));
-#endif
 #endif
         if (ctx->sps.tool_eipd)
         {
@@ -218,15 +184,10 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
                           , 1, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt
                           , core->ats_intra_cu, core->ats_mode, 0, ctx->sps.tool_adcc
 #if M50761_CHROMA_NOT_SPLIT
-#if EVC_CONCURENCY
             , core->tree_cons
-#else
-            , ctx->tree_cons
+
 #endif
-#endif
-#if EVC_CONCURENCY
             , core
-#endif
         );
 
         evc_mcpy(coef[U_C], pi->coef_tmp[U_C], sizeof(u16) * (cuw * cuh) >> 2);
@@ -261,25 +222,12 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
         {
             calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pi->rec, cuw, x, y, core->avail_lr, 1, 
 #if M50761_CHROMA_NOT_SPLIT
-                !evce_check_luma(ctx
-#if EVC_CONCURENCY
-                    , core
+                                            !evce_check_luma(ctx, core) ? core->cu_data_temp[log2_cuw-2][log2_cuh-2].nnz[Y_C] != 0 :
 #endif
-                ) ? core->cu_data_temp[log2_cuw-2][log2_cuh-2].nnz[Y_C] != 0 :
-#endif
-                core->nnz[Y_C] != 0, NULL, NULL, 0, core->ats_inter_info
-#if EVC_CONCURENCY || EVC_TILE_SUPPORT
-                , core
-#endif
-            );
-#if EVC_CONCURENCY
+                                            core->nnz[Y_C] != 0, NULL, NULL, 0, core->ats_inter_info, core);
             cost += (core->delta_dist[U_C] * ctx->dist_chroma_weight[0]) + (core->delta_dist[V_C] * ctx->dist_chroma_weight[1]);
-#else
-            cost += (ctx->delta_dist[U_C] * ctx->dist_chroma_weight[0]) + (ctx->delta_dist[V_C] * ctx->dist_chroma_weight[1]);
-#endif
         }
 #endif
-
         *dist = (s32)cost;
 
         cost += evce_ssd_16b(log2_cuw, log2_cuh, pi->rec[Y_C], org_luma, cuw, s_org);
@@ -444,57 +392,21 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
 
     if (ctx->sps.tool_eipd)
     {
-        evc_get_nbr(x, y, cuw, cuh, mod, s_mod, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C, ctx->pps.constrained_intra_pred_flag
-#if EVC_TILE_SUPPORT
-            , ctx->map_tidx
-#endif
-        );
-        evc_get_nbr(x >> 1, y >> 1, cuw >> 1, cuh >> 1, mod_cb, s_mod_c, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, U_C, ctx->pps.constrained_intra_pred_flag
-#if EVC_TILE_SUPPORT
-            , ctx->map_tidx
-#endif
-        );
-        evc_get_nbr(x >> 1, y >> 1, cuw >> 1, cuh >> 1, mod_cr, s_mod_c, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, V_C, ctx->pps.constrained_intra_pred_flag
-#if EVC_TILE_SUPPORT
-            , ctx->map_tidx
-#endif
-        );
-        evc_get_mpm(core->x_scu, core->y_scu, cuw, cuh, ctx->map_scu, ctx->map_ipm, core->scup, ctx->w_scu,core->mpm, core->avail_lr, core->mpm_ext, core->pims
-#if EVC_TILE_SUPPORT
-            , ctx->map_tidx
-#endif
-        );
+        evc_get_nbr(x, y, cuw, cuh, mod, s_mod, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C, ctx->pps.constrained_intra_pred_flag, ctx->map_tidx);
+        evc_get_nbr(x >> 1, y >> 1, cuw >> 1, cuh >> 1, mod_cb, s_mod_c, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, U_C, ctx->pps.constrained_intra_pred_flag, ctx->map_tidx);
+        evc_get_nbr(x >> 1, y >> 1, cuw >> 1, cuh >> 1, mod_cr, s_mod_c, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, V_C, ctx->pps.constrained_intra_pred_flag, ctx->map_tidx);
+        evc_get_mpm(core->x_scu, core->y_scu, cuw, cuh, ctx->map_scu, ctx->map_ipm, core->scup, ctx->w_scu,core->mpm, core->avail_lr, core->mpm_ext, core->pims, ctx->map_tidx);
     }
     else
     {
-        evc_get_nbr_b(x, y, cuw, cuh, mod, s_mod, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C, ctx->pps.constrained_intra_pred_flag
-#if EVC_TILE_SUPPORT
-            , ctx->map_tidx
-#endif
-        );
-        evc_get_nbr_b(x >> 1, y >> 1, cuw >> 1, cuh >> 1, mod_cb, s_mod_c, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, U_C, ctx->pps.constrained_intra_pred_flag
-#if EVC_TILE_SUPPORT
-            , ctx->map_tidx
-#endif
-        );
-        evc_get_nbr_b(x >> 1, y >> 1, cuw >> 1, cuh >> 1, mod_cr, s_mod_c, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, V_C, ctx->pps.constrained_intra_pred_flag
-#if EVC_TILE_SUPPORT
-            , ctx->map_tidx
-#endif
-        );
-        evc_get_mpm_b(core->x_scu, core->y_scu, cuw, cuh, ctx->map_scu, ctx->map_ipm, core->scup, ctx->w_scu,&core->mpm_b_list, core->avail_lr, core->mpm_ext, core->pims
-#if EVC_TILE_SUPPORT
-            , ctx->map_tidx
-#endif
-        );
+        evc_get_nbr_b(x, y, cuw, cuh, mod, s_mod, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C, ctx->pps.constrained_intra_pred_flag, ctx->map_tidx);
+        evc_get_nbr_b(x >> 1, y >> 1, cuw >> 1, cuh >> 1, mod_cb, s_mod_c, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, U_C, ctx->pps.constrained_intra_pred_flag, ctx->map_tidx);
+        evc_get_nbr_b(x >> 1, y >> 1, cuw >> 1, cuh >> 1, mod_cr, s_mod_c, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, V_C, ctx->pps.constrained_intra_pred_flag, ctx->map_tidx);
+        evc_get_mpm_b(core->x_scu, core->y_scu, cuw, cuh, ctx->map_scu, ctx->map_ipm, core->scup, ctx->w_scu,&core->mpm_b_list, core->avail_lr, core->mpm_ext, core->pims, ctx->map_tidx);
     }
 
 #if M50761_CHROMA_NOT_SPLIT 
-#if EVC_CONCURENCY
     if (evc_check_luma(core->tree_cons))
-#else
-    if (evc_check_luma(ctx->tree_cons))
-#endif
     {
 #endif
     pred_cnt = make_ipred_list(ctx, core, log2_cuw, log2_cuh, org, s_org, ipred_list);
@@ -663,14 +575,10 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
             best_ipd = IPD_DC;
         }
     }
-#if EVC_CONCURENCY
+
     if (evc_check_chroma(core->tree_cons))
-#else
-    if (evc_check_chroma(ctx->tree_cons))
-#endif
     {
 #endif
-
         if (ctx->sps.tool_eipd)
         {
             cost = MAX_COST;
@@ -740,21 +648,9 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
 #endif
 #if M50761_CHROMA_NOT_SPLIT
     }
-    int start_comp = evce_check_luma(ctx
-#if EVC_CONCURENCY
-        , core
-#endif
-    ) ? Y_C : U_C;
-    int end_comp = evce_check_chroma(ctx
-#if EVC_CONCURENCY
-        , core
-#endif
-    ) ? N_C : U_C;
-    if (evce_check_all(ctx
-#if EVC_CONCURENCY
-    , core
-#endif
-    ))
+    int start_comp = evce_check_luma(ctx, core) ? Y_C : U_C;
+    int end_comp = evce_check_chroma(ctx, core) ? N_C : U_C;
+    if (evce_check_all(ctx, core))
     {
 #endif
     core->bef_data[log2_cuw - 2][log2_cuh - 2][core->cup][core->bef_data_idx].ipm[0] = best_ipd;
@@ -789,11 +685,7 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
 #endif
 
 #if M50761_CHROMA_NOT_SPLIT
-    if (evce_check_luma(ctx
-#if EVC_CONCURENCY
-        , core
-#endif
-    ))
+    if (evce_check_luma(ctx, core))
     {
 #endif
     core->ipm[0] = best_ipd;
@@ -807,11 +699,7 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
 #endif
 #if M50761_CHROMA_NOT_SPLIT
     }
-    if (evce_check_chroma(ctx
-#if EVC_CONCURENCY
-        , core
-#endif
-    ))
+    if (evce_check_chroma(ctx, core))
     {
 #endif
     core->ipm[1] = best_ipd_c;
@@ -837,20 +725,12 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
       RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);
 #if M50761_CHROMA_NOT_SPLIT
     core->dist_cu = 0;
-    if (evce_check_luma(ctx
-#if EVC_CONCURENCY
-        , core
-#endif
-    ))
+    if (evce_check_luma(ctx, core))
     {
         cost += best_dist_y;
         core->dist_cu += best_dist_y;
     }
-    if (evce_check_chroma(ctx
-#if EVC_CONCURENCY
-        , core
-#endif
-    ))
+    if (evce_check_chroma(ctx, core))
     {
         cost += best_dist_c;
         core->dist_cu += best_dist_c;

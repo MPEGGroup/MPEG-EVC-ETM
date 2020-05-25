@@ -243,11 +243,7 @@ private:
 
   void   calcCovariance(int *ELocal, const Pel *rec, const int stride, const int *filterPattern, const int halfFilterLength, const int transposeIdx);
   void   mergeClasses(AlfCovariance* cov, AlfCovariance* covMerged, const int numClasses, short filterIndices[MAX_NUM_ALF_CLASSES][MAX_NUM_ALF_CLASSES]);
-  void   alfReconstructor(CodingStructure& cs, AlfSliceParam* alfSliceParam, const pel * orgUnitBuf, const int oStride, pel * recExtBuf, const int recStride, const ComponentID compID
-#if EVC_TILE_SUPPORT
-      , int tile_idx, int col_bd2
-#endif
-  );
+  void   alfReconstructor(CodingStructure& cs, AlfSliceParam* alfSliceParam, const pel * orgUnitBuf, const int oStride, pel * recExtBuf, const int recStride, const ComponentID compID, int tile_idx, int col_bd2);
 #if !M53608_ALF_9
   void   alfTemporalEncoderAPS(CodingStructure& cs, AlfSliceParam* alfSliceParam);
 #endif

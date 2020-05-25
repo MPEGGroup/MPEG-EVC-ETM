@@ -65,7 +65,7 @@ static void __imgb_cpy_plane(void *src, void *dst, int bw, int h, int s_src,
         d += s_dst;
     }
 }
-#define IFVCA_CLIP(n,min,max) (((n)>(max))? (max) : (((n)<(min))? (min) : (n)))
+#define EVCA_CLIP(n,min,max) (((n)>(max))? (max) : (((n)<(min))? (min) : (n)))
 static void imgb_conv_8b_to_16b(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
     int shift)
 {
@@ -112,7 +112,7 @@ static void imgb_conv_16b_to_8b(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
             for (k = 0; k < imgb_src->w[i]; k++)
             {
                 t0 = ((s[k] + add) >> shift);
-                d[k] = (unsigned char)(IFVCA_CLIP(t0, 0, 255));
+                d[k] = (unsigned char)(EVCA_CLIP(t0, 0, 255));
 
             }
             s = (short*)(((unsigned char *)s) + imgb_src->s[i]);
@@ -374,11 +374,7 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
     idx = 0;
 #endif
 #if M50761_CHROMA_NOT_SPLIT
-    if (evcd_check_luma(ctx
-#if EVC_CONCURENCY
-        , core
-#endif
-    ))
+    if (evcd_check_luma(ctx, core))
     {
 #endif
     for(i = 0; i < h_cu; i++)
@@ -457,18 +453,10 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
             }
             else
             {
-#if EVC_TILE_DQP
                 MCU_SET_IF_COD_SN_QP(map_scu[j], flag, ctx->slice_num, ctx->tile[core->tile_num].qp);
-#else
-                MCU_SET_IF_COD_SN_QP(map_scu[j], flag, ctx->slice_num, ctx->sh.qp);
-#endif
             }
 #else
-#if EVC_TILE_DQP
             MCU_SET_IF_COD_SN_QP(map_scu[j], flag, ctx->slice_num, ctx->tile[core->tile_num].qp);
-#else
-            MCU_SET_IF_COD_SN_QP(map_scu[j], flag, ctx->slice_num, ctx->sh.qp);
-#endif
 #endif
 
             map_refi[j][REFP_0] = core->refi[REFP_0];
@@ -955,12 +943,7 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #if M52166_MMVD
         , ctx->poc.poc_val, ctx->dpm.num_refp
 #endif
-        , core->history_buffer, ctx->sps.tool_admvp, &ctx->sh, ctx->log2_max_cuwh
-#if EVC_TILE_SUPPORT
-        , ctx->map_tidx
-#endif
-        , core->mmvd_idx
-    );
+        , core->history_buffer, ctx->sps.tool_admvp, &ctx->sh, ctx->log2_max_cuwh, ctx->map_tidx, core->mmvd_idx);
 
     core->mv[REFP_0][MV_X] = real_mv[core->mmvd_idx][0][MV_X];
     core->mv[REFP_0][MV_Y] = real_mv[core->mmvd_idx][0][MV_Y];
@@ -982,81 +965,33 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 }
 
 #if M50761_CHROMA_NOT_SPLIT
-u8 evcd_check_luma(EVCD_CTX *ctx
-#if EVC_CONCURENCY
-    , EVCD_CORE * core
-#endif
-)
+u8 evcd_check_luma(EVCD_CTX *ctx, EVCD_CORE * core)
 {
-#if EVC_CONCURENCY
     return evc_check_luma(core->tree_cons);
-#else
-    return evc_check_luma(ctx->tree_cons);
-#endif
 }
 
-u8 evcd_check_chroma(EVCD_CTX *ctx
-#if EVC_CONCURENCY
-    , EVCD_CORE * core
-#endif
-)
+u8 evcd_check_chroma(EVCD_CTX *ctx, EVCD_CORE * core)
 {
-#if EVC_CONCURENCY
     return evc_check_chroma(core->tree_cons);
-#else
-    return evc_check_chroma(ctx->tree_cons);
-#endif
 }
-u8 evcd_check_all(EVCD_CTX *ctx
-#if EVC_CONCURENCY
-    , EVCD_CORE * core
-#endif
-)
+u8 evcd_check_all(EVCD_CTX *ctx, EVCD_CORE * core)
 {
-#if EVC_CONCURENCY
     return evc_check_all(core->tree_cons);
-#else
-    return evc_check_all(ctx->tree_cons);
-#endif
 }
 
-u8 evcd_check_only_intra(EVCD_CTX *ctx
-#if EVC_CONCURENCY
-    , EVCD_CORE * core
-#endif
-)
+u8 evcd_check_only_intra(EVCD_CTX *ctx, EVCD_CORE * core)
 {
-#if EVC_CONCURENCY
     return evc_check_only_intra(core->tree_cons);
-#else
-    return evc_check_only_intra(ctx->tree_cons);
-#endif
 }
 
-u8 evcd_check_only_inter(EVCD_CTX *ctx
-#if EVC_CONCURENCY
-    , EVCD_CORE * core
-#endif
-)
+u8 evcd_check_only_inter(EVCD_CTX *ctx, EVCD_CORE * core)
 {
-#if EVC_CONCURENCY
     return evc_check_only_inter(core->tree_cons);
-#else
-    return evc_check_only_inter(ctx->tree_cons);
-#endif
 }
 
-u8 evcd_check_all_preds(EVCD_CTX *ctx
-#if EVC_CONCURENCY
-    , EVCD_CORE * core
-#endif
-)
+u8 evcd_check_all_preds(EVCD_CTX *ctx, EVCD_CORE * core)
 {
-#if EVC_CONCURENCY
     return evc_check_all_preds(core->tree_cons);
-#else
-    return evc_check_all_preds(ctx->tree_cons);
-#endif
 }
 
 MODE_CONS evcd_derive_mode_cons(EVCD_CTX *ctx, int scup)

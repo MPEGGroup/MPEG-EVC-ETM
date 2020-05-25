@@ -142,14 +142,6 @@
 #define DBF_LONGF                                    0
 #define DBF_IMPROVE                                  1
 
-//TILE support
-#define TILE_SUPPORT                                 1
-#if     TILE_SUPPORT
-#define EVC_TILE_SUPPORT                             1
-#define EVC_CONCURENCY                               1
-#define TEST_ALF_BIT_CALC                            1
-#endif
-
 //fast algorithm
 #define FAST_RECURSE_OPT                             1
 #define FAST_RECURSE_OPT_FIX                         1 
@@ -163,9 +155,6 @@
 
 #define DQP_EVC                                      1
 #if DQP_EVC
-#if EVC_TILE_SUPPORT
-#define EVC_TILE_DQP                                 1
-#endif
 #define DQP                                          1
 #define DQP_RDO                                      1
 #define GET_QP(qp,dqp)                               ((qp + dqp + 52) % 52)
@@ -1529,9 +1518,7 @@ typedef struct _EVC_SH
     int              aps_id_ch;
     EVC_APS*         aps;
     evc_AlfSliceParam alf_sh_param;
-#if EVC_TILE_SUPPORT
     u16              num_tiles_in_slice;
-#endif
 #if M53608_ALF_14
     u32              alfChromaIdc;
     u32              ChromaAlfEnabledFlag;
@@ -1542,7 +1529,6 @@ typedef struct _EVC_SH
 #endif
 } EVC_SH;
 
-#if EVC_TILE_SUPPORT
 /*****************************************************************************
 * Tiles
 *****************************************************************************/
@@ -1556,14 +1542,11 @@ typedef struct _EVC_TILE
     u32             f_ctb;
     /* first ctb address in raster scan order */
     u16             ctba_rs_first;
-#if EVC_TILE_DQP
     u8              qp;
     u8              qp_prev_eco;
-#endif
 } EVC_TILE;
 
 /*****************************************************************************/
-#endif
 
 typedef struct _EVC_POC
 {
