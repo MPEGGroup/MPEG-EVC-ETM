@@ -3600,13 +3600,39 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
 
     if (!sh->arbitrary_slice_flag)
     {
-        int first_row_slice, w_tile_slice, first_col_slice, h_tile_slice, w_tile;
+        int first_tile_in_slice, last_tile_in_slice, first_tile_col_idx, last_tile_col_idx, delta_tile_idx;
+        int w_tile, w_tile_slice, h_tile_slice, tile_cnt;
+
         w_tile = (pps->num_tile_columns_minus1 + 1);
-        first_row_slice = sh->first_tile_id / w_tile;
-        first_col_slice = sh->first_tile_id % w_tile;
-        w_tile_slice = (sh->last_tile_id % w_tile) - first_col_slice; //Number of tiles in slice width
-        h_tile_slice = (sh->last_tile_id / w_tile) - first_row_slice; //Number of tiles in slice height
-        num_tiles_in_slice = (w_tile_slice + 1) * (h_tile_slice + 1);
+        tile_cnt = (pps->num_tile_rows_minus1 + 1) * (pps->num_tile_columns_minus1 + 1);
+
+        first_tile_in_slice = sh->first_tile_id;
+        last_tile_in_slice = sh->last_tile_id;
+        
+
+        first_tile_col_idx = first_tile_in_slice % w_tile;
+        last_tile_col_idx = last_tile_in_slice % w_tile;
+        delta_tile_idx = last_tile_in_slice - first_tile_in_slice;
+
+        if (last_tile_in_slice < first_tile_in_slice)
+        {
+            if (first_tile_col_idx > last_tile_col_idx)
+            {
+                delta_tile_idx += tile_cnt + w_tile;
+            }
+            else
+            {
+                delta_tile_idx += tile_cnt;
+            }
+        }
+        else if (first_tile_col_idx > last_tile_col_idx)
+        {
+            delta_tile_idx += w_tile;
+        }
+
+        w_tile_slice = (delta_tile_idx % w_tile) + 1; //Number of tiles in slice width
+        h_tile_slice = (delta_tile_idx / w_tile) + 1;
+        num_tiles_in_slice = w_tile_slice * h_tile_slice;
     }
     else
     {
@@ -3923,5 +3949,7 @@ void encd_stat_cu(int x, int y, int cuw, int cuh, int cup, void *ctx, void *core
     if (evc_check_luma(tree_cons))
 #endif
     evc_stat_write_cu_str(x, y, cuw, cuh, "CBF_luma", dec_core->is_coef[Y_C] > 0);
+    evc_stat_write_cu_str(x, y, cuw, cuh, "Tile_ID", dec_core->tile_num);
+    evc_stat_write_cu_str(x, y, cuw, cuh, "Slice_IDX", dec_ctx->slice_num);
 }
 #endif

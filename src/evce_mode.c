@@ -4700,10 +4700,3 @@ int evce_mode_create(EVCE_CTX *ctx, int complexity)
 
     return ctx->fn_mode_set_complexity(ctx, complexity);
 }
-
-#if M50761_CHROMA_NOT_SPLIT
-BOOL evc_signal_mode_cons(TREE_CONS* parent, TREE_CONS* cur_split)
-{
-    return parent->mode_cons == eAll && cur_split->changed;
-}
-#endif

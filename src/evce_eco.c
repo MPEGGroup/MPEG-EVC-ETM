@@ -4610,7 +4610,8 @@ void ence_stat_cu(int x, int y, int cuw, int cuh, int cup, void *ctx, void *core
     //evc_stat_write_cu_str(x, y, cuw, cuh, "CBF_luma_enc", MCU_GET_CBFL(enc_ctx->map_scu[scup]));
     //evc_stat_write_cu_str(x, y, cuw, cuh, "CBF_luma_nnz_sub", cu_data->nnz_sub[0][0][cup] > 0);
     evc_stat_write_cu_str(x, y, cuw, cuh, "CBF_luma", cu_data->nnz[Y_C][cup] > 0);
-    
+    evc_stat_write_cu_str(x, y, cuw, cuh, "Tile_ID", enc_core->tile_num);
+    evc_stat_write_cu_str(x, y, cuw, cuh, "Slice_IDX", enc_ctx->slice_num);
 #if M50761_CHROMA_NOT_SPLIT
     }
 #endif

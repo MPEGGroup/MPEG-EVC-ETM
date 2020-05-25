@@ -291,19 +291,25 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
     param->uniform_spacing_tiles = cdsc->tile_uniform_spacing_flag; //To be udpated when non-uniform tiles is implemeneted
     param->num_slice_in_pic = cdsc->num_slice_in_pic;
     param->arbitrary_slice_flag = cdsc->arbitrary_slice_flag;
-    param->num_remaining_tiles_in_slice_minus1 = cdsc->num_remaining_tiles_in_slice_minus1;
+   
     if (param->arbitrary_slice_flag)
     {
-        for (u32 i = 0; i < (param->num_slice_in_pic *(param->num_remaining_tiles_in_slice_minus1 + 2)); i++)
+        int cnt = 0;
+        for (int s = 0; s < param->num_slice_in_pic; s++)
         {
-            param->slice_boundary_array[i] = cdsc->slice_boundary_array[i];
+            param->num_remaining_tiles_in_slice_minus1[s] = cdsc->num_remaining_tiles_in_slice_minus1[s];
+            for (u32 i = 0; i < param->num_remaining_tiles_in_slice_minus1[s] + 2 ; i++)
+            {
+                param->tile_array_in_slice[cnt] = cdsc->tile_array_in_slice[cnt];
+                cnt++;
+            }
         }
     }
     else
     {
         for (int i = 0; i < (2 * param->num_slice_in_pic); i++)
         {
-            param->slice_boundary_array[i] = cdsc->slice_boundary_array[i];
+            param->slice_boundary_array[i] = cdsc->tile_array_in_slice[i];
         }
     }
     return EVC_OK;
@@ -944,15 +950,21 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
     if (ctx->param.arbitrary_slice_flag == 1)
     {
         ctx->sh.arbitrary_slice_flag = 1;
-        sh->num_remaining_tiles_in_slice_minus1 = ctx->param.num_remaining_tiles_in_slice_minus1;
+        sh->num_remaining_tiles_in_slice_minus1 = ctx->param.num_remaining_tiles_in_slice_minus1[ctx->slice_num];
         if (ctx->tile_cnt > 1)
         {
             sh->single_tile_in_slice_flag = 0;
-            sh->first_tile_id = ctx->param.slice_boundary_array[ctx->slice_num * (sh->num_remaining_tiles_in_slice_minus1 + 2)];
+            int bef_tile_num = 0;
+            for (int i = 0; i < ctx->slice_num; ++i)
+            {
+                bef_tile_num += ctx->param.num_remaining_tiles_in_slice_minus1[i] + 2;
+            }
+
+            sh->first_tile_id = ctx->param.tile_array_in_slice[bef_tile_num];
             for (int i = 0; i < sh->num_remaining_tiles_in_slice_minus1 + 1; ++i)
             {
-                sh->delta_tile_id_minus1[i] = ctx->param.slice_boundary_array[ctx->slice_num * (sh->num_remaining_tiles_in_slice_minus1 + 2) + i + 1] -
-                                              ctx->param.slice_boundary_array[ctx->slice_num * (sh->num_remaining_tiles_in_slice_minus1 + 2) + i];
+                sh->delta_tile_id_minus1[i] = ctx->param.tile_array_in_slice[bef_tile_num + i + 1] -
+                                              ctx->param.tile_array_in_slice[bef_tile_num + i    ] - 1;
             }
         }
     }
@@ -1006,16 +1018,17 @@ static int set_tile_info(EVCE_CTX * ctx, int is_ctx0)
     EVC_TILE     * tile;
     int          i, j, size, x, y, w, h, w_tile, h_tile, w_lcu, h_lcu, tidx, t0;
     int          col_w[MAX_NUM_TILES_COL], row_h[MAX_NUM_TILES_ROW], f_tile;
-    u8           * map_tidx;
-    u32         *  map_scu;
-    u8          * tile_to_slice_map = ctx->tile_to_slice_map;
+    u8         * map_tidx;
+    u32        * map_scu;
+    u8         * tile_to_slice_map = ctx->tile_to_slice_map;
+    u8         * tile_order = ctx->tile_order;
     int          num_slice_in_pic;
-    int          first_tile_in_slice, last_tile_in_slice, w_tile_slice, h_tile_slice, first_row_slice, first_col_slice;
+    int          first_tile_in_slice, last_tile_in_slice, w_tile_slice, h_tile_slice;
     int          slice_num = 0;
-    int          tmp1, tmp2;
+    int          tmp1, tmp2, tmp3;
+    int          first_tile_col_idx, last_tile_col_idx, delta_tile_idx;
 
     ctx->tile_cnt = ctx->param.tile_columns * ctx->param.tile_rows;
-
     w_tile = ctx->param.tile_columns;
     h_tile = ctx->param.tile_rows;
     f_tile = w_tile * h_tile;
@@ -1023,25 +1036,48 @@ static int set_tile_info(EVCE_CTX * ctx, int is_ctx0)
     h_lcu = ctx->h_lcu;
     num_slice_in_pic = ctx->param.num_slice_in_pic;
 
+    tmp3 = 0;
+
     for (i = 0; i < (2 * num_slice_in_pic); i = i + 2)
     {
         first_tile_in_slice = ctx->param.slice_boundary_array[i];
         last_tile_in_slice = ctx->param.slice_boundary_array[i + 1];
-        first_row_slice = first_tile_in_slice / w_tile;
-        first_col_slice = first_tile_in_slice % w_tile;
-        w_tile_slice = (last_tile_in_slice % w_tile) - first_col_slice; //Number of tiles in slice width
-        h_tile_slice = (last_tile_in_slice / w_tile) - first_row_slice; //Number of tiles in slice height
-        tmp1 = 0;
-        tmp2 = 0;
-        while (tmp1 <= h_tile_slice)
+
+        first_tile_col_idx = first_tile_in_slice % w_tile;
+        last_tile_col_idx = last_tile_in_slice % w_tile;
+        delta_tile_idx = last_tile_in_slice - first_tile_in_slice;
+
+        if (last_tile_in_slice < first_tile_in_slice)
         {
-            while (tmp2 <= w_tile_slice)
+            if (first_tile_col_idx > last_tile_col_idx)
             {
-                tile_to_slice_map[first_tile_in_slice + tmp2 + (first_row_slice + tmp1) *w_tile] = slice_num;
-                tmp2++;
+                delta_tile_idx += ctx->tile_cnt + w_tile;
             }
-            tmp1++;
-            tmp2 = 0;
+            else
+            {
+                delta_tile_idx += ctx->tile_cnt;
+            }
+        }
+        else if (first_tile_col_idx > last_tile_col_idx)
+        {
+            delta_tile_idx += w_tile;
+        }           
+        
+        w_tile_slice = (delta_tile_idx % w_tile) + 1; //Number of tiles in slice width
+        h_tile_slice = (delta_tile_idx / w_tile) + 1; //Number of tiles in slice height
+
+        int st_row_slice = first_tile_in_slice / w_tile;
+        int st_col_slice = first_tile_in_slice % w_tile;
+
+        for (tmp1 = 0 ; tmp1 < h_tile_slice ; tmp1++)
+        {
+            for(tmp2 = 0 ; tmp2 < w_tile_slice ; tmp2++)
+            {
+                int curr_col_slice = (st_col_slice + tmp2) % w_tile;
+                int curr_row_slice = (st_row_slice + tmp1) % h_tile;
+                tile_to_slice_map[curr_row_slice * w_tile + curr_col_slice] = slice_num;
+                tile_order[tmp3++] = curr_row_slice * w_tile + curr_col_slice;
+            }
         }
         slice_num++;
     }
@@ -2482,29 +2518,60 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     int num_slice_in_pic = ctx->param.num_slice_in_pic;
     u8  * tiles_in_slice, total_tiles_in_slice, total_tiles_in_slice_copy;
     u8* curr_temp = NULL;
+    int tile_cnt = 0;
     for (ctx->slice_num = 0; ctx->slice_num < num_slice_in_pic; ctx->slice_num++)
     {
         if (num_slice_in_pic > 1)
         {
             if (!ctx->param.arbitrary_slice_flag)
             {
-                total_tiles_in_slice = 0;
-                for (u32 k = 0; k < ctx->tile_cnt; k++)
+                int first_tile_in_slice, last_tile_in_slice, first_tile_col_idx, last_tile_col_idx, delta_tile_idx;
+                int w_tile, w_tile_slice, h_tile_slice;
+
+                w_tile = ctx->param.tile_columns;
+                first_tile_in_slice = ctx->param.slice_boundary_array[ctx->slice_num * 2];
+                last_tile_in_slice = ctx->param.slice_boundary_array[ctx->slice_num * 2 + 1];
+
+                first_tile_col_idx = first_tile_in_slice % w_tile;
+                last_tile_col_idx = last_tile_in_slice % w_tile;
+                delta_tile_idx = last_tile_in_slice - first_tile_in_slice;
+
+                if (last_tile_in_slice < first_tile_in_slice)
                 {
-                    if (ctx->tile_to_slice_map[k] == ctx->slice_num)
+                    if (first_tile_col_idx > last_tile_col_idx)
                     {
-                        ctx->tiles_in_slice[total_tiles_in_slice] = k;
-                        total_tiles_in_slice++;
+                        delta_tile_idx += ctx->tile_cnt + w_tile;
+                    }
+                    else
+                    {
+                        delta_tile_idx += ctx->tile_cnt;
                     }
                 }
+                else if (first_tile_col_idx > last_tile_col_idx)
+                {
+                    delta_tile_idx += w_tile;
+                }
+
+                w_tile_slice = (delta_tile_idx % w_tile) + 1; //Number of tiles in slice width
+                h_tile_slice = (delta_tile_idx / w_tile) + 1;
+                total_tiles_in_slice = w_tile_slice * h_tile_slice;
                 total_tiles_in_slice_copy = total_tiles_in_slice;
+                for (u32 k = 0; k < total_tiles_in_slice; k++)
+                {
+                    ctx->tiles_in_slice[k] = ctx->tile_order[tile_cnt++];
+                }
             }
             else
             {
-                total_tiles_in_slice = ctx->param.num_remaining_tiles_in_slice_minus1 + 2;
-                for (u32 k = 0; k < (ctx->param.num_remaining_tiles_in_slice_minus1 + 2); k++)
+                total_tiles_in_slice = ctx->param.num_remaining_tiles_in_slice_minus1[ctx->slice_num] + 2;
+                int bef_tile_num = 0;
+                for (int i = 0; i < ctx->slice_num; ++i)
                 {
-                    ctx->tiles_in_slice[k] = ctx->param.slice_boundary_array[ctx->slice_num * total_tiles_in_slice + k];
+                    bef_tile_num += ctx->param.num_remaining_tiles_in_slice_minus1[i] + 2;
+                }
+                for (u32 k = 0; k < total_tiles_in_slice; k++)
+                {
+                    ctx->tiles_in_slice[k] = ctx->param.tile_array_in_slice[bef_tile_num + k];
                 }
                 total_tiles_in_slice_copy = total_tiles_in_slice;
             }
@@ -2513,10 +2580,15 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         {
             if (ctx->param.arbitrary_slice_flag)
             {
-                total_tiles_in_slice = ctx->param.num_remaining_tiles_in_slice_minus1 + 2;
-                for (u32 k = 0; k < (ctx->param.num_remaining_tiles_in_slice_minus1 + 2); k++)
+                total_tiles_in_slice = ctx->param.num_remaining_tiles_in_slice_minus1[ctx->slice_num] + 2;
+                int bef_tile_num = 0;
+                for (int i = 0; i < ctx->slice_num; ++i)
                 {
-                    ctx->tiles_in_slice[k] = ctx->param.slice_boundary_array[ctx->slice_num * total_tiles_in_slice + k];
+                    bef_tile_num += ctx->param.num_remaining_tiles_in_slice_minus1[i] + 2;
+                }
+                for (u32 k = 0; k < total_tiles_in_slice; k++)
+                {
+                    ctx->tiles_in_slice[k] = ctx->param.tile_array_in_slice[bef_tile_num + k];
                 }
                 total_tiles_in_slice_copy = total_tiles_in_slice;
             }
@@ -2987,38 +3059,38 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             sh->entry_point_offset_minus1[k - 1] = (u32)((bs)->cur - bs_beg.cur - 4 + (4 - (bs->leftbits >> 3)) + (bs_beg.leftbits >> 3) - 1);
         } // End to tile encoding loop in a slice
 
-    /* Bit-stream re-writing (START) */
-    u8* tmp_ptr1;
-    if (ctx->slice_num == 0)
-    {
-        evc_bsw_init(&ctx->bs, (u8*)bitb->addr, bitb->bsize, NULL);
-        tmp_ptr1 = bs->beg;
-    }
-    else
-    {
-        evc_bsw_init_slice(&ctx->bs, (u8*)curr_temp, bitb->bsize, NULL);
-        tmp_ptr1 = curr_temp;
-    }
+        /* Bit-stream re-writing (START) */
+        u8* tmp_ptr1;
+        if (ctx->slice_num == 0)
+        {
+            evc_bsw_init(&ctx->bs, (u8*)bitb->addr, bitb->bsize, NULL);
+            tmp_ptr1 = bs->beg;
+        }
+        else
+        {
+            evc_bsw_init_slice(&ctx->bs, (u8*)curr_temp, bitb->bsize, NULL);
+            tmp_ptr1 = curr_temp;
+        }
     
 #if TRACE_START_POC
-    if (fp_trace_started == 1)
-    {
-        EVC_TRACE_SET(1);
-    }
-    else
-    {
-        EVC_TRACE_SET(0);
-    }
+        if (fp_trace_started == 1)
+        {
+            EVC_TRACE_SET(1);
+        }
+        else
+        {
+            EVC_TRACE_SET(0);
+        }
 #else
 #if TRACE_RDO_EXCLUDE_I
-    if(ctx->slice_type != SLICE_I)
-    {
+        if(ctx->slice_type != SLICE_I)
+        {
 #endif
 #if !TRACE_DBF
-        EVC_TRACE_SET(1);
+            EVC_TRACE_SET(1);
 #endif
 #if TRACE_RDO_EXCLUDE_I
-    }
+        }
 #endif
 #endif
         /* Send available APSs */

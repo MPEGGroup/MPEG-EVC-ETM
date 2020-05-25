@@ -156,9 +156,9 @@ static int  op_num_tile_rows        = 1;          //default 1
 static char op_tile_column_width_array[MAX_NUM_TILES_COL];
 static char op_tile_row_height_array[MAX_NUM_TILES_ROW];
 static int  op_num_slice_in_pic     = 1;         // default 1 
-static char op_slice_boundary_array[2 * 600];   // Max. slices can be 600 for the highest level 6.2
+static char op_tile_array_in_slice[2 * 600];   // Max. slices can be 600 for the highest level 6.2
 static int  op_arbitrary_slice_flag = 0; //default  0
-static int  op_num_remaining_tiles_in_slice = 0; // only in case of arbitrary slices
+static char op_num_remaining_tiles_in_slice[600] = { 0 }; // only in case of arbitrary slices
 static int  op_loop_filter_across_tiles_enabled_flag = 0; // by default disabled
 
 static int  op_chroma_qp_table_present_flag = 0;
@@ -777,8 +777,8 @@ static EVC_ARGS_OPTION options[] = \
         "Number of slices in the pic"
     },
     {
-        EVC_ARGS_NO_KEY,  "slices_boundary_array", EVC_ARGS_VAL_TYPE_STRING,
-        &op_flag[OP_SLICE_BOUNDARY_ARRAY], &op_slice_boundary_array,
+        EVC_ARGS_NO_KEY,  "tile_array_in_slice", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_SLICE_BOUNDARY_ARRAY], &op_tile_array_in_slice,
         "Array of Slice Boundaries"
     },
     {
@@ -787,7 +787,7 @@ static EVC_ARGS_OPTION options[] = \
         "Array of Slice Boundaries"
     },
     {
-        EVC_ARGS_NO_KEY,  "num_remaining_tiles_in_slice", EVC_ARGS_VAL_TYPE_INTEGER,
+        EVC_ARGS_NO_KEY,  "num_remaining_tiles_in_slice", EVC_ARGS_VAL_TYPE_STRING,
         &op_flag[OP_NUM_REMAINING_TILES_IN_SLICE], &op_num_remaining_tiles_in_slice,
         "Array of Slice Boundaries"
     },
@@ -1359,8 +1359,7 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->tile_columns = op_num_tile_columns;
     cdsc->tile_rows = op_num_tile_rows;
     cdsc->num_slice_in_pic = op_num_slice_in_pic;
-    cdsc->arbitrary_slice_flag = op_arbitrary_slice_flag;
-    cdsc->num_remaining_tiles_in_slice_minus1 = op_num_remaining_tiles_in_slice - 1;
+    cdsc->arbitrary_slice_flag = op_arbitrary_slice_flag;    
     cdsc->inter_slice_type = op_inter_slice_type == 0 ? SLICE_B : SLICE_P;
     cdsc->loop_filter_across_tiles_enabled_flag = op_loop_filter_across_tiles_enabled_flag;
     if (!cdsc->tile_uniform_spacing_flag)
@@ -1388,20 +1387,34 @@ static int get_conf(EVCE_CDSC * cdsc)
 
     if (cdsc->num_slice_in_pic == 1)
     {
-        cdsc->slice_boundary_array[0] = 0;
-        cdsc->slice_boundary_array[1] = (cdsc->tile_columns * cdsc->tile_rows) - 1;
+        cdsc->tile_array_in_slice[0] = 0;
+        cdsc->tile_array_in_slice[1] = (cdsc->tile_columns * cdsc->tile_rows) - 1;
+        cdsc->num_remaining_tiles_in_slice_minus1[0] = op_num_remaining_tiles_in_slice[0] - 1;
     }
     else // There are more than one slice in the picture
     {
-        cdsc->slice_boundary_array[0] = atoi(strtok(op_slice_boundary_array, " "));
+        cdsc->tile_array_in_slice[0] = atoi(strtok(op_tile_array_in_slice, " "));
         int j = 1;
         do
         {
             char* val = strtok(NULL, " \r");
             if (!val)
                 break;
-            cdsc->slice_boundary_array[j++] = atoi(val);
+            cdsc->tile_array_in_slice[j++] = atoi(val);
         } while (1);
+
+        if (cdsc->arbitrary_slice_flag)
+        {
+            cdsc->num_remaining_tiles_in_slice_minus1[0] = atoi(strtok(op_num_remaining_tiles_in_slice, " ")) - 1;
+            int j = 1;
+            do
+            {
+                char* val = strtok(NULL, " \r");
+                if (!val)
+                    break;
+                cdsc->num_remaining_tiles_in_slice_minus1[j++] = atoi(val) - 1;
+            } while (1);
+        }
     }
     int num_tiles = cdsc->tile_columns * cdsc->tile_rows;
     if (num_tiles < cdsc->num_slice_in_pic) result = -1;
