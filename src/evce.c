@@ -388,9 +388,13 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->pic_width_in_luma_samples = ctx->param.w;
     sps->pic_height_in_luma_samples = ctx->param.h;
     if(sps->profile_idc == PROFILE_BASELINE)
+    {
         sps->toolset_idc_h = 0;
+    }
     else if(sps->profile_idc == PROFILE_MAIN)
+    {
         sps->toolset_idc_h = 0x1FFFFF;
+    }
     sps->toolset_idc_l = 0;
     sps->bit_depth_luma_minus8 = ctx->cdsc.out_bit_depth - 8;
     sps->bit_depth_chroma_minus8 = ctx->cdsc.out_bit_depth - 8;
