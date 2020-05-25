@@ -2887,10 +2887,12 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
 
     int log2_sub_cuw, log2_sub_cuh;
     int long_side, ratio;
-    int cu_max, from_boundary_b, from_boundary_r;
+    int cu_max, from_boundary_b;
     cu_max = 1 << (log2_max_cuwh - 1);
     from_boundary_b = (y >= im_h - im_h%cu_max) && !(x >= im_w - im_w % cu_max);
-    from_boundary_r = (x >= im_w - im_w % cu_max) && !(y >= im_h - im_h%cu_max);
+#if !M52166_PARTITION
+    int from_boundary_r = (x >= im_w - im_w % cu_max) && !(y >= im_h - im_h%cu_max);
+#endif
 
     evc_mset(split_allow, 0, sizeof(int) * SPLIT_CHECK_NUM);
     {

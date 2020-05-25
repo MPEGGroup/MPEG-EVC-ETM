@@ -1313,7 +1313,7 @@ static void deblock_addb_cu_ver_yuv(EVC_PIC *pic, int x_pel, int y_pel, int log2
 #endif
 )
 {
-    int i, t, qp;
+    int i, qp;
     int h = cuh >> MIN_CU_LOG2;
     u8 indexA, indexB;
 #if DEBLOCKING_FIX
@@ -1379,8 +1379,6 @@ static void deblock_addb_cu_ver_yuv(EVC_PIC *pic, int x_pel, int y_pel, int log2
             }
 #endif
             qp = (MCU_GET_QP(map_scu[0]) + MCU_GET_QP(map_scu[-1]) + 1) >> 1;
-
-            t = (i << MIN_CU_LOG2);
 
 #if FIX_PARALLEL_DBF
             //neb_w = 1 << MCU_GET_LOGW(map_cu[-1]);

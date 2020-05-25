@@ -1628,12 +1628,10 @@ void resetIdrIndexListBufferAPS()
 int  getProtectIdxFromList(int idx)
 {
     u8 i_slice_idx = 0;
-    AlfSliceParam *p_ATGP = NULL;
     int protectEntry = 0;
     if (m_i_period == 0)
         return protectEntry;
 
-    p_ATGP = &(m_acAlfLineBuffer[idx]);
     // check if current idx is protected (e.g. idr filter idx)
     if ((m_acAlfLineBuffer[idx].m_filterPoc == m_acAlfLineBuffer[idx].m_maxIdrPoc))
     {
