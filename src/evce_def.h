@@ -495,8 +495,9 @@ typedef struct _EVCE_PARAM
     /* In EVC slices are rectangular only (No rasterscan tiles)
     Slice boundaries stores the tile index of top left and bottom right tiles */
     int            slice_boundary_array[2 * 600];
+    int            tile_array_in_slice[2 * 600];
     int            arbitrary_slice_flag;
-    u32            num_remaining_tiles_in_slice_minus1;
+    u32            num_remaining_tiles_in_slice_minus1[600];
 } EVCE_PARAM;
 
 typedef struct _EVCE_SBAC
@@ -954,6 +955,7 @@ struct _EVCE_CTX
     u8                   * map_tidx;
     u8                    tile_to_slice_map[MAX_NUM_TILES_COL * MAX_NUM_TILES_ROW];
     u8                    tiles_in_slice[MAX_NUM_TILES_COL * MAX_NUM_TILES_ROW];
+    u8                    tile_order[MAX_NUM_TILES_COL * MAX_NUM_TILES_ROW];
 
     int (*fn_ready)(EVCE_CTX * ctx);
     void (*fn_flush)(EVCE_CTX * ctx);

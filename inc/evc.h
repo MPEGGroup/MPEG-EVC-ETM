@@ -507,9 +507,9 @@ typedef struct _EVCE_CDSC
     int            tile_column_width_array[20];
     int            tile_row_height_array[22];
     int            num_slice_in_pic;
-    int            slice_boundary_array[2 * 600];
+    int            tile_array_in_slice[2 * 600];
     int            arbitrary_slice_flag;
-    int            num_remaining_tiles_in_slice_minus1;
+    int            num_remaining_tiles_in_slice_minus1[600];
     int            loop_filter_across_tiles_enabled_flag;
     int            inter_slice_type;
     EVC_CHROMA_TABLE chroma_qp_table_struct;

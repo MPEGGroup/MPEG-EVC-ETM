@@ -5479,6 +5479,11 @@ MODE_CONS evc_get_mode_cons_by_split(SPLIT_MODE split_mode, int cuw, int cuh)
     }
     return (small_cuh == 4 && small_cuw == 4) ? eOnlyIntra : eAll;
 }
+
+BOOL evc_signal_mode_cons(TREE_CONS* parent, TREE_CONS* cur_split)
+{
+    return parent->mode_cons == eAll && cur_split->changed;
+}
 #endif
 
 
@@ -5500,5 +5505,7 @@ void enc_stat_header(int pic_w, int pic_h)
     evc_stat_write_type("ats_intra_cu", "Flag", NULL);
     evc_stat_write_type("ats_inter_info", "Flag", NULL);
     evc_stat_write_type("CBF_luma", "Flag", NULL);
+    evc_stat_write_type("Tile_ID", "Flag", NULL);
+    evc_stat_write_type("Slice_IDX", "Flag", NULL);
 }
 #endif

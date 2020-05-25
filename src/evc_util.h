@@ -349,6 +349,7 @@ u8 evc_check_all_preds(TREE_CONS tree_cons);
 TREE_CONS evc_get_default_tree_cons();
 void evc_set_tree_mode(TREE_CONS* dest, MODE_CONS mode);
 MODE_CONS evc_get_mode_cons_by_split(SPLIT_MODE split_mode, int cuw, int cuh);
+BOOL evc_signal_mode_cons(TREE_CONS* parent, TREE_CONS* cur_split);
 #endif
 
 

@@ -131,11 +131,7 @@ static void evc_stat_tree(void *ctx, void *core, int x, int y, int cuw, int cuh,
         EVC_SPLIT_STRUCT split_struct;
         int suco_order[SPLIT_MAX_PART_COUNT];
 
-        evc_split_get_part_structure(split_mode, x, y, cuw, cuh, cup, cud, log2_culine, &split_struct
-#if M50761_CHROMA_NOT_SPLIT
-            , tree_cons
-#endif
-        );
+        evc_split_get_part_structure(split_mode, x, y, cuw, cuh, cup, cud, log2_culine, &split_struct);
         evc_split_get_suco_order(suco_flag, split_mode, suco_order);
 #if M50761_CHROMA_NOT_SPLIT
         BOOL mode_cons_changed = evc_signal_mode_cons(&tree_cons, &split_struct.tree_cons);

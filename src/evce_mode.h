@@ -47,8 +47,6 @@ void evce_rdo_bit_cnt_cu_intra_chroma(EVCE_CTX * ctx, EVCE_CORE * core, s32 slic
 void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s32 cup, s8 refi[REFP_NUM], s16 mvd[REFP_NUM][MV_D], s16 coef[N_C][MAX_CU_DIM], int pidx, u8 * mvp_idx, u8 mvr_idx, u8 bi_idx, s16 affine_mvd[REFP_NUM][VER_NUM][MV_D]);
 #if M50761_CHROMA_NOT_SPLIT
 void evce_rdo_bit_cnt_cu_inter_chroma(EVCE_CTX * ctx, EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM], int pidx);
-
-BOOL evc_signal_mode_cons( TREE_CONS* parent, TREE_CONS* cur_split );
 #endif
 
 void evce_rdo_bit_cnt_cu_ibc(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s32 cup, s16 mvd[MV_D],

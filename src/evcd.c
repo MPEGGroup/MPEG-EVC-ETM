@@ -1875,25 +1875,45 @@ static int set_tile_info(EVCD_CTX * ctx, EVCD_CORE *core, EVC_PPS *pps)
 
     if (!sh->arbitrary_slice_flag)
     {
-        int first_row_slice, w_tile_slice, first_col_slice, h_tile_slice, w_tile;
+        int first_tile_col_idx, last_tile_col_idx, delta_tile_idx;
+        int w_tile_slice, h_tile_slice;
         int tmp1, tmp2, i=0;
-        w_tile = (pps->num_tile_columns_minus1 + 1);
-        first_row_slice = sh->first_tile_id / w_tile;
-        first_col_slice = sh->first_tile_id % w_tile;
-        w_tile_slice = (sh->last_tile_id % w_tile) - first_col_slice; //Number of tiles in slice width
-        h_tile_slice = (sh->last_tile_id / w_tile) - first_row_slice; //Number of tiles in slice height
-        ctx->num_tiles_in_slice = (w_tile_slice + 1) * (h_tile_slice + 1);
-        tmp1 = 0;
-        tmp2 = 0;
-        while (tmp1 <= h_tile_slice)
+
+        first_tile_col_idx = sh->first_tile_id % w_tile;
+        last_tile_col_idx = sh->last_tile_id % w_tile;
+        delta_tile_idx = sh->last_tile_id - sh->first_tile_id;
+
+        if (sh->last_tile_id < sh->first_tile_id)
         {
-            while (tmp2 <= w_tile_slice)
+            if (first_tile_col_idx > last_tile_col_idx)
             {
-                ctx->tile_in_slice[i++] = sh->first_tile_id + tmp2 + (first_row_slice + tmp1) *w_tile;
-                tmp2++;
+                delta_tile_idx += ctx->tile_cnt + w_tile;
             }
-            tmp1++;
-            tmp2 = 0;
+            else
+            {
+                delta_tile_idx += ctx->tile_cnt;
+            }
+        }
+        else if (first_tile_col_idx > last_tile_col_idx)
+        {
+            delta_tile_idx += w_tile;
+        }
+
+        w_tile_slice = (delta_tile_idx % w_tile) + 1; //Number of tiles in slice width
+        h_tile_slice = (delta_tile_idx / w_tile) + 1; //Number of tiles in slice height
+        ctx->num_tiles_in_slice = w_tile_slice * h_tile_slice;
+
+        int st_row_slice = sh->first_tile_id / w_tile;
+        int st_col_slice = sh->first_tile_id % w_tile;
+
+        for (tmp1 = 0; tmp1 < h_tile_slice; tmp1++)
+        {
+            for (tmp2 = 0; tmp2 < w_tile_slice; tmp2++)
+            {
+                int curr_col_slice = (st_col_slice + tmp2) % w_tile;
+                int curr_row_slice = (st_row_slice + tmp1) % h_tile;
+                ctx->tile_in_slice[i++] = curr_row_slice * w_tile + curr_col_slice;
+            }
         }
     }
     else
@@ -1902,7 +1922,7 @@ static int set_tile_info(EVCD_CTX * ctx, EVCD_CORE *core, EVC_PPS *pps)
         ctx->num_tiles_in_slice = sh->num_remaining_tiles_in_slice_minus1 + 2;
         for (i = 1; i <= (ctx->num_tiles_in_slice -1); i++)
         {
-            ctx->tile_in_slice[i] = sh->delta_tile_id_minus1[i - 1] + ctx->tile_in_slice[i - 1];
+            ctx->tile_in_slice[i] = sh->delta_tile_id_minus1[i - 1] + ctx->tile_in_slice[i - 1] + 1;
         }
     }
 
