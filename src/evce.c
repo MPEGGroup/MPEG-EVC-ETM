@@ -390,10 +390,17 @@ static void set_vui(EVCE_CTX * ctx, EVC_VUI * vui)
 static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
 {
     sps->profile_idc = ctx->cdsc.profile;
-    sps->level_idc = ctx->cdsc.level;
+    sps->level_idc = ctx->cdsc.level * 3;
     sps->pic_width_in_luma_samples = ctx->param.w;
     sps->pic_height_in_luma_samples = ctx->param.h;
-    sps->toolset_idc_h = 0x7FFFF;
+    if(sps->profile_idc == PROFILE_BASELINE)
+    {
+        sps->toolset_idc_h = 0;
+    }
+    else if(sps->profile_idc == PROFILE_MAIN)
+    {
+        sps->toolset_idc_h = 0x1FFFFF;
+    }
     sps->toolset_idc_l = 0;
     sps->bit_depth_luma_minus8 = ctx->cdsc.out_bit_depth - 8;
     sps->bit_depth_chroma_minus8 = ctx->cdsc.out_bit_depth - 8;
