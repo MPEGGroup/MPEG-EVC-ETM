@@ -1390,10 +1390,6 @@ void filterBlk_7(AlfClassifier** classifier, pel * recDst, const int dstStride, 
 
 void filterBlk_5(AlfClassifier** classifier, pel * recDst, const int dstStride, const pel* recSrc, const int srcStride, const Area* blk, const ComponentID compId, short* filterSet, const ClpRng* clpRng)
 {
-#if !M53608_ALF_11
-  const BOOL bChroma = ( compId != COMPONENT_Y );
-#endif
-
   const int startHeight = blk->y;
   const int endHeight = blk->y + blk->height;
   const int startWidth = blk->x;
@@ -1411,13 +1407,8 @@ void filterBlk_5(AlfClassifier** classifier, pel * recDst, const int dstStride, 
   const int offset = 1 << (shift - 1);
 
   int transposeIdx = 0;
-  const int clsSizeY = 4;
-  const int clsSizeX = 4;
-
-  CHECK(startHeight % clsSizeY, "Wrong startHeight in filtering");
-  CHECK(startWidth % clsSizeX, "Wrong startWidth in filtering");
-  CHECK((endHeight - startHeight) % clsSizeY, "Wrong endHeight in filtering");
-  CHECK((endWidth - startWidth) % clsSizeX, "Wrong endWidth in filtering");
+  const int clsSizeY = 1;
+  const int clsSizeX = 1;
 
   AlfClassifier *pClass = NULL;
 
@@ -1435,37 +1426,10 @@ void filterBlk_5(AlfClassifier** classifier, pel * recDst, const int dstStride, 
 
   for (int i = 0; i < endHeight - startHeight; i += clsSizeY)
   {
-#if !M53608_ALF_11
-    if (!bChroma)
-    {
-      pClass = classifier[startHeight + i] + startWidth;
-    }
-#endif
     for (int j = 0; j < endWidth - startWidth; j += clsSizeX)
     {
-#if !M53608_ALF_11
-      if (!bChroma)
-      {
-        AlfClassifier cl = pClass[j];
-        transposeIdx = cl & 0x03;
-        coef = filterSet + ((cl >> 2) & 0x1F) * MAX_NUM_ALF_LUMA_COEFF;
-      }
-#endif
-#if !M53608_ALF_11
-      const int c[4][MAX_NUM_ALF_CHROMA_COEFF] = {
-          { 0, 1, 2, 3, 4, 5, 6 },
-          { 4, 1, 5, 3, 0, 2, 6 },
-          { 0, 3, 2, 1, 4, 5, 6 },
-          { 4, 3, 5, 1, 0, 2, 6 },
-        };
-#endif
       for(int i=0; i < MAX_NUM_ALF_CHROMA_COEFF; i++)
-#if M53608_ALF_11
           filterCoeff[i] = coef[i];
-#else
-            filterCoeff[i] = coef[c[transposeIdx][i]];
-#endif
-
 
       for (int ii = 0; ii < clsSizeY; ii++)
       {
