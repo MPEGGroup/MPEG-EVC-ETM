@@ -512,6 +512,9 @@ typedef struct _EVCE_SBAC
     EVC_SBAC_CTX   ctx;
     u32            bitcounter;
     u8             is_bitcount;
+#if CABAC_ZERO_WORD
+    u32            bin_counter;
+#endif 
 } EVCE_SBAC;
 #if DQP
 #if DQP_RDO
