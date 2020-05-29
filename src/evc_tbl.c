@@ -362,7 +362,7 @@ int evc_tbl_qp_chroma_ajudst_base[MAX_QP_TABLE_SIZE] =
 int* evc_tbl_qp_chroma_ajudst;
 
 // ChromaQP offset for U and V components
-int evc_tbl_qp_chroma_dynamic_ext[2][MAX_QP_TABLE_SIZE_EXT] = { { 0 }, {0} };
+int evc_tbl_qp_chroma_dynamic_ext[2][MAX_QP_TABLE_SIZE_EXT] = { { -12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, }, { -12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, } };
 int *p_evc_tbl_qp_chroma_dynamic_ext[2] = { &(evc_tbl_qp_chroma_dynamic_ext[0][0]) , &(evc_tbl_qp_chroma_dynamic_ext[1][0]) };
 int *p_evc_tbl_qp_chroma_dynamic[2] = { &(evc_tbl_qp_chroma_dynamic_ext[0][6 * (BIT_DEPTH - 8)]) , &(evc_tbl_qp_chroma_dynamic_ext[1][6 * (BIT_DEPTH - 8)]) };
 
