@@ -193,9 +193,10 @@ void evce_copy_chroma_qp_mapping_params(EVC_CHROMA_TABLE *dst, EVC_CHROMA_TABLE 
 static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
 {
     /* check input parameters */
+    int pic_m = max(1 << cdsc->framework_cb_min, 8);
     evc_assert_rv(cdsc->w > 0 && cdsc->h > 0, EVC_ERR_INVALID_ARGUMENT);
-    evc_assert_rv((cdsc->w & (MIN_CU_SIZE-1)) == 0,EVC_ERR_INVALID_ARGUMENT);
-    evc_assert_rv((cdsc->h & (MIN_CU_SIZE-1)) == 0,EVC_ERR_INVALID_ARGUMENT);
+    evc_assert_rv((cdsc->w & (pic_m -1)) == 0,EVC_ERR_INVALID_ARGUMENT);
+    evc_assert_rv((cdsc->h & (pic_m -1)) == 0,EVC_ERR_INVALID_ARGUMENT);
     evc_assert_rv(cdsc->qp >= MIN_QUANT && cdsc->qp <= MAX_QUANT, EVC_ERR_INVALID_ARGUMENT);
     evc_assert_rv(cdsc->iperiod >= 0 ,EVC_ERR_INVALID_ARGUMENT);
 
@@ -489,9 +490,9 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
 #endif
     }
 
-      sps->log2_sub_gop_length = (int)(log2(ctx->param.gop_size) + .5);
-      ctx->ref_pic_gap_length = ctx->param.ref_pic_gap_length;
-      sps->log2_ref_pic_gap_length = (int)(log2(ctx->param.ref_pic_gap_length) + .5);
+    sps->log2_sub_gop_length = (int)(log2(ctx->param.gop_size) + .5);
+    ctx->ref_pic_gap_length = ctx->param.ref_pic_gap_length;
+    sps->log2_ref_pic_gap_length = (int)(log2(ctx->param.ref_pic_gap_length) + .5);
 
     sps->long_term_ref_pics_flag = 0;
 
@@ -523,6 +524,15 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     if (ctx->cdsc.chroma_qp_table_struct.chroma_qp_table_present_flag)
     {
         evce_copy_chroma_qp_mapping_params(&(sps->chroma_qp_table_struct), &(ctx->cdsc.chroma_qp_table_struct));
+    }
+
+    sps->picture_cropping_flag = ctx->cdsc.picture_cropping_flag;
+    if (sps->picture_cropping_flag)
+    {
+        sps->picture_crop_left_offset = ctx->cdsc.picture_crop_left_offset;
+        sps->picture_crop_right_offset = ctx->cdsc.picture_crop_right_offset;
+        sps->picture_crop_top_offset = ctx->cdsc.picture_crop_top_offset;
+        sps->picture_crop_bottom_offset = ctx->cdsc.picture_crop_bottom_offset;
     }
 }
 
@@ -2379,6 +2389,14 @@ int evce_enc_pic_prepare(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #if DMVR_LAG
     ctx->map_unrefined_mv = PIC_CURR(ctx)->map_unrefined_mv;
 #endif
+    if (ctx->sps.picture_cropping_flag)
+    {
+        PIC_CURR(ctx)->imgb->crop_idx = 1;
+        PIC_CURR(ctx)->imgb->crop_l = ctx->sps.picture_crop_left_offset;
+        PIC_CURR(ctx)->imgb->crop_r = ctx->sps.picture_crop_right_offset;
+        PIC_CURR(ctx)->imgb->crop_t = ctx->sps.picture_crop_top_offset;
+        PIC_CURR(ctx)->imgb->crop_b = ctx->sps.picture_crop_bottom_offset;
+    }
     PIC_MODE(ctx) = PIC_CURR(ctx);
 #if RDO_DBK
     if(ctx->pic_dbk == NULL)

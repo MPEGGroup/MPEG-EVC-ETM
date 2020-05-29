@@ -2506,13 +2506,13 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         if (ctx->num_ctb == 0)
         {
 #if PIC_PAD_SIZE_L > 0
-        /* expand pixels to padding area */
-        ctx->fn_picbuf_expand(ctx, ctx->pic);
+            /* expand pixels to padding area */
+            ctx->fn_picbuf_expand(ctx, ctx->pic);
 #endif
 
-        /* put decoded picture to DPB */
-        ret = evc_picman_put_pic(&ctx->dpm, ctx->pic, ctx->nalu.nal_unit_type_plus1 - 1 == EVC_IDR_NUT, ctx->poc.poc_val, ctx->nalu.nuh_temporal_id, 1, ctx->refp, ctx->slice_ref_flag, sps->tool_rpl, ctx->ref_pic_gap_length);
-        evc_assert_rv(EVC_SUCCEEDED(ret), ret);
+            /* put decoded picture to DPB */
+            ret = evc_picman_put_pic(&ctx->dpm, ctx->pic, ctx->nalu.nal_unit_type_plus1 - 1 == EVC_IDR_NUT, ctx->poc.poc_val, ctx->nalu.nuh_temporal_id, 1, ctx->refp, ctx->slice_ref_flag, sps->tool_rpl, ctx->ref_pic_gap_length);
+            evc_assert_rv(EVC_SUCCEEDED(ret), ret);
         }
         slice_deinit(ctx);
     }
@@ -2569,6 +2569,14 @@ int evcd_pull_frm(EVCD_CTX *ctx, EVC_IMGB **imgb)
         /* increase reference count */
         pic->imgb->addref(pic->imgb);
         *imgb = pic->imgb;
+        if (ctx->sps.picture_cropping_flag)
+        {
+            (*imgb)->crop_idx = 1;
+            (*imgb)->crop_l = ctx->sps.picture_crop_left_offset;
+            (*imgb)->crop_r = ctx->sps.picture_crop_right_offset;
+            (*imgb)->crop_t = ctx->sps.picture_crop_top_offset;
+            (*imgb)->crop_b = ctx->sps.picture_crop_bottom_offset;
+        }
     }
     return ret;
 }

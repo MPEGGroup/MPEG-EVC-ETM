@@ -208,6 +208,7 @@ static int imgb_write(char * fname, EVC_IMGB * img)
 {
     unsigned char * p8;
     int             i, j, bd;
+    int             cs_w_off, cs_h_off;
     FILE          * fp;
 
     fp = fopen(fname, "ab");
@@ -219,10 +220,14 @@ static int imgb_write(char * fname, EVC_IMGB * img)
     if(img->cs == EVC_COLORSPACE_YUV420_10LE)
     {
         bd = 2;
+        cs_w_off = 2;
+        cs_h_off = 2;
     }
     else if(img->cs == EVC_COLORSPACE_YUV420)
     {
         bd = 1;
+        cs_w_off = 2;
+        cs_h_off = 2;
     }
     else
     {
@@ -233,10 +238,38 @@ static int imgb_write(char * fname, EVC_IMGB * img)
     for(i = 0; i < 3; i++)
     {
         p8 = (unsigned char *)img->a[i] + (img->s[i] * img->y[i]) + (img->x[i] * bd);
+        int tw, th, tcl, tcr, tct, tcb;
+        tw = img->w[i];
+        th = img->h[i];
+        tcl = tcr = tct = tcb = 0;
 
-        for(j = 0; j < img->h[i]; j++)
+        if (!i)
         {
-            fwrite(p8, img->w[i] * bd, 1, fp);
+            tw = img->w[i] - (cs_w_off * (img->crop_l + img->crop_r));
+            th = img->h[i] - (cs_h_off * (img->crop_t + img->crop_b));
+            tcl = img->crop_l * cs_w_off;
+            tcr = img->crop_r * cs_w_off;
+            tct = img->crop_t * cs_h_off;
+            tcb = img->crop_b * cs_h_off;
+        }
+        else
+        {
+            tw = img->w[i] - (img->crop_l + img->crop_r);
+            th = img->h[i] - (img->crop_t + img->crop_b);
+            tcl = img->crop_l;
+            tcr = img->crop_r;
+            tct = img->crop_t;
+            tcb = img->crop_b;
+        }
+
+        for (j = 0; j < tct; j++)
+        {
+            p8 += img->s[i];
+        }
+
+        for(j = 0; j < th; j++)
+        {
+            fwrite(p8 + tcl * bd, tw * bd, 1, fp);
             p8 += img->s[i];
         }
     }
@@ -302,6 +335,14 @@ static void imgb_conv_8b_to_16b(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
             d = (short*)(((unsigned char *)d) + imgb_dst->s[i]);
         }
     }
+    if (imgb_src->crop_idx)
+    {
+        imgb_dst->crop_idx = imgb_src->crop_idx;
+        imgb_dst->crop_l = imgb_src->crop_l;
+        imgb_dst->crop_r = imgb_src->crop_r;
+        imgb_dst->crop_t = imgb_src->crop_t;
+        imgb_dst->crop_b = imgb_src->crop_b;
+    }
 }
 
 static void imgb_conv_16b_to_8b(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
@@ -331,6 +372,14 @@ static void imgb_conv_16b_to_8b(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
             s = (short*)(((unsigned char *)s) + imgb_src->s[i]);
             d = d + imgb_dst->s[i];
         }
+    }
+    if (imgb_src->crop_idx)
+    {
+        imgb_dst->crop_idx = imgb_src->crop_idx;
+        imgb_dst->crop_l = imgb_src->crop_l;
+        imgb_dst->crop_r = imgb_src->crop_r;
+        imgb_dst->crop_t = imgb_src->crop_t;
+        imgb_dst->crop_b = imgb_src->crop_b;
     }
 }
 #if REMOVE_WARNING
@@ -371,6 +420,14 @@ static void imgb_cpy(EVC_IMGB * dst, EVC_IMGB * src)
     for(i = 0; i < 4; i++)
     {
         dst->ts[i] = src->ts[i];
+    }
+    if (src->crop_idx)
+    {
+        dst->crop_idx = src->crop_idx;
+        dst->crop_l = src->crop_l;
+        dst->crop_r = src->crop_r;
+        dst->crop_t = src->crop_t;
+        dst->crop_b = src->crop_b;
     }
 }
 

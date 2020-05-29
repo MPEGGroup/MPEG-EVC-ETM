@@ -192,6 +192,12 @@ static int  op_cu_qp_delta_area    = 10; /* default cu_delta_qp_area is 10 */
 
 static int op_inter_slice_type     = 0;
 
+static int op_picture_cropping_flag      = 0;
+static int op_picture_crop_left_offset   = 0;
+static int op_picture_crop_right_offset  = 0;
+static int op_picture_crop_top_offset    = 0;
+static int op_picture_crop_bottom_offset = 0;
+
 typedef enum _OP_FLAGS
 {
     OP_FLAG_FNAME_CFG,
@@ -364,6 +370,11 @@ typedef enum _OP_FLAGS
     //...
     OP_FLAG_RPL1_31,
     OP_INTER_SLICE_TYPE,
+    OP_PIC_CROP_FLAG,
+    OP_PIC_CROP_LEFT,
+    OP_PIC_CROP_RIGHT,
+    OP_PIC_CROP_TOP,
+    OP_PIC_CROP_BOTTOM,
 
     OP_FLAG_MAX
 } OP_FLAGS;
@@ -1156,6 +1167,31 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_INTER_SLICE_TYPE], &op_inter_slice_type,
         "INTER_SLICE_TYPE"
     },
+    {
+        EVC_ARGS_NO_KEY,  "picture_cropping_flag", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_PIC_CROP_FLAG], &op_picture_cropping_flag,
+        "INTER_SLICE_TYPE"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "picture_crop_left", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_PIC_CROP_LEFT], &op_picture_crop_left_offset,
+        "INTER_SLICE_TYPE"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "picture_crop_right", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_PIC_CROP_RIGHT], &op_picture_crop_right_offset,
+        "INTER_SLICE_TYPE"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "picture_crop_top", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_PIC_CROP_TOP], &op_picture_crop_top_offset,
+        "INTER_SLICE_TYPE"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "picture_crop_bottom", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_PIC_CROP_BOTTOM], &op_picture_crop_bottom_offset,
+        "INTER_SLICE_TYPE"
+    },
 
     {0, "", EVC_ARGS_VAL_TYPE_NONE, NULL, NULL, ""} /* termination */
 };
@@ -1362,6 +1398,13 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->arbitrary_slice_flag = op_arbitrary_slice_flag;    
     cdsc->inter_slice_type = op_inter_slice_type == 0 ? SLICE_B : SLICE_P;
     cdsc->loop_filter_across_tiles_enabled_flag = op_loop_filter_across_tiles_enabled_flag;
+
+    cdsc->picture_cropping_flag = op_picture_cropping_flag;
+    cdsc->picture_crop_left_offset = op_picture_crop_left_offset;
+    cdsc->picture_crop_right_offset = op_picture_crop_right_offset;
+    cdsc->picture_crop_top_offset = op_picture_crop_top_offset;
+    cdsc->picture_crop_bottom_offset = op_picture_crop_bottom_offset;
+
     if (!cdsc->tile_uniform_spacing_flag)
     {
         cdsc->tile_column_width_array[0] = atoi(strtok(op_tile_column_width_array, " "));
@@ -1616,6 +1659,7 @@ static void print_enc_conf(EVCE_CDSC * cdsc)
 int check_conf(EVCE_CDSC* cdsc)
 {
     int success = 1;
+    int min_block_size = 4;
     if(cdsc->profile == PROFILE_BASELINE)
     {
         if (cdsc->tool_amvr    == 1) { v0print("AMVR cannot be on in base profile\n"); success = 0; }
@@ -1673,6 +1717,7 @@ int check_conf(EVCE_CDSC* cdsc)
         if (cdsc->framework_tris_max > 6) { v0print("Maximun Tri-split Block size be greater than 6\n"); success = 0; }
         if (cdsc->framework_tris_max > cdsc->framework_cb_max) { v0print("Maximun Tri-split Block size cannot be greater than Maximum coding Block size\n"); success = 0; }
         if (cdsc->framework_tris_min < cdsc->framework_cb_min + 2) { v0print("Maximun Tri-split Block size cannot be smaller than Minimum Coding Block size plus two\n"); success = 0; }
+        min_block_size = 1 << cdsc->framework_cb_min;
     }
 #endif
 #if M52166_SUCO
@@ -1683,8 +1728,12 @@ int check_conf(EVCE_CDSC* cdsc)
         if (cdsc->framework_suco_min < 4) { v0print("Minimun SUCO size cannot be smaller than 4\n"); success = 0; }
         if (cdsc->framework_suco_min < cdsc->framework_cb_min) { v0print("Minimun SUCO size cannot be smaller than Minimum coding Block size\n"); success = 0; }
         if (cdsc->framework_suco_min > cdsc->framework_suco_max) { v0print("Minimum SUCO size cannot be greater than Maximum SUCO size\n"); success = 0; }
-}
+    }
 #endif
+    int pic_m = max(8, min_block_size);
+    if ((cdsc->w & (pic_m - 1)) != 0) { v0print("Current encoder does not support picture width, not multiple of 8\n"); success = 0; }
+    if ((cdsc->h & (pic_m - 1)) != 0) { v0print("Current encoder does not support picture height, not multiple of 8\n"); success = 0; }
+    
     return success;
 }
 
