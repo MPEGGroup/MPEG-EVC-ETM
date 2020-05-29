@@ -307,6 +307,11 @@ struct _EVC_IMGB
     int                 (*addref)(EVC_IMGB * imgb);
     int                 (*getref)(EVC_IMGB * imgb);
     int                 (*release)(EVC_IMGB * imgb);
+    int                 crop_idx;
+    int                 crop_l;
+    int                 crop_r;
+    int                 crop_t;
+    int                 crop_b;
 };
 
 /*****************************************************************************
@@ -512,6 +517,11 @@ typedef struct _EVCE_CDSC
     int            num_remaining_tiles_in_slice_minus1[600];
     int            loop_filter_across_tiles_enabled_flag;
     int            inter_slice_type;
+    int            picture_cropping_flag;
+    int            picture_crop_left_offset;
+    int            picture_crop_right_offset;
+    int            picture_crop_top_offset;
+    int            picture_crop_bottom_offset;
     EVC_CHROMA_TABLE chroma_qp_table_struct;
 #if M52291_HDR_DRA
     void * m_DRAMappingApp; 

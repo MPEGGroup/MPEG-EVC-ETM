@@ -452,7 +452,7 @@ int main(int argc, const char **argv)
 #if !DECODING_TIME_TEST
             clk_tot += evc_clk_from(clk_beg);
 #endif
-                print_stat(&stat, ret);
+            print_stat(&stat, ret);
             if(stat.read - nalu_size_field_in_bytes != bs_size)
             {
                 v0print("\t=> different reading of bitstream (in:%d, read:%d)\n",
