@@ -625,9 +625,18 @@ void EncAdaptiveLoopFilter::Enc_ALFProcess(CodingStructure& cs, const double *la
     copy_and_extend_tile(recLuma2_tile, s1, recoYuv2_tile, picReco->s_c, (w_tile >> 1), (h_tile >> 1), m);
 
     // reconstruct 
+#if ETM60_HLS_FIX
+    if (alfSliceParam->enabledFlag[0])
+        alfReconstructor(cs, alfSliceParam, orgYuv.yuv[0], orgYuv.s[0], recLuma.yuv[0], recLuma.s[0], COMPONENT_Y, ii, col_bd);
+    if (alfSliceParam->enabledFlag[1])
+        alfReconstructor(cs, alfSliceParam, orgYuv.yuv[1], orgYuv.s[1], recLuma.yuv[1], recLuma.s[1], COMPONENT_Cb, ii, col_bd);
+    if (alfSliceParam->enabledFlag[2])
+        alfReconstructor(cs, alfSliceParam, orgYuv.yuv[2], orgYuv.s[2], recLuma.yuv[2], recLuma.s[2], COMPONENT_Cr, ii, col_bd);
+#else
     alfReconstructor(cs, alfSliceParam, orgYuv.yuv[0], orgYuv.s[0], recLuma.yuv[0], recLuma.s[0], COMPONENT_Y, ii, col_bd);
     alfReconstructor(cs, alfSliceParam, orgYuv.yuv[1], orgYuv.s[1], recLuma.yuv[1], recLuma.s[1], COMPONENT_Cb, ii, col_bd);
     alfReconstructor(cs, alfSliceParam, orgYuv.yuv[2], orgYuv.s[2], recLuma.yuv[2], recLuma.s[2], COMPONENT_Cr, ii, col_bd);
+#endif
     total_tiles_in_slice--;
   }
   for( int i = 0; i < ctx->f_lcu; i++ )
