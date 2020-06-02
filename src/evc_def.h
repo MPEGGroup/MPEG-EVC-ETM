@@ -1393,7 +1393,9 @@ typedef struct _EVC_PPS
     int cu_qp_delta_area;
 #endif
 #if M52291_HDR_DRA
+#if !ETM60_HLS_FIX
     int pic_dra_enabled_present_flag;
+#endif
     int pic_dra_enabled_flag;
     int pic_dra_aps_id;
 #endif

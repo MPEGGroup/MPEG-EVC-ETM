@@ -417,6 +417,13 @@ int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps)
     }
 
 #if M52291_HDR_DRA
+    evc_bsw_write1(bs, pps->pic_dra_enabled_flag);
+#if ETM60_HLS_FIX
+    if (pps->pic_dra_enabled_flag)
+    {
+        evc_bsw_write(bs, pps->pic_dra_aps_id, APS_MAX_NUM_IN_BITS);
+    }
+#else
     if (sps->tool_dra)
     {
         evc_bsw_write1(bs, pps->pic_dra_enabled_present_flag);
@@ -431,6 +438,7 @@ int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps)
         evc_bsw_write(bs, pps->pic_dra_aps_id, APS_TYPE_ID_BITS);
 #endif
     }
+#endif
 #endif
     evc_bsw_write1(bs, pps->arbitrary_slice_present_flag);
     evc_bsw_write1(bs, pps->constrained_intra_pred_flag); 

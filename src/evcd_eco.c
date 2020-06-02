@@ -2840,10 +2840,12 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps)
     }
 
 #if M52291_HDR_DRA
+#if !ETM60_HLS_FIX
     pps->pic_dra_enabled_present_flag = 0;
+#endif
     pps->pic_dra_enabled_flag = 0;
 #if ETM60_HLS_FIX
-    evc_bsr_read1(bs, &pps->pic_dra_enabled_present_flag);
+    evc_bsr_read1(bs, &pps->pic_dra_enabled_flag);
     if (pps->pic_dra_enabled_flag)
     {
         evc_assert( sps->tool_dra == 1 ); 
