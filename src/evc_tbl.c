@@ -387,8 +387,8 @@ void evc_derived_chroma_qp_mapping_tables(EVC_CHROMA_TABLE *structChromaQP)
 
         for (int j = 0; j <= structChromaQP->num_points_in_qp_table_minus1[i]; j++)
         {
-            assert(qpInVal[j] >= -qpBdOffsetC && qpInVal[j]  < MAX_QP);
-            assert(qpOutVal[j] >= -qpBdOffsetC && qpOutVal[j] < MAX_QP);
+            assert(qpInVal[j] >= -qpBdOffsetC && qpInVal[j]  <= MAX_QP);
+            assert(qpOutVal[j] >= -qpBdOffsetC && qpOutVal[j] <= MAX_QP);
         }
 
         p_evc_tbl_qp_chroma_dynamic[i][qpInVal[0]] = qpOutVal[0];

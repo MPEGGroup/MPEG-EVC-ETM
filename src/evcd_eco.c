@@ -2550,6 +2550,9 @@ int evcd_eco_vui(EVC_BSR * bs, EVC_VUI * vui)
         evc_bsr_read_ue(bs, &vui->chroma_sample_loc_type_bottom_field);
     }
     evc_bsr_read1(bs, &vui->neutral_chroma_indication_flag);
+#if ETM60_HLS_FIX
+    evc_bsr_read1(bs, &vui->field_seq_flag);
+#endif
     evc_bsr_read1(bs, &vui->timing_info_present_flag);
     if (vui->timing_info_present_flag)
     {
@@ -2839,6 +2842,14 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps)
 #if M52291_HDR_DRA
     pps->pic_dra_enabled_present_flag = 0;
     pps->pic_dra_enabled_flag = 0;
+#if ETM60_HLS_FIX
+    evc_bsr_read1(bs, &pps->pic_dra_enabled_present_flag);
+    if (pps->pic_dra_enabled_flag)
+    {
+        evc_assert( sps->tool_dra == 1 ); 
+        evc_bsr_read(bs, &pps->pic_dra_aps_id, APS_MAX_NUM_IN_BITS);
+    }
+#else
     if (sps->tool_dra)
     {
         evc_bsr_read1(bs, &pps->pic_dra_enabled_present_flag);
@@ -2861,6 +2872,7 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps)
         pps->pic_dra_enabled_flag = 0;
 #endif
     }
+#endif
 #endif
 
     evc_bsr_read1(bs, &pps->arbitrary_slice_present_flag);
@@ -3086,6 +3098,9 @@ int evcd_eco_alf_filter(EVC_BSR * bs, evc_AlfSliceParam* alfSliceParam, const BO
         int kMinTab[MAX_NUM_ALF_COEFF];
 
         evc_bsr_read_ue(bs, &alf_luma_min_eg_order_minus1);
+#if ETM60_HLS_FIX
+        evc_assert(alf_luma_min_eg_order_minus1 >= 0 && alf_luma_min_eg_order_minus1 <= 6);
+#endif
         kMin = alf_luma_min_eg_order_minus1 + 1;
 
         const int numFilters = isChroma ? 1 : alfSliceParam->numLumaFilters;
@@ -3133,6 +3148,9 @@ int evcd_eco_alf_filter(EVC_BSR * bs, evc_AlfSliceParam* alfSliceParam, const BO
         int kMinTab[MAX_NUM_ALF_COEFF];
 
         evc_bsr_read_ue(bs, &alf_luma_min_eg_order_minus1);
+#if ETM60_HLS_FIX
+        evc_assert(alf_luma_min_eg_order_minus1 >= 0 && alf_luma_min_eg_order_minus1 <= 6);
+#endif
         kMin = alf_luma_min_eg_order_minus1 + 1;
 
         const int numFilters = isChroma ? 1 : alfSliceParam->numLumaFilters;
@@ -3228,12 +3246,23 @@ int evcd_eco_dra_aps_param(EVC_BSR * bs, EVC_APS_GEN * aps)
     p_dra_param->m_signal_dra_flag = 1;
     evc_bsr_read(bs, &p_dra_param->m_dra_descriptor1, 4);
     evc_bsr_read(bs, &p_dra_param->m_dra_descriptor2, 4);
+#if ETM60_HLS_FIX
+    evc_assert(p_dra_param->m_dra_descriptor1 == 4);
+    evc_assert(p_dra_param->m_dra_descriptor2 == 9);
+#endif
     int numBits = p_dra_param->m_dra_descriptor1 + p_dra_param->m_dra_descriptor2;
-
+#if ETM60_HLS_FIX
+    evc_assert(numBits > 0);
+#endif
     evc_bsr_read_ue(bs, &dra_number_ranges_minus1);
+#if ETM60_HLS_FIX
+    evc_assert(dra_number_ranges_minus1 >= 0 && dra_number_ranges_minus1 <= 31);
+#endif
     evc_bsr_read1(bs, &dra_equal_ranges_flag);
     evc_bsr_read(bs, &dra_global_offset, DRA_RANGE_10);
-
+#if ETM60_HLS_FIX
+    evc_assert(dra_global_offset >= 1 && dra_global_offset <= EVC_MIN(1023, ( 1<<BIT_DEPTH) - 1) );
+#endif
     if (dra_equal_ranges_flag)
     {
         evc_bsr_read(bs, &dra_delta_range[0], DRA_RANGE_10);
@@ -3243,18 +3272,30 @@ int evcd_eco_dra_aps_param(EVC_BSR * bs, EVC_APS_GEN * aps)
         for (int i = 0; i <= dra_number_ranges_minus1; i++)
         {
             evc_bsr_read(bs, &dra_delta_range[i], DRA_RANGE_10);
+#if ETM60_HLS_FIX
+            evc_assert(dra_delta_range[i] >= 1 && dra_delta_range[i] <= EVC_MIN(1023, (1 << BIT_DEPTH) - 1));
+#endif
         }
     }
 
     for (int i = 0; i <= dra_number_ranges_minus1; i++)
     {
         evc_bsr_read(bs, &p_dra_param->m_dra_scale_value[i], numBits);
+#if ETM60_HLS_FIX
+        evc_assert(p_dra_param->m_dra_scale_value[i] < (4 << p_dra_param->m_dra_descriptor2) );
+#endif
     }
 
     evc_bsr_read(bs, &p_dra_param->m_dra_cb_scale_value, numBits);
     evc_bsr_read(bs, &p_dra_param->m_dra_cr_scale_value, numBits);
+#if ETM60_HLS_FIX
+    evc_assert(p_dra_param->m_dra_cb_scale_value < (4 << p_dra_param->m_dra_descriptor2));
+    evc_assert(p_dra_param->m_dra_cr_scale_value < (4 << p_dra_param->m_dra_descriptor2));
+#endif
     evc_bsr_read_ue(bs, &p_dra_param->dra_table_idx);
-
+#if ETM60_HLS_FIX
+    evc_assert(p_dra_param->dra_table_idx >= 0 && p_dra_param->dra_table_idx <= 58);
+#endif
     p_dra_param->m_numRanges = dra_number_ranges_minus1 + 1;
     p_dra_param->m_equalRangesFlag = dra_equal_ranges_flag;
     p_dra_param->m_inRanges[0] = dra_global_offset << EVC_MAX(0, BIT_DEPTH - DRA_RANGE_10) ;
@@ -3316,6 +3357,9 @@ int evcd_eco_alf_aps_param(EVC_BSR * bs, EVC_APS * aps)
     if (alf_luma_filter_signal_flag)
     {
         evc_bsr_read_ue(bs, &alf_luma_num_filters_signalled_minus1);
+#if ETM60_HLS_FIX
+        evc_assert( (alf_luma_num_filters_signalled_minus1 >= 0 ) && ( alf_luma_num_filters_signalled_minus1 <= MAX_NUM_ALF_CLASSES - 1) );
+#endif
         evc_bsr_read1(bs, &alf_luma_type_flag);
         alfSliceParam->numLumaFilters = alf_luma_num_filters_signalled_minus1 + 1;
         alfSliceParam->lumaFilterType = alf_luma_type_flag;
@@ -3354,7 +3398,10 @@ int evcd_eco_alf_aps_param(EVC_BSR * bs, EVC_APS * aps)
             {
                 if (alf_luma_fixed_filter_usage_flag[classIdx] > 0)
                 {
-                    evc_bsr_read(bs, &alf_luma_fixed_filter_set_idx[classIdx], 4 /*evc_tbl_log2[iNumFixedFilterPerClass - 1]*/);
+                    evc_bsr_read(bs, &alf_luma_fixed_filter_set_idx[classIdx], 4 );
+#if ETM60_HLS_FIX
+                    evc_assert(alf_luma_fixed_filter_set_idx[classIdx] >= 0 && alf_luma_fixed_filter_set_idx[classIdx] <= 15);
+#endif
                     alfSliceParam->fixedFilterIdx[classIdx] = alf_luma_fixed_filter_set_idx[classIdx];
                 }
             }

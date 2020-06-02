@@ -359,6 +359,9 @@ static void set_vui(EVCE_CTX * ctx, EVC_VUI * vui)
     vui->chroma_sample_loc_type_top_field = 1;
     vui->chroma_sample_loc_type_bottom_field = 1;
     vui->neutral_chroma_indication_flag = 1;
+#if ETM60_HLS_FIX
+    vui->field_seq_flag = 1;
+#endif
     vui->timing_info_present_flag = 1;
     vui->num_units_in_tick = 1;
     vui->time_scale = 1;
