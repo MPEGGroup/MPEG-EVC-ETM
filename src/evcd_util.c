@@ -155,9 +155,9 @@ static void imgb_cpy(EVC_IMGB * dst, EVC_IMGB * src)
         dst->ts[i] = src->ts[i];
     }
 }
-int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16], int tool_dra, void* pps_draParams, u16 width, u16 height)
+int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[N_C][16], int tool_dra, void* pps_draParams, u16 width, u16 height)
 {
-    u8 pic_sign[16];
+    u8 pic_sign[N_C][16] = { {0} };
     int ret;
     if (tool_dra)
     {
@@ -191,11 +191,12 @@ int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16], int tool_dra, v
         ret = evc_picbuf_signature(pic, pic_sign);
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
     }
-        if (memcmp(signature, pic_sign, 16) != 0)
-        {
-            return EVC_ERR_BAD_CRC;
-        }
-        return EVC_OK;
+
+    if (memcmp(signature, pic_sign[0], N_C * 16) != 0)
+    {
+        return EVC_ERR_BAD_CRC;
+    }
+    return EVC_OK;
 }
 #endif
 #if !HDR_MD5_CHECK

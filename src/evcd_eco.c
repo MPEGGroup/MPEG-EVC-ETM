@@ -3876,9 +3876,8 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
 
 int evcd_eco_sei(EVCD_CTX * ctx, EVC_BSR * bs)
 {
-    int i;
     u32 payload_type, payload_size;
-    u32 pic_sign[16];
+    u32 pic_sign[N_C][16];
 
     /* should be aligned before adding user data */
     evc_assert_rv(EVC_BSR_IS_BYTE_ALIGN(bs), EVC_ERR_UNKNOWN);
@@ -3890,10 +3889,13 @@ int evcd_eco_sei(EVCD_CTX * ctx, EVC_BSR * bs)
     {
     case EVC_UD_PIC_SIGNATURE:
         /* read signature (HASH) from bitstream */
-        for (i = 0; i < payload_size; i++)
+        for (int i = 0; i < ctx->pic[0].imgb->np; ++i)
         {
-                evc_bsr_read(bs, &pic_sign[i], 8);
-                ctx->pic_sign[i] = pic_sign[i];
+            for (int j = 0; j < payload_size; ++j)
+            {
+                evc_bsr_read(bs, &pic_sign[i][j], 8);
+                ctx->pic_sign[i][j] = pic_sign[i][j];
+            }
         }
         ctx->pic_sign_exist = 1;
         break;

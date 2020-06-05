@@ -2209,7 +2209,7 @@ u16 evc_get_avail_ibc(int x_scu, int y_scu, int w_scu, int h_scu, int scup, int 
     return avail;
 }
 
-int evc_picbuf_signature(EVC_PIC *pic, u8 *signature)
+int evc_picbuf_signature(EVC_PIC *pic, u8 signature[N_C][16])
 {
     return evc_md5_imgb(pic->imgb, signature);
 }
@@ -2447,31 +2447,28 @@ void evc_md5_finish(EVC_MD5 *md5, u8 digest[16])
     evc_mset(md5, 0, sizeof(EVC_MD5));
 }
 
-int evc_md5_imgb(EVC_IMGB *imgb, u8 digest[16])
+int evc_md5_imgb(EVC_IMGB *imgb, u8 digest[N_C][16])
 {
-    EVC_MD5 md5;
+    EVC_MD5 md5[N_C];
     int i, j;
 
-    evc_md5_init(&md5);
+    assert(EVC_COLORSPACE_IS_YUV_PLANAR(imgb->cs));
 
-    if(EVC_COLORSPACE_IS_YUV_PLANAR(imgb->cs))
+    for(i = 0; i < imgb->np; i++)
     {
-        for(i = 0; i < imgb->np; i++)
+        evc_md5_init(&md5[i]);
+        
+        for(j = imgb->y[i]; j < imgb->h[i]; j++)
         {
-            for(j = imgb->y[i]; j < imgb->h[i]; j++)
-            {
-                evc_md5_update(&md5, ((u8 *)imgb->a[i]) + j*imgb->s[i] +
-                                PEL2BYTE(imgb->x[i])
-                                , imgb->w[i] * 2
-                                );
-            }
+            evc_md5_update(&md5[i], ((u8 *)imgb->a[i]) + j*imgb->s[i] +
+                            PEL2BYTE(imgb->x[i])
+                            , imgb->w[i] * 2
+                            );
         }
+
+        evc_md5_finish(&md5[i], digest[i]);
     }
-    else
-    {
-        evc_assert_rv(0, EVC_ERR_UNSUPPORTED_COLORSPACE);
-    }
-    evc_md5_finish(&md5, digest);
+
     return EVC_OK;
 }
 

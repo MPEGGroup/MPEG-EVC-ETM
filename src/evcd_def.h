@@ -295,8 +295,8 @@ struct _EVCD_CTX
     EVC_REFP                refp[MAX_NUM_REF_PICS][REFP_NUM];
     /* flag for picture signature enabling */
     u8                      use_pic_sign;
-    /* picture signature (MD5 digest 128bits) */
-    u8                      pic_sign[16];
+    /* picture signature (MD5 digest 128bits) for each component */
+    u8                      pic_sign[N_C][16];
     /* flag to indicate picture signature existing or not */
     u8                      pic_sign_exist;
     /* tile index map (width in SCU x height in SCU) of
