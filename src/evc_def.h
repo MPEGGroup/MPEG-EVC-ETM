@@ -1122,7 +1122,7 @@ typedef struct _EVC_PIC
     int              pic_deblock_beta_offset;
     int              pic_qp_u_offset;
     int              pic_qp_v_offset;
-    char             digest[N_C][16];
+    u8               digest[N_C][16];
 } EVC_PIC;
 
 /*****************************************************************************
