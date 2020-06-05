@@ -46,6 +46,7 @@
 
 static char op_fname_inp[256] = "\0";
 static char op_fname_out[256] = "\0";
+static char op_fname_opl[256] = "\0";
 static int  op_max_frm_num = 0;
 static int  op_use_pic_signature = 0;
 static int  op_out_bit_depth = 8;
@@ -60,6 +61,7 @@ typedef enum _OP_FLAGS
 {
     OP_FLAG_FNAME_INP,
     OP_FLAG_FNAME_OUT,
+    OP_FLAG_FNAME_OPL,
     OP_FLAG_MAX_FRM_NUM,
     OP_FLAG_USE_PIC_SIGN,
     OP_FLAG_OUT_BIT_DEPTH,
@@ -80,6 +82,11 @@ static EVC_ARGS_OPTION options[] = \
         'o', "output", EVC_ARGS_VAL_TYPE_STRING,
         &op_flag[OP_FLAG_FNAME_OUT], op_fname_out,
         "file name of decoded output"
+    },
+    {
+        EVC_ARGS_NO_KEY, "opl", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_FNAME_OPL], op_fname_opl,
+        "file name of opl file"
     },
     {
         'f',  "frames", EVC_ARGS_VAL_TYPE_INTEGER,
@@ -293,7 +300,8 @@ int main(int argc, const char **argv)
     /*temporal buffer for video bit depth less than 10bit */
     EVC_IMGB        * imgb_t = NULL;
     EVCD_STAT         stat;
-    int                ret;
+    EVCD_OPL          opl;
+    int               ret;
     EVC_CLK           clk_beg, clk_tot;
     int                bs_cnt, pic_cnt;
     int                bs_size, bs_read_pos = 0;
@@ -357,6 +365,20 @@ int main(int argc, const char **argv)
         if(fp == NULL)
         {
             v0print("ERROR: cannot create a decoded file\n");
+            print_usage();
+            return -1;
+        }
+        fclose(fp);
+    }
+
+    if (op_flag[OP_FLAG_FNAME_OPL])
+    {
+        /* remove opl file contents if exists */
+        FILE * fp;
+        fp = fopen(op_fname_opl, "wb");
+        if (fp == NULL)
+        {
+            v0print("ERROR: cannot create an opl file\n");
             print_usage();
             return -1;
         }
@@ -453,6 +475,7 @@ int main(int argc, const char **argv)
             clk_tot += evc_clk_from(clk_beg);
 #endif
             print_stat(&stat, ret);
+
             if(stat.read - nalu_size_field_in_bytes != bs_size)
             {
                 v0print("\t=> different reading of bitstream (in:%d, read:%d)\n",
@@ -463,7 +486,7 @@ int main(int argc, const char **argv)
         }
         if(stat.fnum >= 0 || state == STATE_BUMPING)
         {
-            ret = evcd_pull(id, &imgb);
+            ret = evcd_pull(id, &imgb, &opl);
             if(ret == EVC_ERR_UNEXPECTED)
             {
                 v1print("bumping process completed\n");
@@ -536,6 +559,33 @@ int main(int argc, const char **argv)
                 write_dec_img(id, op_fname_out, imgb, imgb_t);
 #endif
             }
+
+            if (op_flag[OP_FLAG_FNAME_OPL])
+            {
+                FILE* fp_opl = fopen(op_fname_opl, "a");
+                if (fp_opl == NULL)
+                {
+                    v0print("ERROR: cannot create an opl file\n");
+                    print_usage();
+                    return -1;
+                }
+
+                fprintf(fp_opl, "%d %d %d ", opl.poc, w, h);
+                for (int i = 0; i < N_C; ++i)
+                {
+                    for (int j = 0; j < 16; ++j)
+                    {
+                        unsigned int byte = (unsigned char) opl.digest[i][j];
+                        fprintf(fp_opl, "%02x", byte);
+                    }
+                    fprintf(fp_opl, " ");
+                }
+
+                fprintf(fp_opl, "\n");
+
+                fclose(fp_opl);
+            }
+
             imgb->release(imgb);
             pic_cnt++;
         }

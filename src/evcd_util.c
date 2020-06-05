@@ -196,6 +196,9 @@ int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[N_C][16], int tool_d
     {
         return EVC_ERR_BAD_CRC;
     }
+
+    memcpy(pic->digest, pic_sign, N_C * 16);
+
     return EVC_OK;
 }
 #endif

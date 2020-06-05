@@ -2460,10 +2460,7 @@ int evc_md5_imgb(EVC_IMGB *imgb, u8 digest[N_C][16])
         
         for(j = imgb->y[i]; j < imgb->h[i]; j++)
         {
-            evc_md5_update(&md5[i], ((u8 *)imgb->a[i]) + j*imgb->s[i] +
-                            PEL2BYTE(imgb->x[i])
-                            , imgb->w[i] * 2
-                            );
+            evc_md5_update(&md5[i], ((u8 *)imgb->a[i]) + j*imgb->s[i] + imgb->x[i] , imgb->w[i] * 2);
         }
 
         evc_md5_finish(&md5[i], digest[i]);

@@ -371,6 +371,12 @@ typedef struct _EVCD_STAT
     int            refpic[2][16];
 } EVCD_STAT;
 
+typedef struct _EVCD_OPL
+{
+    int  poc;
+    char digest[3][16];
+} EVCD_OPL;
+
 #define MAX_NUM_REF_PICS                   21
 #define MAX_NUM_ACTIVE_REF_FRAME           5
 #define MAX_NUM_RPLS                       32
@@ -582,7 +588,7 @@ int evcd_decode(EVCD id, EVC_BITB * bitb, EVCD_STAT * stat, void * p_draParams);
 #else
 int evcd_decode(EVCD id, EVC_BITB * bitb, EVCD_STAT * stat);
 #endif
-int evcd_pull(EVCD id, EVC_IMGB ** img);
+int evcd_pull(EVCD id, EVC_IMGB ** img, EVCD_OPL * opl);
 int evcd_config(EVCD id, int cfg, void * buf, int * size);
 
 /*****************************************************************************

@@ -324,7 +324,7 @@ struct _EVCD_CTX
     /* function address of decoding slice */
     int  (* fn_dec_slice)(EVCD_CTX * ctx, EVCD_CORE * core);
     /* function address of pulling decoded picture */
-    int  (* fn_pull)(EVCD_CTX * ctx, EVC_IMGB ** img);
+    int  (* fn_pull)(EVCD_CTX * ctx, EVC_IMGB ** img, EVCD_OPL * opl);
     /* function address of deblocking filter */
     int  (* fn_deblock)(EVCD_CTX * ctx, int    tile_idx, int filter_across_boundary);
     /* function address of ALF */

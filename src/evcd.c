@@ -2510,6 +2510,9 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
             ctx->fn_picbuf_expand(ctx, ctx->pic);
 #endif
 
+            ret = evc_picbuf_signature(ctx->pic, ctx->pic->digest);
+            evc_assert_rv(EVC_SUCCEEDED(ret), ret);
+
             /* put decoded picture to DPB */
             ret = evc_picman_put_pic(&ctx->dpm, ctx->pic, ctx->nalu.nal_unit_type_plus1 - 1 == EVC_IDR_NUT, ctx->poc.poc_val, ctx->nalu.nuh_temporal_id, 1, ctx->refp, ctx->slice_ref_flag, sps->tool_rpl, ctx->ref_pic_gap_length);
             evc_assert_rv(EVC_SUCCEEDED(ret), ret);
@@ -2553,7 +2556,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     return ret;
 }
 
-int evcd_pull_frm(EVCD_CTX *ctx, EVC_IMGB **imgb)
+int evcd_pull_frm(EVCD_CTX *ctx, EVC_IMGB **imgb, EVCD_OPL * opl)
 {
     int ret;
     EVC_PIC *pic;
@@ -2577,6 +2580,9 @@ int evcd_pull_frm(EVCD_CTX *ctx, EVC_IMGB **imgb)
             (*imgb)->crop_t = ctx->sps.picture_crop_top_offset;
             (*imgb)->crop_b = ctx->sps.picture_crop_bottom_offset;
         }
+
+        opl->poc = pic->poc;
+        memcpy(opl->digest, pic->digest, N_C * 16);
     }
     return ret;
 }
@@ -2767,12 +2773,12 @@ int evcd_decode(EVCD id, EVC_BITB * bitb, EVCD_STAT * stat)
     return ctx->fn_dec_cnk(ctx, bitb, stat);
 }
 
-int evcd_pull(EVCD id, EVC_IMGB ** img)
+int evcd_pull(EVCD id, EVC_IMGB ** img, EVCD_OPL * opl)
 {
     EVCD_CTX *ctx;
 
     EVCD_ID_TO_CTX_RV(id, ctx, EVC_ERR_INVALID_ARGUMENT);
     evc_assert_rv(ctx->fn_pull, EVC_ERR_UNKNOWN);
 
-    return ctx->fn_pull(ctx, img);
+    return ctx->fn_pull(ctx, img, opl);
 }
