@@ -273,7 +273,7 @@ static int set_extra_config(EVCD id)
         }
     }
 
-    if (op_fname_opl)
+    if (op_fname_opl[0])
     {
         value = 1;
         size = 4;
