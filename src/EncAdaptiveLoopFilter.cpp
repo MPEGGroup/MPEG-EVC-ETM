@@ -625,13 +625,19 @@ void EncAdaptiveLoopFilter::Enc_ALFProcess(CodingStructure& cs, const double *la
     copy_and_extend_tile(recLuma2_tile, s1, recoYuv2_tile, picReco->s_c, (w_tile >> 1), (h_tile >> 1), m);
 
     // reconstruct 
-#if ETM60_HLS_FIX
-    if (alfSliceParam->enabledFlag[0])
+#if ALF_CONFORMANCE_CHECK
+    if (alfSliceParam->enabledFlag[COMPONENT_Y])
+    {
         alfReconstructor(cs, alfSliceParam, orgYuv.yuv[0], orgYuv.s[0], recLuma.yuv[0], recLuma.s[0], COMPONENT_Y, ii, col_bd);
-    if (alfSliceParam->enabledFlag[1])
+    }
+    if (alfSliceParam->enabledFlag[COMPONENT_Cb])
+    {
         alfReconstructor(cs, alfSliceParam, orgYuv.yuv[1], orgYuv.s[1], recLuma.yuv[1], recLuma.s[1], COMPONENT_Cb, ii, col_bd);
-    if (alfSliceParam->enabledFlag[2])
+    }
+    if (alfSliceParam->enabledFlag[COMPONENT_Cr])
+    {
         alfReconstructor(cs, alfSliceParam, orgYuv.yuv[2], orgYuv.s[2], recLuma.yuv[2], recLuma.s[2], COMPONENT_Cr, ii, col_bd);
+    }
 #else
     alfReconstructor(cs, alfSliceParam, orgYuv.yuv[0], orgYuv.s[0], recLuma.yuv[0], recLuma.s[0], COMPONENT_Y, ii, col_bd);
     alfReconstructor(cs, alfSliceParam, orgYuv.yuv[1], orgYuv.s[1], recLuma.yuv[1], recLuma.s[1], COMPONENT_Cb, ii, col_bd);
@@ -741,7 +747,9 @@ double EncAdaptiveLoopFilter::deriveCtbAlfEnableFlags(CodingStructure& cs, const
 
 void EncAdaptiveLoopFilter::alfEncoder( CodingStructure& cs, AlfSliceParam* alfSliceParam, const ChannelType channel )
 {
-
+#if ALF_CONFORMANCE_CHECK
+  u8 filter_conformance_flag = 0;
+#endif
   double costMin = DBL_MAX;
 #if M53608_ALF_9
   double costMin_cb = DBL_MAX;
@@ -848,7 +856,11 @@ void EncAdaptiveLoopFilter::alfEncoder( CodingStructure& cs, AlfSliceParam* alfS
     {
         setEnableFlag(&m_alfSliceParamTemp, COMPONENT_Y, true);
         setCtuEnableFlag(m_ctuEnableFlag, COMPONENT_Y, 1);
-        cost = getFilterCoeffAndCost(cs, 0, COMPONENT_Y, isLuma(channel), iShapeIdx, uiCoeffBits);
+        cost = getFilterCoeffAndCost(cs, 0, COMPONENT_Y, isLuma(channel), iShapeIdx, uiCoeffBits
+#if ALF_CONFORMANCE_CHECK
+        , &filter_conformance_flag
+#endif
+        );
 
         cost += m_lambda[channel];
         if (cost < costMin)
@@ -922,8 +934,12 @@ void EncAdaptiveLoopFilter::alfEncoder( CodingStructure& cs, AlfSliceParam* alfS
     }
 #endif
     //3. CTU decision
-
-    if( channel != CHANNEL_TYPE_CHROMA ) {
+#if ALF_CONFORMANCE_CHECK
+    if (channel != CHANNEL_TYPE_CHROMA && !filter_conformance_flag)
+#else
+    if( channel != CHANNEL_TYPE_CHROMA ) 
+#endif
+    {
 
     double distUnfilter = 0;
     const int iterNum = 2 * 2 + 1;
@@ -963,12 +979,20 @@ void EncAdaptiveLoopFilter::alfEncoder( CodingStructure& cs, AlfSliceParam* alfS
       else
       {
 #if M53608_ALF_9
-          cost = getFilterCoeffAndCost(cs, distUnfilter, COMPONENT_Y, true, iShapeIdx, uiCoeffBits);
+          cost = getFilterCoeffAndCost(cs, distUnfilter, COMPONENT_Y, true, iShapeIdx, uiCoeffBits
+#if ALF_CONFORMANCE_CHECK
+              , &filter_conformance_flag
+#endif
+          );
 #else
           cost = getFilterCoeffAndCost(cs, distUnfilter, channel, true, iShapeIdx, uiCoeffBits);
 #endif
       }
     }//for iter
+#if ALF_CONFORMANCE_CHECK
+    if (filter_conformance_flag)
+        setEnableFlag(alfSliceParam, COMPONENT_Y, false);
+#endif
     }
   }//for shapeIdx
 #if M53608_ALF_9
@@ -1394,7 +1418,6 @@ void EncAdaptiveLoopFilter::alfTemporalEncoderAPSComponent(CodingStructure& cs, 
                             getFrameStats(COMPONENT_Cb, 0);
                             costCtbEnable = getUnfilteredDistortion(m_alfCovarianceFrame[COMPONENT_Cb][0], channel);
                             unfilterd_cost_cb = costCtbEnable;
-
                             reconstructCoeff(&m_alfSliceParamTemp, channel, true, isLuma(channel));
                             for (int classIdx = 0; classIdx < (isLuma(channel) ? MAX_NUM_ALF_CLASSES : 1); classIdx++)
                             {
@@ -1420,7 +1443,6 @@ void EncAdaptiveLoopFilter::alfTemporalEncoderAPSComponent(CodingStructure& cs, 
                             getFrameStats(COMPONENT_Cr, 0);
                             costCtbEnable = getUnfilteredDistortion(m_alfCovarianceFrame[COMPONENT_Cr][0], channel);
                             unfilterd_cost_cr = costCtbEnable;
-
                             reconstructCoeff(&m_alfSliceParamTemp, channel, true, isLuma(channel));
                             for (int classIdx = 0; classIdx < (isLuma(channel) ? MAX_NUM_ALF_CLASSES : 1); classIdx++)
                             {
@@ -1451,7 +1473,6 @@ void EncAdaptiveLoopFilter::alfTemporalEncoderAPSComponent(CodingStructure& cs, 
                                 m_alfCovarianceFrame[MAX_NUM_COMPONENT][0][0] += m_alfCovarianceFrame[COMPONENT_Cr][0][0];
                                 costCtbEnable = getUnfilteredDistortion(m_alfCovarianceFrame[MAX_NUM_COMPONENT][0], channel);
                                 unfilterd_cost_joint = costCtbEnable;
-
                                 reconstructCoeff(&m_alfSliceParamTemp, channel, true, isLuma(channel));
                                 for (int classIdx = 0; classIdx < (isLuma(channel) ? MAX_NUM_ALF_CLASSES : 1); classIdx++)
                                 {
@@ -1874,7 +1895,11 @@ void EncAdaptiveLoopFilter::copyAlfSliceParam(AlfSliceParam* alfSliceParamDst, A
   }
 }
 #if M53608_ALF_9
-double EncAdaptiveLoopFilter::getFilterCoeffAndCost(CodingStructure& cs, double distUnfilter, ComponentID compID, bool bReCollectStat, int iShapeIdx, int& uiCoeffBits)
+double EncAdaptiveLoopFilter::getFilterCoeffAndCost(CodingStructure& cs, double distUnfilter, ComponentID compID, bool bReCollectStat, int iShapeIdx, int& uiCoeffBits
+#if ALF_CONFORMANCE_CHECK
+    , u8* filter_conformance_flag
+#endif
+)
 #else
 double EncAdaptiveLoopFilter::getFilterCoeffAndCost(CodingStructure& cs, double distUnfilter, ChannelType channel, bool bReCollectStat, int iShapeIdx, int& uiCoeffBits)
 #endif
@@ -1909,7 +1934,11 @@ double EncAdaptiveLoopFilter::getFilterCoeffAndCost(CodingStructure& cs, double 
   if (compID == COMPONENT_Y)
   {
 #if M53608_ALF_8
-      dist += mergeFiltersAndCost(&m_alfSliceParamTemp, alfFilterShape, m_alfCovarianceFrame[channel][iShapeIdx], m_alfCovarianceMerged[iShapeIdx], uiCoeffBits);
+      dist += mergeFiltersAndCost(&m_alfSliceParamTemp, alfFilterShape, m_alfCovarianceFrame[channel][iShapeIdx], m_alfCovarianceMerged[iShapeIdx], uiCoeffBits
+#if ALF_CONFORMANCE_CHECK
+          , filter_conformance_flag
+#endif
+      );
 #else
       dist += mergeFiltersAndCost(&m_alfSliceParamTemp, alfFilterShape, m_alfCovarianceFrame[channel][ALF_FILTER_7], m_alfCovarianceMerged[iShapeIdx], uiCoeffBits);
 #endif
@@ -1994,10 +2023,25 @@ void EncAdaptiveLoopFilter::getFilterCoeffAndCost_Chroma(CodingStructure& cs, do
   m_alfCovarianceFrame[MAX_NUM_COMPONENT][iShapeIdx][0] += m_alfCovarianceFrame[2][iShapeIdx][0];
   dist += m_alfCovarianceFrame[MAX_NUM_COMPONENT][iShapeIdx][0].pixAcc + deriveCoeffQuant(m_filterCoeffQuant, m_alfCovarianceFrame[MAX_NUM_COMPONENT][0][0].E, m_alfCovarianceFrame[MAX_NUM_COMPONENT][0][0].y, alfFilterShape.numCoeff, alfFilterShape.weights, m_NUM_BITS, true);
   memcpy(m_filterCoeffSet[0], m_filterCoeffQuant, sizeof(*m_filterCoeffQuant) * alfFilterShape.numCoeff);
-  for (int i = 0; i < MAX_NUM_ALF_CHROMA_COEFF; i++)
+#if ALF_CONFORMANCE_CHECK
+  u8 filter_conformance_flag = 0;
+  int sum = 0;
+  int factor = (1 << (m_NUM_BITS - 1));
+#endif
+  for (int i = 0; i < MAX_NUM_ALF_CHROMA_COEFF - 1; i++)
   {
     m_alfSliceParamTemp.chromaCoeff[i] = m_filterCoeffQuant[i];
+#if ALF_CONFORMANCE_CHECK
+    if (m_filterCoeffQuant[i] < -(1 << 9) || m_filterCoeffQuant[i] > (1 << 9) - 1)
+        filter_conformance_flag = 1;
+    sum += m_alfSliceParamTemp.chromaCoeff[i] << 1;
+#endif
   }
+#if ALF_CONFORMANCE_CHECK
+  int last_coeff = factor - sum;
+  if (last_coeff < -(1 << 10) || last_coeff > (1 << 10) - 1)
+      filter_conformance_flag = 1;
+#endif
   uiCoeffBits += getCoeffRate(&m_alfSliceParamTemp, true);
   alfChromaIdc = 3;
   uiSliceFlag = lengthTruncatedUnary(alfChromaIdc, 3);
@@ -2013,6 +2057,12 @@ void EncAdaptiveLoopFilter::getFilterCoeffAndCost_Chroma(CodingStructure& cs, do
   uiSliceFlag = lengthTruncatedUnary(alfChromaIdc, 3);
   rate = uiCoeffBits + uiSliceFlag;
   filter_cost[1] = dist + m_lambda[COMPONENT_Cr] * rate;
+#if ALF_CONFORMANCE_CHECK
+  if (filter_conformance_flag)
+  {
+      filter_cost[0] = filter_cost[1] = filter_cost[2] = MAX_COST;
+  }
+#endif
 }
 #endif
 int EncAdaptiveLoopFilter::getCoeffRate(AlfSliceParam* alfSliceParam, bool isChroma)
@@ -2128,10 +2178,89 @@ double EncAdaptiveLoopFilter::getFilteredDistortion(AlfCovariance* cov, const in
 
   return dist;
 }
-
-
-double EncAdaptiveLoopFilter::mergeFiltersAndCost(AlfSliceParam* alfSliceParam, AlfFilterShape& alfShape, AlfCovariance* covFrame, AlfCovariance* covMerged, int& uiCoeffBits)
+#if ALF_CONFORMANCE_CHECK
+void EncAdaptiveLoopFilter::conformaceCheck(AlfSliceParam* alfSliceParam, u8* filter_conformance_flag)
 {
+    int factor = (1 << (m_NUM_BITS - 1));
+    int numCoeff = alfSliceParam->lumaFilterType == ALF_FILTER_5 ? 7 : 13;
+    short lumaCoeff[MAX_NUM_ALF_CLASSES * MAX_NUM_ALF_LUMA_COEFF] = { 0, };
+    short coeffRec[MAX_NUM_ALF_CLASSES * MAX_NUM_ALF_LUMA_COEFF] = { 0, };
+    int numFilters = alfSliceParam->numLumaFilters;
+    if (alfSliceParam->coeffDeltaPredModeFlag)
+    {
+        for (int j = 0; j < numCoeff - 1; j++)
+        {
+            lumaCoeff[j] = alfSliceParam->lumaCoeff[j];
+        }
+        for (int i = 1; i < numFilters; i++)
+        {
+            for (int j = 0; j < numCoeff - 1; j++)
+            {
+                lumaCoeff[i * MAX_NUM_ALF_LUMA_COEFF + j] = alfSliceParam->lumaCoeff[i * MAX_NUM_ALF_LUMA_COEFF + j] + alfSliceParam->lumaCoeff[(i - 1) * MAX_NUM_ALF_LUMA_COEFF + j];
+            }
+        }
+    }
+    else
+    {
+        for (int j = 0; j < MAX_NUM_ALF_CLASSES * MAX_NUM_ALF_LUMA_COEFF; j++)
+        {
+            lumaCoeff[j] = alfSliceParam->lumaCoeff[j];
+        }
+    }
+    int numCoeffLargeMinus1 = MAX_NUM_ALF_LUMA_COEFF - 1;
+    for (int classIdx = 0; classIdx < MAX_NUM_ALF_CLASSES; classIdx++)
+    {
+        int filterIdx = alfSliceParam->filterCoeffDeltaIdx[classIdx];
+        int fixedFilterIdx = alfSliceParam->fixedFilterIdx[classIdx];
+        u8  fixedFilterUsageFlag = alfSliceParam->fixedFilterUsageFlag[classIdx];
+        int fixedFilterUsed = fixedFilterUsageFlag;
+        int fixedFilterMapIdx = fixedFilterIdx;
+        if (fixedFilterUsed)
+        {
+            fixedFilterIdx = m_classToFilterMapping[classIdx][fixedFilterMapIdx];
+        }
+        int sum = 0;
+        for (int i = 0; i < numCoeffLargeMinus1; i++)
+        {
+            int curCoeff = 0;
+            //fixed filter
+            if (fixedFilterUsageFlag > 0)
+            {
+                curCoeff = m_fixedFilterCoeff[fixedFilterIdx][i];
+            }
+            //add coded coeff
+            if (m_filterShapes[CHANNEL_TYPE_LUMA][alfSliceParam->lumaFilterType].patternToLargeFilter[i] > 0)
+            {
+                int coeffIdx = m_filterShapes[CHANNEL_TYPE_LUMA][alfSliceParam->lumaFilterType].patternToLargeFilter[i] - 1;
+                curCoeff += lumaCoeff[filterIdx * MAX_NUM_ALF_LUMA_COEFF + coeffIdx];
+            }
+            coeffRec[classIdx* MAX_NUM_ALF_LUMA_COEFF + i] = curCoeff;
+            if (coeffRec[classIdx* MAX_NUM_ALF_LUMA_COEFF + i] < -(1 << 9) || coeffRec[classIdx* MAX_NUM_ALF_LUMA_COEFF + i] > (1 << 9) - 1)
+            {
+                *filter_conformance_flag = 1;
+                break;
+            }
+            sum += (coeffRec[classIdx* MAX_NUM_ALF_LUMA_COEFF + i] << 1);
+        }
+        if (*filter_conformance_flag)
+            break;
+        int last_coeff = factor - sum;
+        if (last_coeff < -(1 << 10) || last_coeff >(1 << 10) - 1)
+        {
+            *filter_conformance_flag = 1;
+            break;
+        }
+    }
+}
+#endif
+
+double EncAdaptiveLoopFilter::mergeFiltersAndCost(AlfSliceParam* alfSliceParam, AlfFilterShape& alfShape, AlfCovariance* covFrame, AlfCovariance* covMerged, int& uiCoeffBits
+#if ALF_CONFORMANCE_CHECK
+    , u8* filter_conformance_flag
+#endif
+)
+{
+
   int numFiltersBest = 0;
   int numFilters = MAX_NUM_ALF_CLASSES;
   static bool codedVarBins[MAX_NUM_ALF_CLASSES];
@@ -2180,6 +2309,7 @@ double EncAdaptiveLoopFilter::mergeFiltersAndCost(AlfSliceParam* alfSliceParam, 
   }
 
   dist = deriveFilterCoeffs(covFrame, covMerged, alfShape, m_filterIndices[numFiltersBest - 1], numFiltersBest, errorForce0CoeffTab);
+
   coeffBits = deriveFilterCoefficientsPredictionMode(alfShape, m_filterCoeffSet, m_diffFilterCoeff, numFiltersBest, predMode);
   distForce0 = getDistForce0(alfShape, numFiltersBest, errorForce0CoeffTab, codedVarBins);
   coeffBitsForce0 = getCostFilterCoeffForce0(alfShape, m_filterCoeffSet, numFiltersBest, codedVarBins);
@@ -2187,6 +2317,7 @@ double EncAdaptiveLoopFilter::mergeFiltersAndCost(AlfSliceParam* alfSliceParam, 
   cost0 = distForce0 + m_lambda[COMPONENT_Y] * coeffBitsForce0;
 
   alfSliceParam->numLumaFilters = numFiltersBest;
+
   double distReturn;
   if (cost <= cost0)
   {
@@ -2251,8 +2382,15 @@ double EncAdaptiveLoopFilter::mergeFiltersAndCost(AlfSliceParam* alfSliceParam, 
     }
     alfSliceParam->fixedFilterPattern = fixedFilterPattern;
   }
-
+#if ALF_CONFORMANCE_CHECK
+  *filter_conformance_flag = 0;
+  conformaceCheck(alfSliceParam, filter_conformance_flag);
+#endif
   uiCoeffBits += getNonFilterCoeffRate(alfSliceParam);
+#if ALF_CONFORMANCE_CHECK
+  if (*filter_conformance_flag)
+      distReturn = MAX_COST;
+#endif
   return distReturn;
 }
 

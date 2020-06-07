@@ -722,7 +722,6 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
         num_tiles_in_slice--;
     }
 }
-
 #if INTEGR_M53608
 void reconstructCoeff(AlfSliceParam* alfSliceParam, ChannelType channel, const BOOL bRdo, const BOOL bRedo)
 {
@@ -774,7 +773,8 @@ void reconstructCoeff(AlfSliceParam* alfSliceParam, ChannelType channel, const B
                     int coeffIdx = m_filterShapes[CHANNEL_TYPE_LUMA][filterType].patternToLargeFilter[i] - 1;
                     curCoeff += coeff[filterIdx * MAX_NUM_ALF_LUMA_COEFF + coeffIdx];
                 }
-#if ETM60_HLS_FIX
+#if ALF_CONFORMANCE_CHECK
+            if (bRdo == 0)
                 evc_assert(curCoeff >= -(1 << 9) && curCoeff <= (1 << 9) - 1);
 #endif
                 m_coeffFinal[classIdx* MAX_NUM_ALF_LUMA_COEFF + i] = curCoeff;
@@ -787,7 +787,8 @@ void reconstructCoeff(AlfSliceParam* alfSliceParam, ChannelType channel, const B
                 sum += (m_coeffFinal[classIdx* MAX_NUM_ALF_LUMA_COEFF + i] << 1);
             }
             m_coeffFinal[classIdx* MAX_NUM_ALF_LUMA_COEFF + numCoeffLargeMinus1] = factor - sum;
-#if ETM60_HLS_FIX
+#if ALF_CONFORMANCE_CHECK
+        if (bRdo == 0)
             evc_assert(m_coeffFinal[classIdx* MAX_NUM_ALF_LUMA_COEFF + numCoeffLargeMinus1] >= -(1 << 10) && m_coeffFinal[classIdx* MAX_NUM_ALF_LUMA_COEFF + numCoeffLargeMinus1] <= (1 << 10) - 1);
 #endif
         }
@@ -811,12 +812,14 @@ void reconstructCoeff(AlfSliceParam* alfSliceParam, ChannelType channel, const B
             for (int i = 0; i < numCoeffMinus1; i++)
             {
                 sum += (coeff[filterIdx* MAX_NUM_ALF_LUMA_COEFF + i] << 1);
-#if ETM60_HLS_FIX
+#if ALF_CONFORMANCE_CHECK
+            if (bRdo == 0)
                 evc_assert(coeff[filterIdx* MAX_NUM_ALF_LUMA_COEFF + i] >= -(1 << 9) && coeff[filterIdx* MAX_NUM_ALF_LUMA_COEFF + i] <= (1 << 9) - 1);
 #endif
             }
             coeff[filterIdx* MAX_NUM_ALF_LUMA_COEFF + numCoeffMinus1] = factor - sum;
-#if ETM60_HLS_FIX
+#if ALF_CONFORMANCE_CHECK
+        if (bRdo == 0)
             evc_assert(coeff[filterIdx* MAX_NUM_ALF_LUMA_COEFF + numCoeffMinus1] >= -(1 << 10) && coeff[filterIdx* MAX_NUM_ALF_LUMA_COEFF + numCoeffMinus1] <= (1 << 10) - 1);
 #endif
         }

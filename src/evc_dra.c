@@ -702,6 +702,21 @@ void evce_initDRA(WCGDDRAControl *p_DRAMapping, int totalChangePoints, int *luma
     double scaleCbDRA = evce_getCbScaleDRA(&(p_DRAMapping->m_chromaQPModel), p_DRAMapping->m_chromaQPModel.dra_table_idx);
     double scaleCrDRA = evce_getCrScaleDRA(&(p_DRAMapping->m_chromaQPModel), p_DRAMapping->m_chromaQPModel.dra_table_idx);
 
+#if DRA_CONFORMANCE_CHECK
+    double min_bin = 1.0 / (1 << p_DRAMapping->m_dra_descriptor2);
+    int sign = EVC_SIGN(scaleCbDRA);
+    if (sign * scaleCbDRA < min_bin)
+        scaleCbDRA = sign * min_bin;
+    if (sign * scaleCbDRA > (4 - min_bin))
+        scaleCbDRA = sign * (4 - min_bin);
+
+    sign = EVC_SIGN(scaleCrDRA);
+    if (sign * scaleCrDRA < min_bin)
+        scaleCrDRA = sign * min_bin;
+    if (sign * scaleCrDRA > (4 - min_bin))
+        scaleCrDRA = sign * (4 - min_bin);
+#endif
+
     scaleCbDRA = EVC_CLIP3(0, 1 << p_DRAMapping->m_dra_descriptor1, scaleCbDRA);
     p_DRAMapping->m_dra_cb_scale_value = (int)(scaleCbDRA * (1 << p_DRAMapping->m_dra_descriptor2) + 0.5);
     scaleCrDRA = EVC_CLIP3(0, 1 << p_DRAMapping->m_dra_descriptor1, scaleCrDRA);

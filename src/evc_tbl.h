@@ -172,6 +172,7 @@ extern const float  g_RGB2XYZ_REC[5][9];
 extern const int g_dra_chroma_qp_offset_tbl[NUM_CHROMA_QP_OFFSET_LOG];
 extern const int g_dra_exp_nom_v2[NUM_CHROMA_QP_SCALE_EXP];
 #endif
+
 #ifdef __cplusplus
 }
 #endif

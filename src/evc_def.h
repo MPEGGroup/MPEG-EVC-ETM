@@ -37,7 +37,9 @@
 #include "evc.h"
 #include "evc_port.h"
 
-#define ETM60_HLS_FIX                                 1          
+#define ETM60_HLS_FIX                                 1         
+#define ALF_CONFORMANCE_CHECK                         1
+#define DRA_CONFORMANCE_CHECK                         1  
 
 #define M53744                                        1
 

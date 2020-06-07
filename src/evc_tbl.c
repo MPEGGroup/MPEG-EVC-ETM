@@ -906,3 +906,4 @@ const int g_dra_exp_nom_v2[NUM_CHROMA_QP_SCALE_EXP] =   // Approximation of exp 
     128, 144, 161, 181, 203, 228, 256, 287, 322, 362, 406, 456, 512, 574, 645, 724, 812, 912, 1024, 1149, 1290, 1448, 1625, 1825, 2048
 };
 #endif
+
