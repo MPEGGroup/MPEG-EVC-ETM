@@ -2061,8 +2061,7 @@ int evc_had_2x2(pel *org, pel *cur, int s_org, int s_cur, int step)
     m[1] = diff[1] + diff[3];
     m[2] = diff[0] - diff[2];
     m[3] = diff[1] - diff[3];
-
-    satd += EVC_ABS(m[0] + m[1]);
+    satd += (EVC_ABS(m[0] + m[1]) >> 2);
     satd += EVC_ABS(m[0] - m[1]);
     satd += EVC_ABS(m[2] + m[3]);
     satd += EVC_ABS(m[2] - m[3]);
@@ -2141,6 +2140,10 @@ int evc_had_4x4(pel *org, pel *cur, int s_org, int s_cur, int step)
 
     // abs
     sum = _mm_abs_epi16(r0);
+
+    s16* p = (s16*)&sum;
+    p[0] = p[0] >> 2;
+
     sum = _mm_add_epi16(sum, _mm_abs_epi16(r2));
     sum = _mm_add_epi16(sum, _mm_abs_epi16(r3));
     sum = _mm_add_epi16(sum, _mm_abs_epi16(r5));
@@ -2239,7 +2242,8 @@ int evc_had_4x4(pel *org, pel *cur, int s_org, int s_cur, int step)
     d[14] = m[14] + m[15];
     d[15] = m[15] - m[14];
 
-    for(k = 0; k < 16; k++)
+    satd += (EVC_ABS(d[0]) >> 2);
+    for (k = 1; k < 16; k++)
     {
         satd += EVC_ABS(d[k]);
     }
@@ -2712,6 +2716,9 @@ int evc_had_8x8(pel *org, pel *cur, int s_org, int s_cur, int step)
             src6_8x16b = _mm_abs_epi32(out6_8x16b);
             src7_8x16b = _mm_abs_epi32(out7_8x16b);
 
+            s32* p = (s32*)&src0_8x16b;
+            p[0] = p[0] >> 2;
+
             src0_8x16b = _mm_add_epi32(src0_8x16b, src1_8x16b);
             src2_8x16b = _mm_add_epi32(src2_8x16b, src3_8x16b);
             src4_8x16b = _mm_add_epi32(src4_8x16b, src5_8x16b);
@@ -2863,6 +2870,10 @@ int evc_had_8x8(pel *org, pel *cur, int s_org, int s_cur, int step)
         n1[6][i] = _mm_abs_epi32(_mm_add_epi32(n2[6][i], n2[7][i]));
         n1[7][i] = _mm_abs_epi32(_mm_sub_epi32(n2[6][i], n2[7][i]));
     }
+
+    s32* p = (s32*)&n1[0][0];
+    p[0] = p[0] >> 2;
+
     for(i = 0; i < 8; i++)
     {
         m1[i] = _mm_add_epi32(n1[i][0], n1[i][1]);
@@ -2968,9 +2979,14 @@ int evc_had_8x8(pel *org, pel *cur, int s_org, int s_cur, int step)
         m2[7][i] = m1[6][i] - m1[7][i];
     }
 
-    for(i = 0; i < 8; i++)
+    satd += EVC_ABS(m2[0][0]) >> 2;
+    for (j = 1; j < 8; j++)
     {
-        for(j = 0; j < 8; j++)
+        satd += EVC_ABS(m2[0][j]);
+    }
+    for (i = 1; i < 8; i++)
+    {
+        for (j = 0; j < 8; j++)
         {
             satd += EVC_ABS(m2[i][j]);
         }
@@ -3467,6 +3483,9 @@ int evc_had_16x8(pel *org, pel *cur, int s_org, int s_cur, int step)
             src2_8x16b = _mm_abs_epi16(out2_8x16b);
             src3_8x16b = _mm_abs_epi16(out3_8x16b);
 
+            s16* p = (s16*)&src0_8x16b;
+            p[0] = p[0] >> 2;
+
             src4_8x16b = _mm_srli_si128(src0_8x16b, 8);
             src5_8x16b = _mm_srli_si128(src1_8x16b, 8);
             src6_8x16b = _mm_srli_si128(src2_8x16b, 8);
@@ -3904,6 +3923,9 @@ int evc_had_16x8(pel *org, pel *cur, int s_org, int s_cur, int step)
             src6_8x16b = _mm_abs_epi32(out6_8x16b);
             src7_8x16b = _mm_abs_epi32(out7_8x16b);
 
+            s32* p = (s32*)&src0_8x16b;
+            p[0] = p[0] >> 2;
+
             src0_8x16b = _mm_add_epi32(src0_8x16b, src1_8x16b);
             src2_8x16b = _mm_add_epi32(src2_8x16b, src3_8x16b);
             src4_8x16b = _mm_add_epi32(src4_8x16b, src5_8x16b);
@@ -4173,7 +4195,11 @@ int evc_had_16x8(pel *org, pel *cur, int s_org, int s_cur, int step)
         n1[13] = _mm_abs_epi32(_mm_sub_epi32(n2[12], n2[13]));
         n1[14] = _mm_abs_epi32(_mm_add_epi32(n2[14], n2[15]));
         n1[15] = _mm_abs_epi32(_mm_sub_epi32(n2[14], n2[15]));
-
+        if (l == 0)
+        {
+            s32* p = (s32*)&n1[0];
+            p[0] = p[0] >> 2;
+        }
         // sum up
         n1[0] = _mm_add_epi32(n1[0], n1[1]);
         n1[2] = _mm_add_epi32(n1[2], n1[3]);
@@ -4337,9 +4363,14 @@ int evc_had_16x8(pel *org, pel *cur, int s_org, int s_cur, int step)
         m2[7][i] = m1[6][i] - m1[7][i];
     }
 
-    for(i = 0; i < 8; i++)
+    satd += EVC_ABS(m2[0][0]) >> 2;
+    for (j = 1; j < 16; j++)
     {
-        for(j = 0; j < 16; j++)
+        satd += EVC_ABS(m2[0][j]);
+    }
+    for (i = 1; i < 8; i++)
+    {
+        for (j = 0; j < 16; j++)
         {
             satd += EVC_ABS(m2[i][j]);
         }
@@ -4852,6 +4883,9 @@ int evc_had_8x16(pel *org, pel *cur, int s_org, int s_cur, int step)
             src2_8x16b = _mm_abs_epi16(out2_8x16b);
             src3_8x16b = _mm_abs_epi16(out3_8x16b);
 
+            s16* p = (s16*)&src0_8x16b;
+            p[0] = p[0] >> 2;
+
             src4_8x16b = _mm_srli_si128(src0_8x16b, 8);
             src5_8x16b = _mm_srli_si128(src1_8x16b, 8);
             src6_8x16b = _mm_srli_si128(src2_8x16b, 8);
@@ -5289,6 +5323,9 @@ int evc_had_8x16(pel *org, pel *cur, int s_org, int s_cur, int step)
             src6_8x16b = _mm_abs_epi32(out6_8x16b);
             src7_8x16b = _mm_abs_epi32(out7_8x16b);
 
+            s32* p = (s32*)&src0_8x16b;
+            p[0] = p[0] >> 2;
+
             src0_8x16b = _mm_add_epi32(src0_8x16b, src1_8x16b);
             src2_8x16b = _mm_add_epi32(src2_8x16b, src3_8x16b);
             src4_8x16b = _mm_add_epi32(src4_8x16b, src5_8x16b);
@@ -5541,6 +5578,12 @@ int evc_had_8x16(pel *org, pel *cur, int s_org, int s_cur, int step)
             n1[6][i] = _mm_abs_epi32(_mm_add_epi32(n2[6][i], n2[7][i]));
             n1[7][i] = _mm_abs_epi32(_mm_sub_epi32(n2[6][i], n2[7][i]));
         }
+        if (l == 0)
+        {
+            s32* p = (s32*)&n1[0][0];
+            p[0] = p[0] >> 2;
+        }
+
         for(i = 0; i < 8; i++)
         {
             m1[i] = _mm_add_epi32(n1[i][0], n1[i][1]);
@@ -5688,9 +5731,14 @@ int evc_had_8x16(pel *org, pel *cur, int s_org, int s_cur, int step)
         m2[15][i] = m1[14][i] - m1[15][i];
     }
 
-    for(i = 0; i < 16; i++)
+    satd += EVC_ABS(m2[0][0]) >> 2;
+    for (j = 1; j < 8; j++)
     {
-        for(j = 0; j < 8; j++)
+        satd += EVC_ABS(m2[0][j]);
+    }
+    for (i = 1; i < 16; i++)
+    {
+        for (j = 0; j < 8; j++)
         {
             satd += EVC_ABS(m2[i][j]);
         }
@@ -5785,6 +5833,9 @@ int evc_had_8x4(pel *org, pel *cur, int s_org, int s_cur, int step)
     m1[6] = _mm_abs_epi32(_mm_add_epi32(m2[6], m2[7]));
     m1[7] = _mm_abs_epi32(_mm_sub_epi32(m2[6], m2[7]));
 
+    s32* p = (s32*)&m1[0];
+    p[0] = p[0] >> 2;
+
     m1[0] = _mm_add_epi32(m1[0], m1[1]);
     m1[1] = _mm_add_epi32(m1[2], m1[3]);
     m1[2] = _mm_add_epi32(m1[4], m1[5]);
@@ -5867,9 +5918,14 @@ int evc_had_8x4(pel *org, pel *cur, int s_org, int s_cur, int step)
         m2[3][i] = m1[2][i] - m1[3][i];
     }
 
-    for(i = 0; i < 4; i++)
+    satd += EVC_ABS(m2[0][0]) >> 2;
+    for (j = 1; j < 8; j++)
     {
-        for(j = 0; j < 8; j++)
+        satd += EVC_ABS(m2[0][j]);
+    }
+    for (i = 1; i < 4; i++)
+    {
+        for (j = 0; j < 8; j++)
         {
             satd += EVC_ABS(m2[i][j]);
         }
@@ -5965,6 +6021,10 @@ int evc_had_4x8(pel *org, pel *cur, int s_org, int s_cur, int step)
         n1[2][i] = _mm_abs_epi32(_mm_add_epi32(n2[2][i], n2[3][i]));
         n1[3][i] = _mm_abs_epi32(_mm_sub_epi32(n2[2][i], n2[3][i]));
     }
+
+    s32* p = (s32*)&n1[0][0];
+    p[0] = p[0] >> 2;
+
     for(i = 0; i < 4; i++)
     {
         m1[i] = _mm_add_epi32(n1[i][0], n1[i][1]);
@@ -6042,9 +6102,14 @@ int evc_had_4x8(pel *org, pel *cur, int s_org, int s_cur, int step)
         m2[7][i] = m1[6][i] - m1[7][i];
     }
 
-    for(i = 0; i < 8; i++)
+    satd += EVC_ABS(m2[0][0]) >> 2;
+    for (j = 1; j < 4; j++)
     {
-        for(j = 0; j < 4; j++)
+        satd += EVC_ABS(m2[0][j]);
+    }
+    for (i = 1; i < 8; i++)
+    {
+        for (j = 0; j < 4; j++)
         {
             satd += EVC_ABS(m2[i][j]);
         }
