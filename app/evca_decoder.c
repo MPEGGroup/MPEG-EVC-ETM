@@ -272,6 +272,19 @@ static int set_extra_config(EVCD id)
             return -1;
         }
     }
+
+    if (op_fname_opl)
+    {
+        value = 1;
+        size = 4;
+        ret = evcd_config(id, EVCD_CFG_SET_USE_OPL_OUTPUT, &value, &size);
+        if (EVC_FAILED(ret))
+        {
+            v0print("failed to set config for picture signature\n");
+            return -1;
+        }
+    }
+
     return 0;
 }
 

@@ -158,6 +158,7 @@ extern "C"
  * config types for decoder
  *****************************************************************************/
 #define EVCD_CFG_SET_USE_PIC_SIGNATURE  (301)
+#define EVCD_CFG_SET_USE_OPL_OUTPUT     (302)
 
 /*****************************************************************************
  * config types for encoder

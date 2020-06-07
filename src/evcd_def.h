@@ -299,6 +299,8 @@ struct _EVCD_CTX
     u8                      pic_sign[N_C][16];
     /* flag to indicate picture signature existing or not */
     u8                      pic_sign_exist;
+    /* flag to indicate opl decoder output */
+    u8                      use_opl;
     /* tile index map (width in SCU x height in SCU) of
     raster scan order in a frame */
     u8                    * map_tidx;

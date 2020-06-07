@@ -2510,8 +2510,11 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
             ctx->fn_picbuf_expand(ctx, ctx->pic);
 #endif
 
-            ret = evc_picbuf_signature(ctx->pic, ctx->pic->digest);
-            evc_assert_rv(EVC_SUCCEEDED(ret), ret);
+            if (ctx->use_opl)
+            {
+                ret = evc_picbuf_signature(ctx->pic, ctx->pic->digest);
+                evc_assert_rv(EVC_SUCCEEDED(ret), ret);
+            }
 
             /* put decoded picture to DPB */
             ret = evc_picman_put_pic(&ctx->dpm, ctx->pic, ctx->nalu.nal_unit_type_plus1 - 1 == EVC_IDR_NUT, ctx->poc.poc_val, ctx->nalu.nuh_temporal_id, 1, ctx->refp, ctx->slice_ref_flag, sps->tool_rpl, ctx->ref_pic_gap_length);
@@ -2533,7 +2536,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 #else
                 ret = evcd_picbuf_check_signature(ctx->pic, ctx->pic_sign);
 #endif
-                ctx->pic_sign_exist = 0;
+                ctx->pic_sign_exist = 0; 
             }
             else
             {
@@ -2721,6 +2724,10 @@ int evcd_config(EVCD id, int cfg, void * buf, int * size)
         /* set config ************************************************************/
         case EVCD_CFG_SET_USE_PIC_SIGNATURE:
             ctx->use_pic_sign = (*((int *)buf)) ? 1 : 0;
+            break;
+
+        case EVCD_CFG_SET_USE_OPL_OUTPUT:
+            ctx->use_opl = (*((int *)buf)) ? 1 : 0;
             break;
 
         /* get config ************************************************************/
