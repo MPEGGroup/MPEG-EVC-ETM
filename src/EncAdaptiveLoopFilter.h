@@ -230,7 +230,14 @@ public:
 private:
   void   alfEncoder(CodingStructure& cs, AlfSliceParam* alfSliceParam, const ChannelType channel);
   void   copyAlfSliceParam(AlfSliceParam* alfSliceParamDst, AlfSliceParam* alfSliceParamSrc, ChannelType channel);
-  double mergeFiltersAndCost(AlfSliceParam* alfSliceParam, AlfFilterShape& alfShape, AlfCovariance* covFrame, AlfCovariance* covMerged, int& uiCoeffBits);
+  double mergeFiltersAndCost(AlfSliceParam* alfSliceParam, AlfFilterShape& alfShape, AlfCovariance* covFrame, AlfCovariance* covMerged, int& uiCoeffBits
+#if ALF_CONFORMANCE_CHECK
+      , u8* filter_conformance_flag
+#endif
+  );
+#if ALF_CONFORMANCE_CHECK
+  void conformaceCheck(AlfSliceParam* alfSliceParam, u8* filter_conformance_flag);
+#endif
 #if M53608_ALF_9
   void   getFrameStats(ComponentID channel, int iShapeIdx);
 #else
@@ -261,7 +268,11 @@ private:
   const int *coeff, const int numCoeff, const int bitDepth);
 
 #if M53608_ALF_9
-  double getFilterCoeffAndCost(CodingStructure& cs, double distUnfilter, ComponentID channel, bool bReCollectStat, int iShapeIdx, int& uiCoeffBits);
+  double getFilterCoeffAndCost(CodingStructure& cs, double distUnfilter, ComponentID channel, bool bReCollectStat, int iShapeIdx, int& uiCoeffBits
+#if ALF_CONFORMANCE_CHECK
+      , u8* filter_conformance_flag
+#endif
+  );
 #else
   double getFilterCoeffAndCost(CodingStructure& cs, double distUnfilter, ChannelType channel, bool bReCollectStat, int iShapeIdx, int& uiCoeffBits);
 #endif

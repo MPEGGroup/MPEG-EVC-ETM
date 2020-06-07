@@ -1699,7 +1699,6 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
     s16 *p_map_mv_dst_L1 = NULL;
     s8  *p_ref_src = NULL;
     s16 *p_map_mv_src = NULL;
-    
     for (k = 0; k < MAX_NUM_POSSIBLE_SCAND; k++)
     {
         valid_flag[k] = 0;
@@ -1763,6 +1762,7 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
             p_ref_src = refs;
             p_map_mv_src = &(tmvp[0][0]);
             evc_get_merge_insert_mv(p_ref_dst, p_map_mv_dst_L0, p_map_mv_dst_L1, p_ref_src, p_map_mv_src, slice_type, cuw, cuh, is_sps_admvp);
+
             check_redundancy(slice_type, mvp, refi, &cnt);
             cnt++;
             tmvp_cnt_pos1 = cnt;
@@ -1861,7 +1861,6 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
             evc_get_merge_insert_mv(p_ref_dst, p_map_mv_dst_L0, p_map_mv_dst_L1, p_ref_src, p_map_mv_src, slice_type, cuw, cuh, is_sps_admvp);
             check_redundancy(slice_type, mvp, refi, &cnt);
             cnt++;
-
             if (cnt >= (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
             {
                 return;

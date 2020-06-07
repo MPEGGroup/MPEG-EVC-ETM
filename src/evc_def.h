@@ -37,6 +37,10 @@
 #include "evc.h"
 #include "evc_port.h"
 
+#define ETM60_HLS_FIX                                 1         
+#define ALF_CONFORMANCE_CHECK                         1
+#define DRA_CONFORMANCE_CHECK                         1  
+
 #define M53744                                        1
 
 #define INTEGR_M53608                                 1
@@ -1250,6 +1254,9 @@ typedef struct _EVC_VUI
     int chroma_sample_loc_type_top_field;
     int chroma_sample_loc_type_bottom_field;
     int neutral_chroma_indication_flag;
+#if ETM60_HLS_FIX
+    int field_seq_flag;
+#endif
     int timing_info_present_flag;
     int num_units_in_tick;
     int time_scale;
@@ -1388,7 +1395,9 @@ typedef struct _EVC_PPS
     int cu_qp_delta_area;
 #endif
 #if M52291_HDR_DRA
+#if !ETM60_HLS_FIX
     int pic_dra_enabled_present_flag;
+#endif
     int pic_dra_enabled_flag;
     int pic_dra_aps_id;
 #endif

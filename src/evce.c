@@ -359,6 +359,9 @@ static void set_vui(EVCE_CTX * ctx, EVC_VUI * vui)
     vui->chroma_sample_loc_type_top_field = 1;
     vui->chroma_sample_loc_type_bottom_field = 1;
     vui->neutral_chroma_indication_flag = 1;
+#if ETM60_HLS_FIX
+    vui->field_seq_flag = 1;
+#endif
     vui->timing_info_present_flag = 1;
     vui->num_units_in_tick = 1;
     vui->time_scale = 1;
@@ -594,14 +597,18 @@ static void set_pps(EVCE_CTX * ctx, EVC_PPS * pps)
         if ((p_aps + 1)->signal_flag == 1)
         {
             assert(((p_aps + 1)->aps_id) < 31 && ((p_aps + 1)->aps_id > -1));
+#if !ETM60_HLS_FIX
             pps->pic_dra_enabled_present_flag = 1;
+#endif
             pps->pic_dra_enabled_flag = 1;
             pps->pic_dra_aps_id = (p_aps + 1)->aps_id;
         }
     }
     else
     {
+#if !ETM60_HLS_FIX
         pps->pic_dra_enabled_present_flag = 0;
+#endif
         pps->pic_dra_enabled_flag = 0;
     }
 #endif
