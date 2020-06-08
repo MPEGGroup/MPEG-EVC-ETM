@@ -280,9 +280,9 @@ void evc_md5_init(EVC_MD5 * md5);
 void evc_md5_update(EVC_MD5 * md5, void * buf, u32 len);
 void evc_md5_update_16(EVC_MD5 * md5, void * buf, u32 len);
 void evc_md5_finish(EVC_MD5 * md5, u8 digest[16]);
-int evc_md5_imgb(EVC_IMGB * imgb, u8 digest[16]);
+int evc_md5_imgb(EVC_IMGB * imgb, u8 digest[N_C][16]);
 
-int evc_picbuf_signature(EVC_PIC * pic, u8 * md5_out);
+int evc_picbuf_signature(EVC_PIC * pic, u8 md5_out[N_C][16]);
 
 int evc_atomic_inc(volatile int * pcnt);
 int evc_atomic_dec(volatile int * pcnt);

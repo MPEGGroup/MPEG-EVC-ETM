@@ -2510,6 +2510,12 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
             ctx->fn_picbuf_expand(ctx, ctx->pic);
 #endif
 
+            if (ctx->use_opl)
+            {
+                ret = evc_picbuf_signature(ctx->pic, ctx->pic->digest);
+                evc_assert_rv(EVC_SUCCEEDED(ret), ret);
+            }
+
             /* put decoded picture to DPB */
             ret = evc_picman_put_pic(&ctx->dpm, ctx->pic, ctx->nalu.nal_unit_type_plus1 - 1 == EVC_IDR_NUT, ctx->poc.poc_val, ctx->nalu.nuh_temporal_id, 1, ctx->refp, ctx->slice_ref_flag, sps->tool_rpl, ctx->ref_pic_gap_length);
             evc_assert_rv(EVC_SUCCEEDED(ret), ret);
@@ -2530,7 +2536,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 #else
                 ret = evcd_picbuf_check_signature(ctx->pic, ctx->pic_sign);
 #endif
-                ctx->pic_sign_exist = 0;
+                ctx->pic_sign_exist = 0; 
             }
             else
             {
@@ -2553,7 +2559,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     return ret;
 }
 
-int evcd_pull_frm(EVCD_CTX *ctx, EVC_IMGB **imgb)
+int evcd_pull_frm(EVCD_CTX *ctx, EVC_IMGB **imgb, EVCD_OPL * opl)
 {
     int ret;
     EVC_PIC *pic;
@@ -2577,6 +2583,9 @@ int evcd_pull_frm(EVCD_CTX *ctx, EVC_IMGB **imgb)
             (*imgb)->crop_t = ctx->sps.picture_crop_top_offset;
             (*imgb)->crop_b = ctx->sps.picture_crop_bottom_offset;
         }
+
+        opl->poc = pic->poc;
+        memcpy(opl->digest, pic->digest, N_C * 16);
     }
     return ret;
 }
@@ -2717,6 +2726,10 @@ int evcd_config(EVCD id, int cfg, void * buf, int * size)
             ctx->use_pic_sign = (*((int *)buf)) ? 1 : 0;
             break;
 
+        case EVCD_CFG_SET_USE_OPL_OUTPUT:
+            ctx->use_opl = (*((int *)buf)) ? 1 : 0;
+            break;
+
         /* get config ************************************************************/
         default:
             evc_assert_rv(0, EVC_ERR_UNSUPPORTED);
@@ -2767,12 +2780,12 @@ int evcd_decode(EVCD id, EVC_BITB * bitb, EVCD_STAT * stat)
     return ctx->fn_dec_cnk(ctx, bitb, stat);
 }
 
-int evcd_pull(EVCD id, EVC_IMGB ** img)
+int evcd_pull(EVCD id, EVC_IMGB ** img, EVCD_OPL * opl)
 {
     EVCD_CTX *ctx;
 
     EVCD_ID_TO_CTX_RV(id, ctx, EVC_ERR_INVALID_ARGUMENT);
     evc_assert_rv(ctx->fn_pull, EVC_ERR_UNKNOWN);
 
-    return ctx->fn_pull(ctx, img);
+    return ctx->fn_pull(ctx, img, opl);
 }

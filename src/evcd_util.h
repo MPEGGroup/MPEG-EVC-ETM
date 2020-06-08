@@ -39,7 +39,7 @@ EVC_PIC * evcd_picbuf_alloc(PICBUF_ALLOCATOR * pa, int * ret);
 void evcd_picbuf_free(PICBUF_ALLOCATOR * pa, EVC_PIC * pic);
 
 #if HDR_MD5_CHECK
-int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16], int tool_dra, void* pps_draParams, u16 width, u16 height);
+int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[N_C][16], int tool_dra, void* pps_draParams, u16 width, u16 height);
 #else
 int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16]);
 #endif

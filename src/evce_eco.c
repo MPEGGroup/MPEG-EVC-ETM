@@ -769,8 +769,8 @@ int evce_eco_signature(EVCE_CTX * ctx, EVC_BSW * bs)
 {
     if (ctx->param.use_pic_sign)
     {
-        int i, ret, payload_size = 16;
-        u8 pic_sign[16];
+        int ret;
+        u8 pic_sign[N_C][16] = { {0} };
 
         /* get picture signature */
 #if HDR_MD5_CHECK
@@ -790,12 +790,17 @@ int evce_eco_signature(EVCE_CTX * ctx, EVC_BSW * bs)
         }
 #endif
         u32 payload_type = EVC_UD_PIC_SIGNATURE;
+        u32 payload_size = 16;
+
         evc_bsw_write(bs, payload_type, 8);
         evc_bsw_write(bs, payload_size, 8);
 
-        for (i = 0; i < payload_size; i++)
+        for (int i = 0; i < ctx->pic[0]->imgb->np; ++i)
         {
-            evc_bsw_write(bs, pic_sign[i], 8);
+            for (int j = 0; j < payload_size; j++)
+            {
+                evc_bsw_write(bs, pic_sign[i][j], 8);
+            }
         }
     }
 
@@ -1020,7 +1025,7 @@ EVC_IMGB * imgb_alloc1(int w, int h, int cs)
     imgb->cs = cs;
     return imgb;
 }
-int evce_eco_udata_hdr(EVCE_CTX * ctx, EVC_BSW * bs, u8* pic_sign)
+int evce_eco_udata_hdr(EVCE_CTX * ctx, EVC_BSW * bs, u8 pic_sign[N_C][16])
 {
     int ret;
     EVC_IMGB *imgb_hdr_md5 = NULL;
