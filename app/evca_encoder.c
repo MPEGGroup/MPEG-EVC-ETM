@@ -1731,8 +1731,8 @@ int check_conf(EVCE_CDSC* cdsc)
     }
 #endif
     int pic_m = max(8, min_block_size);
-    if ((cdsc->w & (pic_m - 1)) != 0) { v0print("Current encoder does not support picture width, not multiple of 8\n"); success = 0; }
-    if ((cdsc->h & (pic_m - 1)) != 0) { v0print("Current encoder does not support picture height, not multiple of 8\n"); success = 0; }
+    if ((cdsc->w & (pic_m - 1)) != 0) { v0print("Current encoder does not support picture width, not multiple of max(8, minimum CU size)\n"); success = 0; }
+    if ((cdsc->h & (pic_m - 1)) != 0) { v0print("Current encoder does not support picture height, not multiple of max(8, minimum CU size)\n"); success = 0; }
     
     return success;
 }
