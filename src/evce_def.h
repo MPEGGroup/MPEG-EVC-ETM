@@ -802,9 +802,13 @@ struct _EVCE_CTX
     EVC_SPS                sps;
     /* picture parameter set */
     EVC_PPS                pps;
+#if MULTIPLE_NAL
+    EVC_PPS                 pps_array[64];
+#endif
     /* adaptation parameter set */
 #if M52291_HDR_DRA
-    EVC_APS_GEN                *aps_gen_array[2];
+    EVC_APS_GEN              *aps_gen_array[2];
+    void                     *g_void_dra_array;
 #endif
     EVC_APS                aps;
     u8                     aps_counter;

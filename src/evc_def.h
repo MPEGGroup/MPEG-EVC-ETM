@@ -37,6 +37,11 @@
 #include "evc.h"
 #include "evc_port.h"
 
+#define MULTIPLE_NAL      1
+#if MULTIPLE_NAL  
+#define MAX_NUM_PPS 64
+#endif
+
 #define ETM60_HLS_FIX                                 1         
 #define ALF_CONFORMANCE_CHECK                         1
 #define DRA_CONFORMANCE_CHECK                         1  

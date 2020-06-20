@@ -429,6 +429,8 @@ static void imgb_cpy(EVC_IMGB * dst, EVC_IMGB * src)
         dst->crop_t = src->crop_t;
         dst->crop_b = src->crop_b;
     }
+    dst->imgb_active_pps_id = src->imgb_active_pps_id;
+    dst->imgb_active_aps_id = src->imgb_active_aps_id;
 }
 
 static void imgb_free(EVC_IMGB * imgb)

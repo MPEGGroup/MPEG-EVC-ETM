@@ -35,6 +35,8 @@
 #ifndef _EVC_H_
 #define _EVC_H_
 
+#define MULTIPLE_NAL     1
+
 #define M53737                          1
 
 #define ENC_DBF_CONTROL                 1
@@ -313,6 +315,10 @@ struct _EVC_IMGB
     int                 crop_r;
     int                 crop_t;
     int                 crop_b;
+#if MULTIPLE_NAL
+    int imgb_active_pps_id;
+    int imgb_active_aps_id;
+#endif
 };
 
 /*****************************************************************************
@@ -585,7 +591,7 @@ int evcd_get_sps_dra_flag(EVCD id);
 int evcd_get_pps_dra_flag(EVCD id);
 int evcd_get_pps_dra_id(EVCD id);
 int evcd_assign_pps_draParam(EVCD id, void * p_draParams);
-int evcd_decode(EVCD id, EVC_BITB * bitb, EVCD_STAT * stat, void * p_draParams);
+int evcd_decode(EVCD id, EVC_BITB * bitb, EVCD_STAT * stat, void * p_gen_aps_array, void * g_void_dra_array);
 #else
 int evcd_decode(EVCD id, EVC_BITB * bitb, EVCD_STAT * stat);
 #endif
@@ -604,7 +610,11 @@ int evce_push(EVCE id, EVC_IMGB * imgb);
 int evce_encode(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat);
 #if M52291_HDR_DRA
 int evce_get_pps_dra_flag(EVCE id);
-int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat, void *p_signalledDRA);
+int evce_get_pps_id(EVCE id);
+int evce_encode_aps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat, int aps_type_id);
+int evce_set_active_pps_dra_info(EVCE id, int pps_id);
+int evce_generate_pps_array(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat);
+int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat, void *p_signalledDRA, void * g_void_dra_array);
 #else
 int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat);
 #endif

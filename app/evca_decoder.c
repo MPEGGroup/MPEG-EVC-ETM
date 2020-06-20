@@ -451,7 +451,7 @@ int main(int argc, const char **argv)
 #endif
             /* main decoding block */
 #if M52291_HDR_DRA
-            ret = evcd_decode(id, &bitb, &stat, (void*)(p_aps_gen_array));
+            ret = evcd_decode(id, &bitb, &stat, (void*)(p_aps_gen_array), (void*) (&(g_dra_control_array[0])));
             sps_dra_enable_flag = evcd_get_sps_dra_flag(id);
             if (sps_dra_enable_flag)
             {
@@ -533,11 +533,10 @@ int main(int argc, const char **argv)
                     }
                 }
 #if M52291_HDR_DRA
-                pps_dra_enable_flag = evcd_get_pps_dra_flag(id);
-                if ( (sps_dra_enable_flag == 1) && (pps_dra_enable_flag == 1) )
+                int pps_dra_id = imgb->imgb_active_aps_id;
+                if ((sps_dra_enable_flag == 1) && (pps_dra_id >= 0))
                 {
                     // Assigned effective DRA controls as specified by PPS
-                    int pps_dra_id = evcd_get_pps_dra_id(id);
                     assert((pps_dra_id > -1) && (pps_dra_id < 32) && (g_dra_control_array[pps_dra_id].m_signal_dra_flag == 1));
                     memcpy(&(g_dra_control_effective.m_signalledDRA), &(g_dra_control_array[pps_dra_id]), sizeof(SignalledParamsDRA));
                     evcd_assign_pps_draParam(id, &(g_dra_control_effective.m_signalledDRA));
@@ -557,9 +556,9 @@ int main(int argc, const char **argv)
                             return -1;
                         }
                         imgb_cpy(imgb_dra, imgb);
-                        evc_apply_dra_chroma_plane(imgb, imgb, &g_dra_control_effective, 1, TRUE/*backwardMapping == true*/);
-                        evc_apply_dra_chroma_plane(imgb, imgb, &g_dra_control_effective, 2, TRUE /*backwardMapping == true*/);
-                        evc_apply_dra_luma_plane(imgb, imgb, &g_dra_control_effective, 0, TRUE /*backwardMapping == true*/);
+                        evc_apply_dra_chroma_plane(imgb, imgb, &g_dra_control_effective, 1, TRUE);
+                        evc_apply_dra_chroma_plane(imgb, imgb, &g_dra_control_effective, 2, TRUE);
+                        evc_apply_dra_luma_plane(imgb, imgb, &g_dra_control_effective, 0, TRUE );
                         write_dec_img(id, op_fname_out, imgb, imgb_t);
                         imgb_cpy(imgb, imgb_dra);
                         imgb_dra->release(imgb_dra);

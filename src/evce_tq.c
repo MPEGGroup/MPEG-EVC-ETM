@@ -1669,6 +1669,7 @@ int evce_rdoq_method_adcc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
     q_bits = QUANT_SHIFT + tr_shift + (qp / 6);
 
     scan = evc_scan_tbl[scan_type][log2_cuw - 1][log2_cuh - 1];
+
     for (scan_pos = 0; scan_pos < max_num_coef; scan_pos++)
     {
         int max_abs_level;
@@ -1699,7 +1700,7 @@ int evce_rdoq_method_adcc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
         evc_mset(dst_tmp, 0, sizeof(s16) * max_num_coef);
         return 0;
     }
-
+	
     last_scan_set = last_pos_in_scan >> cg_log2_size;
     scan_pos_last = last_pos_in_raster_from_scan;
     num_gtA = CAFLAG_NUMBER;
@@ -1907,6 +1908,7 @@ int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw,
 
 #define FAST_RDOQ_INTRA_RND_OFST  201 //171
 #define FAST_RDOQ_INTER_RND_OFST  153 //85
+
         offset = (s64)((slice_type == SLICE_I) ? FAST_RDOQ_INTRA_RND_OFST : FAST_RDOQ_INTER_RND_OFST) << (s64)(shift - 9);
         zero_coeff_threshold = ((s64)1 << (s64)shift) - offset;
 

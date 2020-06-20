@@ -65,7 +65,7 @@ typedef struct _DRAScaleMapping
 
 typedef struct _SignalledParamsDRA
 {
-    int m_signal_dra_flag;
+    int m_signal_dra_flag; // flag has 3 positions at encoder: -1: not initialized, 0: initialized and sent, 1: initialized, to be sent
     int dra_table_idx;
     BOOL m_equalRangesFlag;
     int  m_deltaVal;
@@ -120,7 +120,10 @@ typedef struct _WCGDDRAControl
 
 /* Encoder side functions are listed below: */
 void evce_initDRA(WCGDDRAControl *p_DRAMapping, int totalChangePoints, int *lumaChangePoints, int* qps);
-BOOL evce_analyzeInputPic(WCGDDRAControl *p_DRAMapping);
+int evce_analyzeInputPic(WCGDDRAControl *p_DRAMapping);
+void evce_buildFwdDraLutFromDec(WCGDDRAControl *p_DRAMapping);
+int evce_generate_dra_array(SignalledParamsDRA * p_dra_control_array, WCGDDRAControl * p_g_dra_control, int num_aps);
+int evce_construct_dra_from_array(SignalledParamsDRA * p_dra_control_array, WCGDDRAControl * p_g_dra_control, int effective_aps_id);
 
 /* Decoder side functions are listed below: */
 void evcd_initDRA(WCGDDRAControl *p_DRAMapping);
@@ -132,6 +135,8 @@ void evc_apply_dra_chroma_plane(EVC_IMGB * dst, EVC_IMGB * src, WCGDDRAControl *
 /* DRA APS buffer functions are listed below: */
 void evc_addDraApsToBuffer(SignalledParamsDRA* p_g_dra_control_array, EVC_APS_GEN *p_aps_gen_array);
 void evc_resetApsGenReadBuffer(EVC_APS_GEN *p_aps_gen_array);
+void evc_apply_dra_from_array(EVC_IMGB * dst, EVC_IMGB * src, SignalledParamsDRA * p_dra_control_array, int dra_id, int backwardMap);
 #endif
 
-#endif /* _EVC_DRA_H_ */
+#endif 
+/* _EVC_DRA_H_ */

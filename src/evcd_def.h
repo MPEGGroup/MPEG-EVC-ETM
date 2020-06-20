@@ -209,12 +209,16 @@ struct _EVCD_CTX
     EVC_SPS                 sps;
     /* picture parameter set */
     EVC_PPS                 pps;
+#if MULTIPLE_NAL
+    EVC_PPS                 pps_array[64];
+#endif
     /* adaptation parameter set */
     EVC_APS                 aps;
     u8                      aps_temp;
 #if M52291_HDR_DRA
     void * p_pps_draParams;
     void                 *void_aps_gen_array; 
+    void                  *g_void_dra_array;
 #endif
     /* current decoded (decoding) picture buffer */
     EVC_PIC               * pic;
