@@ -207,7 +207,8 @@ extern "C"
 #define EVC_SPS_NUT                     (24)
 #define EVC_PPS_NUT                     (25)
 #define EVC_APS_NUT                     (26)
-#define EVC_SEI_NUT                     (27)
+#define EVC_FD_NUT                      (27)
+#define EVC_SEI_NUT                     (28)
 
 /*****************************************************************************
  * slice type
