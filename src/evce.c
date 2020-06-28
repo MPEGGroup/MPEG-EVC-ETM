@@ -436,21 +436,10 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
 
     if(sps->profile_idc == PROFILE_MAIN)
     {
-#if M52166_PARTITION
         sps->log2_min_cb_size_minus2 = ctx->cdsc.framework_cb_min - 2;
         sps->log2_diff_ctu_max_14_cb_size = min(ctx->log2_max_cuwh - ctx->cdsc.framework_cu14_max, 6);
         sps->log2_diff_ctu_max_tt_cb_size = min(ctx->log2_max_cuwh - ctx->cdsc.framework_tris_max, 6);
         sps->log2_diff_min_cb_min_tt_cb_size_minus2 = ctx->cdsc.framework_tris_min - ctx->cdsc.framework_cb_min - 2;
-#else
-        sps->log2_diff_ctu_max_11_cb_size = ctx->log2_max_cuwh - ctx->cdsc.framework_cu11_max;
-        sps->log2_diff_max_11_min_11_cb_size = ctx->cdsc.framework_cu11_max - ctx->cdsc.framework_cu11_min;
-        sps->log2_diff_max_11_max_12_cb_size = ctx->cdsc.framework_cu11_max - ctx->cdsc.framework_cu12_max;
-        sps->log2_diff_min_11_min_12_cb_size_minus1 = ctx->cdsc.framework_cu12_min - ctx->cdsc.framework_cu11_min - 1;
-        sps->log2_diff_max_12_max_14_cb_size_minus1 = ctx->cdsc.framework_cu12_max - ctx->cdsc.framework_cu14_max - 1;
-        sps->log2_diff_min_12_min_14_cb_size_minus1 = ctx->cdsc.framework_cu14_min - ctx->cdsc.framework_cu12_min - 1;
-        sps->log2_diff_max_11_max_tt_cb_size_minus1 = ctx->cdsc.framework_cu11_max - ctx->cdsc.framework_tris_max - 1;
-        sps->log2_diff_min_11_min_tt_cb_size_minus2 = ctx->cdsc.framework_tris_min - ctx->cdsc.framework_cu11_min - 2;
-#endif
         sps->log2_diff_ctu_size_max_suco_cb_size = ctx->log2_max_cuwh - min(ctx->cdsc.framework_suco_max, min(6, ctx->log2_max_cuwh));
         sps->log2_diff_max_suco_min_suco_cb_size = max(ctx->log2_max_cuwh - sps->log2_diff_ctu_size_max_suco_cb_size - max(ctx->cdsc.framework_suco_min, max(4, ctx->cdsc.framework_cb_min)), 0);
     }
@@ -481,11 +470,7 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
 
     if(sps->profile_idc == PROFILE_MAIN)
     {
-#if M52166_PARTITION
         sps->log2_ctu_size_minus5 = ctx->log2_max_cuwh - 5;
-#else
-        sps->log2_ctu_size_minus2 = ctx->log2_max_cuwh - 2;
-#endif
     }
 
     sps->log2_sub_gop_length = (int)(log2(ctx->param.gop_size) + .5);
@@ -1389,11 +1374,7 @@ int evce_ready(EVCE_CTX * ctx)
 
     if (ctx->cdsc.btt)
     {
-#if M52166_PARTITION
         ctx->max_cuwh = 1 << ctx->cdsc.framework_cb_max;
-#else
-        ctx->max_cuwh = 1 << ctx->cdsc.framework_ctu_size;
-#endif
         if (w < ctx->max_cuwh * 2 && h < ctx->max_cuwh * 2)
         {
             ctx->max_cuwh = ctx->max_cuwh >> 1;
@@ -1402,18 +1383,14 @@ int evce_ready(EVCE_CTX * ctx)
         {
             ctx->max_cuwh = ctx->max_cuwh;
         }
-#if M52166_PARTITION
         ctx->min_cuwh = 1 << ctx->cdsc.framework_cb_min;
         ctx->log2_min_cuwh = ctx->cdsc.framework_cb_min;
-#endif
     }
     else
     {
         ctx->max_cuwh = 64; 
-#if M52166_PARTITION
         ctx->min_cuwh = 1 << 2;
         ctx->log2_min_cuwh = 2;
-#endif
     }
 
     ctx->log2_max_cuwh = CONV_LOG2(ctx->max_cuwh);
@@ -1426,11 +1403,6 @@ int evce_ready(EVCE_CTX * ctx)
     ctx->f_scu = ctx->w_scu * ctx->h_scu;
     ctx->log2_culine = ctx->log2_max_cuwh - MIN_CU_LOG2;
     ctx->log2_cudim = ctx->log2_culine << 1;
-#if !M52166_PARTITION   
-    ctx->cdsc.framework_cu11_max = min(ctx->log2_max_cuwh, ctx->cdsc.framework_cu11_max);
-    ctx->cdsc.framework_cu12_max = min(ctx->cdsc.framework_cu11_max, ctx->cdsc.framework_cu12_max);
-    ctx->cdsc.framework_cu14_max = min(ctx->cdsc.framework_cu12_max, ctx->cdsc.framework_cu14_max);
-#endif
     ctx->cdsc.framework_suco_max = min(ctx->log2_max_cuwh, ctx->cdsc.framework_suco_max);
     ctx->enc_alf = new_enc_ALF();
     EncAdaptiveLoopFilter* p = (EncAdaptiveLoopFilter*)(ctx->enc_alf);

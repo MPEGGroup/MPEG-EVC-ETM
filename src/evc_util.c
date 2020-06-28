@@ -2506,80 +2506,22 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
     int cu_max, from_boundary_b;
     cu_max = 1 << (log2_max_cuwh - 1);
     from_boundary_b = (y >= im_h - im_h%cu_max) && !(x >= im_w - im_w % cu_max);
-#if !M52166_PARTITION
-    int from_boundary_r = (x >= im_w - im_w % cu_max) && !(y >= im_h - im_h%cu_max);
-#endif
 
     evc_mset(split_allow, 0, sizeof(int) * SPLIT_CHECK_NUM);
     {
         split_allow[SPLIT_QUAD] = 0;
 
-#if !M52166_PARTITION
-        if (boundary)
-        {
-            if (boundary_r)
-            {
-                // right side
-                if (log2_cuh >= (2 + log2_cuw) )
-                {
-                    split_allow[SPLIT_BI_HOR] = 1;
-                }
-                else
-                {
-                    split_allow[SPLIT_BI_VER] = 1;
-                }
-            }
-            else
-            {
-                // Bottom and right-bottom corner
-                if (log2_cuw >= (2 + log2_cuh) )
-                {
-                    split_allow[SPLIT_BI_VER] = 1;
-                }
-                else
-                {
-                    split_allow[SPLIT_BI_HOR] = 1;
-                }
-            }
-        }
-#endif
-
         if(log2_cuw == log2_cuh)
         {
-#if !M52166_PARTITION
-            if(boundary_b)
-            {
-            }
-            else if(boundary_r)
-            {
-            }
-            else if(boundary && !boundary_b && !boundary_r)
-            {
-            }
-            else
-#endif
-            {
-                split_allow[SPLIT_BI_HOR] = ALLOW_SPLIT_RATIO(log2_cuw, 1);
-                split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(log2_cuw, 1);
-#if M52166_PARTITION
-                split_allow[SPLIT_TRI_VER] = ALLOW_SPLIT_TRI(log2_cuw) && (log2_cuw > log2_cuh || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuw, 2)));
-                split_allow[SPLIT_TRI_HOR] = ALLOW_SPLIT_TRI(log2_cuh) && (log2_cuh > log2_cuw || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuh, 2)));
-#else
-                split_allow[SPLIT_TRI_VER] = (log2_cuw >= log2_cuh) & ALLOW_SPLIT_TRI(log2_cuw);
-                split_allow[SPLIT_TRI_HOR] = (log2_cuh >= log2_cuw) & ALLOW_SPLIT_TRI(log2_cuh);
-#endif
-            }
+            split_allow[SPLIT_BI_HOR] = ALLOW_SPLIT_RATIO(log2_cuw, 1);
+            split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(log2_cuw, 1);
+            split_allow[SPLIT_TRI_VER] = ALLOW_SPLIT_TRI(log2_cuw) && (log2_cuw > log2_cuh || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuw, 2)));
+            split_allow[SPLIT_TRI_HOR] = ALLOW_SPLIT_TRI(log2_cuh) && (log2_cuh > log2_cuw || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuh, 2)));
         }
         else
         {
             if(log2_cuw > log2_cuh)
             {
-#if !M52166_PARTITION
-                if(boundary)
-                {
-                }
-                else
-#endif
                 {
                     split_allow[SPLIT_BI_HOR] = ALLOW_SPLIT_RATIO(log2_cuw, log2_cuw - log2_cuh + 1);
 
@@ -2589,61 +2531,31 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                     ratio = EVC_ABS(log2_sub_cuw - log2_sub_cuh);
 
                     split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(long_side, ratio);
-                    if(from_boundary_b && (ratio == 3 || ratio == 4))
+                    if (from_boundary_b && (ratio == 3 || ratio == 4))
+                    {
                         split_allow[SPLIT_BI_VER] = 1;
-#if M52166_PARTITION
+                    }
+
                     split_allow[SPLIT_TRI_VER] = ALLOW_SPLIT_TRI(log2_cuw) && (log2_cuw > log2_cuh || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuw, 2)));
                     split_allow[SPLIT_TRI_HOR] = ALLOW_SPLIT_TRI(log2_cuh) && (log2_cuh > log2_cuw || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuh, 2)));
-#else
-                    split_allow[SPLIT_TRI_VER] = (log2_cuw >= log2_cuh) & ALLOW_SPLIT_TRI(log2_cuw);
-                    split_allow[SPLIT_TRI_HOR] = (log2_cuh >= log2_cuw) & ALLOW_SPLIT_TRI(log2_cuh);
-#endif
-#if !M52166_PARTITION
-                    if (from_boundary_b && (log2_cuw == 7 || ratio == 3))
-                    {
-                        split_allow[SPLIT_TRI_VER] = 1;
-                    }
-#endif
                 }
             }
             else
             {
-#if !M52166_PARTITION
-                if(boundary)
-                {
-                }
-                else
-#endif
-                {
-                    log2_sub_cuh = log2_cuh - 1;
-                    log2_sub_cuw = log2_cuw;
-                    long_side = log2_sub_cuw > log2_sub_cuh ? log2_sub_cuw : log2_sub_cuh;
-                    ratio = EVC_ABS(log2_sub_cuw - log2_sub_cuh);
+                log2_sub_cuh = log2_cuh - 1;
+                log2_sub_cuw = log2_cuw;
+                long_side = log2_sub_cuw > log2_sub_cuh ? log2_sub_cuw : log2_sub_cuh;
+                ratio = EVC_ABS(log2_sub_cuw - log2_sub_cuh);
 
-                    split_allow[SPLIT_BI_HOR] = ALLOW_SPLIT_RATIO(long_side, ratio);
-#if !M52166_PARTITION
-                    if(from_boundary_r && (ratio == 3 || ratio == 4))
-                        split_allow[SPLIT_BI_HOR] = 1;
-#endif
-                    split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(log2_cuh, log2_cuh - log2_cuw + 1);
-#if M52166_PARTITION
-                    split_allow[SPLIT_TRI_VER] = ALLOW_SPLIT_TRI(log2_cuw) && (log2_cuw > log2_cuh || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuw, 2)));
-                    split_allow[SPLIT_TRI_HOR] = ALLOW_SPLIT_TRI(log2_cuh) && (log2_cuh > log2_cuw || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuh, 2)));
-#else
-                    split_allow[SPLIT_TRI_VER] = (log2_cuw >= log2_cuh) & ALLOW_SPLIT_TRI(log2_cuw);
-                    split_allow[SPLIT_TRI_HOR] = (log2_cuh >= log2_cuw) & ALLOW_SPLIT_TRI(log2_cuh);
-#endif
-#if !M52166_PARTITION
-                    if (from_boundary_r && (log2_cuh == 7 || ratio == 3))
-                    {
-                        split_allow[SPLIT_TRI_HOR] = 1;
-                    }
-#endif
-                }
+                split_allow[SPLIT_BI_HOR] = ALLOW_SPLIT_RATIO(long_side, ratio);
+                split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(log2_cuh, log2_cuh - log2_cuw + 1);
+                split_allow[SPLIT_TRI_VER] = ALLOW_SPLIT_TRI(log2_cuw) && (log2_cuw > log2_cuh || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuw, 2)));
+                split_allow[SPLIT_TRI_HOR] = ALLOW_SPLIT_TRI(log2_cuh) && (log2_cuh > log2_cuw || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuh, 2)));
+
             }
         }
     }
-#if M52166_PARTITION
+
     if (boundary)
     {
         split_allow[NO_SPLIT] = 0;
@@ -2673,7 +2585,7 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
             }
         }
     }
-#endif
+
 #if M50761_CHROMA_NOT_SPLIT
     if (mode_cons == eOnlyInter)
     {

@@ -879,12 +879,10 @@ struct _EVCE_CTX
     u16                    max_cuwh;
     /* log2 of maximum CU width and height */
     u8                     log2_max_cuwh;
-#if M52166_PARTITION
     /* minimum CU width and height */
     u16                    min_cuwh;
     /* log2 of minimum CU width and height */
     u8                     log2_min_cuwh;
-#endif
     /* total count of remained LCU for encoding one picture. if a picture is
     encoded properly, this value should reach to zero */
     int                    lcu_cnt;

@@ -2616,23 +2616,11 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
     evc_bsr_read1(bs, &sps->sps_btt_flag);
     if (sps->sps_btt_flag)
     {
-#if M52166_PARTITION
         evc_bsr_read_ue(bs, &sps->log2_ctu_size_minus5);
         evc_bsr_read_ue(bs, &sps->log2_min_cb_size_minus2);
         evc_bsr_read_ue(bs, &sps->log2_diff_ctu_max_14_cb_size);
         evc_bsr_read_ue(bs, &sps->log2_diff_ctu_max_tt_cb_size);
         evc_bsr_read_ue(bs, &sps->log2_diff_min_cb_min_tt_cb_size_minus2);
-#else
-        sps->log2_ctu_size_minus2 = evc_bsr_read_ue(bs);
-        sps->log2_diff_ctu_max_11_cb_size = evc_bsr_read_ue(bs);
-        sps->log2_diff_max_11_min_11_cb_size = evc_bsr_read_ue(bs);
-        sps->log2_diff_max_11_max_12_cb_size = evc_bsr_read_ue(bs);
-        sps->log2_diff_min_11_min_12_cb_size_minus1 = evc_bsr_read_ue(bs);
-        sps->log2_diff_max_12_max_14_cb_size_minus1 = evc_bsr_read_ue(bs);
-        sps->log2_diff_min_12_min_14_cb_size_minus1 = evc_bsr_read_ue(bs);
-        sps->log2_diff_max_11_max_tt_cb_size_minus1 = evc_bsr_read_ue(bs);
-        sps->log2_diff_min_11_min_tt_cb_size_minus2 = evc_bsr_read_ue(bs);
-#endif
     }
     evc_bsr_read1(bs, &sps->sps_suco_flag);
     if (sps->sps_suco_flag)

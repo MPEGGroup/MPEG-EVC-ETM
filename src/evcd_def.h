@@ -232,12 +232,10 @@ struct _EVCD_CTX
     u16                     max_cuwh;
     /* log2 of maximum CU width and height */
     u8                      log2_max_cuwh;
-#if M52166_PARTITION
     /* minimum CU width and height */
     u16                     min_cuwh;
     /* log2 of minimum CU width and height */
     u8                      log2_min_cuwh;
-#endif
 
     /* MAPS *******************************************************************/
     /* SCU map for CU information */

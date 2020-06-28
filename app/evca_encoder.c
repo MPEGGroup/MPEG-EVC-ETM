@@ -104,19 +104,9 @@ static int  op_level              = 0;
 static int  op_btt                = 1;
 static int  op_suco               = 1;
 static int  op_add_qp_frames      = 0;
-#if M52166_PARTITION
 static int  op_framework_cb_max   = 7;
 static int  op_framework_cb_min   = 2;
 static int  op_framework_cu14_max = 6;
-#else
-static int  op_framework_ctu_size = 7;
-static int  op_framework_cu11_max = 7;
-static int  op_framework_cu11_min = 2;
-static int  op_framework_cu12_max = 7;
-static int  op_framework_cu12_min = 3;
-static int  op_framework_cu14_max = 6;
-static int  op_framework_cu14_min = 4;
-#endif
 static int  op_framework_tris_max = 6;
 static int  op_framework_tris_min = 4;
 static int  op_framework_suco_max = 6;
@@ -234,19 +224,9 @@ typedef enum _OP_FLAGS
     OP_BTT,
     OP_SUCO,
     OP_FLAG_ADD_QP_FRAME,
-#if M52166_PARTITION
     OP_FRAMEWORK_CB_MAX,
     OP_FRAMEWORK_CB_MIN,
     OP_FRAMEWORK_CU14_MAX,
-#else
-    OP_FRAMEWORK_CTU_SIZE,
-    OP_FRAMEWORK_CU11_MAX,
-    OP_FRAMEWORK_CU11_MIN,
-    OP_FRAMEWORK_CU12_MAX,
-    OP_FRAMEWORK_CU12_MIN,
-    OP_FRAMEWORK_CU14_MAX,
-    OP_FRAMEWORK_CU14_MIN,
-#endif
     OP_FRAMEWORK_TRIS_MAX,
     OP_FRAMEWORK_TRIS_MIN,
     OP_FRAMEWORK_SUCO_MAX,
@@ -561,7 +541,6 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_FLAG_ADD_QP_FRAME], &op_add_qp_frames,
         "one more qp are added after this number of frames, disable:0 (default)"
     },
-#if M52166_PARTITION
     {
         EVC_ARGS_NO_KEY,  "cb_max", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_FRAMEWORK_CB_MAX], &op_framework_cb_max,
@@ -577,43 +556,6 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_FRAMEWORK_CU14_MAX], &op_framework_cu14_max,
         "Max size of 4N in 4NxN or Nx4N block (log scale)"
     },
-#else
-    {
-        EVC_ARGS_NO_KEY,  "ctu", EVC_ARGS_VAL_TYPE_INTEGER,
-        &op_flag[OP_FRAMEWORK_CTU_SIZE], &op_framework_ctu_size,
-        "Max size of CTU (log scale)"
-    },    
-    {
-        EVC_ARGS_NO_KEY,  "cu11_max", EVC_ARGS_VAL_TYPE_INTEGER,
-        &op_flag[OP_FRAMEWORK_CU11_MAX], &op_framework_cu11_max,
-        "Max size of N in NxN block (log scale)"
-    },
-    {
-        EVC_ARGS_NO_KEY,  "cu11_min", EVC_ARGS_VAL_TYPE_INTEGER,
-        &op_flag[OP_FRAMEWORK_CU11_MIN], &op_framework_cu11_min,
-        "Min size of N in NxN block (log scale)"
-    },
-    {
-        EVC_ARGS_NO_KEY,  "cu12_max", EVC_ARGS_VAL_TYPE_INTEGER,
-        &op_flag[OP_FRAMEWORK_CU12_MAX], &op_framework_cu12_max,
-        "Max size of 2N in 2NxN or Nx2N block (log scale)"
-    },
-    {
-        EVC_ARGS_NO_KEY,  "cu12_min", EVC_ARGS_VAL_TYPE_INTEGER,
-        &op_flag[OP_FRAMEWORK_CU12_MIN], &op_framework_cu12_min,
-        "Min size of 2N in 2NxN or Nx2N block (log scale)"
-    },
-    {
-        EVC_ARGS_NO_KEY,  "cu14_max", EVC_ARGS_VAL_TYPE_INTEGER,
-        &op_flag[OP_FRAMEWORK_CU14_MAX], &op_framework_cu14_max,
-        "Max size of 4N in 4NxN or Nx4N block (log scale)"
-    },
-    {
-        EVC_ARGS_NO_KEY,  "cu14_min", EVC_ARGS_VAL_TYPE_INTEGER,
-        &op_flag[OP_FRAMEWORK_CU14_MIN], &op_framework_cu14_min,
-        "Min size of 4N in 4NxN or Nx4N block (log scale)"
-    },
-#endif
     {
         EVC_ARGS_NO_KEY,  "tris_max", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_FRAMEWORK_TRIS_MAX], &op_framework_tris_max,
@@ -1340,19 +1282,9 @@ static int get_conf(EVCE_CDSC * cdsc)
         op_out_bit_depth = op_in_bit_depth;
     }
     cdsc->out_bit_depth      = op_out_bit_depth;
-#if M52166_PARTITION
     cdsc->framework_cb_max   = op_framework_cb_max;
     cdsc->framework_cb_min   = op_framework_cb_min;
     cdsc->framework_cu14_max = op_framework_cu14_max;
-#else
-    cdsc->framework_ctu_size = op_framework_ctu_size;
-    cdsc->framework_cu11_max = op_framework_cu11_max;
-    cdsc->framework_cu11_min = op_framework_cu11_min;
-    cdsc->framework_cu12_max = op_framework_cu12_max;
-    cdsc->framework_cu12_min = op_framework_cu12_min;
-    cdsc->framework_cu14_max = op_framework_cu14_max;
-    cdsc->framework_cu14_min = op_framework_cu14_min;
-#endif
     cdsc->framework_tris_max = op_framework_tris_max;
     cdsc->framework_tris_min = op_framework_tris_min;
     cdsc->framework_suco_max = op_framework_suco_max;
@@ -1705,7 +1637,7 @@ int check_conf(EVCE_CDSC* cdsc)
         if (cdsc->tool_cm_init == 0) { v0print("CM_INIT cannot be off in main profile\n"); success = 0; }
 #endif
     }
-#if M52166_PARTITION
+
     if (cdsc->btt == 1)
     {
         if (cdsc->framework_cb_max < 5) { v0print("Maximun Coding Block size cannot be smaller than 5\n"); success = 0; }
@@ -1719,7 +1651,7 @@ int check_conf(EVCE_CDSC* cdsc)
         if (cdsc->framework_tris_min < cdsc->framework_cb_min + 2) { v0print("Maximun Tri-split Block size cannot be smaller than Minimum Coding Block size plus two\n"); success = 0; }
         min_block_size = 1 << cdsc->framework_cb_min;
     }
-#endif
+
     if (cdsc->suco == 1)
     {
         if (cdsc->framework_suco_max > 6) { v0print("Maximun SUCO size cannot be greater than 6\n"); success = 0; }
