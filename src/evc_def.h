@@ -137,7 +137,6 @@
 #endif
 
 #if M52290
-#define M52290_ADCC                                  1
 #endif
 
 /* Profiles definitions */
@@ -419,15 +418,10 @@ typedef struct _evc_AlfFilterShape
 #define COEF_REMAIN_BIN_REDUCTION          3
 #define LAST_SIGNIFICANT_GROUPS            14
 
-#if M52290_ADCC
 #define NUM_CTX_LAST_SIG_COEFF_LUMA        18
 #define NUM_CTX_LAST_SIG_COEFF_CHROMA      3
 #define NUM_CTX_LAST_SIG_COEFF             (NUM_CTX_LAST_SIG_COEFF_LUMA + NUM_CTX_LAST_SIG_COEFF_CHROMA)
-#else
-#define NUM_CTX_LAST_SIG_COEFF_LUMA        25
-#define NUM_CTX_LAST_SIG_COEFF_CHROMA      3
-#define NUM_CTX_LAST_SIG_COEFF             (NUM_CTX_LAST_SIG_COEFF_LUMA + NUM_CTX_LAST_SIG_COEFF_CHROMA)
-#endif
+
 #define NUM_CTX_SIG_COEFF_LUMA             39  /* number of context models for luma sig coeff flag */
 #define NUM_CTX_SIG_COEFF_CHROMA           8   /* number of context models for chroma sig coeff flag */
 #define NUM_CTX_SIG_COEFF_LUMA_TU          13  /* number of context models for luma sig coeff flag per TU */
