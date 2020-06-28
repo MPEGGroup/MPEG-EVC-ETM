@@ -104,12 +104,6 @@
 
 //MPEG 129 adoptions
 #define M52291_HDR_DRA                               1
-#define M52165                                       1
-
-//MPEG 128 adoptions
-#define M50761                                       1
-#if M50761
-#endif
 
 /* Profiles definitions */
 #define PROFILE_BASELINE                             0

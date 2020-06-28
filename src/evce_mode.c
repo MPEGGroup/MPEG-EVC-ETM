@@ -3082,15 +3082,12 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
     int ibc_flag_dqp = 0;
 #endif
     core->tree_cons = tree_cons;    
-#if M52165
+
     if (
 #if FIX_BTT_OFF
         ctx->sps.sps_btt_flag &&
 #endif
         log2_cuw == 2 && log2_cuh == 2 && (evce_check_luma(ctx, core) || evce_check_all(ctx, core)) && ctx->sps.tool_admvp
-#else
-    if (log2_cuw == 2 && log2_cuh == 2 && (evce_check_luma(ctx, core) || evce_check_all(ctx)) && ctx->sps.tool_admvp
-#endif
         )
     {
         // Check only for main profile
