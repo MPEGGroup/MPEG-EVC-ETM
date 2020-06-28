@@ -737,13 +737,8 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
     
     if (avail_lr == LR_11)
     {
-#if M52166_SUCO
         neb_addr[0] = scup + (scuh - 1) * w_scu - 1; // H
         neb_addr[1] = scup + (scuh - 1) * w_scu + scuw; // inverse H
-#else
-        neb_addr[0] = scup - 1;
-        neb_addr[1] = scup + scuw;
-#endif
         neb_addr[2] = scup - w_scu;
 
         if (is_ibc)
@@ -2741,16 +2736,9 @@ void evc_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lc
 
 u8 evc_check_suco_cond(int cuw, int cuh, s8 split_mode, int boundary, u8 log2_max_cuwh, u8 suco_max_depth, u8 suco_depth)
 {
-#if M52166_SUCO
     int suco_log2_maxsize = min((log2_max_cuwh - suco_max_depth), 6);
     int suco_log2_minsize = max((suco_log2_maxsize - suco_depth), max(4, MIN_CU_LOG2));
     if (EVC_MIN(cuw, cuh) < (1 << suco_log2_minsize) || EVC_MAX(cuw, cuh) > (1 << suco_log2_maxsize))
-#else
-    int suco_minsize = 1 << max((log2_max_cuwh - suco_max_depth - suco_depth), MIN_CU_LOG2);
-    int suco_maxsize = 1 << min((log2_max_cuwh - suco_max_depth), 6);
-
-    if(EVC_MIN(cuw, cuh) < suco_minsize || EVC_MAX(cuw, cuh) > suco_maxsize)
-#endif
     {
         return 0;
     }

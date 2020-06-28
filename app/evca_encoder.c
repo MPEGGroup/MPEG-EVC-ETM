@@ -1720,7 +1720,6 @@ int check_conf(EVCE_CDSC* cdsc)
         min_block_size = 1 << cdsc->framework_cb_min;
     }
 #endif
-#if M52166_SUCO
     if (cdsc->suco == 1)
     {
         if (cdsc->framework_suco_max > 6) { v0print("Maximun SUCO size cannot be greater than 6\n"); success = 0; }
@@ -1729,7 +1728,7 @@ int check_conf(EVCE_CDSC* cdsc)
         if (cdsc->framework_suco_min < cdsc->framework_cb_min) { v0print("Minimun SUCO size cannot be smaller than Minimum coding Block size\n"); success = 0; }
         if (cdsc->framework_suco_min > cdsc->framework_suco_max) { v0print("Minimum SUCO size cannot be greater than Maximum SUCO size\n"); success = 0; }
     }
-#endif
+
     int pic_m = max(8, min_block_size);
     if ((cdsc->w & (pic_m - 1)) != 0) { v0print("Current encoder does not support picture width, not multiple of max(8, minimum CU size)\n"); success = 0; }
     if ((cdsc->h & (pic_m - 1)) != 0) { v0print("Current encoder does not support picture height, not multiple of max(8, minimum CU size)\n"); success = 0; }

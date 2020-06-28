@@ -451,13 +451,8 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
         sps->log2_diff_max_11_max_tt_cb_size_minus1 = ctx->cdsc.framework_cu11_max - ctx->cdsc.framework_tris_max - 1;
         sps->log2_diff_min_11_min_tt_cb_size_minus2 = ctx->cdsc.framework_tris_min - ctx->cdsc.framework_cu11_min - 2;
 #endif
-#if M52166_SUCO
         sps->log2_diff_ctu_size_max_suco_cb_size = ctx->log2_max_cuwh - min(ctx->cdsc.framework_suco_max, min(6, ctx->log2_max_cuwh));
         sps->log2_diff_max_suco_min_suco_cb_size = max(ctx->log2_max_cuwh - sps->log2_diff_ctu_size_max_suco_cb_size - max(ctx->cdsc.framework_suco_min, max(4, ctx->cdsc.framework_cb_min)), 0);
-#else
-        sps->log2_diff_ctu_size_max_suco_cb_size = ctx->log2_max_cuwh - ctx->cdsc.framework_suco_max;
-        sps->log2_diff_max_suco_min_suco_cb_size = ctx->cdsc.framework_suco_max - ctx->cdsc.framework_suco_min;
-#endif
     }
 
     sps->tool_amvr = ctx->cdsc.tool_amvr;
