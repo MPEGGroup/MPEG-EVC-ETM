@@ -1832,22 +1832,9 @@ static void update_history_buffer_affine(EVC_HISTORY_BUFFER *history_buffer, EVC
                     mv_scale_tmp_hor = mv_scale_hor + dmv_hor_x * pos_x + dmv_ver_x * pos_y;
                     mv_scale_tmp_ver = mv_scale_ver + dmv_hor_y * pos_x + dmv_ver_y * pos_y;
 
-#if HMVP_ON_AFFINE_UPDATE_BF
                     evc_mv_rounding_s32(mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, 7, 0);
                     mv_scale_tmp_hor = EVC_CLIP3(-(1 << 15), (1 << 15) - 1, mv_scale_tmp_hor);
                     mv_scale_tmp_ver = EVC_CLIP3(-(1 << 15), (1 << 15) - 1, mv_scale_tmp_ver);
-#else
-                    evc_mv_rounding_s32(mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, 5, 0);
-#if AFFINE_CLIPPING_BF
-                    mv_scale_tmp_hor = EVC_CLIP3(-(1 << 17), (1 << 17) - 1, mv_scale_tmp_hor);
-                    mv_scale_tmp_ver = EVC_CLIP3(-(1 << 17), (1 << 17) - 1, mv_scale_tmp_ver);
-#else
-                    mv_scale_tmp_hor = EVC_CLIP3(-(2 << 17), (2 << 17) - 1, mv_scale_tmp_hor);
-                    mv_scale_tmp_ver = EVC_CLIP3(-(2 << 17), (2 << 17) - 1, mv_scale_tmp_ver);
-#endif
-                    mv_scale_tmp_hor >>= 2;
-                    mv_scale_tmp_ver >>= 2;
-#endif
 
                     mi->mv_sp[lidx][MV_X] = mv_scale_tmp_hor;
                     mi->mv_sp[lidx][MV_Y] = mv_scale_tmp_ver;
@@ -1916,22 +1903,10 @@ static void update_history_buffer_affine(EVC_HISTORY_BUFFER *history_buffer, EVC
                     mv_scale_tmp_hor = mv_scale_hor + dmv_hor_x * pos_x + dmv_ver_x * pos_y;
                     mv_scale_tmp_ver = mv_scale_ver + dmv_hor_y * pos_x + dmv_ver_y * pos_y;
 
-#if HMVP_ON_AFFINE_UPDATE_BF
                     evc_mv_rounding_s32(mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, 7, 0);
                     mv_scale_tmp_hor = EVC_CLIP3(-(1 << 15), (1 << 15) - 1, mv_scale_tmp_hor);
                     mv_scale_tmp_ver = EVC_CLIP3(-(1 << 15), (1 << 15) - 1, mv_scale_tmp_ver);
-#else
-                    evc_mv_rounding_s32(mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, 5, 0);
-#if AFFINE_CLIPPING_BF
-                    mv_scale_tmp_hor = EVC_CLIP3(-(1 << 17), (1 << 17) - 1, mv_scale_tmp_hor);
-                    mv_scale_tmp_ver = EVC_CLIP3(-(1 << 17), (1 << 17) - 1, mv_scale_tmp_ver);
-#else
-                    mv_scale_tmp_hor = EVC_CLIP3(-(2 << 17), (2 << 17) - 1, mv_scale_tmp_hor);
-                    mv_scale_tmp_ver = EVC_CLIP3(-(2 << 17), (2 << 17) - 1, mv_scale_tmp_ver);
-#endif
-                    mv_scale_tmp_hor >>= 2;
-                    mv_scale_tmp_ver >>= 2;
-#endif
+
                     mi->mv_sp[lidx][MV_X] = mv_scale_tmp_hor;
                     mi->mv_sp[lidx][MV_Y] = mv_scale_tmp_ver;
                     mi->refi_sp[lidx] = mi->refi[lidx];
