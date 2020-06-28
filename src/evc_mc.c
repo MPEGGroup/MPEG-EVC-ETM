@@ -92,11 +92,7 @@
 
 static int g_mc_ftr = MC_FILTER_MAIN;
 
-#if EIF_CLIPPING_REDESIGN 
 static int g_aff_mvDevBB2_125[5] = { 128, 256, 544, 1120, 2272 };
-#else
-static int g_aff_mvDevBB2_125[5] = { 64, 128, 272, 560, 1136 };
-#endif
 
 #if MC_PRECISION_ADD
 #if OPT_SIMD_MC_BL
@@ -7253,7 +7249,6 @@ void evc_IBC_mc(int x, int y, int log2_cuw, int log2_cuh, s16 mv[MV_D], EVC_PIC 
 #endif
 }
 
-#if EIF_CLIPPING_REDESIGN 
 void eif_derive_mv_clip_range(int x, int y, int cuw, int cuh, int dmv_hor[MV_D], int dmv_ver[MV_D], int mv_scale[MV_D],
     int pic_w, int pic_h, BOOL range_clip, int max_mv[MV_D], int min_mv[MV_D])
 {
@@ -7297,8 +7292,6 @@ void eif_derive_mv_clip_range(int x, int y, int cuw, int cuh, int dmv_hor[MV_D],
         min_mv[comp] = EVC_CLIP3(-(1 << 17), (1 << 17) - 1, min_mv[comp]);
     }
 }
-
-#endif
 
 void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 ac_mv[VER_NUM][MV_D], EVC_PIC* ref_pic, pel pred[MAX_CU_DIM], int vertex_num, pel* tmp_buffer)
 {
@@ -7357,25 +7350,14 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
 
     if (b_eif)
     {
-#if EIF_CLIPPING_REDESIGN
         int mv_scale[MV_D] = { mv_scale_hor, mv_scale_ver };
         int max_mv[MV_D] = { 0, 0 };
         int min_mv[MV_D] = { 0, 0 };
 
         eif_derive_mv_clip_range(x, y, cuw, cuh, d_hor, d_ver, mv_scale, pic_w, pic_h, !mem_band_conditions_for_eif_are_satisfied, max_mv, min_mv);
-#else
-        if (!mem_band_conditions_for_eif_are_satisfied)
-        {
-            evc_derive_mv_clip_range(cuw, cuh, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y, &hor_max, &hor_min, &ver_max, &ver_min);
-        }
-#endif
 
         evc_eif_mc(cuw, cuh, x, y, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y,
-#if EIF_CLIPPING_REDESIGN
             max_mv[MV_X], max_mv[MV_Y], min_mv[MV_X], min_mv[MV_Y],
-#else
-            hor_max, ver_max, hor_min, ver_min,
-#endif
             ref_pic->y, ref_pic->s_l, pred, cuw, tmp_buffer, bit + 2, Y_C);
 
         return;
@@ -7465,42 +7447,23 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
 
     if (b_eif)
     {
-#if EIF_CLIPPING_REDESIGN
         int mv_scale[MV_D] = { mv_scale_hor, mv_scale_ver };
         int max_mv[MV_D] = { 0, 0 };
         int min_mv[MV_D] = { 0, 0 };
 
         eif_derive_mv_clip_range(x, y, cuw, cuh, d_hor, d_ver, mv_scale, pic_w, pic_h, !mem_band_conditions_for_eif_are_satisfied, max_mv, min_mv);
-#else
-        if (!mem_band_conditions_for_eif_are_satisfied)
-        {
-            evc_derive_mv_clip_range(cuw, cuh, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y, &hor_max, &hor_min, &ver_max, &ver_min);
-        }
-#endif
-
         evc_eif_mc(cuw, cuh, x, y, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y,
-#if EIF_CLIPPING_REDESIGN
             max_mv[MV_X], max_mv[MV_Y], min_mv[MV_X], min_mv[MV_Y],
-#else
-            hor_max, ver_max, hor_min, ver_min,
-#endif
             ref_pic->y, ref_pic->s_l, pred[Y_C], cuw, tmp_buffer_for_eif, bit + 2, Y_C);
 
         evc_eif_mc(cuw, cuh, x, y, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y,
-#if EIF_CLIPPING_REDESIGN
             max_mv[MV_X], max_mv[MV_Y], min_mv[MV_X], min_mv[MV_Y],
-#else
-            hor_max, ver_max, hor_min, ver_min,
-#endif
             ref_pic->u, ref_pic->s_c, pred[U_C], cuw >> 1, tmp_buffer_for_eif, bit + 2, U_C);
 
         evc_eif_mc(cuw, cuh, x, y, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y,
-#if EIF_CLIPPING_REDESIGN
             max_mv[MV_X], max_mv[MV_Y], min_mv[MV_X], min_mv[MV_Y],
-#else
-            hor_max, ver_max, hor_min, ver_min,
-#endif
             ref_pic->v, ref_pic->s_c, pred[V_C], cuw >> 1, tmp_buffer_for_eif, bit + 2, V_C);
+        
         return;
     }
 
@@ -7569,12 +7532,10 @@ BOOL can_mv_clipping_occurs(int block_width, int block_height, int mv0[MV_D], in
         mv_corners[1][0][coord] = mv[coord] + block_height * d_y[coord];
         mv_corners[1][1][coord] = mv[coord] + block_width * d_x[coord] + block_height * d_y[coord];
 
-#if EIF_CLIPPING_REDESIGN
         mv_corners[0][0][coord] >>= 4;
         mv_corners[0][1][coord] >>= 4;
         mv_corners[1][0][coord] >>= 4;
         mv_corners[1][1][coord] >>= 4;
-#endif
 
         for (int i = 0; i < 2; ++i)
             for (int j = 0; j < 2; ++j)
@@ -7631,18 +7592,8 @@ void evc_eif_bilinear_clip(int block_width, int block_height, int mv0[MV_D], int
 
         for (int x = -1; x <= block_width; ++x, tmp_mv[MV_X] += d_x[MV_X], tmp_mv[MV_Y] += d_x[MV_Y])
         {
-#if !EIF_CLIPPING_REDESIGN
-            mv[MV_X] = min(mv_max[MV_X], max(mv_min[MV_X], tmp_mv[MV_X]));
-            mv[MV_Y] = min(mv_max[MV_Y], max(mv_min[MV_Y], tmp_mv[MV_Y]));
-#endif
-
-#if EIF_CLIPPING_REDESIGN
             mv[MV_X] = min(mv_max[MV_X], max(mv_min[MV_X], tmp_mv[MV_X] >> (EIF_MV_PRECISION_INTERNAL - EIF_MV_PRECISION_BILINEAR)));
             mv[MV_Y] = min(mv_max[MV_Y], max(mv_min[MV_Y], tmp_mv[MV_Y] >> (EIF_MV_PRECISION_INTERNAL - EIF_MV_PRECISION_BILINEAR)));
-#else
-            mv[MV_X] >>= (EIF_MV_PRECISION_INTERNAL - EIF_MV_PRECISION_BILINEAR);
-            mv[MV_Y] >>= (EIF_MV_PRECISION_INTERNAL - EIF_MV_PRECISION_BILINEAR);
-#endif
 
             int xInt = x + (mv[MV_X] >> EIF_MV_PRECISION_BILINEAR);
             int yInt = y + (mv[MV_Y] >> EIF_MV_PRECISION_BILINEAR);
@@ -7738,15 +7689,8 @@ void evc_eif_mc(int block_width, int block_height, int x, int y, int mv_scale_ho
     int d_y[MV_D] = { dmv_ver_x << (EIF_MV_PRECISION_INTERNAL - affine_mv_prec),
                       dmv_ver_y << (EIF_MV_PRECISION_INTERNAL - affine_mv_prec) };
 
-#if EIF_CLIPPING_REDESIGN
     int mv_max[MV_D] = { hor_max, ver_max };
     int mv_min[MV_D] = { hor_min, ver_min };
-#else
-    int mv_max[MV_D] = { hor_max << (EIF_MV_PRECISION_INTERNAL - (2 + MC_PRECISION_ADD)),
-                         ver_max << (EIF_MV_PRECISION_INTERNAL - (2 + MC_PRECISION_ADD)) };
-    int mv_min[MV_D] = { hor_min << (EIF_MV_PRECISION_INTERNAL - (2 + MC_PRECISION_ADD)),
-                         ver_min << (EIF_MV_PRECISION_INTERNAL - (2 + MC_PRECISION_ADD)) };
-#endif
 
     if (comp > Y_C)
     {

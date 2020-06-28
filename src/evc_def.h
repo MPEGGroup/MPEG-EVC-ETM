@@ -122,7 +122,6 @@
 #if M52223
 #define AFFINE_CLIPPING_BF                           1 //2 << 17 -> 1 << 17
 #define HMVP_ON_AFFINE_UPDATE_BF                     1
-#define EIF_CLIPPING_REDESIGN                        1
 #endif
 
 /* Profiles definitions */
