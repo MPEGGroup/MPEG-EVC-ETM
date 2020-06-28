@@ -1601,12 +1601,8 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 #endif
                              , core->nnz_sub, 0, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt, 0, 0
                              , core->ats_inter_info, ctx->sps.tool_adcc
-#if M50761_CHROMA_NOT_SPLIT
                              , core->tree_cons
-
-#endif
-                             , core
-        );
+                             , core);
 
         if (tnnz)
         {
@@ -1839,10 +1835,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
                         SBAC_LOAD(core->s_temp_run, core->s_temp_prev_comp_run);
                         evce_sbac_bit_reset(&core->s_temp_run);
                         evce_rdo_bit_cnt_cu_inter_comp(core, coef, i, pidx, ctx
-#if M50761_CHROMA_NOT_SPLIT
-                            , core->tree_cons
-#endif
-                        );
+                            , core->tree_cons);
 
                         bit_cnt = evce_get_bit_number(&core->s_temp_run);
                         cost += RATE_TO_COST_LAMBDA(ctx->lambda[i], bit_cnt);
