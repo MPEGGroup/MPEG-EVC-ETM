@@ -2471,10 +2471,7 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                           , const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth
                           , int x, int y, int im_w, int im_h
                           , u8 *remaining_split, int sps_btt_flag
-#if M50761_CHROMA_NOT_SPLIT
-                          , MODE_CONS mode_cons
-#endif
-)
+                          , MODE_CONS mode_cons)
 {
     if(!sps_btt_flag)
     {
@@ -2568,7 +2565,6 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
         }
     }
 
-#if M50761_CHROMA_NOT_SPLIT
     if (mode_cons == eOnlyInter)
     {
         int cuw = 1 << log2_cuw;
@@ -2576,7 +2572,6 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
         for (int mode = SPLIT_BI_VER; mode < SPLIT_QUAD; ++mode)
             split_allow[mode] &= evc_get_mode_cons_by_split(mode, cuw, cuh) == eAll;
     }
-#endif
 }
 
 int evc_get_suco_flag(s8* suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU])
@@ -2749,7 +2744,6 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
                     ctx[i] = 0;
                 }
             }
-#if M50761_CHROMA_NOT_SPLIT
             else if (i == CNID_MODE_CONS)
             {
                 if (sps_cm_init_flag == 1)
@@ -2761,7 +2755,6 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
                     ctx[i] = 0;
                 }
             }
-#endif
             else if(i == CNID_AFFN_FLAG)
             {
                 if(sps_cm_init_flag == 1)
@@ -5089,7 +5082,6 @@ void evc_get_mv_collocated(EVC_REFP(*refp)[REFP_NUM], u32 poc, int scup, int c_s
     *availablePredIdx = flag; // combines flag and indication on what type of prediction is ( 0 - not available, 1 = uniL0, 2 = uniL1, 3 = Bi)
 }
 
-#if M50761_CHROMA_NOT_SPLIT
 int evc_get_luma_cup(int x_scu, int y_scu, int cu_w_scu, int cu_h_scu, int w_scu)
 {
     return (y_scu + (cu_h_scu >> 1)) * w_scu + x_scu + (cu_w_scu >> 1);
@@ -5218,10 +5210,6 @@ BOOL evc_signal_mode_cons(TREE_CONS* parent, TREE_CONS* cur_split)
 {
     return parent->mode_cons == eAll && cur_split->changed;
 }
-#endif
-
-
-
 
 #if GRAB_STAT
 void enc_stat_header(int pic_w, int pic_h)

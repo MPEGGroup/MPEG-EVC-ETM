@@ -7174,11 +7174,7 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
     }
 }
 
-void evc_IBC_mc(int x, int y, int log2_cuw, int log2_cuh, s16 mv[MV_D], EVC_PIC *ref_pic, pel pred[N_C][MAX_CU_DIM]
-#if M50761_CHROMA_NOT_SPLIT
-    , TREE_CONS tree_cons
-#endif
-)
+void evc_IBC_mc(int x, int y, int log2_cuw, int log2_cuh, s16 mv[MV_D], EVC_PIC *ref_pic, pel pred[N_C][MAX_CU_DIM], TREE_CONS tree_cons)
 {
     int i = 0, j = 0;
     int size = 0;
@@ -7196,10 +7192,8 @@ void evc_IBC_mc(int x, int y, int log2_cuw, int log2_cuh, s16 mv[MV_D], EVC_PIC 
     mv_y = mv[1];
     stride = ref_pic->s_l;
 
-#if M50761_CHROMA_NOT_SPLIT
     if (evc_check_luma(tree_cons))
     {
-#endif
         dst = pred[0];
         ref = ref_pic->y + (mv_y + y) * stride + (mv_x + x);
         size = sizeof(pel) * cuw;
@@ -7210,11 +7204,10 @@ void evc_IBC_mc(int x, int y, int log2_cuw, int log2_cuh, s16 mv[MV_D], EVC_PIC 
             ref += stride;
             dst += cuw;
         }
-#if M50761_CHROMA_NOT_SPLIT
     }
+
     if (evc_check_chroma(tree_cons))
     {
-#endif
         cuw >>= 1;
         cuh >>= 1;
         x >>= 1;
@@ -7244,9 +7237,7 @@ void evc_IBC_mc(int x, int y, int log2_cuw, int log2_cuh, s16 mv[MV_D], EVC_PIC 
             ref += stride;
             dst += cuw;
         }
-#if M50761_CHROMA_NOT_SPLIT
     }
-#endif
 }
 
 void eif_derive_mv_clip_range(int x, int y, int cuw, int cuh, int dmv_hor[MV_D], int dmv_ver[MV_D], int mv_scale[MV_D],

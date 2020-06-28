@@ -36,12 +36,7 @@
 
 
 void evc_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, pel *rec, u8 ats_inter_info);
-void evc_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pel pred[N_C][MAX_CU_DIM], int nnz[N_C], EVC_PIC *pic, u8 ats_inter_info
-#if M50761_CHROMA_NOT_SPLIT
-    , TREE_CONS tree_cons
-#endif
-);
-
+void evc_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pel pred[N_C][MAX_CU_DIM], int nnz[N_C], EVC_PIC *pic, u8 ats_inter_info, TREE_CONS tree_cons);
 void evc_htdf(s16* rec, int qp, int w, int h, int s, BOOL intra_block_flag, pel* rec_pic, int s_pic, int avail_cu
 #if FIX_CONSTRAINT_PRED
               , int scup, int w_scu, int h_scu, u32 * map_scu, int constrained_intra_pred

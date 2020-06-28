@@ -174,9 +174,7 @@ typedef struct _EVCD_CORE
     s16            affine_mvd[REFP_NUM][3][MV_D];
     int            tile_num;
     u8             ctx_flags[NUM_CNID];
-#if M50761_CHROMA_NOT_SPLIT
     TREE_CONS      tree_cons;
-#endif
 } EVCD_CORE;
 
 /******************************************************************************

@@ -186,9 +186,7 @@ typedef struct _EVC_SPLIT_STRUCT
     int       x_pos[SPLIT_MAX_PART_COUNT];
     int       y_pos[SPLIT_MAX_PART_COUNT];
     int       cup[SPLIT_MAX_PART_COUNT];
-#if M50761_CHROMA_NOT_SPLIT
     TREE_CONS tree_cons;
-#endif
 } EVC_SPLIT_STRUCT;
 
 //! Count of partitions, correspond to split_mode
@@ -276,9 +274,7 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                           , const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth
                           , int x, int y, int im_w, int im_h
                           , u8* remaining_split, int sps_btt_flag
-#if M50761_CHROMA_NOT_SPLIT
                           , MODE_CONS mode_cons
-#endif
 );
 
 #if DQP
@@ -313,7 +309,6 @@ void set_cu_cbf_flags(u8 cbf_y, u8 ats_inter_info, int log2_cuw, int log2_cuh, u
 BOOL check_bi_applicability(int slice_type, int cuw, int cuh, int is_sps_admvp);
 void evc_block_copy(s16 * src, int src_stride, s16 * dst, int dst_stride, int log2_copy_w, int log2_copy_h);
 
-#if M50761_CHROMA_NOT_SPLIT
 u8 evc_check_chroma_split_allowed(int luma_width, int luma_height);
 u8 evc_is_chroma_split_allowed(int w, int h, SPLIT_MODE split);
 int evc_get_luma_cup(int x_scu, int y_scu, int cu_w_scu, int cu_h_scu, int w_scu);
@@ -329,10 +324,6 @@ TREE_CONS evc_get_default_tree_cons();
 void evc_set_tree_mode(TREE_CONS* dest, MODE_CONS mode);
 MODE_CONS evc_get_mode_cons_by_split(SPLIT_MODE split_mode, int cuw, int cuh);
 BOOL evc_signal_mode_cons(TREE_CONS* parent, TREE_CONS* cur_split);
-#endif
-
-
-
 
 #if GRAB_STAT
 void enc_stat_header(int pic_w, int pic_h);

@@ -44,11 +44,7 @@ typedef enum _ENUM_STAT_USAGE
     esu_rdo_and_enc,
 } ENUM_STAT_USAGE;
 
-typedef void(*Stat_Log)(int x, int y, int cuw, int cuh, int cup, void *ctx, void *core
-#if M50761_CHROMA_NOT_SPLIT
-    , TREE_CONS tree_cons
-#endif
-    );
+typedef void(*Stat_Log)(int x, int y, int cuw, int cuh, int cup, void *ctx, void *core, TREE_CONS tree_cons);
 
 void evc_stat_init(const char *fileName, ENUM_STAT_USAGE usage, int start_poc, int end_poc, Stat_Log stat_log);
 

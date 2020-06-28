@@ -506,13 +506,11 @@ const s16 init_pred_mode[2][NUM_CTX_PRED_MODE] =
     {  481,   16,  368, },
 };
 
-#if M50761_CHROMA_NOT_SPLIT
 const s16 init_mode_cons[2][NUM_CTX_MODE_CONS] =
 {
     {   64,    0,    0, },
     {  481,   16,  368, },
 };
-#endif
 
 const s16 init_refi[2][NUM_CTX_REF_IDX] =
 {

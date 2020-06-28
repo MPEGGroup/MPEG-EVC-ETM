@@ -380,10 +380,9 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
 #if DMVR_LAG
     idx = 0;
 #endif
-#if M50761_CHROMA_NOT_SPLIT
+
     if (evcd_check_luma(ctx, core))
     {
-#endif
     for(i = 0; i < h_cu; i++)
     {
         for(j = 0; j < w_cu; j++)
@@ -540,9 +539,7 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
     evc_mcpy(core->mv, map_mv, sizeof(core->mv));
     evc_mcpy(core->refi, map_refi, sizeof(core->refi));
 #endif
-#if M50761_CHROMA_NOT_SPLIT
     }
-#endif
 #if MVF_TRACE
     // Trace MVF in decoder
 #if ENC_DEC_TRACE
@@ -947,7 +944,6 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #endif
 }
 
-#if M50761_CHROMA_NOT_SPLIT
 u8 evcd_check_luma(EVCD_CTX *ctx, EVCD_CORE * core)
 {
     return evc_check_luma(core->tree_cons);
@@ -981,4 +977,3 @@ MODE_CONS evcd_derive_mode_cons(EVCD_CTX *ctx, int scup)
 {
     return ( MCU_GET_IF(ctx->map_scu[scup]) || MCU_GET_IBC(ctx->map_scu[scup]) ) ? eOnlyIntra : eOnlyInter;
 }
-#endif

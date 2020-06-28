@@ -111,9 +111,6 @@
 #if M50761
 
 #define M50761_CHROMA_NOT_SPLIT                      1 //chroma no split for avoiding 2x2, 2x4 and 4x2 chroma blocks
-
-#if M50761_CHROMA_NOT_SPLIT
-#endif
 #endif
 
 /* Profiles definitions */
@@ -917,9 +914,7 @@ typedef u16 SBAC_CTX_MODEL;
 #define NUM_CTX_CBF_CR                     1
 #define NUM_CTX_CBF_ALL                    1
 #define NUM_CTX_PRED_MODE                  3
-#if M50761_CHROMA_NOT_SPLIT
 #define NUM_CTX_MODE_CONS                  3
-#endif
 #define NUM_CTX_INTER_PRED_IDC             2       /* number of context models for inter prediction direction */
 #define NUM_CTX_DIRECT_MODE_FLAG           1
 #define NUM_CTX_MERGE_MODE_FLAG            1
@@ -970,9 +965,7 @@ typedef struct _EVC_SBAC_CTX
     SBAC_CTX_MODEL   intra_luma_pred_mpm_idx       [NUM_CTX_INTRA_LUMA_PRED_MPM_IDX];
     SBAC_CTX_MODEL   intra_chroma_pred_mode        [NUM_CTX_INTRA_CHROMA_PRED_MODE];
     SBAC_CTX_MODEL   pred_mode                     [NUM_CTX_PRED_MODE];
-#if M50761_CHROMA_NOT_SPLIT
     SBAC_CTX_MODEL   mode_cons                     [NUM_CTX_MODE_CONS];
-#endif     
     SBAC_CTX_MODEL   refi                          [NUM_CTX_REF_IDX];
     SBAC_CTX_MODEL   merge_idx                     [NUM_CTX_MERGE_IDX];
     SBAC_CTX_MODEL   mvp_idx                       [NUM_CTX_MVP_IDX];
@@ -1539,7 +1532,6 @@ typedef struct _EVC_POC
 #define EVC_UD_PIC_SIGNATURE              0x10
 #define EVC_UD_END                        0xFF
 
-#if M50761_CHROMA_NOT_SPLIT
 typedef enum _TREE_TYPE
 {
     TREE_LC = 0,
@@ -1567,7 +1559,6 @@ typedef struct _TREE_CONS_NEW
     MODE_CONS       mode_cons;
 } TREE_CONS_NEW;
 
-#endif
 /*****************************************************************************
  * for binary and triple tree structure
  *****************************************************************************/
@@ -1631,9 +1622,7 @@ typedef enum _CTX_NEV_IDX
 {
     CNID_SKIP_FLAG,
     CNID_PRED_MODE,
-#if M50761_CHROMA_NOT_SPLIT
     CNID_MODE_CONS,
-#endif
     CNID_AFFN_FLAG,
     CNID_IBC_FLAG,
     NUM_CNID,
