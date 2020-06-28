@@ -105,7 +105,6 @@
 //MPEG 129 adoptions
 #define M52291_HDR_DRA                               1
 #define M52165                                       1
-#define M52223                                       1
 
 //MPEG 128 adoptions
 #define M50761                                       1
@@ -117,10 +116,6 @@
 #define M50761_CHROMA_NOT_SPLIT_CLEANUP              1
 #endif
 
-#endif
-
-#if M52223
-#define AFFINE_CLIPPING_BF                           1 //2 << 17 -> 1 << 17
 #endif
 
 /* Profiles definitions */
