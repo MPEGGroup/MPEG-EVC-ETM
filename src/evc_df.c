@@ -441,13 +441,8 @@ static void deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh,
 
         for(i = 0; i < (cuh >> MIN_CU_LOG2); i++)
         {
-            tbl_qp_to_st = get_tbl_qp_to_st(map_scu[w], map_scu[w - 1], \
-                                            map_refi[w], map_refi[w - 1], map_mv[w], map_mv[w - 1]);
-#if M52166_DBF
+            tbl_qp_to_st = get_tbl_qp_to_st(map_scu[w], map_scu[w - 1], map_refi[w], map_refi[w - 1], map_mv[w], map_mv[w - 1]);
             qp = MCU_GET_QP(map_scu[w]);
-#else
-            qp = MCU_GET_QP(map_scu[w - 1]);
-#endif
 
 #if M50761_CHROMA_NOT_SPLIT
             if (evc_check_luma(tree_cons))
@@ -575,12 +570,10 @@ static const u8 get_bs(u32 mcu0, u32 x0, u32 y0, u32 mcu1, u32 x1, u32 y1, u32 l
         // One of the blocks is Intra
         bs = DBF_ADDB_BS_INTRA;
     }
-#if M52166_DBF
     else if (MCU_GET_IBC(mcu0) || MCU_GET_IBC(mcu1))
     {
         bs = DBF_ADDB_BS_INTRA;
     }
-#endif
 #if M53608_DB_2
     else if ((MCU_GET_CBFL(mcu0) == 1 || MCU_GET_CBFL(mcu1) == 1) || ats_present)
 #else
@@ -590,12 +583,6 @@ static const u8 get_bs(u32 mcu0, u32 x0, u32 y0, u32 mcu1, u32 x1, u32 y1, u32 l
         // One of the blocks has coded residuals
         bs = DBF_ADDB_BS_CODED;
     }
-#if !M52166_DBF
-    else if (MCU_GET_IBC(mcu0) || MCU_GET_IBC(mcu1))
-    {
-         bs = DBF_ADDB_BS_INTRA;
-    }
-#endif
     else
     {
         EVC_PIC *refPics0[2], *refPics1[2];
@@ -1502,7 +1489,6 @@ static void deblock_addb_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
     /* vertical filtering */
 #if DBF_8_8_GRID
 #if !DEBLOCKING_FIX
-#if M52166_DBF
     if ((x_pel + cuw) % 8 == 0)
     {
         align_8_8_grid = 1;
@@ -1511,7 +1497,6 @@ static void deblock_addb_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
     {
         align_8_8_grid = 0;
     }
-#endif
 #endif
 
     unsigned int no_boundary = map_tidx[t_copy] == map_tidx[t1];
@@ -1555,7 +1540,7 @@ static void deblock_addb_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
     }
 
 #if DBF_8_8_GRID
-#if DEBLOCKING_FIX && M52166_DBF
+#if DEBLOCKING_FIX 
     if ((x_pel + cuw) % 8 == 0)
     {
         align_8_8_grid = 1;

@@ -131,7 +131,6 @@
 #define M52166_PARTITION                             1
 #endif
 #define M52166_SUCO                                  1
-#define M52166_DBF                                   1
 #endif
 
 /* Profiles definitions */
