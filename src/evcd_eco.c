@@ -1866,119 +1866,6 @@ int evcd_eco_affine_mvd_flag(EVCD_CTX * ctx, EVCD_CORE * core, int refi)
     return t0;
 }
 
-#if !M50761_CHROMA_NOT_SPLIT_CLEANUP
-void evcd_eco_pred_mode(EVCD_CTX * ctx, EVCD_CORE * core)
-{
-    EVCD_SBAC   *sbac;
-    EVC_BSR     *bs;
-    int          cuw, cuh;
-    cuw = (1 << core->log2_cuw);
-    cuh = (1 << core->log2_cuh);
-
-    bs = &ctx->bs;
-    sbac = GET_SBAC_DEC(bs);
-
-    /* get pred_mode */
-    if (ctx->sh.slice_type != SLICE_I && !(!ctx->sps.ibc_flag && ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
-    {
-#if M50761_CHROMA_NOT_SPLIT
-        if (!evcd_check_all_preds(ctx
-            , core
-        ))
-        {
-            core->pred_mode = evcd_check_only_inter(ctx, core) ? MODE_INTER : MODE_INTRA;
-        }
-        else
-        {
-#endif
-            if (ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2)
-            {
-                core->pred_mode = MODE_INTRA;
-            }
-            else
-            {
-                core->pred_mode = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.pred_mode + core->ctx_flags[CNID_PRED_MODE]) ? MODE_INTRA : MODE_INTER;
-                EVC_TRACE_COUNTER;
-                EVC_TRACE_STR("pred mode ");
-                EVC_TRACE_INT(core->pred_mode);
-                EVC_TRACE_STR("\n");
-            }
-#if M50761_CHROMA_NOT_SPLIT
-        }
-#endif
-        if ((core->pred_mode != MODE_INTRA
-#if M50761_CHROMA_NOT_SPLIT
-            || evcd_check_only_intra(ctx, core)
-#endif
-            || (ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2)
-            )
-#if M50761_CHROMA_NOT_SPLIT
-            && evcd_check_luma(ctx, core) && !evcd_check_only_inter(ctx, core)
-#endif
-
-            && ctx->sps.ibc_flag && core->log2_cuw <= ctx->sps.ibc_log_max_size && core->log2_cuh <= ctx->sps.ibc_log_max_size)
-        {
-            if(evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ibc_flag + core->ctx_flags[CNID_IBC_FLAG])) /* is ibc mode? */
-            {
-                core->pred_mode = MODE_IBC;
-                core->ibc_flag = 1;
-                core->mmvd_flag = 0;
-                core->affine_flag = 0;
-                core->ats_inter_info = 0;
-            }
-#if TRACE_ADDITIONAL_FLAGS
-            EVC_TRACE_COUNTER;
-            EVC_TRACE_STR("ibc pred mode ");
-            EVC_TRACE_INT(!!core->ibc_flag);
-            EVC_TRACE_STR("ctx ");
-            EVC_TRACE_INT(core->ctx_flags[CNID_IBC_FLAG]);
-            EVC_TRACE_STR("\n");
-#endif
-        }
-#if !TRACE_ADDITIONAL_FLAGS && 0
-            EVC_TRACE_COUNTER;
-            EVC_TRACE_STR("pred mode ");
-            EVC_TRACE_INT(core->pred_mode);
-            EVC_TRACE_STR("\n");
-#endif
-        }
-        else if (ctx->sh.slice_type == SLICE_I && ctx->sps.ibc_flag
-#if M50761_CHROMA_NOT_SPLIT
-            && evcd_check_luma(ctx, core)
-#endif
-            )
-        {
-            core->pred_mode = MODE_INTRA;
-            core->mmvd_flag = 0;
-            core->affine_flag = 0;
-
-            if (core->log2_cuw <= ctx->sps.ibc_log_max_size && core->log2_cuh <= ctx->sps.ibc_log_max_size)
-            {
-                if(evcd_sbac_decode_bin(bs, sbac, sbac->ctx.ibc_flag + core->ctx_flags[CNID_IBC_FLAG])) /* is ibc mode? */
-                {
-                    core->pred_mode = MODE_IBC;
-                    core->ibc_flag = 1;
-                    core->ats_inter_info = 0;
-                }
-#if TRACE_ADDITIONAL_FLAGS
-                EVC_TRACE_COUNTER;
-                EVC_TRACE_STR("IBC pred mode ");
-                EVC_TRACE_INT(!!core->ibc_flag);
-                EVC_TRACE_STR("ctx ");
-                EVC_TRACE_INT(core->ctx_flags[CNID_IBC_FLAG]);
-                EVC_TRACE_STR("\n");
-#endif
-            }
-        }
-        else /* SLICE_I */
-        {
-#if M50761_CHROMA_NOT_SPLIT
-            evc_assert(!evcd_check_only_inter(ctx, core));
-#endif
-            core->pred_mode = MODE_INTRA;
-        }
-}
-#else
 void evcd_eco_pred_mode( EVCD_CTX * ctx, EVCD_CORE * core )
 {
     EVC_BSR     *bs = &ctx->bs;
@@ -2030,7 +1917,6 @@ void evcd_eco_pred_mode( EVCD_CTX * ctx, EVCD_CORE * core )
     }
 #endif
 }
-#endif
 
 void evcd_eco_cu_skip_flag(EVCD_CTX * ctx, EVCD_CORE * core)
 {

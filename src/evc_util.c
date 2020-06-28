@@ -2458,23 +2458,6 @@ int evc_get_split_mode(s8 *split_mode, int cud, int cup, int cuw, int cuh, int l
     return ret;
 }
 
-#if !M50761_CHROMA_NOT_SPLIT_CLEANUP
-int evc_set_split_mode(s8 split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8 (*split_mode_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU])
-{
-    int ret = EVC_OK;
-    int pos = cup + (((cuh >> 1) >> MIN_CU_LOG2) * (lcu_s >> MIN_CU_LOG2) + ((cuw >> 1) >> MIN_CU_LOG2));
-    int shape = SQUARE + (CONV_LOG2(cuw) - CONV_LOG2(cuh));
-
-    if(cuw < 8 && cuh < 8)
-    {
-        return ret;
-    }
-
-    split_mode_buf[cud][shape][pos] = split_mode;
-
-    return ret;
-}
-#else
 void evc_set_split_mode(s8 split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8 (*split_mode_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU])
 {
     int pos = cup + (((cuh >> 1) >> MIN_CU_LOG2) * (lcu_s >> MIN_CU_LOG2) + ((cuw >> 1) >> MIN_CU_LOG2));
@@ -2483,7 +2466,6 @@ void evc_set_split_mode(s8 split_mode, int cud, int cup, int cuw, int cuh, int l
     if(cuw >= 8 || cuh >= 8)
         split_mode_buf[cud][shape][pos] = split_mode;
 }
-#endif
 
 void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boundary, int boundary_b, int boundary_r, int log2_max_cuwh
                           , const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth
@@ -2614,25 +2596,6 @@ int evc_get_suco_flag(s8* suco_flag, int cud, int cup, int cuw, int cuh, int lcu
     return ret;
 }
 
-#if !M50761_CHROMA_NOT_SPLIT_CLEANUP
-int evc_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU])
-{
-    int ret = EVC_OK;
-    int pos = cup + (((cuh >> 1) >> MIN_CU_LOG2) * (lcu_s >> MIN_CU_LOG2) + ((cuw >> 1) >> MIN_CU_LOG2));
-    int shape = SQUARE + (CONV_LOG2(cuw) - CONV_LOG2(cuh));
-
-#if !CLEANUP_SUCO_4X4
-    if(cuw < 8 && cuh < 8)
-    {
-        return ret;
-    }
-#endif
-
-    suco_flag_buf[cud][shape][pos] = suco_flag;
-
-    return ret;
-}
-#else
 void evc_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU])
 {
     int pos = cup + (((cuh >> 1) >> MIN_CU_LOG2) * (lcu_s >> MIN_CU_LOG2) + ((cuw >> 1) >> MIN_CU_LOG2));
@@ -2644,7 +2607,6 @@ void evc_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lc
         suco_flag_buf[cud][shape][pos] = suco_flag;
     }
 }
-#endif
 
 u8 evc_check_suco_cond(int cuw, int cuh, s8 split_mode, int boundary, u8 log2_max_cuwh, u8 suco_max_depth, u8 suco_depth)
 {
