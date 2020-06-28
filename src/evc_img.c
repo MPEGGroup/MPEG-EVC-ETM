@@ -78,6 +78,10 @@ EVC_IMGB * evc_imgb_create(int w, int h, int cs, int opt, int pad[EVC_IMGB_MAX_P
     imgb = (EVC_IMGB *)evc_malloc(sizeof(EVC_IMGB));
     evc_assert_rv(imgb, NULL);
     evc_mset(imgb, 0, sizeof(EVC_IMGB));
+#if MULTIPLE_NAL
+    imgb->imgb_active_pps_id = -1;
+    imgb->imgb_active_aps_id = -1;
+#endif
 
     if(cs == EVC_COLORSPACE_YUV420 || cs == EVC_COLORSPACE_YUV420_10LE)
     {

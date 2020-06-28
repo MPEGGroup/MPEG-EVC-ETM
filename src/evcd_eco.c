@@ -2799,6 +2799,7 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps)
     EVC_TRACE_STR("************ PPS Start ************\n");
 #endif
     evc_bsr_read_ue(bs, &pps->pps_pic_parameter_set_id);
+    assert(pps->pps_pic_parameter_set_id >= 0 && pps->pps_pic_parameter_set_id < MAX_NUM_PPS);
     evc_bsr_read_ue(bs, &pps->pps_seq_parameter_set_id);
     evc_bsr_read_ue(bs, &pps->num_ref_idx_default_active_minus1[0]);
     evc_bsr_read_ue(bs, &pps->num_ref_idx_default_active_minus1[1]);
@@ -3612,6 +3613,7 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
     int num_tiles_in_slice = 0;
 
     evc_bsr_read_ue(bs, &sh->slice_pic_parameter_set_id);
+    assert(sh->slice_pic_parameter_set_id >= 0 && sh->slice_pic_parameter_set_id < MAX_NUM_PPS);
   #if M53744
     if (!pps->single_tile_in_pic_flag)
 #endif

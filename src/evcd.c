@@ -1851,6 +1851,15 @@ static void update_core_loc_param(EVCD_CTX * ctx, EVCD_CORE * core)
     core->lcu_num = core->x_lcu + core->y_lcu*ctx->w_lcu; // Init the first lcu_num in tile
 }
 
+#if MULTIPLE_NAL
+static int set_active_pps_info(EVCD_CTX * ctx)
+{
+    int active_pps_id = ctx->sh.slice_pic_parameter_set_id;
+    memcpy(&(ctx->pps), &(ctx->pps_array[active_pps_id]), sizeof(EVC_PPS) );
+
+    return EVC_OK;
+}
+#endif
 
 static int set_tile_info(EVCD_CTX * ctx, EVCD_CORE *core, EVC_PPS *pps)
 {
@@ -2255,6 +2264,10 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     {
         ret = evcd_eco_pps(bs, sps, pps);
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
+#if M52291_HDR_DRA
+        int pps_id = pps->pps_pic_parameter_set_id;
+        memcpy(&(ctx->pps_array[pps_id]), pps, sizeof(EVC_PPS));
+#endif
     }
     else if (nalu->nal_unit_type_plus1 - 1 == EVC_APS_NUT)
     {
@@ -2330,6 +2343,9 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         ret = evcd_eco_sh(bs, &ctx->sps, &ctx->pps, sh, ctx->nalu.nal_unit_type_plus1 - 1);
 
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
+#if M52291_HDR_DRA
+        set_active_pps_info(ctx);
+#endif
         ret = set_tile_info(ctx, ctx->core, pps);
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
         if (ctx->num_ctb == 0)
@@ -2449,6 +2465,16 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
             size = sizeof(s16) * ctx->f_scu * REFP_NUM * MV_D;
             evc_mset_x64a(ctx->map_unrefined_mv, 0, size);
 #endif 
+#if M52291_HDR_DRA
+            ctx->pic->imgb->imgb_active_pps_id = ctx->pps.pps_pic_parameter_set_id;
+            if (ctx->sps.tool_dra)
+            {
+                if (ctx->pps.pic_dra_enabled_flag == 1)
+                    ctx->pic->imgb->imgb_active_aps_id = ctx->pps.pic_dra_aps_id;
+                else
+                    ctx->pic->imgb->imgb_active_aps_id = -1;
+            }
+#endif
         }
 
         /* decode slice layer */
@@ -2512,7 +2538,24 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 
             if (ctx->use_opl)
             {
+#if M52291_HDR_DRA
+                int doCompareMd5 = 0;
+                SignalledParamsDRA *effective_dra_control;
+                if (ctx->pps.pic_dra_enabled_flag)
+                {
+                    assert(ctx->pic->imgb->imgb_active_aps_id == ctx->pps.pic_dra_aps_id);
+                    effective_dra_control = (SignalledParamsDRA *)(ctx->g_void_dra_array) + ctx->pps.pic_dra_aps_id;
+                }
+                else
+                {
+                    assert(ctx->pic->imgb->imgb_active_aps_id == -1);
+                    effective_dra_control = NULL;
+                }
+
+                ret = evcd_picbuf_check_signature(ctx->pic, ctx->pic_sign, ctx->pps.pic_dra_enabled_flag, effective_dra_control, ctx->w, ctx->h, doCompareMd5);
+#else
                 ret = evc_picbuf_signature(ctx->pic, ctx->pic->digest);
+#endif
                 evc_assert_rv(EVC_SUCCEEDED(ret), ret);
             }
 
@@ -2532,7 +2575,19 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
             if (ctx->use_pic_sign)
             {
 #if HDR_MD5_CHECK
-                ret = evcd_picbuf_check_signature(ctx->pic, ctx->pic_sign, ctx->sps.tool_dra, ctx->p_pps_draParams, ctx->w, ctx->h);
+                int doCompareMd5 = 1;
+                SignalledParamsDRA *effective_dra_control;
+                if (ctx->pps.pic_dra_enabled_flag)
+                {
+                    assert(ctx->pic->imgb->imgb_active_aps_id == ctx->pps.pic_dra_aps_id);
+                    effective_dra_control = (SignalledParamsDRA *)(ctx->g_void_dra_array) + ctx->pps.pic_dra_aps_id;
+                }
+                else
+                {
+                    assert(ctx->pic->imgb->imgb_active_aps_id == -1);
+                    effective_dra_control = NULL;
+                }
+                ret = evcd_picbuf_check_signature(ctx->pic, ctx->pic_sign, ctx->pps.pic_dra_enabled_flag, effective_dra_control, ctx->w, ctx->h, doCompareMd5);
 #else
                 ret = evcd_picbuf_check_signature(ctx->pic, ctx->pic_sign);
 #endif
@@ -2764,7 +2819,7 @@ int evcd_assign_pps_draParam(EVCD id, void * p_draParams)
     return ctx->pps.pic_dra_aps_id;
 }
 
-int evcd_decode(EVCD id, EVC_BITB * bitb, EVCD_STAT * stat, void * p_draParams)
+int evcd_decode(EVCD id, EVC_BITB * bitb, EVCD_STAT * stat, void * p_gen_aps_array, void *p_void_dra_array)
 #else
 int evcd_decode(EVCD id, EVC_BITB * bitb, EVCD_STAT * stat)
 #endif
@@ -2773,7 +2828,8 @@ int evcd_decode(EVCD id, EVC_BITB * bitb, EVCD_STAT * stat)
 
     EVCD_ID_TO_CTX_RV(id, ctx, EVC_ERR_INVALID_ARGUMENT);
 #if M52291_HDR_DRA
-    ctx->void_aps_gen_array = p_draParams;
+    ctx->void_aps_gen_array = p_gen_aps_array;
+    ctx->g_void_dra_array = p_void_dra_array;
 #endif
     evc_assert_rv(ctx->fn_dec_cnk, EVC_ERR_UNEXPECTED);
 

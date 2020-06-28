@@ -2766,7 +2766,7 @@ static int cal_hdr_metric(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTI
 }
 #endif
 #if M52291_HDR_DRA
-static int write_rec(IMGB_LIST *list, EVC_MTIME *ts, WCGDDRAControl *p_DRAMapping)
+static int write_rec(IMGB_LIST *list, EVC_MTIME *ts, SignalledParamsDRA *p_DRAControl)
 #else
 static int write_rec(IMGB_LIST *list, EVC_MTIME *ts)
 #endif
@@ -2780,11 +2780,10 @@ static int write_rec(IMGB_LIST *list, EVC_MTIME *ts)
             if(op_flag[OP_FLAG_FNAME_REC])
             {
 #if M52291_HDR_DRA
-                if (p_DRAMapping->m_signalledDRA.m_signal_dra_flag == 1)
+                int effective_aps_id = list[i].imgb->imgb_active_aps_id;
+                if (effective_aps_id >= 0)
                 {
-                    evc_apply_dra_chroma_plane(list[i].imgb, list[i].imgb, p_DRAMapping, 1, TRUE/*backwardMapping == false*/);
-                    evc_apply_dra_chroma_plane(list[i].imgb, list[i].imgb, p_DRAMapping, 2, TRUE /*backwardMapping == false*/);
-                    evc_apply_dra_luma_plane(list[i].imgb, list[i].imgb, p_DRAMapping, 0, TRUE /*backwardMapping == false*/);
+                    evc_apply_dra_from_array(list[i].imgb, list[i].imgb, p_DRAControl, effective_aps_id, TRUE);
                 }
 #endif
                 if(imgb_write(op_fname_rec, list[i].imgb))
@@ -2892,8 +2891,8 @@ int main(int argc, const char **argv)
     EVC_CLK            clk_beg, clk_end, clk_tot;
     EVC_MTIME          pic_icnt, pic_ocnt, pic_skip;
     double              bitrate;
-    double              psnr[3] = {0,};
-    double              psnr_avg[3] = {0,};
+    double              psnr[3] = { 0, };
+    double              psnr_avg[3] = { 0, };
     double              ms_ssim = 0;
     double              ms_ssim_avg = 0;
 #if HDR_METRIC
@@ -2916,9 +2915,8 @@ int main(int argc, const char **argv)
     p_g_dra_control->m_signalledDRA.m_signal_dra_flag = -1;
     cdsc.m_DRAMappingApp = (void*)p_g_dra_control;  // To be re-asign to the cdsc storage after cdsc structure is reset in get_conf().
 
-    // global CVS buffer for 2 types of APS data: ALF and DRA
-    SignalledParamsDRA g_dra_control_array[32];
-    for (int i = 0; i < 32; i++)
+    SignalledParamsDRA g_dra_control_array[APS_MAX_NUM];
+    for (int i = 0; i < APS_MAX_NUM; i++)
     {
         g_dra_control_array[i].m_signal_dra_flag = -1;
     }
@@ -3052,22 +3050,7 @@ int main(int argc, const char **argv)
     bitb.bsize = MAX_BS_BUF;
 
 #if M52291_HDR_DRA
-    if (cdsc.tool_dra)
-    {
-        evce_initDRA(p_g_dra_control, 0, NULL, NULL);
-        evce_analyzeInputPic(p_g_dra_control);
-        if (aps_gen_array[1].aps_id < 31)
-        {
-            aps_gen_array[1].signal_flag = 1;
-            aps_gen_array[1].aps_id = 0;  // initial DRA APS
-        }
-    }
-    else {
-        p_g_dra_control->m_signalledDRA.m_signal_dra_flag = 0;
-    }
-#endif
-#if M52291_HDR_DRA
-    ret = evce_encode_sps(id, &bitb, &stat, (void *)aps_gen_array);
+    ret = evce_encode_sps(id, &bitb, &stat, (void *)aps_gen_array, (void *)&(g_dra_control_array[0]));
 #else
     ret = evce_encode_sps(id, &bitb, &stat);
 #endif
@@ -3088,23 +3071,90 @@ int main(int argc, const char **argv)
 
     bitrate += stat.write;
 
+#if M52291_HDR_DRA
+    /*    generate array of DRA params */
+    if (cdsc.tool_dra)
+    {
+        int num_aps = 1;
+        evce_generate_dra_array(&(g_dra_control_array[0]), p_g_dra_control, num_aps);
+    }
+    else {
+        p_g_dra_control->m_signalledDRA.m_signal_dra_flag = 0;
+    }
+
+    /*    generate array of PPS with id in the range 0.. MAX_NUM_PPS-1 */ 
+    ret = evce_generate_pps_array(id, &bitb, &stat);
+    if (EVC_FAILED(ret))
+    {
+        v0print("cannot allocate array of PPS\n");
+        return -1;
+    }
+
+    int number_pps = 1;
+    for (int i = 0; i < number_pps; i++)
+    {
+        /*    activate PPS by ID for signaling purpose    */
+        evce_set_active_pps_dra_info(id, i);
+
+        ret = evce_encode_pps(id, &bitb, &stat);
+        if (EVC_FAILED(ret))
+        {
+            v0print("cannot encode PPS\n");
+            return -1;
+        }
+
+        if (op_flag[OP_FLAG_FNAME_OUT])
+        {
+            if (write_data(op_fname_out, bs_buf, stat.write))
+            {
+                v0print("Cannot write header information (SPS)\n");
+                return -1;
+            }
+        }
+        bitrate += stat.write;
+        
+        if (cdsc.tool_dra)
+        {
+            // Send DRA APS, if active PPS enables DRA
+            if (aps_gen_array[1].signal_flag == 1)
+            {
+                ret = evce_encode_aps(id, &bitb, &stat, 1);
+
+                if (EVC_FAILED(ret))
+                {
+                    v0print("cannot encode APS\n");
+                    return -1;
+                }
+                if (op_flag[OP_FLAG_FNAME_OUT])
+                {
+                    if (write_data(op_fname_out, bs_buf, stat.write))
+                    {
+                        v0print("Cannot write header information (SPS)\n");
+                        return -1;
+                    }
+                }
+                bitrate += stat.write;
+            }
+        }
+    }
+
+#else
     ret = evce_encode_pps(id, &bitb, &stat);
     if (EVC_FAILED(ret))
     {
         v0print("cannot encode PPS\n");
         return -1;
     }
-
-    if(op_flag[OP_FLAG_FNAME_OUT])
+    if (op_flag[OP_FLAG_FNAME_OUT])
     {
-        if(write_data(op_fname_out, bs_buf, stat.write))
+        if (write_data(op_fname_out, bs_buf, stat.write))
         {
             v0print("Cannot write header information (SPS)\n");
             return -1;
         }
     }
+#endif
 
-    bitrate += stat.write;
 
     if(op_flag[OP_FLAG_SKIP_FRAMES] && op_skip_frames > 0)
     {
@@ -3172,12 +3222,14 @@ int main(int argc, const char **argv)
             /* copy original image to encoding buffer */
             imgb_cpy(imgb_enc, ilist_t->imgb);
 #if M52291_HDR_DRA
+            evce_set_active_pps_dra_info(id, 0);
+            imgb_enc->imgb_active_pps_id = evce_get_pps_id(id);
             if (evce_get_pps_dra_flag(id))
             {
-                /* get encodng buffer */
-                evc_apply_dra_chroma_plane(imgb_enc, imgb_enc, p_g_dra_control, 1, FALSE);
-                evc_apply_dra_chroma_plane(imgb_enc, imgb_enc, p_g_dra_control, 2, FALSE);
-                evc_apply_dra_luma_plane(imgb_enc, imgb_enc, p_g_dra_control, 0, FALSE);
+                int effective_aps_id = aps_gen_array[1].aps_id;
+                imgb_enc->imgb_active_aps_id = effective_aps_id;
+                imgb_enc->imgb_active_pps_id = evce_get_pps_id(id);
+                evc_apply_dra_from_array(imgb_enc, imgb_enc, &(g_dra_control_array[0]), effective_aps_id, FALSE);
             }
 #endif
             /* push image to encoder */
@@ -3191,12 +3243,6 @@ int main(int argc, const char **argv)
             imgb_enc->release(imgb_enc);
             pic_icnt++;
         }
-#if HDR_MD5_CHECK
-        if (evce_get_pps_dra_flag(id)) {
-            memcpy(g_lumaInvScaleLUT, &(p_g_dra_control->m_lumaInvScaleLUT[0]), DRA_LUT_MAXSIZE * sizeof(int));
-            memcpy(g_intChromaInvScaleLUT, &(p_g_dra_control->m_intChromaInvScaleLUT[0][0]), 2 * DRA_LUT_MAXSIZE * sizeof(int));
-        }
-#endif
         /* encoding */
         clk_beg = evc_clk_get();
 
@@ -3252,9 +3298,8 @@ int main(int argc, const char **argv)
                     return -1;
                 }
                 imgb_cpy(imgb_dra, ilist_t->imgb);  // store copy of the reconstructed picture in DPB
-                evc_apply_dra_chroma_plane(ilist_t->imgb, ilist_t->imgb, p_g_dra_control, 1, TRUE/*backwardMapping == false*/);
-                evc_apply_dra_chroma_plane(ilist_t->imgb, ilist_t->imgb, p_g_dra_control, 2, TRUE /*backwardMapping == false*/);
-                evc_apply_dra_luma_plane(ilist_t->imgb, ilist_t->imgb, p_g_dra_control, 0, TRUE /*backwardMapping == false*/);
+                int effective_aps_id = imgb_dra->imgb_active_aps_id;
+                evc_apply_dra_from_array(ilist_t->imgb, ilist_t->imgb, &(g_dra_control_array[0]), effective_aps_id, TRUE);
             }
 #endif
             /* calculate PSNR */
@@ -3283,12 +3328,12 @@ int main(int argc, const char **argv)
             }
 #endif
 #if M52291_HDR_DRA
-            if (cdsc.tool_dra)
+            if (evce_get_pps_dra_flag(id))
             {
                 imgb_cpy(ilist_t->imgb, imgb_dra);// recover copy of the reconstructed picture for DPB
                 imgb_enc->release(imgb_dra);
             }
-            if (write_rec(ilist_rec, &pic_ocnt, p_g_dra_control))
+            if (write_rec(ilist_rec, &pic_ocnt, &(g_dra_control_array[0])))
 #else
             /* store reconstructed image */
             if (write_rec(ilist_rec, &pic_ocnt))
@@ -3358,7 +3403,7 @@ int main(int argc, const char **argv)
     while(pic_icnt - pic_ocnt > 0)
     {
 #if M52291_HDR_DRA
-        write_rec(ilist_rec, &pic_ocnt, p_g_dra_control);
+        write_rec(ilist_rec, &pic_ocnt, &(g_dra_control_array[0]));
 #else
         write_rec(ilist_rec, &pic_ocnt);
 #endif

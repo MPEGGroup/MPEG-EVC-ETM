@@ -154,8 +154,12 @@ static void imgb_cpy(EVC_IMGB * dst, EVC_IMGB * src)
     {
         dst->ts[i] = src->ts[i];
     }
+#if M52291_HDR_DRA
+    dst->imgb_active_aps_id = src->imgb_active_aps_id;
+    dst->imgb_active_pps_id = src->imgb_active_pps_id;
+#endif
 }
-int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[N_C][16], int tool_dra, void* pps_draParams, u16 width, u16 height)
+int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[N_C][16], int tool_dra, void* pps_draParams, u16 width, u16 height, int doCompare)
 {
     u8 pic_sign[N_C][16] = { {0} };
     int ret;
@@ -192,9 +196,12 @@ int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[N_C][16], int tool_d
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
     }
 
-    if (memcmp(signature, pic_sign[0], N_C * 16) != 0)
+    if (doCompare)
     {
-        return EVC_ERR_BAD_CRC;
+        if (memcmp(signature, pic_sign[0], N_C * 16) != 0)
+        {
+            return EVC_ERR_BAD_CRC;
+        }
     }
 
     memcpy(pic->digest, pic_sign, N_C * 16);

@@ -774,7 +774,7 @@ int evce_eco_signature(EVCE_CTX * ctx, EVC_BSW * bs)
 
         /* get picture signature */
 #if HDR_MD5_CHECK
-        if (!ctx->sps.tool_dra)
+        if (ctx->pps.pic_dra_enabled_flag == 0)
         {
 #endif
             ret = evc_picbuf_signature(PIC_CURR(ctx), pic_sign);
@@ -783,7 +783,7 @@ int evce_eco_signature(EVCE_CTX * ctx, EVC_BSW * bs)
         }
 #endif
 #if HDR_MD5_CHECK
-        if (ctx->sps.tool_dra)
+        else
         {
             ret = evce_eco_udata_hdr(ctx, bs, pic_sign);
             evc_assert_rv(ret == EVC_OK, ret);
@@ -1029,16 +1029,17 @@ int evce_eco_udata_hdr(EVCE_CTX * ctx, EVC_BSW * bs, u8 pic_sign[N_C][16])
 {
     int ret;
     EVC_IMGB *imgb_hdr_md5 = NULL;
-    WCGDDRAControl* control_rda_md5 = malloc(sizeof(WCGDDRAControl));
-    memcpy(&(control_rda_md5->m_lumaInvScaleLUT[0]), g_lumaInvScaleLUT, DRA_LUT_MAXSIZE * sizeof(int));
-    memcpy(&(control_rda_md5->m_intChromaInvScaleLUT[0][0]), g_intChromaInvScaleLUT, 2 * DRA_LUT_MAXSIZE * sizeof(int));
     imgb_hdr_md5 = imgb_alloc1(PIC_CURR(ctx)->imgb->w[0], PIC_CURR(ctx)->imgb->h[0],
         EVC_COLORSPACE_YUV420_10LE);
 
     imgb_cpy(imgb_hdr_md5, PIC_CURR(ctx)->imgb);  // store copy of the reconstructed picture in DPB
-    evc_apply_dra_chroma_plane(imgb_hdr_md5, imgb_hdr_md5, control_rda_md5, 1, TRUE/*backwardMapping == false*/);
-    evc_apply_dra_chroma_plane(imgb_hdr_md5, imgb_hdr_md5, control_rda_md5, 2, TRUE /*backwardMapping == false*/);
-    evc_apply_dra_luma_plane(imgb_hdr_md5, imgb_hdr_md5, control_rda_md5, 0, TRUE /*backwardMapping == false*/);
+
+    int effective_aps_id = ctx->pico->pic.imgb->imgb_active_aps_id;
+    assert(effective_aps_id == ctx->pps.pic_dra_aps_id);
+    assert(effective_aps_id >= 0 && effective_aps_id < APS_MAX_NUM);
+    SignalledParamsDRA *p_pps_draParams = (SignalledParamsDRA *)ctx->g_void_dra_array;
+    evc_apply_dra_from_array(imgb_hdr_md5, imgb_hdr_md5, &(p_pps_draParams[0]), effective_aps_id, TRUE);
+
     /* should be aligned before adding user data */
     evc_assert_rv(EVC_BSW_IS_BYTE_ALIGN(bs), EVC_ERR_UNKNOWN);
 
@@ -4398,7 +4399,7 @@ int evce_eco_dra_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps)
     evc_bsw_write(bs, p_dra_param->m_dra_cb_scale_value, numBits);
     evc_bsw_write(bs, p_dra_param->m_dra_cr_scale_value, numBits);
     evc_bsw_write_ue(bs, (u32)p_dra_param->dra_table_idx);
-
+    p_dra_param->m_signal_dra_flag = 0; // dra was sent
     return EVC_OK;
 }
 #endif
