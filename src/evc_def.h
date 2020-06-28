@@ -138,7 +138,6 @@
 
 #if M52290
 #define M52290_ADCC                                  1
-#define M52290_MVCLIP_THRESH                         1
 #endif
 
 /* Profiles definitions */
@@ -355,13 +354,8 @@ enum SAD_POINT_INDEX
 #define EIF_MV_PRECISION_BILINEAR                               5
 #define BOUNDING_BLOCK_MARGIN                                   7
 #define MEMORY_BANDWIDTH_THRESHOLD                              (8 + 2 + BOUNDING_BLOCK_MARGIN) / 8
+#define MAX_MEMORY_ACCESS_BI                                    72
 /* EIF (END) */
-
-#if M52290_MVCLIP_THRESH
-#define MAX_MEMORY_ACCESS_BI           72
-#else
-#define MAX_MEMORY_ACCESS_BI           ( (4 + 5) * (4 + 5) )
-#endif
 
 /* AFFINE (END) */
 
