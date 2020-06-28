@@ -535,9 +535,7 @@ typedef struct _EVCE_CU_DATA
     u8  *qp_u;
     u8  *qp_v;
     u8  *pred_mode;
-#if M50761_CHROMA_NOT_SPLIT
     u8  *pred_mode_chroma;
-#endif
     u8  **mpm;
     u8  **mpm_ext;
     s8  **ipm;
@@ -552,9 +550,7 @@ typedef struct _EVCE_CU_DATA
     u8  *bi_idx;
     s16 *mmvd_idx;
     u8  *mmvd_flag;
-#if M50761_CHROMA_NOT_SPLIT
     s16 bv_chroma[MAX_CU_CNT_IN_LCU][MV_D];
-#endif
     s16 mv[MAX_CU_CNT_IN_LCU][REFP_NUM][MV_D];
 #if DMVR_LAG
     s16 unrefined_mv[MAX_CU_CNT_IN_LCU][REFP_NUM][MV_D];
@@ -736,9 +732,7 @@ typedef struct _EVCE_CORE
     /* current tile index */
     int            tile_idx;
 
-#if M50761_CHROMA_NOT_SPLIT
     TREE_CONS      tree_cons;                //!< Tree status
-#endif    
     
     u8             ctx_flags[NUM_CNID]; 
     int            split_mode_child[4];

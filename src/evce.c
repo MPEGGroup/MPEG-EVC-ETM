@@ -1182,9 +1182,7 @@ static int evce_eco_tree(EVCE_CTX * ctx, EVCE_CORE * core, int x0, int y0, int c
 #if DQP
     , int cu_qp_delta_code
 #endif
-#if M50761_CHROMA_NOT_SPLIT
     , TREE_CONS tree_cons
-#endif
 )
 {
     int ret;
@@ -1195,19 +1193,16 @@ static int evce_eco_tree(EVCE_CTX * ctx, EVCE_CORE * core, int x0, int y0, int c
     int bound;
     int split_mode_child[4] = {NO_SPLIT, NO_SPLIT, NO_SPLIT, NO_SPLIT};
     int split_allow[6];
-#if M50761_CHROMA_NOT_SPLIT
+
     core->tree_cons = tree_cons;
-#endif
 
     evc_get_split_mode(&split_mode, cud, cup, cuw, cuh, ctx->max_cuwh, ctx->map_cu_data[core->lcu_num].split_mode);
     evc_get_suco_flag(&suco_flag, cud, cup, cuw, cuh, ctx->max_cuwh, ctx->map_cu_data[core->lcu_num].suco_flag);
 
     same_layer_split[node_idx] = split_mode;
-
-
+    
     bs = &ctx->bs;
-
-
+    
 #if DQP
     if(ctx->pps.cu_qp_delta_enabled_flag && ctx->sps.dquant_flag)
     {
@@ -1247,7 +1242,7 @@ static int evce_eco_tree(EVCE_CTX * ctx, EVCE_CORE * core, int x0, int y0, int c
         evc_split_get_part_structure(split_mode, x0, y0, cuw, cuh, cup, cud, ctx->log2_culine, &split_struct);
 
         evc_split_get_suco_order(suco_flag, split_mode, suco_order);
-#if M50761_CHROMA_NOT_SPLIT
+
         split_struct.tree_cons = tree_cons;
 
         BOOL mode_cons_changed = FALSE;
@@ -1276,8 +1271,6 @@ static int evce_eco_tree(EVCE_CTX * ctx, EVCE_CORE * core, int x0, int y0, int c
         {
             split_struct.tree_cons = evc_get_default_tree_cons();
         }
-#endif
-
 
         for(int part_num = 0; part_num < split_struct.part_count; ++part_num)
         {
@@ -1293,17 +1286,13 @@ static int evce_eco_tree(EVCE_CTX * ctx, EVCE_CORE * core, int x0, int y0, int c
 #if DQP
                     , cu_qp_delta_code
 #endif
-#if M50761_CHROMA_NOT_SPLIT
-                    , split_struct.tree_cons
-#endif
-                );
+                    , split_struct.tree_cons);
+
                 evc_assert_g(EVC_SUCCEEDED(ret), ERR);
             }
-#if M50761_CHROMA_NOT_SPLIT
             core->tree_cons = tree_cons;
-#endif
         }
-#if M50761_CHROMA_NOT_SPLIT
+
         if (mode_cons_changed && !evc_check_all(split_struct.tree_cons))
         {
             evc_assert(x0 + cuw <= PIC_ORIG(ctx)->w_l && y0 + cuh <= PIC_ORIG(ctx)->h_l);
@@ -1312,17 +1301,12 @@ static int evce_eco_tree(EVCE_CTX * ctx, EVCE_CORE * core, int x0, int y0, int c
             ret = evce_eco_unit(ctx, core, x0, y0, cup, cuw, cuh, local_tree_cons);
             core->tree_cons = tree_cons;
         }
-#endif
     }
     else
     {
         evc_assert(x0 + cuw <= ctx->w && y0 + cuh <= ctx->h);
 
-        if((cuw > MIN_CU_SIZE || cuh > MIN_CU_SIZE) && next_split
-#if M50761_CHROMA_NOT_SPLIT
-            && evce_check_luma(ctx , core)
-#endif
-            )
+        if((cuw > MIN_CU_SIZE || cuh > MIN_CU_SIZE) && next_split && evce_check_luma(ctx , core) )
         {
             evce_eco_split_mode(bs, ctx, core, cud, cup, cuw, cuh, ctx->max_cuwh
                                 , parent_split, same_layer_split, node_idx, parent_split_allow, split_allow, qt_depth, btt_depth, x0, y0);
@@ -1331,11 +1315,7 @@ static int evce_eco_tree(EVCE_CTX * ctx, EVCE_CORE * core, int x0, int y0, int c
 #if DQP
         core->cu_qp_delta_code = cu_qp_delta_code;
 #endif
-        ret = evce_eco_unit(ctx, core, x0, y0, cup, cuw, cuh
-#if M50761_CHROMA_NOT_SPLIT
-            , tree_cons
-#endif
-        );
+        ret = evce_eco_unit(ctx, core, x0, y0, cup, cuw, cuh, tree_cons);
         evc_assert_g(EVC_SUCCEEDED(ret), ERR);
     }
 
@@ -1628,18 +1608,13 @@ void evce_flush(EVCE_CTX * ctx)
 }
 
 static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, int cuh, int cud, int cup, int is_hor_edge
-#if M50761_CHROMA_NOT_SPLIT
-    , TREE_CONS tree_cons
-#endif
-    , EVCE_CORE * core, int boundary_filtering
-)
+    , TREE_CONS tree_cons, EVCE_CORE * core, int boundary_filtering)
 {
     s8  split_mode;
     int lcu_num;
     s8  suco_flag = 0;
-#if M50761_CHROMA_NOT_SPLIT
+
     core->tree_cons = tree_cons;
-#endif
 
     pic->pic_deblock_alpha_offset = ctx->sh.sh_deblock_alpha_offset;
     pic->pic_deblock_beta_offset = ctx->sh.sh_deblock_beta_offset;
@@ -1657,8 +1632,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
         evc_split_get_part_structure( split_mode, x, y, cuw, cuh, cup, cud, ctx->log2_culine, &split_struct );
 
         evc_split_get_suco_order(suco_flag, split_mode, suco_order);
-        
-#if M50761_CHROMA_NOT_SPLIT
+
         split_struct.tree_cons = tree_cons;
 
         BOOL mode_cons_changed = FALSE;
@@ -1677,7 +1651,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
         {
             split_struct.tree_cons = evc_get_default_tree_cons();
         }
-#endif
+
         for(int part_num = 0; part_num < split_struct.part_count; ++part_num)
         {
             int cur_part_num = suco_order[part_num];
@@ -1689,29 +1663,21 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
             if(x_pos < ctx->w && y_pos < ctx->h)
             {
                 deblock_tree(ctx, pic, x_pos, y_pos, sub_cuw, sub_cuh, split_struct.cud[cur_part_num], split_struct.cup[cur_part_num], is_hor_edge
-#if M50761_CHROMA_NOT_SPLIT
-                    , split_struct.tree_cons
-#endif
-                    , core, boundary_filtering);
+                    , split_struct.tree_cons, core, boundary_filtering);
             }
-#if M50761_CHROMA_NOT_SPLIT
+
             core->tree_cons = tree_cons;
-#endif
         }
-#if M50761_CHROMA_NOT_SPLIT
+
         if (mode_cons_changed && !evc_check_all(split_struct.tree_cons))
         {
             core->tree_cons = split_struct.tree_cons;
             core->tree_cons.tree_type = TREE_C;
             split_mode = NO_SPLIT;
         }
-#endif
     }
-#if M50761_CHROMA_NOT_SPLIT
+
     if (split_mode == NO_SPLIT)
-#else
-    else
-#endif
     {
         // deblock
         int t = (x >> MIN_CU_LOG2) + (y >> MIN_CU_LOG2) * ctx->w_scu;
@@ -1724,9 +1690,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
             {
               
                 evc_deblock_cu_hor(pic, x, y, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, ctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
-#if M50761_CHROMA_NOT_SPLIT                  
                     , core->tree_cons 
-#endif
                     , ctx->map_tidx, boundary_filtering
 #if ADDB_FLAG_FIX
                     , ctx->sps.tool_addb
@@ -1736,9 +1700,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
                 );
                 evc_deblock_cu_hor(pic, x, y + MAX_TR_SIZE, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, ctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
-#if M50761_CHROMA_NOT_SPLIT
                     , core->tree_cons
-#endif
                     , ctx->map_tidx, boundary_filtering
 #if ADDB_FLAG_FIX
                     , ctx->sps.tool_addb
@@ -1751,9 +1713,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
             else
             {
                 evc_deblock_cu_hor(pic, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi, ctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
-#if M50761_CHROMA_NOT_SPLIT
                     , core->tree_cons
-#endif
                     , ctx->map_tidx, boundary_filtering
 #if ADDB_FLAG_FIX
                     , ctx->sps.tool_addb
@@ -1773,9 +1733,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                   , ctx->map_cu_mode
 #endif
                   , ctx->refp, 0
-#if M50761_CHROMA_NOT_SPLIT
                   , core->tree_cons
-#endif
                   , ctx->map_tidx, boundary_filtering
 #if ADDB_FLAG_FIX
                   , ctx->sps.tool_addb
@@ -1789,9 +1747,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                   , ctx->map_cu_mode
 #endif                            
                   , ctx->refp, 0
-#if M50761_CHROMA_NOT_SPLIT                  
                   , core->tree_cons 
-#endif
                   , ctx->map_tidx, boundary_filtering
 #if ADDB_FLAG_FIX
                   , ctx->sps.tool_addb
@@ -1808,9 +1764,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                   , ctx->map_cu_mode
 #endif
                   , ctx->refp, 0
-#if M50761_CHROMA_NOT_SPLIT
                   , core->tree_cons
-#endif
                   , ctx->map_tidx, boundary_filtering
 #if ADDB_FLAG_FIX
                   , ctx->sps.tool_addb
@@ -1822,9 +1776,8 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
             }
         }
     }
-#if M50761_CHROMA_NOT_SPLIT
+
     core->tree_cons = tree_cons;
-#endif
 }
 
 int evce_deblock(EVCE_CTX * ctx, EVC_PIC * pic, int tile_idx, int filter_across_boundary , EVCE_CORE * core)
@@ -1871,10 +1824,7 @@ int evce_deblock(EVCE_CTX * ctx, EVC_PIC * pic, int tile_idx, int filter_across_
 #else
             deblock_tree(ctx, pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 1
 #endif
-#if M50761_CHROMA_NOT_SPLIT
-                , evc_get_default_tree_cons()
-#endif
-                , core, boundary_filtering);
+                , evc_get_default_tree_cons(), core, boundary_filtering);
         }
         /*Vertical filtering only at the left boundary of the tile */
         i = l_scu;
@@ -1891,10 +1841,7 @@ int evce_deblock(EVCE_CTX * ctx, EVC_PIC * pic, int tile_idx, int filter_across_
 #else
             deblock_tree(ctx, pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 0
 #endif
-#if M50761_CHROMA_NOT_SPLIT
-                , evc_get_default_tree_cons()
-#endif
-                , core, boundary_filtering);
+                , evc_get_default_tree_cons(), core, boundary_filtering);
         }
     }
     
@@ -1929,10 +1876,7 @@ int evce_deblock(EVCE_CTX * ctx, EVC_PIC * pic, int tile_idx, int filter_across_
 #else
                 deblock_tree(ctx, pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 1
 #endif
-#if M50761_CHROMA_NOT_SPLIT
-                    , evc_get_default_tree_cons()
-#endif
-                    , core, boundary_filtering);
+                    , evc_get_default_tree_cons(), core, boundary_filtering);
             }
         }
 
@@ -1954,10 +1898,7 @@ int evce_deblock(EVCE_CTX * ctx, EVC_PIC * pic, int tile_idx, int filter_across_
 #else
                 deblock_tree(ctx, pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 0
 #endif
-#if M50761_CHROMA_NOT_SPLIT
-                    , evc_get_default_tree_cons()
-#endif
-                    , core, boundary_filtering);
+                    , evc_get_default_tree_cons(), core, boundary_filtering);
             }
         }
     }
@@ -2859,9 +2800,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #if DQP
                   , 0
 #endif
-#if M50761_CHROMA_NOT_SPLIT
                     , evc_get_default_tree_cons()
-#endif
                 );
 #if FIX_DQP_ON
                 bef_cu_qp = ctx->tile[i].qp_prev_eco;
@@ -3034,11 +2973,8 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #if DQP
                     , 0
 #endif
-#if M50761_CHROMA_NOT_SPLIT
-                    , evc_get_default_tree_cons()
-#endif
+                    , evc_get_default_tree_cons() );
 
-                );
                 evc_assert_rv(ret == EVC_OK, ret);
                 core->x_lcu++;
                 if (core->x_lcu >= ctx->tile[i].w_ctb + col_bd)
@@ -3231,11 +3167,8 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #if DQP
                     , 0
 #endif
-#if M50761_CHROMA_NOT_SPLIT
-                    , evc_get_default_tree_cons()
-#endif
+                    , evc_get_default_tree_cons() );
 
-                );
                 evc_assert_rv(ret == EVC_OK, ret);
                 /* prepare next step *********************************************/
                 core->x_lcu++;
@@ -4005,9 +3938,7 @@ int evce_create_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
     evce_malloc_1d((void**)&cu_data->qp_u, size_8b);
     evce_malloc_1d((void**)&cu_data->qp_v, size_8b);
     evce_malloc_1d((void**)&cu_data->pred_mode, size_8b);
-#if M50761_CHROMA_NOT_SPLIT
     evce_malloc_1d((void**)&cu_data->pred_mode_chroma, size_8b);
-#endif
     evce_malloc_2d((s8***)&cu_data->mpm, 2, cu_cnt, sizeof(u8));
     evce_malloc_2d((s8***)&cu_data->ipm, 2, cu_cnt, sizeof(u8));
     evce_malloc_2d((s8***)&cu_data->mpm_ext, 8, cu_cnt, sizeof(u8));
@@ -4083,9 +4014,7 @@ int evce_delete_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
     evce_free_1d((void*)cu_data->qp_u);
     evce_free_1d((void*)cu_data->qp_v);
     evce_free_1d((void*)cu_data->pred_mode);
-#if M50761_CHROMA_NOT_SPLIT
     evce_free_1d((void*)cu_data->pred_mode_chroma);
-#endif
     evce_free_2d((void**)cu_data->mpm);
     evce_free_2d((void**)cu_data->ipm);
     evce_free_2d((void**)cu_data->mpm_ext);
