@@ -321,9 +321,7 @@ void scaling_mv(int ratio, s16 mvp[MV_D], s16 mv[MV_D])
 
 void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int h_scu, int scup, u16 avail, int log2_cuw, int log2_cuh, int slice_t
     , int real_mv[][2][3], u32 *map_scu, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME], u16 avail_lr
-#if M52166_MMVD
     , u32 curr_ptr, u8 num_refp[REFP_NUM]
-#endif
     , EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh, int log2_max_cuwh, u8* map_tidx, int mmvd_idx)
 {
     int ref_mvd = 0;
@@ -370,11 +368,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
     }
     else
     {
-#if M52166_MMVD
         evc_get_motion_merge_main(curr_ptr, slice_t, scup, map_refi, map_mv, refp, cuw, cuh, w_scu, h_scu, srefi, smvp, map_scu, avail_lr
-#else
-        evc_get_motion_merge_main(REF_SET[2][0], slice_t, scup, map_refi, map_mv, refp, cuw, cuh, w_scu, h_scu, srefi, smvp, map_scu, avail_lr
-#endif
 #if DMVR_LAG
             , NULL
 #endif
@@ -432,11 +426,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
         {
             if (slice_t == SLICE_P)
             {
-#if M52166_MMVD
                 int cur_ref_num = num_refp[REFP_0];
-#else
-                int cur_ref_num = REF_SET[2][1];
-#endif
                 base_type[0][k] = 1;
                 base_type[1][k] = 1;
                 base_type[2][k] = 1;
@@ -449,7 +439,6 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                 }
                 else
                 {
-#if M52166_MMVD
                     base_mv_p[k][0][REFI] = base_mv_t[k][REFP_0][REFI];
                     base_mv_p[k][1][REFI] = !base_mv_t[k][REFP_0][REFI];
                     if (cur_ref_num < 3)
@@ -460,38 +449,6 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                     {
                         base_mv_p[k][2][REFI] = base_mv_t[k][REFP_0][REFI] < 2 ? 2 : 1;
                     }
-#else
-                    int app_idx = 0;
-                    int prior_ref[2] = { -1,-1 };
-                    int v;
-                    for (v = 0; v < min(cur_ref_num, MAX_NUM_ACTIVE_REF_FRAME); v++)
-                    {
-                        if (v != base_mv_t[k][0][2])
-                        {
-                            prior_ref[app_idx] = v;
-                            app_idx++;
-                        }
-                        if (app_idx == cur_ref_num)
-                            break;
-                    }
-                    if (cur_ref_num == 2)
-                    {
-                        app_idx = 0;
-
-                        base_mv_p[k][0][2] = base_mv_t[k][0][2];
-                        base_mv_p[k][1][2] = prior_ref[app_idx];
-                        base_mv_p[k][2][2] = base_mv_t[k][0][2];
-                    }
-                    else
-                    {
-                        app_idx = 0;
-
-                        base_mv_p[k][0][2] = base_mv_t[k][0][2];
-                        base_mv_p[k][1][2] = prior_ref[app_idx];
-                        app_idx++;
-                        base_mv_p[k][2][2] = prior_ref[app_idx];
-                    }
-#endif
                 }
 
                 if (cur_ref_num == 1)
@@ -511,22 +468,14 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                     base_mv_p[k][0][MV_Y] = base_mv_t[k][REFP_0][MV_Y];
 
                     poc0 = REF_SET[0][base_mv_p[k][0][REFI]];
-#if M52166_MMVD
                     poc_c = curr_ptr;
-#else
-                    poc_c = REF_SET[2][0];
-#endif
                     poc1 = REF_SET[0][base_mv_p[k][1][REFI]];
 
                     list0_weight = ((poc_c - poc0) << MVP_SCALING_PRECISION) / ((poc_c - poc1));
                     ref_sign = 1;
                     base_mv_p[k][1][MV_X] = EVC_CLIP3(-32768, 32767, ref_sign  * ((EVC_ABS(list0_weight * base_mv_t[k][REFP_0][MV_X]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
                     base_mv_p[k][1][MV_Y] = EVC_CLIP3(-32768, 32767, ref_sign1 * ((EVC_ABS(list0_weight * base_mv_t[k][REFP_0][MV_Y]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
-#if M52166_MMVD
                     base_mv_p[k][2][MV_X] = base_mv_t[k][REFP_0][MV_X] - 3;
-#else
-                    base_mv_p[k][2][0] = base_mv_t[k][0][0] + 3;
-#endif
                     base_mv_p[k][2][MV_Y] = base_mv_t[k][REFP_0][MV_Y];
                 }
                 else if (cur_ref_num >= 3)
@@ -536,11 +485,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                     base_mv_p[k][0][REFI] = base_mv_p[k][REFP_0][REFI];
 
                     poc0 = REF_SET[0][base_mv_p[k][0][REFI]];
-#if M52166_MMVD
                     poc_c = curr_ptr;
-#else
-                    poc_c = REF_SET[2][0];
-#endif
                     poc1 = REF_SET[0][base_mv_p[k][1][REFI]];
 
                     list0_weight = ((poc_c - poc0) << MVP_SCALING_PRECISION) / ((poc_c - poc1));
@@ -549,11 +494,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                     base_mv_p[k][1][MV_Y] = EVC_CLIP3(-32768, 32767, ref_sign1 * ((EVC_ABS(list0_weight * base_mv_t[k][REFP_0][MV_Y]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
 
                     poc0 = REF_SET[0][base_mv_p[k][0][2]];
-#if M52166_MMVD
                     poc_c = curr_ptr;
-#else
-                    poc_c = REF_SET[2][0];
-#endif
                     poc1 = REF_SET[0][base_mv_p[k][2][2]];
 
                     list0_weight = ((poc_c - poc0) << MVP_SCALING_PRECISION) / ((poc_c - poc1));
@@ -567,7 +508,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                 base_type[0][k] = 1;
                 base_type[1][k] = 0;
                 base_type[2][k] = 2;
-#if M52166_MMVD
+
                 list0_weight = 1 << MVP_SCALING_PRECISION;
                 list1_weight = 1 << MVP_SCALING_PRECISION;
                 poc0 = REF_SET[REFP_0][list0_r];
@@ -581,31 +522,6 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                     base_mv_t[k][REFP_1][REFI] = 0;
                 }
                 poc1 = REF_SET[REFP_1][base_mv_t[k][REFP_1][REFI]];
-#else
-                poc0 = REF_SET[0][list0_r];
-                poc_c = REF_SET[2][0];
-                poc1_t = (poc_c - poc0) + poc_c;
-                list0_weight = 1 << MVP_SCALING_PRECISION;
-                list1_weight = 1 << MVP_SCALING_PRECISION;
-
-                if ((poc1_t == REF_SET[1][0]) || (poc1_t == REF_SET[1][1]))
-                {
-                    if (poc1_t == REF_SET[1][0])
-                    {
-                        base_mv_t[k][1][2] = 0;
-                    }
-                    else if (poc1_t == REF_SET[1][1])
-                    {
-                        base_mv_t[k][1][2] = 1;
-                    }
-                    poc1 = REF_SET[1][base_mv_t[k][1][2]];
-                }
-                else
-                {
-                    base_mv_t[k][1][2] = 0;
-                    poc1 = REF_SET[1][base_mv_t[k][1][2]];
-                }
-#endif
 
                 list1_weight = ((poc_c - poc1) << MVP_SCALING_PRECISION) / ((poc_c - poc0));
                 if ((list1_weight * base_mv_t[k][0][0]) < 0)
@@ -629,7 +545,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
             base_type[0][k] = 2;
             base_type[1][k] = 0;
             base_type[2][k] = 1;
-#if M52166_MMVD
+
             list0_weight = 1 << MVP_SCALING_PRECISION;
             list1_weight = 1 << MVP_SCALING_PRECISION;
             poc1 = REF_SET[1][list1_r];
@@ -643,31 +559,6 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                 base_mv_t[k][REFP_0][REFI] = 0;
             }
             poc0 = REF_SET[REFP_0][base_mv_t[k][REFP_0][REFI]];
-#else
-            poc1 = REF_SET[1][list1_r];
-            poc_c = REF_SET[2][0];
-            poc0_t = (poc_c - poc1) + poc_c;
-            list0_weight = 1 << MVP_SCALING_PRECISION;
-            list1_weight = 1 << MVP_SCALING_PRECISION;
-
-            if ((poc0_t == REF_SET[0][0]) || (poc0_t == REF_SET[0][1]))
-            {
-                if (poc0_t == REF_SET[0][0])
-                {
-                    base_mv_t[k][0][2] = 0;
-                }
-                else if (poc0_t == REF_SET[0][1])
-                {
-                    base_mv_t[k][0][2] = 1;
-                }
-                poc0 = REF_SET[0][base_mv_t[k][0][2]];
-            }
-            else
-            {
-                base_mv_t[k][0][2] = 0;
-                poc0 = REF_SET[0][base_mv_t[k][0][2]];
-            }
-#endif
 
             list0_weight = ((poc_c - poc0) << MVP_SCALING_PRECISION) / ((poc_c - poc1));
             if ((list0_weight * base_mv_t[k][REFP_1][MV_X]) < 0)
@@ -756,11 +647,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                 {
                     poc0 = REF_SET[0][list0_r];
                     poc1 = REF_SET[1][list1_r];
-#if M52166_MMVD
                     poc_c = curr_ptr;
-#else
-                    poc_c = REF_SET[2][0];
-#endif
                     if ((poc0 - poc_c) * (poc_c - poc1) > 0)
                     {
                         ref_sign = -1;
@@ -779,11 +666,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                 {
                     poc0 = REF_SET[0][list0_r];
                     poc1 = REF_SET[1][list1_r];
-#if M52166_MMVD
                     poc_c = curr_ptr;
-#else
-                    poc_c = REF_SET[2][0];
-#endif
 
                     if (EVC_ABS(poc1 - poc_c) >= EVC_ABS(poc0 - poc_c))
                     {

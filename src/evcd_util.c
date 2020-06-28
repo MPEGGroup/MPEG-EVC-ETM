@@ -931,11 +931,7 @@ void evcd_draw_partition(EVCD_CTX * ctx, EVC_PIC * pic)
 void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 {
     int real_mv[MMVD_GRP_NUM * MMVD_BASE_MV_NUM * MMVD_MAX_REFINE_NUM][2][3];
-#if M52166_MMVD
     int REF_SET[REFP_NUM][MAX_NUM_ACTIVE_REF_FRAME] = { {0,0,}, };
-#else
-    int REF_SET[3][MAX_NUM_ACTIVE_REF_FRAME] = { {0,0,}, };
-#endif
     int cuw, cuh;
 
     for (int k = 0; k < MAX_NUM_ACTIVE_REF_FRAME; k++)
@@ -943,17 +939,12 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
         REF_SET[0][k] = ctx->refp[k][0].poc;
         REF_SET[1][k] = ctx->refp[k][1].poc;
     }
-#if !M52166_MMVD
-    REF_SET[2][0] = ctx->poc.poc_val;
-    REF_SET[2][1] = ctx->dpm.cur_num_ref_pics;
-#endif
+
     cuw = (1 << core->log2_cuw);
     cuh = (1 << core->log2_cuh);
 
     evc_get_mmvd_mvp_list(ctx->map_refi, ctx->refp[0], ctx->map_mv, ctx->w_scu, ctx->h_scu, core->scup, core->avail_cu, core->log2_cuw, core->log2_cuh, ctx->sh.slice_type, real_mv, ctx->map_scu, REF_SET, core->avail_lr
-#if M52166_MMVD
         , ctx->poc.poc_val, ctx->dpm.num_refp
-#endif
         , core->history_buffer, ctx->sps.tool_admvp, &ctx->sh, ctx->log2_max_cuwh, ctx->map_tidx, core->mmvd_idx);
 
     core->mv[REFP_0][MV_X] = real_mv[core->mmvd_idx][0][MV_X];

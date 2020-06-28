@@ -132,7 +132,6 @@
 #endif
 #define M52166_SUCO                                  1
 #define M52166_DBF                                   1
-#define M52166_MMVD                                  1
 #endif
 
 /* Profiles definitions */

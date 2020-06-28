@@ -100,9 +100,7 @@ void evc_picbuf_expand(EVC_PIC *pic, int exp_l, int exp_c);
 void evc_poc_derivation(EVC_SPS sps, int tid, EVC_POC *poc);
 
 void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int h_scu, int scup, u16 avail, int cuw, int cuh, int slice_t, int real_mv[][2][3], u32 *map_scu, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME], u16 avail_lr
-#if M52166_MMVD
     , u32 curr_ptr, u8 num_refp[REFP_NUM]
-#endif
     , EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh, int log2_max_cuwh, u8 * map_tidx, int mmvd_idx);
 
 void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_scu, int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], u32 *map_scu, u16 avail_lr, int num_mvp, int is_ibc, u8 * map_tidx);
