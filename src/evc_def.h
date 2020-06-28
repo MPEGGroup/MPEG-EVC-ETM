@@ -106,7 +106,6 @@
 #define M52291_HDR_DRA                               1
 #define M52165                                       1
 #define M52166                                       1
-#define M52290                                       1
 #define M52223                                       1
 
 //MPEG 128 adoptions
@@ -134,9 +133,6 @@
 #define M52166_SUCO                                  1
 #define M52166_DBF                                   1
 #define M52166_MMVD                                  1
-#endif
-
-#if M52290
 #endif
 
 /* Profiles definitions */
