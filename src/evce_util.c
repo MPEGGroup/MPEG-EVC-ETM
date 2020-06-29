@@ -205,13 +205,9 @@ void evc_set_affine_mvf(EVCE_CTX * ctx, EVCE_CORE * core, int w, int h, s8 refi[
 
                         // 1/16 precision, 18 bits, same as MC
                         evc_mv_rounding_s32( mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, 5, 0 );
-#if AFFINE_CLIPPING_BF
+
                         mv_scale_tmp_hor = EVC_CLIP3( -(1 << 17), (1 << 17) - 1, mv_scale_tmp_hor );
                         mv_scale_tmp_ver = EVC_CLIP3( -(1 << 17), (1 << 17) - 1, mv_scale_tmp_ver );
-#else
-                        mv_scale_tmp_hor = EVC_CLIP3( -(2 << 17), (2 << 17) - 1, mv_scale_tmp_hor );
-                        mv_scale_tmp_ver = EVC_CLIP3( -(2 << 17), (2 << 17) - 1, mv_scale_tmp_ver );
-#endif
 
                         // 1/4 precision, 16 bits for storage
                         mv_scale_tmp_hor >>= 2;
@@ -249,7 +245,6 @@ void evce_set_qp(EVCE_CTX *ctx, EVCE_CORE *core, u8 qp)
 #endif
 void evce_split_tbl_init(EVCE_CTX *ctx)
 {
-#if M52166_PARTITION
     evc_split_tbl[BLOCK_11][IDX_MAX] = ctx->cdsc.framework_cb_max;
     evc_split_tbl[BLOCK_11][IDX_MIN] = ctx->cdsc.framework_cb_min;
     evc_split_tbl[BLOCK_12][IDX_MAX] = ctx->cdsc.framework_cb_max;
@@ -258,23 +253,8 @@ void evce_split_tbl_init(EVCE_CTX *ctx)
     evc_split_tbl[BLOCK_14][IDX_MIN] = evc_split_tbl[BLOCK_12][IDX_MIN] + 1;
     evc_split_tbl[BLOCK_TT][IDX_MAX] = ctx->cdsc.framework_tris_max;
     evc_split_tbl[BLOCK_TT][IDX_MIN] = ctx->cdsc.framework_tris_min;
-#else
-    evc_split_tbl[0][0] = ctx->cdsc.framework_cu11_max;
-    evc_split_tbl[0][1] = ctx->cdsc.framework_cu11_min;
-    evc_split_tbl[1][0] = ctx->cdsc.framework_cu12_max;
-    evc_split_tbl[1][1] = ctx->cdsc.framework_cu12_min;
-    evc_split_tbl[2][0] = ctx->cdsc.framework_cu14_max;
-    evc_split_tbl[2][1] = ctx->cdsc.framework_cu14_min;
-    evc_split_tbl[3][0] = 0;
-    evc_split_tbl[3][1] = 0;
-    evc_split_tbl[4][0] = 0;
-    evc_split_tbl[4][1] = 0;
-    evc_split_tbl[5][0] = ctx->cdsc.framework_tris_max;
-    evc_split_tbl[5][1] = ctx->cdsc.framework_tris_min;
-#endif
 }
 
-#if M50761_CHROMA_NOT_SPLIT
 u8 evce_check_luma(EVCE_CTX *ctx, EVCE_CORE * core)
 {
     return evc_check_luma(core->tree_cons);    
@@ -308,4 +288,3 @@ MODE_CONS evce_derive_mode_cons(EVCE_CTX *ctx, int lcu_num, int cup)
 {
     return ((ctx->map_cu_data[lcu_num].pred_mode[cup] == MODE_INTRA) || (ctx->map_cu_data[lcu_num].pred_mode[cup] == MODE_IBC) ) ? eOnlyIntra : eOnlyInter;
 }
-#endif

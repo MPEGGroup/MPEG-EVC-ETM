@@ -81,9 +81,7 @@ extern const s16 init_cbf_all[2][NUM_CTX_CBF_ALL];
 extern const s16 init_dqp[2][NUM_CTX_DELTA_QP];
 #endif
 extern const s16 init_pred_mode[2][NUM_CTX_PRED_MODE];
-#if M50761_CHROMA_NOT_SPLIT
 extern const s16 init_mode_cons[2][NUM_CTX_MODE_CONS];
-#endif
 extern const s16 init_direct_mode_flag[2][NUM_CTX_DIRECT_MODE_FLAG];
 extern const s16 init_merge_mode_flag[2][NUM_CTX_MERGE_MODE_FLAG];
 extern const s16 init_inter_dir[2][NUM_CTX_INTER_PRED_IDC];

@@ -1601,12 +1601,8 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 #endif
                              , core->nnz_sub, 0, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt, 0, 0
                              , core->ats_inter_info, ctx->sps.tool_adcc
-#if M50761_CHROMA_NOT_SPLIT
                              , core->tree_cons
-
-#endif
-                             , core
-        );
+                             , core);
 
         if (tnnz)
         {
@@ -1839,10 +1835,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
                         SBAC_LOAD(core->s_temp_run, core->s_temp_prev_comp_run);
                         evce_sbac_bit_reset(&core->s_temp_run);
                         evce_rdo_bit_cnt_cu_inter_comp(core, coef, i, pidx, ctx
-#if M50761_CHROMA_NOT_SPLIT
-                            , core->tree_cons
-#endif
-                        );
+                            , core->tree_cons);
 
                         bit_cnt = evce_get_bit_number(&core->s_temp_run);
                         cost += RATE_TO_COST_LAMBDA(ctx->lambda[i], bit_cnt);
@@ -2245,10 +2238,7 @@ static double analyze_skip_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y
 static void mmvd_base_skip(EVCE_CTX *ctx, EVCE_CORE *core, int real_mv[][2][3], int log2_cuw, int log2_cuh, int slice_t, int scup
                            , s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], EVC_REFP refp[REFP_NUM], int w_scu, u16 avail, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME]
                            , int h_scu, u32 *map_scu, u16 avail_lr, EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh, int log2_max_cuwh
-#if M52166_MMVD
-                           , u32 curr_ptr
-#endif
-)
+                           , u32 curr_ptr)
 {
     int nn;
     int k;
@@ -2308,11 +2298,7 @@ static void mmvd_base_skip(EVCE_CTX *ctx, EVCE_CORE *core, int real_mv[][2][3], 
     }
     else
     {
-#if M52166_MMVD
         evc_get_motion_merge_main(curr_ptr, slice_t, scup, map_refi, map_mv, refp, cuw, cuh, w_scu, h_scu, srefi, smvp, map_scu, avail_lr
-#else
-        evc_get_motion_merge_main(REF_SET[2][0], slice_t, scup, map_refi, map_mv, refp, cuw, cuh, w_scu, h_scu, srefi, smvp, map_scu, avail_lr
-#endif
 #if DMVR_LAG
                                   , NULL
 #endif
@@ -5378,11 +5364,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
     s16 tmp_mv_array[VER_NUM][MV_D];
 
     int k;
-#if M52166_MMVD
     int REF_SET[REFP_NUM][MAX_NUM_ACTIVE_REF_FRAME] = { {0,0,}, };
-#else
-    int REF_SET[3][MAX_NUM_ACTIVE_REF_FRAME] = {{0,0,},};
-#endif
     int real_mv[MMVD_GRP_NUM * MMVD_BASE_MV_NUM * MMVD_MAX_REFINE_NUM][2][3];
     int num_amvr = MAX_NUM_MVR;
 
@@ -5444,21 +5426,14 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
             REF_SET[0][k] = ctx->refp[k][0].poc;
             REF_SET[1][k] = ctx->refp[k][1].poc;
         }
-#if !M52166_MMVD
-        REF_SET[2][0] = ctx->poc.poc_val;
-        REF_SET[2][1] = ctx->rpm.cur_num_ref_pics;
-#endif
+
         evc_get_mmvd_mvp_list(ctx->map_refi, ctx->refp[0], ctx->map_mv, ctx->w_scu, ctx->h_scu, core->scup, core->avail_cu, log2_cuw, log2_cuh, ctx->slice_type, real_mv, ctx->map_scu, REF_SET, core->avail_lr
-#if M52166_MMVD
             , ctx->poc.poc_val, ctx->rpm.num_refp
-#endif
             , core->history_buffer, ctx->sps.tool_admvp, &ctx->sh, ctx->log2_max_cuwh, ctx->map_tidx, -1);
     }
     mmvd_base_skip(ctx, core, real_mv, log2_cuw, log2_cuh, ctx->slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], ctx->w_scu, core->avail_cu, REF_SET
                    , ctx->h_scu, ctx->map_scu, core->avail_lr, core->history_buffer, ctx->sps.tool_admvp, &ctx->sh, ctx->log2_max_cuwh
-#if M52166_MMVD
                    , ctx->poc.poc_val
-#endif
     );
     /* skip mode */
     cost = cost_inter[PRED_SKIP] = analyze_skip(ctx, core, x, y, log2_cuw, log2_cuh);

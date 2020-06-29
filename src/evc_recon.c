@@ -123,38 +123,27 @@ void evc_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, p
     }
 }
 
-void evc_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pel pred[N_C][MAX_CU_DIM], int nnz[N_C], EVC_PIC *pic, u8 ats_inter_info
-#if M50761_CHROMA_NOT_SPLIT
-    , TREE_CONS tree_cons
-#endif
-)
+void evc_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pel pred[N_C][MAX_CU_DIM], int nnz[N_C], EVC_PIC *pic, u8 ats_inter_info, TREE_CONS tree_cons)
 {
     pel * rec;
     int s_rec, off;
 
-#if M50761_CHROMA_NOT_SPLIT
     if (evc_check_luma(tree_cons))
     {
-#endif
-    /* Y */
-    s_rec = pic->s_l;
-    rec = pic->y + (y * s_rec) + x;
-    evc_recon(coef[Y_C], pred[Y_C], nnz[Y_C], cuw, cuh, s_rec, rec, ats_inter_info);
-#if M50761_CHROMA_NOT_SPLIT
+        /* Y */
+        s_rec = pic->s_l;
+        rec = pic->y + (y * s_rec) + x;
+        evc_recon(coef[Y_C], pred[Y_C], nnz[Y_C], cuw, cuh, s_rec, rec, ats_inter_info);
     }
     if (evc_check_chroma(tree_cons))
     {
-#endif
-    /* chroma */
-    cuw >>= 1;
-    cuh >>= 1;
-    off = (x >> 1) + (y >> 1) * pic->s_c;
-    evc_recon(coef[U_C], pred[U_C], nnz[U_C], cuw, cuh, pic->s_c, pic->u + off, ats_inter_info);
-    evc_recon(coef[V_C], pred[V_C], nnz[V_C], cuw, cuh, pic->s_c, pic->v + off, ats_inter_info);
-#if M50761_CHROMA_NOT_SPLIT
+        /* chroma */
+        cuw >>= 1;
+        cuh >>= 1;
+        off = (x >> 1) + (y >> 1) * pic->s_c;
+        evc_recon(coef[U_C], pred[U_C], nnz[U_C], cuw, cuh, pic->s_c, pic->u + off, ats_inter_info);
+        evc_recon(coef[V_C], pred[V_C], nnz[V_C], cuw, cuh, pic->s_c, pic->v + off, ats_inter_info);
     }
-#endif
-
 }
 
 #define HTDF_LUT_QP_NUM                                   5   // num of LUTs

@@ -321,9 +321,7 @@ void scaling_mv(int ratio, s16 mvp[MV_D], s16 mv[MV_D])
 
 void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int h_scu, int scup, u16 avail, int log2_cuw, int log2_cuh, int slice_t
     , int real_mv[][2][3], u32 *map_scu, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME], u16 avail_lr
-#if M52166_MMVD
     , u32 curr_ptr, u8 num_refp[REFP_NUM]
-#endif
     , EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh, int log2_max_cuwh, u8* map_tidx, int mmvd_idx)
 {
     int ref_mvd = 0;
@@ -370,11 +368,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
     }
     else
     {
-#if M52166_MMVD
         evc_get_motion_merge_main(curr_ptr, slice_t, scup, map_refi, map_mv, refp, cuw, cuh, w_scu, h_scu, srefi, smvp, map_scu, avail_lr
-#else
-        evc_get_motion_merge_main(REF_SET[2][0], slice_t, scup, map_refi, map_mv, refp, cuw, cuh, w_scu, h_scu, srefi, smvp, map_scu, avail_lr
-#endif
 #if DMVR_LAG
             , NULL
 #endif
@@ -432,11 +426,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
         {
             if (slice_t == SLICE_P)
             {
-#if M52166_MMVD
                 int cur_ref_num = num_refp[REFP_0];
-#else
-                int cur_ref_num = REF_SET[2][1];
-#endif
                 base_type[0][k] = 1;
                 base_type[1][k] = 1;
                 base_type[2][k] = 1;
@@ -449,7 +439,6 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                 }
                 else
                 {
-#if M52166_MMVD
                     base_mv_p[k][0][REFI] = base_mv_t[k][REFP_0][REFI];
                     base_mv_p[k][1][REFI] = !base_mv_t[k][REFP_0][REFI];
                     if (cur_ref_num < 3)
@@ -460,38 +449,6 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                     {
                         base_mv_p[k][2][REFI] = base_mv_t[k][REFP_0][REFI] < 2 ? 2 : 1;
                     }
-#else
-                    int app_idx = 0;
-                    int prior_ref[2] = { -1,-1 };
-                    int v;
-                    for (v = 0; v < min(cur_ref_num, MAX_NUM_ACTIVE_REF_FRAME); v++)
-                    {
-                        if (v != base_mv_t[k][0][2])
-                        {
-                            prior_ref[app_idx] = v;
-                            app_idx++;
-                        }
-                        if (app_idx == cur_ref_num)
-                            break;
-                    }
-                    if (cur_ref_num == 2)
-                    {
-                        app_idx = 0;
-
-                        base_mv_p[k][0][2] = base_mv_t[k][0][2];
-                        base_mv_p[k][1][2] = prior_ref[app_idx];
-                        base_mv_p[k][2][2] = base_mv_t[k][0][2];
-                    }
-                    else
-                    {
-                        app_idx = 0;
-
-                        base_mv_p[k][0][2] = base_mv_t[k][0][2];
-                        base_mv_p[k][1][2] = prior_ref[app_idx];
-                        app_idx++;
-                        base_mv_p[k][2][2] = prior_ref[app_idx];
-                    }
-#endif
                 }
 
                 if (cur_ref_num == 1)
@@ -511,22 +468,14 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                     base_mv_p[k][0][MV_Y] = base_mv_t[k][REFP_0][MV_Y];
 
                     poc0 = REF_SET[0][base_mv_p[k][0][REFI]];
-#if M52166_MMVD
                     poc_c = curr_ptr;
-#else
-                    poc_c = REF_SET[2][0];
-#endif
                     poc1 = REF_SET[0][base_mv_p[k][1][REFI]];
 
                     list0_weight = ((poc_c - poc0) << MVP_SCALING_PRECISION) / ((poc_c - poc1));
                     ref_sign = 1;
                     base_mv_p[k][1][MV_X] = EVC_CLIP3(-32768, 32767, ref_sign  * ((EVC_ABS(list0_weight * base_mv_t[k][REFP_0][MV_X]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
                     base_mv_p[k][1][MV_Y] = EVC_CLIP3(-32768, 32767, ref_sign1 * ((EVC_ABS(list0_weight * base_mv_t[k][REFP_0][MV_Y]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
-#if M52166_MMVD
                     base_mv_p[k][2][MV_X] = base_mv_t[k][REFP_0][MV_X] - 3;
-#else
-                    base_mv_p[k][2][0] = base_mv_t[k][0][0] + 3;
-#endif
                     base_mv_p[k][2][MV_Y] = base_mv_t[k][REFP_0][MV_Y];
                 }
                 else if (cur_ref_num >= 3)
@@ -536,11 +485,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                     base_mv_p[k][0][REFI] = base_mv_p[k][REFP_0][REFI];
 
                     poc0 = REF_SET[0][base_mv_p[k][0][REFI]];
-#if M52166_MMVD
                     poc_c = curr_ptr;
-#else
-                    poc_c = REF_SET[2][0];
-#endif
                     poc1 = REF_SET[0][base_mv_p[k][1][REFI]];
 
                     list0_weight = ((poc_c - poc0) << MVP_SCALING_PRECISION) / ((poc_c - poc1));
@@ -549,11 +494,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                     base_mv_p[k][1][MV_Y] = EVC_CLIP3(-32768, 32767, ref_sign1 * ((EVC_ABS(list0_weight * base_mv_t[k][REFP_0][MV_Y]) + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION));
 
                     poc0 = REF_SET[0][base_mv_p[k][0][2]];
-#if M52166_MMVD
                     poc_c = curr_ptr;
-#else
-                    poc_c = REF_SET[2][0];
-#endif
                     poc1 = REF_SET[0][base_mv_p[k][2][2]];
 
                     list0_weight = ((poc_c - poc0) << MVP_SCALING_PRECISION) / ((poc_c - poc1));
@@ -567,7 +508,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                 base_type[0][k] = 1;
                 base_type[1][k] = 0;
                 base_type[2][k] = 2;
-#if M52166_MMVD
+
                 list0_weight = 1 << MVP_SCALING_PRECISION;
                 list1_weight = 1 << MVP_SCALING_PRECISION;
                 poc0 = REF_SET[REFP_0][list0_r];
@@ -581,31 +522,6 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                     base_mv_t[k][REFP_1][REFI] = 0;
                 }
                 poc1 = REF_SET[REFP_1][base_mv_t[k][REFP_1][REFI]];
-#else
-                poc0 = REF_SET[0][list0_r];
-                poc_c = REF_SET[2][0];
-                poc1_t = (poc_c - poc0) + poc_c;
-                list0_weight = 1 << MVP_SCALING_PRECISION;
-                list1_weight = 1 << MVP_SCALING_PRECISION;
-
-                if ((poc1_t == REF_SET[1][0]) || (poc1_t == REF_SET[1][1]))
-                {
-                    if (poc1_t == REF_SET[1][0])
-                    {
-                        base_mv_t[k][1][2] = 0;
-                    }
-                    else if (poc1_t == REF_SET[1][1])
-                    {
-                        base_mv_t[k][1][2] = 1;
-                    }
-                    poc1 = REF_SET[1][base_mv_t[k][1][2]];
-                }
-                else
-                {
-                    base_mv_t[k][1][2] = 0;
-                    poc1 = REF_SET[1][base_mv_t[k][1][2]];
-                }
-#endif
 
                 list1_weight = ((poc_c - poc1) << MVP_SCALING_PRECISION) / ((poc_c - poc0));
                 if ((list1_weight * base_mv_t[k][0][0]) < 0)
@@ -629,7 +545,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
             base_type[0][k] = 2;
             base_type[1][k] = 0;
             base_type[2][k] = 1;
-#if M52166_MMVD
+
             list0_weight = 1 << MVP_SCALING_PRECISION;
             list1_weight = 1 << MVP_SCALING_PRECISION;
             poc1 = REF_SET[1][list1_r];
@@ -643,31 +559,6 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                 base_mv_t[k][REFP_0][REFI] = 0;
             }
             poc0 = REF_SET[REFP_0][base_mv_t[k][REFP_0][REFI]];
-#else
-            poc1 = REF_SET[1][list1_r];
-            poc_c = REF_SET[2][0];
-            poc0_t = (poc_c - poc1) + poc_c;
-            list0_weight = 1 << MVP_SCALING_PRECISION;
-            list1_weight = 1 << MVP_SCALING_PRECISION;
-
-            if ((poc0_t == REF_SET[0][0]) || (poc0_t == REF_SET[0][1]))
-            {
-                if (poc0_t == REF_SET[0][0])
-                {
-                    base_mv_t[k][0][2] = 0;
-                }
-                else if (poc0_t == REF_SET[0][1])
-                {
-                    base_mv_t[k][0][2] = 1;
-                }
-                poc0 = REF_SET[0][base_mv_t[k][0][2]];
-            }
-            else
-            {
-                base_mv_t[k][0][2] = 0;
-                poc0 = REF_SET[0][base_mv_t[k][0][2]];
-            }
-#endif
 
             list0_weight = ((poc_c - poc0) << MVP_SCALING_PRECISION) / ((poc_c - poc1));
             if ((list0_weight * base_mv_t[k][REFP_1][MV_X]) < 0)
@@ -756,11 +647,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                 {
                     poc0 = REF_SET[0][list0_r];
                     poc1 = REF_SET[1][list1_r];
-#if M52166_MMVD
                     poc_c = curr_ptr;
-#else
-                    poc_c = REF_SET[2][0];
-#endif
                     if ((poc0 - poc_c) * (poc_c - poc1) > 0)
                     {
                         ref_sign = -1;
@@ -779,11 +666,7 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
                 {
                     poc0 = REF_SET[0][list0_r];
                     poc1 = REF_SET[1][list1_r];
-#if M52166_MMVD
                     poc_c = curr_ptr;
-#else
-                    poc_c = REF_SET[2][0];
-#endif
 
                     if (EVC_ABS(poc1 - poc_c) >= EVC_ABS(poc0 - poc_c))
                     {
@@ -854,13 +737,8 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
     
     if (avail_lr == LR_11)
     {
-#if M52166_SUCO
         neb_addr[0] = scup + (scuh - 1) * w_scu - 1; // H
         neb_addr[1] = scup + (scuh - 1) * w_scu + scuw; // inverse H
-#else
-        neb_addr[0] = scup - 1;
-        neb_addr[1] = scup + scuw;
-#endif
         neb_addr[2] = scup - w_scu;
 
         if (is_ibc)
@@ -2580,23 +2458,6 @@ int evc_get_split_mode(s8 *split_mode, int cud, int cup, int cuw, int cuh, int l
     return ret;
 }
 
-#if !M50761_CHROMA_NOT_SPLIT_CLEANUP
-int evc_set_split_mode(s8 split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8 (*split_mode_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU])
-{
-    int ret = EVC_OK;
-    int pos = cup + (((cuh >> 1) >> MIN_CU_LOG2) * (lcu_s >> MIN_CU_LOG2) + ((cuw >> 1) >> MIN_CU_LOG2));
-    int shape = SQUARE + (CONV_LOG2(cuw) - CONV_LOG2(cuh));
-
-    if(cuw < 8 && cuh < 8)
-    {
-        return ret;
-    }
-
-    split_mode_buf[cud][shape][pos] = split_mode;
-
-    return ret;
-}
-#else
 void evc_set_split_mode(s8 split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8 (*split_mode_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU])
 {
     int pos = cup + (((cuh >> 1) >> MIN_CU_LOG2) * (lcu_s >> MIN_CU_LOG2) + ((cuw >> 1) >> MIN_CU_LOG2));
@@ -2605,16 +2466,12 @@ void evc_set_split_mode(s8 split_mode, int cud, int cup, int cuw, int cuh, int l
     if(cuw >= 8 || cuh >= 8)
         split_mode_buf[cud][shape][pos] = split_mode;
 }
-#endif
 
 void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boundary, int boundary_b, int boundary_r, int log2_max_cuwh
                           , const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth
                           , int x, int y, int im_w, int im_h
                           , u8 *remaining_split, int sps_btt_flag
-#if M50761_CHROMA_NOT_SPLIT
-                          , MODE_CONS mode_cons
-#endif
-)
+                          , MODE_CONS mode_cons)
 {
     if(!sps_btt_flag)
     {
@@ -2628,80 +2485,22 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
     int cu_max, from_boundary_b;
     cu_max = 1 << (log2_max_cuwh - 1);
     from_boundary_b = (y >= im_h - im_h%cu_max) && !(x >= im_w - im_w % cu_max);
-#if !M52166_PARTITION
-    int from_boundary_r = (x >= im_w - im_w % cu_max) && !(y >= im_h - im_h%cu_max);
-#endif
 
     evc_mset(split_allow, 0, sizeof(int) * SPLIT_CHECK_NUM);
     {
         split_allow[SPLIT_QUAD] = 0;
 
-#if !M52166_PARTITION
-        if (boundary)
-        {
-            if (boundary_r)
-            {
-                // right side
-                if (log2_cuh >= (2 + log2_cuw) )
-                {
-                    split_allow[SPLIT_BI_HOR] = 1;
-                }
-                else
-                {
-                    split_allow[SPLIT_BI_VER] = 1;
-                }
-            }
-            else
-            {
-                // Bottom and right-bottom corner
-                if (log2_cuw >= (2 + log2_cuh) )
-                {
-                    split_allow[SPLIT_BI_VER] = 1;
-                }
-                else
-                {
-                    split_allow[SPLIT_BI_HOR] = 1;
-                }
-            }
-        }
-#endif
-
         if(log2_cuw == log2_cuh)
         {
-#if !M52166_PARTITION
-            if(boundary_b)
-            {
-            }
-            else if(boundary_r)
-            {
-            }
-            else if(boundary && !boundary_b && !boundary_r)
-            {
-            }
-            else
-#endif
-            {
-                split_allow[SPLIT_BI_HOR] = ALLOW_SPLIT_RATIO(log2_cuw, 1);
-                split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(log2_cuw, 1);
-#if M52166_PARTITION
-                split_allow[SPLIT_TRI_VER] = ALLOW_SPLIT_TRI(log2_cuw) && (log2_cuw > log2_cuh || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuw, 2)));
-                split_allow[SPLIT_TRI_HOR] = ALLOW_SPLIT_TRI(log2_cuh) && (log2_cuh > log2_cuw || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuh, 2)));
-#else
-                split_allow[SPLIT_TRI_VER] = (log2_cuw >= log2_cuh) & ALLOW_SPLIT_TRI(log2_cuw);
-                split_allow[SPLIT_TRI_HOR] = (log2_cuh >= log2_cuw) & ALLOW_SPLIT_TRI(log2_cuh);
-#endif
-            }
+            split_allow[SPLIT_BI_HOR] = ALLOW_SPLIT_RATIO(log2_cuw, 1);
+            split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(log2_cuw, 1);
+            split_allow[SPLIT_TRI_VER] = ALLOW_SPLIT_TRI(log2_cuw) && (log2_cuw > log2_cuh || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuw, 2)));
+            split_allow[SPLIT_TRI_HOR] = ALLOW_SPLIT_TRI(log2_cuh) && (log2_cuh > log2_cuw || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuh, 2)));
         }
         else
         {
             if(log2_cuw > log2_cuh)
             {
-#if !M52166_PARTITION
-                if(boundary)
-                {
-                }
-                else
-#endif
                 {
                     split_allow[SPLIT_BI_HOR] = ALLOW_SPLIT_RATIO(log2_cuw, log2_cuw - log2_cuh + 1);
 
@@ -2711,61 +2510,31 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                     ratio = EVC_ABS(log2_sub_cuw - log2_sub_cuh);
 
                     split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(long_side, ratio);
-                    if(from_boundary_b && (ratio == 3 || ratio == 4))
+                    if (from_boundary_b && (ratio == 3 || ratio == 4))
+                    {
                         split_allow[SPLIT_BI_VER] = 1;
-#if M52166_PARTITION
+                    }
+
                     split_allow[SPLIT_TRI_VER] = ALLOW_SPLIT_TRI(log2_cuw) && (log2_cuw > log2_cuh || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuw, 2)));
                     split_allow[SPLIT_TRI_HOR] = ALLOW_SPLIT_TRI(log2_cuh) && (log2_cuh > log2_cuw || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuh, 2)));
-#else
-                    split_allow[SPLIT_TRI_VER] = (log2_cuw >= log2_cuh) & ALLOW_SPLIT_TRI(log2_cuw);
-                    split_allow[SPLIT_TRI_HOR] = (log2_cuh >= log2_cuw) & ALLOW_SPLIT_TRI(log2_cuh);
-#endif
-#if !M52166_PARTITION
-                    if (from_boundary_b && (log2_cuw == 7 || ratio == 3))
-                    {
-                        split_allow[SPLIT_TRI_VER] = 1;
-                    }
-#endif
                 }
             }
             else
             {
-#if !M52166_PARTITION
-                if(boundary)
-                {
-                }
-                else
-#endif
-                {
-                    log2_sub_cuh = log2_cuh - 1;
-                    log2_sub_cuw = log2_cuw;
-                    long_side = log2_sub_cuw > log2_sub_cuh ? log2_sub_cuw : log2_sub_cuh;
-                    ratio = EVC_ABS(log2_sub_cuw - log2_sub_cuh);
+                log2_sub_cuh = log2_cuh - 1;
+                log2_sub_cuw = log2_cuw;
+                long_side = log2_sub_cuw > log2_sub_cuh ? log2_sub_cuw : log2_sub_cuh;
+                ratio = EVC_ABS(log2_sub_cuw - log2_sub_cuh);
 
-                    split_allow[SPLIT_BI_HOR] = ALLOW_SPLIT_RATIO(long_side, ratio);
-#if !M52166_PARTITION
-                    if(from_boundary_r && (ratio == 3 || ratio == 4))
-                        split_allow[SPLIT_BI_HOR] = 1;
-#endif
-                    split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(log2_cuh, log2_cuh - log2_cuw + 1);
-#if M52166_PARTITION
-                    split_allow[SPLIT_TRI_VER] = ALLOW_SPLIT_TRI(log2_cuw) && (log2_cuw > log2_cuh || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuw, 2)));
-                    split_allow[SPLIT_TRI_HOR] = ALLOW_SPLIT_TRI(log2_cuh) && (log2_cuh > log2_cuw || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuh, 2)));
-#else
-                    split_allow[SPLIT_TRI_VER] = (log2_cuw >= log2_cuh) & ALLOW_SPLIT_TRI(log2_cuw);
-                    split_allow[SPLIT_TRI_HOR] = (log2_cuh >= log2_cuw) & ALLOW_SPLIT_TRI(log2_cuh);
-#endif
-#if !M52166_PARTITION
-                    if (from_boundary_r && (log2_cuh == 7 || ratio == 3))
-                    {
-                        split_allow[SPLIT_TRI_HOR] = 1;
-                    }
-#endif
-                }
+                split_allow[SPLIT_BI_HOR] = ALLOW_SPLIT_RATIO(long_side, ratio);
+                split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(log2_cuh, log2_cuh - log2_cuw + 1);
+                split_allow[SPLIT_TRI_VER] = ALLOW_SPLIT_TRI(log2_cuw) && (log2_cuw > log2_cuh || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuw, 2)));
+                split_allow[SPLIT_TRI_HOR] = ALLOW_SPLIT_TRI(log2_cuh) && (log2_cuh > log2_cuw || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuh, 2)));
+
             }
         }
     }
-#if M52166_PARTITION
+
     if (boundary)
     {
         split_allow[NO_SPLIT] = 0;
@@ -2795,8 +2564,7 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
             }
         }
     }
-#endif
-#if M50761_CHROMA_NOT_SPLIT
+
     if (mode_cons == eOnlyInter)
     {
         int cuw = 1 << log2_cuw;
@@ -2804,7 +2572,6 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
         for (int mode = SPLIT_BI_VER; mode < SPLIT_QUAD; ++mode)
             split_allow[mode] &= evc_get_mode_cons_by_split(mode, cuw, cuh) == eAll;
     }
-#endif
 }
 
 int evc_get_suco_flag(s8* suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU])
@@ -2824,25 +2591,6 @@ int evc_get_suco_flag(s8* suco_flag, int cud, int cup, int cuw, int cuh, int lcu
     return ret;
 }
 
-#if !M50761_CHROMA_NOT_SPLIT_CLEANUP
-int evc_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU])
-{
-    int ret = EVC_OK;
-    int pos = cup + (((cuh >> 1) >> MIN_CU_LOG2) * (lcu_s >> MIN_CU_LOG2) + ((cuw >> 1) >> MIN_CU_LOG2));
-    int shape = SQUARE + (CONV_LOG2(cuw) - CONV_LOG2(cuh));
-
-#if !CLEANUP_SUCO_4X4
-    if(cuw < 8 && cuh < 8)
-    {
-        return ret;
-    }
-#endif
-
-    suco_flag_buf[cud][shape][pos] = suco_flag;
-
-    return ret;
-}
-#else
 void evc_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU])
 {
     int pos = cup + (((cuh >> 1) >> MIN_CU_LOG2) * (lcu_s >> MIN_CU_LOG2) + ((cuw >> 1) >> MIN_CU_LOG2));
@@ -2854,20 +2602,12 @@ void evc_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lc
         suco_flag_buf[cud][shape][pos] = suco_flag;
     }
 }
-#endif
 
 u8 evc_check_suco_cond(int cuw, int cuh, s8 split_mode, int boundary, u8 log2_max_cuwh, u8 suco_max_depth, u8 suco_depth)
 {
-#if M52166_SUCO
     int suco_log2_maxsize = min((log2_max_cuwh - suco_max_depth), 6);
     int suco_log2_minsize = max((suco_log2_maxsize - suco_depth), max(4, MIN_CU_LOG2));
     if (EVC_MIN(cuw, cuh) < (1 << suco_log2_minsize) || EVC_MAX(cuw, cuh) > (1 << suco_log2_maxsize))
-#else
-    int suco_minsize = 1 << max((log2_max_cuwh - suco_max_depth - suco_depth), MIN_CU_LOG2);
-    int suco_maxsize = 1 << min((log2_max_cuwh - suco_max_depth), 6);
-
-    if(EVC_MIN(cuw, cuh) < suco_minsize || EVC_MAX(cuw, cuh) > suco_maxsize)
-#endif
     {
         return 0;
     }
@@ -3004,7 +2744,6 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
                     ctx[i] = 0;
                 }
             }
-#if M50761_CHROMA_NOT_SPLIT
             else if (i == CNID_MODE_CONS)
             {
                 if (sps_cm_init_flag == 1)
@@ -3016,7 +2755,6 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
                     ctx[i] = 0;
                 }
             }
-#endif
             else if(i == CNID_AFFN_FLAG)
             {
                 if(sps_cm_init_flag == 1)
@@ -3039,13 +2777,11 @@ void evc_mv_rounding_s32( s32 hor, int ver, s32 * rounded_hor, s32 * rounded_ver
     *rounded_ver = ((ver + offset - (ver >= 0)) >> right_shift) << left_shift;
 }
 
-#if EIF_CLIPPING_REDESIGN
 void evc_rounding_s32(s32 comp, s32 *rounded_comp, int right_shift, int left_shift)
 {
   int offset = (right_shift > 0) ? (1 << (right_shift - 1)) : 0;
   *rounded_comp = ((comp + offset - (comp >= 0)) >> right_shift) << left_shift;
 }
-#endif
 
 void derive_affine_subblock_size_bi( s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi[REFP_NUM], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num, BOOL* mem_band_conditions_for_eif_are_satisfied)
 {
@@ -4443,16 +4179,12 @@ void evc_get_ctx_last_pos_xy_para(int ch_type, int width, int height, int *resul
         if (convertedWidth >= 4)
         {
             *result_offset_x += ((width >> 6) << 1) + (width >> 7);
-#if M52290_ADCC
             *result_shift_x = 2;
-#endif
         }
         if (convertedHeight >= 4)
         {
             *result_offset_y += ((height >> 6) << 1) + (height >> 7);
-#if M52290_ADCC
             *result_shift_y = 2;
-#endif
         }
     }
 }
@@ -5350,7 +5082,6 @@ void evc_get_mv_collocated(EVC_REFP(*refp)[REFP_NUM], u32 poc, int scup, int c_s
     *availablePredIdx = flag; // combines flag and indication on what type of prediction is ( 0 - not available, 1 = uniL0, 2 = uniL1, 3 = Bi)
 }
 
-#if M50761_CHROMA_NOT_SPLIT
 int evc_get_luma_cup(int x_scu, int y_scu, int cu_w_scu, int cu_h_scu, int w_scu)
 {
     return (y_scu + (cu_h_scu >> 1)) * w_scu + x_scu + (cu_w_scu >> 1);
@@ -5479,10 +5210,6 @@ BOOL evc_signal_mode_cons(TREE_CONS* parent, TREE_CONS* cur_split)
 {
     return parent->mode_cons == eAll && cur_split->changed;
 }
-#endif
-
-
-
 
 #if GRAB_STAT
 void enc_stat_header(int pic_w, int pic_h)

@@ -310,13 +310,9 @@ void evcd_set_affine_mvf(EVCD_CTX * ctx, EVCD_CORE * core)
 
                         // 1/16 precision, 18 bits, same as MC
                         evc_mv_rounding_s32( mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, 5, 0 );
-#if AFFINE_CLIPPING_BF
+
                         mv_scale_tmp_hor = EVC_CLIP3( -(1 << 17), (1 << 17) - 1, mv_scale_tmp_hor );
                         mv_scale_tmp_ver = EVC_CLIP3( -(1 << 17), (1 << 17) - 1, mv_scale_tmp_ver );
-#else
-                        mv_scale_tmp_hor = EVC_CLIP3( -(2 << 17), (2 << 17) - 1, mv_scale_tmp_hor );
-                        mv_scale_tmp_ver = EVC_CLIP3( -(2 << 17), (2 << 17) - 1, mv_scale_tmp_ver );
-#endif
 
                         // 1/4 precision, 16 bits for storage
                         mv_scale_tmp_hor >>= 2;
@@ -384,10 +380,9 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
 #if DMVR_LAG
     idx = 0;
 #endif
-#if M50761_CHROMA_NOT_SPLIT
+
     if (evcd_check_luma(ctx, core))
     {
-#endif
     for(i = 0; i < h_cu; i++)
     {
         for(j = 0; j < w_cu; j++)
@@ -544,9 +539,7 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
     evc_mcpy(core->mv, map_mv, sizeof(core->mv));
     evc_mcpy(core->refi, map_refi, sizeof(core->refi));
 #endif
-#if M50761_CHROMA_NOT_SPLIT
     }
-#endif
 #if MVF_TRACE
     // Trace MVF in decoder
 #if ENC_DEC_TRACE
@@ -624,7 +617,6 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
 
 void evcd_split_tbl_init(EVCD_CTX *ctx)
 {
-#if M52166_PARTITION
     evc_split_tbl[BLOCK_11][IDX_MAX] = ctx->log2_max_cuwh;
     evc_split_tbl[BLOCK_11][IDX_MIN] = ctx->sps.log2_min_cb_size_minus2 + 2;
     evc_split_tbl[BLOCK_12][IDX_MAX] = ctx->log2_max_cuwh;
@@ -633,20 +625,6 @@ void evcd_split_tbl_init(EVCD_CTX *ctx)
     evc_split_tbl[BLOCK_14][IDX_MIN] = evc_split_tbl[BLOCK_12][IDX_MIN] + 1;
     evc_split_tbl[BLOCK_TT][IDX_MAX] = min(ctx->log2_max_cuwh - ctx->sps.log2_diff_ctu_max_tt_cb_size, 64);
     evc_split_tbl[BLOCK_TT][IDX_MIN] = evc_split_tbl[BLOCK_11][IDX_MIN] + ctx->sps.log2_diff_min_cb_min_tt_cb_size_minus2 + 2;
-#else
-    evc_split_tbl[0][0] = ctx->log2_max_cuwh - ctx->sps.log2_diff_ctu_max_11_cb_size;
-    evc_split_tbl[0][1] = evc_split_tbl[0][0] - ctx->sps.log2_diff_max_11_min_11_cb_size;
-    evc_split_tbl[1][0] = evc_split_tbl[0][0] - ctx->sps.log2_diff_max_11_max_12_cb_size;
-    evc_split_tbl[1][1] = evc_split_tbl[0][1] + 1 + ctx->sps.log2_diff_min_11_min_12_cb_size_minus1;
-    evc_split_tbl[2][0] = evc_split_tbl[1][0] - 1 - ctx->sps.log2_diff_max_12_max_14_cb_size_minus1;
-    evc_split_tbl[2][1] = evc_split_tbl[1][1] + 1 + ctx->sps.log2_diff_min_12_min_14_cb_size_minus1;
-    evc_split_tbl[3][0] = 0;
-    evc_split_tbl[3][1] = 0;
-    evc_split_tbl[4][0] = 0;
-    evc_split_tbl[4][1] = 0;
-    evc_split_tbl[5][0] = evc_split_tbl[0][0] - 1 - ctx->sps.log2_diff_max_11_max_tt_cb_size_minus1;
-    evc_split_tbl[5][1] = evc_split_tbl[0][1] + 2 + ctx->sps.log2_diff_min_11_min_tt_cb_size_minus2;
-#endif
 }
 
 #if USE_DRAW_PARTITION_DEC
@@ -931,11 +909,7 @@ void evcd_draw_partition(EVCD_CTX * ctx, EVC_PIC * pic)
 void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 {
     int real_mv[MMVD_GRP_NUM * MMVD_BASE_MV_NUM * MMVD_MAX_REFINE_NUM][2][3];
-#if M52166_MMVD
     int REF_SET[REFP_NUM][MAX_NUM_ACTIVE_REF_FRAME] = { {0,0,}, };
-#else
-    int REF_SET[3][MAX_NUM_ACTIVE_REF_FRAME] = { {0,0,}, };
-#endif
     int cuw, cuh;
 
     for (int k = 0; k < MAX_NUM_ACTIVE_REF_FRAME; k++)
@@ -943,17 +917,12 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
         REF_SET[0][k] = ctx->refp[k][0].poc;
         REF_SET[1][k] = ctx->refp[k][1].poc;
     }
-#if !M52166_MMVD
-    REF_SET[2][0] = ctx->poc.poc_val;
-    REF_SET[2][1] = ctx->dpm.cur_num_ref_pics;
-#endif
+
     cuw = (1 << core->log2_cuw);
     cuh = (1 << core->log2_cuh);
 
     evc_get_mmvd_mvp_list(ctx->map_refi, ctx->refp[0], ctx->map_mv, ctx->w_scu, ctx->h_scu, core->scup, core->avail_cu, core->log2_cuw, core->log2_cuh, ctx->sh.slice_type, real_mv, ctx->map_scu, REF_SET, core->avail_lr
-#if M52166_MMVD
         , ctx->poc.poc_val, ctx->dpm.num_refp
-#endif
         , core->history_buffer, ctx->sps.tool_admvp, &ctx->sh, ctx->log2_max_cuwh, ctx->map_tidx, core->mmvd_idx);
 
     core->mv[REFP_0][MV_X] = real_mv[core->mmvd_idx][0][MV_X];
@@ -975,7 +944,6 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 #endif
 }
 
-#if M50761_CHROMA_NOT_SPLIT
 u8 evcd_check_luma(EVCD_CTX *ctx, EVCD_CORE * core)
 {
     return evc_check_luma(core->tree_cons);
@@ -1009,4 +977,3 @@ MODE_CONS evcd_derive_mode_cons(EVCD_CTX *ctx, int scup)
 {
     return ( MCU_GET_IF(ctx->map_scu[scup]) || MCU_GET_IBC(ctx->map_scu[scup]) ) ? eOnlyIntra : eOnlyInter;
 }
-#endif

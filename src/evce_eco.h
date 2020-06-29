@@ -43,11 +43,7 @@ extern "C"
 #define GET_SBAC_ENC(bs)   ((EVCE_SBAC *)(bs)->pdata[1])
 
 #if GRAB_STAT
-void ence_stat_cu(int x, int y, int cuw, int cuh, int cup, void *ctx, void *core
-#if M50761_CHROMA_NOT_SPLIT
-    , TREE_CONS tree_cons
-#endif
-);
+void ence_stat_cu(int x, int y, int cuw, int cuh, int cup, void *ctx, void *core, TREE_CONS tree_cons);
 #endif
 int evce_eco_nalu(EVC_BSW * bs, EVC_NALU * nalu);
 int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps);
@@ -78,19 +74,10 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
                   , EVCE_CTX * ctx
                   , EVCE_CORE * core, int enc_dqp, u8 cur_qp
 #endif
-#if M50761_CHROMA_NOT_SPLIT
-                  , TREE_CONS tree_cons
-#endif
-);
-int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int cuw, int cuh
-#if M50761_CHROMA_NOT_SPLIT
-    , TREE_CONS tree_cons
-#endif
+                  , TREE_CONS tree_cons);
 
-);
-#if M50761_CHROMA_NOT_SPLIT
+int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int cuw, int cuh, TREE_CONS tree_cons);
 int evce_eco_mode_constr(EVC_BSW * bs, MODE_CONS mode_cons, int ctx);
-#endif
 int evce_eco_split_mode(EVC_BSW *bs, EVCE_CTX *c, EVCE_CORE *core, int cud, int cup, int cuw, int cuh, int lcu_s
                         , const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int* curr_split_allow, int qt_depth, int btt_depth, int x, int y);
 int evce_eco_suco_flag(EVC_BSW *bs, EVCE_CTX *c, EVCE_CORE *core, int cud, int cup, int cuw, int cuh, int lcu_s, s8 split_mode, int boundary, u8 log2_max_cuwh);

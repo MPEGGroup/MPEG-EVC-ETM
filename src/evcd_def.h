@@ -174,9 +174,7 @@ typedef struct _EVCD_CORE
     s16            affine_mvd[REFP_NUM][3][MV_D];
     int            tile_num;
     u8             ctx_flags[NUM_CNID];
-#if M50761_CHROMA_NOT_SPLIT
     TREE_CONS      tree_cons;
-#endif
 } EVCD_CORE;
 
 /******************************************************************************
@@ -232,12 +230,10 @@ struct _EVCD_CTX
     u16                     max_cuwh;
     /* log2 of maximum CU width and height */
     u8                      log2_max_cuwh;
-#if M52166_PARTITION
     /* minimum CU width and height */
     u16                     min_cuwh;
     /* log2 of minimum CU width and height */
     u8                      log2_min_cuwh;
-#endif
 
     /* MAPS *******************************************************************/
     /* SCU map for CU information */

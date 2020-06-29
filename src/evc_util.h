@@ -100,9 +100,7 @@ void evc_picbuf_expand(EVC_PIC *pic, int exp_l, int exp_c);
 void evc_poc_derivation(EVC_SPS sps, int tid, EVC_POC *poc);
 
 void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int h_scu, int scup, u16 avail, int cuw, int cuh, int slice_t, int real_mv[][2][3], u32 *map_scu, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME], u16 avail_lr
-#if M52166_MMVD
     , u32 curr_ptr, u8 num_refp[REFP_NUM]
-#endif
     , EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh, int log2_max_cuwh, u8 * map_tidx, int mmvd_idx);
 
 void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_scu, int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], u32 *map_scu, u16 avail_lr, int num_mvp, int is_ibc, u8 * map_tidx);
@@ -188,9 +186,7 @@ typedef struct _EVC_SPLIT_STRUCT
     int       x_pos[SPLIT_MAX_PART_COUNT];
     int       y_pos[SPLIT_MAX_PART_COUNT];
     int       cup[SPLIT_MAX_PART_COUNT];
-#if M50761_CHROMA_NOT_SPLIT
     TREE_CONS tree_cons;
-#endif
 } EVC_SPLIT_STRUCT;
 
 //! Count of partitions, correspond to split_mode
@@ -221,28 +217,14 @@ int evc_get_avail_cu(int neb_scua[MAX_NEB2], u32 * map_cu, u8 * map_tidx);
 int evc_scan_tbl_init();
 int evc_scan_tbl_delete();
 int evc_get_split_mode(s8* split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*split_mode_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]);
-#if !M50761_CHROMA_NOT_SPLIT_CLEANUP
-int
-#else
-void 
-#endif
-evc_set_split_mode(s8  split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*split_mode_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]);
+void evc_set_split_mode(s8  split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*split_mode_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]);
 int evc_get_suco_flag(s8* suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]);
-#if !M50761_CHROMA_NOT_SPLIT_CLEANUP
-int
-#else
-void
-#endif
-evc_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]);
+void evc_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]);
 u8  evc_check_suco_cond(int cuw, int cuh, s8 split_mode, int boundary, u8 log2_max_cuwh, u8 suco_max_depth, u8 suco_depth);
 u16 evc_check_nev_avail(int x_scu, int y_scu, int cuw, int cuh, int w_scu, int h_scu, u32 * map_scu, u8* map_tidx);
 void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u32* map_scu, u32* map_cu_mode, u8* ctx, u8 slice_type, int sps_cm_init_flag, u8 ibc_flag, u8 ibc_log_max_size, u8* map_tidx);
 void evc_mv_rounding_s32( s32 hor, int ver, s32 * rounded_hor, s32 * rounded_ver, s32 right_shift, int left_shift );
-
-#if EIF_CLIPPING_REDESIGN
 void evc_rounding_s32(s32 comp, s32 *rounded_comp, int right_shift, int left_shift);
-#endif
-
 void derive_affine_subblock_size_bi( s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi[REFP_NUM], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num, BOOL*mem_band_conditions_for_eif_are_satisfied);
 void derive_affine_subblock_size( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num, BOOL*mem_band_conditions_for_eif_are_satisfied);
 
@@ -286,20 +268,13 @@ int evc_picbuf_signature(EVC_PIC * pic, u8 md5_out[N_C][16]);
 
 int evc_atomic_inc(volatile int * pcnt);
 int evc_atomic_dec(volatile int * pcnt);
-#if M52166_PARTITION
 #define ALLOW_SPLIT_RATIO(long_side, block_ratio) (block_ratio <= BLOCK_14 && (long_side <= evc_split_tbl[block_ratio][IDX_MAX] && long_side >= evc_split_tbl[block_ratio][IDX_MIN]) ? 1 : 0)
 #define ALLOW_SPLIT_TRI(long_side) ((long_side <= evc_split_tbl[BLOCK_TT][IDX_MAX] && long_side >= evc_split_tbl[BLOCK_TT][IDX_MIN]) ? 1 : 0)
-#else
-#define ALLOW_SPLIT_RATIO(long_side, block_ratio) (block_ratio < 5 && (long_side <= evc_split_tbl[block_ratio][0] && long_side >= evc_split_tbl[block_ratio][1]) ? 1 : 0)
-#define ALLOW_SPLIT_TRI(long_side) ((long_side <= evc_split_tbl[5][0] && long_side >= evc_split_tbl[5][1]) ? 1 : 0)
-#endif
 void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boundary, int boundary_b, int boundary_r, int log2_max_cuwh
                           , const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth
                           , int x, int y, int im_w, int im_h
                           , u8* remaining_split, int sps_btt_flag
-#if M50761_CHROMA_NOT_SPLIT
                           , MODE_CONS mode_cons
-#endif
 );
 
 #if DQP
@@ -334,7 +309,6 @@ void set_cu_cbf_flags(u8 cbf_y, u8 ats_inter_info, int log2_cuw, int log2_cuh, u
 BOOL check_bi_applicability(int slice_type, int cuw, int cuh, int is_sps_admvp);
 void evc_block_copy(s16 * src, int src_stride, s16 * dst, int dst_stride, int log2_copy_w, int log2_copy_h);
 
-#if M50761_CHROMA_NOT_SPLIT
 u8 evc_check_chroma_split_allowed(int luma_width, int luma_height);
 u8 evc_is_chroma_split_allowed(int w, int h, SPLIT_MODE split);
 int evc_get_luma_cup(int x_scu, int y_scu, int cu_w_scu, int cu_h_scu, int w_scu);
@@ -350,10 +324,6 @@ TREE_CONS evc_get_default_tree_cons();
 void evc_set_tree_mode(TREE_CONS* dest, MODE_CONS mode);
 MODE_CONS evc_get_mode_cons_by_split(SPLIT_MODE split_mode, int cuw, int cuh);
 BOOL evc_signal_mode_cons(TREE_CONS* parent, TREE_CONS* cur_split);
-#endif
-
-
-
 
 #if GRAB_STAT
 void enc_stat_header(int pic_w, int pic_h);

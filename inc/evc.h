@@ -44,7 +44,6 @@
 #define ETM_HDR_REPORT_METRIC_FLAG      1
 #define M52291_HDR_DRA                          1
 #define ADDB_FLAG_FIX                1
-#define M52166_PARTITION                1
 
 #ifdef __cplusplus
 extern "C"
@@ -471,19 +470,9 @@ typedef struct _EVCE_CDSC
     int            btt;
     int            suco;
     int            add_qp_frame;
-#if M52166_PARTITION
     int            framework_cb_max;
     int            framework_cb_min;
     int            framework_cu14_max;
-#else
-    int            framework_ctu_size;
-    int            framework_cu11_max;
-    int            framework_cu11_min;
-    int            framework_cu12_max;
-    int            framework_cu12_min;
-    int            framework_cu14_max;
-    int            framework_cu14_min;
-#endif
     int            framework_tris_max;
     int            framework_tris_min;
     int            framework_suco_max;

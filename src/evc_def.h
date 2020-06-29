@@ -104,42 +104,6 @@
 
 //MPEG 129 adoptions
 #define M52291_HDR_DRA                               1
-#define M52165                                       1
-#define M52166                                       1
-#define M52290                                       1
-#define M52223                                       1
-
-//MPEG 128 adoptions
-#define M50761                                       1
-#if M50761
-
-#define M50761_CHROMA_NOT_SPLIT                      1 //chroma no split for avoiding 2x2, 2x4 and 4x2 chroma blocks
-
-#if M50761_CHROMA_NOT_SPLIT
-#define M50761_CHROMA_NOT_SPLIT_CLEANUP              1
-#endif
-
-#endif
-
-#if M52223
-#define AFFINE_CLIPPING_BF                           1 //2 << 17 -> 1 << 17
-#define HMVP_ON_AFFINE_UPDATE_BF                     1
-#define EIF_CLIPPING_REDESIGN                        1
-#endif
-
-#if M52166
-#ifndef M52166_PARTITION //defined in evc.h
-#define M52166_PARTITION                             1
-#endif
-#define M52166_SUCO                                  1
-#define M52166_DBF                                   1
-#define M52166_MMVD                                  1
-#endif
-
-#if M52290
-#define M52290_ADCC                                  1
-#define M52290_MVCLIP_THRESH                         1
-#endif
 
 /* Profiles definitions */
 #define PROFILE_BASELINE                             0
@@ -355,13 +319,8 @@ enum SAD_POINT_INDEX
 #define EIF_MV_PRECISION_BILINEAR                               5
 #define BOUNDING_BLOCK_MARGIN                                   7
 #define MEMORY_BANDWIDTH_THRESHOLD                              (8 + 2 + BOUNDING_BLOCK_MARGIN) / 8
+#define MAX_MEMORY_ACCESS_BI                                    72
 /* EIF (END) */
-
-#if M52290_MVCLIP_THRESH
-#define MAX_MEMORY_ACCESS_BI           72
-#else
-#define MAX_MEMORY_ACCESS_BI           ( (4 + 5) * (4 + 5) )
-#endif
 
 /* AFFINE (END) */
 
@@ -425,15 +384,10 @@ typedef struct _evc_AlfFilterShape
 #define COEF_REMAIN_BIN_REDUCTION          3
 #define LAST_SIGNIFICANT_GROUPS            14
 
-#if M52290_ADCC
 #define NUM_CTX_LAST_SIG_COEFF_LUMA        18
 #define NUM_CTX_LAST_SIG_COEFF_CHROMA      3
 #define NUM_CTX_LAST_SIG_COEFF             (NUM_CTX_LAST_SIG_COEFF_LUMA + NUM_CTX_LAST_SIG_COEFF_CHROMA)
-#else
-#define NUM_CTX_LAST_SIG_COEFF_LUMA        25
-#define NUM_CTX_LAST_SIG_COEFF_CHROMA      3
-#define NUM_CTX_LAST_SIG_COEFF             (NUM_CTX_LAST_SIG_COEFF_LUMA + NUM_CTX_LAST_SIG_COEFF_CHROMA)
-#endif
+
 #define NUM_CTX_SIG_COEFF_LUMA             39  /* number of context models for luma sig coeff flag */
 #define NUM_CTX_SIG_COEFF_CHROMA           8   /* number of context models for chroma sig coeff flag */
 #define NUM_CTX_SIG_COEFF_LUMA_TU          13  /* number of context models for luma sig coeff flag per TU */
@@ -952,9 +906,7 @@ typedef u16 SBAC_CTX_MODEL;
 #define NUM_CTX_CBF_CR                     1
 #define NUM_CTX_CBF_ALL                    1
 #define NUM_CTX_PRED_MODE                  3
-#if M50761_CHROMA_NOT_SPLIT
 #define NUM_CTX_MODE_CONS                  3
-#endif
 #define NUM_CTX_INTER_PRED_IDC             2       /* number of context models for inter prediction direction */
 #define NUM_CTX_DIRECT_MODE_FLAG           1
 #define NUM_CTX_MERGE_MODE_FLAG            1
@@ -1005,9 +957,7 @@ typedef struct _EVC_SBAC_CTX
     SBAC_CTX_MODEL   intra_luma_pred_mpm_idx       [NUM_CTX_INTRA_LUMA_PRED_MPM_IDX];
     SBAC_CTX_MODEL   intra_chroma_pred_mode        [NUM_CTX_INTRA_CHROMA_PRED_MODE];
     SBAC_CTX_MODEL   pred_mode                     [NUM_CTX_PRED_MODE];
-#if M50761_CHROMA_NOT_SPLIT
     SBAC_CTX_MODEL   mode_cons                     [NUM_CTX_MODE_CONS];
-#endif     
     SBAC_CTX_MODEL   refi                          [NUM_CTX_REF_IDX];
     SBAC_CTX_MODEL   merge_idx                     [NUM_CTX_MERGE_IDX];
     SBAC_CTX_MODEL   mvp_idx                       [NUM_CTX_MVP_IDX];
@@ -1301,23 +1251,11 @@ typedef struct _EVC_SPS
     int              bit_depth_chroma_minus8;
     int              sps_btt_flag;
     int              sps_suco_flag;
-#if M52166_PARTITION
     int              log2_ctu_size_minus5;
     int              log2_min_cb_size_minus2;
     int              log2_diff_ctu_max_14_cb_size;
     int              log2_diff_ctu_max_tt_cb_size;
     int              log2_diff_min_cb_min_tt_cb_size_minus2;
-#else
-    int              log2_ctu_size_minus2;
-    int              log2_diff_ctu_max_11_cb_size;
-    int              log2_diff_max_11_min_11_cb_size;
-    int              log2_diff_max_11_max_12_cb_size;
-    int              log2_diff_min_11_min_12_cb_size_minus1;
-    int              log2_diff_max_12_max_14_cb_size_minus1;
-    int              log2_diff_min_12_min_14_cb_size_minus1;
-    int              log2_diff_max_11_max_tt_cb_size_minus1;
-    int              log2_diff_min_11_min_tt_cb_size_minus2;
-#endif
     int              log2_diff_ctu_size_max_suco_cb_size;
     int              log2_diff_max_suco_min_suco_cb_size;
     int              tool_amvr;
@@ -1586,7 +1524,6 @@ typedef struct _EVC_POC
 #define EVC_UD_PIC_SIGNATURE              0x10
 #define EVC_UD_END                        0xFF
 
-#if M50761_CHROMA_NOT_SPLIT
 typedef enum _TREE_TYPE
 {
     TREE_LC = 0,
@@ -1614,7 +1551,6 @@ typedef struct _TREE_CONS_NEW
     MODE_CONS       mode_cons;
 } TREE_CONS_NEW;
 
-#endif
 /*****************************************************************************
  * for binary and triple tree structure
  *****************************************************************************/
@@ -1644,7 +1580,6 @@ typedef enum _BLOCK_SHAPE
     NUM_BLOCK_SHAPE,
 } BLOCK_SHAPE;
 
-#if M52166_PARTITION
 typedef enum _BLOCK_PARAMETER
 {
     BLOCK_11,
@@ -1653,13 +1588,13 @@ typedef enum _BLOCK_PARAMETER
     BLOCK_TT,
     NUM_BLOCK_PARAMETER,
 } BLOCK_PARAMETER;
+
 typedef enum _BLOCK_PARAMETER_IDX
 {
     IDX_MAX,
     IDX_MIN,
     NUM_BLOCK_IDX,
 } BLOCK_PARAMETER_IDX;
-#endif
 
 /*****************************************************************************
 * history-based MV prediction buffer (slice level)
@@ -1679,9 +1614,7 @@ typedef enum _CTX_NEV_IDX
 {
     CNID_SKIP_FLAG,
     CNID_PRED_MODE,
-#if M50761_CHROMA_NOT_SPLIT
     CNID_MODE_CONS,
-#endif
     CNID_AFFN_FLAG,
     CNID_IBC_FLAG,
     NUM_CNID,
