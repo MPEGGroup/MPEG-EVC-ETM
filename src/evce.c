@@ -250,7 +250,10 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
     param->qp_max         = MAX_QUANT;
     param->qp_min         = MIN_QUANT;
     param->use_pic_sign   = 0;
+    param->toolset_idc_h = cdsc->toolset_idc_h;
+    param->toolset_idc_l = cdsc->toolset_idc_l;
     param->max_b_frames   = cdsc->max_b_frames;
+    param->max_num_ref_pics = cdsc->max_num_ref_pics;
     param->ref_pic_gap_length = cdsc->ref_pic_gap_length;
     param->gop_size       = param->max_b_frames +1;
     param->use_closed_gop = (cdsc->closed_gop)? 1: 0;
@@ -397,15 +400,10 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->level_idc = ctx->cdsc.level * 3;
     sps->pic_width_in_luma_samples = ctx->param.w;
     sps->pic_height_in_luma_samples = ctx->param.h;
-    if(sps->profile_idc == PROFILE_BASELINE)
-    {
-        sps->toolset_idc_h = 0;
-    }
-    else if(sps->profile_idc == PROFILE_MAIN)
-    {
-        sps->toolset_idc_h = 0x1FFFFF;
-    }
-    sps->toolset_idc_l = 0;
+
+    sps->toolset_idc_h = ctx->cdsc.toolset_idc_h;
+    sps->toolset_idc_l = ctx->cdsc.toolset_idc_l;
+
     sps->bit_depth_luma_minus8 = ctx->cdsc.out_bit_depth - 8;
     sps->bit_depth_chroma_minus8 = ctx->cdsc.out_bit_depth - 8;
     sps->chroma_format_idc = 1; // YCbCr 4:2:0
@@ -413,37 +411,24 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->ibc_log_max_size = IBC_MAX_CU_LOG2;
     sps->log2_max_pic_order_cnt_lsb_minus4 = POC_LSB_BIT - 4;
     sps->sps_max_dec_pic_buffering_minus1 = 0; //[TBF]
+    sps->max_num_ref_pics = ctx->cdsc.max_num_ref_pics;
 
-    if(ctx->param.max_b_frames > 0)
+    sps->sps_btt_flag = ctx->cdsc.btt;
+    sps->sps_suco_flag = ctx->cdsc.suco;
+    if (sps->sps_btt_flag)
     {
-        sps->max_num_ref_pics = MAX_NUM_ACTIVE_REF_FRAME_B;
-    }
-    else
-    {
-        sps->max_num_ref_pics = MAX_NUM_ACTIVE_REF_FRAME_LDB;
-    }
-
-    if(sps->profile_idc == PROFILE_MAIN)
-    {
-        sps->sps_btt_flag = ctx->cdsc.btt;
-        sps->sps_suco_flag = ctx->cdsc.suco;
-    }
-    else
-    {
-        sps->sps_btt_flag = 0;
-        sps->sps_suco_flag = 0;
-    }
-
-    if(sps->profile_idc == PROFILE_MAIN)
-    {
+        sps->log2_ctu_size_minus5 = ctx->log2_max_cuwh - 5;
         sps->log2_min_cb_size_minus2 = ctx->cdsc.framework_cb_min - 2;
         sps->log2_diff_ctu_max_14_cb_size = min(ctx->log2_max_cuwh - ctx->cdsc.framework_cu14_max, 6);
         sps->log2_diff_ctu_max_tt_cb_size = min(ctx->log2_max_cuwh - ctx->cdsc.framework_tris_max, 6);
         sps->log2_diff_min_cb_min_tt_cb_size_minus2 = ctx->cdsc.framework_tris_min - ctx->cdsc.framework_cb_min - 2;
+    }
+    if (sps->sps_suco_flag) 
+    {
         sps->log2_diff_ctu_size_max_suco_cb_size = ctx->log2_max_cuwh - min(ctx->cdsc.framework_suco_max, min(6, ctx->log2_max_cuwh));
         sps->log2_diff_max_suco_min_suco_cb_size = max(ctx->log2_max_cuwh - sps->log2_diff_ctu_size_max_suco_cb_size - max(ctx->cdsc.framework_suco_min, max(4, ctx->cdsc.framework_cb_min)), 0);
     }
-
+   
     sps->tool_amvr = ctx->cdsc.tool_amvr;
     sps->tool_mmvd = ctx->cdsc.tool_mmvd;
     sps->tool_affine = ctx->cdsc.tool_affine;
@@ -467,11 +452,6 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->tool_ats = ctx->cdsc.tool_ats;
     sps->tool_rpl = ctx->cdsc.tool_rpl;
     sps->tool_pocs = ctx->cdsc.tool_pocs;
-
-    if(sps->profile_idc == PROFILE_MAIN)
-    {
-        sps->log2_ctu_size_minus5 = ctx->log2_max_cuwh - 5;
-    }
 
     sps->log2_sub_gop_length = (int)(log2(ctx->param.gop_size) + .5);
     ctx->ref_pic_gap_length = ctx->param.ref_pic_gap_length;

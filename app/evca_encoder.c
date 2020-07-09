@@ -86,6 +86,7 @@ static int  op_qp                 = 0;
 static int  op_fps                = 0;
 static int  op_iperiod            = 0;
 static int  op_max_b_frames       = 0;
+static int  op_max_num_ref_pics   = 0;
 static int  op_ref_pic_gap_length = 0;
 static int  op_closed_gop         = 0;
 static int  op_enable_ibc         = 0;
@@ -101,6 +102,8 @@ static int  op_skip_frames        = 0;
 static int  op_out_bit_depth      = 0; /* same as input bit depth */
 static int  op_profile            = 1;
 static int  op_level              = 0;
+static int  op_toolset_idc_h      = 0;
+static int  op_toolset_idc_l      = 0;
 static int  op_btt                = 1;
 static int  op_suco               = 1;
 static int  op_add_qp_frames      = 0;
@@ -207,6 +210,7 @@ typedef enum _OP_FLAGS
     OP_FLAG_USE_PIC_SIGN,
     OP_FLAG_VERBOSE,
     OP_FLAG_MAX_B_FRAMES,
+    OP_FLAG_MAX_NUM_REF_PICS,
     OP_FLAG_CLOSED_GOP,
     OP_FLAG_IBC,
     OP_IBC_SEARCH_RNG_X,
@@ -221,6 +225,8 @@ typedef enum _OP_FLAGS
     OP_FLAG_SKIP_FRAMES,
     OP_PROFILE,
     OP_LEVEL,
+    OP_TOOLSET_IDC_H,
+    OP_TOOLSET_IDC_L,
     OP_BTT,
     OP_SUCO,
     OP_FLAG_ADD_QP_FRAME,
@@ -424,6 +430,11 @@ static EVC_ARGS_OPTION options[] = \
         'g',  "max_b_frames", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_FLAG_MAX_B_FRAMES], &op_max_b_frames,
         "Number of maximum B frames (1,3,7,15)\n"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "max_num_ref_pics", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_FLAG_MAX_NUM_REF_PICS], &op_max_num_ref_pics,
+        "Number of maximum reference picture\n"
     },
     {
         'f',  "frames", EVC_ARGS_VAL_TYPE_INTEGER,
@@ -664,6 +675,16 @@ static EVC_ARGS_OPTION options[] = \
         EVC_ARGS_NO_KEY,  "cr_qp_offset", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_CR_QP_OFFSET], &op_cr_qp_offset,
         "cr qp offset"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "toolset_idc_h", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_TOOLSET_IDC_H], &op_toolset_idc_h,
+        "toolset idc h"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "toolset_idc_l", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_TOOLSET_IDC_L], &op_toolset_idc_l,
+        "toolset idc l"
     },
     {
         EVC_ARGS_NO_KEY, "ats", EVC_ARGS_VAL_TYPE_INTEGER,
@@ -1240,8 +1261,11 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->fps = op_fps;
     cdsc->iperiod = op_iperiod;
     cdsc->max_b_frames = op_max_b_frames;
+    cdsc->max_num_ref_pics = op_max_num_ref_pics;
     cdsc->profile = op_profile;
     cdsc->level = op_level;
+    cdsc->toolset_idc_h = op_toolset_idc_h;
+    cdsc->toolset_idc_l = op_toolset_idc_l;
     cdsc->btt = op_btt;
     cdsc->suco = op_suco;
 #if DQP_CFG
