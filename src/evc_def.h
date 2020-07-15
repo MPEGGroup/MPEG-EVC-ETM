@@ -108,6 +108,8 @@
 /* Profiles definitions */
 #define PROFILE_BASELINE                             0
 #define PROFILE_MAIN                                 1
+#define PROFILE_STILL_PIC_BASELINE                   2
+#define PROFILE_STILL_PIC_MAIN                       3
 
 #define AFFINE_TMVP_SPEC_CONDITION_ALIGN             1
 

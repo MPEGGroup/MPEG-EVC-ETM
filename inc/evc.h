@@ -435,10 +435,16 @@ typedef struct _EVCE_CDSC
        - Default: Off(0)                                                      */
     int            max_b_frames;
     /* Has meaning only when max_b_frames is more than 0
-       - enable(0) means use hierarchy GOP structure for B frmeas
+       - enable(0) means use hierarchy GOP structure for B frames
                is valid only when max_b_frames is equal to 1, 3 and 7
        - disable (1) means frame type will be decided automatically
        - Default: enable(0)                                                       */
+    int            max_num_ref_pics;
+    /* The value depend on configuration:
+        - (2), in case of RA
+        - (4), in case of LDB
+        - (0), in case of still pic
+    */
     int            disable_hgop;
 
     int            ref_pic_gap_length;

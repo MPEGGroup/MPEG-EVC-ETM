@@ -462,9 +462,13 @@ typedef struct _EVCE_PARAM
     int                 qp_max;
     /* Minimum qp value */
     int                 qp_min;
+    /*indicates set of constraints*/
+    int                 toolset_idc_h;
+    int                 toolset_idc_l;
     /* use picture signature embedding */
     int                 use_pic_sign;
     int                 max_b_frames;
+    int                 max_num_ref_pics;
     int                 ref_pic_gap_length;
     /* start bumping process if force_output is on */
     int                 force_output;
