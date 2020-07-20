@@ -1700,7 +1700,7 @@ int evce_rdoq_method_adcc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
         evc_mset(dst_tmp, 0, sizeof(s16) * max_num_coef);
         return 0;
     }
-	
+
     last_scan_set = last_pos_in_scan >> cg_log2_size;
     scan_pos_last = last_pos_in_raster_from_scan;
     num_gtA = CAFLAG_NUMBER;

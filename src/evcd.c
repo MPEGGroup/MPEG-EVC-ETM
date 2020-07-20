@@ -600,16 +600,15 @@ void evcd_get_direct_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 
     if (ctx->sps.tool_admvp == 0)
     {
-        evc_get_motion_skip_baseline(ctx->sh.slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, srefi, smvp, core->avail_cu
-        );
+        evc_get_motion_skip_baseline(ctx->sh.slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, srefi, smvp, core->avail_cu);
     }
     else
     {
         evc_get_motion_merge_main(ctx->poc.poc_val, ctx->sh.slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, srefi, smvp, ctx->map_scu, core->avail_lr
 #if DMVR_LAG
-            , ctx->map_unrefined_mv
+                                  , ctx->map_unrefined_mv
 #endif
-            , core->history_buffer, core->ibc_flag, (EVC_REFP(*)[2])ctx->refp[0], &ctx->sh, ctx->log2_max_cuwh, ctx->map_tidx);
+                                  , core->history_buffer, core->ibc_flag, (EVC_REFP(*)[2])ctx->refp[0], &ctx->sh, ctx->log2_max_cuwh, ctx->map_tidx);
     }
 
     core->refi[REFP_0] = srefi[REFP_0][core->mvp_idx[REFP_0]];
@@ -705,29 +704,29 @@ void evcd_get_inter_motion(EVCD_CTX * ctx, EVCD_CORE * core)
                 {
                     core->refi[inter_dir_idx] = evc_get_first_refi(core->scup, inter_dir_idx, ctx->map_refi, ctx->map_mv, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu, core->mvr_idx, core->avail_lr
 #if DMVR_LAG
-                        , ctx->map_unrefined_mv
+                                                                   , ctx->map_unrefined_mv
 #endif
-                        , core->history_buffer
+                                                                   , core->history_buffer
 #if M53737
-                        , ctx->sps.tool_hmvp
+                                                                   , ctx->sps.tool_hmvp
 #else
-                        , ctx->sps.tool_admvp
+                                                                   , ctx->sps.tool_admvp
 #endif
-                        , ctx->map_tidx);
-                }   
+                                                                   , ctx->map_tidx);
+                }
 
                 evc_get_motion_from_mvr(core->mvr_idx, ctx->poc.poc_val, core->scup, inter_dir_idx, core->refi[inter_dir_idx], ctx->dpm.num_refp[inter_dir_idx], ctx->map_mv, ctx->map_refi, ctx->refp, \
-                    cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, mvp, refi, ctx->map_scu, core->avail_lr
+                                        cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, mvp, refi, ctx->map_scu, core->avail_lr
 #if DMVR_LAG
-                    , ctx->map_unrefined_mv
+                                        , ctx->map_unrefined_mv
 #endif
-                    , core->history_buffer
+                                        , core->history_buffer
 #if M53737
-                    , ctx->sps.tool_hmvp
+                                        , ctx->sps.tool_hmvp
 #else
-                    , ctx->sps.tool_admvp
+                                        , ctx->sps.tool_admvp
 #endif
-                    , ctx->map_tidx);
+                                        , ctx->map_tidx);
 
                 core->mvp_idx[inter_dir_idx] = 0;
 
@@ -768,11 +767,11 @@ void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
         int mrg_idx = core->mvp_idx[0];
 
         evc_get_affine_merge_candidate(ctx->poc.poc_val, ctx->sh.slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp, cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, aff_refi, aff_mrg_mvp, vertex_num, ctx->map_scu, ctx->map_affine
-            , ctx->log2_max_cuwh
+                                       , ctx->log2_max_cuwh
 #if DMVR_LAG
-            , ctx->map_unrefined_mv
+                                       , ctx->map_unrefined_mv
 #endif
-            , core->avail_lr, &ctx->sh, ctx->map_tidx);
+                                       , core->avail_lr, &ctx->sh, ctx->map_tidx);
 
         core->affine_flag = vertex_num[core->mvp_idx[0]] - 1;
 
@@ -803,16 +802,16 @@ void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
         for (inter_dir_idx = 0; inter_dir_idx < 2; inter_dir_idx++)
         {
             /* 0: forward, 1: backward */
-            if (((core->inter_dir + 1) >> inter_dir_idx) & 1)
+            if(((core->inter_dir + 1) >> inter_dir_idx) & 1)
             {
-                evc_get_affine_motion_scaling(ctx->poc.poc_val, core->scup, inter_dir_idx, core->refi[inter_dir_idx],ctx->dpm.num_refp[inter_dir_idx], ctx->map_mv, ctx->map_refi, ctx->refp
-                                            , cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, affine_mvp, refi, ctx->map_scu, ctx->map_affine, vertex_num, core->avail_lr, ctx->log2_max_cuwh
+                evc_get_affine_motion_scaling(ctx->poc.poc_val, core->scup, inter_dir_idx, core->refi[inter_dir_idx], ctx->dpm.num_refp[inter_dir_idx], ctx->map_mv, ctx->map_refi, ctx->refp
+                                              , cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, affine_mvp, refi, ctx->map_scu, ctx->map_affine, vertex_num, core->avail_lr, ctx->log2_max_cuwh
 #if DMVR_LAG                                
-                                            , ctx->map_unrefined_mv
+                                              , ctx->map_unrefined_mv
 #endif                                      
-                                            , ctx->map_tidx);
+                                              , ctx->map_tidx);
 
-                for (vertex = 0; vertex < vertex_num; vertex++)
+                for(vertex = 0; vertex < vertex_num; vertex++)
                 {
                     core->affine_mv[inter_dir_idx][vertex][MV_X] = affine_mvp[core->mvp_idx[inter_dir_idx]][vertex][MV_X] + core->affine_mvd[inter_dir_idx][vertex][MV_X];
                     core->affine_mv[inter_dir_idx][vertex][MV_Y] = affine_mvp[core->mvp_idx[inter_dir_idx]][vertex][MV_Y] + core->affine_mvd[inter_dir_idx][vertex][MV_Y];
@@ -884,7 +883,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
     core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu, ctx->map_tidx);
 
     evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, core->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
-                         , ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size, ctx->map_tidx);
+                           , ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size, ctx->map_tidx);
 
     /* parse CU info */
     ret = evcd_eco_cu(ctx, core);
@@ -983,7 +982,7 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
                         if(ctx->sps.tool_admvp == 0)
                         {
                             evc_get_mv_dir(ctx->refp[0], ctx->poc.poc_val, core->scup + ((1 << (core->log2_cuw - MIN_CU_LOG2)) - 1) + ((1 << (core->log2_cuh - MIN_CU_LOG2)) - 1) * ctx->w_scu, core->scup, ctx->w_scu, ctx->h_scu, core->mv
-                                , ctx->sps.tool_admvp
+                                           , ctx->sps.tool_admvp
                             );
                             core->refi[REFP_0] = 0;
                             core->refi[REFP_1] = 0;
@@ -1058,36 +1057,36 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
       
         if (ctx->sps.tool_eipd)
         {
-            if (evcd_check_luma(ctx, core))
+            if(evcd_check_luma(ctx, core))
             {
 #if CLEANUP_INTRA_PRED
-            evc_ipred(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh);
+                evc_ipred(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh);
 #else
-            evc_ipred(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh, core->avail_cu);
+                evc_ipred(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh, core->avail_cu);
 #endif
             }
-            if (evcd_check_chroma(ctx, core))
+            if(evcd_check_chroma(ctx, core))
             {
 #if CLEANUP_INTRA_PRED
-            evc_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1);
-            evc_ipred_uv(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1);
+                evc_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1);
+                evc_ipred_uv(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1);
 #else
-            evc_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu);
-            evc_ipred_uv(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu);
+                evc_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu);
+                evc_ipred_uv(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu);
 #endif
             }
         }
         else
         {
-            if (evcd_check_luma(ctx, core))
+            if(evcd_check_luma(ctx, core))
             {
 #if CLEANUP_INTRA_PRED
-            evc_ipred_b(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh);
+                evc_ipred_b(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh);
 #else
-            evc_ipred_b(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh, core->avail_cu);
+                evc_ipred_b(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh, core->avail_cu);
 #endif
             }
-            if (evcd_check_chroma(ctx, core))
+            if(evcd_check_chroma(ctx, core))
             {
 #if CLEANUP_INTRA_PRED
 #if FIX_EIPD_OFF 
@@ -1106,23 +1105,23 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
     }
 #if GRAB_STAT
     encd_stat_cu(core->x_scu << MIN_CU_LOG2, core->y_scu << MIN_CU_LOG2, 1 << core->log2_cuw, 1 << core->log2_cuh, core->scup, ctx, core
-        , core->tree_cons
+                 , core->tree_cons
     );
 #endif
 
     /* reconstruction */
     evc_recon_yuv(x, y, cuw, cuh, core->coef, core->pred[0], core->is_coef, ctx->pic, core->pred_mode == MODE_IBC ? 0 : core->ats_inter_info, core->tree_cons);
 
-    if (core->pred_mode != MODE_IBC)
+    if(core->pred_mode != MODE_IBC)
     {
-        if (ctx->sps.tool_htdf == 1 && (core->is_coef[Y_C] || core->pred_mode == MODE_INTRA) && evcd_check_luma(ctx, core) )
+        if(ctx->sps.tool_htdf == 1 && (core->is_coef[Y_C] || core->pred_mode == MODE_INTRA) && evcd_check_luma(ctx, core))
         {
             u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu, ctx->map_tidx);
 #if FIX_CONSTRAINT_PRED
             int constrained_intra_flag = core->pred_mode == MODE_INTRA && ctx->pps.constrained_intra_pred_flag;
 #endif
             evc_htdf(ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->sh.qp, cuw, cuh, ctx->pic->s_l, core->pred_mode == MODE_INTRA
-                , ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->pic->s_l, avail_cu
+                     , ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->pic->s_l, avail_cu
 #if FIX_CONSTRAINT_PRED
                      , core->scup, ctx->w_scu, ctx->h_scu, ctx->map_scu, constrained_intra_flag
 #endif
@@ -1185,13 +1184,13 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
             int boundary_b = boundary && (y0 + cuh > ctx->h) && !(x0 + cuw > ctx->w);
             int boundary_r = boundary && (x0 + cuw > ctx->w) && !(y0 + cuh > ctx->h);
 
-            if (ctx->sps.sps_btt_flag)
+            if(ctx->sps.sps_btt_flag)
             {
                 evc_check_split_mode(split_allow, log2_cuw, log2_cuh, boundary, boundary_b, boundary_r, ctx->log2_max_cuwh
-                    , parent_split, same_layer_split, node_idx, parent_split_allow, qt_depth, btt_depth
-                    , x0, y0, ctx->w, ctx->h
-                    , NULL, ctx->sps.sps_btt_flag
-                    , mode_cons);
+                                     , parent_split, same_layer_split, node_idx, parent_split_allow, qt_depth, btt_depth
+                                     , x0, y0, ctx->w, ctx->h
+                                     , NULL, ctx->sps.sps_btt_flag
+                                     , mode_cons);
 
                 if (split_allow[SPLIT_BI_VER])
                 {
@@ -1290,8 +1289,8 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
                     core->y_scu = PEL2SCU(y0);
 
                     evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, core->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
-                                         , ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size, ctx->map_tidx);
-                    mode_cons_for_child = evcd_eco_mode_constr( &ctx->bs, core->ctx_flags[CNID_MODE_CONS] );
+                                           , ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size, ctx->map_tidx);
+                    mode_cons_for_child = evcd_eco_mode_constr(&ctx->bs, core->ctx_flags[CNID_MODE_CONS]);
                 }
             }
         }
@@ -1312,9 +1311,9 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
                                     , suco_flag, split_mode, split_mode_child, part_num, split_allow
                                     , INC_QT_DEPTH(qt_depth, split_mode), INC_BTT_DEPTH(btt_depth, split_mode, bound)
 #if DQP
-                    , cu_qp_delta_code
+                                    , cu_qp_delta_code
 #endif
-                    , mode_cons_for_child
+                                    , mode_cons_for_child
                 );
                 evc_assert_g(ret == EVC_OK, ERR);
             }
@@ -1350,7 +1349,7 @@ ERR:
 }
 
 static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, int cuh, int cud, int cup, int is_hor_edge
-    , TREE_CONS_NEW tree_cons , EVCD_CORE * core, int boundary_filtering)
+                         , TREE_CONS_NEW tree_cons, EVCD_CORE * core, int boundary_filtering)
 {
     s8  split_mode;
     int lcu_num;
@@ -1400,7 +1399,7 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
             if(x_pos < ctx->w && y_pos < ctx->h)
             {
                 deblock_tree(ctx, pic, x_pos, y_pos, sub_cuw, sub_cuh, split_struct.cud[cur_part_num], split_struct.cup[cur_part_num], is_hor_edge
-                     ,tree_constrain_for_child, core, boundary_filtering);
+                             , tree_constrain_for_child, core, boundary_filtering);
             }
         }
 
@@ -1425,46 +1424,46 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
         if(is_hor_edge)
         {
-            if (cuh > MAX_TR_SIZE)
+            if(cuh > MAX_TR_SIZE)
             {
-                evc_deblock_cu_hor(pic, x, y              , cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, 
-                  ctx->map_unrefined_mv
-                  , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
-                  , core->tree_cons
-                  , ctx->map_tidx,  boundary_filtering
+                evc_deblock_cu_hor(pic, x, y, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi,
+                                   ctx->map_unrefined_mv
+                                   , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
+                                   , core->tree_cons
+                                   , ctx->map_tidx, boundary_filtering
 #if ADDB_FLAG_FIX
-                  , ctx->sps.tool_addb
+                                   , ctx->sps.tool_addb
 #endif
 #if DEBLOCKING_FIX
-                  , ctx->map_ats_inter
+                                   , ctx->map_ats_inter
 #endif
                 );
 
                 evc_deblock_cu_hor(pic, x, y + MAX_TR_SIZE, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi,
-                  ctx->map_unrefined_mv
-                  , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0            
-                  , core->tree_cons
-                  , ctx->map_tidx, boundary_filtering
+                                   ctx->map_unrefined_mv
+                                   , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
+                                   , core->tree_cons
+                                   , ctx->map_tidx, boundary_filtering
 #if ADDB_FLAG_FIX
-                  , ctx->sps.tool_addb
+                                   , ctx->sps.tool_addb
 #endif
 #if DEBLOCKING_FIX
-                  , ctx->map_ats_inter
+                                   , ctx->map_ats_inter
 #endif
                 );
             }
             else
             {
                 evc_deblock_cu_hor(pic, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi,
-                  ctx->map_unrefined_mv
-                  , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
-                  , core->tree_cons
-                  , ctx->map_tidx, boundary_filtering
+                                   ctx->map_unrefined_mv
+                                   , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
+                                   , core->tree_cons
+                                   , ctx->map_tidx, boundary_filtering
 #if ADDB_FLAG_FIX
-                  , ctx->sps.tool_addb
+                                   , ctx->sps.tool_addb
 #endif
 #if DEBLOCKING_FIX
-                  , ctx->map_ats_inter
+                                   , ctx->map_ats_inter
 #endif
                 );
             }
@@ -1475,30 +1474,30 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
             {
                 evc_deblock_cu_ver(pic, x, y, cuw >> 1, cuh, ctx->map_scu, ctx->map_refi, ctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh
 #if FIX_PARALLEL_DBF
-                  , ctx->map_cu_mode
+                                   , ctx->map_cu_mode
 #endif
-                  , ctx->refp, 0
-                  , core->tree_cons
-                  , ctx->map_tidx, boundary_filtering
+                                   , ctx->refp, 0
+                                   , core->tree_cons
+                                   , ctx->map_tidx, boundary_filtering
 #if ADDB_FLAG_FIX
-                  , ctx->sps.tool_addb
+                                   , ctx->sps.tool_addb
 #endif
 #if DEBLOCKING_FIX
-                  , ctx->map_ats_inter
+                                   , ctx->map_ats_inter
 #endif
                 );
                 evc_deblock_cu_ver(pic, x + MAX_TR_SIZE, y, cuw >> 1, cuh, ctx->map_scu, ctx->map_refi, ctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh
 #if FIX_PARALLEL_DBF
-                  , ctx->map_cu_mode
+                                   , ctx->map_cu_mode
 #endif
-                  , ctx->refp, 0
-                  , core->tree_cons
-                  , ctx->map_tidx, boundary_filtering
+                                   , ctx->refp, 0
+                                   , core->tree_cons
+                                   , ctx->map_tidx, boundary_filtering
 #if ADDB_FLAG_FIX
-                  , ctx->sps.tool_addb
+                                   , ctx->sps.tool_addb
 #endif
 #if DEBLOCKING_FIX
-                  , ctx->map_ats_inter
+                                   , ctx->map_ats_inter
 #endif
                 );
             }
@@ -1506,16 +1505,16 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
             {
                 evc_deblock_cu_ver(pic, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi, ctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh
 #if FIX_PARALLEL_DBF
-                  , ctx->map_cu_mode
+                                   , ctx->map_cu_mode
 #endif
-                  , ctx->refp, 0
-                  , core->tree_cons
-                  , ctx->map_tidx, boundary_filtering
+                                   , ctx->refp, 0
+                                   , core->tree_cons
+                                   , ctx->map_tidx, boundary_filtering
 #if ADDB_FLAG_FIX
-                  , ctx->sps.tool_addb
+                                   , ctx->sps.tool_addb
 #endif
 #if DEBLOCKING_FIX
-                  , ctx->map_ats_inter
+                                   , ctx->map_ats_inter
 #endif
                 );
             }
@@ -1577,9 +1576,9 @@ int evcd_deblock(EVCD_CTX * ctx, int tile_idx, int filter_across_boundary)
 #else
             deblock_tree(ctx, ctx->pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 1
 #endif
-                , (TREE_CONS_NEW) { TREE_LC, eAll } //TODO: Tim this place could not work with "special main (advanced dbf off)"
-                , core
-                , boundary_filtering
+                         , (TREE_CONS_NEW) { TREE_LC, eAll } //TODO: Tim this place could not work with "special main (advanced dbf off)"
+                         , core
+                         , boundary_filtering
             );
         }
         
@@ -1598,9 +1597,9 @@ int evcd_deblock(EVCD_CTX * ctx, int tile_idx, int filter_across_boundary)
 #else
             deblock_tree(ctx, ctx->pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 0
 #endif
-                    , (TREE_CONS_NEW) { TREE_LC, eAll } //TODO: Tim this place could not work with "special main (advanced dbf off)"
-                    , core
-                    , boundary_filtering);
+                         , (TREE_CONS_NEW) { TREE_LC, eAll } //TODO: Tim this place could not work with "special main (advanced dbf off)"
+                         , core
+                         , boundary_filtering);
         }
     }
     else
@@ -1632,9 +1631,9 @@ int evcd_deblock(EVCD_CTX * ctx, int tile_idx, int filter_across_boundary)
 #else
                 deblock_tree(ctx, ctx->pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 1
 #endif
-                    , (TREE_CONS_NEW) { TREE_LC, eAll } //TODO: Tim this place could not work with "special main (advanced dbf off)"
-                    , core
-                    , boundary_filtering);
+                             , (TREE_CONS_NEW) { TREE_LC, eAll } //TODO: Tim this place could not work with "special main (advanced dbf off)"
+                             , core
+                             , boundary_filtering);
             }
         }
 
@@ -1656,9 +1655,9 @@ int evcd_deblock(EVCD_CTX * ctx, int tile_idx, int filter_across_boundary)
 #else
                 deblock_tree(ctx, ctx->pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 0
 #endif
-                    , (TREE_CONS_NEW) { TREE_LC, eAll } //TODO: Tim this place could not work with "special main (advanced dbf off)"
-                    , core
-                    , boundary_filtering);
+                             , (TREE_CONS_NEW) { TREE_LC, eAll } //TODO: Tim this place could not work with "special main (advanced dbf off)"
+                             , core
+                             , boundary_filtering);
             }
         }
     }
@@ -1953,7 +1952,7 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
             }
 #endif
             ret = evcd_eco_tree(ctx, core, core->x_pel, core->y_pel, ctx->log2_max_cuwh, ctx->log2_max_cuwh, 0, 0, bs, sbac, 1
-                , 0, NO_SPLIT, same_layer_split, 0, split_allow, 0, 0, 0, eAll);
+                                , 0, NO_SPLIT, same_layer_split, 0, split_allow, 0, 0, 0, eAll);
             evc_assert_g(EVC_SUCCEEDED(ret), ERR);
 
             /* set split flags to map */

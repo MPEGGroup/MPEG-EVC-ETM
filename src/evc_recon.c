@@ -51,9 +51,6 @@ void evc_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, p
                 rec[i * s_rec + j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, pred[i * cuw + j]);
             }
         }
-#if SIMD_CLIP
-        clip_simd(rec, s_rec, rec, s_rec, cuw, cuh, adapt_clip_min[adapt_clip_comp], adapt_clip_max[adapt_clip_comp]);
-#endif
     }
     else  /* add b/w pred and coef and copy it into rec */
     {
@@ -117,9 +114,6 @@ void evc_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, p
                 rec[i * s_rec + j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, t0);
             }
         }
-#if SIMD_CLIP
-        clip_simd(rec, s_rec, rec, s_rec, cuw, cuh, adapt_clip_min[adapt_clip_comp], adapt_clip_max[adapt_clip_comp]);
-#endif
     }
 }
 

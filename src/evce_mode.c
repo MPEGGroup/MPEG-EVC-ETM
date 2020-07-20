@@ -273,7 +273,7 @@ void evce_rdo_bit_cnt_cu_intra(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
 #if DQP
                   , core, ctx->pps.cu_qp_delta_enabled_flag ? 1 : 0, core->qp
 #endif
-        , core->tree_cons);
+                  , core->tree_cons);
 
 #if DQP_RDO
     if (ctx->pps.cu_qp_delta_enabled_flag)
@@ -298,32 +298,32 @@ void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM],
     {
         evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTER, core->nnz_sub, b_no_cbf, RUN_L, ctx->sps.tool_ats, 0, 0, core->ats_inter_info, ctx
 #if DQP
-            , core, 0, core->qp
+                      , core, 0, core->qp
 #endif
-            , tree_cons);
+                      , tree_cons);
     }
-       
+
     if(ch_type == U_C)
     {
         evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTER, core->nnz_sub, b_no_cbf, RUN_CB, ctx->sps.tool_ats, 0, 0, core->ats_inter_info, ctx
 #if DQP
-            , core, -1, 0
+                      , core, -1, 0
 #endif
-            , tree_cons);
+                      , tree_cons);
     }
 
     if(ch_type == V_C)
     {
         evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTER, core->nnz_sub, b_no_cbf, RUN_CR, ctx->sps.tool_ats, 0, 0, core->ats_inter_info, ctx
 #if DQP
-            , core, -1, 0
+                      , core, -1, 0
 #endif
-            , tree_cons);
+                      , tree_cons);
     }
 }
 
 void evce_rdo_bit_cnt_cu_ibc(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s32 cup, s16 mvd[MV_D],
-  s16 coef[N_C][MAX_CU_DIM], u8 mvp_idx, u8 ibc_flag)
+                             s16 coef[N_C][MAX_CU_DIM], u8 mvp_idx, u8 ibc_flag)
 {
     int b_no_cbf = 0;
 
@@ -349,16 +349,16 @@ void evce_rdo_bit_cnt_cu_ibc(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s
 #endif
     evce_eco_coef(&core->bs_temp, coef, core->log2_cuw, core->log2_cuh, MODE_IBC, core->nnz_sub, b_no_cbf, RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_ats, 0, 0, 0, ctx
 #if DQP
-        , core, ctx->pps.cu_qp_delta_enabled_flag ? 1 : 0, core->qp
+                  , core, ctx->pps.cu_qp_delta_enabled_flag ? 1 : 0, core->qp
 #endif
-        , core->tree_cons);
+                  , core->tree_cons);
 #if DQP_RDO
-    if (ctx->pps.cu_qp_delta_enabled_flag)
+    if(ctx->pps.cu_qp_delta_enabled_flag)
     {
         core->dqp_temp_run.cu_qp_delta_code = core->cu_qp_delta_code;
         core->dqp_temp_run.cu_qp_delta_is_coded = core->cu_qp_delta_is_coded;
         core->dqp_temp_run.prev_QP = ctx->tile[core->tile_idx].qp_prev_eco;
-                core->dqp_temp_run.curr_QP = core->qp;
+        core->dqp_temp_run.curr_QP = core->qp;
     }
 #endif
 }
@@ -587,9 +587,9 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
 #endif
     evce_eco_coef(&core->bs_temp, coef, core->log2_cuw, core->log2_cuh, MODE_INTER, core->nnz_sub, b_no_cbf, RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_ats, 0, 0, core->ats_inter_info, ctx
 #if DQP
-        , core, ctx->pps.cu_qp_delta_enabled_flag ? 1 : 0, core->qp
+                  , core, ctx->pps.cu_qp_delta_enabled_flag ? 1 : 0, core->qp
 #endif
-        , core->tree_cons);
+                  , core->tree_cons);
 
 #if DQP_RDO
     if (ctx->pps.cu_qp_delta_enabled_flag)
@@ -2030,7 +2030,7 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 #endif
     core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, (1 << log2_cuw), (1 << log2_cuh), ctx->w_scu, ctx->h_scu, ctx->map_scu, ctx->map_tidx);
     evc_get_ctx_some_flags(core->x_scu, core->y_scu, 1 << log2_cuw, 1 << log2_cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, core->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
-                         , ctx->param.use_ibc_flag, ctx->sps.ibc_log_max_size, ctx->map_tidx);      
+                           , ctx->param.use_ibc_flag, ctx->sps.ibc_log_max_size, ctx->map_tidx);
 
     /* inter *************************************************************/
     cost_best = MAX_COST;
@@ -2761,13 +2761,13 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
         //first, horizontal filtering
         // As of now filtering across tile boundaries is disabled
         evc_deblock_cu_hor(pic_dbk, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
-            , core->tree_cons
-            , ctx->map_tidx, 0
+                           , core->tree_cons
+                           , ctx->map_tidx, 0
 #if ADDB_FLAG_FIX
-            , ctx->sps.tool_addb
+                           , ctx->sps.tool_addb
 #endif
 #if DEBLOCKING_FIX
-            , ctx->map_ats_inter
+                           , ctx->map_ats_inter
 #endif
         );
 
@@ -2788,13 +2788,13 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
                            , ctx->map_cu_mode
 #endif
                            , ctx->refp, 0
-            , core->tree_cons
-            , ctx->map_tidx, 0
+                           , core->tree_cons
+                           , ctx->map_tidx, 0
 #if ADDB_FLAG_FIX
-            , ctx->sps.tool_addb
+                           , ctx->sps.tool_addb
 #endif
 #if DEBLOCKING_FIX
-            , ctx->map_ats_inter
+                           , ctx->map_ats_inter
 #endif
         );
 
@@ -3026,9 +3026,9 @@ static int lossycheck_tthor(EVCE_CU_DATA *cu_data, int eval_parent_node_first, d
 static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, int cup, int log2_cuw, int log2_cuh, int cud, EVCE_MODE *mi, int next_split
                                , int parent_suco, const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth
 #if DQP
-    , u8 qp
+                               , u8 qp
 #endif
-    , TREE_CONS tree_cons)
+                               , TREE_CONS tree_cons)
 {
     // x0 = CU's left up corner horizontal index in entrie frame
     // y0 = CU's left up corner vertical index in entire frame
@@ -3270,46 +3270,46 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
 #endif
                     mode_cpy_rec_to_ref(core, x0, y0, cuw, cuh, PIC_MODE(ctx), core->tree_cons);
 
-                    if (evce_check_luma(ctx, core))
+                    if(evce_check_luma(ctx, core))
                     {
-                    // update history MV list
-                    // in mode_coding_unit, ctx->fn_pinter_analyze_cu will store the best MV in mi
-                    // if the cost_temp has been update above, the best MV is in mi
+                        // update history MV list
+                        // in mode_coding_unit, ctx->fn_pinter_analyze_cu will store the best MV in mi
+                        // if the cost_temp has been update above, the best MV is in mi
 
-                    get_cu_pred_data(&core->cu_data_best[log2_cuw - 2][log2_cuh - 2], 0, 0, log2_cuw, log2_cuh, log2_cuw, cud, mi
+                        get_cu_pred_data(&core->cu_data_best[log2_cuw - 2][log2_cuh - 2], 0, 0, log2_cuw, log2_cuh, log2_cuw, cud, mi
 #if AFFINE_UPDATE 
-                        , ctx, core
+                                         , ctx, core
 #endif
-                    );
+                        );
 
 #if AFFINE_UPDATE 
-                    if (mi->cu_mode != MODE_INTRA && mi->cu_mode != MODE_IBC
+                        if(mi->cu_mode != MODE_INTRA && mi->cu_mode != MODE_IBC
 #if HISTORY_UNDER_ADMVP_FIX
 #if M53737
-                        && ctx->sps.tool_hmvp
+                           && ctx->sps.tool_hmvp
 #else
-                        && ctx->sps.tool_admvp
+                           && ctx->sps.tool_admvp
 #endif
 #endif
-                        )
-                    {
-                        update_history_buffer_affine(&core->history_buffer, mi, ctx->slice_type, core);
-                    }
+                           )
+                        {
+                            update_history_buffer_affine(&core->history_buffer, mi, ctx->slice_type, core);
+                        }
 
 #endif       
 #if HISTORY_UNDER_ADMVP_FIX
 #if M53737
-                    if (ctx->sps.tool_hmvp)
+                        if(ctx->sps.tool_hmvp)
 #else
-                    if (ctx->sps.tool_admvp)
+                        if(ctx->sps.tool_admvp)
 #endif
-                    {
+                        {
 #endif
-                        copy_history_buffer(&core->m_pBestMotLUTs[log2_cuw - 2][log2_cuh - 2], &core->history_buffer);
+                            copy_history_buffer(&core->m_pBestMotLUTs[log2_cuw - 2][log2_cuh - 2], &core->history_buffer);
 #if HISTORY_UNDER_ADMVP_FIX
-                    }
+                        }
 #endif
-                }
+                    }
                 }
             }
             if (is_dqp_set && core->cu_qp_delta_code_mode == 2)
@@ -3368,42 +3368,42 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
 
             if (evce_check_luma(ctx, core))
             {
-            // update history MV list
-            // in mode_coding_unit, ctx->fn_pinter_analyze_cu will store the best MV in mi
-            // if the cost_temp has been update above, the best MV is in mi
+                // update history MV list
+                // in mode_coding_unit, ctx->fn_pinter_analyze_cu will store the best MV in mi
+                // if the cost_temp has been update above, the best MV is in mi
 
-            get_cu_pred_data(&core->cu_data_best[log2_cuw - 2][log2_cuh - 2], 0, 0, log2_cuw, log2_cuh, log2_cuw, cud, mi
+                get_cu_pred_data(&core->cu_data_best[log2_cuw - 2][log2_cuh - 2], 0, 0, log2_cuw, log2_cuh, log2_cuw, cud, mi
 #if AFFINE_UPDATE 
-                , ctx, core
+                                 , ctx, core
 #endif
-            );
+                );
 
 #if AFFINE_UPDATE 
-            if (mi->cu_mode != MODE_INTRA && mi->cu_mode != MODE_IBC
+                if(mi->cu_mode != MODE_INTRA && mi->cu_mode != MODE_IBC
 #if HISTORY_UNDER_ADMVP_FIX
 #if M53737
-                && ctx->sps.tool_hmvp
+                   && ctx->sps.tool_hmvp
 #else
-                && ctx->sps.tool_admvp
+                   && ctx->sps.tool_admvp
 #endif
 #endif
-                )
-            {
-                update_history_buffer_affine(&core->history_buffer, mi, ctx->slice_type, core);
-            }
+                   )
+                {
+                    update_history_buffer_affine(&core->history_buffer, mi, ctx->slice_type, core);
+                }
 
 #endif 
 #if HISTORY_UNDER_ADMVP_FIX
 #if M53737
-            if (ctx->sps.tool_hmvp)
+                if(ctx->sps.tool_hmvp)
 #else
-            if (ctx->sps.tool_admvp)
+                if(ctx->sps.tool_admvp)
 #endif
-            {
+                {
 #endif
-                copy_history_buffer(&core->m_pBestMotLUTs[log2_cuw - 2][log2_cuh - 2], &core->history_buffer);
+                    copy_history_buffer(&core->m_pBestMotLUTs[log2_cuw - 2][log2_cuh - 2], &core->history_buffer);
 #if HISTORY_UNDER_ADMVP_FIX
-            }
+                }
 #endif
             }
         }
@@ -3463,7 +3463,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                 int suco_flag = 0;
                 SPLIT_DIR split_dir = evc_split_get_direction(split_mode);
                 int is_mode_BT = evc_split_is_BT(split_mode);
-                u8  allow_suco = ctx->sps.sps_suco_flag ? evc_check_suco_cond(cuw, cuh, split_mode, boundary, ctx->log2_max_cuwh, ctx->sps.log2_diff_ctu_size_max_suco_cb_size, ctx->sps.log2_diff_max_suco_min_suco_cb_size) : 0;
+                u8  allow_suco = ctx->sps.sps_suco_flag ? evc_check_suco_cond(cuw, cuh, split_mode, boundary, ctx->log2_max_cuwh, ctx->sps.log2_diff_ctu_size_max_suco_cb_size, ctx->sps.log2_diff_max_suco_min_suco_cb_size, ctx->sps.log2_min_cb_size_minus2 + 2) : 0;
                 int num_suco = (split_dir == SPLIT_VER) ? 2 : 1;
                 EVC_SPLIT_STRUCT split_struct;
                 double cost_suco[2] = {MAX_COST, MAX_COST};
@@ -3471,7 +3471,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                 int prev_suco = core->bef_data[log2_cuw - 2][log2_cuh - 2][cup][bef_data_idx].suco[prev_suco_num];
 #if FAST_RECURSE_OPT
                 if(lossy_es[split_mode] && lossy_es[split_mode](&(core->cu_data_best[log2_cuw - 2][log2_cuh - 2])
-                    , eval_parent_node_first, cost_best, log2_cuw, log2_cuh, cuw, cuh, cud, nev_max_depth))
+                   , eval_parent_node_first, cost_best, log2_cuw, log2_cuh, cuw, cuh, cud, nev_max_depth))
                 {
                     split_allow[split_mode] = 0;
                 }
@@ -3500,7 +3500,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                         }
                     }
                 }
-                evc_split_get_part_structure( split_mode, x0, y0, cuw, cuh, cup, cud, ctx->log2_culine, &split_struct );
+                evc_split_get_part_structure(split_mode, x0, y0, cuw, cuh, cup, cud, ctx->log2_culine, &split_struct);
 
                 if(split_allow[split_mode])
                 {
@@ -3509,16 +3509,16 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                     BOOL mode_cons_changed = FALSE;
                     BOOL mode_cons_signal = FALSE;
 
-                    if ( ctx->sps.tool_admvp && ctx->sps.sps_btt_flag ) // TODO: Tim, is special check needed here? create the specific variable for local dual tree ON/OFF
+                    if(ctx->sps.tool_admvp && ctx->sps.sps_btt_flag) // TODO: Tim, is special check needed here? create the specific variable for local dual tree ON/OFF
                     {
-                        split_struct.tree_cons.changed = tree_cons.mode_cons == eAll && !evc_is_chroma_split_allowed( cuw, cuh, split_mode );
-                        mode_cons_changed = evc_signal_mode_cons( &core->tree_cons, &split_struct.tree_cons ); 
-                        mode_cons_signal = mode_cons_changed && ( ctx->sh.slice_type != SLICE_I ) && ( evc_get_mode_cons_by_split( split_mode, cuw, cuh ) == eAll );
+                        split_struct.tree_cons.changed = tree_cons.mode_cons == eAll && !evc_is_chroma_split_allowed(cuw, cuh, split_mode);
+                        mode_cons_changed = evc_signal_mode_cons(&core->tree_cons, &split_struct.tree_cons);
+                        mode_cons_signal = mode_cons_changed && (ctx->sh.slice_type != SLICE_I) && (evc_get_mode_cons_by_split(split_mode, cuw, cuh) == eAll);
                     }
 
-                    for (int mode_num = 0; mode_num < (mode_cons_signal ? 2 : 1); ++mode_num)
+                    for(int mode_num = 0; mode_num < (mode_cons_signal ? 2 : 1); ++mode_num)
                     {
-                        if (mode_cons_changed)
+                        if(mode_cons_changed)
                         {
                             evc_set_tree_mode(&split_struct.tree_cons, mode_num == 0 ? eOnlyIntra : eOnlyInter);
                         }
@@ -3526,298 +3526,297 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                         cost_suco[0] = MAX_COST;
                         cost_suco[1] = MAX_COST;
 #endif
-                    for(suco_flag = 0; suco_flag < num_suco; ++suco_flag)
-                    {
-                        int suco_order[SPLIT_MAX_PART_COUNT];
-                        evc_split_get_suco_order(suco_flag, split_mode, suco_order);
-                        int prev_log2_sub_cuw = split_struct.log_cuw[suco_order[0]];
-                        int prev_log2_sub_cuh = split_struct.log_cuh[suco_order[0]];
+                        for(suco_flag = 0; suco_flag < num_suco; ++suco_flag)
+                        {
+                            int suco_order[SPLIT_MAX_PART_COUNT];
+                            evc_split_get_suco_order(suco_flag, split_mode, suco_order);
+                            int prev_log2_sub_cuw = split_struct.log_cuw[suco_order[0]];
+                            int prev_log2_sub_cuh = split_struct.log_cuh[suco_order[0]];
 #if DQP
-                        int is_dqp_set = 0;
+                            int is_dqp_set = 0;
 #endif
-                        if(num_suco == 2)
-                        {
-                            if(prev_suco > 0 && suco_flag != (prev_suco - 1) && allow_suco)
-                            {
-                                continue;
-                            }
-
-                            if(!allow_suco && suco_flag != parent_suco)
-                            {
-                                continue;
-                            }
-                        }
-
-                        init_cu_data(&core->cu_data_temp[log2_cuw - 2][log2_cuh - 2], log2_cuw, log2_cuh, ctx->qp, ctx->qp, ctx->qp);
-                        clear_map_scu(ctx, core, x0, y0, cuw, cuh);
-
-                        int part_num = 0;
-
-                        cost_temp = 0.0;
-
-                        if(x0 + cuw <= ctx->w && y0 + cuh <= ctx->h)
-                        {
-                            /* consider CU split flag */
-                            SBAC_LOAD(core->s_temp_run, core->s_curr_before_split[log2_cuw - 2][log2_cuh - 2]);
-                            evce_sbac_bit_reset(&core->s_temp_run);
-                            evc_set_split_mode(split_mode, cud, 0, cuw, cuh, cuw, core->cu_data_temp[log2_cuw - 2][log2_cuh - 2].split_mode);
-                            evce_eco_split_mode(&core->bs_temp, ctx, core, cud, 0, cuw, cuh, cuw, parent_split, same_layer_split, node_idx, parent_split_allow, curr_split_allow, qt_depth, btt_depth, x0, y0);
-
                             if(num_suco == 2)
                             {
-                                evc_set_suco_flag(suco_flag, cud, 0, cuw, cuh, cuw, core->cu_data_temp[log2_cuw - 2][log2_cuh - 2].suco_flag);
-                                evce_eco_suco_flag(&core->bs_temp, ctx, core, cud, 0, cuw, cuh, cuw, split_mode, boundary, ctx->log2_max_cuwh);
-                            }
-                            else
-                            {
-                                evc_set_suco_flag(suco_flag, cud, 0, cuw, cuh, cuw, core->cu_data_temp[log2_cuw - 2][log2_cuh - 2].suco_flag);
+                                if(prev_suco > 0 && suco_flag != (prev_suco - 1) && allow_suco)
+                                {
+                                    continue;
+                                }
+
+                                if(!allow_suco && suco_flag != parent_suco)
+                                {
+                                    continue;
+                                }
                             }
 
-                            if ( ctx->sps.tool_admvp && ctx->sps.sps_btt_flag && mode_cons_signal )       // TODO: Tim, is special check needed here? create the specific variable for local dual tree ON/OFF
-                            {
-                                    evce_eco_mode_constr(&core->bs_temp, split_struct.tree_cons.mode_cons, core->ctx_flags[CNID_MODE_CONS]);
-                            }
-                            bit_cnt = evce_get_bit_number(&core->s_temp_run);
-                            cost_temp += RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);
-                            SBAC_STORE(core->s_curr_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_run);
-                        }
-#if DQP
-                        get_min_max_qp(ctx, core, &min_qp, &max_qp, &is_dqp_set, split_mode, cuw, cuh, qp, x0, y0);
-
-                        loop_counter = 0;
-                        if (is_dqp_set)
-                        {
-                            loop_counter = EVC_ABS(max_qp - min_qp);
-                        }
-                        cost_best_dqp = MAX_COST;
-                        for (dqp_loop = 0; dqp_loop <= loop_counter; dqp_loop++)
-                        {
-                            int dqp = min_qp + dqp_loop;
-                            core->qp = GET_QP((s8)qp, dqp - (s8)qp);
-                            if (is_dqp_set)
-                            {
-                                core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2].cu_qp_delta_code = 2;
-                                core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2].cu_qp_delta_is_coded = 0;
-                                core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2].curr_QP = core->qp;
-                            }
-
-                            cost_temp_dqp = cost_temp;
                             init_cu_data(&core->cu_data_temp[log2_cuw - 2][log2_cuh - 2], log2_cuw, log2_cuh, ctx->qp, ctx->qp, ctx->qp);
                             clear_map_scu(ctx, core, x0, y0, cuw, cuh);
-#endif
-#if HISTORY_UNDER_ADMVP_FIX
-#if M53737
-                        if (ctx->sps.tool_hmvp)
-#else
-                        if (ctx->sps.tool_admvp)
-#endif
-                        {
-#endif
-                            copy_history_buffer(&TempSubMotLUT, &OrigMotLUT);
-#if HISTORY_UNDER_ADMVP_FIX
-                        }
-#endif
-#if TRACE_ENC_CU_DATA_CHECK
-                        static int counter_in[MAX_CU_LOG2 - MIN_CU_LOG2][MAX_CU_LOG2 - MIN_CU_LOG2] = { 0, };
-                        counter_in[log2_cuw - MIN_CU_LOG2][log2_cuh - MIN_CU_LOG2]++;
-#endif
 
-                        for(part_num = 0; part_num < split_struct.part_count; ++part_num)
-                        {
-                            int cur_part_num = suco_order[part_num];
-                            int log2_sub_cuw = split_struct.log_cuw[cur_part_num];
-                            int log2_sub_cuh = split_struct.log_cuh[cur_part_num];
-                            int x_pos = split_struct.x_pos[cur_part_num];
-                            int y_pos = split_struct.y_pos[cur_part_num];
-                            int cur_cuw = split_struct.width[cur_part_num];
-                            int cur_cuh = split_struct.height[cur_part_num];
-#if HISTORY_UNDER_ADMVP_FIX
-#if M53737
-                            if (ctx->sps.tool_hmvp)
-#else
-                            if (ctx->sps.tool_admvp)
-#endif
+                            int part_num = 0;
+
+                            cost_temp = 0.0;
+
+                            if(x0 + cuw <= ctx->w && y0 + cuh <= ctx->h)
                             {
-#endif
-                                copy_history_buffer(&core->m_pTempMotLUTs[log2_sub_cuw - 2][log2_sub_cuh - 2], &TempSubMotLUT);
-#if HISTORY_UNDER_ADMVP_FIX
-                            }
-#endif
-                            if((x_pos < ctx->w) && (y_pos < ctx->h))
-                            {
-                                if (part_num == 0)
+                                /* consider CU split flag */
+                                SBAC_LOAD(core->s_temp_run, core->s_curr_before_split[log2_cuw - 2][log2_cuh - 2]);
+                                evce_sbac_bit_reset(&core->s_temp_run);
+                                evc_set_split_mode(split_mode, cud, 0, cuw, cuh, cuw, core->cu_data_temp[log2_cuw - 2][log2_cuh - 2].split_mode);
+                                evce_eco_split_mode(&core->bs_temp, ctx, core, cud, 0, cuw, cuh, cuw, parent_split, same_layer_split, node_idx, parent_split_allow, curr_split_allow, qt_depth, btt_depth, x0, y0);
+
+                                if(num_suco == 2)
                                 {
-                                    SBAC_LOAD(core->s_curr_best[log2_sub_cuw - 2][log2_sub_cuh - 2], core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
-#if DQP
-                                    DQP_STORE(core->dqp_curr_best[log2_sub_cuw - 2][log2_sub_cuh - 2], core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2]);
-#endif
+                                    evc_set_suco_flag(suco_flag, cud, 0, cuw, cuh, cuw, core->cu_data_temp[log2_cuw - 2][log2_cuh - 2].suco_flag);
+                                    evce_eco_suco_flag(&core->bs_temp, ctx, core, cud, 0, cuw, cuh, cuw, split_mode, boundary, ctx->log2_max_cuwh);
                                 }
                                 else
                                 {
-                                    SBAC_LOAD(core->s_curr_best[log2_sub_cuw - 2][log2_sub_cuh - 2], core->s_next_best[prev_log2_sub_cuw - 2][prev_log2_sub_cuh - 2]);
-#if DQP
-                                    DQP_STORE(core->dqp_curr_best[log2_sub_cuw - 2][log2_sub_cuh - 2], core->dqp_next_best[prev_log2_sub_cuw - 2][prev_log2_sub_cuh - 2]);
-#endif
+                                    evc_set_suco_flag(suco_flag, cud, 0, cuw, cuh, cuw, core->cu_data_temp[log2_cuw - 2][log2_cuh - 2].suco_flag);
                                 }
-#if DQP
-                                cost_temp_dqp += mode_coding_tree(ctx, core, x_pos, y_pos, split_struct.cup[cur_part_num], log2_sub_cuw, log2_sub_cuh, split_struct.cud[cur_part_num], mi, 1
-                                                              , (num_suco == 2) ? suco_flag : parent_suco, split_mode, split_mode_child
-                                                              , part_num, curr_split_allow, INC_QT_DEPTH(qt_depth, split_mode), INC_BTT_DEPTH(btt_depth, split_mode, boundary)
-#if DQP
-                                                              , core->qp
-#endif
-                                                              , split_struct.tree_cons);
 
+                                if(ctx->sps.tool_admvp && ctx->sps.sps_btt_flag && mode_cons_signal)       // TODO: Tim, is special check needed here? create the specific variable for local dual tree ON/OFF
+                                {
+                                    evce_eco_mode_constr(&core->bs_temp, split_struct.tree_cons.mode_cons, core->ctx_flags[CNID_MODE_CONS]);
+                                }
+                                bit_cnt = evce_get_bit_number(&core->s_temp_run);
+                                cost_temp += RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);
+                                SBAC_STORE(core->s_curr_best[log2_cuw - 2][log2_cuh - 2], core->s_temp_run);
+                            }
+#if DQP
+                            get_min_max_qp(ctx, core, &min_qp, &max_qp, &is_dqp_set, split_mode, cuw, cuh, qp, x0, y0);
+
+                            loop_counter = 0;
+                            if(is_dqp_set)
+                            {
+                                loop_counter = EVC_ABS(max_qp - min_qp);
+                            }
+                            cost_best_dqp = MAX_COST;
+                            for(dqp_loop = 0; dqp_loop <= loop_counter; dqp_loop++)
+                            {
+                                int dqp = min_qp + dqp_loop;
                                 core->qp = GET_QP((s8)qp, dqp - (s8)qp);
-#else
-                                cost_temp += mode_coding_tree(ctx, core, x_pos, y_pos, split_struct.cup[cur_part_num], log2_sub_cuw, log2_sub_cuh, split_struct.cud[cur_part_num], mi, 1
-                                                              , (num_suco == 2) ? suco_flag : parent_suco, split_mode, split_mode_child
-                                                              , part_num, curr_split_allow, INC_QT_DEPTH(qt_depth, split_mode), INC_BTT_DEPTH(btt_depth, split_mode, boundary)
-                                                              , split_struct.tree_cons
-                                                             );
-#endif
-                                copy_cu_data(&core->cu_data_temp[log2_cuw - 2][log2_cuh - 2], &core->cu_data_best[log2_sub_cuw - 2][log2_sub_cuh - 2], x_pos - split_struct.x_pos[0], y_pos - split_struct.y_pos[0], log2_sub_cuw, log2_sub_cuh, log2_cuw, cud
-                                    , split_struct.tree_cons);
+                                if(is_dqp_set)
+                                {
+                                    core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2].cu_qp_delta_code = 2;
+                                    core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2].cu_qp_delta_is_coded = 0;
+                                    core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2].curr_QP = core->qp;
+                                }
 
-                                update_map_scu(ctx, core, x_pos, y_pos, cur_cuw, cur_cuh);
-                                prev_log2_sub_cuw = log2_sub_cuw;
-                                prev_log2_sub_cuh = log2_sub_cuh;
+                                cost_temp_dqp = cost_temp;
+                                init_cu_data(&core->cu_data_temp[log2_cuw - 2][log2_cuh - 2], log2_cuw, log2_cuh, ctx->qp, ctx->qp, ctx->qp);
+                                clear_map_scu(ctx, core, x0, y0, cuw, cuh);
+#endif
 #if HISTORY_UNDER_ADMVP_FIX
 #if M53737
-                                if (ctx->sps.tool_hmvp)
+                                if(ctx->sps.tool_hmvp)
 #else
-                                if (ctx->sps.tool_admvp)
+                                if(ctx->sps.tool_admvp)
 #endif
                                 {
 #endif
-                                    copy_history_buffer(&TempSubMotLUT, &core->m_pBestMotLUTs[log2_sub_cuw - 2][log2_sub_cuh - 2]);
+                                    copy_history_buffer(&TempSubMotLUT, &OrigMotLUT);
 #if HISTORY_UNDER_ADMVP_FIX
                                 }
-#endif
-                            }
-                            core->tree_cons = tree_cons;
-                        }
-
-                        if (mode_cons_changed && !evc_check_all(split_struct.tree_cons))
-                        {
-                            evc_assert(evc_check_only_intra(split_struct.tree_cons));
-
-                            core->tree_cons = split_struct.tree_cons;
-                            core->tree_cons.tree_type = TREE_C;
-                          
-                            EVC_TRACE_COUNTER;
-                            EVC_TRACE_STR("Cost luma: ");
-                            EVC_TRACE_DOUBLE(cost_temp);
-                            EVC_TRACE_STR("\n");
-                            double cost_node = mode_coding_unit(ctx, core, x0, y0, log2_cuw, log2_cuh, cud, mi)
-                                ;
-#if DQP
-                            cost_temp_dqp += cost_node;
-#else
-                            cost_temp += cost_node;
-#endif
-                            EVC_TRACE_STR("Cost chroma: ");
-                            EVC_TRACE_DOUBLE(cost_node);
-                            EVC_TRACE_STR("\n");
-                            update_map_scu(ctx, core, x0, y0, cuw, cuh);
-                            core->tree_cons = tree_cons;
-                        }
-
-#if TRACE_COSTS
-                        EVC_TRACE_COUNTER;
-                        EVC_TRACE_STR("Block [");
-                        EVC_TRACE_INT(x0);
-                        EVC_TRACE_STR(", ");
-                        EVC_TRACE_INT(y0);
-                        EVC_TRACE_STR("]x(");
-                        EVC_TRACE_INT(cuw);
-                        EVC_TRACE_STR("x");
-                        EVC_TRACE_INT(cuh);
-                        EVC_TRACE_STR(") split_type ");
-                        EVC_TRACE_INT(split_mode);
-                        EVC_TRACE_STR(" cost is ");
-                        EVC_TRACE_DOUBLE(cost_temp);
-                        EVC_TRACE_STR("\n");
 #endif
 #if TRACE_ENC_CU_DATA_CHECK
-                        static int counter_out = 0;
-                        counter_out++;
-                        {
-                            EVCE_CU_DATA *cu_data = &(core->cu_data_temp[log2_cuw - 2][log2_cuh - 2]);
-                            int cuw = 1 << (log2_cuw - MIN_CU_LOG2);
-                            int cuh = 1 << (log2_cuh - MIN_CU_LOG2);
-                            int cus = cuw;
-                            int idx = 0;
-                            for (int j = 0; j < cuh; ++j)
-                            {
-                                int y_pos = y0 + (j << MIN_CU_LOG2);
-                                for (int i = 0; i < cuw; ++i)
-                                {
-                                    int x_pos = x0 + (i << MIN_CU_LOG2);
-                                    if ((x_pos < ctx->w) && (y_pos < ctx->h))
-                                        evc_assert(cu_data->trace_idx[idx + i] != 0);
-                                }
-                                idx += cus;
-                            }
-                        }
-#endif
-#if DQP
-                        if (cost_suco[suco_flag] > cost_temp_dqp)
-                        {
-                            cost_suco[suco_flag] = cost_temp_dqp;
-                        }
-                        if (cost_best_dqp > cost_temp_dqp)
-                        {
-                            cost_best_dqp = cost_temp_dqp;
-                        }
-#else
-                        cost_suco[suco_flag] = cost_temp;
+                                static int counter_in[MAX_CU_LOG2 - MIN_CU_LOG2][MAX_CU_LOG2 - MIN_CU_LOG2] = {0,};
+                                counter_in[log2_cuw - MIN_CU_LOG2][log2_cuh - MIN_CU_LOG2]++;
 #endif
 
-#if DQP
-                        if (cost_best - 0.0001 > cost_temp_dqp)
-#else
-                        if(cost_best - 0.0001 > cost_temp)
-#endif
-                        {
-                            /* backup the current best data */
-                            copy_cu_data(&core->cu_data_best[log2_cuw - 2][log2_cuh - 2], &core->cu_data_temp[log2_cuw - 2][log2_cuh - 2], 0, 0, log2_cuw, log2_cuh, log2_cuw, cud
-                                       , core->tree_cons);
-#if DQP
-                            cost_best = cost_temp_dqp;
-                            best_dqp = core->dqp_data[prev_log2_sub_cuw - 2][prev_log2_sub_cuh - 2].prev_QP;
-#if DQP_RDO
-                            DQP_STORE(dqp_temp_depth, core->dqp_next_best[prev_log2_sub_cuw - 2][prev_log2_sub_cuh - 2]);
-#endif
-#else
-                            cost_best = cost_temp;
-#endif
-                            SBAC_STORE(s_temp_depth, core->s_next_best[prev_log2_sub_cuw - 2][prev_log2_sub_cuh - 2]);
-                            best_split_mode = split_mode;
-                            best_suco_flag = suco_flag;
+                                for(part_num = 0; part_num < split_struct.part_count; ++part_num)
+                                {
+                                    int cur_part_num = suco_order[part_num];
+                                    int log2_sub_cuw = split_struct.log_cuw[cur_part_num];
+                                    int log2_sub_cuh = split_struct.log_cuh[cur_part_num];
+                                    int x_pos = split_struct.x_pos[cur_part_num];
+                                    int y_pos = split_struct.y_pos[cur_part_num];
+                                    int cur_cuw = split_struct.width[cur_part_num];
+                                    int cur_cuh = split_struct.height[cur_part_num];
 #if HISTORY_UNDER_ADMVP_FIX
 #if M53737
-                            if (ctx->sps.tool_hmvp)
+                                    if(ctx->sps.tool_hmvp)
 #else
-                            if (ctx->sps.tool_admvp)
+                                    if(ctx->sps.tool_admvp)
 #endif
-                            {
+                                    {
 #endif
-                                copy_history_buffer(&core->m_pBestMotLUTs[log2_cuw - 2][log2_cuh - 2], &TempSubMotLUT);
+                                        copy_history_buffer(&core->m_pTempMotLUTs[log2_sub_cuw - 2][log2_sub_cuh - 2], &TempSubMotLUT);
 #if HISTORY_UNDER_ADMVP_FIX
+                                    }
+#endif
+                                    if((x_pos < ctx->w) && (y_pos < ctx->h))
+                                    {
+                                        if(part_num == 0)
+                                        {
+                                            SBAC_LOAD(core->s_curr_best[log2_sub_cuw - 2][log2_sub_cuh - 2], core->s_curr_best[log2_cuw - 2][log2_cuh - 2]);
+#if DQP
+                                            DQP_STORE(core->dqp_curr_best[log2_sub_cuw - 2][log2_sub_cuh - 2], core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2]);
+#endif
+                                        }
+                                        else
+                                        {
+                                            SBAC_LOAD(core->s_curr_best[log2_sub_cuw - 2][log2_sub_cuh - 2], core->s_next_best[prev_log2_sub_cuw - 2][prev_log2_sub_cuh - 2]);
+#if DQP
+                                            DQP_STORE(core->dqp_curr_best[log2_sub_cuw - 2][log2_sub_cuh - 2], core->dqp_next_best[prev_log2_sub_cuw - 2][prev_log2_sub_cuh - 2]);
+#endif
+                                        }
+#if DQP
+                                        cost_temp_dqp += mode_coding_tree(ctx, core, x_pos, y_pos, split_struct.cup[cur_part_num], log2_sub_cuw, log2_sub_cuh, split_struct.cud[cur_part_num], mi, 1
+                                                                          , (num_suco == 2) ? suco_flag : parent_suco, split_mode, split_mode_child
+                                                                          , part_num, curr_split_allow, INC_QT_DEPTH(qt_depth, split_mode), INC_BTT_DEPTH(btt_depth, split_mode, boundary)
+#if DQP
+                                                                          , core->qp
+#endif
+                                                                          , split_struct.tree_cons);
+
+                                        core->qp = GET_QP((s8)qp, dqp - (s8)qp);
+#else
+                                        cost_temp += mode_coding_tree(ctx, core, x_pos, y_pos, split_struct.cup[cur_part_num], log2_sub_cuw, log2_sub_cuh, split_struct.cud[cur_part_num], mi, 1
+                                                                      , (num_suco == 2) ? suco_flag : parent_suco, split_mode, split_mode_child
+                                                                      , part_num, curr_split_allow, INC_QT_DEPTH(qt_depth, split_mode), INC_BTT_DEPTH(btt_depth, split_mode, boundary)
+                                                                      , split_struct.tree_cons
+                                        );
+#endif
+                                        copy_cu_data(&core->cu_data_temp[log2_cuw - 2][log2_cuh - 2], &core->cu_data_best[log2_sub_cuw - 2][log2_sub_cuh - 2], x_pos - split_struct.x_pos[0], y_pos - split_struct.y_pos[0], log2_sub_cuw, log2_sub_cuh, log2_cuw, cud
+                                                     , split_struct.tree_cons);
+
+                                        update_map_scu(ctx, core, x_pos, y_pos, cur_cuw, cur_cuh);
+                                        prev_log2_sub_cuw = log2_sub_cuw;
+                                        prev_log2_sub_cuh = log2_sub_cuh;
+#if HISTORY_UNDER_ADMVP_FIX
+#if M53737
+                                        if(ctx->sps.tool_hmvp)
+#else
+                                        if(ctx->sps.tool_admvp)
+#endif
+                                        {
+#endif
+                                            copy_history_buffer(&TempSubMotLUT, &core->m_pBestMotLUTs[log2_sub_cuw - 2][log2_sub_cuh - 2]);
+#if HISTORY_UNDER_ADMVP_FIX
+                                        }
+#endif
+                                    }
+                                    core->tree_cons = tree_cons;
+                                }
+
+                                if(mode_cons_changed && !evc_check_all(split_struct.tree_cons))
+                                {
+                                    evc_assert(evc_check_only_intra(split_struct.tree_cons));
+
+                                    core->tree_cons = split_struct.tree_cons;
+                                    core->tree_cons.tree_type = TREE_C;
+
+                                    EVC_TRACE_COUNTER;
+                                    EVC_TRACE_STR("Cost luma: ");
+                                    EVC_TRACE_DOUBLE(cost_temp);
+                                    EVC_TRACE_STR("\n");
+                                    double cost_node = mode_coding_unit(ctx, core, x0, y0, log2_cuw, log2_cuh, cud, mi);
+#if DQP
+                                    cost_temp_dqp += cost_node;
+#else
+                                    cost_temp += cost_node;
+#endif
+                                    EVC_TRACE_STR("Cost chroma: ");
+                                    EVC_TRACE_DOUBLE(cost_node);
+                                    EVC_TRACE_STR("\n");
+                                    update_map_scu(ctx, core, x0, y0, cuw, cuh);
+                                    core->tree_cons = tree_cons;
+                                }
+
+#if TRACE_COSTS
+                                EVC_TRACE_COUNTER;
+                                EVC_TRACE_STR("Block [");
+                                EVC_TRACE_INT(x0);
+                                EVC_TRACE_STR(", ");
+                                EVC_TRACE_INT(y0);
+                                EVC_TRACE_STR("]x(");
+                                EVC_TRACE_INT(cuw);
+                                EVC_TRACE_STR("x");
+                                EVC_TRACE_INT(cuh);
+                                EVC_TRACE_STR(") split_type ");
+                                EVC_TRACE_INT(split_mode);
+                                EVC_TRACE_STR(" cost is ");
+                                EVC_TRACE_DOUBLE(cost_temp);
+                                EVC_TRACE_STR("\n");
+#endif
+#if TRACE_ENC_CU_DATA_CHECK
+                                static int counter_out = 0;
+                                counter_out++;
+                                {
+                                    EVCE_CU_DATA *cu_data = &(core->cu_data_temp[log2_cuw - 2][log2_cuh - 2]);
+                                    int cuw = 1 << (log2_cuw - MIN_CU_LOG2);
+                                    int cuh = 1 << (log2_cuh - MIN_CU_LOG2);
+                                    int cus = cuw;
+                                    int idx = 0;
+                                    for(int j = 0; j < cuh; ++j)
+                                    {
+                                        int y_pos = y0 + (j << MIN_CU_LOG2);
+                                        for(int i = 0; i < cuw; ++i)
+                                        {
+                                            int x_pos = x0 + (i << MIN_CU_LOG2);
+                                            if((x_pos < ctx->w) && (y_pos < ctx->h))
+                                                evc_assert(cu_data->trace_idx[idx + i] != 0);
+                                        }
+                                        idx += cus;
+                                    }
+                                }
+#endif
+#if DQP
+                                if(cost_suco[suco_flag] > cost_temp_dqp)
+                                {
+                                    cost_suco[suco_flag] = cost_temp_dqp;
+                                }
+                                if(cost_best_dqp > cost_temp_dqp)
+                                {
+                                    cost_best_dqp = cost_temp_dqp;
+                                }
+#else
+                                cost_suco[suco_flag] = cost_temp;
+#endif
+
+#if DQP
+                                if(cost_best - 0.0001 > cost_temp_dqp)
+#else
+                                if(cost_best - 0.0001 > cost_temp)
+#endif
+                                {
+                                    /* backup the current best data */
+                                    copy_cu_data(&core->cu_data_best[log2_cuw - 2][log2_cuh - 2], &core->cu_data_temp[log2_cuw - 2][log2_cuh - 2], 0, 0, log2_cuw, log2_cuh, log2_cuw, cud
+                                                 , core->tree_cons);
+#if DQP
+                                    cost_best = cost_temp_dqp;
+                                    best_dqp = core->dqp_data[prev_log2_sub_cuw - 2][prev_log2_sub_cuh - 2].prev_QP;
+#if DQP_RDO
+                                    DQP_STORE(dqp_temp_depth, core->dqp_next_best[prev_log2_sub_cuw - 2][prev_log2_sub_cuh - 2]);
+#endif
+#else
+                                    cost_best = cost_temp;
+#endif
+                                    SBAC_STORE(s_temp_depth, core->s_next_best[prev_log2_sub_cuw - 2][prev_log2_sub_cuh - 2]);
+                                    best_split_mode = split_mode;
+                                    best_suco_flag = suco_flag;
+#if HISTORY_UNDER_ADMVP_FIX
+#if M53737
+                                    if(ctx->sps.tool_hmvp)
+#else
+                                    if(ctx->sps.tool_admvp)
+#endif
+                                    {
+#endif
+                                        copy_history_buffer(&core->m_pBestMotLUTs[log2_cuw - 2][log2_cuh - 2], &TempSubMotLUT);
+#if HISTORY_UNDER_ADMVP_FIX
+                                    }
+#endif
+                                }
+#if DQP
+                            }
+                            cost_temp = cost_best_dqp;
+
+                            if(is_dqp_set)
+                            {
+                                core->cu_qp_delta_code_mode = 0;
                             }
 #endif
                         }
-#if DQP
-                        }
-                        cost_temp = cost_best_dqp;
-
-                        if (is_dqp_set)
-                        {
-                            core->cu_qp_delta_code_mode = 0;
-                        }
-#endif
-                    }
                     }
                 }
 
@@ -3956,7 +3955,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
         {
             /* backup the current best data */
             copy_cu_data(&core->cu_data_best[log2_cuw - 2][log2_cuh - 2], &core->cu_data_temp[log2_cuw - 2][log2_cuh - 2], 0, 0, log2_cuw, log2_cuh, log2_cuw, cud
-                , ctx->tree_cons);
+                         , ctx->tree_cons);
             cost_best = cost_temp;
             best_split_mode = NO_SPLIT;
             SBAC_STORE(s_temp_depth, core->s_next_best[log2_cuw - 2][log2_cuh - 2]);
@@ -3966,8 +3965,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
             // in mode_coding_unit, ctx->fn_pinter_analyze_cu will store the best MV in mi
             // if the cost_temp has been update above, the best MV is in mi
 
-            get_cu_pred_data(&core->cu_data_best[log2_cuw - 2][log2_cuh - 2], 0, 0, log2_cuw, log2_cuh, log2_cuw, cud, mi
-            );
+            get_cu_pred_data(&core->cu_data_best[log2_cuw - 2][log2_cuh - 2], 0, 0, log2_cuw, log2_cuh, log2_cuw, cud, mi);
 
 #if AFFINE_UPDATE 
             if (mi->cu_mode != MODE_INTRA && !mi->affine_flag && mi->cu_mode != MODE_IBC

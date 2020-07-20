@@ -265,7 +265,7 @@ static void deblock_scu_ver_chroma(pel *buf, int qp, int stride, int is_luma, co
 }
 
 static void deblock_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u32 *map_scu, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu
-    , TREE_CONS tree_cons, u8* map_tidx, int boundary_filtering)
+                           , TREE_CONS tree_cons, u8* map_tidx, int boundary_filtering)
 {
     pel       * y, *u, *v;
     const u8  * tbl_qp_to_st;
@@ -336,9 +336,9 @@ static void deblock_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh,
 
 static void deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u32 *map_scu, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu
 #if FIX_PARALLEL_DBF
-                         , u32  *map_cu
+                           , u32  *map_cu
 #endif
-                         , TREE_CONS tree_cons, u8* map_tidx, int boundary_filtering)
+                           , TREE_CONS tree_cons, u8* map_tidx, int boundary_filtering)
 {
     pel       * y, *u, *v;
     const u8  * tbl_qp_to_st;
@@ -501,7 +501,7 @@ static const u8 get_index(const u8 qp, const u8 offset)
 
 static const u8 get_bs(u32 mcu0, u32 x0, u32 y0, u32 mcu1, u32 x1, u32 y1, u32 log2_max_cuwh, s8 *refi0, s8 *refi1, s16(*mv0)[MV_D], s16(*mv1)[MV_D], EVC_REFP(*refp)[REFP_NUM]
 #if M53608_DB_2
-    , u8 ats_present
+                       , u8 ats_present
 #endif
 )
 {
@@ -1061,10 +1061,10 @@ static u32* deblock_set_coded_block(u32* map_scu, int w, int h, int w_scu)
 }
 
 static void deblock_addb_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u32 *map_scu, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int log2_max_cuwh, EVC_REFP(*refp)[REFP_NUM], int ats_inter_mode
-    , TREE_CONS tree_cons 
-    , u8* map_tidx, int boundary_filtering
+                                , TREE_CONS tree_cons
+                                , u8* map_tidx, int boundary_filtering
 #if DEBLOCKING_FIX
-    , u8* map_ats_inter
+                                , u8* map_ats_inter
 #endif
 )
 {
@@ -1148,9 +1148,9 @@ static void deblock_addb_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
             u8 ats_present = current_ats || neighbor_ats;
 #endif
             u8 bs_cur = get_bs(map_scu[i], cur_x_pel, y_pel, map_scu[i - w_scu], cur_x_pel, y_pel - 1, log2_max_cuwh, map_refi[i], map_refi[i - w_scu], map_mv[i], map_mv[i - w_scu]
-                , refp
+                               , refp
 #if M53608_DB_2
-                , ats_present
+                               , ats_present
 #endif
             );
 #if !M53608_DB_2
@@ -1221,9 +1221,9 @@ static void deblock_addb_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
 }
 
 static void deblock_addb_cu_ver_yuv(EVC_PIC *pic, int x_pel, int y_pel, int log2_max_cuwh, pel *y, pel* u, pel *v, int s_l, int s_c, int cuh, u32 *map_scu, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, EVC_REFP(*refp)[REFP_NUM], int ats_inter_mode
-    , TREE_CONS tree_cons
+                                    , TREE_CONS tree_cons
 #if DEBLOCKING_FIX
-    , u8* map_ats_inter
+                                    , u8* map_ats_inter
 #endif
 )
 {
@@ -1264,16 +1264,16 @@ static void deblock_addb_cu_ver_yuv(EVC_PIC *pic, int x_pel, int y_pel, int log2
 #endif
 #if CODE_CLEAN
             u8 bs_cur = get_bs(map_scu[0], x_pel, cur_y_pel, map_scu[-1], x_pel - 1, cur_y_pel, log2_max_cuwh, map_refi[0], map_refi[-1], map_mv[0], map_mv[-1]
-            , refp
+                               , refp
 #if M53608_DB_2
-            , ats_present
+                               , ats_present
 #endif
             );
 #else
-            u8 bs_cur = get_bs(map_scu[0], x_pel-1, cur_y_pel, map_scu[-1], x_pel, cur_y_pel, log2_max_cuwh, map_refi[0], map_refi[-1], map_mv[0], map_mv[-1]
-                , refp
+            u8 bs_cur = get_bs(map_scu[0], x_pel - 1, cur_y_pel, map_scu[-1], x_pel, cur_y_pel, log2_max_cuwh, map_refi[0], map_refi[-1], map_mv[0], map_mv[-1]
+                               , refp
 #if M53608_DB_2
-                , ats_present
+                               , ats_present
 #endif
             );
 #endif
@@ -1317,7 +1317,7 @@ static void deblock_addb_cu_ver_yuv(EVC_PIC *pic, int x_pel, int y_pel, int log2
 
             deblock_scu_addb_ver_luma(y, s_l, bs_cur, alpha, beta, c1
 #if  DBF_LONGF
-                , stronger_ft
+                                      , stronger_ft
 #endif
             );
 
@@ -1378,14 +1378,14 @@ static void deblock_addb_cu_ver_yuv(EVC_PIC *pic, int x_pel, int y_pel, int log2
 
 static void deblock_addb_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u32 *map_scu, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int log2_max_cuwh
 #if FIX_PARALLEL_DBF
-    , u32  *map_cu
+                                , u32  *map_cu
 #endif
-    , EVC_REFP(*refp)[REFP_NUM]
-    , int ats_inter_mode
-    , TREE_CONS tree_cons
-    , u8* map_tidx, int boundary_filtering
+                                , EVC_REFP(*refp)[REFP_NUM]
+                                , int ats_inter_mode
+                                , TREE_CONS tree_cons
+                                , u8* map_tidx, int boundary_filtering
 #if DEBLOCKING_FIX
-    , u8* map_ats_inter
+                                , u8* map_ats_inter
 #endif
 )
 {
@@ -1477,9 +1477,9 @@ static void deblock_addb_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
 #endif
     {
         deblock_addb_cu_ver_yuv(pic, x_pel, y_pel, log2_max_cuwh, y, u, v, s_l, s_c, cuh, map_scu, map_refi, map_mv, w_scu, refp, ats_inter_mode
-            , tree_cons
+                                , tree_cons
 #if DEBLOCKING_FIX
-            , map_ats_inter
+                                , map_ats_inter
 #endif
         );
     }
@@ -1533,9 +1533,9 @@ static void deblock_addb_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
         map_ats_inter += w;
 #endif
         deblock_addb_cu_ver_yuv(pic, x_pel + cuw, y_pel, log2_max_cuwh, y, u, v, s_l, s_c, cuh, map_scu, map_refi, map_mv, w_scu, refp, ats_inter_mode
-            , tree_cons
+                                , tree_cons
 #if DEBLOCKING_FIX
-            , map_ats_inter
+                                , map_ats_inter
 #endif
         );
     }
@@ -1545,74 +1545,74 @@ static void deblock_addb_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
 #endif 
 
 void evc_deblock_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u32 *map_scu, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int log2_max_cuwh, EVC_REFP(*refp)[REFP_NUM], int ats_inter_mode
-    , TREE_CONS tree_cons
-    , u8* map_tidx, int boundary_filtering
+                        , TREE_CONS tree_cons
+                        , u8* map_tidx, int boundary_filtering
 #if ADDB_FLAG_FIX
-    , int tool_addb
+                        , int tool_addb
 #endif
 #if DEBLOCKING_FIX
-    , u8* map_ats_inter
+                        , u8* map_ats_inter
 #endif
 )
 {
     if (tool_addb)
     {
         deblock_addb_cu_hor(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu, log2_max_cuwh, refp
-            , ats_inter_mode
-            , tree_cons
-            , map_tidx, boundary_filtering
+                            , ats_inter_mode
+                            , tree_cons
+                            , map_tidx, boundary_filtering
 #if DEBLOCKING_FIX
-            , map_ats_inter
+                            , map_ats_inter
 #endif
         );
-}
+    }
     else
     {
         deblock_cu_hor(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu
-            , tree_cons
-            , map_tidx, boundary_filtering);
+                       , tree_cons
+                       , map_tidx, boundary_filtering);
     }
 }
 
 void evc_deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u32 *map_scu, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int log2_max_cuwh
 #if FIX_PARALLEL_DBF
-    , u32  *map_cu
+                        , u32  *map_cu
 #endif
-    , EVC_REFP(*refp)[REFP_NUM]
-    , int ats_inter_mode
-    , TREE_CONS tree_cons
-    , u8* map_tidx, int boundary_filtering
+                        , EVC_REFP(*refp)[REFP_NUM]
+                        , int ats_inter_mode
+                        , TREE_CONS tree_cons
+                        , u8* map_tidx, int boundary_filtering
 #if ADDB_FLAG_FIX
-    , int tool_addb
+                        , int tool_addb
 #endif
 #if DEBLOCKING_FIX
-    , u8* map_ats_inter
+                        , u8* map_ats_inter
 #endif
 )
 {
-    if (tool_addb)
+    if(tool_addb)
     {
         deblock_addb_cu_ver(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu, log2_max_cuwh
 #if FIX_PARALLEL_DBF
-            , map_cu
+                            , map_cu
 #endif
-            , refp
-            , ats_inter_mode
-            , tree_cons
-            , map_tidx, boundary_filtering
+                            , refp
+                            , ats_inter_mode
+                            , tree_cons
+                            , map_tidx, boundary_filtering
 #if DEBLOCKING_FIX
-            , map_ats_inter
+                            , map_ats_inter
 #endif
         );
-}
+    }
     else
     {
         deblock_cu_ver(pic, x_pel, y_pel, cuw, cuh, map_scu, map_refi, map_mv, w_scu
 #if FIX_PARALLEL_DBF
-            , map_cu
+                       , map_cu
 #endif
-            , tree_cons
-            , map_tidx, boundary_filtering);
+                       , tree_cons
+                       , map_tidx, boundary_filtering);
     }
 }
 

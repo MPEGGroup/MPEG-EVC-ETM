@@ -80,6 +80,7 @@
 #define DEBLOCKING_FIX                                1
 #define CODE_CLEAN                                    1
 #define ENC_DBF_CONTROL                               1
+#define ENC_SUPPORT_SHORT_POC_LSB_BITS                0
 
 //bug fixes and platform changes to be applied
 #define QC_MISC_FIX                                  1 
