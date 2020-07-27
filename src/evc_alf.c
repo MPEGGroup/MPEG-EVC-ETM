@@ -164,7 +164,7 @@ void call_dec_alf_process_aps(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * p
     // load filter from buffer
     load_alf_paramline_from_aps_buffer2(&(alfSliceParam), ctx->sh.aps_id_y, ctx->sh.aps_id_ch
 #if M53608_ALF_14
-        , ctx->sh.alfChromaIdc
+                                        , ctx->sh.alfChromaIdc
 #endif
     );
 

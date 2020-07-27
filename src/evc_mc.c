@@ -3307,10 +3307,6 @@ void evc_mc_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pre
             ref += s_ref;
             pred += s_pred;
         }
-#if SIMD_CLIP
-        pred = dst_cpy;
-        clip_simd(pred, s_pred, pred, s_pred, w, h, adapt_clip_min[adapt_clip_comp], adapt_clip_max[adapt_clip_comp]);
-#endif
     }
 }
 
@@ -3318,9 +3314,6 @@ void evc_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pre
 {
     int i, j, dy;
     s32 pt;
-#if SIMD_CLIP
-    pel *dst_cpy = pred;
-#endif
 
 #if MC_PRECISION_ADD
     dy = gmv_y & 15;
@@ -3391,10 +3384,6 @@ void evc_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pre
             ref += s_ref;
             pred += s_pred;
         }
-#if SIMD_CLIP
-        pred = dst_cpy;
-        clip_simd(pred, s_pred, pred, s_pred, w, h, adapt_clip_min[adapt_clip_comp], adapt_clip_max[adapt_clip_comp]);
-#endif
     }
 }
 
@@ -3404,9 +3393,6 @@ void evc_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
     s16        *b;
     int         i, j, dx, dy;
     s32         pt;
-#if SIMD_CLIP
-    pel *dst_cpy = pred;
-#endif
 
 #if MC_PRECISION_ADD
     dx = gmv_x & 15;
@@ -3521,10 +3507,6 @@ void evc_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
             pred += s_pred;
             b += w;
         }
-#if SIMD_CLIP
-        pred = dst_cpy;
-        clip_simd(pred, s_pred, pred, s_pred, w, h, adapt_clip_min[adapt_clip_comp], adapt_clip_max[adapt_clip_comp]);
-#endif
     }
 }
 
@@ -3672,10 +3654,6 @@ void evc_mc_dmvr_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
             ref += s_ref;
             pred += s_pred;
         }
-#if SIMD_CLIP
-        pred = dst_cpy;
-        clip_simd(pred, s_pred, pred, s_pred, w, h, adapt_clip_min[adapt_clip_comp], adapt_clip_max[adapt_clip_comp]);
-#endif
     }
 }
 
@@ -3683,9 +3661,6 @@ void evc_mc_dmvr_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
 {
     int i, j, dy;
     s32 pt;
-#if SIMD_CLIP
-    pel *dst_cpy = pred;
-#endif
 
 #if MC_PRECISION_ADD
     dy = gmv_y & 15;
@@ -3760,10 +3735,6 @@ void evc_mc_dmvr_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
             ref += s_ref;
             pred += s_pred;
         }
-#if SIMD_CLIP
-        pred = dst_cpy;
-        clip_simd(pred, s_pred, pred, s_pred, w, h, adapt_clip_min[adapt_clip_comp], adapt_clip_max[adapt_clip_comp]);
-#endif
     }
 }
 
@@ -3774,9 +3745,6 @@ void evc_mc_dmvr_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
     s16        *b;
     int         i, j, dx, dy;
     s32         pt;
-#if SIMD_CLIP
-    pel *dst_cpy = pred;
-#endif
 
 #if MC_PRECISION_ADD
     dx = gmv_x & 15;
@@ -3896,10 +3864,6 @@ void evc_mc_dmvr_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
             pred += s_pred;
             b += w;
         }
-#if SIMD_CLIP
-        pred = dst_cpy;
-        clip_simd(pred, s_pred, pred, s_pred, w, h, adapt_clip_min[adapt_clip_comp], adapt_clip_max[adapt_clip_comp]);
-#endif
     }
 }
 #endif
@@ -3971,10 +3935,6 @@ void evc_bl_mc_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *
 {
     int i, j, dx;
     s32 pt;
-
-#if SIMD_CLIP
-    pel *dst_cpy = pred;
-#endif
 
 #if MC_PRECISION_ADD
     dx = gmv_x & 15;
@@ -4048,10 +4008,6 @@ void evc_bl_mc_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *
             ref += s_ref;
             pred += s_pred;
         }
-#if SIMD_CLIP
-        pred = dst_cpy;
-        clip_simd(pred, s_pred, pred, s_pred, w, h, adapt_clip_min[adapt_clip_comp], adapt_clip_max[adapt_clip_comp]);
-#endif
     }
 }
 
@@ -4059,9 +4015,7 @@ void evc_bl_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *
 {
     int i, j, dy;
     s32 pt;
-#if SIMD_CLIP
-    pel *dst_cpy = pred;
-#endif
+
 #if MC_PRECISION_ADD
     dy = gmv_y & 15;
     ref += (gmv_y >> 4) * s_ref + (gmv_x >> 4);
@@ -4134,10 +4088,6 @@ void evc_bl_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *
             ref += s_ref;
             pred += s_pred;
         }
-#if SIMD_CLIP
-        pred = dst_cpy;
-        clip_simd(pred, s_pred, pred, s_pred, w, h, adapt_clip_min[adapt_clip_comp], adapt_clip_max[adapt_clip_comp]);
-#endif
     }
 }
 
@@ -4147,9 +4097,6 @@ void evc_bl_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *
     s16        *b;
     int         i, j, dx, dy;
     s32         pt;
-#if SIMD_CLIP
-    pel *dst_cpy = pred;
-#endif
 
 #if MC_PRECISION_ADD
     dx = gmv_x & 15;
@@ -4265,10 +4212,6 @@ void evc_bl_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *
             pred += s_pred;
             b += w;
         }
-#if SIMD_CLIP
-        pred = dst_cpy;
-        clip_simd(pred, s_pred, pred, s_pred, w, h, adapt_clip_min[adapt_clip_comp], adapt_clip_max[adapt_clip_comp]);
-#endif
     }
 }
 
@@ -4450,9 +4393,6 @@ void evc_mc_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
 {
     int       i, j, dx;
     s32       pt;
-#if SIMD_CLIP
-    pel *dst_cpy = pred;
-#endif
 
 #if MC_PRECISION_ADD
     dx = gmv_x & 31;
@@ -4524,10 +4464,6 @@ void evc_mc_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
             pred += s_pred;
             ref += s_ref;
         }
-#if SIMD_CLIP
-        pred = dst_cpy;
-        clip_simd(pred, s_pred, pred, s_pred, w, h, adapt_clip_min[adapt_clip_comp], adapt_clip_max[adapt_clip_comp]);
-#endif
     }
 }
 
@@ -4535,9 +4471,6 @@ void evc_mc_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
 {
     int i, j, dy;
     s32       pt;
-#if SIMD_CLIP
-    pel *dst_cpy = pred;
-#endif
 
 #if MC_PRECISION_ADD
     dy = gmv_y & 31;
@@ -4609,10 +4542,6 @@ void evc_mc_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
             pred += s_pred;
             ref += s_ref;
         }
-#if SIMD_CLIP
-        pred = dst_cpy;
-        clip_simd(pred, s_pred, pred, s_pred, w, h, adapt_clip_min[adapt_clip_comp], adapt_clip_max[adapt_clip_comp]);
-#endif
     }
 }
 
@@ -4623,9 +4552,6 @@ void evc_mc_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
     int         i, j;
     s32         pt;
     int         dx, dy;
-#if SIMD_CLIP
-    pel *dst_cpy = pred;
-#endif
 
 #if MC_PRECISION_ADD
     dx = gmv_x & 31;
@@ -4745,10 +4671,6 @@ void evc_mc_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
             pred += s_pred;
             b += w;
         }
-#if SIMD_CLIP
-        pred = dst_cpy;
-        clip_simd(pred, s_pred, pred, s_pred, w, h, adapt_clip_min[adapt_clip_comp], adapt_clip_max[adapt_clip_comp]);
-#endif
     }
 }
 
@@ -4818,9 +4740,6 @@ void evc_mc_dmvr_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
 {
     int       i, j, dx;
     s32       pt;
-#if SIMD_CLIP
-    pel *dst_cpy = pred;
-#endif
 
 #if MC_PRECISION_ADD
     dx = gmv_x & 31;
@@ -4896,10 +4815,6 @@ void evc_mc_dmvr_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
             pred += s_pred;
             ref += s_ref;
         }
-#if SIMD_CLIP
-        pred = dst_cpy;
-        clip_simd(pred, s_pred, pred, s_pred, w, h, adapt_clip_min[adapt_clip_comp], adapt_clip_max[adapt_clip_comp]);
-#endif
     }
 }
 
@@ -4907,9 +4822,6 @@ void evc_mc_dmvr_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
 {
     int i, j, dy;
     s32       pt;
-#if SIMD_CLIP
-    pel *dst_cpy = pred;
-#endif
 
 #if MC_PRECISION_ADD
     dy = gmv_y & 31;
@@ -4984,10 +4896,6 @@ void evc_mc_dmvr_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
             pred += s_pred;
             ref += s_ref;
         }
-#if SIMD_CLIP
-        pred = dst_cpy;
-        clip_simd(pred, s_pred, pred, s_pred, w, h, adapt_clip_min[adapt_clip_comp], adapt_clip_max[adapt_clip_comp]);
-#endif
     }
 }
 
@@ -4998,9 +4906,6 @@ void evc_mc_dmvr_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
     int         i, j;
     s32         pt;
     int         dx, dy;
-#if SIMD_CLIP
-    pel *dst_cpy = pred;
-#endif
 
 #if MC_PRECISION_ADD
     dx = gmv_x & 31;
@@ -5120,10 +5025,6 @@ void evc_mc_dmvr_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
             pred += s_pred;
             b += w;
         }
-#if SIMD_CLIP
-        pred = dst_cpy;
-        clip_simd(pred, s_pred, pred, s_pred, w, h, adapt_clip_min[adapt_clip_comp], adapt_clip_max[adapt_clip_comp]);
-#endif
     }
 }
 #endif
@@ -5907,15 +5808,15 @@ pel* refinement_motion_vectors_in_one_ref(int x, int y, int pic_w, int pic_h, in
         {
             cost[point_index] = center_cost[COST_FROM_L0];
             simple_sad(w, h, dmvr_current_template, dmvr_ref_pred_interpolated + offset, w, stride, average_for_next_interation, avg_borders_array, avg_extra_borders_array, point_index
-                , center_point_avgs_l0_l1, l0_or_l1, TRUE
+                       , center_point_avgs_l0_l1, l0_or_l1, TRUE
             );
         }
         else
         {
             cost[point_index] = simple_sad(w, h, dmvr_current_template, dmvr_ref_pred_interpolated + offset, w, stride, average_for_next_interation, avg_borders_array, avg_extra_borders_array, point_index
-                , center_point_avgs_l0_l1, l0_or_l1, FALSE);
+                                           , center_point_avgs_l0_l1, l0_or_l1, FALSE);
         }
-        switch (point_index)
+        switch(point_index)
         {
         case CENTER:
             if (l0_or_l1 == REFP_0)
@@ -6345,7 +6246,7 @@ void evc_DMVR_refine(int w, int h, pel *ref_l0, int s_ref_l0, pel *ref_l1, int s
 #endif
         s32 cost = evc_DMVR_cost(w, h, ref_l0, ref_l1, s_ref_l0, s_ref_l1
 #if USE_MR_SAD
-            , meanL0, meanL1
+                                 , meanL0, meanL1
 #endif
         );
         *(SAD_Array + idx) = cost;
@@ -6808,8 +6709,8 @@ void processDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_
 
                     minCost = evc_DMVR_cost(dx, dy, addr_l0, addr_l1, stride, stride
 #if USE_MR_SAD /*meanl0, mean l1*/
-                        , avg_l0
-                        , avg_l1
+                                            , avg_l0
+                                            , avg_l1
 #endif
                     );
                 }
@@ -6918,11 +6819,11 @@ void processDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_
             };
 #endif
             final_paddedMC_forDMVR(subPuStartX, subPuStartY, pic_w, pic_h, dx, dy, refi, starting_mv, dmvr_mv, refp, pred
-                , startX
-                , startY
-                , w
+                                   , startX
+                                   , startY
+                                   , w
 #if DMVR_PADDING
-                , dmvr_padding_buf
+                                   , dmvr_padding_buf
 #endif
             );
 #if DMVR_SUBCU
@@ -6933,20 +6834,20 @@ void processDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_
 }
 
 void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16(*mv)[MV_D], EVC_REFP(*refp)[REFP_NUM], pel pred[REFP_NUM][N_C][MAX_CU_DIM], \
-    int poc_c, pel *dmvr_current_template, pel dmvr_ref_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT)) * (MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT))]
-    , pel dmvr_half_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + 1) * (MAX_CU_SIZE + 1)]
-    , BOOL apply_DMVR
+            int poc_c, pel *dmvr_current_template, pel dmvr_ref_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT)) * (MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT))]
+            , pel dmvr_half_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + 1) * (MAX_CU_SIZE + 1)]
+            , BOOL apply_DMVR
 
 #if DMVR_PADDING
-    , pel dmvr_padding_buf[REFP_NUM][N_C][PAD_BUFFER_STRIDE * PAD_BUFFER_STRIDE]
+            , pel dmvr_padding_buf[REFP_NUM][N_C][PAD_BUFFER_STRIDE * PAD_BUFFER_STRIDE]
 #endif
 #if DMVR_FLAG 
-    , u8 *cu_dmvr_flag
+            , u8 *cu_dmvr_flag
 #if DMVR_LAG
-    , s16 dmvr_mv[MAX_CU_CNT_IN_LCU][REFP_NUM][MV_D]
+            , s16 dmvr_mv[MAX_CU_CNT_IN_LCU][REFP_NUM][MV_D]
 #endif
 #endif
-    , int sps_admvp_flag)
+            , int sps_admvp_flag)
 {
     EVC_PIC    *ref_pic;
 #if !OPT_SIMD_MC_L
@@ -7108,13 +7009,13 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
                 *cu_dmvr_flag = 1;
 #endif
                 processDMVR(x, y, pic_w, pic_h, w, h, refi, mv, refp, pred, poc_c, dmvr_current_template, dmvr_ref_pred_interpolated
-                    , dmvr_half_pred_interpolated
-                    , iterations_count
+                            , dmvr_half_pred_interpolated
+                            , iterations_count
 #if DMVR_PADDING
-                    , dmvr_padding_buf
+                            , dmvr_padding_buf
 #endif
 #if DMVR_LAG
-                    , dmvr_mv
+                            , dmvr_mv
 #endif
                 );
             }

@@ -3302,9 +3302,9 @@ int main(int argc, const char **argv)
             {
                 print_psnr(&stat, psnr, ms_ssim, (stat.write - stat.sei_size + (int)bitrate) << 3, clk_end
 #if HDR_METRIC
-                    , wpsnr
-                    , deltaE
-                    , psnrL
+                           , wpsnr
+                           , deltaE
+                           , psnrL
 #endif
                 );
                 is_first_enc = 0;
@@ -3313,9 +3313,9 @@ int main(int argc, const char **argv)
             {
                 print_psnr(&stat, psnr, ms_ssim, (stat.write - stat.sei_size) << 3, clk_end
 #if HDR_METRIC
-                    , wpsnr
-                    , deltaE
-                    , psnrL
+                           , wpsnr
+                           , deltaE
+                           , psnrL
 #endif
                 );
             }

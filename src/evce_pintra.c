@@ -76,13 +76,12 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 #endif
 )
 {
-
     EVCE_PINTRA *pi = &ctx->pintra;
-
     int cuw, cuh, bit_cnt;
     double cost = 0;
     int tmp_cbf_l =0;
     int tmp_cbf_sub_l[MAX_SUB_TB_NUM] = {0,};
+
     core->ats_inter_info = 0;
 
     cuw = 1 << log2_cuw;
@@ -224,9 +223,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 
 static int make_ipred_list(EVCE_CTX * ctx, EVCE_CORE * core, int log2_cuw, int log2_cuh, pel * org, int s_org, int * ipred_list)
 {
-
     EVCE_PINTRA * pi = &ctx->pintra;
-
     int cuw, cuh, pred_cnt, i, j;
     double cost, cand_cost[IPD_RDO_CNT];
     u32 cand_satd_cost[IPD_RDO_CNT];
@@ -324,9 +321,7 @@ static int make_ipred_list(EVCE_CTX * ctx, EVCE_CORE * core, int log2_cuw, int l
 //! \todo Change list of arguments
 static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, int log2_cuw, int log2_cuh, EVCE_MODE* mi, s16 coef[N_C][MAX_CU_DIM], pel* rec[N_C], int s_rec[N_C])
 {
-
     EVCE_PINTRA* pi = &ctx->pintra;
-
     int i, j, s_org, s_org_c, s_mod, s_mod_c, cuw, cuh;
     int best_ipd = IPD_INVALID;
     int best_ipd_c = IPD_INVALID;
@@ -341,7 +336,6 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
     pel* mod_cb, * mod_cr;
     double cost_t, cost = MAX_COST;
     int sec_best_ipd = IPD_INVALID;
-
     u8 best_ats_intra_cu = 0;
     u8 best_ats_mode = 0;
     u8 ats_intra_usage = ctx->sps.tool_ats ? 2 : 1;
@@ -351,6 +345,7 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
     int best_nnz = 1;
     double cost_ipd[IPD_CNT];
 #endif
+
     core->ats_inter_info = 0;
 
     cuw = 1 << log2_cuw;
@@ -453,7 +448,7 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
 #endif
                     cost_t = pintra_residue_rdo(ctx, core, org, NULL, NULL, s_org, s_org_c, log2_cuw, log2_cuh, coef, &dist_t, 0
 #if RDO_DBK
-                        , x, y
+                                                , x, y
 #endif
                     );
                 }
@@ -466,15 +461,15 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
 #endif
                     cost_t = pintra_residue_rdo(ctx, core, org, org_cb, org_cr, s_org, s_org_c, log2_cuw, log2_cuh, coef, &dist_t, 0
 #if RDO_DBK
-                        , x, y
+                                                , x, y
 #endif
                     );
 #if !FIX_EIPD_OFF 
-                        cost_t += pintra_residue_rdo(ctx, core, org, org_cb, org_cr, s_org, s_org_c, log2_cuw, log2_cuh, coef, &dist_tc, 1
+                    cost_t += pintra_residue_rdo(ctx, core, org, org_cb, org_cr, s_org, s_org_c, log2_cuw, log2_cuh, coef, &dist_tc, 1
 #if RDO_DBK
-                            , x, y
+                                                 , x, y
 #endif
-                        );
+                    );
 #endif
                 }
 #if TRACE_COSTS
@@ -580,7 +575,7 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
 
                 cost_t = pintra_residue_rdo(ctx, core, org, org_cb, org_cr, s_org, s_org_c, log2_cuw, log2_cuh, coef, &dist_t, 1
 #if RDO_DBK
-                    , x, y
+                                            , x, y
 #endif
                 );
 

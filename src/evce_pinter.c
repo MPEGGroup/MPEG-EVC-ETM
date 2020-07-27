@@ -1599,12 +1599,12 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 #else
         tnnz = evce_sub_block_tq(coef, log2_cuw, log2_cuh, pi->qp_y, pi->qp_u, pi->qp_v, pi->slice_type, nnz
 #endif
-                             , core->nnz_sub, 0, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt, 0, 0
-                             , core->ats_inter_info, ctx->sps.tool_adcc
-                             , core->tree_cons
-                             , core);
+                                 , core->nnz_sub, 0, ctx->lambda[0], ctx->lambda[1], ctx->lambda[2], RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_cm_init, ctx->sps.tool_iqt, 0, 0
+                                 , core->ats_inter_info, ctx->sps.tool_adcc
+                                 , core->tree_cons
+                                 , core);
 
-        if (tnnz)
+        if(tnnz)
         {
             for (i = 0; i < N_C; i++)
             {
@@ -1644,7 +1644,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 #endif
                         evc_htdf(rec[i], ctx->tile[core->tile_idx].qp, cuw, cuh, cuw, FALSE, pi->m[Y_C] + (y * s_mod) + x, s_mod, avail_cu
 #if FIX_CONSTRAINT_PRED
-                            , core->scup, ctx->w_scu, ctx->h_scu, ctx->map_scu, constrained_intra_flag
+                                 , core->scup, ctx->w_scu, ctx->h_scu, ctx->map_scu, constrained_intra_flag
 #endif
                         );
 
@@ -1664,17 +1664,17 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
             }
 #if RDO_DBK
             //complete rec
-            for (i = 0; i < N_C; i++)
+            for(i = 0; i < N_C; i++)
             {
-                if (nnz[i] == 0)
+                if(nnz[i] == 0)
                 {
                     evc_recon(coef_t[i], pred[0][i], nnz[i], w[i], h[i], w[i], rec[i], core->ats_inter_info);
                 }
             }
             //filter rec and calculate ssd
             calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, rec, cuw, x, y, core->avail_lr, 0
-                                          , nnz[Y_C] != 0, pi->refi[pidx], pi->mv[pidx], is_from_mv_field, core->ats_inter_info, core);
-            for (i = 0; i < N_C; i++)
+                                            , nnz[Y_C] != 0, pi->refi[pidx], pi->mv[pidx], is_from_mv_field, core->ats_inter_info, core);
+            for(i = 0; i < N_C; i++)
             {
                 dist[1][i] += core->delta_dist[i];
             }
@@ -1998,7 +1998,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 
 #if RDO_DBK
             calc_delta_dist_filter_boundary(ctx, PIC_MODE(ctx), PIC_ORIG(ctx), cuw, cuh, pred[0], cuw, x, y, core->avail_lr, 0, 0
-                                          , pi->refi[pidx], pi->mv[pidx], is_from_mv_field, core->ats_inter_info, core);
+                                            , pi->refi[pidx], pi->mv[pidx], is_from_mv_field, core->ats_inter_info, core);
 #endif
             for (i = 0; i < N_C; i++)
             {
@@ -2472,9 +2472,9 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
     {
         evc_get_motion_merge_main(ctx->poc.poc_val, ctx->slice_type, core->scup, ctx->map_refi, ctx->map_mv, pi->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, pi->refi_pred, pi->mvp, ctx->map_scu, core->avail_lr
 #if DMVR_LAG
-            , ctx->map_unrefined_mv
+                                  , ctx->map_unrefined_mv
 #endif
-            , core->history_buffer, core->ibc_flag, (EVC_REFP(*)[2])ctx->refp[0], &ctx->sh, ctx->log2_max_cuwh, ctx->map_tidx);
+                                  , core->history_buffer, core->ibc_flag, (EVC_REFP(*)[2])ctx->refp[0], &ctx->sh, ctx->log2_max_cuwh, ctx->map_tidx);
     }
 
 #if DQP_RDO
@@ -2664,9 +2664,7 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
 
 static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_cuw, int log2_cuh)
 {
-
     EVCE_PINTER *pi = &ctx->pinter;
-
     s16          mvp[REFP_NUM][MV_D];
     s8           refi[REFP_NUM];
     double       cost, cost_best = MAX_COST;
@@ -2681,6 +2679,7 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
 #if DMVR_FLAG
     int best_dmvr = 0;
 #endif
+
     core->ats_inter_info = 0;
     cuw = (1 << log2_cuw);
     cuh = (1 << log2_cuh);
@@ -2694,9 +2693,9 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
     {
         evc_get_motion_merge_main(ctx->poc.poc_val, ctx->slice_type, core->scup, ctx->map_refi, ctx->map_mv, pi->refp[0], cuw, cuh, ctx->w_scu, ctx->h_scu, pi->refi_pred, pi->mvp, ctx->map_scu, core->avail_lr
 #if DMVR_LAG
-            , ctx->map_unrefined_mv
+                                  , ctx->map_unrefined_mv
 #endif
-            , core->history_buffer, core->ibc_flag, (EVC_REFP(*)[2])ctx->refp[0], &ctx->sh, ctx->log2_max_cuwh, ctx->map_tidx);
+                                  , core->history_buffer, core->ibc_flag, (EVC_REFP(*)[2])ctx->refp[0], &ctx->sh, ctx->log2_max_cuwh, ctx->map_tidx);
     }
 
     for(idx0 = 0; idx0 < (cuw*cuh <= NUM_SAMPLES_BLOCK ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP); idx0++)
@@ -2819,12 +2818,11 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
 
 static double analyze_t_direct(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_cuw, int log2_cuh)
 {
-
     EVCE_PINTER *pi = &ctx->pinter;
-
     double      cost;
     int         pidx;
     s8          refidx = 0;
+
     core->ats_inter_info = 0;
     pidx = PRED_DIR;
     evc_get_mv_dir(pi->refp[0], ctx->poc.poc_val, core->scup + ((1 << (log2_cuw - MIN_CU_LOG2)) - 1) + ((1 << (log2_cuh - MIN_CU_LOG2)) - 1) * ctx->w_scu, core->scup, ctx->w_scu, ctx->h_scu, pi->mv[pidx], ctx->sps.tool_admvp);
@@ -2846,9 +2844,7 @@ static double analyze_t_direct(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 
 static double analyze_skip_mmvd(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int log2_cuw, int log2_cuh, int real_mv[][2][3])
 {
-
     EVCE_PINTER *pi = &ctx->pinter;
-
     pel          *y_org, *u_org, *v_org;
     s16           mvp[REFP_NUM][MV_D];
     s8            refi[REFP_NUM];
@@ -2859,6 +2855,7 @@ static double analyze_skip_mmvd(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, 
     int           t_base_num = 0;
     int           best_idx_num = -1;
     int           iii;
+
     core->ats_inter_info = 0;
 #if DQP_RDO
     if(ctx->pps.cu_qp_delta_enabled_flag)
@@ -3000,9 +2997,7 @@ static double analyze_skip_mmvd(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, 
 
 static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_cuw, int log2_cuh, int real_mv[][2][3])
 {
-
     EVCE_PINTER *pi = &ctx->pinter;
-
     s8  refi[REFP_NUM];
     int pidx, i;
     int c_num = 0;
@@ -3212,9 +3207,7 @@ static double analyze_merge_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 
 static double analyze_bi(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_cuw, int log2_cuh, double * cost_inter)
 {
-
     EVCE_PINTER *pi = &ctx->pinter;
-
     s8         refi[REFP_NUM] = {REFI_INVALID, REFI_INVALID};
     int        t1;
     u32        best_mecost = EVC_UINT32_MAX;
@@ -3231,6 +3224,7 @@ static double analyze_bi(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_
     u8          bi_idx = BI_NORMAL + (pi->curr_bi % 3);
     int         bi_start = 0;
     int         bi_end = pi->num_refp;
+
     core->ats_inter_info = 0;
     cuw = (1 << log2_cuw);
     cuh = (1 << log2_cuh);
@@ -3276,7 +3270,6 @@ static double analyze_bi(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_
 
         refi[REFP_0] = pi->refi[pidx][REFP_0];
         refi[REFP_1] = pi->refi[pidx][REFP_1];
-
 
         /* predict reference */
         evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi, pi->mv[pidx], pi->refp, pred, 0, pi->dmvr_template, pi->dmvr_ref_pred_interpolated
@@ -5428,8 +5421,8 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
         }
 
         evc_get_mmvd_mvp_list(ctx->map_refi, ctx->refp[0], ctx->map_mv, ctx->w_scu, ctx->h_scu, core->scup, core->avail_cu, log2_cuw, log2_cuh, ctx->slice_type, real_mv, ctx->map_scu, REF_SET, core->avail_lr
-            , ctx->poc.poc_val, ctx->rpm.num_refp
-            , core->history_buffer, ctx->sps.tool_admvp, &ctx->sh, ctx->log2_max_cuwh, ctx->map_tidx, -1);
+                              , ctx->poc.poc_val, ctx->rpm.num_refp
+                              , core->history_buffer, ctx->sps.tool_admvp, &ctx->sh, ctx->log2_max_cuwh, ctx->map_tidx, -1);
     }
     mmvd_base_skip(ctx, core, real_mv, log2_cuw, log2_cuh, ctx->slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], ctx->w_scu, core->avail_cu, REF_SET
                    , ctx->h_scu, ctx->map_scu, core->avail_lr, core->history_buffer, ctx->sps.tool_admvp, &ctx->sh, ctx->log2_max_cuwh
@@ -6282,7 +6275,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 #if FIX_CONSTRAINT_PRED
                      , core->scup, ctx->w_scu, ctx->h_scu, ctx->map_scu, constrained_intra_flag
 #endif
-                    );
+            );
         }
 
         core->nnz[i] = pi->nnz_best[best_idx][i];

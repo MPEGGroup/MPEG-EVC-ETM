@@ -370,9 +370,9 @@ void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16
     {
         evc_get_motion_merge_main(curr_ptr, slice_t, scup, map_refi, map_mv, refp, cuw, cuh, w_scu, h_scu, srefi, smvp, map_scu, avail_lr
 #if DMVR_LAG
-            , NULL
+                                  , NULL
 #endif
-            , history_buffer, 0, (EVC_REFP(*)[2])refp, sh, log2_max_cuwh, map_tidx);
+                                  , history_buffer, 0, (EVC_REFP(*)[2])refp, sh, log2_max_cuwh, map_tidx);
     }
 
     if (slice_t == SLICE_B)
@@ -845,8 +845,7 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
         else
         {
           valid_flag[0] = (x_scu > 0 && MCU_GET_COD(map_scu[neb_addr[0]]) && !MCU_GET_IF(map_scu[neb_addr[0]]) && !MCU_GET_IBC(map_scu[neb_addr[0]]) &&
-                          (map_tidx[scup] == map_tidx[neb_addr[0]])
-          );
+                          (map_tidx[scup] == map_tidx[neb_addr[0]]));
           valid_flag[1] = (y_scu > 0 && MCU_GET_COD(map_scu[neb_addr[1]]) && !MCU_GET_IF(map_scu[neb_addr[1]]) && !MCU_GET_IBC(map_scu[neb_addr[1]]) &&
                           (map_tidx[scup] == map_tidx[neb_addr[1]]));
           valid_flag[2] = (y_scu > 0 && x_scu + scuw < w_scu && MCU_GET_COD(map_scu[neb_addr[2]]) && !MCU_GET_IF(map_scu[neb_addr[2]]) && !MCU_GET_IBC(map_scu[neb_addr[2]]) &&
@@ -922,7 +921,7 @@ s8 evc_get_first_refi(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[
     s8  refi = 0, default_refi;
     s16 default_mv[MV_D];
 
-    evc_check_motion_availability(scup, cuw, cuh, w_scu, h_scu, neb_addr, valid_flag, map_scu, avail_lr, 1, 0, map_tidx);    
+    evc_check_motion_availability(scup, cuw, cuh, w_scu, h_scu, neb_addr, valid_flag, map_scu, avail_lr, 1, 0, map_tidx);
     evc_get_default_motion(neb_addr, valid_flag, 0, lidx, map_refi, map_mv, &default_refi, default_mv
 #if DMVR_LAG
                            , map_scu
@@ -1081,15 +1080,15 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int poc, int scup, int lidx, s8 cur_ref
                              s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
                              int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][MV_D], s8 refi[MAX_NUM_MVP], u32* map_scu, u16 avail_lr
 #if DMVR_FLAG
-                           , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+                             , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
-                           , EVC_HISTORY_BUFFER history_buffer
+                             , EVC_HISTORY_BUFFER history_buffer
 #if M53737
-                           , int hmvp_flag
+                             , int hmvp_flag
 #else
-                           , int admvp_flag
+                             , int admvp_flag
 #endif
-                           , u8* map_tidx
+                             , u8* map_tidx
 )
 {
     int i, t0, poc_refi_cur;
@@ -1263,9 +1262,9 @@ void evc_get_motion(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[RE
 void evc_get_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int num_refp, s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM],
                             int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][MV_D], s8 refi[MAX_NUM_MVP], u32* map_scu, u16 avail_lr
 #if DMVR_LAG
-                          , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+                            , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
-                          , u8* map_tidx)
+                            , u8* map_tidx)
 {
     int cnt, i, t0, poc_refi_cur, dpoc_co;
     int ratio[MAX_NUM_REF_PICS] = {0,}, ratio_tmvp = 0;
@@ -1543,16 +1542,16 @@ void evc_get_merge_insert_mv(s8* refi_dst, s16 *mvp_dst_L0, s16 *mvp_dst_L1, s8*
 }
 
 void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],
-    EVC_REFP refp[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, s8 refi[REFP_NUM][MAX_NUM_MVP], s16 mvp[REFP_NUM][MAX_NUM_MVP][MV_D], u32 *map_scu, u16 avail_lr
+                               EVC_REFP refp[REFP_NUM], int cuw, int cuh, int w_scu, int h_scu, s8 refi[REFP_NUM][MAX_NUM_MVP], s16 mvp[REFP_NUM][MAX_NUM_MVP][MV_D], u32 *map_scu, u16 avail_lr
 #if DMVR_LAG
-    , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
+                               , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
-    , EVC_HISTORY_BUFFER history_buffer
-    , u8 ibc_flag
-    , EVC_REFP(*refplx)[REFP_NUM]
-    , EVC_SH* sh
-    , int log2_max_cuwh
-    , u8* map_tidx)
+                               , EVC_HISTORY_BUFFER history_buffer
+                               , u8 ibc_flag
+                               , EVC_REFP(*refplx)[REFP_NUM]
+                               , EVC_SH* sh
+                               , int log2_max_cuwh
+                               , u8* map_tidx)
 {
     BOOL tmpvBottomRight = 0; // Bottom first
     int is_sps_admvp = 1;
@@ -2530,7 +2529,6 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                 split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(log2_cuh, log2_cuh - log2_cuw + 1);
                 split_allow[SPLIT_TRI_VER] = ALLOW_SPLIT_TRI(log2_cuw) && (log2_cuw > log2_cuh || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuw, 2)));
                 split_allow[SPLIT_TRI_HOR] = ALLOW_SPLIT_TRI(log2_cuh) && (log2_cuh > log2_cuw || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuh, 2)));
-
             }
         }
     }
@@ -2603,10 +2601,10 @@ void evc_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lc
     }
 }
 
-u8 evc_check_suco_cond(int cuw, int cuh, s8 split_mode, int boundary, u8 log2_max_cuwh, u8 suco_max_depth, u8 suco_depth)
+u8 evc_check_suco_cond(int cuw, int cuh, s8 split_mode, int boundary, u8 log2_max_cuwh, u8 suco_max_depth, u8 suco_depth, u8 log2_min_cu_size)
 {
     int suco_log2_maxsize = min((log2_max_cuwh - suco_max_depth), 6);
-    int suco_log2_minsize = max((suco_log2_maxsize - suco_depth), max(4, MIN_CU_LOG2));
+    int suco_log2_minsize = max((suco_log2_maxsize - suco_depth), max(4, log2_min_cu_size));
     if (EVC_MIN(cuw, cuh) < (1 << suco_log2_minsize) || EVC_MAX(cuw, cuh) > (1 << suco_log2_maxsize))
     {
         return 0;
@@ -3428,8 +3426,8 @@ void evc_get_affine_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int
             refi[cnt_tmp] = map_refi[neb_addr[k]][lidx];
             evc_derive_affine_model_mv(scup, neb_addr[k], lidx, map_mv, cuw, cuh, w_scu, h_scu, mvp_tmp, map_affine, vertex_num, log2_max_cuwh
 #if DMVR_LAG
-                , map_scu
-                , map_unrefined_mv
+                                       , map_scu
+                                       , map_unrefined_mv
 #endif
             );
             mvp[cnt_tmp][0][MV_X] = mvp_tmp[0][MV_X];
@@ -4771,47 +4769,6 @@ int  evc_split_is_BT(SPLIT_MODE mode)
     return (mode == SPLIT_BI_HOR) || (mode == SPLIT_BI_VER) ? 1 : 0;
 }
 
-#if SIMD_CLIP
-__inline void do_clip(__m128i *vreg, __m128i *vbdmin, __m128i *vbdmax) { *vreg = _mm_min_epi16(*vbdmax, _mm_max_epi16(*vbdmin, *vreg)); }
-
-void clip_simd(const pel* src, int src_stride, pel *dst, int dst_stride, int width, int height, const int clp_rng_min, const int clp_rng_max )
-{
-    __m128i vzero = _mm_setzero_si128();
-    __m128i vbdmin = _mm_set1_epi16(clp_rng_min);
-    __m128i vbdmax = _mm_set1_epi16(clp_rng_max);
-
-    if ((width & 3) == 0)
-    {
-        for (int row = 0; row < height; row++)
-        {
-            for (int col = 0; col < width; col += 4)
-            {
-                __m128i val;
-                val = _mm_loadl_epi64((const __m128i *)&src[col]);
-                val = _mm_cvtepi16_epi32(val);
-                val = _mm_packs_epi32(val, vzero);
-                do_clip(&val, &vbdmin, &vbdmax);
-                _mm_storel_epi64((__m128i *)&dst[col], val);
-            }
-            src += src_stride;
-            dst += dst_stride;
-        }
-    }
-    else
-    {
-        for (int row = 0; row < height; row++)
-        {
-            for (int col = 0; col < width; col ++)
-            {
-                dst[col] = EVC_CLIP3(clp_rng_min , clp_rng_max, src[col]);
-            }
-            src += src_stride;
-            dst += dst_stride;
-        }
-    }
-}
-#endif
-
 void evc_block_copy(s16 * src, int src_stride, s16 * dst, int dst_stride, int log2_copy_w, int log2_copy_h)
 {
     int h;
@@ -5092,7 +5049,6 @@ u8 evc_check_chroma_split_allowed(int luma_width, int luma_height)
 {
     return (luma_width * luma_height) >= (16 * 4)  ? 1 : 0;
 }
-
 
 u8 evc_is_chroma_split_allowed(int w, int h, SPLIT_MODE split)
 {
