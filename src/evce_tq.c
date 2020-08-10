@@ -88,7 +88,7 @@ static void tx_pb4b(void * src, void * dst, int shift, int line, int step)
 {
     int j;
     s64 E[2], O[2];
-    int add = 1 << (shift - 1);
+    int add = shift == 0 ? 0 : 1 << (shift - 1);
 
 #define RUN_TX_PB4(src, dst, type_src, type_dst) \
     for (j = 0; j < line; j++)\
@@ -120,7 +120,7 @@ static void tx_pb8b(void * src, void * dst, int shift, int line, int step)
     int j, k;
     s64 E[4], O[4];
     s64 EE[2], EO[2];
-    int add = 1 << (shift - 1);
+    int add = shift == 0 ? 0 : 1 << (shift - 1);
 
 #define RUN_TX_PB8(src, dst, type_src, type_dst) \
     for (j = 0; j < line; j++)\
@@ -164,7 +164,7 @@ static void tx_pb16b(void * src, void * dst, int shift, int line, int step)
     s64 E[8], O[8];
     s64 EE[4], EO[4];
     s64 EEE[2], EEO[2];
-    int add = 1 << (shift - 1);
+    int add = shift == 0 ? 0 : 1 << (shift - 1);
 
 #define RUN_TX_PB16(src, dst, type_src, type_dst) \
     for (j = 0; j < line; j++)\
@@ -221,7 +221,7 @@ static void tx_pb32b(void * src, void * dst, int shift, int line, int step)
     s64 EE[8], EO[8];
     s64 EEE[4], EEO[4];
     s64 EEEE[2], EEEO[2];
-    int add = 1 << (shift - 1);
+    int add = shift == 0 ? 0 : 1 << (shift - 1);
 
 #define RUN_TX_PB32(src, dst, type_src, type_dst) \
     for (j = 0; j < line; j++)\
@@ -292,7 +292,7 @@ static void tx_pb64b(void *src, void *dst, int shift, int line, int step)
     s64 EEE[8], EEO[8];
     s64 EEEE[4], EEEO[4];
     s64 EEEEE[2], EEEEO[2];
-    int add = 1 << (shift - 1);
+    int add = shift == 0 ? 0 : 1 << (shift - 1);
 
 #define RUN_TX_PB64(src, dst, type_src, type_dst) \
     for (j = 0; j < line; j++)\
@@ -417,7 +417,7 @@ static void tx_pb4(s16 * src, s16 * dst, int shift, int line)
 {
     int j;
     int E[2], O[2];
-    int add = 1 << (shift - 1);
+    int add = shift == 0 ? 0 : 1 << (shift - 1);
     for (j = 0; j < line; j++)
     {
         /* E and O */
@@ -438,7 +438,7 @@ static void tx_pb8(s16 * src, s16 * dst, int shift, int line)
     int j, k;
     int E[4], O[4];
     int EE[2], EO[2];
-    int add = 1 << (shift - 1);
+    int add = shift == 0 ? 0 : 1 << (shift - 1);
     for (j = 0; j < line; j++)
     {
         /* E and O*/
@@ -471,7 +471,7 @@ static void tx_pb16(s16 * src, s16 * dst, int shift, int line)
     int E[8], O[8];
     int EE[4], EO[4];
     int EEE[2], EEO[2];
-    int add = 1 << (shift - 1);
+    int add = shift == 0 ? 0 : 1 << (shift - 1);
 
     for (j = 0; j < line; j++)
     {
@@ -518,7 +518,7 @@ static void tx_pb32(s16 * src, s16 * dst, int shift, int line)
     int EE[8], EO[8];
     int EEE[4], EEO[4];
     int EEEE[2], EEEO[2];
-    int add = 1 << (shift - 1);
+    int add = shift == 0 ? 0 : 1 << (shift - 1);
     for (j = 0; j < line; j++)
     {
         /* E and O*/
@@ -579,7 +579,7 @@ static void tx_pb64(s16 *src, s16 *dst, int shift, int line)
     int EEE[8], EEO[8];
     int EEEE[4], EEEO[4];
     int EEEEE[2], EEEEO[2];
-    int add = 1 << (shift - 1);
+    int add = shift == 0 ? 0 : 1 << (shift - 1);
 
     for (j = 0; j < line; j++)
     {
