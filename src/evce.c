@@ -3190,11 +3190,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         num_bytes_in_units = (int)(bs->cur - cur_tmp) - 4;
 
         int log2_sub_widthC_subHeightC = 2; // 4:2:0 only, to be updated
-        int min_cu_w = MIN_CU_SIZE;
-        int min_cu_h = MIN_CU_SIZE;
+        int min_cu_w = ctx->min_cuwh;
+        int min_cu_h = ctx->min_cuwh;
         int padded_w = ((ctx->w + min_cu_w - 1) / min_cu_w) * min_cu_w;
         int padded_h = ((ctx->h + min_cu_h - 1) / min_cu_h) * min_cu_h;
-        int raw_bits = padded_w * padded_w * ((ctx->sps.bit_depth_luma_minus8 + 8) + 2 * ((ctx->sps.bit_depth_chroma_minus8 + 8) >> log2_sub_widthC_subHeightC));
+        int raw_bits = padded_w * padded_h * ((ctx->sps.bit_depth_luma_minus8 + 8) + 2 * ((ctx->sps.bit_depth_chroma_minus8 + 8) >> log2_sub_widthC_subHeightC));
         unsigned int threshold = (CABAC_ZERO_PARAM / 3) * num_bytes_in_units + (raw_bits / 32);
 
         if (bin_counts_in_units >= threshold)
