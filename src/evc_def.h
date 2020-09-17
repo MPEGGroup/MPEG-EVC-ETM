@@ -37,6 +37,8 @@
 #include "evc.h"
 #include "evc_port.h"
 
+#define ETM70_GOLOMB_FIX 1
+
 #define MULTIPLE_NAL      1
 #if MULTIPLE_NAL  
 #define MAX_NUM_PPS 64

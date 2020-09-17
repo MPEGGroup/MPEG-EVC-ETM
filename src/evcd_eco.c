@@ -2826,6 +2826,42 @@ int evcd_truncatedUnaryEqProb(EVC_BSR * bs, const int maxSymbol)
     return maxSymbol;
 }
 
+#if ETM70_GOLOMB_FIX
+int alfGolombDecode(EVC_BSR * bs, const int k, const BOOL signed_val)
+{
+    int numLeadingBits = -1;
+    uint32_t uiSymbol = 0;
+    for (; !uiSymbol; numLeadingBits++)
+
+    {
+#if TRACE_HLS
+        evc_bsr_read1_trace(bs, &uiSymbol, 0);
+#else
+        evc_bsr_read1(bs, &uiSymbol); //alf_coeff_abs_prefix
+#endif
+    }
+
+
+    int symbol = ((1 << numLeadingBits) - 1) << k;
+    if (numLeadingBits + k > 0)
+    {
+        uint32_t bins;
+        evc_bsr_read(bs, &bins, numLeadingBits + k);
+        symbol += bins;
+    }
+
+    if (signed_val && symbol != 0)
+    {
+#if TRACE_HLS
+        evc_bsr_read1_trace(bs, &uiSymbol, 0);
+#else
+        evc_bsr_read1(bs, &uiSymbol);
+#endif
+        symbol = (uiSymbol) ? symbol : -symbol;
+    }
+    return symbol;
+}
+#else
 int alfGolombDecode(EVC_BSR * bs, const int k)
 {
     u32 uiSymbol;
@@ -2869,6 +2905,7 @@ int alfGolombDecode(EVC_BSR * bs, const int k)
     }
     return nr;
 }
+#endif
 
 u32 evcd_xReadTruncBinCode(EVC_BSR * bs, const int uiMaxSymbol)
 {
@@ -2957,7 +2994,11 @@ int evcd_eco_alf_filter(EVC_BSR * bs, evc_AlfSliceParam* alfSliceParam, const BO
             {
                 for (int i = 0; i < alfShape.numCoeff - 1; i++)
                 {
+#if ETM70_GOLOMB_FIX
+                    coeff[ind * MAX_NUM_ALF_LUMA_COEFF + i] = alfGolombDecode(bs, kMinTab[alfShape.golombIdx[i]], TRUE);
+#else
                     coeff[ind * MAX_NUM_ALF_LUMA_COEFF + i] = alfGolombDecode(bs, kMinTab[alfShape.golombIdx[i]]);
+#endif
                 }
             }
             else
@@ -2998,7 +3039,11 @@ int evcd_eco_alf_filter(EVC_BSR * bs, evc_AlfSliceParam* alfSliceParam, const BO
         {
             for (int i = 0; i < alfShape.numCoeff - 1; i++)
             {
+#if ETM70_GOLOMB_FIX
+                coeff[ind * MAX_NUM_ALF_LUMA_COEFF + i] = alfGolombDecode(bs, kMinTab[alfShape.golombIdx[i]], TRUE);
+#else
                 coeff[ind * MAX_NUM_ALF_LUMA_COEFF + i] = alfGolombDecode(bs, kMinTab[alfShape.golombIdx[i]]);
+#endif
             }
         }
     }
@@ -3203,8 +3248,11 @@ int evcd_eco_alf_aps_param(EVC_BSR * bs, EVC_APS * aps)
                 alfSliceParam->filterCoeffDeltaIdx[i] = alf_luma_coeff_delta_idx[i];
             }
         }
-
+#if ETM70_GOLOMB_FIX
+        alf_luma_fixed_filter_usage_pattern = alfGolombDecode(bs, 0, FALSE);
+#else
         alf_luma_fixed_filter_usage_pattern = alfGolombDecode(bs, 0);
+#endif
         alfSliceParam->fixedFilterPattern = alf_luma_fixed_filter_usage_pattern;
         if (alf_luma_fixed_filter_usage_pattern == 2)
         {

@@ -2098,7 +2098,11 @@ int EncAdaptiveLoopFilter::getCoeffRate(AlfSliceParam* alfSliceParam, bool isChr
 
         for (int k = 1; k < 15; k++)
         {
-          m_bitsCoeffScan[alfShape.golombIdx[i]][k] += lengthGolomb(coeffVal, k);
+#if ETM70_GOLOMB_FIX
+            m_bitsCoeffScan[alfShape.golombIdx[i]][k] += lengthGolomb(coeffVal, k, TRUE);
+#else
+            m_bitsCoeffScan[alfShape.golombIdx[i]][k] += lengthGolomb(coeffVal, k);
+#endif
         }
       }
     }
@@ -2136,7 +2140,11 @@ int EncAdaptiveLoopFilter::getCoeffRate(AlfSliceParam* alfSliceParam, bool isChr
 
     for (int i = 0; i < alfShape.numCoeff - 1; i++)
     {
-      iBits += lengthGolomb(coeff[ind* MAX_NUM_ALF_LUMA_COEFF + i], m_kMinTab[alfShape.golombIdx[i]]);  // alf_coeff_chroma[i], alf_coeff_luma_delta[i][j]
+#if ETM70_GOLOMB_FIX
+        iBits += lengthGolomb(coeff[ind* MAX_NUM_ALF_LUMA_COEFF + i], m_kMinTab[alfShape.golombIdx[i]], TRUE);  // alf_coeff_chroma[i], alf_coeff_luma_delta[i][j]
+#else
+        iBits += lengthGolomb(coeff[ind* MAX_NUM_ALF_LUMA_COEFF + i], m_kMinTab[alfShape.golombIdx[i]]);  // alf_coeff_chroma[i], alf_coeff_luma_delta[i][j]
+#endif
     }
   }
   return iBits;
@@ -2414,7 +2422,11 @@ int EncAdaptiveLoopFilter::getNonFilterCoeffRate(AlfSliceParam* alfSliceParam)
   if (iNumFixedFilterPerClass > 0)
   {
 #if M53608_ALF_6  
-    len += lengthGolomb(alfSliceParam->fixedFilterPattern, 0);
+#if ETM70_GOLOMB_FIX
+      len += lengthGolomb(alfSliceParam->fixedFilterPattern, 0, FALSE);
+#else
+      len += lengthGolomb(alfSliceParam->fixedFilterPattern, 0);
+#endif
 #else
     len += lengthGolomb(codetab_pred[alfSliceParam->fixedFilterPattern], 0);
 #endif
@@ -2536,7 +2548,11 @@ int EncAdaptiveLoopFilter::getCostFilterCoeffForce0(AlfFilterShape& alfShape, in
       int coeffVal = abs(pDiffQFilterCoeffIntPP[ind][i]);
       for (int k = 1; k < 15; k++)
       {
-        m_bitsCoeffScan[alfShape.golombIdx[i]][k] += lengthGolomb(coeffVal, k);
+#if ETM70_GOLOMB_FIX
+          m_bitsCoeffScan[alfShape.golombIdx[i]][k] += lengthGolomb(coeffVal, k, TRUE);
+#else
+          m_bitsCoeffScan[alfShape.golombIdx[i]][k] += lengthGolomb(coeffVal, k);
+#endif
       }
     }
   }
@@ -2553,10 +2569,14 @@ int EncAdaptiveLoopFilter::getCostFilterCoeffForce0(AlfFilterShape& alfShape, in
   {
     if (codedVarBins[ind])
     {
-      for (int i = 0; i < alfShape.numCoeff - 1; i++)
-      {
-        len += lengthGolomb(abs(pDiffQFilterCoeffIntPP[ind][i]), m_kMinTab[alfShape.golombIdx[i]]); // alf_coeff_luma_delta[i][j]
-      }
+        for (int i = 0; i < alfShape.numCoeff - 1; i++)
+        {
+#if ETM70_GOLOMB_FIX
+            len += lengthGolomb(abs(pDiffQFilterCoeffIntPP[ind][i]), m_kMinTab[alfShape.golombIdx[i]], TRUE); // alf_coeff_luma_delta[i][j]
+#else
+            len += lengthGolomb(abs(pDiffQFilterCoeffIntPP[ind][i]), m_kMinTab[alfShape.golombIdx[i]]); // alf_coeff_luma_delta[i][j]
+#endif
+        }
     }
   }
 
@@ -2603,7 +2623,11 @@ int EncAdaptiveLoopFilter::getCostFilterCoeff(AlfFilterShape& alfShape, int **pD
       int coeffVal = abs(pDiffQFilterCoeffIntPP[ind][i]);
       for (int k = 1; k < 15; k++)
       {
-        m_bitsCoeffScan[alfShape.golombIdx[i]][k] += lengthGolomb(coeffVal, k);
+#if ETM70_GOLOMB_FIX
+          m_bitsCoeffScan[alfShape.golombIdx[i]][k] += lengthGolomb(coeffVal, k, TRUE);
+#else
+          m_bitsCoeffScan[alfShape.golombIdx[i]][k] += lengthGolomb(coeffVal, k);
+#endif
       }
     }
   }
@@ -2624,10 +2648,14 @@ int EncAdaptiveLoopFilter::lengthFilterCoeffs(AlfFilterShape& alfShape, const in
 
   for (int ind = 0; ind < numFilters; ++ind)
   {
-    for (int i = 0; i < alfShape.numCoeff - 1; i++)
-    {
-      bitCnt += lengthGolomb(abs(FilterCoeff[ind][i]), kMinTab[alfShape.golombIdx[i]]);
-    }
+      for (int i = 0; i < alfShape.numCoeff - 1; i++)
+      {
+#if ETM70_GOLOMB_FIX
+          bitCnt += lengthGolomb(abs(FilterCoeff[ind][i]), kMinTab[alfShape.golombIdx[i]], TRUE);
+#else
+          bitCnt += lengthGolomb(abs(FilterCoeff[ind][i]), kMinTab[alfShape.golombIdx[i]]);
+#endif
+      }
   }
   return bitCnt;
 }
@@ -2644,7 +2672,11 @@ double EncAdaptiveLoopFilter::getDistForce0(AlfFilterShape& alfShape, const int 
       int coeffVal = abs(m_filterCoeffSet[ind][i]);
       for (int k = 1; k < 15; k++)
       {
-        m_bitsCoeffScan[alfShape.golombIdx[i]][k] += lengthGolomb(coeffVal, k);
+#if ETM70_GOLOMB_FIX
+          m_bitsCoeffScan[alfShape.golombIdx[i]][k] += lengthGolomb(coeffVal, k, TRUE);
+#else
+          m_bitsCoeffScan[alfShape.golombIdx[i]][k] += lengthGolomb(coeffVal, k);
+#endif
       }
     }
   }
@@ -2656,7 +2688,11 @@ double EncAdaptiveLoopFilter::getDistForce0(AlfFilterShape& alfShape, const int 
     bitsVarBin[ind] = 0;
     for (int i = 0; i < alfShape.numCoeff - 1; i++)
     {
-      bitsVarBin[ind] += lengthGolomb(abs(m_filterCoeffSet[ind][i]), m_kMinTab[alfShape.golombIdx[i]]);
+#if ETM70_GOLOMB_FIX
+        bitsVarBin[ind] += lengthGolomb(abs(m_filterCoeffSet[ind][i]), m_kMinTab[alfShape.golombIdx[i]], TRUE);
+#else
+        bitsVarBin[ind] += lengthGolomb(abs(m_filterCoeffSet[ind][i]), m_kMinTab[alfShape.golombIdx[i]]);
+#endif
     }
   }
 
@@ -2744,6 +2780,25 @@ int EncAdaptiveLoopFilter::lengthUvlc(int uiCode)
   return (uiLength >> 1) + ((uiLength + 1) >> 1);
 }
 
+#if ETM70_GOLOMB_FIX
+int EncAdaptiveLoopFilter::lengthGolomb(int coeffVal, int k, BOOL signed_coeff)
+{
+    int numBins = 0;
+    unsigned int symbol = abs(coeffVal);
+    while (symbol >= (unsigned int)(1 << k))
+    {
+        numBins++;
+        symbol -= 1 << k;
+        k++;
+    }
+    numBins += (k + 1);
+    if (signed_coeff && coeffVal != 0)
+    {
+        numBins++;
+    }
+    return numBins;
+}
+#else
 int EncAdaptiveLoopFilter::lengthGolomb(int coeffVal, int k)
 {
   int m = k == 0 ? 1 : (2 << (k - 1));
@@ -2757,7 +2812,7 @@ int EncAdaptiveLoopFilter::lengthGolomb(int coeffVal, int k)
     return q + 1 + k;
   }
 }
-
+#endif
 double EncAdaptiveLoopFilter::deriveFilterCoeffs(AlfCovariance* cov, AlfCovariance* covMerged, AlfFilterShape& alfShape, short* filterIndices, int numFilters, double errorTabForce0Coeff[MAX_NUM_ALF_CLASSES][2])
 {
   double error = 0.0;
