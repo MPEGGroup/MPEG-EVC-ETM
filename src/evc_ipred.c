@@ -582,6 +582,7 @@ pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ip
     int use_x;
     int p, pn, pn_n1, pn_p2;
     pel temp_pel = 0;
+    int refpos = 0; 
 
     x = INT_MAX;
     y = INT_MAX;
@@ -602,11 +603,13 @@ pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ip
             GET_REF_POS(mt[1], w - i, t_dy, offset);
             x = w;
             y = j - t_dy;
+            refpos = 2;
         }
         else
         {
             x = i + t_dx;
             y = -1;
+            refpos = 0;
         }
     }
     else if(ipm > IPD_HOR)
@@ -620,11 +623,13 @@ pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ip
                 GET_REF_POS(mt[0], w - i, t_dx, offset);
                 x = i + t_dx;
                 y = -1;
+                refpos = 0;
             }
             else
             {
                 x = w;
                 y = j - t_dy;
+                refpos = 2;
             }
         }
         else
@@ -632,6 +637,7 @@ pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ip
             GET_REF_POS(mt[1], i + 1, t_dy, offset);
             x = -1;
             y = j + t_dy;
+            refpos = 1;
         }
     }
     else
@@ -643,6 +649,7 @@ pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ip
             GET_REF_POS(mt[0], j + 1, t_dx, offset);
             x = i - t_dx;
             y = -1;
+            refpos = 0;
         }
         else
         {
@@ -651,11 +658,13 @@ pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ip
                 GET_REF_POS(mt[1], w - i, t_dy, offset);
                 x = w;
                 y = j + t_dy;
+                refpos = 2;
             }
             else
             {
                 x = -1;
                 y = j - t_dy;
+                refpos = 1;
             }
         }
     }
@@ -663,7 +672,7 @@ pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ip
     evc_assert(x != INT_MAX);
     evc_assert(y != INT_MAX);
 
-    if(y == -1)
+    if(refpos == 0)
     {
         if(dxy < 0)
         {
@@ -682,7 +691,7 @@ pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ip
         ++num_selections;
         src_ch = src_up;
     }
-    else if(x == -1)
+    else if(refpos == 1)
     {
         if(dxy < 0)
         {
@@ -701,7 +710,7 @@ pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ip
         ++num_selections;
         src_ch = src_le;
     }
-    else if(x == w)
+    else if(refpos == 2)
     {
         if(dxy > 0)
         {
