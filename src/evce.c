@@ -140,8 +140,11 @@ static void ctx_free(EVCE_CTX * ctx)
 {
     evc_mfree_fast(ctx);
 }
-
+#if BD_CF_EXT
+static EVCE_CORE * core_alloc(int chroma_format_idc)
+#else
 static EVCE_CORE * core_alloc(void)
+#endif
 {
     EVCE_CORE * core;
     int i, j;
@@ -155,8 +158,16 @@ static EVCE_CORE * core_alloc(void)
     {
         for(j = 0; j < MAX_CU_DEPTH; j++)
         {
-            evce_create_cu_data(&core->cu_data_best[i][j], i, j);
-            evce_create_cu_data(&core->cu_data_temp[i][j], i, j);
+            evce_create_cu_data(&core->cu_data_best[i][j], i, j
+#if BD_CF_EXT
+                                , chroma_format_idc
+#endif
+            );
+            evce_create_cu_data(&core->cu_data_temp[i][j], i, j
+#if BD_CF_EXT
+                                , chroma_format_idc
+#endif
+            );
         }
     }
 
@@ -270,6 +281,9 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
     param->use_dqp = cdsc->use_dqp;
     param->cu_qp_delta_area = cdsc->cu_qp_delta_area;
 #endif
+#if BD_CF_EXT
+    param->chroma_format_idc = cdsc->chroma_format_idc;
+#endif
 
     if(cdsc->tool_iqt == 0)
     {
@@ -282,12 +296,21 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
 
     if (cdsc->chroma_qp_table_struct.chroma_qp_table_present_flag)
     {
-        evc_derived_chroma_qp_mapping_tables(&(cdsc->chroma_qp_table_struct));
+        evc_derived_chroma_qp_mapping_tables(&(cdsc->chroma_qp_table_struct)
+#if BD_CF_EXT
+                                             , cdsc->codec_bit_depth
+#endif
+        );
     }
     else 
     {
+#if BD_CF_EXT
+        memcpy(&(evc_tbl_qp_chroma_dynamic_ext[0][6 *( cdsc->codec_bit_depth - 8)]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
+        memcpy(&(evc_tbl_qp_chroma_dynamic_ext[1][6 * (cdsc->codec_bit_depth - 8)]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
+#else
         memcpy(&(evc_tbl_qp_chroma_dynamic_ext[0][6 * (BIT_DEPTH - 8)]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
         memcpy(&(evc_tbl_qp_chroma_dynamic_ext[1][6 * (BIT_DEPTH - 8)]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
+#endif
     }
 
     param->tile_columns = cdsc->tile_columns;
@@ -404,9 +427,18 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->toolset_idc_h = ctx->cdsc.toolset_idc_h;
     sps->toolset_idc_l = ctx->cdsc.toolset_idc_l;
 
+#if BD_CF_EXT
+    sps->bit_depth_luma_minus8 = ctx->cdsc.codec_bit_depth - 8;
+    sps->bit_depth_chroma_minus8 = ctx->cdsc.codec_bit_depth - 8;
+#else
     sps->bit_depth_luma_minus8 = ctx->cdsc.out_bit_depth - 8;
     sps->bit_depth_chroma_minus8 = ctx->cdsc.out_bit_depth - 8;
+#endif
+#if BD_CF_EXT
+    sps->chroma_format_idc = ctx->cdsc.chroma_format_idc;
+#else
     sps->chroma_format_idc = 1; // YCbCr 4:2:0
+#endif
     sps->ibc_flag = (ctx->param.use_ibc_flag) ? 1 : 0;
     sps->ibc_log_max_size = IBC_MAX_CU_LOG2;
     sps->log2_max_pic_order_cnt_lsb_minus4 = POC_LSB_BIT - 4;
@@ -950,8 +982,13 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
     sh->qp   = (u8)EVC_CLIP3(0, MAX_QUANT, qp);
     sh->qp_u_offset = ctx->cdsc.cb_qp_offset;
     sh->qp_v_offset = ctx->cdsc.cr_qp_offset;
+#if BD_CF_EXT
+    sh->qp_u = (s8)EVC_CLIP3(-6 * ctx->sps.bit_depth_chroma_minus8, 57, sh->qp + sh->qp_u_offset);
+    sh->qp_v = (s8)EVC_CLIP3(-6 * ctx->sps.bit_depth_chroma_minus8, 57, sh->qp + sh->qp_v_offset);
+#else
     sh->qp_u = (s8)EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, sh->qp + sh->qp_u_offset);
     sh->qp_v = (s8)EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, sh->qp + sh->qp_v_offset);
+#endif
     sh->sh_deblock_alpha_offset = ctx->cdsc.deblock_aplha_offset;
     sh->sh_deblock_beta_offset = ctx->cdsc.deblock_beta_offset;
 
@@ -1229,11 +1266,19 @@ static int evce_eco_tree(EVCE_CTX * ctx, EVCE_CORE * core, int x0, int y0, int c
 
         if ( ctx->sps.sps_btt_flag && ctx->sps.tool_admvp )       // TODO: Tim create the specific variable for local dual tree ON/OFF
         {
+#if BD_CF_EXT /* should be updated for 4:2:2 and 4:4:4 */
+            split_struct.tree_cons.changed = tree_cons.mode_cons == eAll && ctx->sps.chroma_format_idc != 0 && !evc_is_chroma_split_allowed(cuw, cuh, split_mode);
+#else
             split_struct.tree_cons.changed = tree_cons.mode_cons == eAll && !evc_is_chroma_split_allowed( cuw, cuh, split_mode );
+#endif
             mode_cons_changed = evc_signal_mode_cons(&core->tree_cons ,&split_struct.tree_cons);
 
-            BOOL mode_cons_signal = mode_cons_changed && (ctx->sh.slice_type != SLICE_I) && (evc_get_mode_cons_by_split(split_mode, cuw, cuh) == eAll);
-            if (mode_cons_changed)
+            BOOL mode_cons_signal = mode_cons_changed && (ctx->sh.slice_type != SLICE_I) && (evc_get_mode_cons_by_split(split_mode, cuw, cuh) == eAll)
+#if BD_CF_EXT
+                && (ctx->sps.chroma_format_idc == 1)
+#endif
+                ;
+            if(mode_cons_changed)
             {
                 MODE_CONS mode = evce_derive_mode_cons(ctx, core->lcu_num, cup);
                 evc_set_tree_mode(&split_struct.tree_cons, mode);
@@ -1319,8 +1364,11 @@ int evce_ready(EVCE_CTX * ctx)
 
 
     evc_assert(ctx);
-
+#if BD_CF_EXT
+    core = core_alloc(ctx->param.chroma_format_idc);
+#else
     core = core_alloc();
+#endif
     evc_assert_gv(core != NULL, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
 
     /* set various value */
@@ -1366,7 +1414,11 @@ int evce_ready(EVCE_CTX * ctx)
     ctx->cdsc.framework_suco_max = min(ctx->log2_max_cuwh, ctx->cdsc.framework_suco_max);
     ctx->enc_alf = new_enc_ALF();
     EncAdaptiveLoopFilter* p = (EncAdaptiveLoopFilter*)(ctx->enc_alf);
-    call_create_enc_ALF(p, ctx->w, ctx->h, ctx->max_cuwh, ctx->max_cuwh, 5);
+    call_create_enc_ALF(p, ctx->w, ctx->h, ctx->max_cuwh, ctx->max_cuwh, 5
+#if BD_CF_EXT
+                        , ctx->param.chroma_format_idc
+#endif
+    );
 
     if (ctx->param.use_ibc_flag)
     {
@@ -1383,7 +1435,11 @@ int evce_ready(EVCE_CTX * ctx)
 
         for(i = 0; i < (int)ctx->f_lcu; i++)
         {
+#if BD_CF_EXT
+            evce_create_cu_data(ctx->map_cu_data + i, ctx->log2_max_cuwh - MIN_CU_LOG2, ctx->log2_max_cuwh - MIN_CU_LOG2, ctx->param.chroma_format_idc);
+#else
             evce_create_cu_data(ctx->map_cu_data + i, ctx->log2_max_cuwh - MIN_CU_LOG2, ctx->log2_max_cuwh - MIN_CU_LOG2);
+#endif
         }
     }
 
@@ -1483,6 +1539,9 @@ int evce_ready(EVCE_CTX * ctx)
     ctx->pic_cnt     = 0;
     ctx->pic_icnt    = -1;
     ctx->poc.poc_val         = 0;
+#if BD_CF_EXT
+    ctx->pa.idc = ctx->param.chroma_format_idc;
+#endif
 
     ret = evc_picman_init(&ctx->rpm, MAX_PB_SIZE, MAX_NUM_REF_PICS, &ctx->pa);
     evc_assert_g(EVC_SUCCEEDED(ret), ERR);
@@ -1588,7 +1647,7 @@ void evce_flush(EVCE_CTX * ctx)
 }
 
 static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, int cuh, int cud, int cup, int is_hor_edge
-    , TREE_CONS tree_cons, EVCE_CORE * core, int boundary_filtering)
+                         , TREE_CONS tree_cons, EVCE_CORE * core, int boundary_filtering)
 {
     s8  split_mode;
     int lcu_num;
@@ -1619,7 +1678,11 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 
         if ( ctx->sps.tool_admvp && ctx->sps.sps_btt_flag )       // TODO: Tim create the specific variable for local dual tree ON/OFF
         {
+#if BD_CF_EXT /* should be updated for 4:2:2 and 4:4:4 */
+            split_struct.tree_cons.changed = tree_cons.mode_cons == eAll && ctx->sps.chroma_format_idc != 0 && !evc_is_chroma_split_allowed(cuw, cuh, split_mode);
+#else
             split_struct.tree_cons.changed = tree_cons.mode_cons == eAll && !evc_is_chroma_split_allowed( cuw, cuh, split_mode );
+#endif
             mode_cons_changed = evc_signal_mode_cons(&core->tree_cons , &split_struct.tree_cons);
             if (mode_cons_changed)
             {
@@ -1678,6 +1741,10 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if DEBLOCKING_FIX
                                    , ctx->map_ats_inter
 #endif
+#if BD_CF_EXT
+                                   , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8
+                                   , ctx->sps.chroma_format_idc
+#endif
                 );
                 evc_deblock_cu_hor(pic, x, y + MAX_TR_SIZE, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, ctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
                                    , core->tree_cons
@@ -1687,6 +1754,10 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
 #if DEBLOCKING_FIX
                                    , ctx->map_ats_inter
+#endif
+#if BD_CF_EXT
+                                   , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8
+                                   , ctx->sps.chroma_format_idc
 #endif
                 );
             }
@@ -1700,6 +1771,10 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
 #if DEBLOCKING_FIX
                                    , ctx->map_ats_inter
+#endif
+#if BD_CF_EXT
+                                   , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8
+                                   , ctx->sps.chroma_format_idc
 #endif
                 );
             }
@@ -1721,6 +1796,10 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if DEBLOCKING_FIX
                                    , ctx->map_ats_inter
 #endif
+#if BD_CF_EXT
+                                   , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8
+                                   , ctx->sps.chroma_format_idc
+#endif
                 );
                 evc_deblock_cu_ver(pic, x + MAX_TR_SIZE, y, cuw >> 1, cuh, ctx->map_scu, ctx->map_refi, ctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh
 #if FIX_PARALLEL_DBF
@@ -1734,6 +1813,10 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
 #if DEBLOCKING_FIX
                                    , ctx->map_ats_inter
+#endif
+#if BD_CF_EXT
+                                   , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8
+                                   , ctx->sps.chroma_format_idc
 #endif
                 );
             }
@@ -1751,6 +1834,10 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
 #if DEBLOCKING_FIX
                                    , ctx->map_ats_inter
+#endif
+#if BD_CF_EXT
+                                   , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8
+                                   , ctx->sps.chroma_format_idc
 #endif
                 );
             }
@@ -1946,8 +2033,13 @@ int evce_picbuf_get_inbuf(EVCE_CTX * ctx, EVC_IMGB ** imgb)
             pad[0] = 0;
             pad[1] = 0;
             pad[2] = 0;
-
+#if BD_CF_EXT
+            int idc = ctx->param.chroma_format_idc;
+            int cs = idc == 0 ? EVC_COLORSPACE_YUV400_10LE : (idc == 1 ? EVC_COLORSPACE_YUV420_10LE : (idc == 2 ? EVC_COLORSPACE_YUV422_10LE : EVC_COLORSPACE_YUV444_10LE));
+            *imgb = evc_imgb_create(ctx->param.w, ctx->param.h, cs, opt, pad, align);
+#else
             *imgb = evc_imgb_create(ctx->param.w, ctx->param.h, EVC_COLORSPACE_YUV420_10LE, opt, pad, align);
+#endif
             evc_assert_rv(*imgb != NULL, EVC_ERR_OUT_OF_MEMORY);
 
             ctx->inbuf[i] = *imgb;
@@ -1997,7 +2089,11 @@ int evce_aps_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, EVC_APS *
 
     /* Write APS */
 #if M52291_HDR_DRA
+#if BD_CF_EXT
+    evc_assert_rv(evce_eco_aps_gen(bs, aps, ctx->sps.bit_depth_luma_minus8+8) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
+#else
     evc_assert_rv(evce_eco_aps_gen(bs, aps) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
+#endif
 #else
     set_aps(ctx, aps); // TBD: empty function call
     evc_assert_rv(evce_eco_aps(bs, aps) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
@@ -2652,10 +2748,15 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             /* Set slice header */
             set_sh(ctx, sh);
         }
-
+#if BD_CF_EXT
+        core->qp_y = ctx->sh.qp + 6 * ctx->sps.bit_depth_luma_minus8;
+        core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][sh->qp_u] + 6 * ctx->sps.bit_depth_chroma_minus8;
+        core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][sh->qp_v] + 6 * ctx->sps.bit_depth_chroma_minus8;
+#else
         core->qp_y = ctx->sh.qp + 6 * (BIT_DEPTH - 8);
         core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][sh->qp_u] + 6 * (BIT_DEPTH - 8);
         core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][sh->qp_v] + 6 * (BIT_DEPTH - 8);
+#endif
 
 #if HISTORY_UNDER_ADMVP_FIX
 #if M53737
@@ -3051,7 +3152,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
                 evc_AlfSliceParam* p_aps_data = (evc_AlfSliceParam*)aps_alf->aps_data;
                 aps_alf->aps_id = aps->aps_id;
                 memcpy(p_aps_data, &(aps->alf_aps_param), sizeof(evc_AlfSliceParam));
+#if BD_CF_EXT
+                evc_assert_rv(evce_eco_aps_gen(bs, aps_alf, ctx->sps.bit_depth_luma_minus8+8) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
+#else
                 evc_assert_rv(evce_eco_aps_gen(bs, aps_alf) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
+#endif
 #else
                 set_aps(ctx, aps); // TBD: empty function call
                 evc_assert_rv(evce_eco_aps(bs, aps) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
@@ -3194,7 +3299,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         int min_cu_h = ctx->min_cuwh;
         int padded_w = ((ctx->w + min_cu_w - 1) / min_cu_w) * min_cu_w;
         int padded_h = ((ctx->h + min_cu_h - 1) / min_cu_h) * min_cu_h;
+#if BD_CF_EXT /* should be updated for 4:2:2 and 4:4:4 */
+        int raw_bits = padded_w * padded_h * ((ctx->sps.bit_depth_luma_minus8 + 8) + (ctx->sps.chroma_format_idc != 0 ? 2 * ((ctx->sps.bit_depth_chroma_minus8 + 8) >> log2_sub_widthC_subHeightC) : 0));
+#else
         int raw_bits = padded_w * padded_h * ((ctx->sps.bit_depth_luma_minus8 + 8) + 2 * ((ctx->sps.bit_depth_chroma_minus8 + 8) >> log2_sub_widthC_subHeightC));
+#endif
         unsigned int threshold = (CABAC_ZERO_PARAM / 3) * num_bytes_in_units + (raw_bits / 32);
 
         if (bin_counts_in_units >= threshold)
@@ -3405,7 +3514,11 @@ EVCE evce_create(EVCE_CDSC * cdsc, int * err)
     ret = evc_scan_tbl_init();
     evc_assert_g(ret == EVC_OK, ERR);
 
-    evce_init_err_scale();
+    evce_init_err_scale(
+#if BD_CF_EXT
+        cdsc->codec_bit_depth
+#endif
+    );
     evce_split_tbl_init(ctx);
 
     if(ctx->fn_ready != NULL)
@@ -3575,7 +3688,11 @@ int evce_encode_aps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat, int aps_type_id)
 
     evce_eco_nalu(bs, &nalu);
     
+#if BD_CF_EXT
+    evc_assert_rv(evce_eco_aps_gen(bs, aps_dra, ctx->sps.bit_depth_luma_minus8 + 8) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
+#else
     evc_assert_rv(evce_eco_aps_gen(bs, aps_dra) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
+#endif
     evc_bsw_deinit(bs);
     *size_field = (int)(bs->cur - cur_tmp) - 4;
     aps_dra->signal_flag = 0;
@@ -3903,7 +4020,11 @@ void evce_malloc_2d(s8*** dst, int size_1d, int size_2d, int type_size)
     }
 }
 
+#if BD_CF_EXT
+int evce_create_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh, int chroma_format_idc)
+#else
 int evce_create_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
+#endif
 {
     int i, j;
     int cuw_scu, cuh_scu;
@@ -3961,11 +4082,20 @@ int evce_create_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
     evce_malloc_1d((void**)&cu_data->map_cu_mode, size_32b);
     evce_malloc_1d((void**)&cu_data->depth, size_8b);
 
+#if BD_CF_EXT
+    int shift = 0;
+    for(i = 0; i < N_C; i++)
+    {
+        evce_malloc_1d((void**)&cu_data->coef[i], (pixel_cnt >> (!!(i) * shift)) * sizeof(s16));
+        evce_malloc_1d((void**)&cu_data->reco[i], (pixel_cnt >> (!!(i) * shift)) * sizeof(pel));
+    }
+#else
     for(i = 0; i < N_C; i++)
     {
         evce_malloc_1d((void**)&cu_data->coef[i], (pixel_cnt >> (!!(i)* 2)) * sizeof(s16));
         evce_malloc_1d((void**)&cu_data->reco[i], (pixel_cnt >> (!!(i)* 2)) * sizeof(pel));
     }
+#endif
 
     return EVC_OK;
 }

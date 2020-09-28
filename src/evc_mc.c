@@ -44,11 +44,12 @@
 
 #define MAC_SFT_0N            MAC_SFT_N0
 #define MAC_ADD_0N            MAC_ADD_N0
-
+#if !BD_CF_EXT
 #define MAC_SFT_NN_S1         (2)
 #define MAC_ADD_NN_S1         (0)
 #define MAC_SFT_NN_S2         (10)
 #define MAC_ADD_NN_S2         (1<<9)
+#endif
 
 #define MAC_8TAP(c, r0, r1, r2, r3, r4, r5, r6, r7) \
     ((c)[0]*(r0)+(c)[1]*(r1)+(c)[2]*(r2)+(c)[3]*(r3)+(c)[4]*(r4)+\
@@ -57,21 +58,34 @@
     ((MAC_8TAP(c, r0, r1, r2, r3, r4, r5, r6, r7) + MAC_ADD_N0) >> MAC_SFT_N0)
 #define MAC_8TAP_0N(c, r0, r1, r2, r3, r4, r5, r6, r7) \
     ((MAC_8TAP(c, r0, r1, r2, r3, r4, r5, r6, r7) + MAC_ADD_0N) >> MAC_SFT_0N)
+#if BD_CF_EXT
+#define MAC_8TAP_NN_S1(c, r0, r1, r2, r3, r4, r5, r6, r7, offset, shift) \
+    ((MAC_8TAP(c,r0,r1,r2,r3,r4,r5,r6,r7) + offset) >> shift)
+#define MAC_8TAP_NN_S2(c, r0, r1, r2, r3, r4, r5, r6, r7, offset, shift) \
+    ((MAC_8TAP(c,r0,r1,r2,r3,r4,r5,r6,r7) + offset) >> shift)
+#else
 #define MAC_8TAP_NN_S1(c, r0, r1, r2, r3, r4, r5, r6, r7) \
     ((MAC_8TAP(c,r0,r1,r2,r3,r4,r5,r6,r7) + MAC_ADD_NN_S1) >> MAC_SFT_NN_S1)
 #define MAC_8TAP_NN_S2(c, r0, r1, r2, r3, r4, r5, r6, r7) \
     ((MAC_8TAP(c,r0,r1,r2,r3,r4,r5,r6,r7) + MAC_ADD_NN_S2) >> MAC_SFT_NN_S2)
-
+#endif
 #define MAC_4TAP(c, r0, r1, r2, r3) \
     ((c)[0]*(r0)+(c)[1]*(r1)+(c)[2]*(r2)+(c)[3]*(r3))
 #define MAC_4TAP_N0(c, r0, r1, r2, r3) \
     ((MAC_4TAP(c, r0, r1, r2, r3) + MAC_ADD_N0) >> MAC_SFT_N0)
 #define MAC_4TAP_0N(c, r0, r1, r2, r3) \
     ((MAC_4TAP(c, r0, r1, r2, r3) + MAC_ADD_0N) >> MAC_SFT_0N)
+#if BD_CF_EXT
+#define MAC_4TAP_NN_S1(c, r0, r1, r2, r3, offset, shift) \
+    ((MAC_4TAP(c, r0, r1, r2, r3) + offset) >> shift)
+#define MAC_4TAP_NN_S2(c, r0, r1, r2, r3, offset, shift) \
+    ((MAC_4TAP(c, r0, r1, r2, r3) + offset) >> shift)
+#else
 #define MAC_4TAP_NN_S1(c, r0, r1, r2, r3) \
     ((MAC_4TAP(c, r0, r1, r2, r3) + MAC_ADD_NN_S1) >> MAC_SFT_NN_S1)
 #define MAC_4TAP_NN_S2(c, r0, r1, r2, r3) \
     ((MAC_4TAP(c, r0, r1, r2, r3) + MAC_ADD_NN_S2) >> MAC_SFT_NN_S2)
+#endif
 
 #define MAC_BL(c, r0, r1) \
     ((c)[0]*(r0)+(c)[1]*(r1))
@@ -79,14 +93,21 @@
     ((MAC_BL(c, r0, r1) + MAC_ADD_N0) >> MAC_SFT_N0)
 #define MAC_BL_0N(c, r0, r1) \
     ((MAC_BL(c, r0, r1) + MAC_ADD_0N) >> MAC_SFT_0N)
+#if BD_CF_EXT
+#define MAC_BL_NN_S1(c, r0, r1, offset, shift) \
+    ((MAC_BL(c, r0, r1) + offset) >> shift)
+#define MAC_BL_NN_S2(c, r0, r1, offset, shift) \
+    ((MAC_BL(c, r0, r1) + offset) >> shift)
+#else
 #define MAC_BL_NN_S1(c, r0, r1) \
     ((MAC_BL(c, r0, r1) + MAC_ADD_NN_S1) >> MAC_SFT_NN_S1)
 #define MAC_BL_NN_S2(c, r0, r1) \
     ((MAC_BL(c, r0, r1) + MAC_ADD_NN_S2) >> MAC_SFT_NN_S2)
+#endif
 
 /* padding for store intermediate values, which should be larger than
 1+ half of filter tap */
-#define MC_IBUF_PAD_C          4
+#define MC_IBUF_PAD_C          8
 #define MC_IBUF_PAD_L          8
 #define MC_IBUF_PAD_BL         2
 
@@ -1107,7 +1128,11 @@ static const s8 tbl_mc_l_coeff[2][4][8] =
 #endif
 
 #if OPT_SIMD_MC_L
-void average_16b_no_clip_sse(s16 *src, s16 *ref, s16 *dst, int s_src, int s_ref, int s_dst, int wd, int ht)
+void average_16b_no_clip_sse(s16 *src, s16 *ref, s16 *dst, int s_src, int s_ref, int s_dst, int wd, int ht
+#if BD_CF_EXT
+                             , int bit_depth
+#endif
+)
 {
     s16 *p0, *p1, *p2;
     int rem_h = ht;
@@ -1123,7 +1148,11 @@ void average_16b_no_clip_sse(s16 *src, s16 *ref, s16 *dst, int s_src, int s_ref,
     int offset = 1;
     int shift = 1;
 
+#if BD_CF_EXT
+    assert(bit_depth <= 14);
+#else
     assert(BIT_DEPTH <= 14);
+#endif
 
     p0 = src;
     p1 = ref;
@@ -3170,7 +3199,11 @@ static void mc_filter_c_4pel_vert_sse(s16 *ref,
 }
 #endif
 
-void evc_mc_l_00(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h)
+void evc_mc_l_00(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h
+#if BD_CF_EXT
+                 , int bit_depth
+#endif
+)
 {
     int i, j;
 
@@ -3233,7 +3266,11 @@ void evc_mc_l_00(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pre
     }
 }
 
-void evc_mc_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h)
+void evc_mc_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h
+#if BD_CF_EXT
+                 , int bit_depth
+#endif
+)
 {
     int i, j, dx;
     s32 pt;
@@ -3249,7 +3286,11 @@ void evc_mc_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pre
 #if OPT_SIMD_MC_L
     if (1)
     {
+#if BD_CF_EXT
+        int max = ((1 << bit_depth) - 1);
+#else
         int max = ((1 << BIT_DEPTH) - 1);
+#endif
         int min = 0;
 
         mc_filter_l_8pel_horz_clip_sse(ref, s_ref, pred, s_pred, tbl_mc_l_coeff[g_mc_ftr][dx], w, h, min, max, MAC_ADD_N0, MAC_SFT_N0);
@@ -3258,8 +3299,11 @@ void evc_mc_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pre
     if ((w & 0x7) == 0)
     {
         __m128i coef[8], min, max;
-
+#if BD_CF_EXT
+        max = _mm_set1_epi16((1 << bit_depth) - 1);
+#else
         max = _mm_set1_epi16((1 << BIT_DEPTH) - 1);
+#endif
         min = _mm_setzero_si128();
 
         for (i = 0; i < 8; i++) coef[i] = _mm_set1_epi16(tbl_mc_l_coeff[g_mc_ftr][dx][i]);
@@ -3278,7 +3322,11 @@ void evc_mc_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pre
     {
         __m128i coef[8], min, max;
 
+#if BD_CF_EXT
+        max = _mm_set1_epi16((1 << bit_depth) - 1);
+#else
         max = _mm_set1_epi16((1 << BIT_DEPTH) - 1);
+#endif
         min = _mm_setzero_si128();
 
         for (i = 0; i < 8; i++) coef[i] = _mm_set1_epi16(tbl_mc_l_coeff[g_mc_ftr][dx][i]);
@@ -3302,7 +3350,11 @@ void evc_mc_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pre
             for (j = 0; j < w; j++)
             {
                 pt = MAC_8TAP_N0(tbl_mc_l_coeff[g_mc_ftr][dx], ref[j], ref[j + 1], ref[j + 2], ref[j + 3], ref[j + 4], ref[j + 5], ref[j + 6], ref[j + 7]);
+#if BD_CF_EXT
+                pred[j] = EVC_CLIP3(0, (1 << bit_depth) - 1, pt);
+#else
                 pred[j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, pt);
+#endif
             }
             ref += s_ref;
             pred += s_pred;
@@ -3310,7 +3362,11 @@ void evc_mc_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pre
     }
 }
 
-void evc_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h)
+void evc_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h
+#if BD_CF_EXT
+                 , int bit_depth
+#endif
+)
 {
     int i, j, dy;
     s32 pt;
@@ -3327,7 +3383,11 @@ void evc_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pre
 #if OPT_SIMD_MC_L
     if (1)
     {
+#if BD_CF_EXT
+        int max = ((1 << bit_depth) - 1);
+#else
         int max = ((1 << BIT_DEPTH) - 1);
+#endif
         int min = 0;
 
         mc_filter_l_8pel_vert_clip_sse(ref, s_ref, pred, s_pred, tbl_mc_l_coeff[g_mc_ftr][dy], w, h, min, max, MAC_ADD_0N, MAC_SFT_0N);
@@ -3337,7 +3397,11 @@ void evc_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pre
     {
         __m128i coef[8], min, max;
 
+#if BD_CF_EXT
+        max = _mm_set1_epi16((1 << bit_depth) - 1);
+#else
         max = _mm_set1_epi16((1 << BIT_DEPTH) - 1);
+#endif
         min = _mm_setzero_si128();
         for (i = 0; i < 8; i++) coef[i] = _mm_set1_epi16(tbl_mc_l_coeff[g_mc_ftr][dy][i]);
 
@@ -3355,7 +3419,11 @@ void evc_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pre
     {
         __m128i coef[8], min, max;
 
+#if BD_CF_EXT
+        max = _mm_set1_epi16((1 << bit_depth) - 1);
+#else
         max = _mm_set1_epi16((1 << BIT_DEPTH) - 1);
+#endif
         min = _mm_setzero_si128();
 
         for (i = 0; i < 8; i++) coef[i] = _mm_set1_epi16(tbl_mc_l_coeff[g_mc_ftr][dy][i]);
@@ -3379,7 +3447,11 @@ void evc_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pre
             for (j = 0; j < w; j++)
             {
                 pt = MAC_8TAP_0N(tbl_mc_l_coeff[g_mc_ftr][dy], ref[j], ref[s_ref + j], ref[s_ref * 2 + j], ref[s_ref * 3 + j], ref[s_ref * 4 + j], ref[s_ref * 5 + j], ref[s_ref * 6 + j], ref[s_ref * 7 + j]);
+#if BD_CF_EXT
+                pred[j] = EVC_CLIP3(0, (1 << bit_depth) - 1, pt);
+#else
                 pred[j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, pt);
+#endif
             }
             ref += s_ref;
             pred += s_pred;
@@ -3387,7 +3459,11 @@ void evc_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pre
     }
 }
 
-void evc_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h)
+void evc_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h
+#if BD_CF_EXT
+                 , int bit_depth
+#endif
+)
 {
     s16         buf[(MAX_CU_SIZE + MC_IBUF_PAD_L)*(MAX_CU_SIZE + MC_IBUF_PAD_L)];
     s16        *b;
@@ -3403,23 +3479,42 @@ void evc_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
     dy = gmv_y & 0x3;
     ref += ((gmv_y >> 2) - 3) * s_ref + (gmv_x >> 2) - 3;
 #endif
+#if BD_CF_EXT
+    int shift1 = EVC_MIN(4, bit_depth - 8);
+    int shift2 = EVC_MAX(8, 20 - bit_depth);
+    int offset1 = 0;
+    int offset2 = (1 << (shift2 - 1));
+#endif
 
 #if X86_SSE
 #if OPT_SIMD_MC_L
     if (1)
     {
+#if BD_CF_EXT
+        int max = ((1 << bit_depth) - 1);
+#else
         int max = ((1 << BIT_DEPTH) - 1);
+#endif
         int min = 0;
 
+#if BD_CF_EXT
+        mc_filter_l_8pel_horz_no_clip_sse(ref, s_ref, buf, w, tbl_mc_l_coeff[g_mc_ftr][dx], w, (h + 7), offset1, shift1);
+        mc_filter_l_8pel_vert_clip_sse(buf, w, pred, s_pred, tbl_mc_l_coeff[g_mc_ftr][dy], w, h, min, max, offset2, shift2);
+#else
         mc_filter_l_8pel_horz_no_clip_sse(ref, s_ref, buf, w, tbl_mc_l_coeff[g_mc_ftr][dx], w, (h + 7), MAC_ADD_NN_S1, MAC_SFT_NN_S1);
         mc_filter_l_8pel_vert_clip_sse(buf, w, pred, s_pred, tbl_mc_l_coeff[g_mc_ftr][dy], w, h, min, max, MAC_ADD_NN_S2, MAC_SFT_NN_S2);
+#endif
     }
 #else
     if ((w & 0x7) == 0)
     {
         __m128i coef[8], min, max;
 
+#if BD_CF_EXT
+        max = _mm_set1_epi16((1 << bit_depth) - 1);
+#else
         max = _mm_set1_epi16((1 << BIT_DEPTH) - 1);
+#endif
         min = _mm_setzero_si128();
 
         for (i = 0; i < 8; i++) coef[i] = _mm_set1_epi16(tbl_mc_l_coeff[g_mc_ftr][dx][i]);
@@ -3429,7 +3524,11 @@ void evc_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
         {
             for (j = 0; j < w; j += 8)
             {
+#if BD_CF_EXT
+                SSE_MC_FILTER_L_8PEL(ref + j, 1, b + j, offset1, shift1, coef, 0, min, max);
+#else
                 SSE_MC_FILTER_L_8PEL(ref + j, 1, b + j, MAC_ADD_NN_S1, MAC_SFT_NN_S1, coef, 0, min, max);
+#endif
             }
             ref += s_ref;
             b += w;
@@ -3442,7 +3541,11 @@ void evc_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
         {
             for (j = 0; j < w; j += 8)
             {
+#if BD_CF_EXT
+                SSE_MC_FILTER_L_8PEL(b + j, w, pred + j, offset2, shift2, coef, 1, min, max);
+#else
                 SSE_MC_FILTER_L_8PEL(b + j, w, pred + j, MAC_ADD_NN_S2, MAC_SFT_NN_S2, coef, 1, min, max);
+#endif
             }
             pred += s_pred;
             b += w;
@@ -3452,7 +3555,11 @@ void evc_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
     {
         __m128i coef[8], min, max;
 
+#if BD_CF_EXT
+        max = _mm_set1_epi16((1 << bit_depth) - 1);
+#else
         max = _mm_set1_epi16((1 << BIT_DEPTH) - 1);
+#endif 
         min = _mm_setzero_si128();
 
         for (i = 0; i < 8; i++) coef[i] = _mm_set1_epi16(tbl_mc_l_coeff[g_mc_ftr][dx][i]);
@@ -3462,7 +3569,11 @@ void evc_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
         {
             for (j = 0; j < w; j += 4)
             {
+#if BD_CF_EXT
+                SSE_MC_FILTER_L_4PEL(ref + j, 1, b + j, offset1, shift1, coef, 0, min, max);
+#else
                 SSE_MC_FILTER_L_4PEL(ref + j, 1, b + j, MAC_ADD_NN_S1, MAC_SFT_NN_S1, coef, 0, min, max);
+#endif
             }
             ref += s_ref;
             b += w;
@@ -3475,7 +3586,11 @@ void evc_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
         {
             for (j = 0; j < w; j += 4)
             {
+#if BD_CF_EXT
+                SSE_MC_FILTER_L_4PEL(b + j, w, pred + j, offset2, shift2, coef, 1, min, max);
+#else
                 SSE_MC_FILTER_L_4PEL(b + j, w, pred + j, MAC_ADD_NN_S2, MAC_SFT_NN_S2, coef, 1, min, max);
+#endif
             }
             pred += s_pred;
             b += w;
@@ -3490,7 +3605,11 @@ void evc_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
         {
             for (j = 0; j < w; j++)
             {
+#if BD_CF_EXT
+                b[j] = MAC_8TAP_NN_S1(tbl_mc_l_coeff[g_mc_ftr][dx], ref[j], ref[j + 1], ref[j + 2], ref[j + 3], ref[j + 4], ref[j + 5], ref[j + 6], ref[j + 7],offset1, shift1);
+#else
                 b[j] = MAC_8TAP_NN_S1(tbl_mc_l_coeff[g_mc_ftr][dx], ref[j], ref[j + 1], ref[j + 2], ref[j + 3], ref[j + 4], ref[j + 5], ref[j + 6], ref[j + 7]);
+#endif
             }
             ref += s_ref;
             b += w;
@@ -3501,8 +3620,13 @@ void evc_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
         {
             for (j = 0; j < w; j++)
             {
+#if BD_CF_EXT
+                pt = MAC_8TAP_NN_S2(tbl_mc_l_coeff[g_mc_ftr][dy], b[j], b[j + w], b[j + w * 2], b[j + w * 3], b[j + w * 4], b[j + w * 5], b[j + w * 6], b[j + w * 7], offset2, shift2);
+                pred[j] = EVC_CLIP3(0, (1 << bit_depth) - 1, pt);
+#else
                 pt = MAC_8TAP_NN_S2(tbl_mc_l_coeff[g_mc_ftr][dy], b[j], b[j + w], b[j + w * 2], b[j + w * 3], b[j + w * 4], b[j + w * 5], b[j + w * 6], b[j + w * 7]);
                 pred[j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, pt);
+#endif
             }
             pred += s_pred;
             b += w;
@@ -3511,7 +3635,11 @@ void evc_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
 }
 
 #if DMVR_PADDING
-void evc_mc_dmvr_l_00(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h)
+void evc_mc_dmvr_l_00(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h
+#if BD_CF_EXT
+                      , int bit_depth
+#endif
+)
 {
     int i, j;
 
@@ -3574,7 +3702,11 @@ void evc_mc_dmvr_l_00(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
     }
 }
 
-void evc_mc_dmvr_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h)
+void evc_mc_dmvr_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h
+#if BD_CF_EXT
+                      , int bit_depth
+#endif
+)
 {
     int i, j, dx;
     s32 pt;
@@ -3592,8 +3724,11 @@ void evc_mc_dmvr_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
 #if OPT_SIMD_MC_L
     if (1)
     {
-
+#if BD_CF_EXT
+        int max = ((1 << bit_depth) - 1);
+#else
         int max = ((1 << BIT_DEPTH) - 1);
+#endif
         int min = 0;
 
 
@@ -3603,8 +3738,11 @@ void evc_mc_dmvr_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
     if ((w & 0x7) == 0)
     {
         __m128i coef[8], min, max;
-
+#if BD_CF_EXT
+        max = _mm_set1_epi16((1 << bit_depth) - 1);
+#else
         max = _mm_set1_epi16((1 << BIT_DEPTH) - 1);
+#endif
         min = _mm_setzero_si128();
 
         for (i = 0; i < 8; i++) coef[i] = _mm_set1_epi16(tbl_mc_l_coeff[g_mc_ftr][dx][i]);
@@ -3622,8 +3760,11 @@ void evc_mc_dmvr_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
     else if ((w & 0x3) == 0)
     {
         __m128i coef[8], min, max;
-
+#if BD_CF_EXT
+        max = _mm_set1_epi16((1 << bit_depth) - 1);
+#else
         max = _mm_set1_epi16((1 << BIT_DEPTH) - 1);
+#endif
         min = _mm_setzero_si128();
 
         for (i = 0; i < 8; i++) coef[i] = _mm_set1_epi16(tbl_mc_l_coeff[g_mc_ftr][dx][i]);
@@ -3648,7 +3789,11 @@ void evc_mc_dmvr_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
             {
                 pt = MAC_8TAP_N0(tbl_mc_l_coeff[g_mc_ftr][dx], ref[j], ref[j + 1], ref[j + 2], ref[j + 3], ref[j + 4], ref[j + 5], ref[j + 6], ref[j + 7]);
 
+#if BD_CF_EXT
+                pred[j] = EVC_CLIP3(0, (1 << bit_depth) - 1, pt);
+#else
                 pred[j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, pt);
+#endif
 
             }
             ref += s_ref;
@@ -3657,7 +3802,11 @@ void evc_mc_dmvr_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
     }
 }
 
-void evc_mc_dmvr_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h)
+void evc_mc_dmvr_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h
+#if BD_CF_EXT
+                      , int bit_depth
+#endif
+)
 {
     int i, j, dy;
     s32 pt;
@@ -3675,8 +3824,11 @@ void evc_mc_dmvr_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
 #if OPT_SIMD_MC_L
     if (1)
     {
-
+#if BD_CF_EXT
+        int max = ((1 << bit_depth) - 1);
+#else
         int max = ((1 << BIT_DEPTH) - 1);
+#endif
         int min = 0;
 
         mc_filter_l_8pel_vert_clip_sse(ref, s_ref, pred, s_pred, tbl_mc_l_coeff[g_mc_ftr][dy], w, h, min, max, MAC_ADD_0N, MAC_SFT_0N);
@@ -3686,7 +3838,11 @@ void evc_mc_dmvr_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
     {
         __m128i coef[8], min, max;
 
+#if BD_CF_EXT
+        max = _mm_set1_epi16((1 << bit_depth) - 1);
+#else
         max = _mm_set1_epi16((1 << BIT_DEPTH) - 1);
+#endif
         min = _mm_setzero_si128();
         for (i = 0; i < 8; i++) coef[i] = _mm_set1_epi16(tbl_mc_l_coeff[g_mc_ftr][dy][i]);
 
@@ -3704,7 +3860,11 @@ void evc_mc_dmvr_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
     {
         __m128i coef[8], min, max;
 
+#if BD_CF_EXT
+        max = _mm_set1_epi16((1 << bit_depth) - 1);
+#else
         max = _mm_set1_epi16((1 << BIT_DEPTH) - 1);
+#endif
         min = _mm_setzero_si128();
 
         for (i = 0; i < 8; i++) coef[i] = _mm_set1_epi16(tbl_mc_l_coeff[g_mc_ftr][dy][i]);
@@ -3729,7 +3889,11 @@ void evc_mc_dmvr_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
             {
                 pt = MAC_8TAP_0N(tbl_mc_l_coeff[g_mc_ftr][dy], ref[j], ref[s_ref + j], ref[s_ref * 2 + j], ref[s_ref * 3 + j], ref[s_ref * 4 + j], ref[s_ref * 5 + j], ref[s_ref * 6 + j], ref[s_ref * 7 + j]);
 
+#if BD_CF_EXT
+                pred[j] = EVC_CLIP3(0, (1 << bit_depth) - 1, pt);
+#else
                 pred[j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, pt);
+#endif
 
             }
             ref += s_ref;
@@ -3739,6 +3903,9 @@ void evc_mc_dmvr_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
 }
 
 void evc_mc_dmvr_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h
+#if BD_CF_EXT
+                      , int bit_depth
+#endif
 )
 {
     s16         buf[(MAX_CU_SIZE + MC_IBUF_PAD_L)*MAX_CU_SIZE];
@@ -3757,24 +3924,43 @@ void evc_mc_dmvr_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
     ref += ((gmv_y >> 2) - 3) * s_ref + (gmv_x >> 2) - 3;
 #endif
 
+#if BD_CF_EXT 
+    int shift1 = EVC_MIN(4, bit_depth - 8);
+    int shift2 = EVC_MAX(8, 20 - bit_depth);
+    int offset1 = 0;
+    int offset2 = (1 << (shift2 - 1));
+#endif
 #if X86_SSE
 #if OPT_SIMD_MC_L
     if (1)
     {
 
+#if BD_CF_EXT
+        int max = ((1 << bit_depth) - 1);
+#else
         int max = ((1 << BIT_DEPTH) - 1);
+#endif
         int min = 0;
 
+#if BD_CF_EXT
+        mc_filter_l_8pel_horz_no_clip_sse(ref, s_ref, buf, w, tbl_mc_l_coeff[g_mc_ftr][dx], w, (h + 7), offset1, shift1);
+        mc_filter_l_8pel_vert_clip_sse(buf, w, pred, s_pred, tbl_mc_l_coeff[g_mc_ftr][dy], w, h, min, max, offset2, shift2);
+#else
         mc_filter_l_8pel_horz_no_clip_sse(ref, s_ref, buf, w, tbl_mc_l_coeff[g_mc_ftr][dx], w, (h + 7), MAC_ADD_NN_S1, MAC_SFT_NN_S1);
 
         mc_filter_l_8pel_vert_clip_sse(buf, w, pred, s_pred, tbl_mc_l_coeff[g_mc_ftr][dy], w, h, min, max, MAC_ADD_NN_S2, MAC_SFT_NN_S2);
+#endif
     }
 #else
     if ((w & 0x7) == 0)
     {
         __m128i coef[8], min, max;
 
+#if BD_CF_EXT 
+        max = _mm_set1_epi16((1 << bit_depth) - 1);
+#else
         max = _mm_set1_epi16((1 << BIT_DEPTH) - 1);
+#endif
         min = _mm_setzero_si128();
 
         for (i = 0; i < 8; i++) coef[i] = _mm_set1_epi16(tbl_mc_l_coeff[g_mc_ftr][dx][i]);
@@ -3784,7 +3970,11 @@ void evc_mc_dmvr_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
         {
             for (j = 0; j < w; j += 8)
             {
+#if BD_CF_EXT
+                SSE_MC_FILTER_L_8PEL(ref + j, 1, b + j, offset1, shift1, coef, 0, min, max);
+#else
                 SSE_MC_FILTER_L_8PEL(ref + j, 1, b + j, MAC_ADD_NN_S1, MAC_SFT_NN_S1, coef, 0, min, max);
+#endif
             }
             ref += s_ref;
             b += w;
@@ -3797,7 +3987,11 @@ void evc_mc_dmvr_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
         {
             for (j = 0; j < w; j += 8)
             {
+#if BD_CF_EXT
+                SSE_MC_FILTER_L_8PEL(b + j, w, pred + j, offset2, shift2, coef, 1, min, max);
+#else
                 SSE_MC_FILTER_L_8PEL(b + j, w, pred + j, MAC_ADD_NN_S2, MAC_SFT_NN_S2, coef, 1, min, max);
+#endif
             }
             pred += s_pred;
             b += w;
@@ -3807,7 +4001,11 @@ void evc_mc_dmvr_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
     {
         __m128i coef[8], min, max;
 
+#if BD_CF_EXT
+        max = _mm_set1_epi16((1 << bit_depth) - 1);
+#else
         max = _mm_set1_epi16((1 << BIT_DEPTH) - 1);
+#endif
         min = _mm_setzero_si128();
 
         for (i = 0; i < 8; i++) coef[i] = _mm_set1_epi16(tbl_mc_l_coeff[g_mc_ftr][dx][i]);
@@ -3817,7 +4015,11 @@ void evc_mc_dmvr_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
         {
             for (j = 0; j < w; j += 4)
             {
+#if BD_CF_EXT
+                SSE_MC_FILTER_L_4PEL(ref + j, 1, b + j, offset1, shift1, coef, 0, min, max);
+#else
                 SSE_MC_FILTER_L_4PEL(ref + j, 1, b + j, MAC_ADD_NN_S1, MAC_SFT_NN_S1, coef, 0, min, max);
+#endif
             }
             ref += s_ref;
             b += w;
@@ -3830,7 +4032,11 @@ void evc_mc_dmvr_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
         {
             for (j = 0; j < w; j += 4)
             {
+#if BD_CF_EXT
+                SSE_MC_FILTER_L_4PEL(b + j, w, pred + j, offset2, shift2, coef, 1, min, max);
+#else
                 SSE_MC_FILTER_L_4PEL(b + j, w, pred + j, MAC_ADD_NN_S2, MAC_SFT_NN_S2, coef, 1, min, max);
+#endif
             }
             pred += s_pred;
             b += w;
@@ -3845,7 +4051,11 @@ void evc_mc_dmvr_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
         {
             for (j = 0; j < w; j++)
             {
+#if BD_CF_EXT
+                b[j] = MAC_8TAP_NN_S1(tbl_mc_l_coeff[g_mc_ftr][dx], ref[j], ref[j + 1], ref[j + 2], ref[j + 3], ref[j + 4], ref[j + 5], ref[j + 6], ref[j + 7], offset1, shift1);
+#else
                 b[j] = MAC_8TAP_NN_S1(tbl_mc_l_coeff[g_mc_ftr][dx], ref[j], ref[j + 1], ref[j + 2], ref[j + 3], ref[j + 4], ref[j + 5], ref[j + 6], ref[j + 7]);
+#endif
             }
             ref += s_ref;
             b += w;
@@ -3856,9 +4066,14 @@ void evc_mc_dmvr_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
         {
             for (j = 0; j < w; j++)
             {
+#if BD_CF_EXT
+                pt = MAC_8TAP_NN_S2(tbl_mc_l_coeff[g_mc_ftr][dy], b[j], b[j + w], b[j + w * 2], b[j + w * 3], b[j + w * 4], b[j + w * 5], b[j + w * 6], b[j + w * 7], offset2, shift2);
+                pred[j] = EVC_CLIP3(0, (1 << bit_depth) - 1, pt);
+#else
                 pt = MAC_8TAP_NN_S2(tbl_mc_l_coeff[g_mc_ftr][dy], b[j], b[j + w], b[j + w * 2], b[j + w * 3], b[j + w * 4], b[j + w * 5], b[j + w * 6], b[j + w * 7]);
 
                 pred[j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, pt);
+#endif
 
             }
             pred += s_pred;
@@ -3868,7 +4083,11 @@ void evc_mc_dmvr_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
 }
 #endif
 
-void evc_bl_mc_l_00(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h)
+void evc_bl_mc_l_00(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h
+#if BD_CF_EXT
+                    , int bit_depth
+#endif
+)
 {
     int i, j;
 
@@ -3931,7 +4150,11 @@ void evc_bl_mc_l_00(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *
     }
 }
 
-void evc_bl_mc_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h)
+void evc_bl_mc_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h
+#if BD_CF_EXT
+                    , int bit_depth
+#endif
+)
 {
     int i, j, dx;
     s32 pt;
@@ -3948,7 +4171,11 @@ void evc_bl_mc_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *
 #if OPT_SIMD_MC_BL
     if (1)
     {
+#if BD_CF_EXT
+        int max = ((1 << bit_depth) - 1);
+#else
         int max = ((1 << BIT_DEPTH) - 1);
+#endif
         int min = 0;
 
         mc_filter_bilin_horz_sse(ref, s_ref, pred, s_pred, tbl_bl_mc_l_coeff[dx], w, h, min, max, MAC_ADD_N0, MAC_SFT_N0, 1);
@@ -3958,7 +4185,11 @@ void evc_bl_mc_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *
     {
         __m128i coef[2], min, max;
 
+#if BD_CF_EXT
+        max = _mm_set1_epi16((1 << bit_depth) - 1);
+#else
         max = _mm_set1_epi16((1 << BIT_DEPTH) - 1);
+#endif
         min = _mm_setzero_si128();
 
         for (i = 0; i < 2; i++) coef[i] = _mm_set1_epi16(tbl_bl_mc_l_coeff[dx][i]);
@@ -3976,8 +4207,11 @@ void evc_bl_mc_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *
     else if ((w & 0x3) == 0)
     {
         __m128i coef[2], min, max;
-
+#if BD_CF_EXT
+        max = _mm_set1_epi16((1 << bit_depth) - 1);
+#else
         max = _mm_set1_epi16((1 << BIT_DEPTH) - 1);
+#endif
         min = _mm_setzero_si128();
 
         for (i = 0; i < 2; i++) coef[i] = _mm_set1_epi16(tbl_bl_mc_l_coeff[dx][i]);
@@ -4001,8 +4235,11 @@ void evc_bl_mc_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *
             for (j = 0; j < w; j++)
             {
                 pt = MAC_BL_N0(tbl_bl_mc_l_coeff[dx], ref[j], ref[j + 1]);
-
+#if BD_CF_EXT
+                pred[j] = EVC_CLIP3(0, (1 << bit_depth) - 1, pt);
+#else
                 pred[j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, pt);
+#endif
 
             }
             ref += s_ref;
@@ -4011,7 +4248,11 @@ void evc_bl_mc_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *
     }
 }
 
-void evc_bl_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h)
+void evc_bl_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h
+#if BD_CF_EXT
+                    , int bit_depth
+#endif
+)
 {
     int i, j, dy;
     s32 pt;
@@ -4028,7 +4269,11 @@ void evc_bl_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *
 #if OPT_SIMD_MC_BL
     if (1)
     {
+#if BD_CF_EXT
+        int max = ((1 << bit_depth) - 1);
+#else
         int max = ((1 << BIT_DEPTH) - 1);
+#endif
         int min = 0;
 
         mc_filter_bilin_vert_sse(ref, s_ref, pred, s_pred, tbl_bl_mc_l_coeff[dy], w, h, min, max, MAC_ADD_0N, MAC_SFT_0N, 1);
@@ -4037,8 +4282,11 @@ void evc_bl_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *
     if ((w & 0x7) == 0)
     {
         __m128i coef[2], min, max;
-
+#if BD_CF_EXT
+        max = _mm_set1_epi16((1 << bit_depth) - 1);
+#else
         max = _mm_set1_epi16((1 << BIT_DEPTH) - 1);
+#endif
         min = _mm_setzero_si128();
 
         for (i = 0; i < 2; i++) coef[i] = _mm_set1_epi16(tbl_bl_mc_l_coeff[dy][i]);
@@ -4057,7 +4305,11 @@ void evc_bl_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *
     {
         __m128i coef[2], min, max;
 
+#if BD_CF_EXT
+        max = _mm_set1_epi16((1 << bit_depth) - 1);
+#else
         max = _mm_set1_epi16((1 << BIT_DEPTH) - 1);
+#endif
         min = _mm_setzero_si128();
 
         for (i = 0; i < 2; i++) coef[i] = _mm_set1_epi16(tbl_bl_mc_l_coeff[dy][i]);
@@ -4082,7 +4334,11 @@ void evc_bl_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *
             {
                 pt = MAC_BL_0N(tbl_bl_mc_l_coeff[dy], ref[j], ref[s_ref + j]);
 
+#if BD_CF_EXT
+                pred[j] = EVC_CLIP3(0, (1 << bit_depth) - 1, pt);
+#else
                 pred[j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, pt);
+#endif
 
             }
             ref += s_ref;
@@ -4091,7 +4347,11 @@ void evc_bl_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *
     }
 }
 
-void evc_bl_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h)
+void evc_bl_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h
+#if BD_CF_EXT
+                    , int bit_depth
+#endif
+)
 {
     s16         buf[(MAX_CU_SIZE + MC_IBUF_PAD_L)*(MAX_CU_SIZE + MC_IBUF_PAD_L)];
     s16        *b;
@@ -4108,23 +4368,42 @@ void evc_bl_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *
     ref += (gmv_y >> 2) * s_ref + (gmv_x >> 2);
 #endif
 
+#if BD_CF_EXT
+    int shift1 = EVC_MIN(4, bit_depth - 8);
+    int shift2 = EVC_MAX(8, 20 - bit_depth);
+    int offset1 = 0;
+    int offset2 = (1 << (shift2 - 1));
+#endif
 #if X86_SSE
 #if OPT_SIMD_MC_BL
     if (1)
     {
+#if BD_CF_EXT
+        int max = ((1 << bit_depth) - 1);
+#else
         int max = ((1 << BIT_DEPTH) - 1);
+#endif
         int min = 0;
 
+#if BD_CF_EXT
+        mc_filter_bilin_horz_sse(ref, s_ref, buf, w, tbl_bl_mc_l_coeff[dx], w, (h + 1), min, max, offset1, shift1, 0);
+        mc_filter_bilin_vert_sse(buf, w, pred, s_pred, tbl_bl_mc_l_coeff[dy], w, h, min, max, offset2, shift2, 1);
+#else
         mc_filter_bilin_horz_sse(ref, s_ref, buf, w, tbl_bl_mc_l_coeff[dx], w, (h + 1), min, max, MAC_ADD_NN_S1, MAC_SFT_NN_S1, 0);
 
         mc_filter_bilin_vert_sse(buf, w, pred, s_pred, tbl_bl_mc_l_coeff[dy], w, h, min, max, MAC_ADD_NN_S2, MAC_SFT_NN_S2, 1);
+#endif
     }
 #else
     if ((w & 0x7) == 0)
     {
         __m128i coef[2], min, max;
 
+#if BD_CF_EXT
+        max = _mm_set1_epi16((1 << bit_depth) - 1);
+#else
         max = _mm_set1_epi16((1 << BIT_DEPTH) - 1);
+#endif
         min = _mm_setzero_si128();
 
         for (i = 0; i < 2; i++) coef[i] = _mm_set1_epi16(tbl_bl_mc_l_coeff[dx][i]);
@@ -4134,7 +4413,11 @@ void evc_bl_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *
         {
             for (j = 0; j < w; j += 8)
             {
+#if BD_CF_EXT
+                SSE_MC_FILTER_L_8PEL_BILIN(ref + j, 1, b + j, offset1, shift1, coef, 0, min, max);
+#else
                 SSE_MC_FILTER_L_8PEL_BILIN(ref + j, 1, b + j, MAC_ADD_NN_S1, MAC_SFT_NN_S1, coef, 0, min, max);
+#endif
             }
             ref += s_ref;
             b += w;
@@ -4147,7 +4430,11 @@ void evc_bl_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *
         {
             for (j = 0; j < w; j += 8)
             {
+#if BD_CF_EXT
+                SSE_MC_FILTER_L_8PEL_BILIN(b + j, w, pred + j, offset2, shift2, coef, 1, min, max);
+#else
                 SSE_MC_FILTER_L_8PEL_BILIN(b + j, w, pred + j, MAC_ADD_NN_S2, MAC_SFT_NN_S2, coef, 1, min, max);
+#endif
             }
             pred += s_pred;
             b += w;
@@ -4156,8 +4443,11 @@ void evc_bl_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *
     else if ((w & 0x3) == 0)
     {
         __m128i coef[2], min, max;
-
+#if BD_CF_EXT
+        max = _mm_set1_epi16((1 << bit_depth) - 1);
+#else
         max = _mm_set1_epi16((1 << BIT_DEPTH) - 1);
+#endif
         min = _mm_setzero_si128();
 
         for (i = 0; i < 2; i++) coef[i] = _mm_set1_epi16(tbl_bl_mc_l_coeff[dx][i]);
@@ -4167,7 +4457,11 @@ void evc_bl_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *
         {
             for (j = 0; j < w; j += 4)
             {
+#if BD_CF_EXT
+                SSE_MC_FILTER_L_4PEL_BILIN(ref + j, 1, b + j, offset1, shift1, coef, 0, min, max);
+#else
                 SSE_MC_FILTER_L_4PEL_BILIN(ref + j, 1, b + j, MAC_ADD_NN_S1, MAC_SFT_NN_S1, coef, 0, min, max);
+#endif
             }
             ref += s_ref;
             b += w;
@@ -4180,7 +4474,11 @@ void evc_bl_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *
         {
             for (j = 0; j < w; j += 4)
             {
+#if BD_CF_EXT
+                SSE_MC_FILTER_L_4PEL_BILIN(b + j, w, pred + j, offset2, shift2, coef, 1, min, max);
+#else
                 SSE_MC_FILTER_L_4PEL_BILIN(b + j, w, pred + j, MAC_ADD_NN_S2, MAC_SFT_NN_S2, coef, 1, min, max);
+#endif
             }
             pred += s_pred;
             b += w;
@@ -4195,7 +4493,11 @@ void evc_bl_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *
         {
             for (j = 0; j < w; j++)
             {
+#if BD_CF_EXT
+                b[j] = MAC_BL_NN_S1(tbl_bl_mc_l_coeff[dx], ref[j], ref[j + 1], offset1, shift1);
+#else
                 b[j] = MAC_BL_NN_S1(tbl_bl_mc_l_coeff[dx], ref[j], ref[j + 1]);
+#endif
             }
             ref += s_ref;
             b += w;
@@ -4206,8 +4508,13 @@ void evc_bl_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *
         {
             for (j = 0; j < w; j++)
             {
+#if BD_CF_EXT
+                pt = MAC_BL_NN_S2(tbl_bl_mc_l_coeff[dy], b[j], b[j + w], offset2, shift2);
+                pred[j] = EVC_CLIP3(0, (1 << bit_depth) - 1, pt);
+#else
                 pt = MAC_BL_NN_S2(tbl_bl_mc_l_coeff[dy], b[j], b[j + w]);
                 pred[j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, pt);
+#endif
             }
             pred += s_pred;
             b += w;
@@ -4326,7 +4633,11 @@ static const s8 tbl_mc_c_coeff[2][8][4] =
 };
 #endif
 
-void evc_mc_c_00(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h)
+void evc_mc_c_00(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h
+#if BD_CF_EXT
+                 , int bit_depth
+#endif
+)
 {
     int i, j;
 
@@ -4389,7 +4700,11 @@ void evc_mc_c_00(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
     }
 }
 
-void evc_mc_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h)
+void evc_mc_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h
+#if BD_CF_EXT
+                 , int bit_depth
+#endif
+)
 {
     int       i, j, dx;
     s32       pt;
@@ -4406,7 +4721,11 @@ void evc_mc_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
 #if OPT_SIMD_MC_C
     if (1)
     {
+#if BD_CF_EXT
+        int max = ((1 << bit_depth) - 1);
+#else
         int max = ((1 << BIT_DEPTH) - 1);
+#endif
         int min = 0;
 
         mc_filter_c_4pel_horz_sse(ref, s_ref, pred, s_pred, tbl_mc_c_coeff[g_mc_ftr][dx], w, h, min, max, MAC_ADD_N0, MAC_SFT_N0, 1);
@@ -4415,8 +4734,11 @@ void evc_mc_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
     if ((w & 0x7) == 0)
     {
         __m128i coef[4], min, max;
-
+#if BD_CF_EXT
+        max = _mm_set1_epi16((1 << bit_depth) - 1);
+#else
         max = _mm_set1_epi16((1 << BIT_DEPTH) - 1);
+#endif
         min = _mm_setzero_si128();
 
         for (i = 0; i < 4; i++) coef[i] = _mm_set1_epi16(tbl_mc_c_coeff[g_mc_ftr][dx][i]);
@@ -4435,7 +4757,11 @@ void evc_mc_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
     {
         __m128i coef[4], min, max;
 
+#if BD_CF_EXT
+        max = _mm_set1_epi16((1 << bit_depth) - 1);
+#else
         max = _mm_set1_epi16((1 << BIT_DEPTH) - 1);
+#endif
         min = _mm_setzero_si128();
 
         for (i = 0; i < 4; i++) coef[i] = _mm_set1_epi16(tbl_mc_c_coeff[g_mc_ftr][dx][i]);
@@ -4459,7 +4785,11 @@ void evc_mc_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
             for (j = 0; j < w; j++)
             {
                 pt = MAC_4TAP_N0(tbl_mc_c_coeff[g_mc_ftr][dx], ref[j], ref[j + 1], ref[j + 2], ref[j + 3]);
+#if BD_CF_EXT
+                pred[j] = EVC_CLIP3(0, (1 << bit_depth) - 1, pt);
+#else
                 pred[j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, pt);
+#endif
             }
             pred += s_pred;
             ref += s_ref;
@@ -4467,7 +4797,11 @@ void evc_mc_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
     }
 }
 
-void evc_mc_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h)
+void evc_mc_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h
+#if BD_CF_EXT
+                 , int bit_depth
+#endif
+)
 {
     int i, j, dy;
     s32       pt;
@@ -4484,7 +4818,11 @@ void evc_mc_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
 #if OPT_SIMD_MC_C
     if (1)
     {
+#if BD_CF_EXT
+        int max = ((1 << bit_depth) - 1);
+#else
         int max = ((1 << BIT_DEPTH) - 1);
+#endif
         int min = 0;
 
         mc_filter_c_4pel_vert_sse(ref, s_ref, pred, s_pred, tbl_mc_c_coeff[g_mc_ftr][dy], w, h, min, max, MAC_ADD_0N, MAC_SFT_0N, 1);
@@ -4494,7 +4832,11 @@ void evc_mc_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
     {
         __m128i coef[4], min, max;
 
+#if BD_CF_EXT
+        max = _mm_set1_epi16((1 << bit_depth) - 1);
+#else
         max = _mm_set1_epi16((1 << BIT_DEPTH) - 1);
+#endif
         min = _mm_setzero_si128();
 
         for (i = 0; i < 4; i++) coef[i] = _mm_set1_epi16(tbl_mc_c_coeff[g_mc_ftr][dy][i]);
@@ -4513,7 +4855,11 @@ void evc_mc_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
     {
         __m128i coef[4], min, max;
 
+#if BD_CF_EXT
+        max = _mm_set1_epi16((1 << bit_depth) - 1);
+#else
         max = _mm_set1_epi16((1 << BIT_DEPTH) - 1);
+#endif
         min = _mm_setzero_si128();
 
         for (i = 0; i < 4; i++) coef[i] = _mm_set1_epi16(tbl_mc_c_coeff[g_mc_ftr][dy][i]);
@@ -4537,7 +4883,11 @@ void evc_mc_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
             for (j = 0; j < w; j++)
             {
                 pt = MAC_4TAP_0N(tbl_mc_c_coeff[g_mc_ftr][dy], ref[j], ref[s_ref + j], ref[s_ref * 2 + j], ref[s_ref * 3 + j]);
+#if BD_CF_EXT
+                pred[j] = EVC_CLIP3(0, (1 << bit_depth) - 1, pt);
+#else
                 pred[j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, pt);
+#endif
             }
             pred += s_pred;
             ref += s_ref;
@@ -4545,7 +4895,11 @@ void evc_mc_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
     }
 }
 
-void evc_mc_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h)
+void evc_mc_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h
+#if BD_CF_EXT
+                 , int bit_depth
+#endif
+)
 {
     s16         buf[(MAX_CU_SIZE + MC_IBUF_PAD_C)*MAX_CU_SIZE];
     s16        *b;
@@ -4562,19 +4916,36 @@ void evc_mc_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
     dy = gmv_y & 0x7;
     ref += ((gmv_y >> 3) - 1) * s_ref + (gmv_x >> 3) - 1;
 #endif
+#if BD_CF_EXT
+    int shift1 = EVC_MIN(4, bit_depth - 8);
+    int shift2 = EVC_MAX(8, 20 - bit_depth);
+    int offset1 = 0;
+    int offset2 = (1 << (shift2 - 1));
+#endif
 
 #if X86_SSE
 #if OPT_SIMD_MC_C
     if (1)
     {
+#if BD_CF_EXT
+        int max = ((1 << bit_depth) - 1);
+#else
         int max = ((1 << BIT_DEPTH) - 1);
+#endif
         int min = 0;
 
+#if BD_CF_EXT
         mc_filter_c_4pel_horz_sse(ref, s_ref, buf, w, tbl_mc_c_coeff[g_mc_ftr][dx],
-            w, (h + 3), min, max, MAC_ADD_NN_S1, MAC_SFT_NN_S1, 0);
+                                  w, (h + 3), min, max, offset1, shift1, 0);
+        mc_filter_c_4pel_vert_sse(buf, w, pred, s_pred, tbl_mc_c_coeff[g_mc_ftr][dy],
+                                  w, h, min, max, offset2, shift2, 1);
+#else
+        mc_filter_c_4pel_horz_sse(ref, s_ref, buf, w, tbl_mc_c_coeff[g_mc_ftr][dx],
+                                  w, (h + 3), min, max, MAC_ADD_NN_S1, MAC_SFT_NN_S1, 0);
 
         mc_filter_c_4pel_vert_sse(buf, w, pred, s_pred, tbl_mc_c_coeff[g_mc_ftr][dy],
-            w, h, min, max, MAC_ADD_NN_S2, MAC_SFT_NN_S2, 1);
+                                  w, h, min, max, MAC_ADD_NN_S2, MAC_SFT_NN_S2, 1);
+#endif
     }
 #else
     if ((w & 0x7) == 0)
@@ -4591,7 +4962,11 @@ void evc_mc_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
         {
             for (j = 0; j < w; j += 8)
             {
+#if BD_CF_EXT
+                SSE_MC_FILTER_C_8PEL(ref + j, 1, b + j, offset1, shift1, coef, 0, min, max);
+#else
                 SSE_MC_FILTER_C_8PEL(ref + j, 1, b + j, MAC_ADD_NN_S1, MAC_SFT_NN_S1, coef, 0, min, max);
+#endif
             }
             ref += s_ref;
             b += w;
@@ -4604,7 +4979,11 @@ void evc_mc_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
         {
             for (j = 0; j < w; j += 8)
             {
+#if BD_CF_EXT
+                SSE_MC_FILTER_C_8PEL(b + j, w, pred + j, offset2, shift2, coef, 1, min, max);
+#else
                 SSE_MC_FILTER_C_8PEL(b + j, w, pred + j, MAC_ADD_NN_S2, MAC_SFT_NN_S2, coef, 1, min, max);
+#endif
             }
             pred += s_pred;
             b += w;
@@ -4624,7 +5003,11 @@ void evc_mc_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
         {
             for (j = 0; j < w; j += 4)
             {
+#if BD_CF_EXT
+                SSE_MC_FILTER_C_4PEL(ref + j, 1, b + j, offset2, shift2, coef, 0, min, max);
+#else
                 SSE_MC_FILTER_C_4PEL(ref + j, 1, b + j, MAC_ADD_NN_S1, MAC_SFT_NN_S1, coef, 0, min, max);
+#endif
             }
             ref += s_ref;
             b += w;
@@ -4637,7 +5020,11 @@ void evc_mc_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
         {
             for (j = 0; j < w; j += 4)
             {
+#if BD_CF_EXT
+                SSE_MC_FILTER_C_4PEL(b + j, w, pred + j, offset2, shift2, coef, 1, min, max);
+#else
                 SSE_MC_FILTER_C_4PEL(b + j, w, pred + j, MAC_ADD_NN_S2, MAC_SFT_NN_S2, coef, 1, min, max);
+#endif
             }
             pred += s_pred;
             b += w;
@@ -4652,7 +5039,11 @@ void evc_mc_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
         {
             for (j = 0; j < w; j++)
             {
+#if BD_CF_EXT
+                b[j] = MAC_4TAP_NN_S1(tbl_mc_c_coeff[g_mc_ftr][dx], ref[j], ref[j + 1], ref[j + 2], ref[j + 3], offset1, shift1);
+#else
                 b[j] = MAC_4TAP_NN_S1(tbl_mc_c_coeff[g_mc_ftr][dx], ref[j], ref[j + 1], ref[j + 2], ref[j + 3]);
+#endif
             }
             ref += s_ref;
             b += w;
@@ -4663,9 +5054,14 @@ void evc_mc_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
         {
             for (j = 0; j < w; j++)
             {
+#if BD_CF_EXT
+                pt = MAC_4TAP_NN_S2(tbl_mc_c_coeff[g_mc_ftr][dy], b[j], b[j + w], b[j + 2 * w], b[j + 3 * w], offset2, shift2);
+                pred[j] = EVC_CLIP3(0, (1 << bit_depth) - 1, pt);
+#else
                 pt = MAC_4TAP_NN_S2(tbl_mc_c_coeff[g_mc_ftr][dy], b[j], b[j + w], b[j + 2 * w], b[j + 3 * w]);
 
                 pred[j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, pt);
+#endif
 
             }
             pred += s_pred;
@@ -4675,7 +5071,11 @@ void evc_mc_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
 }
 
 #if DMVR_PADDING
-void evc_mc_dmvr_c_00(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h)
+void evc_mc_dmvr_c_00(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h
+#if BD_CF_EXT
+                      , int bit_depth
+#endif
+)
 {
     int i, j;
 
@@ -4736,7 +5136,11 @@ void evc_mc_dmvr_c_00(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
     }
 }
 
-void evc_mc_dmvr_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h)
+void evc_mc_dmvr_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h
+#if BD_CF_EXT
+                      , int bit_depth
+#endif
+)
 {
     int       i, j, dx;
     s32       pt;
@@ -4753,8 +5157,11 @@ void evc_mc_dmvr_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
 #if OPT_SIMD_MC_C
     if (1)
     {
-
+#if BD_CF_EXT
+        int max = ((1 << bit_depth) - 1);
+#else
         int max = ((1 << BIT_DEPTH) - 1);
+#endif
         int min = 0;
 
 
@@ -4809,7 +5216,11 @@ void evc_mc_dmvr_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
             {
                 pt = MAC_4TAP_N0(tbl_mc_c_coeff[g_mc_ftr][dx], ref[j], ref[j + 1], ref[j + 2], ref[j + 3]);
 
+#if BD_CF_EXT
+                pred[j] = EVC_CLIP3(0, (1 << bit_depth) - 1, pt);
+#else
                 pred[j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, pt);
+#endif
 
             }
             pred += s_pred;
@@ -4818,7 +5229,11 @@ void evc_mc_dmvr_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
     }
 }
 
-void evc_mc_dmvr_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h)
+void evc_mc_dmvr_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h
+#if BD_CF_EXT
+                      , int bit_depth
+#endif
+)
 {
     int i, j, dy;
     s32       pt;
@@ -4835,8 +5250,11 @@ void evc_mc_dmvr_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
 #if OPT_SIMD_MC_C
     if (1)
     {
-
+#if BD_CF_EXT
+        int max = ((1 << bit_depth) - 1);
+#else
         int max = ((1 << BIT_DEPTH) - 1);
+#endif
         int min = 0;
 
         mc_filter_c_4pel_vert_sse(ref, s_ref, pred, s_pred, tbl_mc_c_coeff[g_mc_ftr][dy], w, h, min, max, MAC_ADD_0N, MAC_SFT_0N, 1);
@@ -4890,7 +5308,11 @@ void evc_mc_dmvr_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
             {
                 pt = MAC_4TAP_0N(tbl_mc_c_coeff[g_mc_ftr][dy], ref[j], ref[s_ref + j], ref[s_ref * 2 + j], ref[s_ref * 3 + j]);
 
+#if BD_CF_EXT
+                pred[j] = EVC_CLIP3(0, (1 << bit_depth) - 1, pt);
+#else
                 pred[j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, pt);
+#endif
 
             }
             pred += s_pred;
@@ -4899,7 +5321,11 @@ void evc_mc_dmvr_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
     }
 }
 
-void evc_mc_dmvr_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h)
+void evc_mc_dmvr_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h
+#if BD_CF_EXT
+                      , int bit_depth
+#endif
+)
 {
     s16         buf[(MAX_CU_SIZE + MC_IBUF_PAD_C)*MAX_CU_SIZE];
     s16        *b;
@@ -4918,17 +5344,32 @@ void evc_mc_dmvr_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
     ref += ((gmv_y >> 3) - 1) * s_ref + (gmv_x >> 3) - 1;
 #endif
 
+#if BD_CF_EXT
+    int shift1 = EVC_MIN(4, bit_depth - 8);
+    int shift2 = EVC_MAX(8, 20 - bit_depth);
+    int offset1 = 0;
+    int offset2 = (1 << (shift2 - 1));
+#endif
 #if X86_SSE
 #if OPT_SIMD_MC_C
     if (1)
     {
 
+#if BD_CF_EXT
+        int max = ((1 << bit_depth) - 1);
+#else
         int max = ((1 << BIT_DEPTH) - 1);
+#endif
         int min = 0;
 
+#if BD_CF_EXT
+        mc_filter_c_4pel_horz_sse(ref, s_ref, buf, w, tbl_mc_c_coeff[g_mc_ftr][dx], w, (h + 3), min, max, offset1, shift1, 0);
+        mc_filter_c_4pel_vert_sse(buf, w, pred, s_pred, tbl_mc_c_coeff[g_mc_ftr][dy], w, h, min, max, offset2, shift2, 1);
+#else
         mc_filter_c_4pel_horz_sse(ref, s_ref, buf, w, tbl_mc_c_coeff[g_mc_ftr][dx], w, (h + 3), min, max, MAC_ADD_NN_S1, MAC_SFT_NN_S1, 0);
 
         mc_filter_c_4pel_vert_sse(buf, w, pred, s_pred, tbl_mc_c_coeff[g_mc_ftr][dy], w, h, min, max, MAC_ADD_NN_S2, MAC_SFT_NN_S2, 1);
+#endif
     }
 #else
     if ((w & 0x7) == 0)
@@ -4945,7 +5386,11 @@ void evc_mc_dmvr_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
         {
             for (j = 0; j < w; j += 8)
             {
+#if BD_CF_EXT
+                SSE_MC_FILTER_C_8PEL(ref + j, 1, b + j, offset1, shift1, coef, 0, min, max);
+#else
                 SSE_MC_FILTER_C_8PEL(ref + j, 1, b + j, MAC_ADD_NN_S1, MAC_SFT_NN_S1, coef, 0, min, max);
+#endif
             }
             ref += s_ref;
             b += w;
@@ -4958,7 +5403,11 @@ void evc_mc_dmvr_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
         {
             for (j = 0; j < w; j += 8)
             {
+#if BD_CF_EXT
+                SSE_MC_FILTER_C_8PEL(b + j, w, pred + j, offset2, shift2, coef, 1, min, max);
+#else
                 SSE_MC_FILTER_C_8PEL(b + j, w, pred + j, MAC_ADD_NN_S2, MAC_SFT_NN_S2, coef, 1, min, max);
+#endif
             }
             pred += s_pred;
             b += w;
@@ -4978,7 +5427,11 @@ void evc_mc_dmvr_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
         {
             for (j = 0; j < w; j += 4)
             {
+#if BD_CF_EXT
+                SSE_MC_FILTER_C_4PEL(ref + j, 1, b + j, ofset1, shift1, coef, 0, min, max);
+#else
                 SSE_MC_FILTER_C_4PEL(ref + j, 1, b + j, MAC_ADD_NN_S1, MAC_SFT_NN_S1, coef, 0, min, max);
+#endif
             }
             ref += s_ref;
             b += w;
@@ -4991,7 +5444,11 @@ void evc_mc_dmvr_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
         {
             for (j = 0; j < w; j += 4)
             {
+#if BD_CF_EXT
+                SSE_MC_FILTER_C_4PEL(b + j, w, pred + j, offset2, shift2, coef, 1, min, max);
+#else
                 SSE_MC_FILTER_C_4PEL(b + j, w, pred + j, MAC_ADD_NN_S2, MAC_SFT_NN_S2, coef, 1, min, max);
+#endif
             }
             pred += s_pred;
             b += w;
@@ -5006,7 +5463,11 @@ void evc_mc_dmvr_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
         {
             for (j = 0; j < w; j++)
             {
+#if BD_CF_EXT
+                b[j] = MAC_4TAP_NN_S1(tbl_mc_c_coeff[g_mc_ftr][dx], ref[j], ref[j + 1], ref[j + 2], ref[j + 3], offset1, shift1);
+#else
                 b[j] = MAC_4TAP_NN_S1(tbl_mc_c_coeff[g_mc_ftr][dx], ref[j], ref[j + 1], ref[j + 2], ref[j + 3]);
+#endif
             }
             ref += s_ref;
             b += w;
@@ -5017,9 +5478,14 @@ void evc_mc_dmvr_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
         {
             for (j = 0; j < w; j++)
             {
+#if BD_CF_EXT
+                pt = MAC_4TAP_NN_S2(tbl_mc_c_coeff[g_mc_ftr][dy], b[j], b[j + w], b[j + 2 * w], b[j + 3 * w],offset2, shift2);
+                pred[j] = EVC_CLIP3(0, (1 << bit_depth) - 1, pt);
+#else
                 pt = MAC_4TAP_NN_S2(tbl_mc_c_coeff[g_mc_ftr][dy], b[j], b[j + w], b[j + 2 * w], b[j + 3 * w]);
 
                 pred[j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, pt);
+#endif
 
             }
             pred += s_pred;
@@ -5157,7 +5623,11 @@ enum NSAD_BORDER_LINE
 
 #if OPT_SIMD_DMVR_MR_SAD
 static int dmvr_sad_mr_16b_sse(int w, int h, void * src1, void * src2,
-    int s_src1, int s_src2, s16 delta)
+                               int s_src1, int s_src2, s16 delta
+#if BD_CF_EXT
+                               , int bit_depth
+#endif
+)
 {
     int  i, j, rem_w;
     int mr_sad = 0;
@@ -5169,8 +5639,11 @@ static int dmvr_sad_mr_16b_sse(int w, int h, void * src1, void * src2,
     __m128i src2_8x16b_0, src2_8x16b_1, src2_8x16b_2, src2_8x16b_3;
 
     __m128i /*mm_zero, */mm_result1, mm_result2, mm_delta;
-
+#if BD_CF_EXT
+    assert(bit_depth <= 14);
+#else
     assert(BIT_DEPTH <= 14);
+#endif
 
     mm_delta = _mm_set1_epi16(delta);
 
@@ -5490,7 +5963,11 @@ static int dmvr_sad_mr_16b_sse(int w, int h, void * src1, void * src2,
 #endif
 
 s32 simple_sad(int w, int h, pel *src1, pel *src2, int s_src1, int s_src2, s32(*average_for_next_interation)[REF_PRED_POINTS_INDEXS_NUM], s32 *avg_borders_array, s32 *avg_extra_borders_array, EVC_POINT_INDEX point_index
-    , s32 *center_point_avgs_l0_l1, u8 l0_or_l1, BOOL do_not_sad)
+               , s32 *center_point_avgs_l0_l1, u8 l0_or_l1, BOOL do_not_sad
+#if BD_CF_EXT
+               , int bit_depth
+#endif
+)
 {
     int i, j;
     s32 sad = 0;
@@ -5679,7 +6156,11 @@ s32 simple_sad(int w, int h, pel *src1, pel *src2, int s_src1, int s_src2, s32(*
     delta = mean_t - 2 * mean_c;
 
 #if OPT_SIMD_DMVR_MR_SAD
-    sad = dmvr_sad_mr_16b_sse(w, h, src1, src2, s_src1, s_src2, delta);
+    sad = dmvr_sad_mr_16b_sse(w, h, src1, src2, s_src1, s_src2, delta
+#if BD_CF_EXT
+                              , bit_depth
+#endif
+    );
 #else
     for (i = 0; i < h; i++)
     {
@@ -5773,11 +6254,12 @@ static BOOL mv_clip_only_one_ref_dmvr(int x, int y, int pic_w, int pic_h, int w,
     return clip_flag;
 }
 
-
-
 pel* refinement_motion_vectors_in_one_ref(int x, int y, int pic_w, int pic_h, int w, int h, const EVC_PIC *ref_pic, s16(*mv), pel dmvr_current_template[MAX_CU_SIZE*MAX_CU_SIZE], pel(*dmvr_ref_pred_interpolated), int stride
-    , BOOL calculate_center, s32 *center_cost
-    , s32 *center_point_avgs_l0_l1, u8 l0_or_l1
+                                          , BOOL calculate_center, s32 *center_cost
+                                          , s32 *center_point_avgs_l0_l1, u8 l0_or_l1
+#if BD_CF_EXT
+                                          , int bit_depth
+#endif
 )
 {
     int BEST_COST_FROM_INTEGER = 0;
@@ -5809,12 +6291,19 @@ pel* refinement_motion_vectors_in_one_ref(int x, int y, int pic_w, int pic_h, in
             cost[point_index] = center_cost[COST_FROM_L0];
             simple_sad(w, h, dmvr_current_template, dmvr_ref_pred_interpolated + offset, w, stride, average_for_next_interation, avg_borders_array, avg_extra_borders_array, point_index
                        , center_point_avgs_l0_l1, l0_or_l1, TRUE
+#if BD_CF_EXT
+                       , bit_depth
+#endif
             );
         }
         else
         {
             cost[point_index] = simple_sad(w, h, dmvr_current_template, dmvr_ref_pred_interpolated + offset, w, stride, average_for_next_interation, avg_borders_array, avg_extra_borders_array, point_index
-                                           , center_point_avgs_l0_l1, l0_or_l1, FALSE);
+                                           , center_point_avgs_l0_l1, l0_or_l1, FALSE
+#if BD_CF_EXT
+                                           , bit_depth
+#endif
+            );
         }
         switch(point_index)
         {
@@ -5868,15 +6357,23 @@ pel* refinement_motion_vectors_in_one_ref(int x, int y, int pic_w, int pic_h, in
         // obtain left top point position from last used right center point
         offset -= (REF_PRED_EXTENTION_PEL_COUNT * stride + (REF_PRED_EXTENTION_PEL_COUNT << 1));
         cost[LEFT_TOP] = simple_sad(w, h, dmvr_current_template, dmvr_ref_pred_interpolated + offset, w, stride, average_for_next_interation, avg_borders_array, avg_extra_borders_array, LEFT_TOP
-            , center_point_avgs_l0_l1, l0_or_l1, FALSE);
+                                    , center_point_avgs_l0_l1, l0_or_l1, FALSE
+#if BD_CF_EXT
+                                    , bit_depth
+#endif
+        );
     }
     // right top point
-    else if (points_flag[CENTER_TOP] && points_flag[RIGHT_CENTER])
+    else if(points_flag[CENTER_TOP] && points_flag[RIGHT_CENTER])
     {
         // obtain right top point position from last used right center point
         offset -= (REF_PRED_EXTENTION_PEL_COUNT * stride);
         cost[RIGHT_TOP] = simple_sad(w, h, dmvr_current_template, dmvr_ref_pred_interpolated + offset, w, stride, average_for_next_interation, avg_borders_array, avg_extra_borders_array, RIGHT_TOP
-            , center_point_avgs_l0_l1, l0_or_l1, FALSE);
+                                     , center_point_avgs_l0_l1, l0_or_l1, FALSE
+#if BD_CF_EXT
+                                     , bit_depth
+#endif
+        );
 
     }
     // left bottom point
@@ -5885,15 +6382,23 @@ pel* refinement_motion_vectors_in_one_ref(int x, int y, int pic_w, int pic_h, in
         // obtain left bottom point position from last used right center point
         offset -= (-(REF_PRED_EXTENTION_PEL_COUNT * stride) + (REF_PRED_EXTENTION_PEL_COUNT << 1));
         cost[LEFT_BOTTOM] = simple_sad(w, h, dmvr_current_template, dmvr_ref_pred_interpolated + offset, w, stride, average_for_next_interation, avg_borders_array, avg_extra_borders_array, LEFT_BOTTOM
-            , center_point_avgs_l0_l1, l0_or_l1, FALSE);
+                                       , center_point_avgs_l0_l1, l0_or_l1, FALSE
+#if BD_CF_EXT
+                                       , bit_depth
+#endif
+        );
     }
     // right bottom point
-    else if (points_flag[CENTER_BOTTOM] && points_flag[RIGHT_CENTER])
+    else if(points_flag[CENTER_BOTTOM] && points_flag[RIGHT_CENTER])
     {
         // obtain right bottom point position from last used right center point
         offset += (REF_PRED_EXTENTION_PEL_COUNT * stride);
         cost[RIGHT_BOTTOM] = simple_sad(w, h, dmvr_current_template, dmvr_ref_pred_interpolated + offset, w, stride, average_for_next_interation, avg_borders_array, avg_extra_borders_array, RIGHT_BOTTOM
-            , center_point_avgs_l0_l1, l0_or_l1, FALSE);
+                                        , center_point_avgs_l0_l1, l0_or_l1, FALSE
+#if BD_CF_EXT
+                                        , bit_depth
+#endif
+        );
     }
 
     for (point_index = CENTER; point_index < REF_PRED_POINTS_NUM; ++point_index)
@@ -5979,7 +6484,10 @@ void copy_to_dst(int w, int h, pel *src, pel *dst, int s_stride, int d_stride)
 }
 
 void predict_new_line(int x, int y, int pic_w, int pic_h, const EVC_PIC *ref_pic, const s16(*mv), const s16(*mv_current), pel *preds_array, const s16(*mv_offsets), int stride, int w, int h
-    , BOOL all_sides
+                      , BOOL all_sides
+#if BD_CF_EXT
+                      , int bit_depth_luma, int bit_depth_chroma
+#endif
 )
 {
     s16       ref_pred_mv_scaled_step = REF_PRED_EXTENTION_PEL_COUNT << 2;
@@ -6005,9 +6513,17 @@ void predict_new_line(int x, int y, int pic_w, int pic_h, const EVC_PIC *ref_pic
             pred_buffer_offset = -REF_PRED_EXTENTION_PEL_COUNT * stride + REF_PRED_EXTENTION_PEL_COUNT * w;
 
 #if MC_PRECISION_ADD
+#if BD_CF_EXT
+            evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array + pred_buffer_offset, REF_PRED_EXTENTION_PEL_COUNT, h + (REF_PRED_EXTENTION_PEL_COUNT << 1), bit_depth_luma);
+#else
             evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array + pred_buffer_offset, REF_PRED_EXTENTION_PEL_COUNT, h + (REF_PRED_EXTENTION_PEL_COUNT << 1));
+#endif
+#else
+#if BD_CF_EXT
+            evc_bl_mc_l(ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, stride, preds_array + pred_buffer_offset, REF_PRED_EXTENTION_PEL_COUNT, h + (REF_PRED_EXTENTION_PEL_COUNT << 1), bit_depth_luma);
 #else
             evc_bl_mc_l(ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, stride, preds_array + pred_buffer_offset, REF_PRED_EXTENTION_PEL_COUNT, h + (REF_PRED_EXTENTION_PEL_COUNT << 1));
+#endif
 #endif
         }
         // go left
@@ -6024,9 +6540,17 @@ void predict_new_line(int x, int y, int pic_w, int pic_h, const EVC_PIC *ref_pic
             pred_buffer_offset = -REF_PRED_EXTENTION_PEL_COUNT * stride - REF_PRED_EXTENTION_PEL_COUNT;
 
 #if MC_PRECISION_ADD
+#if BD_CF_EXT
+            evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array + pred_buffer_offset, REF_PRED_EXTENTION_PEL_COUNT, h + (REF_PRED_EXTENTION_PEL_COUNT << 1), bit_depth_luma);
+#else
             evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array + pred_buffer_offset, REF_PRED_EXTENTION_PEL_COUNT, h + (REF_PRED_EXTENTION_PEL_COUNT << 1));
+#endif
+#else
+#if BD_CF_EXT
+            evc_bl_mc_l(ref_pic->y, (qpel_gmv_x), (qpel_gmv_y), ref_pic->s_l, stride, preds_array + pred_buffer_offset, REF_PRED_EXTENTION_PEL_COUNT, h + (REF_PRED_EXTENTION_PEL_COUNT << 1), bit_depth_luma);
 #else
             evc_bl_mc_l(ref_pic->y, (qpel_gmv_x), (qpel_gmv_y), ref_pic->s_l, stride, preds_array + pred_buffer_offset, REF_PRED_EXTENTION_PEL_COUNT, h + (REF_PRED_EXTENTION_PEL_COUNT << 1));
+#endif
 #endif
         }
     }
@@ -6048,9 +6572,17 @@ void predict_new_line(int x, int y, int pic_w, int pic_h, const EVC_PIC *ref_pic
             pred_buffer_offset = REF_PRED_EXTENTION_PEL_COUNT * stride * h - REF_PRED_EXTENTION_PEL_COUNT;
 
 #if MC_PRECISION_ADD
+#if BD_CF_EXT
+            evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array + pred_buffer_offset, w + (REF_PRED_EXTENTION_PEL_COUNT << 1), REF_PRED_EXTENTION_PEL_COUNT, bit_depth_luma);
+#else
             evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array + pred_buffer_offset, w + (REF_PRED_EXTENTION_PEL_COUNT << 1), REF_PRED_EXTENTION_PEL_COUNT);
+#endif
+#else
+#if BD_CF_EXT
+            evc_bl_mc_l(ref_pic->y, (qpel_gmv_x), (qpel_gmv_y), ref_pic->s_l, stride, preds_array + pred_buffer_offset, w + (REF_PRED_EXTENTION_PEL_COUNT << 1), REF_PRED_EXTENTION_PEL_COUNT, bit_depth_luma);
 #else
             evc_bl_mc_l(ref_pic->y, (qpel_gmv_x), (qpel_gmv_y), ref_pic->s_l, stride, preds_array + pred_buffer_offset, w + (REF_PRED_EXTENTION_PEL_COUNT << 1), REF_PRED_EXTENTION_PEL_COUNT);
+#endif
 #endif
         }
         // go up
@@ -6066,9 +6598,17 @@ void predict_new_line(int x, int y, int pic_w, int pic_h, const EVC_PIC *ref_pic
             pred_buffer_offset = -REF_PRED_EXTENTION_PEL_COUNT * stride - REF_PRED_EXTENTION_PEL_COUNT;
 
 #if MC_PRECISION_ADD
+#if BD_CF_EXT
+            evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array + pred_buffer_offset, w + (REF_PRED_EXTENTION_PEL_COUNT << 1), REF_PRED_EXTENTION_PEL_COUNT, bit_depth_luma);
+#else
             evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array + pred_buffer_offset, w + (REF_PRED_EXTENTION_PEL_COUNT << 1), REF_PRED_EXTENTION_PEL_COUNT);
+#endif
+#else
+#if BD_CF_EXT
+            evc_bl_mc_l(ref_pic->y, (qpel_gmv_x), (qpel_gmv_y), ref_pic->s_l, stride, preds_array + pred_buffer_offset, w + (REF_PRED_EXTENTION_PEL_COUNT << 1), REF_PRED_EXTENTION_PEL_COUNT, bit_depth_luma);
 #else
             evc_bl_mc_l(ref_pic->y, (qpel_gmv_x), (qpel_gmv_y), ref_pic->s_l, stride, preds_array + pred_buffer_offset, w + (REF_PRED_EXTENTION_PEL_COUNT << 1), REF_PRED_EXTENTION_PEL_COUNT);
+#endif
 #endif
         }
     }
@@ -6076,7 +6616,7 @@ void predict_new_line(int x, int y, int pic_w, int pic_h, const EVC_PIC *ref_pic
 
 s32 evc_DMVR_cost(int w, int h, pel *src1, pel *src2, int s_src1, int s_src2
 #if USE_MR_SAD
-    , int mean_l0, int mean_l1
+                  , int mean_l0, int mean_l1
 #endif
 )
 {
@@ -6117,6 +6657,7 @@ s32 evc_DMVR_cost(int w, int h, pel *src1, pel *src2, int s_src1, int s_src2
     }
     return sad;
 }
+
 #if USE_MR_SAD
 void evc_block_sum(pel *blk, int s_blk, int w, int h, int *sum)
 {
@@ -6146,11 +6687,12 @@ void evc_block_sum(pel *blk, int s_blk, int w, int h, int *sum)
     }
 }
 #endif
+
 void evc_DMVR_refine(int w, int h, pel *ref_l0, int s_ref_l0, pel *ref_l1, int s_ref_l1,
 #if USE_MR_SAD
-    s32 *centre_mean_l0, s32 *centre_mean_l1,
+                     s32 *centre_mean_l0, s32 *centre_mean_l1,
 #endif
-    s32 *minCost, s16 *delta_mvX, s16 *delta_mvY, s32 *SAD_Array)
+                     s32 *minCost, s16 *delta_mvX, s16 *delta_mvY, s32 *SAD_Array)
 {
     enum SAD_POINT_INDEX idx;
     s32 LineMeanL0[4] = { 0, 0, 0, 0 };
@@ -6282,6 +6824,7 @@ void evc_DMVR_refine(int w, int h, pel *ref_l0, int s_ref_l0, pel *ref_l1, int s
     *centre_mean_l1 = best_meanL1;
 #endif
 }
+
 __inline s32 div_for_maxq7(s64 N, s64 D)
 {
     s32 sign, q;
@@ -6317,6 +6860,7 @@ __inline s32 div_for_maxq7(s64 N, s64 D)
         return (-q);
     return(q);
 }
+
 void evc_SubPelErrorSrfc(
     int *sadBuffer,
     int *deltaMv
@@ -6422,14 +6966,23 @@ void padding(pel *ptr, int iStride, int iWidth, int iHeight, int PadLeftsize, in
     }
 }
 
-void prefetch_for_mc(int x, int y,int pu_x, int pu_y, int pu_w, int pu_h,
-    int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16(*mv)[MV_D], EVC_REFP(*refp)[REFP_NUM]
-    , int iteration, pel dmvr_padding_buf[REFP_NUM][N_C][PAD_BUFFER_STRIDE * PAD_BUFFER_STRIDE])
+void prefetch_for_mc(int x, int y, int pu_x, int pu_y, int pu_w, int pu_h,
+                     int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16(*mv)[MV_D], EVC_REFP(*refp)[REFP_NUM]
+                     , int iteration, pel dmvr_padding_buf[REFP_NUM][N_C][PAD_BUFFER_STRIDE * PAD_BUFFER_STRIDE]
+#if BD_CF_EXT
+                     , int chroma_format_idc
+#endif
+)
 {
     s16          mv_temp[REFP_NUM][MV_D];
 
     int l_w = pu_w, l_h = pu_h;
+#if BD_CF_EXT
+    int c_w = pu_w >> (GET_CHROMA_W_SHIFT(chroma_format_idc));
+    int c_h = pu_h >> (GET_CHROMA_H_SHIFT(chroma_format_idc));
+#else
     int c_w = pu_w >> 1, c_h = pu_h >> 1;
+#endif
     int topleft_x_offset = pu_x - x;
     int topleft_y_offset = pu_y - y;
 
@@ -6461,21 +7014,29 @@ void prefetch_for_mc(int x, int y,int pu_x, int pu_y, int pu_w, int pu_h,
         // chroma
         filtersize = NTAPS_CHROMA;
         num_extra_pixel_left_for_filter = ((filtersize >> 1) - 1);
-
+#if BD_CF_EXT
+        offset = (DMVR_ITER_COUNT + (topleft_y_offset >> (GET_CHROMA_H_SHIFT(chroma_format_idc)))) * PAD_BUFFER_STRIDE + (topleft_x_offset >> (GET_CHROMA_H_SHIFT(chroma_format_idc))) + DMVR_ITER_COUNT;
+#else
         offset = (DMVR_ITER_COUNT + (topleft_y_offset >> 1)) * PAD_BUFFER_STRIDE + (topleft_x_offset >> 1) + DMVR_ITER_COUNT;
+#endif
         padsize = DMVR_PAD_LENGTH >> 1;
 
-        ref = ref_pic->u + ((qpel_gmv_y >> 5) - 1) * ref_pic->s_c + (qpel_gmv_x >> 5) - 1;
-        dst = dmvr_padding_buf[i][1] + offset;
-        copy_buffer(ref, ref_pic->s_c, dst, PAD_BUFFER_STRIDE, (c_w + filtersize), (c_h + filtersize));
-        padding(dst, PAD_BUFFER_STRIDE, (c_w + filtersize - 1), (c_h + filtersize - 1), padsize,
-            padsize, padsize, padsize);
+#if BD_CF_EXT
+        if(chroma_format_idc)
+#endif
+        {
+            ref = ref_pic->u + ((qpel_gmv_y >> 5) - 1) * ref_pic->s_c + (qpel_gmv_x >> 5) - 1;
+            dst = dmvr_padding_buf[i][1] + offset;
+            copy_buffer(ref, ref_pic->s_c, dst, PAD_BUFFER_STRIDE, (c_w + filtersize), (c_h + filtersize));
+            padding(dst, PAD_BUFFER_STRIDE, (c_w + filtersize - 1), (c_h + filtersize - 1), padsize,
+                    padsize, padsize, padsize);
 
-        ref = ref_pic->v + ((qpel_gmv_y >> 5) - 1) * ref_pic->s_c + (qpel_gmv_x >> 5) - 1;
-        dst = dmvr_padding_buf[i][2] + offset;
-        copy_buffer(ref, ref_pic->s_c, dst, PAD_BUFFER_STRIDE, (c_w + filtersize), (c_h + filtersize));
-        padding(dst, PAD_BUFFER_STRIDE, (c_w + filtersize - 1), (c_h + filtersize - 1), padsize,
-            padsize, padsize, padsize);
+            ref = ref_pic->v + ((qpel_gmv_y >> 5) - 1) * ref_pic->s_c + (qpel_gmv_x >> 5) - 1;
+            dst = dmvr_padding_buf[i][2] + offset;
+            copy_buffer(ref, ref_pic->s_c, dst, PAD_BUFFER_STRIDE, (c_w + filtersize), (c_h + filtersize));
+            padding(dst, PAD_BUFFER_STRIDE, (c_w + filtersize - 1), (c_h + filtersize - 1), padsize,
+                    padsize, padsize, padsize);
+        }
     }
 }
 
@@ -6486,11 +7047,15 @@ void final_paddedMC_forDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8
 #else
 void final_paddedMC_forDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16(*inital_mv)[MV_D], s16(*refined_mv)[MV_D], EVC_REFP(*refp)[REFP_NUM], pel pred[REFP_NUM][N_C][MAX_CU_DIM]
 #endif
-    , int sub_pred_offset_x
-    , int sub_pred_offset_y
-    , int cu_pred_stride
+                            , int sub_pred_offset_x
+                            , int sub_pred_offset_y
+                            , int cu_pred_stride
 #if DMVR_PADDING
-    , pel dmvr_padding_buf[REFP_NUM][N_C][PAD_BUFFER_STRIDE * PAD_BUFFER_STRIDE]
+                            , pel dmvr_padding_buf[REFP_NUM][N_C][PAD_BUFFER_STRIDE * PAD_BUFFER_STRIDE]
+#endif
+#if BD_CF_EXT
+                            , int bit_depth_luma, int bit_depth_chroma
+                            , int chroma_format_idc
 #endif
 )
 {
@@ -6554,26 +7119,72 @@ void final_paddedMC_forDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8
 
         pel *src = dmvr_padding_buf[i][0] + offset + sub_pred_offset_x + sub_pred_offset_y * PAD_BUFFER_STRIDE;;
         pel *temp = pred[i][Y_C] + sub_pred_offset_x + sub_pred_offset_y * cu_pred_stride;
+#if BD_CF_EXT
+        evc_dmvr_mc_l(src, qpel_gmv_x, qpel_gmv_y, PAD_BUFFER_STRIDE, cu_pred_stride, temp, w, h, bit_depth_luma);
+#else
         evc_dmvr_mc_l(src, qpel_gmv_x, qpel_gmv_y, PAD_BUFFER_STRIDE, cu_pred_stride, temp, w, h);
+#endif
         filter_size = NTAPS_CHROMA;
         num_extra_pixel_left_for_filter = ((filter_size >> 1) - 1);
         offset = (DMVR_ITER_COUNT + num_extra_pixel_left_for_filter) * ((PAD_BUFFER_STRIDE + 1));
         offset += (delta_y_c)* PAD_BUFFER_STRIDE;
         offset += (delta_x_c);
+#if BD_CF_EXT
+        if(chroma_format_idc)
+        {
+            src = dmvr_padding_buf[i][1] + offset + (sub_pred_offset_x >> (GET_CHROMA_W_SHIFT(chroma_format_idc))) + (sub_pred_offset_y >> (GET_CHROMA_H_SHIFT(chroma_format_idc))) * PAD_BUFFER_STRIDE;
+            temp = pred[i][U_C] + (sub_pred_offset_x >> (GET_CHROMA_W_SHIFT(chroma_format_idc))) + (sub_pred_offset_y >> (GET_CHROMA_H_SHIFT(chroma_format_idc))) * (cu_pred_stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)));
+#if BD_CF_EXT
+            evc_dmvr_mc_c(src, qpel_gmv_x, qpel_gmv_y, PAD_BUFFER_STRIDE, cu_pred_stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), temp, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                          , h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma);
+#else
+            evc_dmvr_mc_c(src, qpel_gmv_x, qpel_gmv_y, PAD_BUFFER_STRIDE, cu_pred_stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), temp, w >> 1(GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)));
+#endif
+            src = dmvr_padding_buf[i][2] + offset + (sub_pred_offset_x >> (GET_CHROMA_W_SHIFT(chroma_format_idc))) + (sub_pred_offset_y >> (GET_CHROMA_H_SHIFT(chroma_format_idc))) * PAD_BUFFER_STRIDE;
+            temp = pred[i][V_C] + (sub_pred_offset_x >> (GET_CHROMA_W_SHIFT(chroma_format_idc))) + (sub_pred_offset_y >> (GET_CHROMA_H_SHIFT(chroma_format_idc))) * (cu_pred_stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)));
+#if BD_CF_EXT
+            evc_dmvr_mc_c(src, qpel_gmv_x, qpel_gmv_y, PAD_BUFFER_STRIDE, cu_pred_stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), temp, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                          , h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma);
+        }
+#else
+        evc_dmvr_mc_c(src, qpel_gmv_x, qpel_gmv_y, PAD_BUFFER_STRIDE, cu_pred_stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), temp, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)));
+#endif
+#else
         src = dmvr_padding_buf[i][1] + offset + (sub_pred_offset_x >> 1) + (sub_pred_offset_y >> 1) * PAD_BUFFER_STRIDE;;
         temp = pred[i][U_C] + (sub_pred_offset_x >> 1) + (sub_pred_offset_y >> 1) * (cu_pred_stride >> 1);
+#if BD_CF_EXT
+        evc_dmvr_mc_c(src, qpel_gmv_x, qpel_gmv_y, PAD_BUFFER_STRIDE, cu_pred_stride >> 1, temp, w >> 1, h >> 1, bit_depth_chroma);
+#else
         evc_dmvr_mc_c(src, qpel_gmv_x, qpel_gmv_y, PAD_BUFFER_STRIDE, cu_pred_stride >> 1, temp, w >> 1, h >> 1);
+#endif
 
         src = dmvr_padding_buf[i][2] + offset + (sub_pred_offset_x >> 1) + (sub_pred_offset_y >> 1) * PAD_BUFFER_STRIDE;;
         temp = pred[i][V_C] + (sub_pred_offset_x >> 1) + (sub_pred_offset_y >> 1) * (cu_pred_stride >> 1);
+#if BD_CF_EXT
+        evc_dmvr_mc_c(src, qpel_gmv_x, qpel_gmv_y, PAD_BUFFER_STRIDE, cu_pred_stride >> 1, temp, w >> 1, h >> 1, bit_depth_chroma);
+#else
         evc_dmvr_mc_c(src, qpel_gmv_x, qpel_gmv_y, PAD_BUFFER_STRIDE, cu_pred_stride >> 1, temp, w >> 1, h >> 1);
+#endif
+#endif
 #else
         pel *temp = pred[i][Y_C] + sub_pred_offset_x + sub_pred_offset_y * cu_pred_stride;
-        evc_mc_l(ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, cu_pred_stride, temp, w, h);
+        evc_mc_l(ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, cu_pred_stride, temp, w, h
+#if BD_CF_EXT
+                 , bit_depth_luma
+#endif
+        );
         temp = pred[i][U_C] + (sub_pred_offset_x >> 1) + (sub_pred_offset_y >> 1) * (cu_pred_stride >> 1);
-        evc_mc_c(qpel_gmv_x, qpel_gmv_y, ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cu_pred_stride >> 1, temp, w >> 1, h >> 1);
+        evc_mc_c(qpel_gmv_x, qpel_gmv_y, ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cu_pred_stride >> 1, temp, w >> 1, h >> 1
+#if BD_CF_EXT
+                 , bit_depth_chroma
+#endif
+        );
         temp = pred[i][V_C] + (sub_pred_offset_x >> 1) + (sub_pred_offset_y >> 1) * (cu_pred_stride >> 1);
-        evc_mc_c(qpel_gmv_x, qpel_gmv_y, ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cu_pred_stride >> 1, temp, w >> 1, h >> 1);
+        evc_mc_c(qpel_gmv_x, qpel_gmv_y, ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cu_pred_stride >> 1, temp, w >> 1, h >> 1
+#if BD_CF_EXT
+                 , bit_depth_chroma
+#endif
+        );
 #endif
 #else
         assert(false);
@@ -6592,14 +7203,18 @@ void final_paddedMC_forDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8
 
 
 void processDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16(*mv)[MV_D], EVC_REFP(*refp)[REFP_NUM], pel pred[REFP_NUM][N_C][MAX_CU_DIM], \
-    int poc_c, pel *dmvr_current_template, pel dmvr_ref_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT)) * (MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT))]
-    , pel dmvr_half_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + 1) * (MAX_CU_SIZE + 1)]
-    , int iteration
+                 int poc_c, pel *dmvr_current_template, pel dmvr_ref_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT)) * (MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT))]
+                 , pel dmvr_half_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + 1) * (MAX_CU_SIZE + 1)]
+                 , int iteration
 #if DMVR_PADDING
-    , pel dmvr_padding_buf[REFP_NUM][N_C][PAD_BUFFER_STRIDE * PAD_BUFFER_STRIDE]
+                 , pel dmvr_padding_buf[REFP_NUM][N_C][PAD_BUFFER_STRIDE * PAD_BUFFER_STRIDE]
 #endif
 #if DMVR_LAG
-    , s16 dmvr_mv[MAX_CU_CNT_IN_LCU][REFP_NUM][MV_D]
+                 , s16 dmvr_mv[MAX_CU_CNT_IN_LCU][REFP_NUM][MV_D]
+#endif
+#if BD_CF_EXT
+                 , int bit_depth_luma, int bit_depth_chroma
+                 , int chroma_format_idc
 #endif
 )
 {
@@ -6641,7 +7256,11 @@ void processDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_
     tempMv[MV_Y] = starting_mv[REFP_0][MV_Y] - (iteration << ref_pred_mv_scaled_step);
     qpel_gmv_x = (x << 2) + tempMv[MV_X];
     qpel_gmv_y = (y << 2) + tempMv[MV_Y];
+#if BD_CF_EXT
+    evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array[REFP_0], (w + iteration * 2), (h + iteration * 2), bit_depth_luma);
+#else
     evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array[REFP_0], (w + iteration * 2), (h + iteration * 2));
+#endif
 
     // REF_PIC_LIST_1
     ref_pic = refp[refi[REFP_1]][REFP_1].pic;
@@ -6650,7 +7269,11 @@ void processDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_
     tempMv[MV_Y] = starting_mv[REFP_1][MV_Y] - (iteration << ref_pred_mv_scaled_step);
     qpel_gmv_x = (x << 2) + tempMv[MV_X];
     qpel_gmv_y = (y << 2) + tempMv[MV_Y];
+#if BD_CF_EXT
+    evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array[REFP_1], (w + iteration * 2), (h + iteration * 2),bit_depth_luma);
+#else
     evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array[REFP_1], (w + iteration * 2), (h + iteration * 2));
+#endif
 
     // go to the center point
     pel *preds_centre_array[REFP_NUM];
@@ -6726,11 +7349,11 @@ void processDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_
                 arrayCost[SAD_CENTER] = minCost;
                 evc_DMVR_refine(dx, dy, addr_l0, stride, addr_l1, stride
 #if USE_MR_SAD
-                    , &avg_l0, &avg_l1
+                                , &avg_l0, &avg_l1
 #endif      
-                    , &minCost
-                    , &delta_mv[MV_X], &delta_mv[MV_Y]
-                    , arrayCost);
+                                , &minCost
+                                , &delta_mv[MV_X], &delta_mv[MV_Y]
+                                , arrayCost);
 
                 if (delta_mv[MV_X] == 0 && delta_mv[MV_Y] == 0)
                 {
@@ -6802,7 +7425,11 @@ void processDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_
     {
         for (int startX = 0, subPuStartX = x; subPuStartX < (x + w); subPuStartX = subPuStartX + dx, startX += dx)
         {
-            prefetch_for_mc(x, y, subPuStartX, subPuStartY, dx, dy, pic_w, pic_h, w, h, refi, starting_mv, refp, iteration, dmvr_padding_buf);
+            prefetch_for_mc(x, y, subPuStartX, subPuStartY, dx, dy, pic_w, pic_h, w, h, refi, starting_mv, refp, iteration, dmvr_padding_buf
+#if BD_CF_EXT
+                            , chroma_format_idc
+#endif
+            );
 #if DMVR_SUBCU
 #if FIX_DMVR_MV_RANGE
             s32 dmvr_mv[REFP_NUM][MV_D] = { { sub_pu_L0[num][MV_X], sub_pu_L0[num][MV_Y] },
@@ -6824,6 +7451,10 @@ void processDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_
                                    , w
 #if DMVR_PADDING
                                    , dmvr_padding_buf
+#endif
+#if BD_CF_EXT
+                                   , bit_depth_luma, bit_depth_chroma
+                                   , chroma_format_idc
 #endif
             );
 #if DMVR_SUBCU
@@ -6847,7 +7478,12 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
             , s16 dmvr_mv[MAX_CU_CNT_IN_LCU][REFP_NUM][MV_D]
 #endif
 #endif
-            , int sps_admvp_flag)
+            , int sps_admvp_flag
+#if BD_CF_EXT
+            , int bit_depth_luma, int bit_depth_chroma
+            , int chroma_format_idc
+#endif
+)
 {
     EVC_PIC    *ref_pic;
 #if !OPT_SIMD_MC_L
@@ -6926,25 +7562,67 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
 
         if (!apply_DMVR)
         {
+#if BD_CF_EXT
+            evc_mc_l(mv_before_clipping[REFP_0][MV_X] << 2, mv_before_clipping[REFP_0][MV_Y] << 2, ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, w, pred[0][Y_C], w, h, bit_depth_luma);
+#else
             evc_mc_l(mv_before_clipping[REFP_0][MV_X] << 2, mv_before_clipping[REFP_0][MV_Y] << 2, ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, w, pred[0][Y_C], w, h);
+#endif
         }
 
-        if (!REFI_IS_VALID(refi[REFP_1]) || !apply_DMVR || !dmvr_poc_condition)
+        if ((!REFI_IS_VALID(refi[REFP_1]) || !apply_DMVR || !dmvr_poc_condition)
+#if BD_CF_EXT
+            && chroma_format_idc!=0
+#endif
+            )
         {
+#if BD_CF_EXT
+#if BD_CF_EXT
+            evc_mc_c(mv_before_clipping[REFP_0][MV_X] << 2, mv_before_clipping[REFP_0][MV_Y] << 2, ref_pic->u, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                     , pred[0][U_C], w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma);
+            evc_mc_c(mv_before_clipping[REFP_0][MV_X] << 2, mv_before_clipping[REFP_0][MV_Y] << 2, ref_pic->v, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                     , pred[0][V_C], w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma);
+#else
+            evc_mc_c(mv_before_clipping[REFP_0][MV_X] << 2, mv_before_clipping[REFP_0][MV_Y] << 2, ref_pic->u, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[0][U_C], w >> 1, h >> 1, bit_depth_chroma);
+            evc_mc_c(mv_before_clipping[REFP_0][MV_X] << 2, mv_before_clipping[REFP_0][MV_Y] << 2, ref_pic->v, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[0][V_C], w >> 1, h >> 1, bit_depth_chroma);
+#endif
+#else
             evc_mc_c(mv_before_clipping[REFP_0][MV_X] << 2, mv_before_clipping[REFP_0][MV_Y] << 2, ref_pic->u, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[0][U_C], w >> 1, h >> 1);
             evc_mc_c(mv_before_clipping[REFP_0][MV_X] << 2, mv_before_clipping[REFP_0][MV_Y] << 2, ref_pic->v, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[0][V_C], w >> 1, h >> 1);
+#endif
         }
 #else
 
         if (!apply_DMVR)
         {
-            evc_mc_l(mv_before_clipping[REFP_0][MV_X], mv_before_clipping[REFP_0][MV_Y], ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, w, pred[0][Y_C], w, h);
+            evc_mc_l(mv_before_clipping[REFP_0][MV_X], mv_before_clipping[REFP_0][MV_Y], ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, w, pred[0][Y_C], w, h
+#if BD_CF_EXT
+                     , bit_depth_luma
+#endif
+            );
         }
 
-        if (!REFI_IS_VALID(refi[REFP_1]) || !apply_DMVR || !dmvr_poc_condition)
+        if(!REFI_IS_VALID(refi[REFP_1]) || !apply_DMVR || !dmvr_poc_condition)
         {
-            evc_mc_c(mv_before_clipping[REFP_0][MV_X], mv_before_clipping[REFP_0][MV_Y], ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[0][U_C], w >> 1, h >> 1);
-            evc_mc_c(mv_before_clipping[REFP_0][MV_X], mv_before_clipping[REFP_0][MV_Y], ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[0][V_C], w >> 1, h >> 1);
+#if BD_CF_EXT
+            evc_mc_c(mv_before_clipping[REFP_0][MV_X], mv_before_clipping[REFP_0][MV_Y], ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                     , pred[0][U_C], w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc))
+#else
+            evc_mc_c(mv_before_clipping[REFP_0][MV_X], mv_before_clipping[REFP_0][MV_Y], ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[0][U_C], w >> 1, h >> 1
+#endif
+#if BD_CF_EXT
+                     , bit_depth_chroma
+#endif
+            );
+#if BD_CF_EXT
+            evc_mc_c(mv_before_clipping[REFP_0][MV_X], mv_before_clipping[REFP_0][MV_Y], ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                     , pred[0][V_C], w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc))
+#else
+            evc_mc_c(mv_before_clipping[REFP_0][MV_X], mv_before_clipping[REFP_0][MV_Y], ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[0][V_C], w >> 1, h >> 1
+#endif
+#if BD_CF_EXT
+                     , bit_depth_chroma
+#endif
+            );
         }
 #endif
 
@@ -6971,25 +7649,61 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
 
         if (!apply_DMVR)
         {
+#if BD_CF_EXT
+            evc_mc_l(mv_before_clipping[REFP_1][MV_X] << 2, mv_before_clipping[REFP_1][MV_Y] << 2, ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, w, pred[bidx][Y_C], w, h, bit_depth_luma);
+#else
             evc_mc_l(mv_before_clipping[REFP_1][MV_X] << 2, mv_before_clipping[REFP_1][MV_Y] << 2, ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, w, pred[bidx][Y_C], w, h);
+#endif
         }
 
-        if (!REFI_IS_VALID(refi[REFP_0]) || !apply_DMVR || !dmvr_poc_condition)
+        if ((!REFI_IS_VALID(refi[REFP_0]) || !apply_DMVR || !dmvr_poc_condition)
+#if BD_CF_EXT
+            && chroma_format_idc!=0
+#endif
+            )
         {
+#if BD_CF_EXT
+#if BD_CF_EXT
+            evc_mc_c(mv_before_clipping[REFP_1][MV_X] << 2, mv_before_clipping[REFP_1][MV_Y] << 2, ref_pic->u, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                     , pred[bidx][U_C], w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma);
+            evc_mc_c(mv_before_clipping[REFP_1][MV_X] << 2, mv_before_clipping[REFP_1][MV_Y] << 2, ref_pic->v, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                     , pred[bidx][V_C], w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma);
+#else
+            evc_mc_c(mv_before_clipping[REFP_1][MV_X] << 2, mv_before_clipping[REFP_1][MV_Y] << 2, ref_pic->u, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[bidx][U_C], w >> 1, h >> 1, bit_depth_chroma);
+            evc_mc_c(mv_before_clipping[REFP_1][MV_X] << 2, mv_before_clipping[REFP_1][MV_Y] << 2, ref_pic->v, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[bidx][V_C], w >> 1, h >> 1, bit_depth_chroma);
+#endif
+#else
             evc_mc_c(mv_before_clipping[REFP_1][MV_X] << 2, mv_before_clipping[REFP_1][MV_Y] << 2, ref_pic->u, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[bidx][U_C], w >> 1, h >> 1);
             evc_mc_c(mv_before_clipping[REFP_1][MV_X] << 2, mv_before_clipping[REFP_1][MV_Y] << 2, ref_pic->v, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[bidx][V_C], w >> 1, h >> 1);
+#endif
         }
 #else
 
         if (!apply_DMVR)
         {
+#if BD_CF_EXT
+            evc_mc_l(mv_before_clipping[REFP_1][MV_X], mv_before_clipping[REFP_1][MV_Y], ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, w, pred[bidx][Y_C], w, h, bit_depth_luma);
+#else
             evc_mc_l(mv_before_clipping[REFP_1][MV_X], mv_before_clipping[REFP_1][MV_Y], ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, w, pred[bidx][Y_C], w, h);
+#endif
         }
 
         if (!REFI_IS_VALID(refi[REFP_0]) || !apply_DMVR || !dmvr_poc_condition)
         {
+#if BD_CF_EXT
+#if BD_CF_EXT
+            evc_mc_c(mv_before_clipping[REFP_1][MV_X], mv_before_clipping[REFP_1][MV_Y], ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                     , pred[bidx][U_C], w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma);
+            evc_mc_c(mv_before_clipping[REFP_1][MV_X], mv_before_clipping[REFP_1][MV_Y], ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                     , pred[bidx][V_C], w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma);
+#else
+            evc_mc_c(mv_before_clipping[REFP_1][MV_X], mv_before_clipping[REFP_1][MV_Y], ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[bidx][U_C], w >> 1, h >> 1, bit_depth_chroma);
+            evc_mc_c(mv_before_clipping[REFP_1][MV_X], mv_before_clipping[REFP_1][MV_Y], ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[bidx][V_C], w >> 1, h >> 1, bit_depth_chroma);
+#endif
+#else
             evc_mc_c(mv_before_clipping[REFP_1][MV_X], mv_before_clipping[REFP_1][MV_Y], ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[bidx][U_C], w >> 1, h >> 1);
             evc_mc_c(mv_before_clipping[REFP_1][MV_X], mv_before_clipping[REFP_1][MV_Y], ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[bidx][V_C], w >> 1, h >> 1);
+#endif
         }
 #endif
         bidx++;
@@ -7017,6 +7731,10 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
 #if DMVR_LAG
                             , dmvr_mv
 #endif
+#if BD_CF_EXT
+                            , bit_depth_luma, bit_depth_chroma
+                            , chroma_format_idc
+#endif
                 );
             }
 
@@ -7028,7 +7746,11 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
         } //if (apply_DMVR && ((poc_c - poc0)*(poc_c - poc1) < 0))
 
 #if OPT_SIMD_MC_L
-        average_16b_no_clip_sse(pred[0][Y_C], pred[1][Y_C], pred[0][Y_C], w, w, w, w, h);
+        average_16b_no_clip_sse(pred[0][Y_C], pred[1][Y_C], pred[0][Y_C], w, w, w, w, h
+#if BD_CF_EXT
+                                , bit_depth_luma
+#endif
+        );
 #else    
         pel* p0 = pred[0][Y_C];
         pel* p1 = pred[1][Y_C];
@@ -7044,10 +7766,28 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
 #endif
 
 #if OPT_SIMD_MC_L
+#if BD_CF_EXT
+        w >>= (GET_CHROMA_W_SHIFT(chroma_format_idc));
+        h >>= (GET_CHROMA_H_SHIFT(chroma_format_idc));
+#else
         w >>= 1;
         h >>= 1;
-        average_16b_no_clip_sse(pred[0][U_C], pred[1][U_C], pred[0][U_C], w, w, w, w, h);
-        average_16b_no_clip_sse(pred[0][V_C], pred[1][V_C], pred[0][V_C], w, w, w, w, h);
+#endif
+#if BD_CF_EXT
+        if(chroma_format_idc)
+#endif
+        {
+            average_16b_no_clip_sse(pred[0][U_C], pred[1][U_C], pred[0][U_C], w, w, w, w, h
+#if BD_CF_EXT
+                                    , bit_depth_chroma
+#endif
+            );
+            average_16b_no_clip_sse(pred[0][V_C], pred[1][V_C], pred[0][V_C], w, w, w, w, h
+#if BD_CF_EXT
+                                    , bit_depth_chroma
+#endif
+            );
+        }
 #else
         {
             pel *p0, *p1;
@@ -7056,8 +7796,13 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
             p1 = pred[1][U_C];
             p2 = pred[0][V_C];
             p3 = pred[1][V_C];
+#if BD_CF_EXT
+            w >>= (GET_CHROMA_W_SHIFT(chroma_format_idc));
+            h >>= (GET_CHROMA_H_SHIFT(chroma_format_idc));
+#else
             w >>= 1;
             h >>= 1;
+#endif
             for (j = 0; j < h; j++)
             {
                 for (i = 0; i < w; i++)
@@ -7075,7 +7820,11 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
     }
 }
 
-void evc_IBC_mc(int x, int y, int log2_cuw, int log2_cuh, s16 mv[MV_D], EVC_PIC *ref_pic, pel pred[N_C][MAX_CU_DIM], TREE_CONS tree_cons)
+void evc_IBC_mc(int x, int y, int log2_cuw, int log2_cuh, s16 mv[MV_D], EVC_PIC *ref_pic, pel pred[N_C][MAX_CU_DIM], TREE_CONS tree_cons
+#if BD_CF_EXT
+                , int chroma_format_idc
+#endif
+)
 {
     int i = 0, j = 0;
     int size = 0;
@@ -7107,8 +7856,22 @@ void evc_IBC_mc(int x, int y, int log2_cuw, int log2_cuh, s16 mv[MV_D], EVC_PIC 
         }
     }
 
-    if (evc_check_chroma(tree_cons))
+    if (evc_check_chroma(tree_cons)
+#if BD_CF_EXT
+        && (chroma_format_idc != 0)
+#endif
+        )
     {
+#if BD_CF_EXT
+        cuw >>=(GET_CHROMA_W_SHIFT(chroma_format_idc));
+        cuh >>= (GET_CHROMA_H_SHIFT(chroma_format_idc));
+        x >>= (GET_CHROMA_W_SHIFT(chroma_format_idc));
+        y >>= (GET_CHROMA_H_SHIFT(chroma_format_idc));
+        mv_x >>= (GET_CHROMA_W_SHIFT(chroma_format_idc));
+        mv_y >>= (GET_CHROMA_H_SHIFT(chroma_format_idc));
+        log2_cuw -= (GET_CHROMA_W_SHIFT(chroma_format_idc));
+        log2_cuh -= (GET_CHROMA_H_SHIFT(chroma_format_idc));
+#else
         cuw >>= 1;
         cuh >>= 1;
         x >>= 1;
@@ -7117,6 +7880,7 @@ void evc_IBC_mc(int x, int y, int log2_cuw, int log2_cuh, s16 mv[MV_D], EVC_PIC 
         mv_y >>= 1;
         log2_cuw--;
         log2_cuh--;
+#endif
         stride = ref_pic->s_c;
 
         dst = pred[1];
@@ -7142,7 +7906,7 @@ void evc_IBC_mc(int x, int y, int log2_cuw, int log2_cuh, s16 mv[MV_D], EVC_PIC 
 }
 
 void eif_derive_mv_clip_range(int x, int y, int cuw, int cuh, int dmv_hor[MV_D], int dmv_ver[MV_D], int mv_scale[MV_D],
-    int pic_w, int pic_h, BOOL range_clip, int max_mv[MV_D], int min_mv[MV_D])
+                              int pic_w, int pic_h, BOOL range_clip, int max_mv[MV_D], int min_mv[MV_D])
 {
     int max_mv_pic[MV_D] = { (pic_w + MAX_CU_SIZE - x - cuw - 1) << 5, (pic_h + MAX_CU_SIZE - y - cuh - 1) << 5 };             //1 for bilinear interpolation
     int min_mv_pic[MV_D] = { (-x - MAX_CU_SIZE) << 5, (-y - MAX_CU_SIZE) << 5 };
@@ -7185,7 +7949,12 @@ void eif_derive_mv_clip_range(int x, int y, int cuw, int cuh, int dmv_hor[MV_D],
     }
 }
 
-void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 ac_mv[VER_NUM][MV_D], EVC_PIC* ref_pic, pel pred[MAX_CU_DIM], int vertex_num, pel* tmp_buffer)
+void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 ac_mv[VER_NUM][MV_D], EVC_PIC* ref_pic, pel pred[MAX_CU_DIM], int vertex_num, pel* tmp_buffer
+#if BD_CF_EXT
+                     , int bit_depth_luma, int bit_depth_chroma
+                     , int chroma_format_idc
+#endif
+)
 {
     int qpel_gmv_x, qpel_gmv_y;
     pel *pred_y = pred;
@@ -7249,8 +8018,13 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
         eif_derive_mv_clip_range(x, y, cuw, cuh, d_hor, d_ver, mv_scale, pic_w, pic_h, !mem_band_conditions_for_eif_are_satisfied, max_mv, min_mv);
 
         evc_eif_mc(cuw, cuh, x, y, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y,
-            max_mv[MV_X], max_mv[MV_Y], min_mv[MV_X], min_mv[MV_Y],
-            ref_pic->y, ref_pic->s_l, pred, cuw, tmp_buffer, bit + 2, Y_C);
+                   max_mv[MV_X], max_mv[MV_Y], min_mv[MV_X], min_mv[MV_Y],
+                   ref_pic->y, ref_pic->s_l, pred, cuw, tmp_buffer, bit + 2, Y_C
+#if BD_CF_EXT
+                   , bit_depth_luma
+                   , chroma_format_idc
+#endif
+        );
 
         return;
     }
@@ -7275,14 +8049,23 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
             qpel_gmv_x = ((x + w) << mc_prec) + mv_scale_tmp_hor;
             qpel_gmv_y = ((y + h) << mc_prec) + mv_scale_tmp_ver;
 
+#if BD_CF_EXT
+            evc_mc_l(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, cuw, (pred_y + w), sub_w, sub_h, bit_depth_luma);
+#else
             evc_mc_l(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, cuw, (pred_y + w), sub_w, sub_h);
+#endif
         }
         pred_y += (cuw * sub_h);
     }
 }
 
 void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 ac_mv[VER_NUM][MV_D], EVC_PIC* ref_pic, pel pred[N_C][MAX_CU_DIM], int vertex_num
-    , int sub_w, int sub_h, pel* tmp_buffer_for_eif, BOOL mem_band_conditions_for_eif_are_satisfied)
+                      , int sub_w, int sub_h, pel* tmp_buffer_for_eif, BOOL mem_band_conditions_for_eif_are_satisfied
+#if BD_CF_EXT
+                      , int bit_depth_luma, int bit_depth_chroma
+                      , int chroma_format_idc
+#endif
+)
 {
     int qpel_gmv_x, qpel_gmv_y;
     pel *pred_y = pred[Y_C], *pred_u = pred[U_C], *pred_v = pred[V_C];
@@ -7340,17 +8123,43 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
 
         eif_derive_mv_clip_range(x, y, cuw, cuh, d_hor, d_ver, mv_scale, pic_w, pic_h, !mem_band_conditions_for_eif_are_satisfied, max_mv, min_mv);
         evc_eif_mc(cuw, cuh, x, y, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y,
-            max_mv[MV_X], max_mv[MV_Y], min_mv[MV_X], min_mv[MV_Y],
-            ref_pic->y, ref_pic->s_l, pred[Y_C], cuw, tmp_buffer_for_eif, bit + 2, Y_C);
+                   max_mv[MV_X], max_mv[MV_Y], min_mv[MV_X], min_mv[MV_Y],
+                   ref_pic->y, ref_pic->s_l, pred[Y_C], cuw, tmp_buffer_for_eif, bit + 2, Y_C
+#if BD_CF_EXT
+                   , bit_depth_luma
+                   , chroma_format_idc
+#endif
+        );
+#if BD_CF_EXT
+        if(chroma_format_idc)
+#endif
+        {
+            evc_eif_mc(cuw, cuh, x, y, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y,
+                       max_mv[MV_X], max_mv[MV_Y], min_mv[MV_X], min_mv[MV_Y],
+#if BD_CF_EXT
+                       ref_pic->u, ref_pic->s_c, pred[U_C], cuw >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), tmp_buffer_for_eif, bit + 2, U_C
+#else
+                       ref_pic->u, ref_pic->s_c, pred[U_C], cuw >> 1, tmp_buffer_for_eif, bit + 2, U_C
+#endif
+#if BD_CF_EXT
+                       , bit_depth_chroma
+                       , chroma_format_idc
+#endif
+            );
 
-        evc_eif_mc(cuw, cuh, x, y, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y,
-            max_mv[MV_X], max_mv[MV_Y], min_mv[MV_X], min_mv[MV_Y],
-            ref_pic->u, ref_pic->s_c, pred[U_C], cuw >> 1, tmp_buffer_for_eif, bit + 2, U_C);
-
-        evc_eif_mc(cuw, cuh, x, y, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y,
-            max_mv[MV_X], max_mv[MV_Y], min_mv[MV_X], min_mv[MV_Y],
-            ref_pic->v, ref_pic->s_c, pred[V_C], cuw >> 1, tmp_buffer_for_eif, bit + 2, V_C);
-        
+            evc_eif_mc(cuw, cuh, x, y, mv_scale_hor, mv_scale_ver, dmv_hor_x, dmv_hor_y, dmv_ver_x, dmv_ver_y,
+                       max_mv[MV_X], max_mv[MV_Y], min_mv[MV_X], min_mv[MV_Y],
+#if BD_CF_EXT
+                       ref_pic->v, ref_pic->s_c, pred[V_C], cuw >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), tmp_buffer_for_eif, bit + 2, V_C
+#else
+                       ref_pic->v, ref_pic->s_c, pred[V_C], cuw >> 1, tmp_buffer_for_eif, bit + 2, V_C
+#endif
+#if BD_CF_EXT
+                       , bit_depth_chroma
+                       , chroma_format_idc
+#endif
+            );
+        }
         return;
     }
 
@@ -7375,23 +8184,63 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
             qpel_gmv_x = ((x + w) << mc_prec) + mv_scale_tmp_hor;
             qpel_gmv_y = ((y + h) << mc_prec) + mv_scale_tmp_ver;
 
+#if BD_CF_EXT
+            evc_mc_l(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, cuw, (pred_y + w), sub_w, sub_h, bit_depth_luma);
+#else
             evc_mc_l(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, cuw, (pred_y + w), sub_w, sub_h);
+#endif
 
 #if (AFFINE_MIN_BLOCK_SIZE == 1)
-            if ((w & 1) == 0 && (h & 1) == 0)
+            if ((w & 1) == 0 && (h & 1) == 0
+#if BD_CF_EXT
+                && chroma_format_idc
+#endif
+                )
             {
+#if BD_CF_EXT
+#if BD_CF_EXT
+                evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                         , pred_u + (w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))), max((sub_w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))), 1), max((sub_h >> (GET_CHROMA_H_SHIFT(chroma_format_idc))), 1), bit_depth_chroma);
+                evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                         , pred_v + (w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))), max((sub_w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))), 1), max((sub_h >> (GET_CHROMA_H_SHIFT(chroma_format_idc))), 1), bit_depth_chroma);
+#else
+                evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> 1, pred_u + (w >> 1), max((sub_w >> 1), 1), max((sub_h >> 1), 1), bit_depth_chroma);
+                evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> 1, pred_v + (w >> 1), max((sub_w >> 1), 1), max((sub_h >> 1), 1), bit_depth_chroma);
+#endif
+#else
                 evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> 1, pred_u + (w >> 1), max((sub_w >> 1), 1), max((sub_h >> 1), 1));
                 evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> 1, pred_v + (w >> 1), max((sub_w >> 1), 1), max((sub_h >> 1), 1));
+#endif
             }
+#else
+#if BD_CF_EXT
+#if BD_CF_EXT
+            if(chroma_format_idc)
+            {
+                evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                         , pred_u + (w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))), sub_w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), sub_h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma);
+                evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                         , pred_v + (w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))), sub_w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), sub_h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma);
+            }
+#else
+            evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> 1, pred_u + (w >> 1), sub_w >> 1, sub_h >> 1, bit_depth_chroma);
+            evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> 1, pred_v + (w >> 1), sub_w >> 1, sub_h >> 1, bit_depth_chroma);
+#endif
 #else
             evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> 1, pred_u + (w >> 1), sub_w >> 1, sub_h >> 1);
             evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> 1, pred_v + (w >> 1), sub_w >> 1, sub_h >> 1);
 #endif
+#endif
         }
 
         pred_y += (cuw * sub_h);
+#if BD_CF_EXT
+        pred_u += (cuw * sub_h) >> ((GET_CHROMA_H_SHIFT(chroma_format_idc)) + (GET_CHROMA_W_SHIFT(chroma_format_idc)));
+        pred_v += (cuw * sub_h) >> ((GET_CHROMA_H_SHIFT(chroma_format_idc)) + (GET_CHROMA_W_SHIFT(chroma_format_idc)));
+#else
         pred_u += (cuw * sub_h) >> 2;
         pred_v += (cuw * sub_h) >> 2;
+#endif
     }
 }
 
@@ -7458,13 +8307,23 @@ void evc_eif_filter(int block_width, int block_height, pel* p_tmp_buf, int tmp_b
     }
 }
 
-void evc_eif_bilinear_clip(int block_width, int block_height, int mv0[MV_D], int d_x[MV_D], int d_y[MV_D], int mv_max[MV_D], int mv_min[MV_D], pel* p_ref, int ref_stride, pel* p_dst, int dst_stride, int shifts[4], int offsets[4])
+void evc_eif_bilinear_clip(int block_width, int block_height, int mv0[MV_D], int d_x[MV_D], int d_y[MV_D], int mv_max[MV_D], int mv_min[MV_D], pel* p_ref, int ref_stride, pel* p_dst, int dst_stride, int shifts[4], int offsets[4]
+#if BD_CF_EXT
+                           , int bit_depth
+#endif
+)
 {
     int mv[MV_D] = { mv0[MV_X], mv0[MV_Y] };
 
     const pel fracMask = (1 << EIF_MV_PRECISION_BILINEAR) - 1;
 
     pel* p_buf = p_dst;
+#if BD_CF_EXT 
+    int shift1 = EVC_MIN(4, bit_depth - 8);
+    int shift2 = EVC_MAX(8, 20 - bit_depth);
+    int offset1 = 0;
+    int offset2 = (1 << (shift2 - 1));
+#endif
 
     int tmp_mv_for_line[MV_D] = { mv0[MV_X] - d_x[MV_X] - d_y[MV_X], mv0[MV_Y] - d_x[MV_Y] - d_y[MV_Y] }; //set to pos (-1, -1)
 
@@ -7486,15 +8345,27 @@ void evc_eif_bilinear_clip(int block_width, int block_height, int mv0[MV_D], int
             pel* r = p_ref + yInt * ref_stride + xInt;
 
 #if EIF_MV_PRECISION_BILINEAR == 4
+#if BD_CF_EXT
+            pel s1 = MAC_BL_NN_S1(tbl_bl_mc_l_coeff[xFrac], r[0], r[1], offset1, shift1);
+            pel s2 = MAC_BL_NN_S1(tbl_bl_mc_l_coeff[xFrac], r[ref_stride], r[ref_stride + 1], offset1, shift1);
+            p_buf[x + 1] = MAC_BL_NN_S2(tbl_bl_mc_l_coeff[yFrac], s1, s2, offset2, shift2);
+#else
             pel s1 = MAC_BL_NN_S1(tbl_bl_mc_l_coeff[xFrac], r[0], r[1]);
             pel s2 = MAC_BL_NN_S1(tbl_bl_mc_l_coeff[xFrac], r[ref_stride], r[ref_stride + 1]);
 
             p_buf[x + 1] = MAC_BL_NN_S2(tbl_bl_mc_l_coeff[yFrac], s1, s2);
+#endif
 #elif  EIF_MV_PRECISION_BILINEAR == 5
+#if BD_CF_EXT
+            pel s1 = MAC_BL_NN_S1(tbl_bl_eif_32_phases_mc_l_coeff[xFrac], r[0], r[1], offset1, shift1);
+            pel s2 = MAC_BL_NN_S1(tbl_bl_eif_32_phases_mc_l_coeff[xFrac], r[ref_stride], r[ref_stride + 1], offset1, shift1);
+            p_buf[x + 1] = MAC_BL_NN_S2(tbl_bl_eif_32_phases_mc_l_coeff[yFrac], s1, s2, offset2, shift2);
+#else
             pel s1 = MAC_BL_NN_S1(tbl_bl_eif_32_phases_mc_l_coeff[xFrac], r[0], r[1]);
             pel s2 = MAC_BL_NN_S1(tbl_bl_eif_32_phases_mc_l_coeff[xFrac], r[ref_stride], r[ref_stride + 1]);
 
             p_buf[x + 1] = MAC_BL_NN_S2(tbl_bl_eif_32_phases_mc_l_coeff[yFrac], s1, s2);
+#endif
 #else
             pel tmpPel = r[0] - r[1] - r[ref_stride] + r[ref_stride + 1];
             tmpPel = (tmpPel * yFrac + ((r[1] - r[0]) << EIF_MV_PRECISION_BILINEAR) + offsets[0]) >> shifts[0];
@@ -7508,13 +8379,23 @@ void evc_eif_bilinear_clip(int block_width, int block_height, int mv0[MV_D], int
     }
 }
 
-void evc_eif_bilinear_no_clip(int block_width, int block_height, int mv0[MV_D], int d_x[MV_D], int d_y[MV_D], pel* p_ref, int ref_stride, pel* p_dst, int dst_stride, int shifts[4], int offsets[4])
+void evc_eif_bilinear_no_clip(int block_width, int block_height, int mv0[MV_D], int d_x[MV_D], int d_y[MV_D], pel* p_ref, int ref_stride, pel* p_dst, int dst_stride, int shifts[4], int offsets[4]
+#if BD_CF_EXT
+                              , int bit_depth
+#endif
+)
 {
     int mv[MV_D] = { mv0[MV_X], mv0[MV_Y] };
 
     const pel fracMask = (1 << EIF_MV_PRECISION_BILINEAR) - 1;
 
     pel* p_buf = p_dst;
+#if BD_CF_EXT
+    int shift1 = EVC_MIN(4, bit_depth - 8);
+    int shift2 = EVC_MAX(8, 20 - bit_depth);
+    int offset1 = 0;
+    int offset2 = (1 << (shift2 - 1));
+#endif
 
     int tmp_mv_for_line[MV_D] = { mv0[MV_X] - d_x[MV_X] - d_y[MV_X], mv0[MV_Y] - d_x[MV_Y] - d_y[MV_Y] }; //set to pos (-1, -1)
 
@@ -7536,15 +8417,27 @@ void evc_eif_bilinear_no_clip(int block_width, int block_height, int mv0[MV_D], 
             pel* r = p_ref + yInt * ref_stride + xInt;
 
 #if EIF_MV_PRECISION_BILINEAR == 4
+#if BD_CF_EXT
+            pel s1 = MAC_BL_NN_S1(tbl_bl_mc_l_coeff[xFrac], r[0], r[1], offset1, shift1);
+            pel s2 = MAC_BL_NN_S1(tbl_bl_mc_l_coeff[xFrac], r[ref_stride], r[ref_stride + 1], offset1, shift1);
+            p_buf[x + 1] = MAC_BL_NN_S2(tbl_bl_mc_l_coeff[yFrac], s1, s2, offset2, shift2);
+#else
             pel s1 = MAC_BL_NN_S1(tbl_bl_mc_l_coeff[xFrac], r[0], r[1]);
             pel s2 = MAC_BL_NN_S1(tbl_bl_mc_l_coeff[xFrac], r[ref_stride], r[ref_stride + 1]);
 
             p_buf[x + 1] = MAC_BL_NN_S2(tbl_bl_mc_l_coeff[yFrac], s1, s2);
+#endif
 #elif  EIF_MV_PRECISION_BILINEAR == 5
+#if BD_CF_EXT
+            pel s1 = MAC_BL_NN_S1(tbl_bl_eif_32_phases_mc_l_coeff[xFrac], r[0], r[1], offset1, shift1);
+            pel s2 = MAC_BL_NN_S1(tbl_bl_eif_32_phases_mc_l_coeff[xFrac], r[ref_stride], r[ref_stride + 1], offset1, shift1);
+            p_buf[x + 1] = MAC_BL_NN_S2(tbl_bl_eif_32_phases_mc_l_coeff[yFrac], s1, s2, offset2, shift2);
+#else
             pel s1 = MAC_BL_NN_S1(tbl_bl_eif_32_phases_mc_l_coeff[xFrac], r[0], r[1]);
             pel s2 = MAC_BL_NN_S1(tbl_bl_eif_32_phases_mc_l_coeff[xFrac], r[ref_stride], r[ref_stride + 1]);
 
             p_buf[x + 1] = MAC_BL_NN_S2(tbl_bl_eif_32_phases_mc_l_coeff[yFrac], s1, s2);
+#endif
 #else
             pel tmpPel = r[0] - r[1] - r[ref_stride] + r[ref_stride + 1];
             tmpPel = (tmpPel * yFrac + ((r[1] - r[0]) << EIF_MV_PRECISION_BILINEAR) + offsets[0]) >> shifts[0];
@@ -7559,7 +8452,14 @@ void evc_eif_bilinear_no_clip(int block_width, int block_height, int mv0[MV_D], 
 }
 
 void evc_eif_mc(int block_width, int block_height, int x, int y, int mv_scale_hor, int mv_scale_ver, int dmv_hor_x, int dmv_hor_y, int dmv_ver_x, int dmv_ver_y,
-    int hor_max, int ver_max, int hor_min, int ver_min, pel* p_ref, int ref_stride, pel *p_dst, int dst_stride, pel* p_tmp_buf, char affine_mv_prec, s8 comp)
+                int hor_max, int ver_max, int hor_min, int ver_min, pel* p_ref, int ref_stride, pel *p_dst, int dst_stride, pel* p_tmp_buf, char affine_mv_prec, s8 comp
+#if BD_CF_EXT
+                , int bit_depth
+#endif
+#if BD_CF_EXT
+                , int chroma_format_idc
+#endif
+)
 {
     assert(EIF_MV_PRECISION_INTERNAL >= affine_mv_prec);  //For current affine internal MV precision is (2 + bit) bits; 2 means qpel
     assert(EIF_MV_PRECISION_INTERNAL >= 2 + MC_PRECISION_ADD);  //For current affine internal MV precision is (2 + bit) bits; 2 means qpel
@@ -7576,6 +8476,18 @@ void evc_eif_mc(int block_width, int block_height, int x, int y, int mv_scale_ho
 
     if (comp > Y_C)
     {
+#if BD_CF_EXT
+        mv0[MV_X] >>= (GET_CHROMA_W_SHIFT(chroma_format_idc));
+        mv0[MV_Y] >>= (GET_CHROMA_H_SHIFT(chroma_format_idc));
+        mv_max[MV_X] >>= (GET_CHROMA_W_SHIFT(chroma_format_idc));
+        mv_max[MV_Y] >>= (GET_CHROMA_H_SHIFT(chroma_format_idc));
+        mv_min[MV_X] >>= (GET_CHROMA_W_SHIFT(chroma_format_idc));
+        mv_min[MV_Y] >>= (GET_CHROMA_H_SHIFT(chroma_format_idc));
+        block_width >>= (GET_CHROMA_W_SHIFT(chroma_format_idc));
+        block_height >>= (GET_CHROMA_H_SHIFT(chroma_format_idc));
+        x >>= (GET_CHROMA_W_SHIFT(chroma_format_idc));
+        y >>= (GET_CHROMA_H_SHIFT(chroma_format_idc));
+#else
         mv0[MV_X] >>= 1;    mv0[MV_Y] >>= 1;
         mv_max[MV_X] >>= 1; mv_max[MV_Y] >>= 1;
         mv_min[MV_X] >>= 1; mv_min[MV_Y] >>= 1;
@@ -7583,12 +8495,15 @@ void evc_eif_mc(int block_width, int block_height, int x, int y, int mv_scale_ho
         block_height >>= 1;
         x >>= 1;
         y >>= 1;
+#endif
     }
 
     p_ref += ref_stride * y + x;
 
     const int tmp_buf_stride = MAX_CU_SIZE + 2;
-    int bit_depth = 10;
+#if !BD_CF_EXT 
+    int bit_depth = BIT_DEPTH;
+#endif
 
     assert(bit_depth < 16);
 
@@ -7605,15 +8520,28 @@ void evc_eif_mc(int block_width, int block_height, int x, int y, int mv_scale_ho
 
     BOOL is_mv_clip_needed = can_mv_clipping_occurs(block_width, block_height, mv0, d_x, d_y, mv_max, mv_min);
 
-    if (is_mv_clip_needed)
-        evc_eif_bilinear_clip(block_width, block_height, mv0, d_x, d_y, mv_max, mv_min, p_ref, ref_stride, p_tmp_buf, tmp_buf_stride, shifts, offsets);
+    if(is_mv_clip_needed)
+        evc_eif_bilinear_clip(block_width, block_height, mv0, d_x, d_y, mv_max, mv_min, p_ref, ref_stride, p_tmp_buf, tmp_buf_stride, shifts, offsets
+#if BD_CF_EXT
+                              , bit_depth
+#endif
+        );
     else
-        evc_eif_bilinear_no_clip(block_width, block_height, mv0, d_x, d_y, p_ref, ref_stride, p_tmp_buf, tmp_buf_stride, shifts, offsets);
+        evc_eif_bilinear_no_clip(block_width, block_height, mv0, d_x, d_y, p_ref, ref_stride, p_tmp_buf, tmp_buf_stride, shifts, offsets
+#if BD_CF_EXT
+                                 , bit_depth
+#endif
+        );
 
     evc_eif_filter(block_width, block_height, p_tmp_buf, tmp_buf_stride, p_dst, dst_stride, shifts, offsets, bit_depth);
 }
 
-void evc_affine_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16 mv[REFP_NUM][VER_NUM][MV_D], EVC_REFP(*refp)[REFP_NUM], pel pred[2][N_C][MAX_CU_DIM], int vertex_num, pel* tmp_buffer)
+void evc_affine_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16 mv[REFP_NUM][VER_NUM][MV_D], EVC_REFP(*refp)[REFP_NUM], pel pred[2][N_C][MAX_CU_DIM], int vertex_num, pel* tmp_buffer
+#if BD_CF_EXT
+                   , int bit_depth_luma, int bit_depth_chroma
+                   , int chroma_format_idc
+#endif
+)
 {
     EVC_PIC *ref_pic;
     pel      *p0, *p1, *p2, *p3;
@@ -7626,31 +8554,41 @@ void evc_affine_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REF
 
     derive_affine_subblock_size_bi(mv, refi, w, h, &sub_w, &sub_h, vertex_num, &mem_band_conditions_for_eif_are_satisfied);
 
-    if (REFI_IS_VALID(refi[REFP_0]))
+    if(REFI_IS_VALID(refi[REFP_0]))
     {
         /* forward */
         ref_pic = refp[refi[REFP_0]][REFP_0].pic;
-        evc_affine_mc_lc(x, y, pic_w, pic_h, w, h, mv[REFP_0], ref_pic, pred[0], vertex_num, sub_w, sub_h, tmp_buffer, mem_band_conditions_for_eif_are_satisfied);
+        evc_affine_mc_lc(x, y, pic_w, pic_h, w, h, mv[REFP_0], ref_pic, pred[0], vertex_num, sub_w, sub_h, tmp_buffer, mem_band_conditions_for_eif_are_satisfied
+#if BD_CF_EXT
+                         , bit_depth_luma, bit_depth_chroma
+                         , chroma_format_idc
+#endif
+        );
 
         bidx++;
     }
 
-    if (REFI_IS_VALID(refi[REFP_1]))
+    if(REFI_IS_VALID(refi[REFP_1]))
     {
         /* backward */
         ref_pic = refp[refi[REFP_1]][REFP_1].pic;
-        evc_affine_mc_lc(x, y, pic_w, pic_h, w, h, mv[REFP_1], ref_pic, pred[bidx], vertex_num, sub_w, sub_h, tmp_buffer, mem_band_conditions_for_eif_are_satisfied);
+        evc_affine_mc_lc(x, y, pic_w, pic_h, w, h, mv[REFP_1], ref_pic, pred[bidx], vertex_num, sub_w, sub_h, tmp_buffer, mem_band_conditions_for_eif_are_satisfied
+#if BD_CF_EXT
+                         , bit_depth_luma, bit_depth_chroma
+                         , chroma_format_idc
+#endif
+        );
 
         bidx++;
     }
 
-    if (bidx == 2)
+    if(bidx == 2)
     {
         p0 = pred[0][Y_C];
         p1 = pred[1][Y_C];
-        for (j = 0; j < h; j++)
+        for(j = 0; j < h; j++)
         {
-            for (i = 0; i < w; i++)
+            for(i = 0; i < w; i++)
             {
                 p0[i] = (p0[i] + p1[i] + 1) >> 1;
             }
@@ -7661,19 +8599,29 @@ void evc_affine_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REF
         p1 = pred[1][U_C];
         p2 = pred[0][V_C];
         p3 = pred[1][V_C];
+#if BD_CF_EXT
+        w >>= (GET_CHROMA_W_SHIFT(chroma_format_idc));
+        h >>= (GET_CHROMA_H_SHIFT(chroma_format_idc));
+#else
         w >>= 1;
         h >>= 1;
-        for (j = 0; j < h; j++)
+#endif
+#if BD_CF_EXT
+        if(chroma_format_idc)
+#endif
         {
-            for (i = 0; i < w; i++)
+            for(j = 0; j < h; j++)
             {
-                p0[i] = (p0[i] + p1[i] + 1) >> 1;
-                p2[i] = (p2[i] + p3[i] + 1) >> 1;
+                for(i = 0; i < w; i++)
+                {
+                    p0[i] = (p0[i] + p1[i] + 1) >> 1;
+                    p2[i] = (p2[i] + p3[i] + 1) >> 1;
+                }
+                p0 += w;
+                p1 += w;
+                p2 += w;
+                p3 += w;
             }
-            p0 += w;
-            p1 += w;
-            p2 += w;
-            p3 += w;
         }
     }
 }

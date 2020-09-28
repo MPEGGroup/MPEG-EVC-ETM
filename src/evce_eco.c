@@ -450,8 +450,13 @@ int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps)
 #endif
     return EVC_OK;
 }
+
 #if M52291_HDR_DRA
-int evce_eco_aps_gen(EVC_BSW * bs, EVC_APS_GEN * aps)
+int evce_eco_aps_gen(EVC_BSW * bs, EVC_APS_GEN * aps
+#if BD_CF_EXT
+                     , int bit_depth
+#endif
+)
 {
 #if TRACE_HLS        
     EVC_TRACE_STR("***********************************\n");
@@ -472,7 +477,11 @@ int evce_eco_aps_gen(EVC_BSW * bs, EVC_APS_GEN * aps)
         evce_eco_alf_aps_param(bs, aps); // signal ALF filter parameter except ALF map
     }
     else if (aps->aps_type_id == 1)
-        evce_eco_dra_aps_param(bs, aps); // signal ALF filter parameter except ALF map
+        evce_eco_dra_aps_param(bs, aps
+#if BD_CF_EXT
+                               , bit_depth
+#endif
+        );
     else
         printf("This version of ETM doesnot support this APS type: %d\n", aps->aps_type_id);
 
@@ -2130,7 +2139,11 @@ int evce_eco_ats_inter_info(EVC_BSW * bs, int log2_cuw, int log2_cuh, int ats_in
     }
 }
 
-int evce_eco_cbf(EVC_BSW * bs, int cbf_y, int cbf_u, int cbf_v, u8 pred_mode, int b_no_cbf, int is_sub,int sub_pos, int cbf_all, int run[N_C], TREE_CONS tree_cons)
+int evce_eco_cbf(EVC_BSW * bs, int cbf_y, int cbf_u, int cbf_v, u8 pred_mode, int b_no_cbf, int is_sub, int sub_pos, int cbf_all, int run[N_C], TREE_CONS tree_cons
+#if BD_CF_EXT
+                 , int chroma_format_idc
+#endif
+)
 {
     EVCE_SBAC    *sbac;
     EVC_SBAC_CTX *sbac_ctx;
@@ -2172,8 +2185,12 @@ int evce_eco_cbf(EVC_BSW * bs, int cbf_y, int cbf_u, int cbf_v, u8 pred_mode, in
                 EVC_TRACE_STR("\n");
             }
         }
-       
+
+#if BD_CF_EXT
+        if(run[U_C] && chroma_format_idc != 0)
+#else
         if (run[U_C])
+#endif
         {
             evce_sbac_encode_bin(cbf_u, sbac, sbac_ctx->cbf_cb, bs);
             EVC_TRACE_COUNTER;
@@ -2181,7 +2198,12 @@ int evce_eco_cbf(EVC_BSW * bs, int cbf_y, int cbf_u, int cbf_v, u8 pred_mode, in
             EVC_TRACE_INT(cbf_u);
             EVC_TRACE_STR("\n");
         }
+
+#if BD_CF_EXT
+        if(run[V_C] && chroma_format_idc != 0)
+#else
         if (run[V_C])
+#endif
         {
             evce_sbac_encode_bin(cbf_v, sbac, sbac_ctx->cbf_cr, bs);
             EVC_TRACE_COUNTER;
@@ -2201,7 +2223,11 @@ int evce_eco_cbf(EVC_BSW * bs, int cbf_y, int cbf_u, int cbf_v, u8 pred_mode, in
     }
     else
     {
+#if BD_CF_EXT
+        if(run[U_C] && chroma_format_idc != 0)
+#else
         if (run[U_C])
+#endif
         {
             evc_assert(evc_check_chroma(tree_cons));
             evce_sbac_encode_bin(cbf_u, sbac, sbac_ctx->cbf_cb, bs);
@@ -2210,7 +2236,12 @@ int evce_eco_cbf(EVC_BSW * bs, int cbf_y, int cbf_u, int cbf_v, u8 pred_mode, in
             EVC_TRACE_INT(cbf_u);
             EVC_TRACE_STR("\n");
         }
+
+#if BD_CF_EXT
+        if(run[V_C] && chroma_format_idc != 0)
+#else
         if (run[V_C])
+#endif
         {
             evc_assert(evc_check_chroma(tree_cons));
             evce_sbac_encode_bin(cbf_v, sbac, sbac_ctx->cbf_cr, bs);
@@ -2219,6 +2250,7 @@ int evce_eco_cbf(EVC_BSW * bs, int cbf_y, int cbf_u, int cbf_v, u8 pred_mode, in
             EVC_TRACE_INT(cbf_v);
             EVC_TRACE_STR("\n");
         }
+
         if (run[Y_C])
         {
             evc_assert(evc_check_luma(tree_cons));
@@ -2268,10 +2300,14 @@ int evce_eco_dqp(EVC_BSW * bs, int ref_qp, int cur_qp)
 int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 pred_mode, int nnz_sub[N_C][MAX_SUB_TB_NUM], int b_no_cbf, int run_stats
                   , int tool_ats, u8 ats_intra_cu, u8 ats_mode, u8 ats_inter_info, EVCE_CTX * ctx
 #if DQP
-    , EVCE_CORE * core, int enc_dqp, u8 cur_qp
+                  , EVCE_CORE * core, int enc_dqp, u8 cur_qp
 #endif
-    , TREE_CONS tree_cons)
-{    
+                  , TREE_CONS tree_cons
+#if BD_CF_EXT
+                  , int chroma_format_idc
+#endif
+)
+{
     run_stats = evc_get_run(run_stats, tree_cons);
     int run[N_C] = { run_stats & 1, (run_stats >> 1) & 1, (run_stats >> 2) & 1 };
     s16 *coef_temp[N_C];
@@ -2324,7 +2360,11 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
     {
         for (i = 0; i < loop_w; i++)
         {
-            evce_eco_cbf(bs, !!nnz_sub[Y_C][(j << 1) | i], !!nnz_sub[U_C][(j << 1) | i], !!nnz_sub[V_C][(j << 1) | i], pred_mode, b_no_cbf, is_sub, j + i, cbf_all, run, tree_cons);
+            evce_eco_cbf(bs, !!nnz_sub[Y_C][(j << 1) | i], !!nnz_sub[U_C][(j << 1) | i], !!nnz_sub[V_C][(j << 1) | i], pred_mode, b_no_cbf, is_sub, j + i, cbf_all, run, tree_cons
+#if BD_CF_EXT
+                         , chroma_format_idc
+#endif
+            );
 #if DQP
             if(ctx->pps.cu_qp_delta_enabled_flag)
             {
@@ -2370,12 +2410,24 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
             {
                 if (nnz_sub[c][(j << 1) | i] && run[c])
                 {
+#if BD_CF_EXT
+                    int pos_sub_x = c == 0 ? (i * (1 << (log2_w_sub))) : (i * (1 << (log2_w_sub - (GET_CHROMA_W_SHIFT(chroma_format_idc)))));
+                    int pos_sub_y = c == 0 ? j * (1 << (log2_h_sub)) * (stride) : j * (1 << (log2_h_sub - (GET_CHROMA_H_SHIFT(chroma_format_idc)))) * (stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)));
+#else
                     int pos_sub_x = i * (1 << (log2_w_sub - !!c));
                     int pos_sub_y = j * (1 << (log2_h_sub - !!c)) * (stride >> (!!c));
+#endif
 
                     if (is_sub)
                     {
+#if BD_CF_EXT
+                        if(c == 0)
+                            evc_block_copy(coef[c] + pos_sub_x + pos_sub_y, stride, coef_temp_buf[c], sub_stride, log2_w_sub, log2_h_sub);
+                        else
+                            evc_block_copy(coef[c] + pos_sub_x + pos_sub_y, stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), coef_temp_buf[c], sub_stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), log2_w_sub - (GET_CHROMA_W_SHIFT(chroma_format_idc)), log2_h_sub - (GET_CHROMA_H_SHIFT(chroma_format_idc)));
+#else
                         evc_block_copy(coef[c] + pos_sub_x + pos_sub_y, stride >> (!!c), coef_temp_buf[c], sub_stride >> (!!c), log2_w_sub - (!!c), log2_h_sub - (!!c));
+#endif
                         coef_temp[c] = coef_temp_buf[c];
                     }
                     else
@@ -2383,11 +2435,26 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
                         coef_temp[c] = coef[c];
                     }
 
+#if BD_CF_EXT
+                    if(c==0)
+                        evce_eco_xcoef(bs, coef_temp[c], log2_w_sub, log2_h_sub, nnz_sub[c][(j << 1) | i], c, ctx->sps.tool_adcc);
+                    else
+                        evce_eco_xcoef(bs, coef_temp[c], log2_w_sub - (GET_CHROMA_W_SHIFT(chroma_format_idc)), log2_h_sub - (GET_CHROMA_H_SHIFT(chroma_format_idc)), nnz_sub[c][(j << 1) | i], c, ctx->sps.tool_adcc);
+#else
                     evce_eco_xcoef(bs, coef_temp[c], log2_w_sub - (!!c), log2_h_sub - (!!c), nnz_sub[c][(j << 1) | i], c, ctx->sps.tool_adcc);
+#endif
 
                     if (is_sub)
                     {
+#if BD_CF_EXT
+                        if(c == 0)
+                            evc_block_copy(coef_temp_buf[c], sub_stride, coef[c] + pos_sub_x + pos_sub_y, stride, log2_w_sub, log2_h_sub);
+                        else
+                            evc_block_copy(coef_temp_buf[c], sub_stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), coef[c] + pos_sub_x + pos_sub_y
+                                , stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), log2_w_sub - (GET_CHROMA_W_SHIFT(chroma_format_idc)), log2_h_sub - (GET_CHROMA_H_SHIFT(chroma_format_idc)));
+#else
                         evc_block_copy(coef_temp_buf[c], sub_stride >> (!!c), coef[c] + pos_sub_x + pos_sub_y, stride >> (!!c), log2_w_sub - (!!c), log2_h_sub - (!!c));
+#endif
                     }
                 }
             }
@@ -2963,40 +3030,55 @@ static void coef_rect_to_series(EVCE_CTX * ctx, s16 *coef_src[N_C], int x, int y
     sidx = (x&(ctx->max_cuwh - 1)) + ((y&(ctx->max_cuwh - 1)) << ctx->log2_max_cuwh);
     didx = 0;
 
-    if (evce_check_luma(ctx, core))
+    if(evce_check_luma(ctx, core))
     {
-    for(j = 0; j < cuh; j++)
-    {
-        for(i = 0; i < cuw; i++)
+        for(j = 0; j < cuh; j++)
         {
-            coef_dst[Y_C][didx++] = coef_src[Y_C][sidx + i];
+            for(i = 0; i < cuw; i++)
+            {
+                coef_dst[Y_C][didx++] = coef_src[Y_C][sidx + i];
+            }
+            sidx += ctx->max_cuwh;
         }
-        sidx += ctx->max_cuwh;
-    }
 
     }
-    if (evce_check_chroma(ctx, core))
+    if(evce_check_chroma(ctx, core)
+#if BD_CF_EXT
+       && ctx->sps.chroma_format_idc
+#endif
+       )
     {
+#if BD_CF_EXT
+        x >>= (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc));
+        y >>= (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc));
+        cuw >>= (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc));
+        cuh >>= (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc));
 
-    x >>= 1;
-    y >>= 1;
-    cuw >>= 1;
-    cuh >>= 1;
+        sidx = (x&((ctx->max_cuwh >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) - 1)) + ((y&((ctx->max_cuwh >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) - 1)) << (ctx->log2_max_cuwh - (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))));
+#else
+        x >>= 1;
+        y >>= 1;
+        cuw >>= 1;
+        cuh >>= 1;
 
-    sidx = (x&((ctx->max_cuwh >> 1) - 1)) + ((y&((ctx->max_cuwh >> 1) - 1)) << (ctx->log2_max_cuwh - 1));
+        sidx = (x&((ctx->max_cuwh >> 1) - 1)) + ((y&((ctx->max_cuwh >> 1) - 1)) << (ctx->log2_max_cuwh - 1));
+#endif
+        didx = 0;
 
-    didx = 0;
-
-    for(j = 0; j < cuh; j++)
-    {
-        for(i = 0; i < cuw; i++)
+        for(j = 0; j < cuh; j++)
         {
-            coef_dst[U_C][didx] = coef_src[U_C][sidx + i];
-            coef_dst[V_C][didx] = coef_src[V_C][sidx + i];
-            didx++;
+            for(i = 0; i < cuw; i++)
+            {
+                coef_dst[U_C][didx] = coef_src[U_C][sidx + i];
+                coef_dst[V_C][didx] = coef_src[V_C][sidx + i];
+                didx++;
+            }
+#if BD_CF_EXT
+            sidx += (ctx->max_cuwh >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc)));
+#else
+            sidx += (ctx->max_cuwh >> 1);
+#endif
         }
-        sidx += (ctx->max_cuwh >> 1);
-    }
     }
 }
 
@@ -3662,7 +3744,10 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                     }
                 }
                 evc_assert(cu_data->ipm[1][cup] != IPD_INVALID);
-            evce_eco_intra_dir_c(bs, cu_data->ipm[1][cup], luma_ipm);
+#if BD_CF_EXT
+                if(ctx->sps.chroma_format_idc != 0)
+#endif
+                    evce_eco_intra_dir_c(bs, cu_data->ipm[1][cup], luma_ipm);
             }
         }
         else
@@ -3712,12 +3797,20 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
         enc_dqp = 1;
 #endif
         evce_eco_coef(bs, coef, core->log2_cuw, core->log2_cuh, core->cu_mode
-            , core->nnz_sub, b_no_cbf, RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_ats, cu_data->ats_intra_cu[cup], (cu_data->ats_mode_h[cup] << 1 | cu_data->ats_mode_v[cup]), core->ats_inter_info
+                      , core->nnz_sub, b_no_cbf, RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_ats, cu_data->ats_intra_cu[cup], (cu_data->ats_mode_h[cup] << 1 | cu_data->ats_mode_v[cup]), core->ats_inter_info
 #if DQP
-            , ctx
-            , core, enc_dqp, cu_data->qp_y[cup] - 6 * (BIT_DEPTH - 8)
+                      , ctx
+#if BD_CF_EXT
+                      , core, enc_dqp, cu_data->qp_y[cup] - 6 * ctx->sps.bit_depth_luma_minus8
+#else
+                      , core, enc_dqp, cu_data->qp_y[cup] - 6 * (BIT_DEPTH - 8)
 #endif
-            , core->tree_cons);
+#endif
+                      , core->tree_cons
+#if BD_CF_EXT
+                      , ctx->sps.chroma_format_idc
+#endif
+        );
     }
 
     map_scu = ctx->map_scu + core->scup;
@@ -4186,23 +4279,39 @@ void evce_eco_alf_filter(EVC_BSW * bs, evc_AlfSliceParam asp, const BOOL isChrom
     }
 }
 #if M52291_HDR_DRA
-int evce_eco_dra_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps)
+int evce_eco_dra_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps
+#if BD_CF_EXT
+                           , int bit_depth
+#endif
+)
 {
     SignalledParamsDRA *p_dra_param = (SignalledParamsDRA *)aps->aps_data;
     evc_bsw_write(bs, (u32)p_dra_param->m_dra_descriptor1, 4);
     evc_bsw_write(bs, (u32)p_dra_param->m_dra_descriptor2, 4);
     evc_bsw_write_ue(bs, (u32)p_dra_param->m_numRanges - 1);
     evc_bsw_write1(bs, p_dra_param->m_equalRangesFlag);
+#if BD_CF_EXT
+    evc_bsw_write(bs, (u32)p_dra_param->m_inRanges[0], bit_depth); // delta_luma_dqp_change_point
+#else
     evc_bsw_write(bs, (u32)p_dra_param->m_inRanges[0], QC_IN_RANGE_NUM_BITS); // delta_luma_dqp_change_point
+#endif
     if (p_dra_param->m_equalRangesFlag == TRUE)
     {
+#if BD_CF_EXT
+        evc_bsw_write(bs, (u32)p_dra_param->m_deltaVal, bit_depth);
+#else
         evc_bsw_write(bs, (u32)p_dra_param->m_deltaVal, QC_IN_RANGE_NUM_BITS);
+#endif
     }
     else
     {
         for (int i = 1; i <= p_dra_param->m_numRanges; i++)
         {
+#if BD_CF_EXT
+            evc_bsw_write(bs, (u32)(p_dra_param->m_inRanges[i] - p_dra_param->m_inRanges[i - 1]), bit_depth);
+#else
             evc_bsw_write(bs, (u32)(p_dra_param->m_inRanges[i] - p_dra_param->m_inRanges[i - 1]), QC_IN_RANGE_NUM_BITS);
+#endif
         }
     }
 

@@ -46,7 +46,11 @@ void evce_picbuf_expand(EVCE_CTX *ctx, EVC_PIC *pic)
 
 EVC_PIC * evce_pic_alloc(PICBUF_ALLOCATOR * pa, int * ret)
 {
-    return evc_picbuf_alloc(pa->w, pa->h, pa->pad_l, pa->pad_c, ret);
+    return evc_picbuf_alloc(pa->w, pa->h, pa->pad_l, pa->pad_c, ret
+#if BD_CF_EXT
+                            , pa->idc
+#endif
+    );
 }
 
 void evce_pic_free(PICBUF_ALLOCATOR *pa, EVC_PIC *pic)
@@ -75,7 +79,12 @@ int evce_bsw_write_nalu_size(EVC_BSW *bs)
     return size;
 }
 
-void evce_diff_pred(int x, int y, int log2_cuw, int log2_cuh, EVC_PIC *org, pel pred[N_C][MAX_CU_DIM], s16 diff[N_C][MAX_CU_DIM])
+void evce_diff_pred(int x, int y, int log2_cuw, int log2_cuh, EVC_PIC *org, pel pred[N_C][MAX_CU_DIM], s16 diff[N_C][MAX_CU_DIM]
+#if BD_CF_EXT
+                    , int bit_depth_luma, int bit_depth_chroma
+                    , int chroma_format_idc
+#endif
+)
 {
     pel * buf;
     int cuw, cuh, stride;
@@ -87,24 +96,48 @@ void evce_diff_pred(int x, int y, int log2_cuw, int log2_cuh, EVC_PIC *org, pel 
     /* Y */
     buf = org->y + (y * stride) + x;
 
+#if BD_CF_EXT
+    evce_diff_16b(log2_cuw, log2_cuh, buf, pred[Y_C], stride, cuw, cuw, diff[Y_C], bit_depth_luma);
+#else
     evce_diff_16b(log2_cuw, log2_cuh, buf, pred[Y_C], stride, cuw, cuw, diff[Y_C]);
-
+#endif
+#if BD_CF_EXT
+    if(!chroma_format_idc)
+        return;
+#endif
+#if BD_CF_EXT
+    cuw >>= (GET_CHROMA_W_SHIFT(chroma_format_idc));
+    cuh >>= (GET_CHROMA_H_SHIFT(chroma_format_idc));
+    x >>= (GET_CHROMA_W_SHIFT(chroma_format_idc));
+    y >>= (GET_CHROMA_H_SHIFT(chroma_format_idc));
+    log2_cuw -= (GET_CHROMA_W_SHIFT(chroma_format_idc));
+    log2_cuh -= (GET_CHROMA_H_SHIFT(chroma_format_idc));
+#else
     cuw >>= 1;
     cuh >>= 1;
     x >>= 1;
     y >>= 1;
     log2_cuw--;
     log2_cuh--;
+#endif
 
     stride = org->s_c;
 
     /* U */
     buf = org->u + (y * stride) + x;
+#if BD_CF_EXT
+    evce_diff_16b(log2_cuw, log2_cuh, buf, pred[U_C], stride, cuw, cuw, diff[U_C], bit_depth_chroma);
+#else
     evce_diff_16b(log2_cuw, log2_cuh, buf, pred[U_C], stride, cuw, cuw, diff[U_C]);
+#endif
 
     /* V */
     buf = org->v + (y * stride) + x;
+#if BD_CF_EXT
+    evce_diff_16b(log2_cuw, log2_cuh, buf, pred[V_C], stride, cuw, cuw, diff[V_C], bit_depth_chroma);
+#else
     evce_diff_16b(log2_cuw, log2_cuh, buf, pred[V_C], stride, cuw, cuw, diff[V_C]);
+#endif
 }
 
 #if RDO_DBK
@@ -236,11 +269,19 @@ void evce_set_qp(EVCE_CTX *ctx, EVCE_CORE *core, u8 qp)
 {
     u8 qp_i_cb, qp_i_cr;
     core->qp = qp;
+#if BD_CF_EXT
+    core->qp_y = GET_LUMA_QP(core->qp, ctx->sps.bit_depth_luma_minus8);
+    qp_i_cb = EVC_CLIP3(-6 * ctx->sps.bit_depth_chroma_minus8, 57, core->qp + ctx->sh.qp_u_offset);
+    qp_i_cr = EVC_CLIP3(-6 * ctx->sps.bit_depth_chroma_minus8, 57, core->qp + ctx->sh.qp_v_offset);
+    core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][qp_i_cb] + 6 * ctx->sps.bit_depth_chroma_minus8;
+    core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][qp_i_cr] + 6 * ctx->sps.bit_depth_chroma_minus8;
+#else
     core->qp_y = GET_LUMA_QP(core->qp);
     qp_i_cb = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + ctx->sh.qp_u_offset);
     qp_i_cr = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + ctx->sh.qp_v_offset);
     core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][qp_i_cb] + 6 * (BIT_DEPTH - 8);
     core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][qp_i_cr] + 6 * (BIT_DEPTH - 8);
+#endif
 }
 #endif
 void evce_split_tbl_init(EVCE_CTX *ctx)

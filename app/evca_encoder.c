@@ -100,6 +100,10 @@ static int  op_disable_hgop       = 0;
 static int  op_in_bit_depth       = 8;
 static int  op_skip_frames        = 0;
 static int  op_out_bit_depth      = 0; /* same as input bit depth */
+#if BD_CF_EXT
+static int  op_codec_bit_depth    = 10;
+static int  op_chroma_format_idc  = 1;
+#endif
 static int  op_profile            = 1;
 static int  op_level              = 0;
 static int  op_toolset_idc_h      = 0;
@@ -222,6 +226,10 @@ typedef enum _OP_FLAGS
     OP_FLAG_DISABLE_HGOP,
     OP_FLAG_OUT_BIT_DEPTH,
     OP_FLAG_IN_BIT_DEPTH,
+#if BD_CF_EXT
+    OP_FLAG_CODEC_BIT_DEPTH,
+    OP_FLAG_CHROMA_FORMAT,
+#endif
     OP_FLAG_SKIP_FRAMES,
     OP_PROFILE,
     OP_LEVEL,
@@ -459,6 +467,18 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_FLAG_IN_BIT_DEPTH], &op_in_bit_depth,
         "input bitdepth (8(default), 10) "
     },
+#if BD_CF_EXT
+    {
+        EVC_ARGS_NO_KEY,  "codec_bit_depth", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_FLAG_CODEC_BIT_DEPTH], &op_codec_bit_depth,
+        "codec internal bitdepth (10(default), 8, 12, 14) "
+    },
+    {
+        EVC_ARGS_NO_KEY,  "chroma_format", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_FLAG_CHROMA_FORMAT], &op_chroma_format_idc,
+        "chroma format (1 (default), 0(400), 1(420), 2(422), 3(444)) "
+    },
+#endif
     {
         EVC_ARGS_NO_KEY,  "output_bit_depth", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_FLAG_OUT_BIT_DEPTH], &op_out_bit_depth,
@@ -1202,7 +1222,11 @@ static char get_pic_type(char * in)
 
 static void evca_parse_chroma_qp_mapping_params(EVC_CHROMA_TABLE *dst_struct, EVC_CHROMA_TABLE *src_struct)
 {
+#if BD_CF_EXT
+    int qpBdOffsetC = 6 * (INTERNAL_CODEC_BIT_DEPTH - 8);
+#else
     int qpBdOffsetC = 6 * (BIT_DEPTH - 8);
+#endif
     EVC_CHROMA_TABLE *p_chroma_qp_table = dst_struct;
     p_chroma_qp_table->chroma_qp_table_present_flag = src_struct->chroma_qp_table_present_flag;
     p_chroma_qp_table->num_points_in_qp_table_minus1[0] = src_struct->num_points_in_qp_table_minus1[0];
@@ -1305,7 +1329,16 @@ static int get_conf(EVCE_CDSC * cdsc)
     {
         op_out_bit_depth = op_in_bit_depth;
     }
+#if BD_CF_EXT
+    cdsc->codec_bit_depth = op_codec_bit_depth;
+    INTERNAL_CODEC_BIT_DEPTH = op_codec_bit_depth;
+    INTERNAL_CODEC_BIT_DEPTH_LUMA = op_codec_bit_depth;
+    INTERNAL_CODEC_BIT_DEPTH_CHROMA = op_codec_bit_depth;
+#endif
     cdsc->out_bit_depth      = op_out_bit_depth;
+#if BD_CF_EXT
+    cdsc->chroma_format_idc  = op_chroma_format_idc;
+#endif
     cdsc->framework_cb_max   = op_framework_cb_max;
     cdsc->framework_cb_min   = op_framework_cb_min;
     cdsc->framework_cu14_max = op_framework_cu14_max;
@@ -1342,7 +1375,12 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->deblock_aplha_offset = op_deblock_alpha_offset;
     cdsc->deblock_beta_offset = op_deblock_beta_offset;
 #if ETM_HDR_REPORT_METRIC_FLAG
+#if BD_CF_EXT
+    if(op_chroma_format_idc)
+        cdsc->tool_hdr_metric = op_hdr_metric_report;
+#else
     cdsc->tool_hdr_metric = op_hdr_metric_report;
+#endif
 #endif
 #if M52291_HDR_DRA
     cdsc->tool_dra = op_dra_enable_flag;
@@ -1474,7 +1512,11 @@ static int get_conf(EVCE_CDSC * cdsc)
             evc_assert(l_chroma_qp_table.num_points_in_qp_table_minus1[1] + 1 == j);
         }
         evca_parse_chroma_qp_mapping_params(&(cdsc->chroma_qp_table_struct), &l_chroma_qp_table);  // parse input params and create chroma_qp_table_struct structure
-        evc_derived_chroma_qp_mapping_tables(&(cdsc->chroma_qp_table_struct));
+        evc_derived_chroma_qp_mapping_tables(&(cdsc->chroma_qp_table_struct)
+#if BD_CF_EXT
+                                             , cdsc->codec_bit_depth
+#endif
+        );
     }
     for (int i = 0; i < MAX_NUM_RPLS && op_rpl0[i][0] != 0; ++i)
     {
@@ -1523,6 +1565,13 @@ static int get_conf(EVCE_CDSC * cdsc)
         p_dra_control->m_flagEnabled = op_dra_enable_flag;
         if (p_dra_control->m_flagEnabled)
         {
+#if BD_CF_EXT
+            if(!(cdsc->codec_bit_depth == 10))
+            {
+                return -2;
+            }
+            p_dra_control->m_idc = cdsc->chroma_format_idc;
+#endif
             p_dra_control->m_draHistNorm = atof(strtok(op_dra_hist_norm, " "));
             p_dra_control->m_draHistNorm = p_dra_control->m_draHistNorm == 0 ? 1 : p_dra_control->m_draHistNorm;
             p_dra_control->m_atfNumRanges = op_dra_number_ranges;
@@ -1553,6 +1602,12 @@ static int get_conf(EVCE_CDSC * cdsc)
         }
 
         p_dra_control->m_chromaQPModel.dra_table_idx = cdsc->qp;
+#if BD_CF_EXT
+        p_dra_control->m_internal_bd = cdsc->codec_bit_depth;
+        p_dra_control->m_idc = cdsc->chroma_format_idc;
+        if(cdsc->chroma_format_idc == 0)
+            p_dra_control->m_chromaQPModel.dra_table_idx = 58;
+#endif
         p_dra_control->m_chromaQPModel.m_draChromaCbQpOffset = cdsc->cb_qp_offset;
         p_dra_control->m_chromaQPModel.m_draChromaCrQpOffset = cdsc->cr_qp_offset;
         p_dra_control->m_chromaQPModel.enabled = 1;
@@ -1606,6 +1661,10 @@ static void print_enc_conf(EVCE_CDSC * cdsc)
     printf("Number of Slices: %d, ",       cdsc->num_slice_in_pic);
     printf("Loop Filter Across Tile Enabled: %d, ", cdsc->loop_filter_across_tiles_enabled_flag);
     printf("ChromaQPTable: %d, ", cdsc->chroma_qp_table_struct.chroma_qp_table_present_flag);
+#if BD_CF_EXT
+    printf("Input bd: %d, Codec bd: %d, Output bd: %d ", cdsc->in_bit_depth,cdsc->codec_bit_depth, cdsc->out_bit_depth);
+    printf("Chroma format idc: %d, ", cdsc->chroma_format_idc);
+#endif
 #if M52291_HDR_DRA
     printf("DRA: %d ", cdsc->tool_dra);
 #endif
@@ -1809,6 +1868,34 @@ static void find_psnr_10bit(EVC_IMGB * org, EVC_IMGB * rec, double psnr[3])
     }
 }
 
+#if BD_CF_EXT
+static void find_psnr_short(EVC_IMGB * org, EVC_IMGB * rec, double psnr[3], int bit_depth)
+{
+    double sum[3], mse[3];
+    short *o, *r;
+    int i, j, k;
+    int factor = 1 << (bit_depth - 8);
+    factor *= factor;
+    for(i = 0; i<org->np; i++)
+    {
+        o = (short*)org->a[i];
+        r = (short*)rec->a[i];
+        sum[i] = 0;
+        for(j = 0; j<org->h[i]; j++)
+        {
+            for(k = 0; k<org->w[i]; k++)
+            {
+                sum[i] += (o[k] - r[k]) * (o[k] - r[k]);
+            }
+            o = (short*)((unsigned char *)o + org->s[i]);
+            r = (short*)((unsigned char *)r + rec->s[i]);
+        }
+        mse[i] = sum[i] / (org->w[i] * org->h[i]);
+        psnr[i] = (mse[i] == 0.0) ? 100. : fabs(10 * log10(((255 * 255 * factor) / mse[i])));
+    }
+}
+#endif
+
 static void find_psnr_8bit(EVC_IMGB * org, EVC_IMGB * rec, double psnr[3])
 {
     double sum[3], mse[3];
@@ -1878,6 +1965,41 @@ static void find_wpsnr_10bit(EVC_IMGB * org, EVC_IMGB * rec, double wpsnr[3])
         wpsnr[i] = (uiTotalDiffWPSNR_avg == 0.0) ? 100. : fabs(10 * log10(((255 * 255 * 16) / uiTotalDiffWPSNR_avg)));
     }
 }
+
+#if BD_CF_EXT
+static void find_wpsnr_short(EVC_IMGB * org, EVC_IMGB * rec, double wpsnr[3], int bit_depth)
+{
+    double uiTotalDiffWPSNR, uiTotalDiffWPSNR_avg;
+    short *o, *r;
+    short *o_luma = (short*)org->a[0];
+    int i, j, k;
+
+    int factor = 1 << (bit_depth - 8);
+    factor *= factor;
+    for(i = 0; i < org->np; i++)
+    {
+        o = (short*)org->a[i];
+        r = (short*)rec->a[i];
+        uiTotalDiffWPSNR = 0.0;
+        uiTotalDiffWPSNR_avg = 0.0;
+        for(j = 0; j < org->h[i]; j++)
+        {
+            for(k = 0; k < org->w[i]; k++)
+            {
+                double temp = (o[k] - r[k]);
+                double dW = getWPSNRLumaLevelWeight(o_luma[k << (i == 0 ? 0 : 1)]);
+                uiTotalDiffWPSNR += dW * temp * temp;
+            }
+            o = (short*)((unsigned char *)o + org->s[i]);
+            r = (short*)((unsigned char *)r + rec->s[i]);
+            o_luma = (short*)((unsigned char *)o_luma + (org->s[0] << (i == 0 ? 0 : 1)));
+        }
+        o_luma = (short*)org->a[0];
+        uiTotalDiffWPSNR_avg = uiTotalDiffWPSNR / (org->w[i] * org->h[i]);
+        wpsnr[i] = (uiTotalDiffWPSNR_avg == 0.0) ? 100. : fabs(10 * log10(((255 * 255 * 16) / uiTotalDiffWPSNR_avg)));
+    }
+}
+#endif
 
 static void find_wpsnr_8bit(EVC_IMGB * org, EVC_IMGB * rec, double wpsnr[3])
 {
@@ -2134,7 +2256,11 @@ static void find_ms_ssim(EVC_IMGB *org, EVC_IMGB *rec, double* ms_ssim, int bit_
         free(rec_last_scale);
 }
 
-static int imgb_list_alloc(IMGB_LIST *list, int w, int h, int bit_depth)
+static int imgb_list_alloc(IMGB_LIST *list, int w, int h, int bit_depth
+#if BD_CF_EXT
+                           , int chroma_format_idc
+#endif
+)
 {
     int i;
 
@@ -2142,6 +2268,13 @@ static int imgb_list_alloc(IMGB_LIST *list, int w, int h, int bit_depth)
 
     for(i=0; i<MAX_BUMP_FRM_CNT; i++)
     {
+#if BD_CF_EXT
+#if BD_CF_EXT
+        list[i].imgb = imgb_alloc(w, h, CS_FROM_BD_CF(bit_depth, chroma_format_idc));
+#else
+        list[i].imgb = imgb_alloc(w, h, CS_FROM_BD_420(bit_depth));
+#endif
+#else
         if(bit_depth == 10)
         {
             list[i].imgb =  imgb_alloc(w, h, EVC_COLORSPACE_YUV420_10LE);
@@ -2150,6 +2283,7 @@ static int imgb_list_alloc(IMGB_LIST *list, int w, int h, int bit_depth)
         {
             list[i].imgb =  imgb_alloc(w, h, EVC_COLORSPACE_YUV420);
         }
+#endif
         if(list[i].imgb == NULL) goto ERR;
     }
     return 0;
@@ -2181,7 +2315,11 @@ static IMGB_LIST *imgb_list_put(IMGB_LIST *list, EVC_IMGB *imgb, EVC_MTIME ts)
     {
         if(list[i].used == 0)
         {
+#if BD_CF_EXT
+            imgb_cpy_codec_to_out(list[i].imgb, imgb);
+#else
             imgb_cpy(list[i].imgb, imgb);
+#endif
             list[i].used = 1;
             list[i].ts = ts;
             return &list[i];
@@ -2229,6 +2367,18 @@ static int cal_psnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts,
         {
             if(op_out_bit_depth == op_in_bit_depth)
             {
+#if BD_CF_EXT
+                if(op_out_bit_depth == 8)
+                {
+                    find_psnr_8bit(imgblist_inp[i].imgb, imgb_rec, psnr);
+                    find_ms_ssim(imgblist_inp[i].imgb, imgb_rec, ms_ssim, 8);
+                }
+                else /* if(op_out_bit_depth >= 10) */
+                {
+                    find_psnr_short(imgblist_inp[i].imgb, imgb_rec, psnr, op_out_bit_depth);
+                    find_ms_ssim(imgblist_inp[i].imgb, imgb_rec, ms_ssim, op_out_bit_depth);
+                }
+#else
                 if(op_out_bit_depth == 10)
                 {
                     find_psnr_10bit(imgblist_inp[i].imgb, imgb_rec, psnr);
@@ -2239,7 +2389,38 @@ static int cal_psnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts,
                     find_psnr_8bit(imgblist_inp[i].imgb, imgb_rec, psnr);
                     find_ms_ssim(imgblist_inp[i].imgb, imgb_rec, ms_ssim, 8);
                 }
+#endif
             }
+#if BD_CF_EXT
+            if(op_out_bit_depth == 8)
+            {
+#if BD_CF_EXT
+                imgb_t = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                                    CS_FROM_BD_CF(op_out_bit_depth, op_chroma_format_idc));
+#else
+                imgb_t = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                                    EVC_COLORSPACE_YUV420);
+#endif
+                imgb_cpy_bd(imgb_t, imgblist_inp[i].imgb);
+                find_psnr_8bit(imgb_t, imgb_rec, psnr);
+                find_ms_ssim(imgb_t, imgb_rec, ms_ssim, 8);
+                imgb_free(imgb_t);
+            }
+            else
+            {
+#if BD_CF_EXT
+                imgb_t = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                                    CS_FROM_BD_CF(op_out_bit_depth, op_chroma_format_idc));
+#else
+                imgb_t = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                                    CS_FROM_BD_420(op_out_bit_depth));
+#endif
+                imgb_cpy_bd(imgb_t, imgblist_inp[i].imgb);
+                find_psnr_short(imgb_t, imgb_rec, psnr, op_out_bit_depth);
+                find_ms_ssim(imgb_t, imgb_rec, ms_ssim, op_out_bit_depth);
+                imgb_free(imgb_t);
+            }
+#else
             else if(op_out_bit_depth == 10)
             {
                 imgb_t = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
@@ -2259,6 +2440,7 @@ static int cal_psnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts,
                 find_ms_ssim(imgb_t, imgb_rec, ms_ssim, 8);
                 imgb_free(imgb_t);
             }
+#endif
 #if HDR_METRIC
             if (!hdr_metric_report)
             {
@@ -2288,6 +2470,16 @@ static int cal_wpsnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts
         {
             if (op_out_bit_depth == op_in_bit_depth)
             {
+#if BD_CF_EXT
+                if(op_out_bit_depth == 8)
+                {
+                    find_wpsnr_8bit(imgblist_inp[i].imgb, imgb_rec, wpsnr);
+                }
+                else /* if(op_out_bit_depth > = 10) */
+                {
+                    find_wpsnr_short(imgblist_inp[i].imgb, imgb_rec, wpsnr, op_out_bit_depth);
+                }
+#else
                 if (op_out_bit_depth == 10)
                 {
                     find_wpsnr_10bit(imgblist_inp[i].imgb, imgb_rec, wpsnr);
@@ -2296,7 +2488,36 @@ static int cal_wpsnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts
                 {
                     find_wpsnr_8bit(imgblist_inp[i].imgb, imgb_rec, wpsnr);
                 }
+#endif
             }
+#if BD_CF_EXT
+            if(op_out_bit_depth == 8)
+            {
+#if BD_CF_EXT
+                imgb_t = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                                    CS_FROM_BD_CF(op_out_bit_depth, op_chroma_format_idc));
+#else
+                imgb_t = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                                    EVC_COLORSPACE_YUV420);
+#endif
+                imgb_cpy_bd(imgb_t, imgblist_inp[i].imgb);
+                find_wpsnr_8bit(imgb_t, imgb_rec, wpsnr);
+                imgb_free(imgb_t);
+            }
+            else
+            {
+#if BD_CF_EXT
+                imgb_t = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                                    CS_FROM_BD_CF(op_out_bit_depth, op_chroma_format_idc));
+#else
+                imgb_t = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                                    CS_FROM_BD_420(op_out_bit_depth));
+#endif
+                imgb_cpy_bd(imgb_t, imgblist_inp[i].imgb);
+                find_wpsnr_short(imgb_t, imgb_rec, wpsnr, op_out_bit_depth);
+                imgb_free(imgb_t);
+            }
+#else
             else if (op_out_bit_depth == 10)
             {
                 imgb_t = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
@@ -2314,6 +2535,7 @@ static int cal_wpsnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts
                 find_wpsnr_8bit(imgb_t, imgb_rec, wpsnr);
                 imgb_free(imgb_t);
             }
+#endif
             //            imgblist_inp[i].used = 0;
             return 0;
         }
@@ -2609,10 +2831,16 @@ void process2(EVC_IMGB* out, const EVC_IMGB* inp) {
     float max = 1.0;
 
     // First convert all components as per the described transform process 
-    for (int i = 0; i < inp->w[0] * inp->h[0]; i++) {
+    for(int i = 0; i < inp->w[0] * inp->h[0]; i++)
+    {
         *(((float*)out->a[0]) + i) = fClip((float)(g_color_trans[0][0] * (double)red[i] + g_color_trans[0][1] * (double)green[i] + g_color_trans[0][2] * (double)blue[i]), min, max);
-        *(((float*)out->a[1]) + i) = fClip((float)(g_color_trans[1][0] * (double)red[i] + g_color_trans[1][1] * (double)green[i] + g_color_trans[1][2] * (double)blue[i]), min, max);
-        *(((float*)out->a[2]) + i) = fClip((float)(g_color_trans[2][0] * (double)red[i] + g_color_trans[2][1] * (double)green[i] + g_color_trans[2][2] * (double)blue[i]), min, max);
+#if BD_CF_EXT
+        if(CF_FROM_CS(out->cs))
+#endif
+        {
+            *(((float*)out->a[1]) + i) = fClip((float)(g_color_trans[1][0] * (double)red[i] + g_color_trans[1][1] * (double)green[i] + g_color_trans[1][2] * (double)blue[i]), min, max);
+            *(((float*)out->a[2]) + i) = fClip((float)(g_color_trans[2][0] * (double)red[i] + g_color_trans[2][1] * (double)green[i] + g_color_trans[2][2] * (double)blue[i]), min, max);
+        }
     }
 }
 
@@ -2643,7 +2871,11 @@ double forward2(double value) {
 }
 void forward(EVC_IMGB* out, const EVC_IMGB* inp, long long size)
 {
+#if BD_CF_EXT
+    for(int k = 0; k < inp->np; k++)
+#else
     for (int k = 0; k < 3; k++)
+#endif
     {
         for (int i = 0; i < size; i++) {
             // ideally, we should remove the double cast. However, we are currently keeping compatibility with the old code
@@ -2667,19 +2899,43 @@ static int cal_hdr_metric(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTI
     {
         if (imgblist_inp[i].ts == ts && imgblist_inp[i].used == 1)
         {
+#if BD_CF_EXT
+            if(imgblist_inp[i].imgb->np != 1)
+            {
+                imgb_ori_p1 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                                         EVC_COLORSPACE_YUV444_10LE_INT);
+                imgb_rec_p1 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                                         EVC_COLORSPACE_YUV444_10LE_INT);
+#else
             imgb_ori_p1 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
-                EVC_COLORSPACE_YUV444_10LE);
+                                     EVC_COLORSPACE_YUV444_10LE);
             imgb_rec_p1 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
-                EVC_COLORSPACE_YUV444_10LE);
+                                     EVC_COLORSPACE_YUV444_10LE);
+#endif
             imgb_ori = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
-                EVC_COLORSPACE_YUV420_10LE);
+                                  EVC_COLORSPACE_YUV420_10LE);
+#if BD_CF_EXT
+            imgb_cpy_inp_to_codec(imgb_ori, imgblist_inp[i].imgb);
+            EVC_IMGB * imgb_rec_copy = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                                                  EVC_COLORSPACE_YUV420_10LE);
+            imgb_cpy_bd(imgb_rec_copy, imgb_rec);
+#else
             imgb_cpy(imgb_ori, imgblist_inp[i].imgb);
+#endif
             process1(imgb_ori_p1, imgb_ori); // convert from 420 to 444
+#if BD_CF_EXT
+            process1(imgb_rec_p1, imgb_rec_copy);
+            imgb_ori_p2 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                                     EVC_COLORSPACE_YUV444_10LE_INT);
+            imgb_rec_p2 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                                     EVC_COLORSPACE_YUV444_10LE_INT);
+#else
             process1(imgb_rec_p1, imgb_rec);
             imgb_ori_p2 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
-                EVC_COLORSPACE_YUV444_10LE);
+                                     EVC_COLORSPACE_YUV444_10LE);
             imgb_rec_p2 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
-                EVC_COLORSPACE_YUV444_10LE);
+                                     EVC_COLORSPACE_YUV444_10LE);
+#endif
             convertComponent((int*)imgb_ori_p1->a[0], (float*)imgb_ori_p2->a[0], (imgb_rec->w[0] * imgb_rec->h[0]), 1.0 / ((1 << (10 - 8)) * 219.0), (const short)(1 << (10 - 4)), 0.0f, 1.0f);
             convertComponent((int*)imgb_ori_p1->a[1], (float*)imgb_ori_p2->a[1], (imgb_rec->w[0] * imgb_rec->h[0]), 1.0 / ((1 << (10 - 8)) * 224.0), (const short)(1 << (10 - 1)), -0.5f, 0.5f);
             convertComponent((int*)imgb_ori_p1->a[2], (float*)imgb_ori_p2->a[2], (imgb_rec->w[0] * imgb_rec->h[0]), 1.0 / ((1 << (10 - 8)) * 224.0), (const short)(1 << (10 - 1)), -0.5f, 0.5f);
@@ -2687,24 +2943,39 @@ static int cal_hdr_metric(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTI
             convertComponent((int*)imgb_rec_p1->a[0], (float*)imgb_rec_p2->a[0], (imgb_rec->w[0] * imgb_rec->h[0]), 1.0 / ((1 << (10 - 8)) * 219.0), (const short)(1 << (10 - 4)), 0.0f, 1.0f);
             convertComponent((int*)imgb_rec_p1->a[1], (float*)imgb_rec_p2->a[1], (imgb_rec->w[0] * imgb_rec->h[0]), 1.0 / ((1 << (10 - 8)) * 224.0), (const short)(1 << (10 - 1)), -0.5f, 0.5f);
             convertComponent((int*)imgb_rec_p1->a[2], (float*)imgb_rec_p2->a[2], (imgb_rec->w[0] * imgb_rec->h[0]), 1.0 / ((1 << (10 - 8)) * 224.0), (const short)(1 << (10 - 1)), -0.5f, 0.5f);
+#if BD_CF_EXT
             imgb_ori_p3 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
-                EVC_COLORSPACE_YUV444_10LE);
+                                     EVC_COLORSPACE_YUV444_10LE_INT);
             imgb_rec_p3 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
-                EVC_COLORSPACE_YUV444_10LE);
+                                     EVC_COLORSPACE_YUV444_10LE_INT);
+#else
+            imgb_ori_p3 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                                     EVC_COLORSPACE_YUV444_10LE);
+            imgb_rec_p3 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                                     EVC_COLORSPACE_YUV444_10LE);
+#endif
 
             process2(imgb_ori_p3, imgb_ori_p2); // convert from YUV to RGB
             process2(imgb_rec_p3, imgb_rec_p2);
-
+#if BD_CF_EXT
             imgb_ori_p4 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
-                EVC_COLORSPACE_YUV444_10LE);
+                                     EVC_COLORSPACE_YUV444_10LE_INT);
             imgb_rec_p4 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
-                EVC_COLORSPACE_YUV444_10LE);
+                                     EVC_COLORSPACE_YUV444_10LE_INT);
+#else
+            imgb_ori_p4 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                                     EVC_COLORSPACE_YUV444_10LE);
+            imgb_rec_p4 = imgb_alloc(imgb_rec->w[0], imgb_rec->h[0],
+                                     EVC_COLORSPACE_YUV444_10LE);
+#endif
 
             forward(imgb_ori_p4, imgb_ori_p3, (imgb_rec->w[0] * imgb_rec->h[0]));
             forward(imgb_rec_p4, imgb_rec_p3, (imgb_rec->w[0] * imgb_rec->h[0]));
 
             computeMetric(imgb_ori_p4, imgb_rec_p4, deltaE, psnrL);
+#if !BD_CF_EXT
             imgblist_inp[i].used = 0;
+#endif
             imgb_free(imgb_ori);
             imgb_free(imgb_ori_p1);
             imgb_free(imgb_rec_p1);
@@ -2714,7 +2985,12 @@ static int cal_hdr_metric(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTI
             imgb_free(imgb_rec_p3);
             imgb_free(imgb_ori_p4);
             imgb_free(imgb_rec_p4);
-            return 0;
+#if BD_CF_EXT
+            imgb_free(imgb_rec_copy);
+            }
+        imgblist_inp[i].used = 0;
+#endif
+        return 0;
         }
     }
     return -1;
@@ -2735,11 +3011,13 @@ static int write_rec(IMGB_LIST *list, EVC_MTIME *ts)
             if(op_flag[OP_FLAG_FNAME_REC])
             {
 #if M52291_HDR_DRA
+#if !BD_CF_EXT
                 int effective_aps_id = list[i].imgb->imgb_active_aps_id;
-                if (effective_aps_id >= 0)
+                if(effective_aps_id >= 0)
                 {
                     evc_apply_dra_from_array(list[i].imgb, list[i].imgb, p_DRAControl, effective_aps_id, TRUE);
                 }
+#endif
 #endif
                 if(imgb_write(op_fname_rec, list[i].imgb))
                 {
@@ -2757,9 +3035,9 @@ static int write_rec(IMGB_LIST *list, EVC_MTIME *ts)
 
 void print_psnr(EVCE_STAT * stat, double * psnr, double ms_ssim, int bitrate, EVC_CLK clk_end
 #if HDR_METRIC
-    , double *wpsnr
-    , double *deltaE
-    , double *psnrL
+                , double *wpsnr
+                , double *deltaE
+                , double *psnrL
 #endif
 )
 {
@@ -2954,12 +3232,25 @@ int main(int argc, const char **argv)
 #else
     val = get_conf(&cdsc);
 #endif
-    if (val)
+#if BD_CF_EXT
+    set_chroma_qp__tbl_loc();
+#endif
+    if(val)
     {
         if(val == -1)
-        printf("Number of tiles should be equal or more than number of slices\n");
-        print_usage();
-        return -1;
+        {
+            printf("Number of tiles should be equal or more than number of slices\n");
+            print_usage();
+            return -1;
+        }
+#if BD_CF_EXT
+        if(val == -2)
+        {
+            printf("for DRA internal bit depth should be 10\n");
+            print_usage();
+            return -1;
+        }
+#endif
     }
 
     print_enc_conf(&cdsc);
@@ -2985,12 +3276,20 @@ int main(int argc, const char **argv)
     }
 
     /* create image lists */
-    if(imgb_list_alloc(ilist_org, cdsc.w, cdsc.h, op_in_bit_depth))
+    if(imgb_list_alloc(ilist_org, cdsc.w, cdsc.h, op_in_bit_depth
+#if BD_CF_EXT
+       , op_chroma_format_idc
+#endif
+       ))
     {
         v0print("cannot allocate image list for original image\n");
         return -1;
     }
-    if(imgb_list_alloc(ilist_rec, cdsc.w, cdsc.h, op_out_bit_depth))
+    if(imgb_list_alloc(ilist_rec, cdsc.w, cdsc.h, op_out_bit_depth
+#if BD_CF_EXT
+       , op_chroma_format_idc
+#endif
+       ))
     {
         v0print("cannot allocate image list for reconstructed image\n");
         return -1;
@@ -3174,8 +3473,13 @@ int main(int argc, const char **argv)
                 v0print("Cannot get original image buffer\n");
                 return -1;
             }
+#if BD_CF_EXT
+            imgb_enc->cs = CS_FROM_BD_CF(INTERNAL_CODEC_BIT_DEPTH, op_chroma_format_idc);
             /* copy original image to encoding buffer */
+            imgb_cpy_inp_to_codec(imgb_enc, ilist_t->imgb);
+#else
             imgb_cpy(imgb_enc, ilist_t->imgb);
+#endif
 #if M52291_HDR_DRA
             evce_set_active_pps_dra_info(id, 0);
             imgb_enc->imgb_active_pps_id = evce_get_pps_id(id);
@@ -3236,7 +3540,36 @@ int main(int argc, const char **argv)
                 v0print("failed to get reconstruction image\n");
                 return -1;
             }
-
+#if BD_CF_EXT
+#if M52291_HDR_DRA
+            if(evce_get_pps_dra_flag(id))
+            {
+                if(EVC_OK != evce_get_inbuf(id, &imgb_dra))
+                {
+                    v0print("Cannot get original image buffer (DRA)\n");
+                    return -1;
+                }
+                imgb_cpy_bd(imgb_dra, imgb_rec);  // store copy of the reconstructed picture in DPB
+                int effective_aps_id = imgb_dra->imgb_active_aps_id;
+                evc_apply_dra_from_array(imgb_dra, imgb_dra, &(g_dra_control_array[0]), effective_aps_id, TRUE);
+                ilist_t = imgb_list_put(ilist_rec, imgb_dra, imgb_dra->ts[0]);
+                if(ilist_t == NULL)
+                {
+                    v0print("cannot put reconstructed image to list\n");
+                    return -1;
+                }
+            }
+            else
+            {
+                ilist_t = imgb_list_put(ilist_rec, imgb_rec, imgb_rec->ts[0]);
+                if(ilist_t == NULL)
+                {
+                    v0print("cannot put reconstructed image to list\n");
+                    return -1;
+                }
+            }
+#endif
+#else
             /* store reconstructed image to list */
             ilist_t = imgb_list_put(ilist_rec, imgb_rec, imgb_rec->ts[0]);
             if(ilist_t == NULL)
@@ -3256,6 +3589,7 @@ int main(int argc, const char **argv)
                 int effective_aps_id = imgb_dra->imgb_active_aps_id;
                 evc_apply_dra_from_array(ilist_t->imgb, ilist_t->imgb, &(g_dra_control_array[0]), effective_aps_id, TRUE);
             }
+#endif
 #endif
             /* calculate PSNR */
             if(cal_psnr(ilist_org, ilist_t->imgb, ilist_t->ts, psnr, &ms_ssim
@@ -3285,7 +3619,9 @@ int main(int argc, const char **argv)
 #if M52291_HDR_DRA
             if (evce_get_pps_dra_flag(id))
             {
+#if !BD_CF_EXT
                 imgb_cpy(ilist_t->imgb, imgb_dra);// recover copy of the reconstructed picture for DPB
+#endif
                 imgb_enc->release(imgb_dra);
             }
             if (write_rec(ilist_rec, &pic_ocnt, &(g_dra_control_array[0])))
