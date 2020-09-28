@@ -37,7 +37,11 @@
 #include <math.h>
 
 
-void evc_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, pel *rec, u8 ats_inter_info)
+void evc_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, pel *rec, u8 ats_inter_info
+#if BD_CF_EXT
+               , int bit_depth
+#endif
+)
 {
     int i, j;
     s16 t0;
@@ -48,7 +52,11 @@ void evc_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, p
         {
             for(j = 0; j < cuw; j++)
             {
+#if BD_CF_EXT
+                rec[i * s_rec + j] = EVC_CLIP3(0, (1 << bit_depth) - 1, pred[i * cuw + j]);
+#else
                 rec[i * s_rec + j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, pred[i * cuw + j]);
+#endif
             }
         }
     }
@@ -73,13 +81,21 @@ void evc_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, p
                     {
                         resi = ats_inter_pos == 0 ? coef[i * tu0_w + j] : 0;
                         t0 = resi + pred[i * cuw + j];
+#if BD_CF_EXT
+                        rec[i * s_rec + j] = EVC_CLIP3(0, (1 << bit_depth) - 1, t0);
+#else
                         rec[i * s_rec + j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, t0);
+#endif
                     }
                     for (j = tu0_w; j < cuw; j++)
                     {
                         resi = ats_inter_pos == 1 ? coef[i * tu1_w + j - tu0_w] : 0;
                         t0 = resi + pred[i * cuw + j];
+#if BD_CF_EXT
+                        rec[i * s_rec + j] = EVC_CLIP3(0, (1 << bit_depth) - 1, t0);
+#else
                         rec[i * s_rec + j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, t0);
+#endif
                     }
                 }
             }
@@ -93,13 +109,21 @@ void evc_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, p
                     {
                         resi = ats_inter_pos == 0 ? coef[i * cuw + j] : 0;
                         t0 = resi + pred[i * cuw + j];
+#if BD_CF_EXT
+                        rec[i * s_rec + j] = EVC_CLIP3(0, (1 << bit_depth) - 1, t0);
+#else
                         rec[i * s_rec + j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, t0);
+#endif
                     }
                     for (i = tu0_h; i < cuh; i++)
                     {
                         resi = ats_inter_pos == 1 ? coef[(i - tu0_h) * cuw + j] : 0;
                         t0 = resi + pred[i * cuw + j];
+#if BD_CF_EXT
+                        rec[i * s_rec + j] = EVC_CLIP3(0, (1 << bit_depth) - 1, t0);
+#else
                         rec[i * s_rec + j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, t0);
+#endif
                     }
                 }
             }
@@ -111,32 +135,64 @@ void evc_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, p
             for(j = 0; j < cuw; j++)
             {
                 t0 = coef[i * cuw + j] + pred[i * cuw + j];
+#if BD_CF_EXT
+                rec[i * s_rec + j] = EVC_CLIP3(0, (1 << bit_depth) - 1, t0);
+#else
                 rec[i * s_rec + j] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, t0);
+#endif
             }
         }
     }
 }
 
-void evc_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pel pred[N_C][MAX_CU_DIM], int nnz[N_C], EVC_PIC *pic, u8 ats_inter_info, TREE_CONS tree_cons)
+void evc_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pel pred[N_C][MAX_CU_DIM], int nnz[N_C], EVC_PIC *pic, u8 ats_inter_info, TREE_CONS tree_cons
+#if BD_CF_EXT
+                   , int bit_depth
+                   , int chroma_format_idc
+#endif
+)
 {
     pel * rec;
     int s_rec, off;
 
-    if (evc_check_luma(tree_cons))
+    if(evc_check_luma(tree_cons))
     {
         /* Y */
         s_rec = pic->s_l;
         rec = pic->y + (y * s_rec) + x;
-        evc_recon(coef[Y_C], pred[Y_C], nnz[Y_C], cuw, cuh, s_rec, rec, ats_inter_info);
+        evc_recon(coef[Y_C], pred[Y_C], nnz[Y_C], cuw, cuh, s_rec, rec, ats_inter_info
+#if BD_CF_EXT
+                  , bit_depth
+#endif
+        );
     }
-    if (evc_check_chroma(tree_cons))
+
+    if(evc_check_chroma(tree_cons)
+#if BD_CF_EXT
+       && (chroma_format_idc != 0)
+#endif
+       )
     {
         /* chroma */
+#if BD_CF_EXT
+        cuw >>= (GET_CHROMA_W_SHIFT(chroma_format_idc));
+        cuh >>= (GET_CHROMA_H_SHIFT(chroma_format_idc));
+        off = (x >> (GET_CHROMA_W_SHIFT(chroma_format_idc))) + (y >> (GET_CHROMA_H_SHIFT(chroma_format_idc))) * pic->s_c;
+#else
         cuw >>= 1;
         cuh >>= 1;
         off = (x >> 1) + (y >> 1) * pic->s_c;
-        evc_recon(coef[U_C], pred[U_C], nnz[U_C], cuw, cuh, pic->s_c, pic->u + off, ats_inter_info);
-        evc_recon(coef[V_C], pred[V_C], nnz[V_C], cuw, cuh, pic->s_c, pic->v + off, ats_inter_info);
+#endif
+        evc_recon(coef[U_C], pred[U_C], nnz[U_C], cuw, cuh, pic->s_c, pic->u + off, ats_inter_info
+#if BD_CF_EXT
+                  , bit_depth
+#endif
+        );
+        evc_recon(coef[V_C], pred[V_C], nnz[V_C], cuw, cuh, pic->s_c, pic->v + off, ats_inter_info
+#if BD_CF_EXT
+                  , bit_depth
+#endif
+        );
     }
 }
 
@@ -183,7 +239,11 @@ typedef struct
 
 static tHtdfOffset Scan[4] = { { 0,0 },{ 0,1 },{ 1,0 },{ 1,1 } };
 
-void evc_htdf_filter_block(pel *block, pel *acc_block, const u8 *tbl, int stride_block, int stride_acc, int width, int height, int tbl_thr_log2)
+void evc_htdf_filter_block(pel *block, pel *acc_block, const u8 *tbl, int stride_block, int stride_acc, int width, int height, int tbl_thr_log2
+#if BD_CF_EXT
+                           , int bit_depth
+#endif
+)
 {
     const int p0 = Scan[0].r*stride_block + Scan[0].c;
     const int p1 = Scan[1].r*stride_block + Scan[1].c;
@@ -240,12 +300,20 @@ void evc_htdf_filter_block(pel *block, pel *acc_block, const u8 *tbl, int stride
             out[p3_out] += ((iy2 - iy3) >> HTDF_BIT_RND4);
 
             // normalization
+#if BD_CF_EXT
+            in[p0] = EVC_CLIP3(0, (1 << bit_depth) - 1, (out[p0_out] + HTDF_CNT_SCALE_RND) >> HTDF_CNT_SCALE);
+#else
             in[p0] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, (out[p0_out] + HTDF_CNT_SCALE_RND) >> HTDF_CNT_SCALE);
+#endif
         }
     }
 }
 
-void filter_block_luma(pel *block, const u8 HTDF_table[HTDF_LUT_QP_NUM][1 << HTDF_LUT_SIZE_LOG2], int width, int height, int stride, int qp)
+void filter_block_luma(pel *block, const u8 HTDF_table[HTDF_LUT_QP_NUM][1 << HTDF_LUT_SIZE_LOG2], int width, int height, int stride, int qp
+#if BD_CF_EXT
+                       , int bit_depth
+#endif
+)
 {
     pel acc_block[(MAX_CU_SIZE + 2)*(MAX_CU_SIZE + 2)];
 
@@ -255,7 +323,11 @@ void filter_block_luma(pel *block, const u8 HTDF_table[HTDF_LUT_QP_NUM][1 << HTD
     idx = max(idx, 0);
     idx = min(idx, HTDF_LUT_QP_NUM - 1);
 
-    evc_htdf_filter_block(block, acc_block, HTDF_table[idx], stride, width, width, height, HTDF_table_thr_log2[idx]);
+    evc_htdf_filter_block(block, acc_block, HTDF_table[idx], stride, width, width, height, HTDF_table_thr_log2[idx]
+#if BD_CF_EXT
+                          , bit_depth
+#endif
+    );
 }
 
 BOOL evc_htdf_skip_condition(int width, int height, int IntraBlockFlag, int *qp)
@@ -289,6 +361,9 @@ BOOL evc_htdf_skip_condition(int width, int height, int IntraBlockFlag, int *qp)
 void evc_htdf(s16* rec, int qp, int w, int h, int s, BOOL intra_block_flag, pel* rec_pic, int s_pic, int avail_cu
 #if FIX_CONSTRAINT_PRED
               , int scup, int w_scu, int h_scu, u32 * map_scu, int constrained_intra_pred
+#endif
+#if BD_CF_EXT
+              , int bit_depth
 #endif
 )
 {
@@ -400,7 +475,11 @@ void evc_htdf(s16* rec, int qp, int w, int h, int s, BOOL intra_block_flag, pel*
     tempblock[width_ext * (height_ext - 1)] = IS_AVAIL(avail_cu, AVAIL_LO_LE) ? rec_pic[-1 + h * s_pic] : rec[(h - 1) * s];
     tempblock[width_ext - 1 + width_ext * (height_ext - 1)] = IS_AVAIL(avail_cu, AVAIL_LO_RI) ? rec_pic[w + h * s_pic] : rec[w - 1 + (h - 1) * s];
 
-    filter_block_luma(tempblock, HTDF_table, width_ext, height_ext, width_ext, qp);
+    filter_block_luma(tempblock, HTDF_table, width_ext, height_ext, width_ext, qp
+#if BD_CF_EXT
+                      , bit_depth
+#endif
+    );
 
     for (int i = 0; i < h; ++i)
         memcpy(rec + i * s, tempblock + (i + 1) * width_ext + 1, w * sizeof(rec[0]));

@@ -40,29 +40,38 @@ extern "C"
 #endif
  
  void evc_deblock_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u32 *map_scu, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int log2_max_cuwh, EVC_REFP(*refp)[REFP_NUM]
-    , int ats_inter_mode
-    , TREE_CONS tree_cons
-    , u8* map_tidx, int boundary_filtering
+                         , int ats_inter_mode
+                         , TREE_CONS tree_cons
+                         , u8* map_tidx, int boundary_filtering
 #if ADDB_FLAG_FIX
-    , int tool_addb
+                         , int tool_addb
 #endif
 #if DEBLOCKING_FIX
-    , u8* map_ats_inter
+                         , u8* map_ats_inter
+#endif
+#if BD_CF_EXT
+                         , int bit_depth_luma, int bit_depth_chroma
+                         , int chroma_format_idc
 #endif
 );
+
 void evc_deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u32 *map_scu, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int log2_max_cuwh
 #if FIX_PARALLEL_DBF
-    , u32  *map_cu
+                        , u32  *map_cu
 #endif
-    , EVC_REFP(*refp)[REFP_NUM]
-    , int ats_inter_mode
-    , TREE_CONS tree_cons
-    , u8 *map_tidx, int boundary_filtering
+                        , EVC_REFP(*refp)[REFP_NUM]
+                        , int ats_inter_mode
+                        , TREE_CONS tree_cons
+                        , u8 *map_tidx, int boundary_filtering
 #if ADDB_FLAG_FIX
-    , int tool_addb
+                        , int tool_addb
 #endif
 #if DEBLOCKING_FIX
-    , u8* map_ats_inter
+                        , u8* map_ats_inter
+#endif
+#if BD_CF_EXT
+                        , int bit_depth_luma, int bit_depth_chroma
+                        , int chroma_format_idc
 #endif
 );
 

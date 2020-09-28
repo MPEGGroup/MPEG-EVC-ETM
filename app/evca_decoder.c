@@ -49,7 +49,14 @@ static char op_fname_out[256] = "\0";
 static char op_fname_opl[256] = "\0";
 static int  op_max_frm_num = 0;
 static int  op_use_pic_signature = 0;
+#if BD_CF_EXT
+static int  op_out_bit_depth = 0;
+#else
 static int  op_out_bit_depth = 8;
+#endif
+#if BD_CF_EXT
+static int  op_out_chroma_format = 1;
+#endif
 
 typedef enum _STATES
 {
@@ -290,6 +297,10 @@ static int set_extra_config(EVCD id)
 
 static int write_dec_img(EVCD id, char * fname, EVC_IMGB * img, EVC_IMGB * imgb_t)
 {
+#if BD_CF_EXT
+    imgb_cpy_codec_to_out(imgb_t, img);
+    if(imgb_write(op_fname_out, imgb_t)) return -1;
+#else
     if(op_out_bit_depth == 8)
     {
         imgb_conv_16b_to_8b(imgb_t, img, 2);
@@ -299,6 +310,7 @@ static int write_dec_img(EVCD id, char * fname, EVC_IMGB * img, EVC_IMGB * imgb_
     {
         if(imgb_write(op_fname_out, img)) return -1;
     }
+#endif
     return EVC_OK;
 }
 
@@ -521,8 +533,26 @@ int main(int argc, const char **argv)
             w = imgb->w[0];
             h = imgb->h[0];
 
+#if BD_CF_EXT
+            op_out_bit_depth = op_out_bit_depth == 0 ? INTERNAL_CODEC_BIT_DEPTH : op_out_bit_depth;
+#endif
             if(op_flag[OP_FLAG_FNAME_OUT])
             {
+#if BD_CF_EXT
+                if(imgb_t == NULL)
+                {
+#if BD_CF_EXT
+                    imgb_t = imgb_alloc(w, h, CS_FROM_BD_CF(op_out_bit_depth, (CF_FROM_CS(imgb->cs))));
+#else
+                    imgb_t = imgb_alloc(w, h, CS_FROM_BD_420(op_out_bit_depth));
+#endif
+                    if(imgb_t == NULL)
+                    {
+                        v0print("failed to allocate temporay image buffer\n");
+                        return -1;
+                    }
+                }
+#else
                 if(op_out_bit_depth == 8 && imgb_t == NULL)
                 {
                     imgb_t = imgb_alloc(w, h, EVC_COLORSPACE_YUV420);
@@ -532,6 +562,7 @@ int main(int argc, const char **argv)
                         return -1;
                     }
                 }
+#endif
 #if M52291_HDR_DRA
                 int pps_dra_id = imgb->imgb_active_aps_id;
                 if ((sps_dra_enable_flag == 1) && (pps_dra_id >= 0))
@@ -540,7 +571,12 @@ int main(int argc, const char **argv)
                     assert((pps_dra_id > -1) && (pps_dra_id < 32) && (g_dra_control_array[pps_dra_id].m_signal_dra_flag == 1));
                     memcpy(&(g_dra_control_effective.m_signalledDRA), &(g_dra_control_array[pps_dra_id]), sizeof(SignalledParamsDRA));
                     evcd_assign_pps_draParam(id, &(g_dra_control_effective.m_signalledDRA));
-
+ #if BD_CF_EXT
+                    g_dra_control_effective.m_signalledDRA.m_internal_bd = INTERNAL_CODEC_BIT_DEPTH;
+                    g_dra_control_effective.m_signalledDRA.m_idc = (CF_FROM_CS(imgb->cs));
+                    g_dra_control_effective.m_internal_bd = INTERNAL_CODEC_BIT_DEPTH;
+                    g_dra_control_effective.m_idc = (CF_FROM_CS(imgb->cs));
+#endif
                     if (g_dra_control_effective.m_flagEnabled)
                     {
                         evcd_initDRA(&g_dra_control_effective);
@@ -549,18 +585,34 @@ int main(int argc, const char **argv)
                     {
                         int align[EVC_IMGB_MAX_PLANE] = { MIN_CU_SIZE, MIN_CU_SIZE >> 1, MIN_CU_SIZE >> 1 };
                         int pad[EVC_IMGB_MAX_PLANE] = { 0, 0, 0, };
+#if BD_CF_EXT
+#if BD_CF_EXT
+                        imgb_dra = evc_imgb_create(w, h, CS_FROM_BD_CF(INTERNAL_CODEC_BIT_DEPTH, (CF_FROM_CS(imgb->cs))), 0, pad, align);
+#else
+                        imgb_dra = evc_imgb_create(w, h, CS_FROM_BD_420(INTERNAL_CODEC_BIT_DEPTH), 0, pad, align);
+#endif
+#else
                         imgb_dra = evc_imgb_create(w, h, EVC_COLORSPACE_YUV420_10LE, 0, pad, align);
+#endif
                         if (imgb_dra == NULL)
                         {
                             v0print("Cannot get original image buffer (DRA)\n");
                             return -1;
                         }
+#if BD_CF_EXT
+                        imgb_cpy_bd(imgb_dra, imgb);
+#else
                         imgb_cpy(imgb_dra, imgb);
+#endif
                         evc_apply_dra_chroma_plane(imgb, imgb, &g_dra_control_effective, 1, TRUE);
                         evc_apply_dra_chroma_plane(imgb, imgb, &g_dra_control_effective, 2, TRUE);
                         evc_apply_dra_luma_plane(imgb, imgb, &g_dra_control_effective, 0, TRUE );
                         write_dec_img(id, op_fname_out, imgb, imgb_t);
+#if BD_CF_EXT
+                        imgb_cpy_bd(imgb, imgb_dra);
+#else
                         imgb_cpy(imgb, imgb_dra);
+#endif
                         imgb_dra->release(imgb_dra);
                     }
                     else

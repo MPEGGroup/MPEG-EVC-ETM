@@ -71,7 +71,14 @@ extern int* evc_tbl_qp_chroma_ajudst;
 extern int evc_tbl_qp_chroma_dynamic_ext[2][MAX_QP_TABLE_SIZE_EXT];
 extern int* p_evc_tbl_qp_chroma_dynamic_ext[2];// pointer to [0th position in evc_tbl_qp_chroma_dynamic_ext]
 extern int* p_evc_tbl_qp_chroma_dynamic[2];    // pointer to [12th position in evc_tbl_qp_chroma_dynamic_ext]
-void evc_derived_chroma_qp_mapping_tables(EVC_CHROMA_TABLE *structChromaQP);
+void evc_derived_chroma_qp_mapping_tables(EVC_CHROMA_TABLE *structChromaQP
+#if BD_CF_EXT
+                                          , int bit_depth
+#endif
+);
+#if BD_CF_EXT
+void set_chroma_qp__tbl_loc();
+#endif
 
 extern const s16 init_cbf_luma[2][NUM_CTX_CBF_LUMA];
 extern const s16 init_cbf_cb[2][NUM_CTX_CBF_CR];

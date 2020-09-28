@@ -47,8 +47,16 @@ int evcd_eco_nalu(EVC_BSR * bs, EVC_NALU * nalu);
 int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps);
 int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps);
 #if M52291_HDR_DRA
-int evcd_eco_aps_gen(EVC_BSR * bs, EVC_APS_GEN * aps);
-int evcd_eco_dra_aps_param(EVC_BSR * bs, EVC_APS_GEN * aps);
+int evcd_eco_aps_gen(EVC_BSR * bs, EVC_APS_GEN * aps
+#if BD_CF_EXT
+                     , int bit_depth
+#endif
+);
+int evcd_eco_dra_aps_param(EVC_BSR * bs, EVC_APS_GEN * aps
+#if BD_CF_EXT
+                           , int bit_depth
+#endif
+);
 #endif
 int evcd_eco_aps(EVC_BSR * bs, EVC_APS * aps);
 int evcd_eco_alf_aps_param(EVC_BSR * bs, EVC_APS * aps);

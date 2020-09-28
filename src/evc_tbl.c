@@ -362,17 +362,42 @@ int evc_tbl_qp_chroma_ajudst_base[MAX_QP_TABLE_SIZE] =
 int* evc_tbl_qp_chroma_ajudst;
 
 // ChromaQP offset for U and V components
+#if BD_CF_EXT
+int *p_evc_tbl_qp_chroma_dynamic[2];
+int evc_tbl_qp_chroma_dynamic_ext[2][MAX_QP_TABLE_SIZE_EXT];
+int *p_evc_tbl_qp_chroma_dynamic_ext[2] = { &(evc_tbl_qp_chroma_dynamic_ext[0][0]) , &(evc_tbl_qp_chroma_dynamic_ext[1][0]) };
+
+void set_chroma_qp__tbl_loc()
+{
+    for(int i = 0; i < 6 * (INTERNAL_CODEC_BIT_DEPTH - 8); i++)
+    {
+        evc_tbl_qp_chroma_dynamic_ext[0][i] = i - 6 * (INTERNAL_CODEC_BIT_DEPTH - 8);
+        evc_tbl_qp_chroma_dynamic_ext[1][i] = i - 6 * (INTERNAL_CODEC_BIT_DEPTH - 8);
+    }
+    p_evc_tbl_qp_chroma_dynamic[0] = &(evc_tbl_qp_chroma_dynamic_ext[0][6 * (INTERNAL_CODEC_BIT_DEPTH - 8)]);
+    p_evc_tbl_qp_chroma_dynamic[1] = &(evc_tbl_qp_chroma_dynamic_ext[1][6 * (INTERNAL_CODEC_BIT_DEPTH - 8)]);
+}
+#else
 int evc_tbl_qp_chroma_dynamic_ext[2][MAX_QP_TABLE_SIZE_EXT] = { { -12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, }, { -12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, } };
 int *p_evc_tbl_qp_chroma_dynamic_ext[2] = { &(evc_tbl_qp_chroma_dynamic_ext[0][0]) , &(evc_tbl_qp_chroma_dynamic_ext[1][0]) };
 int *p_evc_tbl_qp_chroma_dynamic[2] = { &(evc_tbl_qp_chroma_dynamic_ext[0][6 * (BIT_DEPTH - 8)]) , &(evc_tbl_qp_chroma_dynamic_ext[1][6 * (BIT_DEPTH - 8)]) };
+#endif
 
-void evc_derived_chroma_qp_mapping_tables(EVC_CHROMA_TABLE *structChromaQP)
+void evc_derived_chroma_qp_mapping_tables(EVC_CHROMA_TABLE *structChromaQP
+#if BD_CF_EXT
+                                          , int bit_depth
+#endif
+)
 {
     int MAX_QP = MAX_QP_TABLE_SIZE - 1;
     int qpInVal[MAX_QP_TABLE_SIZE_EXT] = { 0 };
     int qpOutVal[MAX_QP_TABLE_SIZE_EXT] = { 0 };
 
+#if BD_CF_EXT 
+    int qpBdOffsetC = 6 * (bit_depth - 8);
+#else
     int qpBdOffsetC = 6 * (BIT_DEPTH - 8);
+#endif
     int startQp = (structChromaQP->global_offset_flag == 1) ? 16 : -qpBdOffsetC;
 
     for (int i = 0; i < (structChromaQP->same_qp_table_for_chroma ? 1 : 2); i++)
