@@ -35,15 +35,17 @@
 #ifndef _EVC_H_
 #define _EVC_H_
 
-#define MULTIPLE_NAL     1
+#define MULTIPLE_NAL                    1
 
 #define M53737                          1
 
 #define ENC_DBF_CONTROL                 1
 #define EVC_VUI_FIX                     1
 #define ETM_HDR_REPORT_METRIC_FLAG      1
-#define M52291_HDR_DRA                          1
-#define ADDB_FLAG_FIX                1
+#define M52291_HDR_DRA                  1
+#define ADDB_FLAG_FIX                   1
+
+#define BD_CF_EXT                       1   //Anubhav (For supporting 4:0:0 format)
 
 #ifdef __cplusplus
 extern "C"
@@ -51,18 +53,24 @@ extern "C"
 #endif
       
 #if M52291_HDR_DRA
-#define QC_SCALE_NUMFBITS     9   // # frac. bits for scale (Y/Cb/Cr)
-#define QC_INVSCALE_NUMFBITS  9   // # frac. bits for inv. scale (Y/Cb/Cr)
-#define QC_OFFSET_NUMFBITS    7   // # frac. bits for offset (Y/Cb/Cr)
-#define QC_IN_RANGE_NUM_BITS     BIT_DEPTH  // # bits of input
-#define DRA_LUT_MAXSIZE 1024
+#define QC_SCALE_NUMFBITS               9   // # frac. bits for scale (Y/Cb/Cr)
+#define QC_INVSCALE_NUMFBITS            9   // # frac. bits for inv. scale (Y/Cb/Cr)
+#define QC_OFFSET_NUMFBITS              7   // # frac. bits for offset (Y/Cb/Cr)
+#if !BD_CF_EXT
+#define QC_IN_RANGE_NUM_BITS            BIT_DEPTH  // # bits of input
+#endif
+#define DRA_LUT_MAXSIZE                 1024
 
-#define NUM_CHROMA_QP_OFFSET_LOG              55
-#define NUM_CHROMA_QP_SCALE_EXP               25
+#define NUM_CHROMA_QP_OFFSET_LOG        55
+#define NUM_CHROMA_QP_SCALE_EXP         25
 #endif
 
 #define MAX_QP_TABLE_SIZE               58   
+#if BD_CF_EXT
+#define MAX_QP_TABLE_SIZE_EXT           94
+#else
 #define MAX_QP_TABLE_SIZE_EXT           70   
+#endif
 
 #define USE_TILE_GROUP_DQP              1
 #define DQP_CFG                         1
@@ -131,6 +139,26 @@ extern "C"
 #define EVC_COLORSPACE_YUV422_10BE     505 /* YUV422 10bit big-endian */
 #define EVC_COLORSPACE_YUV444_10LE     506 /* YUV444 10bit little-endian */
 #define EVC_COLORSPACE_YUV444_10BE     507 /* YUV444 10bit big-endian */
+#if BD_CF_EXT
+#define EVC_COLORSPACE_YUV444_10LE_INT 508 /* YUV444 10bit little-endian 4 byte representation*/
+#define EVC_COLORSPACE_YUV400_12LE     600 /* Y 10bit little-endian */
+#define EVC_COLORSPACE_YUV420_12LE     602 /* YUV420 12bit little-endian */
+#define EVC_COLORSPACE_YUV420_12BE     603 /* YUV420 12bit big-endian */
+#define EVC_COLORSPACE_YUV422_12LE     604 /* YUV422 12bit little-endian */
+#define EVC_COLORSPACE_YUV422_12BE     605 /* YUV422 12bit big-endian */
+#define EVC_COLORSPACE_YUV444_12LE     606 /* YUV444 12bit little-endian */
+#define EVC_COLORSPACE_YUV444_12BE     607 /* YUV444 12bit big-endian */
+#define EVC_COLORSPACE_YUV400_14LE     700 /* Y 10bit little-endian */
+#define EVC_COLORSPACE_YUV420_14LE     702 /* YUV420 14bit little-endian */
+#define EVC_COLORSPACE_YUV420_14BE     703 /* YUV420 14bit big-endian */
+#define EVC_COLORSPACE_YUV422_14LE     704 /* YUV422 14bit little-endian */
+#define EVC_COLORSPACE_YUV422_14BE     705 /* YUV422 14bit big-endian */
+#define EVC_COLORSPACE_YUV444_14LE     706 /* YUV444 14bit little-endian */
+#define EVC_COLORSPACE_YUV444_14BE     707 /* YUV444 14bit big-endian */
+#define EVC_COLORSPACE_YUV400_16LE     800 /* Y 10bit little-endian */
+#define EVC_COLORSPACE_YUV420_16LE     802 /* YUV420 16bit little-endian */
+#define EVC_COLORSPACE_YUV420_16BE     803 /* YUV420 16bit big-endian */
+#endif
 
 #define EVC_COLORSPACE_YUV_PLANAR_END  999
 
@@ -154,6 +182,45 @@ extern "C"
 
 #define EVC_COLORSPACE_IS_RGB_PACK(cs)   \
     ((cs)>=EVC_COLORSPACE_RGB_PACK_START &&  (cs)<=EVC_COLORSPACE_RGB_PACK_END)
+
+#if BD_CF_EXT
+#define BD_FROM_CS(cs)    \
+    (((cs)<EVC_COLORSPACE_YUV400_10LE) ? 8 : ((cs)<EVC_COLORSPACE_YUV400_12LE ? 10 : ((cs)<EVC_COLORSPACE_YUV400_14LE ? 12 : 14)))
+#define CHROMA_FORMAT_400(cs)     \
+    (((cs==EVC_COLORSPACE_YUV400) || (cs==EVC_COLORSPACE_YUV400_10LE) || (cs==EVC_COLORSPACE_YUV400_12LE) || (cs==EVC_COLORSPACE_YUV400_14LE)) ? 1 : 0)
+#define CHROMA_FORMAT_420(cs)     \
+    (((cs==EVC_COLORSPACE_YUV420) || (cs==EVC_COLORSPACE_YUV420_10LE) || (cs==EVC_COLORSPACE_YUV420_12LE) || (cs==EVC_COLORSPACE_YUV420_14LE)) ? 1 : 0)
+#define CHROMA_FORMAT_422(cs)     \
+    (((cs==EVC_COLORSPACE_YUV422) || (cs==EVC_COLORSPACE_YUV422_10LE) || (cs==EVC_COLORSPACE_YUV422_12LE) || (cs==EVC_COLORSPACE_YUV422_14LE)) ? 1 : 0)
+#define CHROMA_FORMAT_444(cs)     \
+    (((cs==EVC_COLORSPACE_YUV444) || (cs==EVC_COLORSPACE_YUV444_10LE) || (cs==EVC_COLORSPACE_YUV444_12LE) || (cs==EVC_COLORSPACE_YUV444_14LE)) ? 1 : 0)
+#define CF_FROM_CS(cs)     \
+    ((CHROMA_FORMAT_400(cs)) ? 0 : (CHROMA_FORMAT_420(cs) ? 1 : (CHROMA_FORMAT_422(cs) ? 2 : 3)))
+#define CS_FROM_BD_420(bd)    \
+    (((bd)==8) ? EVC_COLORSPACE_YUV420 : ((bd)==10 ? EVC_COLORSPACE_YUV420_10LE : ((bd)==12 ? EVC_COLORSPACE_YUV420_12LE : EVC_COLORSPACE_YUV420_14LE)))
+#define CS_FROM_BD_400(bd)    \
+    (((bd)==8) ? EVC_COLORSPACE_YUV400 : ((bd)==10 ? EVC_COLORSPACE_YUV400_10LE : ((bd)==12 ? EVC_COLORSPACE_YUV400_12LE : EVC_COLORSPACE_YUV400_14LE)))
+#define CS_FROM_BD_422(bd)    \
+    (((bd)==8) ? EVC_COLORSPACE_YUV422 : ((bd)==10 ? EVC_COLORSPACE_YUV422_10LE : ((bd)==12 ? EVC_COLORSPACE_YUV422_12LE : EVC_COLORSPACE_YUV422_14LE)))
+#define CS_FROM_BD_444(bd)    \
+    (((bd)==8) ? EVC_COLORSPACE_YUV444 : ((bd)==10 ? EVC_COLORSPACE_YUV444_10LE : ((bd)==12 ? EVC_COLORSPACE_YUV444_12LE : EVC_COLORSPACE_YUV444_14LE)))
+#define CS_FROM_BD_CF(bd, idc)    \
+    (((idc)==0) ? CS_FROM_BD_400(bd) : ((idc)==1 ? CS_FROM_BD_420(bd) : ((idc)==2 ? CS_FROM_BD_422(bd) : CS_FROM_BD_444(bd))))
+#define GET_CHROMA_W_SHIFT(idc)    \
+    ((idc==CHROMA_FORMAT_400) ? 1 : (idc==CHROMA_FORMAT_420 ? 1 : (idc==CHROMA_FORMAT_422 ? 1 : 0)))
+#define GET_CHROMA_H_SHIFT(idc)    \
+    ((idc==CHROMA_FORMAT_400) ? 1 : (idc==CHROMA_FORMAT_420 ? 1 : 0))
+
+typedef enum _CHROMA_FORMAT
+{
+    CHROMA_FORMAT_400 = 0,
+    CHROMA_FORMAT_420 = 1,
+    CHROMA_FORMAT_422 = 2,
+    CHROMA_FORMAT_444 = 3,
+    NUMBER_CHROMA_FORMAT = 4
+
+} CHROMA_FORMAT;
+#endif
 
 /*****************************************************************************
  * config types for decoder
@@ -469,6 +536,10 @@ typedef struct _EVCE_CDSC
     int            in_bit_depth;
     /* bit depth of output video */
     int            out_bit_depth;
+#if BD_CF_EXT
+    int            codec_bit_depth;
+    int            chroma_format_idc;
+#endif
     int            profile;
     int            level;
     int            toolset_idc_h;

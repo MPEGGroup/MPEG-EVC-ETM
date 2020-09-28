@@ -37,50 +37,50 @@
 #include "evc.h"
 #include "evc_port.h"
 
-#define MULTIPLE_NAL      1
+#define MULTIPLE_NAL                                 1
 #if MULTIPLE_NAL  
-#define MAX_NUM_PPS 64
+#define MAX_NUM_PPS                                  64
 #endif
 
-#define ETM60_HLS_FIX                                 1         
-#define ALF_CONFORMANCE_CHECK                         1
-#define DRA_CONFORMANCE_CHECK                         1  
+#define ETM60_HLS_FIX                                1         
+#define ALF_CONFORMANCE_CHECK                        1
+#define DRA_CONFORMANCE_CHECK                        1  
 
-#define M53744                                        1
+#define M53744                                       1
 
-#define INTEGR_M53608                                 1
+#define INTEGR_M53608                                1
 #if INTEGR_M53608
-#define M53608_DRA                                    1
+#define M53608_DRA                                   1
 
-#define M53608_DB_1                                   1    // Change of chroma (tc+1) for bitdepth, clean up for luma bitdepth.
-#define M53608_DB_2                                   1   // modifiy BS during BS derivation process instead of overwrite after derivation
+#define M53608_DB_1                                  1 // Change of chroma (tc+1) for bitdepth, clean up for luma bitdepth.
+#define M53608_DB_2                                  1 // modifiy BS during BS derivation process instead of overwrite after derivation
 
-#define M53608_ALF_1                                  1  // SW bug-fix in Cb/Cr filtering order
-#define M53608_ALF_2                                  1  // Optimization of ALF classifier scale
-#define M53608_ALF_3                                  1 // simplification of ALF signaling, tb(v)/tu(v) removal
-#define M53608_ALF_4                                  1 // align usage of coeff delta flag between SW and spec
-#define M53608_ALF_5                                  1 // alf luma enable flag only for control alf luma info parsing
-#define M53608_ALF_6                                  1 // Fix to spec/SW misalignment: filter pattern mapping, SW aligned to spec
-#define M53608_ALF_7                                  1 // fix usage of fixed filter index 0, separate fixed filter usage and index flag
-#define M53608_ALF_8                                  1 // fix luma shape idx usage during ALF RDO process
-#define M53608_ALF_9                                  1 // separate RD for Cb and Cr
-#define M53608_ALF_10                                 1 // fix luma filter type signaling
-#define M53608_ALF_11                                 1 // filter 5x5 align
-#define M53608_ALF_12                                 1 // Improve readability of delta filter coefficients parsing 
-#define M53608_ALF_13                                 1 // Improve readability of delta filter coefficients reconstruction 
-#define M53608_ALF_14                                 1 // Moving chroma_idc signaling from APS to slice header.
+#define M53608_ALF_1                                 1 // SW bug-fix in Cb/Cr filtering order
+#define M53608_ALF_2                                 1 // Optimization of ALF classifier scale
+#define M53608_ALF_3                                 1 // simplification of ALF signaling, tb(v)/tu(v) removal
+#define M53608_ALF_4                                 1 // align usage of coeff delta flag between SW and spec
+#define M53608_ALF_5                                 1 // alf luma enable flag only for control alf luma info parsing
+#define M53608_ALF_6                                 1 // Fix to spec/SW misalignment: filter pattern mapping, SW aligned to spec
+#define M53608_ALF_7                                 1 // fix usage of fixed filter index 0, separate fixed filter usage and index flag
+#define M53608_ALF_8                                 1 // fix luma shape idx usage during ALF RDO process
+#define M53608_ALF_9                                 1 // separate RD for Cb and Cr
+#define M53608_ALF_10                                1 // fix luma filter type signaling
+#define M53608_ALF_11                                1 // filter 5x5 align
+#define M53608_ALF_12                                1 // Improve readability of delta filter coefficients parsing 
+#define M53608_ALF_13                                1 // Improve readability of delta filter coefficients reconstruction 
+#define M53608_ALF_14                                1 // Moving chroma_idc signaling from APS to slice header.
 #endif
 
-#define CLEANUP_AMVR                                  1
-#define RPL_CLEANUP                                   1
-#define DB_SPEC_ALIGNMENT1                            1 
-#define DB_SPEC_ALIGNMENT2                            1  // SW restructuring, spec alighnment, no impact on performance.
-#define CHECK_TOOL_DEPENDENCIES                       1
-#define HISTORY_UNDER_ADMVP_FIX                       1
-#define DEBLOCKING_FIX                                1
-#define CODE_CLEAN                                    1
-#define ENC_DBF_CONTROL                               1
-#define ENC_SUPPORT_SHORT_POC_LSB_BITS                1
+#define CLEANUP_AMVR                                 1
+#define RPL_CLEANUP                                  1
+#define DB_SPEC_ALIGNMENT1                           1 
+#define DB_SPEC_ALIGNMENT2                           1 // SW restructuring, spec alighnment, no impact on performance.
+#define CHECK_TOOL_DEPENDENCIES                      1
+#define HISTORY_UNDER_ADMVP_FIX                      1
+#define DEBLOCKING_FIX                               1
+#define CODE_CLEAN                                   1
+#define ENC_DBF_CONTROL                              1
+#define ENC_SUPPORT_SHORT_POC_LSB_BITS               1
 
 //bug fixes and platform changes to be applied
 #define QC_MISC_FIX                                  1 
@@ -118,6 +118,17 @@
 #define DBF_LONGF                                    0
 #define DBF_IMPROVE                                  1
 
+#define BD_CF_EXT                                    1   //Anubhav (For supporting 4:0:0 format)
+#if BD_CF_EXT
+extern int INTERNAL_CODEC_BIT_DEPTH;
+extern int INTERNAL_CODEC_BIT_DEPTH_LUMA;
+extern int INTERNAL_CODEC_BIT_DEPTH_CHROMA;
+#else
+#define INTERNAL_CODEC_BIT_DEPTH                     BIT_DEPTH
+#define INTERNAL_CODEC_BIT_DEPTH_LUMA                BIT_DEPTH
+#define INTERNAL_CODEC_BIT_DEPTH_CHROMA              BIT_DEPTH
+#endif
+
 //fast algorithm
 #define FAST_RECURSE_OPT                             1
 #define FAST_RECURSE_OPT_FIX                         1 
@@ -134,7 +145,11 @@
 #define DQP                                          1
 #define DQP_RDO                                      1
 #define GET_QP(qp,dqp)                               ((qp + dqp + 52) % 52)
+#if BD_CF_EXT
+#define GET_LUMA_QP(qp, qp_bd_offset)                (qp + 6 * qp_bd_offset)
+#else
 #define GET_LUMA_QP(qp)                              (qp + 6 * (BIT_DEPTH - 8))
+#endif
 #endif
 
 //platform tools & trivial improvement
@@ -509,9 +524,14 @@ extern int fp_trace_started;
 
 /* number of picture order count lsb bit */
 #define POC_LSB_BIT                       (8)
-
+#if !BD_CF_EXT
 #define BIT_DEPTH                          10
+#endif
+#if BD_CF_EXT 
+#define PEL2BYTE(pel,cs)                   ((pel)*(((BD_FROM_CS(cs)) + 7)>>3))
+#else
 #define PEL2BYTE(pel)                      ((pel)*((BIT_DEPTH + 7)>>3))
+#endif
 
 #define STRIDE_IMGB2PIC(s_imgb)            ((s_imgb)>>1)
 
@@ -1109,6 +1129,9 @@ struct _PICBUF_ALLOCATOR
     int              ndata[4];
     /* arbitrary address, if needs */
     void            *pdata[4];
+#if BD_CF_EXT
+    int              idc;
+#endif
 };
 
 /*****************************************************************************

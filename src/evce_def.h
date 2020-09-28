@@ -349,9 +349,18 @@ struct _EVCE_PINTER
     int              gop_size;
     int              sps_amvr_flag;
     /* ME function (Full-ME or Fast-ME) */
-    u32            (*fn_me)(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2_cuh, s8 *refi, int lidx, s16 mvp[MV_D], s16 mv[MV_D], int bi);
+    u32            (*fn_me)(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2_cuh, s8 *refi, int lidx, s16 mvp[MV_D], s16 mv[MV_D], int bi
+#if BD_CF_EXT
+                            , int bit_depth_luma
+#endif
+                            );
     /* AFFINE ME function (Gradient-ME) */
-    u32            (*fn_affine_me)(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2_cuh, s8 *refi, int lidx, s16 mvp[VER_NUM][MV_D], s16 mv[VER_NUM][MV_D], int bi, int vertex_num, pel *tmp);
+    u32            (*fn_affine_me)(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2_cuh, s8 *refi, int lidx, s16 mvp[VER_NUM][MV_D], s16 mv[VER_NUM][MV_D], int bi, int vertex_num, pel *tmp
+#if BD_CF_EXT
+                                   , int bit_depth_luma, int bit_depth_chroma
+                                   , int chroma_format_idc
+#endif
+                                   );
 };
 
 typedef struct _EVCE_PIBC EVCE_PIBC;
@@ -486,6 +495,9 @@ typedef struct _EVCE_PARAM
 #if DQP_CFG
     /* config parameter for cu_qp_delta_area*/
     int                 cu_qp_delta_area;
+#endif
+#if BD_CF_EXT
+    int                 chroma_format_idc;
 #endif
     int                 qp_incread_frame;           /* 10 bits*/
     /* number of tile' columns (1-20)*/

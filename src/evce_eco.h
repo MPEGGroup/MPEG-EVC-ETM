@@ -49,7 +49,11 @@ int evce_eco_nalu(EVC_BSW * bs, EVC_NALU * nalu);
 int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps);
 int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps);
 #if M52291_HDR_DRA
-int evce_eco_aps_gen(EVC_BSW * bs, EVC_APS_GEN * aps);
+int evce_eco_aps_gen(EVC_BSW * bs, EVC_APS_GEN * aps
+#if BD_CF_EXT
+                     , int bit_depth
+#endif
+);
 #endif
 int evce_eco_aps(EVC_BSW * bs, EVC_APS * aps);
 int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut);
@@ -74,8 +78,11 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
                   , EVCE_CTX * ctx
                   , EVCE_CORE * core, int enc_dqp, u8 cur_qp
 #endif
-                  , TREE_CONS tree_cons);
-
+                  , TREE_CONS tree_cons
+#if BD_CF_EXT
+                  , int chroma_format_idc
+#endif
+);
 int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int cuw, int cuh, TREE_CONS tree_cons);
 int evce_eco_mode_constr(EVC_BSW * bs, MODE_CONS mode_cons, int ctx);
 int evce_eco_split_mode(EVC_BSW *bs, EVCE_CTX *c, EVCE_CORE *core, int cud, int cup, int cuw, int cuh, int lcu_s
@@ -115,7 +122,11 @@ void evc_alfGolombEncode_trace(EVC_BSW * bs, int coeff, char * name, int kMinTab
 void evc_alfGolombEncode(EVC_BSW * bs, int coeff, int kMinTab);
 #endif
 #if M52291_HDR_DRA
-int evce_eco_dra_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps);
+int evce_eco_dra_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps
+#if BD_CF_EXT
+                           , int bit_depth
+#endif
+);
 int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps);
 #else
 int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS * aps);

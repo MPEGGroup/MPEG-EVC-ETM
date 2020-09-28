@@ -140,7 +140,11 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
     ctx->f_scu = ctx->w_scu * ctx->h_scu;
     ctx->alf              = new_ALF();
     AdaptiveLoopFilter* p = (AdaptiveLoopFilter*)(ctx->alf);
-    call_create_ALF(p, ctx->w, ctx->h, ctx->max_cuwh, ctx->max_cuwh, 5);
+    call_create_ALF(p, ctx->w, ctx->h, ctx->max_cuwh, ctx->max_cuwh, 5
+#if BD_CF_EXT
+                    , ctx->sps.chroma_format_idc
+#endif
+    );
 
     /* alloc SCU map */
     if(ctx->map_scu == NULL)
@@ -221,12 +225,18 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
     ctx->pa.pad_l = PIC_PAD_SIZE_L;
     ctx->pa.pad_c = PIC_PAD_SIZE_C;
     ctx->ref_pic_gap_length = (int)pow(2.0, sps->log2_ref_pic_gap_length);
+#if BD_CF_EXT
+    ctx->pa.idc = sps->chroma_format_idc;
+#endif
 
     ret = evc_picman_init(&ctx->dpm, MAX_PB_SIZE, MAX_NUM_REF_PICS, &ctx->pa);
     evc_assert_g(EVC_SUCCEEDED(ret), ERR);
 
     evcd_split_tbl_init(ctx);
 
+#if BD_CF_EXT
+    set_chroma_qp__tbl_loc();
+#endif
     if(ctx->sps.tool_iqt == 0)
     {
         evc_tbl_qp_chroma_ajudst = evc_tbl_qp_chroma_ajudst_base;
@@ -238,12 +248,21 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
 
     if (sps->chroma_qp_table_struct.chroma_qp_table_present_flag)
     {
-        evc_derived_chroma_qp_mapping_tables(&(sps->chroma_qp_table_struct));
+        evc_derived_chroma_qp_mapping_tables(&(sps->chroma_qp_table_struct)
+#if BD_CF_EXT
+                                             , sps->bit_depth_chroma_minus8 + 8
+#endif
+        );
     }
     else
     {
+#if BD_CF_EXT
+        memcpy(&(evc_tbl_qp_chroma_dynamic_ext[0][6 * sps->bit_depth_chroma_minus8]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
+        memcpy(&(evc_tbl_qp_chroma_dynamic_ext[1][6 * sps->bit_depth_chroma_minus8]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
+#else
         memcpy(&(evc_tbl_qp_chroma_dynamic_ext[0][6 * (BIT_DEPTH - 8)]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
         memcpy(&(evc_tbl_qp_chroma_dynamic_ext[1][6 * (BIT_DEPTH - 8)]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
+#endif
     }
 
     return EVC_OK;
@@ -264,9 +283,15 @@ static int slice_init(EVCD_CTX * ctx, EVCD_CORE * core, EVC_SH * sh)
     core->y_lcu = 0;
     core->x_pel = 0;
     core->y_pel = 0;
+#if BD_CF_EXT
+    core->qp_y = ctx->sh.qp + 6 * ctx->sps.bit_depth_luma_minus8;
+    core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][sh->qp_u] + 6 * ctx->sps.bit_depth_chroma_minus8;
+    core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][sh->qp_v] + 6 * ctx->sps.bit_depth_chroma_minus8;
+#else
     core->qp_y = sh->qp + 6 * (BIT_DEPTH - 8);
     core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][sh->qp_u] + 6 * (BIT_DEPTH - 8);
     core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][sh->qp_v] + 6 * (BIT_DEPTH - 8);
+#endif
 
     /* clear maps */
     evc_mset_x64a(ctx->map_scu, 0, sizeof(u32) * ctx->f_scu);
@@ -343,7 +368,12 @@ static void make_stat(EVCD_CTX * ctx, int btype, EVCD_STAT * stat)
 static void evcd_itdq(EVCD_CTX * ctx, EVCD_CORE * core)
 {
     evc_sub_block_itdq(core->coef, core->log2_cuw, core->log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->is_coef, core->is_coef_sub, ctx->sps.tool_iqt
-                       , core->pred_mode == MODE_IBC ? 0 : core->ats_intra_cu, core->pred_mode == MODE_IBC ? 0 : ((core->ats_intra_mode_h << 1) | core->ats_intra_mode_v), core->pred_mode == MODE_IBC ? 0 : core->ats_inter_info);
+                       , core->pred_mode == MODE_IBC ? 0 : core->ats_intra_cu, core->pred_mode == MODE_IBC ? 0 : ((core->ats_intra_mode_h << 1) | core->ats_intra_mode_v), core->pred_mode == MODE_IBC ? 0 : core->ats_inter_info
+#if BD_CF_EXT
+                       , ctx->sps.bit_depth_luma_minus8 + 8
+                       , ctx->sps.chroma_format_idc
+#endif
+    );
 }
 
 static void get_nbr_yuv(int x, int y, int cuw, int cuh, EVCD_CTX * ctx, EVCD_CORE * core)
@@ -359,41 +389,82 @@ static void get_nbr_yuv(int x, int y, int cuw, int cuh, EVCD_CTX * ctx, EVCD_COR
         rec = ctx->pic->y + (y * s_rec) + x;
         if (ctx->sps.tool_eipd)
         {
-            evc_get_nbr(x, y, cuw, cuh, rec, s_rec, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C, constrained_intra_flag, ctx->map_tidx);
+            evc_get_nbr(x, y, cuw, cuh, rec, s_rec, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C, constrained_intra_flag, ctx->map_tidx
+#if BD_CF_EXT
+                        , ctx->sps.bit_depth_luma_minus8 + 8
+                        , ctx->sps.chroma_format_idc
+#endif
+            );
         }
         else
         {
-            evc_get_nbr_b(x, y, cuw, cuh, rec, s_rec, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C, constrained_intra_flag, ctx->map_tidx);
+            evc_get_nbr_b(x, y, cuw, cuh, rec, s_rec, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C, constrained_intra_flag, ctx->map_tidx
+#if BD_CF_EXT
+                          , ctx->sps.bit_depth_luma_minus8 + 8
+                          , ctx->sps.chroma_format_idc
+#endif
+            );
         }
     }
-    if (evcd_check_chroma(ctx, core))
+    if (evcd_check_chroma(ctx, core)
+#if BD_CF_EXT
+        && ctx->sps.chroma_format_idc
+#endif
+        )
     {
+#if BD_CF_EXT
+        cuw >>= (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc));
+        cuh >>= (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc));
+        x >>= (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc));
+        y >>= (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc));
+#else
         cuw >>= 1;
         cuh >>= 1;
         x >>= 1;
         y >>= 1;
+#endif
         s_rec = ctx->pic->s_c;
 
         /* U */
         rec = ctx->pic->u + (y * s_rec) + x;
         if (ctx->sps.tool_eipd)
         {
-            evc_get_nbr(x, y, cuw, cuh, rec, s_rec, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, U_C, constrained_intra_flag, ctx->map_tidx);
+            evc_get_nbr(x, y, cuw, cuh, rec, s_rec, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, U_C, constrained_intra_flag, ctx->map_tidx
+#if BD_CF_EXT
+                        , ctx->sps.bit_depth_luma_minus8 + 8
+                        , ctx->sps.chroma_format_idc
+#endif
+            );
         }
         else
         {
-            evc_get_nbr_b(x, y, cuw, cuh, rec, s_rec, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, U_C, constrained_intra_flag, ctx->map_tidx);
+            evc_get_nbr_b(x, y, cuw, cuh, rec, s_rec, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, U_C, constrained_intra_flag, ctx->map_tidx
+#if BD_CF_EXT
+                          , ctx->sps.bit_depth_luma_minus8 + 8
+                          , ctx->sps.chroma_format_idc
+#endif
+            );
         }
 
         /* V */
         rec = ctx->pic->v + (y * s_rec) + x;
         if (ctx->sps.tool_eipd)
         {
-            evc_get_nbr(x, y, cuw, cuh, rec, s_rec, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, V_C, constrained_intra_flag, ctx->map_tidx);
+            evc_get_nbr(x, y, cuw, cuh, rec, s_rec, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, V_C, constrained_intra_flag, ctx->map_tidx
+#if BD_CF_EXT
+                        , ctx->sps.bit_depth_luma_minus8 + 8
+                        , ctx->sps.chroma_format_idc
+#endif
+            );
         }
         else
         {
-            evc_get_nbr_b(x, y, cuw, cuh, rec, s_rec, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, V_C, constrained_intra_flag, ctx->map_tidx);
+            evc_get_nbr_b(x, y, cuw, cuh, rec, s_rec, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, V_C, constrained_intra_flag, ctx->map_tidx
+#if BD_CF_EXT
+                          , ctx->sps.bit_depth_luma_minus8 + 8
+                          , ctx->sps.chroma_format_idc
+#endif
+            );
         }
     }
 }
@@ -431,6 +502,7 @@ static void update_history_buffer_parse(EVCD_CORE *core, int slice_type)
     }
 }
 #endif
+
 #if AFFINE_UPDATE 
 static void update_history_buffer_parse_affine(EVCD_CORE *core, int slice_type)
 {
@@ -854,6 +926,9 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 
     cuw = 1 << log2_cuw;
     cuh = 1 << log2_cuh;
+#if BD_CF_EXT
+    int chroma_format_idc = ctx->sps.chroma_format_idc;
+#endif
 
     EVC_TRACE_COUNTER;
     EVC_TRACE_STR("poc: ");
@@ -940,7 +1015,11 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
     {
         core->avail_cu = evc_get_avail_ibc(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, cuw, cuh, ctx->map_scu, ctx->map_tidx);
 
-        evc_IBC_mc(x, y, log2_cuw, log2_cuh, core->mv[0], ctx->pic, core->pred[0], core->tree_cons);
+        evc_IBC_mc(x, y, log2_cuw, log2_cuh, core->mv[0], ctx->pic, core->pred[0], core->tree_cons
+#if BD_CF_EXT
+                   , ctx->sps.chroma_format_idc
+#endif
+        );
         get_nbr_yuv(x, y, cuw, cuh, ctx, core);
     }
     else
@@ -966,7 +1045,14 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
         {
             evcd_get_affine_motion(ctx, core);
 
-            evc_affine_mc(x, y, ctx->w, ctx->h, cuw, cuh, core->refi, core->affine_mv, ctx->refp, core->pred, core->affine_flag + 1, core->eif_tmp_buffer);
+            evc_affine_mc(x, y, ctx->w, ctx->h, cuw, cuh, core->refi, core->affine_mv, ctx->refp, core->pred, core->affine_flag + 1, core->eif_tmp_buffer
+#if BD_CF_EXT
+                          , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8
+#endif
+#if BD_CF_EXT
+                          , ctx->sps.chroma_format_idc
+#endif
+            );
         }
         else
         {
@@ -1016,6 +1102,10 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 #endif
 #endif
                    , ctx->sps.tool_admvp
+#if BD_CF_EXT
+                   , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8
+                   , ctx->sps.chroma_format_idc
+#endif
             );
         }
 
@@ -1060,19 +1150,67 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
             if(evcd_check_luma(ctx, core))
             {
 #if CLEANUP_INTRA_PRED
-                evc_ipred(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh);
+                evc_ipred(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh
+#if BD_CF_EXT
+                          , ctx->sps.bit_depth_luma_minus8 + 8
+#endif
+                );
 #else
-                evc_ipred(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh, core->avail_cu);
+                evc_ipred(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh, core->avail_cu
+#if BD_CF_EXT
+                          , ctx->sps.bit_depth_luma_minus8 + 8
+#endif
+                );
 #endif
             }
-            if(evcd_check_chroma(ctx, core))
+            if(evcd_check_chroma(ctx, core)
+#if BD_CF_EXT
+               && ctx->sps.chroma_format_idc
+#endif
+               )
             {
 #if CLEANUP_INTRA_PRED
-                evc_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1);
-                evc_ipred_uv(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1);
+#if BD_CF_EXT
+                evc_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> (GET_CHROMA_H_SHIFT(chroma_format_idc))), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C]
+                             , core->ipm[1], core->ipm[0], cuw >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), cuh >> (GET_CHROMA_H_SHIFT(chroma_format_idc))
 #else
-                evc_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu);
-                evc_ipred_uv(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu);
+                evc_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1
+#endif
+#if BD_CF_EXT
+                             , ctx->sps.bit_depth_chroma_minus8 + 8
+#endif
+                );
+#if BD_CF_EXT
+                evc_ipred_uv(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> (GET_CHROMA_H_SHIFT(chroma_format_idc))), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C]
+                             , core->ipm[1], core->ipm[0], cuw >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), cuh >> (GET_CHROMA_H_SHIFT(chroma_format_idc))
+#else
+                evc_ipred_uv(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1
+#endif
+#if BD_CF_EXT
+                             , ctx->sps.bit_depth_chroma_minus8 + 8
+#endif
+                );
+#else
+#if BD_CF_EXT
+                evc_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> (GET_CHROMA_H_SHIFT(chroma_format_idc))), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C]
+                             , core->ipm[1], core->ipm[0], cuw >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), cuh >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), core->avail_cu
+#else
+                evc_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu
+#endif
+#if BD_CF_EXT
+                             , ctx->sps.bit_depth_chroma_minus8 + 8
+#endif
+                );
+#if BD_CF_EXT
+                evc_ipred_uv(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> (GET_CHROMA_H_SHIFT(chroma_format_idc))), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C]
+                             , core->ipm[1], core->ipm[0], cuw >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), cuh >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), core->avail_cu
+#else
+                evc_ipred_uv(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu
+#endif
+#if BD_CF_EXT
+                             , ctx->sps.bit_depth_chroma_minus8 + 8
+#endif
+                );
 #endif
             }
         }
@@ -1090,8 +1228,15 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
             {
 #if CLEANUP_INTRA_PRED
 #if FIX_EIPD_OFF 
+#if BD_CF_EXT
+                evc_ipred_uv_b(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> (GET_CHROMA_H_SHIFT(chroma_format_idc))), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C]
+                               , core->ipm[1], core->ipm[0], cuw >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), cuh >> (GET_CHROMA_H_SHIFT(chroma_format_idc)));
+                evc_ipred_uv_b(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> (GET_CHROMA_H_SHIFT(chroma_format_idc))), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C]
+                               , core->ipm[1], core->ipm[0], cuw >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), cuh >> (GET_CHROMA_H_SHIFT(chroma_format_idc)));
+#else
                 evc_ipred_uv_b(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1);
                 evc_ipred_uv_b(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1);
+#endif
 #else
                 evc_ipred_uv_b(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[0], core->ipm[0], cuw >> 1, cuh >> 1);
                 evc_ipred_uv_b(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[0], core->ipm[0], cuw >> 1, cuh >> 1);
@@ -1110,7 +1255,12 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 #endif
 
     /* reconstruction */
-    evc_recon_yuv(x, y, cuw, cuh, core->coef, core->pred[0], core->is_coef, ctx->pic, core->pred_mode == MODE_IBC ? 0 : core->ats_inter_info, core->tree_cons);
+    evc_recon_yuv(x, y, cuw, cuh, core->coef, core->pred[0], core->is_coef, ctx->pic, core->pred_mode == MODE_IBC ? 0 : core->ats_inter_info, core->tree_cons
+#if BD_CF_EXT
+                  , ctx->sps.bit_depth_luma_minus8 + 8
+                  , ctx->sps.chroma_format_idc
+#endif
+    );
 
     if(core->pred_mode != MODE_IBC)
     {
@@ -1124,6 +1274,9 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
                      , ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->pic->s_l, avail_cu
 #if FIX_CONSTRAINT_PRED
                      , core->scup, ctx->w_scu, ctx->h_scu, ctx->map_scu, constrained_intra_flag
+#endif
+#if BD_CF_EXT
+                     , ctx->sps.bit_depth_luma_minus8 + 8
 #endif
             );
         }
@@ -1274,11 +1427,19 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
 
         if ( ctx->sps.sps_btt_flag && ctx->sps.tool_admvp )       // TODO: Tim create the specific variable for local dual tree ON/OFF
         {
+#if BD_CF_EXT /* should be updated for 4:2:2 and 4:4:4 */
+            mode_constraint_changed = mode_cons == eAll && ctx->sps.chroma_format_idc != 0 && !evc_is_chroma_split_allowed(cuw, cuh, split_mode);
+#else
             mode_constraint_changed = mode_cons == eAll && !evc_is_chroma_split_allowed( cuw, cuh, split_mode );
+#endif
 
             if ( mode_constraint_changed )
             {
-                if ( ctx->sh.slice_type == SLICE_I || evc_get_mode_cons_by_split(split_mode, cuw, cuh) == eOnlyIntra )
+                if ( ctx->sh.slice_type == SLICE_I || evc_get_mode_cons_by_split(split_mode, cuw, cuh) == eOnlyIntra 
+#if BD_CF_EXT
+                    || ctx->sps.chroma_format_idc != 1
+#endif
+                    )
                 {
                     mode_cons_for_child = eOnlyIntra;
                 }
@@ -1372,7 +1533,11 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 
         if ( ctx->sps.tool_admvp && ctx->sps.sps_btt_flag )       // TODO: Tim create the specific variable for local dual tree ON/OFF
         {
+#if BD_CF_EXT /* should be updated for 4:2:2 and 4:4:4 */
+            mode_cons_changed = tree_cons.mode_cons == eAll && ctx->sps.chroma_format_idc != 0 && !evc_is_chroma_split_allowed(cuw, cuh, split_mode);
+#else
             mode_cons_changed = tree_cons.mode_cons == eAll && !evc_is_chroma_split_allowed( cuw, cuh, split_mode );
+#endif
 
             if (mode_cons_changed)
             {
@@ -1437,6 +1602,10 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if DEBLOCKING_FIX
                                    , ctx->map_ats_inter
 #endif
+#if BD_CF_EXT
+                                   , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8
+                                   , ctx->sps.chroma_format_idc
+#endif
                 );
 
                 evc_deblock_cu_hor(pic, x, y + MAX_TR_SIZE, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi,
@@ -1449,6 +1618,10 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
 #if DEBLOCKING_FIX
                                    , ctx->map_ats_inter
+#endif
+#if BD_CF_EXT
+                                   , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8
+                                   , ctx->sps.chroma_format_idc
 #endif
                 );
             }
@@ -1464,6 +1637,10 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
 #if DEBLOCKING_FIX
                                    , ctx->map_ats_inter
+#endif
+#if BD_CF_EXT
+                                   , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8
+                                   , ctx->sps.chroma_format_idc
 #endif
                 );
             }
@@ -1485,6 +1662,10 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #if DEBLOCKING_FIX
                                    , ctx->map_ats_inter
 #endif
+#if BD_CF_EXT
+                                   , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8
+                                   , ctx->sps.chroma_format_idc
+#endif
                 );
                 evc_deblock_cu_ver(pic, x + MAX_TR_SIZE, y, cuw >> 1, cuh, ctx->map_scu, ctx->map_refi, ctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh
 #if FIX_PARALLEL_DBF
@@ -1498,6 +1679,10 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
 #if DEBLOCKING_FIX
                                    , ctx->map_ats_inter
+#endif
+#if BD_CF_EXT
+                                   , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8
+                                   , ctx->sps.chroma_format_idc
 #endif
                 );
             }
@@ -1515,6 +1700,10 @@ static void deblock_tree(EVCD_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 #endif
 #if DEBLOCKING_FIX
                                    , ctx->map_ats_inter
+#endif
+#if BD_CF_EXT
+                                   , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8
+                                   , ctx->sps.chroma_format_idc
 #endif
                 );
             }
@@ -2073,6 +2262,11 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     if(nalu->nal_unit_type_plus1 - 1 == EVC_SPS_NUT)
     {
         ret = evcd_eco_sps(bs, sps);
+#if BD_CF_EXT
+        INTERNAL_CODEC_BIT_DEPTH = sps->bit_depth_luma_minus8 + 8;
+        INTERNAL_CODEC_BIT_DEPTH_LUMA = sps->bit_depth_luma_minus8 + 8;
+        INTERNAL_CODEC_BIT_DEPTH_CHROMA = sps->bit_depth_chroma_minus8 + 8;
+#endif
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
 
         ret = sequence_init(ctx, sps);
@@ -2108,7 +2302,11 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         local_aps_gen[1].aps_id = -1; // flag, aps not used yet
         local_aps_gen[1].aps_data = (void*)&draControl;
 
-        ret = evcd_eco_aps_gen(bs, p_local_aps_gen);
+        ret = evcd_eco_aps_gen(bs, p_local_aps_gen
+#if BD_CF_EXT
+                               , ctx->sps.bit_depth_luma_minus8 + 8
+#endif
+        );
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
 
         if( (local_aps_gen[0].aps_id != -1) && (local_aps_gen[1].aps_id == -1))
@@ -2377,7 +2575,11 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
                     effective_dra_control = NULL;
                 }
 
-                ret = evcd_picbuf_check_signature(ctx->pic, ctx->pic_sign, ctx->pps.pic_dra_enabled_flag, effective_dra_control, ctx->w, ctx->h, doCompareMd5);
+                ret = evcd_picbuf_check_signature(ctx->pic, ctx->pic_sign, ctx->pps.pic_dra_enabled_flag, effective_dra_control, ctx->w, ctx->h, doCompareMd5
+#if BD_CF_EXT
+                                                  , ctx->sps.chroma_format_idc
+#endif
+                );
 #else
                 ret = evc_picbuf_signature(ctx->pic, ctx->pic->digest);
 #endif
@@ -2412,7 +2614,11 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
                     assert(ctx->pic->imgb->imgb_active_aps_id == -1);
                     effective_dra_control = NULL;
                 }
-                ret = evcd_picbuf_check_signature(ctx->pic, ctx->pic_sign, ctx->pps.pic_dra_enabled_flag, effective_dra_control, ctx->w, ctx->h, doCompareMd5);
+                ret = evcd_picbuf_check_signature(ctx->pic, ctx->pic_sign, ctx->pps.pic_dra_enabled_flag, effective_dra_control, ctx->w, ctx->h, doCompareMd5
+#if BD_CF_EXT
+                                                  , ctx->sps.chroma_format_idc
+#endif
+                );
 #else
                 ret = evcd_picbuf_check_signature(ctx->pic, ctx->pic_sign);
 #endif
