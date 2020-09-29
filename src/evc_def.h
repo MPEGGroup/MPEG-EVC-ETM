@@ -80,7 +80,7 @@
 #define DEBLOCKING_FIX                               1
 #define CODE_CLEAN                                   1
 #define ENC_DBF_CONTROL                              1
-#define ENC_SUPPORT_SHORT_POC_LSB_BITS               0
+#define ENC_SUPPORT_SHORT_POC_LSB_BITS               1
 
 //bug fixes and platform changes to be applied
 #define QC_MISC_FIX                                  1 
@@ -523,7 +523,7 @@ extern int fp_trace_started;
 /********* Conditional tools definition ********/
 
 /* number of picture order count lsb bit */
-#define POC_LSB_BIT                       (11)
+#define POC_LSB_BIT                       (8)
 #if !BD_CF_EXT
 #define BIT_DEPTH                          10
 #endif
