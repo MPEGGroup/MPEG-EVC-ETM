@@ -281,10 +281,10 @@ typedef enum _CHROMA_FORMAT
 /*****************************************************************************
  * slice type
  *****************************************************************************/
-#define EVC_ST_UNKNOWN                  (0)
-#define EVC_ST_I                        (1)
-#define EVC_ST_P                        (2)
-#define EVC_ST_B                        (3)
+#define EVC_ST_UNKNOWN                  (-1)
+#define EVC_ST_B                        (0)
+#define EVC_ST_P                        (1)
+#define EVC_ST_I                        (2)
 
 /*****************************************************************************
  * type and macro for media time
