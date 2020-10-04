@@ -41,7 +41,11 @@ void evcd_picbuf_expand(EVCD_CTX * ctx, EVC_PIC * pic)
 
 EVC_PIC * evcd_picbuf_alloc(PICBUF_ALLOCATOR * pa, int * ret)
 {
-    return evc_picbuf_alloc(pa->w, pa->h, pa->pad_l, pa->pad_c, ret);
+    return evc_picbuf_alloc(pa->w, pa->h, pa->pad_l, pa->pad_c, ret
+#if BD_CF_EXT
+                            , pa->idc
+#endif
+    );
 }
 
 void evcd_picbuf_free(PICBUF_ALLOCATOR * pa, EVC_PIC * pic)
@@ -159,7 +163,12 @@ static void imgb_cpy(EVC_IMGB * dst, EVC_IMGB * src)
     dst->imgb_active_pps_id = src->imgb_active_pps_id;
 #endif
 }
-int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[N_C][16], int tool_dra, void* pps_draParams, u16 width, u16 height, int doCompare)
+
+int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[N_C][16], int tool_dra, void* pps_draParams, u16 width, u16 height, int doCompare
+#if BD_CF_EXT
+                                , int bit_depth
+#endif
+)
 {
     u8 pic_sign[N_C][16] = { {0} };
     int ret;
@@ -209,8 +218,13 @@ int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[N_C][16], int tool_d
     return EVC_OK;
 }
 #endif
+
 #if !HDR_MD5_CHECK
-int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16])
+int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16]
+#if BD_CF_EXT
+                                , int bit_depth
+#endif
+)
 {
     u8 pic_sign[16];
     int ret;
@@ -226,6 +240,7 @@ int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16])
     return EVC_OK;
 }
 #endif
+
 void evcd_set_affine_mvf(EVCD_CTX * ctx, EVCD_CORE * core)
 {
     int   w_cu;
@@ -862,7 +877,11 @@ void evcd_draw_partition(EVCD_CTX * ctx, EVC_PIC * pic)
     int * ret = NULL;
     char file_name[256];
 
-    tmp = evc_picbuf_alloc(ctx->w, ctx->h, pic->pad_l, pic->pad_c, ret);
+    tmp = evc_picbuf_alloc(ctx->w, ctx->h, pic->pad_l, pic->pad_c, ret
+#if BD_CF_EXT
+        , ctx->param.chroma_format_idc
+#endif
+    );
 
     cpy_pic(pic, tmp);
 

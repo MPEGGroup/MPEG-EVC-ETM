@@ -77,27 +77,27 @@ typedef struct Area
 /// chroma formats (according to semantics of chroma_format_idc)
 typedef enum _ChromaFormat
 {
-  CHROMA_400        = 0,
-  CHROMA_420        = 1,
-  CHROMA_422        = 2,
-  CHROMA_444        = 3,
-  NUM_CHROMA_FORMAT = 4
+    CHROMA_400        = 0,
+    CHROMA_420        = 1,
+    CHROMA_422        = 2,
+    CHROMA_444        = 3,
+    NUM_CHROMA_FORMAT = 4
 } ChromaFormat;
 
 typedef enum _ChannelType
 {
-  CHANNEL_TYPE_LUMA    = 0,
-  CHANNEL_TYPE_CHROMA  = 1,
-  MAX_NUM_CHANNEL_TYPE = 2
+    CHANNEL_TYPE_LUMA    = 0,
+    CHANNEL_TYPE_CHROMA  = 1,
+    MAX_NUM_CHANNEL_TYPE = 2
 } ChannelType;
 
 typedef enum _ComponentID
 {
-  COMPONENT_Y         = 0,
-  COMPONENT_Cb        = 1,
-  COMPONENT_Cr        = 2,
-  MAX_NUM_COMPONENT   = 3,
-  MAX_NUM_TBLOCKS     = MAX_NUM_COMPONENT
+    COMPONENT_Y         = 0,
+    COMPONENT_Cb        = 1,
+    COMPONENT_Cr        = 2,
+    MAX_NUM_COMPONENT   = 3,
+    MAX_NUM_TBLOCKS     = MAX_NUM_COMPONENT
 } ComponentID;
 
 __inline ChannelType toChannelType             (const ComponentID id)                         { return (id==COMPONENT_Y)? CHANNEL_TYPE_LUMA : CHANNEL_TYPE_CHROMA; }
@@ -108,17 +108,17 @@ __inline u32        getNumberValidChannels    (const ChromaFormat fmt)          
 
 typedef struct ClpRng
 {
-  int min;
-  int max;
-  int bd;
-  int n;
+    int min;
+    int max;
+    int bd;
+    int n;
 } ClpRng;
 
 typedef struct ClpRngs
 {
-  ClpRng comp[MAX_NUM_COMPONENT]; ///< the bit depth as indicated in the SPS
-  BOOL used;
-  BOOL chroma;
+    ClpRng comp[MAX_NUM_COMPONENT]; ///< the bit depth as indicated in the SPS
+    BOOL used;
+    BOOL chroma;
 } ClpRngs;
 
 static __inline int ClipPel (const int a, const ClpRng clpRng)         { return min(max(clpRng.min, a) , clpRng.max); }  ///< clip reconstruction
@@ -130,6 +130,9 @@ typedef struct CodingStructure
 
     int tempStride; //to pass strides easily
     int picStride;
+#if BD_CF_EXT
+    int idc; //chroma format idc
+#endif
 } CodingStructure;
 
 #if 1
@@ -209,64 +212,64 @@ static const int patternToLargeFilter7[13] =
 // The structure below must be aligned to identical structure in evc_def.h!
 typedef struct AlfFilterShape
 {
-  int filterType;
-  int filterLength;
-  int numCoeff;      
-  int filterSize;
-  int pattern[25];
-  int weights[14];
-  int golombIdx[14];
-  int patternToLargeFilter[13];
+    int filterType;
+    int filterLength;
+    int numCoeff;
+    int filterSize;
+    int pattern[25];
+    int weights[14];
+    int golombIdx[14];
+    int patternToLargeFilter[13];
 } AlfFilterShape;
 
 extern void init_AlfFilterShape(void* _th, int size);
 
 struct AlfSliceParam
 {
-  BOOL                         isCtbAlfOn;
-  u8                           *alfCtuEnableFlag;
-  BOOL                         enabledFlag[MAX_NUM_COMPONENT];                          // alf_slice_enable_flag, alf_chroma_idc
-  AlfFilterType                lumaFilterType;                                          // filter_type_flag
-  BOOL                         chromaCtbPresentFlag;                                    // alf_chroma_ctb_present_flag
-  short                        lumaCoeff[MAX_NUM_ALF_CLASSES * MAX_NUM_ALF_LUMA_COEFF]; // alf_coeff_luma_delta[i][j]
-  short                        chromaCoeff[MAX_NUM_ALF_CHROMA_COEFF];                   // alf_coeff_chroma[i]
-  short                        filterCoeffDeltaIdx[MAX_NUM_ALF_CLASSES];                // filter_coeff_delta[i]
-  BOOL                         filterCoeffFlag[MAX_NUM_ALF_CLASSES];                    // filter_coefficient_flag[i]
-  int                          numLumaFilters;                                          // number_of_filters_minus1 + 1
-  BOOL                         coeffDeltaFlag;                                          // alf_coefficients_delta_flag
-  BOOL                         coeffDeltaPredModeFlag;                                  // coeff_delta_pred_mode_flag
-  AlfFilterShape               (*filterShapes)[2];
+    BOOL                         isCtbAlfOn;
+    u8                           *alfCtuEnableFlag;
+    BOOL                         enabledFlag[MAX_NUM_COMPONENT];                          // alf_slice_enable_flag, alf_chroma_idc
+    AlfFilterType                lumaFilterType;                                          // filter_type_flag
+    BOOL                         chromaCtbPresentFlag;                                    // alf_chroma_ctb_present_flag
+    short                        lumaCoeff[MAX_NUM_ALF_CLASSES * MAX_NUM_ALF_LUMA_COEFF]; // alf_coeff_luma_delta[i][j]
+    short                        chromaCoeff[MAX_NUM_ALF_CHROMA_COEFF];                   // alf_coeff_chroma[i]
+    short                        filterCoeffDeltaIdx[MAX_NUM_ALF_CLASSES];                // filter_coeff_delta[i]
+    BOOL                         filterCoeffFlag[MAX_NUM_ALF_CLASSES];                    // filter_coefficient_flag[i]
+    int                          numLumaFilters;                                          // number_of_filters_minus1 + 1
+    BOOL                         coeffDeltaFlag;                                          // alf_coefficients_delta_flag
+    BOOL                         coeffDeltaPredModeFlag;                                  // coeff_delta_pred_mode_flag
+    AlfFilterShape(*filterShapes)[2];
 
-  int                          fixedFilterPattern;                                     //0: no pred from pre-defined filters; 1: all are predicted but could be different values; 2: some predicted and some not
-                                                                                       //when ALF_LOWDELAY is 1, fixedFilterPattern 0: all are predected, fixedFilterPattern 1: some predicted and some not
-  int                          fixedFilterIdx[MAX_NUM_ALF_CLASSES];
+    int                          fixedFilterPattern;                                     //0: no pred from pre-defined filters; 1: all are predicted but could be different values; 2: some predicted and some not
+                                                                                         //when ALF_LOWDELAY is 1, fixedFilterPattern 0: all are predected, fixedFilterPattern 1: some predicted and some not
+    int                          fixedFilterIdx[MAX_NUM_ALF_CLASSES];
 #if M53608_ALF_7
-  u8                           fixedFilterUsageFlag[MAX_NUM_ALF_CLASSES];
+    u8                           fixedFilterUsageFlag[MAX_NUM_ALF_CLASSES];
 #endif
-  int                          tLayer;
-  BOOL                         temporalAlfFlag;         //indicate whether reuse previous ALF coefficients
-  int                          prevIdx;                 //index of the reused ALF coefficients
-  int                          prevIdxComp[MAX_NUM_CHANNEL_TYPE];
-  BOOL resetALFBufferFlag;
-  BOOL store2ALFBufferFlag;
+    int                          tLayer;
+    BOOL                         temporalAlfFlag;         //indicate whether reuse previous ALF coefficients
+    int                          prevIdx;                 //index of the reused ALF coefficients
+    int                          prevIdxComp[MAX_NUM_CHANNEL_TYPE];
+    BOOL resetALFBufferFlag;
+    BOOL store2ALFBufferFlag;
 
-  // encoder side variables
-  u32 m_filterPoc;  // store POC value for which filter was produced
-  u32 m_minIdrPoc;  // Minimal of 2 IDR POC available for current coded nalu  (to identify availability of this filter for temp prediction)
-  u32 m_maxIdrPoc;  // Max of 2 IDR POC available for current coded nalu  (to identify availability of this filter for temp prediction)
+    // encoder side variables
+    u32 m_filterPoc;  // store POC value for which filter was produced
+    u32 m_minIdrPoc;  // Minimal of 2 IDR POC available for current coded nalu  (to identify availability of this filter for temp prediction)
+    u32 m_maxIdrPoc;  // Max of 2 IDR POC available for current coded nalu  (to identify availability of this filter for temp prediction)
 #if M53608_ALF_14
-  BOOL chromaFilterPresent;
+    BOOL chromaFilterPresent;
 #endif
 };
 #endif
 
 enum Direction
 {
-  HOR,
-  VER,
-  DIAG0,
-  DIAG1,
-  NUM_DIRECTIONS
+    HOR,
+    VER,
+    DIAG0,
+    DIAG1,
+    NUM_DIRECTIONS
 };
 
 extern pel* m_tempBuf, *m_tempBuf1, *m_tempBuf2;
@@ -324,7 +327,7 @@ void store_alf_paramline_from_aps(AlfSliceParam* pAlfParam, u8 idx);
 void load_alf_paramline_from_aps_buffer(AlfSliceParam* pAlfParam, u8 idx);
 void load_alf_paramline_from_aps_buffer2(AlfSliceParam* pAlfParam, u8 idxY, u8 idxUV
 #if M53608_ALF_14
-    , u8 alfChromaIdc
+                                         , u8 alfChromaIdc
 #endif
 );
 extern u8 m_nextFreeAlfIdxInBuffer;
@@ -332,7 +335,11 @@ extern void resetAlfParam(AlfSliceParam* dst);
 extern void resetIdrIndexListBufferAPS();
 extern int  getProtectIdxFromList(int idx);
 extern void storeEncALFParamLineAPS(AlfSliceParam* pAlfParam, unsigned tLayer);
-void AdaptiveLoopFilter_create( const int picWidth, const int picHeight, const int maxCUWidth, const int maxCUHeight, const int maxCUDepth);
+void AdaptiveLoopFilter_create(const int picWidth, const int picHeight, const int maxCUWidth, const int maxCUHeight, const int maxCUDepth
+#if BD_CF_EXT
+                               , int idc
+#endif
+);
 void AdaptiveLoopFilter_destroy();
 void deriveClassificationBlk( AlfClassifier** classifier, const pel * srcLuma, const int srcStride, const Area * blk, const int shift );
 void filterBlk_7( AlfClassifier** classifier, pel * recDst, const int dstStride, const pel * recSrc, const int srcStride, const Area* blk, const ComponentID compId, short* filterSet, const ClpRng* clpRng );
@@ -342,9 +349,9 @@ void init_AdaptiveLoopFilter(AdaptiveLoopFilter* p);
 
 struct AdaptiveLoopFilter
 {
-  void( *m_deriveClassificationBlk )( AlfClassifier** classifier, const pel * srcLuma, const int srcStride, const Area * blk, const int shift );
-  void( *m_filter5x5Blk )( AlfClassifier** classifier, pel * recDst, const int dstStride, const pel * recSrc, const int srcStride, const Area* blk, const ComponentID compId, short* filterSet, const ClpRng* clpRng );
-  void( *m_filter7x7Blk )( AlfClassifier** classifier, pel * recDst, const int dstStride, const pel * recSrc, const int srcStride, const Area* blk, const ComponentID compId, short* filterSet, const ClpRng* clpRng );
+    void( *m_deriveClassificationBlk )( AlfClassifier** classifier, const pel * srcLuma, const int srcStride, const Area * blk, const int shift );
+    void( *m_filter5x5Blk )( AlfClassifier** classifier, pel * recDst, const int dstStride, const pel * recSrc, const int srcStride, const Area* blk, const ComponentID compId, short* filterSet, const ClpRng* clpRng );
+    void( *m_filter7x7Blk )( AlfClassifier** classifier, pel * recDst, const int dstStride, const pel * recSrc, const int srcStride, const Area* blk, const ComponentID compId, short* filterSet, const ClpRng* clpRng );
 };
 
 #ifdef __cplusplus

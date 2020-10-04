@@ -222,7 +222,11 @@ public:
 
   void Enc_ALFProcess(CodingStructure& cs, const double *lambdas, AlfSliceParam* alfSliceParam);
   void initCABACEstimator(EVCE_CORE * core);
-  void create(const int picWidth, const int picHeight, const int maxCUWidth, const int maxCUHeight, const int maxCUDepth );
+  void create(const int picWidth, const int picHeight, const int maxCUWidth, const int maxCUHeight, const int maxCUDepth 
+#if BD_CF_EXT
+              , int idc
+#endif
+  );
   void destroy();
 #if ETM70_GOLOMB_FIX
   static int lengthGolomb(int coeffVal, int k, BOOL signed_coeff);
@@ -248,9 +252,17 @@ private:
   void   getFrameStats(ChannelType channel, int iShapeIdx);
 #endif 
   void   getFrameStat(AlfCovariance* frameCov, AlfCovariance** ctbCov, uint8_t* ctbEnableFlags, const int numClasses);
-  void   getBlkStats(int ch, AlfCovariance* alfCovariace, const AlfFilterShape& shape, AlfClassifier** classifier, Pel* org, const int orgStride, Pel* rec, const int recStride, const int x, const int y, const int width, const int height);
+  void   getBlkStats(int ch, AlfCovariance* alfCovariace, const AlfFilterShape& shape, AlfClassifier** classifier, Pel* org, const int orgStride, Pel* rec, const int recStride, const int x, const int y, const int width, const int height
+#if BD_CF_EXT
+                     , int idc
+#endif
+  );
 
-  void   deriveStatsForFiltering(YUV * orgYuv, YUV * recYuv);
+  void   deriveStatsForFiltering(YUV * orgYuv, YUV * recYuv
+#if BD_CF_EXT
+                                 , int idc
+#endif
+  );
 
   void   calcCovariance(int *ELocal, const Pel *rec, const int stride, const int *filterPattern, const int halfFilterLength, const int transposeIdx);
   void   mergeClasses(AlfCovariance* cov, AlfCovariance* covMerged, const int numClasses, short filterIndices[MAX_NUM_ALF_CLASSES][MAX_NUM_ALF_CLASSES]);

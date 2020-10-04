@@ -155,8 +155,12 @@ static int imgb_read(FILE * fp, EVC_IMGB * img)
 
     f_w = img->w[0];
     f_h = img->h[0];
-
+#if BD_CF_EXT
+    int idc = CF_FROM_CS(img->cs);
+    if((BD_FROM_CS(img->cs)) == 8)
+#else
     if(img->cs == EVC_COLORSPACE_YUV420)
+#endif
     {
         y_size = f_w * f_h;
         u_size = v_size = (f_w >> 1) * (f_h >> 1);
@@ -165,16 +169,30 @@ static int imgb_read(FILE * fp, EVC_IMGB * img)
         {
             return -1;
         }
-        if(fread(img->a[1], 1, u_size, fp) != (unsigned)u_size)
+#if BD_CF_EXT
+        u_size = v_size = (f_w >> (GET_CHROMA_W_SHIFT(idc))) * (f_h >> (GET_CHROMA_H_SHIFT(idc)));
+        if(idc)
+#endif
         {
-            return -1;
-        }
-        if(fread(img->a[2], 1, v_size, fp) != (unsigned)v_size)
-        {
-            return -1;
+            if(fread(img->a[1], 1, u_size, fp) != (unsigned)u_size)
+            {
+                return -1;
+            }
+            if(fread(img->a[2], 1, v_size, fp) != (unsigned)v_size)
+            {
+                return -1;
+            }
         }
     }
-    else if(img->cs == EVC_COLORSPACE_YUV420_10LE)
+#if BD_CF_EXT
+    else if(((BD_FROM_CS(img->cs)) >= 10))
+#else
+    else if(img->cs == EVC_COLORSPACE_YUV420_10LE
+#if BD_CF_EXT
+            || img->cs == EVC_COLORSPACE_YUV420_12LE || img->cs == EVC_COLORSPACE_YUV420_14LE
+#endif
+            )
+#endif
     {
 
         y_size = f_w * f_h * sizeof(short);
@@ -183,13 +201,19 @@ static int imgb_read(FILE * fp, EVC_IMGB * img)
         {
             return -1;
         }
-        if(fread(img->a[1], 1, u_size, fp) != (unsigned)u_size)
+#if BD_CF_EXT
+        u_size = v_size = (f_w >> (GET_CHROMA_W_SHIFT(idc))) * (f_h >> (GET_CHROMA_H_SHIFT(idc))) * sizeof(short);
+        if(idc)
+#endif
         {
-            return -1;
-        }
-        if(fread(img->a[2], 1, v_size, fp) != (unsigned)v_size)
-        {
-            return -1;
+            if(fread(img->a[1], 1, u_size, fp) != (unsigned)u_size)
+            {
+                return -1;
+            }
+            if(fread(img->a[2], 1, v_size, fp) != (unsigned)v_size)
+            {
+                return -1;
+            }
         }
     }
     else
@@ -200,6 +224,7 @@ static int imgb_read(FILE * fp, EVC_IMGB * img)
 
     return 0;
 }
+
 #if REMOVE_WARNING
 int imgb_write(char * fname, EVC_IMGB * img)
 #else
@@ -217,7 +242,24 @@ static int imgb_write(char * fname, EVC_IMGB * img)
         print("cannot open file = %s\n", fname);
         return -1;
     }
-    if(img->cs == EVC_COLORSPACE_YUV420_10LE)
+#if BD_CF_EXT
+    cs_w_off = 2;
+    cs_h_off = 2;
+    if((BD_FROM_CS(img->cs)) == 8)
+        bd = 1;
+    else if((BD_FROM_CS(img->cs)) >= 10)
+        bd = 2;
+    else 
+    {
+        print("cannot support the color space\n");
+        return -1;
+    }
+#else
+    if(img->cs == EVC_COLORSPACE_YUV420_10LE
+#if BD_CF_EXT
+        || img->cs == EVC_COLORSPACE_YUV420_12LE || img->cs == EVC_COLORSPACE_YUV420_14LE
+#endif
+        )
     {
         bd = 2;
         cs_w_off = 2;
@@ -234,8 +276,12 @@ static int imgb_write(char * fname, EVC_IMGB * img)
         print("cannot support the color space\n");
         return -1;
     }
-
+#endif
+#if BD_CF_EXT
+    for(i = 0; i < img->np; i++)
+#else
     for(i = 0; i < 3; i++)
+#endif
     {
         p8 = (unsigned char *)img->a[i] + (img->s[i] * img->y[i]) + (img->x[i] * bd);
         int tw, th, tcl, tcr, tct, tcb;
@@ -433,6 +479,318 @@ static void imgb_cpy(EVC_IMGB * dst, EVC_IMGB * src)
     dst->imgb_active_aps_id = src->imgb_active_aps_id;
 }
 
+#if BD_CF_EXT
+static void imgb_conv_shift_left_8b(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
+                                    int shift)
+{
+    int i, j, k;
+    unsigned char * s;
+    short         * d;
+    for(i = 0; i < imgb_dst->np; i++)
+    {
+        s = imgb_src->a[i];
+        d = imgb_dst->a[i];
+        for(j = 0; j < imgb_src->h[i]; j++)
+        {
+            for(k = 0; k < imgb_src->w[i]; k++)
+            {
+                d[k] = (short)(s[k] << shift);
+            }
+            s = s + imgb_src->s[i];
+            d = (short*)(((unsigned char *)d) + imgb_dst->s[i]);
+        }
+    }
+}
+
+static void imgb_conv_shift_right_8b(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
+                                     int shift)
+{
+    int i, j, k, t0, add;
+    short         * s;
+    unsigned char * d;
+    if(shift)
+        add = 1 << (shift - 1);
+    else
+        add = 0;
+    for(i = 0; i < imgb_dst->np; i++)
+    {
+        s = imgb_src->a[i];
+        d = imgb_dst->a[i];
+        for(j = 0; j < imgb_src->h[i]; j++)
+        {
+            for(k = 0; k < imgb_src->w[i]; k++)
+            {
+                t0 = ((s[k] + add) >> shift);
+                d[k] = (unsigned char)(IFVCA_CLIP(t0, 0, 255));
+            }
+            s = (short*)(((unsigned char *)s) + imgb_src->s[i]);
+            d = d + imgb_dst->s[i];
+        }
+    }
+}
+
+static void imgb_conv_shift_left(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
+                                 int shift)
+{
+    int i, j, k;
+    u16         * s;
+    u16         * d;
+    for(i = 0; i < imgb_dst->np; i++)
+    {
+        s = imgb_src->a[i];
+        d = imgb_dst->a[i];
+        for(j = 0; j < imgb_src->h[i]; j++)
+        {
+            for(k = 0; k < imgb_src->w[i]; k++)
+            {
+                d[k] = (u16)(s[k] << shift);
+            }
+            s = (short*)(((unsigned char *)s) + imgb_src->s[i]);
+            d = (short*)(((unsigned char *)d) + imgb_dst->s[i]);
+        }
+    }
+}
+
+static void imgb_conv_shift_right(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
+                                  int shift)
+{
+    int i, j, k, t0, add;
+    int clip_min = 0;
+    int clip_max = 0;
+    u16         * s;
+    u16         * d;
+    if(shift)
+        add = 1 << (shift - 1);
+    else
+        add = 0;
+    clip_max = (1 << (BD_FROM_CS(imgb_dst->cs))) - 1;
+    for(i = 0; i < imgb_dst->np; i++)
+    {
+        s = imgb_src->a[i];
+        d = imgb_dst->a[i];
+        for(j = 0; j < imgb_src->h[i]; j++)
+        {
+            for(k = 0; k < imgb_src->w[i]; k++)
+            {
+                t0 = ((s[k] + add) >> shift);
+                d[k] = (IFVCA_CLIP(t0, clip_min, clip_max));
+            }
+            s = (short*)(((unsigned char *)s) + imgb_src->s[i]);
+            d = (short*)(((unsigned char *)d) + imgb_dst->s[i]);
+        }
+    }
+}
+
+#if REMOVE_WARNING
+void imgb_cpy(EVC_IMGB * dst, EVC_IMGB * src)
+#else
+static void imgb_cpy_bd(EVC_IMGB * dst, EVC_IMGB * src)
+#endif
+{
+    int i, bd;
+#if BD_CF_EXT
+    int bit_depth = BD_FROM_CS(src->cs);
+    int idc = CF_FROM_CS(src->cs);
+#endif
+    if(src->cs == dst->cs)
+    {
+#if BD_CF_EXT
+        if(bit_depth >= 10)
+#else
+        if(src->cs >= EVC_COLORSPACE_YUV400_10LE)
+#endif
+            bd = 2;
+        else 
+            bd = 1;
+        for(i = 0; i < src->np; i++)
+        {
+            __imgb_cpy_plane(src->a[i], dst->a[i], bd*src->w[i], src->h[i],
+                src->s[i], dst->s[i]);
+        }
+    }
+#if BD_CF_EXT
+    else if(bit_depth == 8)
+    {
+        imgb_conv_shift_left_8b(dst, src, ((BD_FROM_CS(dst->cs)) - BD_FROM_CS(src->cs))); //complicated formula because of colour space macors
+    }
+#else
+    else if(src->cs == EVC_COLORSPACE_YUV420)
+    {
+        imgb_conv_shift_left_8b(dst, src, ((dst->cs / 100) - 4) * 2); //complicated formula because of colour space macors
+    }
+#endif
+#if BD_CF_EXT
+    else if(bit_depth == 10)
+    {
+        if((BD_FROM_CS(dst->cs)) == 8)
+            imgb_conv_shift_right_8b(dst, src, 2);
+        else
+            imgb_conv_shift_left(dst, src, ((BD_FROM_CS(dst->cs)) - BD_FROM_CS(src->cs))); //complicated formula because of colour space macors
+    }
+#else
+    else if(src->cs == EVC_COLORSPACE_YUV420_10LE)
+    {
+        if(dst->cs == EVC_COLORSPACE_YUV420)
+            imgb_conv_shift_right_8b(dst, src, 2);
+        else
+            imgb_conv_shift_left(dst, src, ((dst->cs / 100) - 5) * 2); //complicated formula because of colour space macors
+    }
+#endif
+#if BD_CF_EXT
+    else if(bit_depth == 12)
+    {
+        if((BD_FROM_CS(dst->cs)) == 8)
+            imgb_conv_shift_right_8b(dst, src, 4);
+        else if((BD_FROM_CS(dst->cs)) == 10)
+            imgb_conv_shift_right(dst, src, ((BD_FROM_CS(src->cs)) - BD_FROM_CS(dst->cs)));
+        else
+            imgb_conv_shift_left(dst, src, ((BD_FROM_CS(dst->cs)) - BD_FROM_CS(src->cs))); //complicated formula because of colour space macors
+    }
+#else
+    else if(src->cs == EVC_COLORSPACE_YUV420_12LE)
+    {
+        if(dst->cs == EVC_COLORSPACE_YUV420)
+            imgb_conv_shift_right_8b(dst, src, 4);
+        else if(dst->cs == EVC_COLORSPACE_YUV420_10LE)
+            imgb_conv_shift_right(dst, src, (6 - (dst->cs / 100)) * 2);
+        else
+            imgb_conv_shift_left(dst, src, ((dst->cs / 100) - 6) * 2); //complicated formula because of colour space macors
+    }
+#endif
+#if BD_CF_EXT
+    else if(bit_depth == 14)
+    {
+        if((BD_FROM_CS(dst->cs)) == 8)
+            imgb_conv_shift_right_8b(dst, src, 6);
+        else if(((BD_FROM_CS(dst->cs)) == 10) || ((BD_FROM_CS(dst->cs)) == 12))
+            imgb_conv_shift_right(dst, src, ((BD_FROM_CS(src->cs)) - BD_FROM_CS(dst->cs)));
+        else
+            imgb_conv_shift_left(dst, src, ((BD_FROM_CS(dst->cs)) - BD_FROM_CS(src->cs))); //complicated formula because of colour space macors
+    }
+#else
+    else if(src->cs == EVC_COLORSPACE_YUV420_14LE)
+    {
+        if(dst->cs == EVC_COLORSPACE_YUV420)
+            imgb_conv_shift_right_8b(dst, src, 6);
+        else if(dst->cs == EVC_COLORSPACE_YUV420_10LE || EVC_COLORSPACE_YUV420_12LE)
+            imgb_conv_shift_right(dst, src, (7 - (dst->cs / 100)) * 2);
+        else
+            imgb_conv_shift_left(dst, src, ((dst->cs / 100) - 7) * 2); //complicated formula because of colour space macors
+    }
+#endif
+    else
+    {
+        v0print("ERROR: unsupported image copy\n");
+        return;
+    }
+    for(i = 0; i < 4; i++)
+    {
+        dst->ts[i] = src->ts[i];
+    }
+    if(src->crop_idx)
+    {
+        dst->crop_idx = src->crop_idx;
+        dst->crop_l = src->crop_l;
+        dst->crop_r = src->crop_r;
+        dst->crop_t = src->crop_t;
+        dst->crop_b = src->crop_b;
+    }
+    dst->imgb_active_pps_id = src->imgb_active_pps_id;
+    dst->imgb_active_aps_id = src->imgb_active_aps_id;
+}
+static void imgb_cpy_inp_to_codec(EVC_IMGB * dst, EVC_IMGB * src)
+{
+    int i, bd;
+    int src_bd, dst_bd;
+    src_bd = BD_FROM_CS(src->cs);
+    dst_bd = BD_FROM_CS(dst->cs);
+    if(src_bd == 8)
+    {
+        imgb_conv_shift_left_8b(dst, src, dst_bd - src_bd);
+    }
+    else
+    {
+        if(src->cs == dst->cs)
+        {
+            bd = 2;
+            for(i = 0; i < src->np; i++)
+            {
+                __imgb_cpy_plane(src->a[i], dst->a[i], bd*src->w[i], src->h[i],
+                    src->s[i], dst->s[i]);
+            }
+        }
+        else if(src->cs > dst->cs)
+        {
+            imgb_conv_shift_right(dst, src, src_bd - dst_bd);
+        }
+        else
+        {
+            imgb_conv_shift_left(dst, src, dst_bd - src_bd);
+        }
+    }
+    for(i = 0; i < 4; i++)
+    {
+        dst->ts[i] = src->ts[i];
+    }
+    if(src->crop_idx)
+    {
+        dst->crop_idx = src->crop_idx;
+        dst->crop_l = src->crop_l;
+        dst->crop_r = src->crop_r;
+        dst->crop_t = src->crop_t;
+        dst->crop_b = src->crop_b;
+    }
+    dst->imgb_active_pps_id = src->imgb_active_pps_id;
+    dst->imgb_active_aps_id = src->imgb_active_aps_id;
+}
+
+static void imgb_cpy_codec_to_out(EVC_IMGB * dst, EVC_IMGB * src)
+{
+    int i, bd;
+    int src_bd, dst_bd;
+    src_bd = BD_FROM_CS(src->cs);
+    dst_bd = BD_FROM_CS(dst->cs);
+    if(dst_bd == 8)
+    {
+        imgb_conv_shift_right_8b(dst, src, src_bd - dst_bd);
+    }
+    else
+    {
+        if(src->cs == dst->cs)
+        {
+            bd = 2;
+            for(i = 0; i < src->np; i++)
+            {
+                __imgb_cpy_plane(src->a[i], dst->a[i], bd*src->w[i], src->h[i],
+                    src->s[i], dst->s[i]);
+            }
+        }
+        else if(src->cs > dst->cs)
+        {
+            imgb_conv_shift_right(dst, src, src_bd - dst_bd);
+        }
+        else
+        {
+            imgb_conv_shift_left(dst, src, dst_bd - src_bd);
+        }
+    }
+    for(i = 0; i < 4; i++)
+    {
+        dst->ts[i] = src->ts[i];
+    }
+    if(src->crop_idx)
+    {
+        dst->crop_idx = src->crop_idx;
+        dst->crop_l = src->crop_l;
+        dst->crop_r = src->crop_r;
+        dst->crop_t = src->crop_t;
+        dst->crop_b = src->crop_b;
+    }
+    dst->imgb_active_pps_id = src->imgb_active_pps_id;
+    dst->imgb_active_aps_id = src->imgb_active_aps_id;
+}
+#endif
+
 static void imgb_free(EVC_IMGB * imgb)
 {
     int i;
@@ -455,10 +813,20 @@ EVC_IMGB * imgb_alloc(int w, int h, int cs)
         return NULL;
     }
     memset(imgb, 0, sizeof(EVC_IMGB));
+#if BD_CF_EXT
+    int idc = CF_FROM_CS(cs);
+    int np =  idc == 0 ? 1 : 3;
+#endif
 
+#if BD_CF_EXT
+    if(BD_FROM_CS(cs)==8)
+    {
+        for(i = 0; i < np; i++)
+#else
     if(cs == EVC_COLORSPACE_YUV420)
     {
         for(i = 0; i < 3; i++)
+#endif
         {
             imgb->w[i] = imgb->aw[i] = imgb->s[i] = w;
             imgb->h[i] = imgb->ah[i] = imgb->e[i] = h;
@@ -473,14 +841,38 @@ EVC_IMGB * imgb_alloc(int w, int h, int cs)
 
             if(i == 0)
             {
+#if BD_CF_EXT
+                if((GET_CHROMA_W_SHIFT(idc)))
+                    w = (w + 1) >> (GET_CHROMA_W_SHIFT(idc));
+                if((GET_CHROMA_H_SHIFT(idc)))
+                    h = (h + 1) >> (GET_CHROMA_H_SHIFT(idc));
+#else
                 w = (w + 1) >> 1; h = (h + 1) >> 1;
+#endif
             }
         }
+#if BD_CF_EXT
+        imgb->np = np;
+#else
         imgb->np = 3;
+#endif
     }
-    else if(cs == EVC_COLORSPACE_YUV420_10LE)
+    else if(cs == EVC_COLORSPACE_YUV420_10LE
+#if BD_CF_EXT
+       || cs == EVC_COLORSPACE_YUV420_12LE || cs == EVC_COLORSPACE_YUV420_14LE
+#endif
+#if BD_CF_EXT
+        || cs == EVC_COLORSPACE_YUV400_10LE || cs == EVC_COLORSPACE_YUV400_12LE || cs == EVC_COLORSPACE_YUV400_14LE
+        || cs == EVC_COLORSPACE_YUV422_10LE || cs == EVC_COLORSPACE_YUV422_12LE || cs == EVC_COLORSPACE_YUV422_14LE
+        || cs == EVC_COLORSPACE_YUV444_12LE || cs == EVC_COLORSPACE_YUV444_14LE || cs == EVC_COLORSPACE_YUV444_10LE
+#endif
+        )
     {
+#if BD_CF_EXT
+        for(i = 0; i < np; i++)
+#else
         for(i = 0; i < 3; i++)
+#endif
         {
             imgb->w[i] = imgb->aw[i] = w;
             imgb->s[i] = w * sizeof(short);
@@ -496,13 +888,28 @@ EVC_IMGB * imgb_alloc(int w, int h, int cs)
 
             if(i == 0)
             {
+#if BD_CF_EXT
+                if((GET_CHROMA_W_SHIFT(idc)))
+                    w = (w + 1) >> (GET_CHROMA_W_SHIFT(idc));
+                if((GET_CHROMA_H_SHIFT(idc)))
+                    h = (h + 1) >> (GET_CHROMA_H_SHIFT(idc));
+#else
                 w = (w + 1) >> 1; h = (h + 1) >> 1;
+#endif
             }
         }
+#if BD_CF_EXT
+        imgb->np = np;
+#else
         imgb->np = 3;
+#endif
     }
 #if HDR_METRIC
+#if BD_CF_EXT
+    else if(cs == EVC_COLORSPACE_YUV444_10LE_INT)
+#else
     else if (cs == EVC_COLORSPACE_YUV444_10LE)
+#endif
     {
         for (i = 0; i < 3; i++)
         {

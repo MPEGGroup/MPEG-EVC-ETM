@@ -76,6 +76,10 @@ typedef struct _SignalledParamsDRA
     int m_dra_cb_scale_value;
     int m_dra_cr_scale_value;
     int m_dra_scale_value[33 - 1];
+#if BD_CF_EXT
+    int m_internal_bd;
+    int m_idc;
+#endif
 }SignalledParamsDRA;
 
 typedef struct _WCGDDRAControl
@@ -115,6 +119,11 @@ typedef struct _WCGDDRAControl
     double m_draHistNorm;
     int    m_globalOffset;
     int    m_globalEnd;
+
+#if BD_CF_EXT
+    int m_idc;
+    int m_internal_bd;
+#endif
 
 } WCGDDRAControl;
 

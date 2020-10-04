@@ -65,7 +65,11 @@ typedef struct AlfSliceParam AlfSliceParam;
 AdaptiveLoopFilter* new_ALF();
 void delete_ALF(AdaptiveLoopFilter*);
 
-void call_create_ALF(AdaptiveLoopFilter* p, const int picWidth, const int picHeight, const int maxCUWidth, const int maxCUHeight, const int maxCUDepth);
+void call_create_ALF(AdaptiveLoopFilter* p, const int picWidth, const int picHeight, const int maxCUWidth, const int maxCUHeight, const int maxCUDepth
+#if BD_CF_EXT
+                     , int idc
+#endif
+);
 void call_destroy_ALF(AdaptiveLoopFilter* p);
 void init_AlfFilterShape(void * th, int size);
 

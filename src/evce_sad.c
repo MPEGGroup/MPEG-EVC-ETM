@@ -35,7 +35,11 @@
 #include <math.h>
 
 /* SAD for 16bit **************************************************************/
-static int sad_16b(int w, int h, void *src1, void *src2, int s_src1, int s_src2)
+static int sad_16b(int w, int h, void *src1, void *src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                   , int bit_depth
+#endif
+)
 {
     s16 *s1;
     s16 *s2;
@@ -57,7 +61,11 @@ static int sad_16b(int w, int h, void *src1, void *src2, int s_src1, int s_src2)
         s2 += s_src2;
     }
 
+#if BD_CF_EXT 
+    return (sad >> (bit_depth - 8));
+#else
     return (sad >> (BIT_DEPTH - 8));
+#endif
 }
 
 #if X86_SSE
@@ -83,7 +91,11 @@ static int sad_16b(int w, int h, void *src1, void *src2, int s_src1, int s_src2)
     sac0 = _mm_add_epi32(sac0, s00); \
     sac1 = _mm_add_epi32(sac1, s01);
 
-static int sad_16b_sse_4x2(int w, int h, void * src1, void * src2, int s_src1, int s_src2)
+static int sad_16b_sse_4x2(int w, int h, void * src1, void * src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                           , int bit_depth
+#endif
+)
 {
     int sad;
     s16 * s1;
@@ -103,10 +115,18 @@ static int sad_16b_sse_4x2(int w, int h, void * src1, void * src2, int s_src1, i
     sad += _mm_extract_epi32(sac0, 2);
     sad += _mm_extract_epi32(sac0, 3);
 
+#if BD_CF_EXT 
+    return (sad >> (bit_depth - 8));
+#else
     return (sad >> (BIT_DEPTH - 8));
+#endif
 }
 
-static int sad_16b_sse_4x2n(int w, int h, void * src1, void * src2, int s_src1, int s_src2)
+static int sad_16b_sse_4x2n(int w, int h, void * src1, void * src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                            , int bit_depth
+#endif
+)
 {
     int sad;
     s16 * s1;
@@ -131,10 +151,18 @@ static int sad_16b_sse_4x2n(int w, int h, void * src1, void * src2, int s_src1, 
     sad += _mm_extract_epi32(sac0, 2);
     sad += _mm_extract_epi32(sac0, 3);
 
+#if BD_CF_EXT 
+    return (sad >> (bit_depth - 8));
+#else
     return (sad >> (BIT_DEPTH - 8));
+#endif
 }
 
-static int sad_16b_sse_4x4(int w, int h, void * src1, void * src2, int s_src1, int s_src2)
+static int sad_16b_sse_4x4(int w, int h, void * src1, void * src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                           , int bit_depth
+#endif
+)
 {
     int sad;
     s16 * s1;
@@ -156,11 +184,19 @@ static int sad_16b_sse_4x4(int w, int h, void * src1, void * src2, int s_src1, i
     sad += _mm_extract_epi32(sac0, 2);
     sad += _mm_extract_epi32(sac0, 3);
 
+#if BD_CF_EXT 
+    return (sad >> (bit_depth - 8));
+#else
     return (sad >> (BIT_DEPTH - 8));
+#endif
 }
 
 #if !OPT_SIMD_SAD
-static int sad_16b_sse_8x2(int w, int h, void * src1, void * src2, int s_src1, int s_src2)
+static int sad_16b_sse_8x2(int w, int h, void * src1, void * src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                           , int bit_depth
+#endif
+)
 {
     int sad;
     s16 * s1;
@@ -184,11 +220,19 @@ static int sad_16b_sse_8x2(int w, int h, void * src1, void * src2, int s_src1, i
     sad += _mm_extract_epi32(s00, 2);
     sad += _mm_extract_epi32(s00, 3);
 
+#if BD_CF_EXT
+    return (sad >> (bit_depth - 8));
+#else
     return (sad >> (BIT_DEPTH - 8));
+#endif
 }
 #endif
 #if !OPT_SIMD_SAD
-static int sad_16b_sse_8x4(int w, int h, void * src1, void * src2, int s_src1, int s_src2)
+static int sad_16b_sse_8x4(int w, int h, void * src1, void * src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                           , int bit_depth
+#endif
+)
 {
     int sad;
     s16 * s1;
@@ -214,11 +258,19 @@ static int sad_16b_sse_8x4(int w, int h, void * src1, void * src2, int s_src1, i
     sad += _mm_extract_epi32(s00, 2);
     sad += _mm_extract_epi32(s00, 3);
 
+#if BD_CF_EXT
+    return (sad >> (bit_depth - 8));
+#else
     return (sad >> (BIT_DEPTH - 8));
+#endif
 }
 #endif
 #if !OPT_SIMD_SAD
-static int sad_16b_sse_8x4n(int w, int h, void * src1, void * src2, int s_src1, int s_src2)
+static int sad_16b_sse_8x4n(int w, int h, void * src1, void * src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                            , int bit_depth
+#endif
+)
 {
     int i, sad;
     s16 * s1;
@@ -249,7 +301,11 @@ static int sad_16b_sse_8x4n(int w, int h, void * src1, void * src2, int s_src1, 
     sad += _mm_extract_epi32(s00, 2);
     sad += _mm_extract_epi32(s00, 3);
 
+#if BD_CF_EXT
+    return (sad >> (bit_depth - 8));
+#else
     return (sad >> (BIT_DEPTH - 8));
+#endif
 }
 #endif
 #if !OPT_SIMD_SAD
@@ -282,10 +338,18 @@ static int sad_16b_sse_8x8(int w, int h, void * src1, void * src2, int s_src1, i
     sad += _mm_extract_epi32(s00, 2);
     sad += _mm_extract_epi32(s00, 3);
 
+#if BD_CF_EXT
+    return (sad >> (bit_depth - 8));
+#else
     return (sad >> (BIT_DEPTH - 8));
+#endif
 }
 #endif
-static int sad_16b_sse_16x2(int w, int h, void * src1, void * src2, int s_src1, int s_src2)
+static int sad_16b_sse_16x2(int w, int h, void * src1, void * src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                            , int bit_depth
+#endif
+)
 {
     int sad;
     s16 * s1;
@@ -311,10 +375,18 @@ static int sad_16b_sse_16x2(int w, int h, void * src1, void * src2, int s_src1, 
     sad += _mm_extract_epi32(s00, 2);
     sad += _mm_extract_epi32(s00, 3);
 
+#if BD_CF_EXT 
+    return (sad >> (bit_depth - 8));
+#else
     return (sad >> (BIT_DEPTH - 8));
+#endif
 }
 #if !OPT_SIMD_SAD
-static int sad_16b_sse_16x4(int w, int h, void * src1, void * src2, int s_src1, int s_src2)
+static int sad_16b_sse_16x4(int w, int h, void * src1, void * src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                            , int bit_depth
+#endif
+)
 {
     int sad;
     s16 * s1;
@@ -347,7 +419,11 @@ static int sad_16b_sse_16x4(int w, int h, void * src1, void * src2, int s_src1, 
     sad += _mm_extract_epi32(s00, 2);
     sad += _mm_extract_epi32(s00, 3);
 
+#if BD_CF_EXT
+    return (sad >> (bit_depth - 8));
+#else
     return (sad >> (BIT_DEPTH - 8));
+#endif
 }
 #endif
 #if !OPT_SIMD_SAD
@@ -395,11 +471,19 @@ static int sad_16b_sse_16x8(int w, int h, void * src1, void * src2, int s_src1, 
     sad += _mm_extract_epi32(s00, 2);
     sad += _mm_extract_epi32(s00, 3);
 
+#if BD_CF_EXT
+    return (sad >> (bit_depth - 8));
+#else
     return (sad >> (BIT_DEPTH - 8));
+#endif
 }
 #endif
 #if !OPT_SIMD_SAD
-static int sad_16b_sse_16x16(int w, int h, void * src1, void * src2, int s_src1, int s_src2)
+static int sad_16b_sse_16x16(int w, int h, void * src1, void * src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                             , int bit_depth
+#endif
+)
 {
     int sad;
     s16 * s1;
@@ -469,11 +553,19 @@ static int sad_16b_sse_16x16(int w, int h, void * src1, void * src2, int s_src1,
     sad += _mm_extract_epi32(s00, 2);
     sad += _mm_extract_epi32(s00, 3);
 
+#if BD_CF_EXT
+    return (sad >> (bit_depth - 8));
+#else
     return (sad >> (BIT_DEPTH - 8));
+#endif
 }
 #endif
 #if !OPT_SIMD_SAD
-static int sad_16b_sse_16nx4n(int w, int h, void * src1, void * src2, int s_src1, int s_src2)
+static int sad_16b_sse_16nx4n(int w, int h, void * src1, void * src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                              , int bit_depth
+#endif
+)
 {
     int sad;
     int i, j;
@@ -517,11 +609,19 @@ static int sad_16b_sse_16nx4n(int w, int h, void * src1, void * src2, int s_src1
     sad += _mm_extract_epi32(s00, 2);
     sad += _mm_extract_epi32(s00, 3);
 
+#if BD_CF_EXT
+    return (sad >> (bit_depth - 8));
+#else
     return (sad >> (BIT_DEPTH - 8));
+#endif
 }
 #endif
 #if !OPT_SIMD_SAD
-static int sad_16b_sse_16nx16n(int w, int h, void * src1, void * src2, int s_src1, int s_src2)
+static int sad_16b_sse_16nx16n(int w, int h, void * src1, void * src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                               , int bit_depth
+#endif
+)
 {
     int sad;
     int i, j;
@@ -601,11 +701,19 @@ static int sad_16b_sse_16nx16n(int w, int h, void * src1, void * src2, int s_src
     sad += _mm_extract_epi32(s00, 2);
     sad += _mm_extract_epi32(s00, 3);
 
+#if BD_CF_EXT
+    return (sad >> (bit_depth - 8));
+#else
     return (sad >> (BIT_DEPTH - 8));
+#endif
 }
 #endif
 #if OPT_SIMD_SAD
-static int sad_16b_sse_8x2(int w, int h, void * src1, void * src2, int s_src1, int s_src2)
+static int sad_16b_sse_8x2(int w, int h, void * src1, void * src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                           , int bit_depth
+#endif
+)
 {
     __m128i src_8x16b;
     __m128i src_8x16b_1;
@@ -625,7 +733,11 @@ static int sad_16b_sse_8x2(int w, int h, void * src1, void * src2, int s_src1, i
 
     int sad = 0;
 
+#if BD_CF_EXT 
+    assert(bit_depth <= 14);
+#else
     assert(BIT_DEPTH <= 14);
+#endif
 
     assert(w == 8); /* fun usage expects w ==8, but assumption is width has to be multiple of 8 */
     assert(h == 2); /* fun usage expects h ==2, but assumption is height has to be multiple of 2 */
@@ -665,10 +777,18 @@ static int sad_16b_sse_8x2(int w, int h, void * src1, void * src2, int s_src1, i
         sad = val[0] + val[1] + val[2] + val[3];
     }
 
+#if BD_CF_EXT 
+    return (sad >> (bit_depth - 8));
+#else
     return (sad >> (BIT_DEPTH - 8));
+#endif
 }
 
-static int sad_16b_sse_8x4n(int w, int h, void * src1, void * src2, int s_src1, int s_src2)
+static int sad_16b_sse_8x4n(int w, int h, void * src1, void * src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                            , int bit_depth
+#endif
+)
 {
     __m128i src_8x16b;
     __m128i src_8x16b_1;
@@ -696,7 +816,11 @@ static int sad_16b_sse_8x4n(int w, int h, void * src1, void * src2, int s_src1, 
     int  i;
     int sad = 0;
 
+#if BD_CF_EXT 
+    assert(bit_depth <= 14);
+#else
     assert(BIT_DEPTH <= 14);
+#endif
 
     assert(w == 8); /* fun usage expects w ==8, but assumption is width has to be multiple of 8 */
     assert(!(h & 3)); /* height has to be multiple of 4 */
@@ -755,11 +879,18 @@ static int sad_16b_sse_8x4n(int w, int h, void * src1, void * src2, int s_src1, 
         int *val = (int*)&result;
         sad = val[0] + val[1] + val[2] + val[3];
     }
-
+#if BD_CF_EXT 
+    return (sad >> (bit_depth - 8));
+#else
     return (sad >> (BIT_DEPTH - 8));
+#endif
 }
 
-static int sad_16b_sse_16nx4n(int w, int h, void * src1, void * src2, int s_src1, int s_src2)
+static int sad_16b_sse_16nx4n(int w, int h, void * src1, void * src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                              , int bit_depth
+#endif
+)
 {
     __m128i src_8x16b;
     __m128i src_8x16b_1;
@@ -787,7 +918,11 @@ static int sad_16b_sse_16nx4n(int w, int h, void * src1, void * src2, int s_src1
     int  i, j;
     int sad = 0;
 
+#if BD_CF_EXT 
+    assert(bit_depth <= 14);
+#else
     assert(BIT_DEPTH <= 14);
+#endif
 
     assert(!(w & 15)); /*fun used only for multiple of 16, but internal assumption is only 8 */
     assert(!(h & 3)); /* height has to be multiple of 4 */
@@ -853,8 +988,11 @@ static int sad_16b_sse_16nx4n(int w, int h, void * src1, void * src2, int s_src1
         int *val = (int*)&result;
         sad = val[0] + val[1] + val[2] + val[3];
     }
-
+#if BD_CF_EXT 
+    return (sad >> (bit_depth - 8));
+#else
     return (sad >> (BIT_DEPTH - 8));
+#endif
 }
 #endif
 #endif /* X86_SSE */
@@ -1080,7 +1218,11 @@ const EVCE_FN_SAD evce_tbl_sad_16b[8][8] =
 
 
 /* DIFF **********************************************************************/
-static void diff_16b(int w, int h, void *src1, void *src2, int s_src1, int s_src2, int s_diff, s16 * diff)
+static void diff_16b(int w, int h, void *src1, void *src2, int s_src1, int s_src2, int s_diff, s16 * diff
+#if BD_CF_EXT
+                     , int bit_depth
+#endif
+)
 {
     s16 *s1;
     s16 *s2;
@@ -1115,7 +1257,11 @@ static void diff_16b(int w, int h, void *src1, void *src2, int s_src1, int s_src
     m02 = _mm_sub_epi16(m00, m01); \
     _mm_storeu_si128((__m128i*)(diff), m02);
 
-static void diff_16b_sse_4x2(int w, int h, void * src1, void * src2, int s_src1, int s_src2, int s_diff, s16 * diff)
+static void diff_16b_sse_4x2(int w, int h, void * src1, void * src2, int s_src1, int s_src2, int s_diff, s16 * diff
+#if BD_CF_EXT
+                             , int bit_depth
+#endif
+)
 {
     s16 * s1;
     s16 * s2;
@@ -1128,7 +1274,11 @@ static void diff_16b_sse_4x2(int w, int h, void * src1, void * src2, int s_src1,
     SSE_DIFF_16B_4PEL(s1 + s_src1, s2 + s_src2, diff + s_diff, m04, m05, m06);
 }
 
-static void diff_16b_sse_4x4(int w, int h, void * src1, void * src2, int s_src1, int s_src2, int s_diff, s16 * diff)
+static void diff_16b_sse_4x4(int w, int h, void * src1, void * src2, int s_src1, int s_src2, int s_diff, s16 * diff
+#if BD_CF_EXT
+                             , int bit_depth
+#endif
+)
 {
     s16 * s1;
     s16 * s2;
@@ -1143,7 +1293,11 @@ static void diff_16b_sse_4x4(int w, int h, void * src1, void * src2, int s_src1,
     SSE_DIFF_16B_4PEL(s1 + s_src1*3, s2 + s_src2*3, diff + s_diff*3, m10, m11, m12);
 }
 
-static void diff_16b_sse_8x8(int w, int h, void * src1, void * src2, int s_src1, int s_src2, int s_diff, s16 * diff)
+static void diff_16b_sse_8x8(int w, int h, void * src1, void * src2, int s_src1, int s_src2, int s_diff, s16 * diff
+#if BD_CF_EXT
+                             , int bit_depth
+#endif
+)
 {
     s16 * s1;
     s16 * s2;
@@ -1162,7 +1316,11 @@ static void diff_16b_sse_8x8(int w, int h, void * src1, void * src2, int s_src1,
     SSE_DIFF_16B_8PEL(s1 + s_src1*7, s2 + s_src2*7, diff + s_diff*7, m10, m11, m12);
 }
 
-static void diff_16b_sse_8nx2n(int w, int h, void * src1, void * src2, int s_src1, int s_src2, int s_diff, s16 * diff)
+static void diff_16b_sse_8nx2n(int w, int h, void * src1, void * src2, int s_src1, int s_src2, int s_diff, s16 * diff
+#if BD_CF_EXT
+                               , int bit_depth
+#endif
+)
 {
     s16 * s1;
     s16 * s2;
@@ -1187,7 +1345,11 @@ static void diff_16b_sse_8nx2n(int w, int h, void * src1, void * src2, int s_src
     }
 }
 
-static void diff_16b_sse_16nx2n(int w, int h, void * src1, void * src2, int s_src1, int s_src2, int s_diff, s16 * diff)
+static void diff_16b_sse_16nx2n(int w, int h, void * src1, void * src2, int s_src1, int s_src2, int s_diff, s16 * diff
+#if BD_CF_EXT
+                                , int bit_depth
+#endif
+)
 {
     s16 * s1;
     s16 * s2;
@@ -1216,7 +1378,11 @@ static void diff_16b_sse_16nx2n(int w, int h, void * src1, void * src2, int s_sr
     }
 }
 
-static void diff_16b_sse_32nx4n(int w, int h, void * src1, void * src2, int s_src1, int s_src2, int s_diff, s16 * diff)
+static void diff_16b_sse_32nx4n(int w, int h, void * src1, void * src2, int s_src1, int s_src2, int s_diff, s16 * diff
+#if BD_CF_EXT
+                                , int bit_depth
+#endif
+)
 {
     s16 * s1;
     s16 * s2;
@@ -1446,13 +1612,21 @@ const EVCE_FN_DIFF evce_tbl_diff_16b[8][8] =
 };
 
 /* SSD ***********************************************************************/
-static s64 ssd_16b(int w, int h, void *src1, void *src2, int s_src1, int s_src2)
+static s64 ssd_16b(int w, int h, void *src1, void *src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                   , int bit_depth
+#endif
+)
 {
     s16 * s1;
     s16 * s2;
     int     i, j, diff;
     s64   ssd;
+#if BD_CF_EXT 
+    const int shift = (bit_depth - 8) << 1;
+#else
     const int shift = (BIT_DEPTH - 8) << 1;
+#endif
 
     s1 = (s16 *)src1;
     s2 = (s16 *)src2;
@@ -1499,12 +1673,20 @@ static s64 ssd_16b(int w, int h, void *src1, void *src2, int s_src1, int s_src2)
     s00a = _mm_add_epi32(s00a, s00); \
     s00a = _mm_add_epi32(s00a, s01);
 
-static s64 ssd_16b_sse_4x2(int w, int h, void * src1, void * src2, int s_src1, int s_src2)
+static s64 ssd_16b_sse_4x2(int w, int h, void * src1, void * src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                           , int bit_depth
+#endif
+)
 {
     s64   ssd;
     s16 * s1;
     s16 * s2;
+#if BD_CF_EXT 
+    const int shift = (bit_depth - 8) << 1;
+#else
     const int shift = (BIT_DEPTH - 8) << 1;
+#endif
     __m128i s00, s01, s00a;
 
     s1 = (s16 *)src1;
@@ -1523,12 +1705,20 @@ static s64 ssd_16b_sse_4x2(int w, int h, void * src1, void * src2, int s_src1, i
     return ssd;
 }
 
-static s64 ssd_16b_sse_4x4(int w, int h, void * src1, void * src2, int s_src1, int s_src2)
+static s64 ssd_16b_sse_4x4(int w, int h, void * src1, void * src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                           , int bit_depth
+#endif
+)
 {
     s64   ssd;
     s16 * s1;
     s16 * s2;
+#if BD_CF_EXT 
+    const int shift = (bit_depth - 8) << 1;
+#else
     const int shift = (BIT_DEPTH- 8) << 1;
+#endif
     __m128i s00, s01, s00a;
 
     s1 = (s16 *)src1;
@@ -1549,12 +1739,20 @@ static s64 ssd_16b_sse_4x4(int w, int h, void * src1, void * src2, int s_src1, i
     return ssd;
 }
 
-static s64 ssd_16b_sse_4x8(int w, int h, void * src1, void * src2, int s_src1, int s_src2)
+static s64 ssd_16b_sse_4x8(int w, int h, void * src1, void * src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                           , int bit_depth
+#endif
+)
 {
     s64   ssd;
     s16 * s1;
     s16 * s2;
+#if BD_CF_EXT 
+    const int shift = (bit_depth - 8) << 1;
+#else
     const int shift = (BIT_DEPTH - 8) << 1;
+#endif
     __m128i s00, s01, s00a;
 
     s1 = (s16 *)src1;
@@ -1579,12 +1777,20 @@ static s64 ssd_16b_sse_4x8(int w, int h, void * src1, void * src2, int s_src1, i
     return ssd;
 }
 
-static s64 ssd_16b_sse_4x16(int w, int h, void * src1, void * src2, int s_src1, int s_src2)
+static s64 ssd_16b_sse_4x16(int w, int h, void * src1, void * src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                            , int bit_depth
+#endif
+)
 {
     s64   ssd;
     s16 * s1;
     s16 * s2;
+#if BD_CF_EXT 
+    const int shift = (bit_depth - 8) << 1;
+#else
     const int shift = (BIT_DEPTH - 8) << 1;
+#endif
     __m128i s00, s01, s00a;
 
     s1 = (s16 *)src1;
@@ -1617,12 +1823,20 @@ static s64 ssd_16b_sse_4x16(int w, int h, void * src1, void * src2, int s_src1, 
     return ssd;
 }
 
-static s64 ssd_16b_sse_4x32(int w, int h, void * src1, void * src2, int s_src1, int s_src2)
+static s64 ssd_16b_sse_4x32(int w, int h, void * src1, void * src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                            , int bit_depth
+#endif
+)
 {
     s64   ssd;
     s16 * s1;
     s16 * s2;
+#if BD_CF_EXT 
+    const int shift = (bit_depth - 8) << 1;
+#else
     const int shift = (BIT_DEPTH - 8) << 1;
+#endif
     __m128i s00, s01, s00a;
 
     s1 = (s16 *)src1;
@@ -1671,12 +1885,20 @@ static s64 ssd_16b_sse_4x32(int w, int h, void * src1, void * src2, int s_src1, 
     return ssd;
 }
 
-static s64 ssd_16b_sse_8x2(int w, int h, void * src1, void * src2, int s_src1, int s_src2)
+static s64 ssd_16b_sse_8x2(int w, int h, void * src1, void * src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                           , int bit_depth
+#endif
+)
 {
     s64   ssd;
     s16 * s1;
     s16 * s2;
+#if BD_CF_EXT 
+    const int shift = (bit_depth - 8) << 1;
+#else
     const int shift = (BIT_DEPTH - 8) << 1;
+#endif
     __m128i s00, s01, s02, s00a;
 
     s1 = (s16 *)src1;
@@ -1695,12 +1917,20 @@ static s64 ssd_16b_sse_8x2(int w, int h, void * src1, void * src2, int s_src1, i
     return ssd;
 }
 
-static s64 ssd_16b_sse_8x4(int w, int h, void * src1, void * src2, int s_src1, int s_src2)
+static s64 ssd_16b_sse_8x4(int w, int h, void * src1, void * src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                           , int bit_depth
+#endif
+)
 {
     s64   ssd;
     s16 * s1;
     s16 * s2;
+#if BD_CF_EXT 
+    const int shift = (bit_depth - 8) << 1;
+#else
     const int shift = (BIT_DEPTH - 8) << 1;
+#endif
     __m128i s00, s01, s02, s00a;
 
     s1 = (s16 *)src1;
@@ -1721,12 +1951,20 @@ static s64 ssd_16b_sse_8x4(int w, int h, void * src1, void * src2, int s_src1, i
     return ssd;
 }
 
-static s64 ssd_16b_sse_8x8(int w, int h, void * src1, void * src2, int s_src1, int s_src2)
+static s64 ssd_16b_sse_8x8(int w, int h, void * src1, void * src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                           , int bit_depth
+#endif
+)
 {
     s64   ssd;
     s16 * s1;
     s16 * s2;
+#if BD_CF_EXT 
+    const int shift = (bit_depth - 8) << 1;
+#else
     const int shift = (BIT_DEPTH- 8) << 1;
+#endif
     __m128i s00, s01, s02, s00a;
 
     s1 = (s16 *)src1;
@@ -1751,13 +1989,21 @@ static s64 ssd_16b_sse_8x8(int w, int h, void * src1, void * src2, int s_src1, i
     return ssd;
 }
 
-static s64 ssd_16b_sse_8nx2n(int w, int h, void * src1, void * src2, int s_src1, int s_src2)
+static s64 ssd_16b_sse_8nx2n(int w, int h, void * src1, void * src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                             , int bit_depth
+#endif
+)
 {
     s64   ssd;
     s16 * s1;
     s16 * s2;
     int     i, j;
+#if BD_CF_EXT 
+    const int shift = (bit_depth - 8) << 1;
+#else
     const int shift = (BIT_DEPTH - 8) << 1;
+#endif
     __m128i s00, s01, s02, s00a;
 
     s1 = (s16 *)src1;
@@ -1786,13 +2032,21 @@ static s64 ssd_16b_sse_8nx2n(int w, int h, void * src1, void * src2, int s_src1,
     return ssd;
 }
 
-static s64 ssd_16b_sse_8nx4n(int w, int h, void * src1, void * src2, int s_src1, int s_src2)
+static s64 ssd_16b_sse_8nx4n(int w, int h, void * src1, void * src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                             , int bit_depth
+#endif
+)
 {
     s64   ssd;
     s16 * s1;
     s16 * s2;
     int     i, j;
+#if BD_CF_EXT 
+    const int shift = (bit_depth - 8) << 1;
+#else
     const int shift = (BIT_DEPTH - 8) << 1;
+#endif
     __m128i s00, s01, s02, s00a;
 
     s1 = (s16 *)src1;
@@ -1823,13 +2077,21 @@ static s64 ssd_16b_sse_8nx4n(int w, int h, void * src1, void * src2, int s_src1,
     return ssd;
 }
 
-static s64 ssd_16b_sse_8nx8n(int w, int h, void * src1, void * src2, int s_src1, int s_src2)
+static s64 ssd_16b_sse_8nx8n(int w, int h, void * src1, void * src2, int s_src1, int s_src2
+#if BD_CF_EXT
+                             , int bit_depth
+#endif
+)
 {
     s64   ssd;
     s16 * s1;
     s16 * s2;
     int     i, j;
+#if BD_CF_EXT 
+    const int shift = (bit_depth - 8) << 1;
+#else
     const int shift = (BIT_DEPTH- 8) << 1;
+#endif
     __m128i s00, s01, s02, s00a;
 
     s1 = (s16 *)src1;
@@ -2069,111 +2331,213 @@ int evc_had_2x2(pel *org, pel *cur, int s_org, int s_cur, int step)
     return satd;
 }
 
-int evc_had_4x4(pel *org, pel *cur, int s_org, int s_cur, int step)
+int evc_had_4x4(pel *org, pel *cur, int s_org, int s_cur, int step
+#if BD_CF_EXT
+                , int bit_depth
+#endif
+)
 {
-#if X86_SSE && (BIT_DEPTH <= 10)
-    int satd = 0;
-    __m128i r0 = (_mm_loadl_epi64((const __m128i*)&org[0]));
-    __m128i r1 = (_mm_loadl_epi64((const __m128i*)&org[s_org]));
-    __m128i r2 = (_mm_loadl_epi64((const __m128i*)&org[2 * s_org]));
-    __m128i r3 = (_mm_loadl_epi64((const __m128i*)&org[3 * s_org]));
-    __m128i r4 = (_mm_loadl_epi64((const __m128i*)&cur[0]));
-    __m128i r5 = (_mm_loadl_epi64((const __m128i*)&cur[s_cur]));
-    __m128i r6 = (_mm_loadl_epi64((const __m128i*)&cur[2 * s_cur]));
-    __m128i r7 = (_mm_loadl_epi64((const __m128i*)&cur[3 * s_cur]));
-    __m128i sum;
-    __m128i zero;
+#if X86_SSE 
+#if BD_CF_EXT
+    if(bit_depth <= 10)
+#else
+    if(BIT_DEPTH <= 10)
+#endif
+    {
+        int satd = 0;
+        __m128i r0 = (_mm_loadl_epi64((const __m128i*)&org[0]));
+        __m128i r1 = (_mm_loadl_epi64((const __m128i*)&org[s_org]));
+        __m128i r2 = (_mm_loadl_epi64((const __m128i*)&org[2 * s_org]));
+        __m128i r3 = (_mm_loadl_epi64((const __m128i*)&org[3 * s_org]));
+        __m128i r4 = (_mm_loadl_epi64((const __m128i*)&cur[0]));
+        __m128i r5 = (_mm_loadl_epi64((const __m128i*)&cur[s_cur]));
+        __m128i r6 = (_mm_loadl_epi64((const __m128i*)&cur[2 * s_cur]));
+        __m128i r7 = (_mm_loadl_epi64((const __m128i*)&cur[3 * s_cur]));
+        __m128i sum;
+        __m128i zero;
 
-    r0 = _mm_sub_epi16(r0, r4);
-    r1 = _mm_sub_epi16(r1, r5);
-    r2 = _mm_sub_epi16(r2, r6);
-    r3 = _mm_sub_epi16(r3, r7);
+        r0 = _mm_sub_epi16(r0, r4);
+        r1 = _mm_sub_epi16(r1, r5);
+        r2 = _mm_sub_epi16(r2, r6);
+        r3 = _mm_sub_epi16(r3, r7);
 
-    // first stage
-    r4 = r0;
-    r5 = r1;
+        // first stage
+        r4 = r0;
+        r5 = r1;
 
-    r0 = _mm_add_epi16(r0, r3);
-    r1 = _mm_add_epi16(r1, r2);
+        r0 = _mm_add_epi16(r0, r3);
+        r1 = _mm_add_epi16(r1, r2);
 
-    r4 = _mm_sub_epi16(r4, r3);
-    r5 = _mm_sub_epi16(r5, r2);
+        r4 = _mm_sub_epi16(r4, r3);
+        r5 = _mm_sub_epi16(r5, r2);
 
-    r2 = r0;
-    r3 = r4;
+        r2 = r0;
+        r3 = r4;
 
-    r0 = _mm_add_epi16(r0, r1);
-    r2 = _mm_sub_epi16(r2, r1);
-    r3 = _mm_sub_epi16(r3, r5);
-    r5 = _mm_add_epi16(r5, r4);
+        r0 = _mm_add_epi16(r0, r1);
+        r2 = _mm_sub_epi16(r2, r1);
+        r3 = _mm_sub_epi16(r3, r5);
+        r5 = _mm_add_epi16(r5, r4);
 
-    // shuffle - flip matrix for vertical transform
-    r0 = _mm_unpacklo_epi16(r0, r5);
-    r2 = _mm_unpacklo_epi16(r2, r3);
+        // shuffle - flip matrix for vertical transform
+        r0 = _mm_unpacklo_epi16(r0, r5);
+        r2 = _mm_unpacklo_epi16(r2, r3);
 
-    r3 = r0;
-    r0 = _mm_unpacklo_epi32(r0, r2);
-    r3 = _mm_unpackhi_epi32(r3, r2);
+        r3 = r0;
+        r0 = _mm_unpacklo_epi32(r0, r2);
+        r3 = _mm_unpackhi_epi32(r3, r2);
 
-    r1 = r0;
-    r2 = r3;
-    r1 = _mm_srli_si128(r1, 8);
-    r3 = _mm_srli_si128(r3, 8);
+        r1 = r0;
+        r2 = r3;
+        r1 = _mm_srli_si128(r1, 8);
+        r3 = _mm_srli_si128(r3, 8);
 
-    // second stage
-    r4 = r0;
-    r5 = r1;
+        // second stage
+        r4 = r0;
+        r5 = r1;
 
-    r0 = _mm_add_epi16(r0, r3);
-    r1 = _mm_add_epi16(r1, r2);
+        r0 = _mm_add_epi16(r0, r3);
+        r1 = _mm_add_epi16(r1, r2);
 
-    r4 = _mm_sub_epi16(r4, r3);
-    r5 = _mm_sub_epi16(r5, r2);
+        r4 = _mm_sub_epi16(r4, r3);
+        r5 = _mm_sub_epi16(r5, r2);
 
-    r2 = r0;
-    r3 = r4;
+        r2 = r0;
+        r3 = r4;
 
-    r0 = _mm_add_epi16(r0, r1);
-    r2 = _mm_sub_epi16(r2, r1);
-    r3 = _mm_sub_epi16(r3, r5);
-    r5 = _mm_add_epi16(r5, r4);
+        r0 = _mm_add_epi16(r0, r1);
+        r2 = _mm_sub_epi16(r2, r1);
+        r3 = _mm_sub_epi16(r3, r5);
+        r5 = _mm_add_epi16(r5, r4);
 
-    // abs
-    sum = _mm_abs_epi16(r0);
+        // abs
+        sum = _mm_abs_epi16(r0);
 
-    s16* p = (s16*)&sum;
-    p[0] = p[0] >> 2;
+        s16* p = (s16*)&sum;
+        p[0] = p[0] >> 2;
 
-    sum = _mm_add_epi16(sum, _mm_abs_epi16(r2));
-    sum = _mm_add_epi16(sum, _mm_abs_epi16(r3));
-    sum = _mm_add_epi16(sum, _mm_abs_epi16(r5));
+        sum = _mm_add_epi16(sum, _mm_abs_epi16(r2));
+        sum = _mm_add_epi16(sum, _mm_abs_epi16(r3));
+        sum = _mm_add_epi16(sum, _mm_abs_epi16(r5));
 
-    zero = _mm_set1_epi16(0);
-    sum = _mm_unpacklo_epi16(sum, zero);
-    sum = _mm_hadd_epi32(sum, sum);
-    sum = _mm_hadd_epi32(sum, sum);
+        zero = _mm_set1_epi16(0);
+        sum = _mm_unpacklo_epi16(sum, zero);
+        sum = _mm_hadd_epi32(sum, sum);
+        sum = _mm_hadd_epi32(sum, sum);
 
-    satd = _mm_cvtsi128_si32(sum);
+        satd = _mm_cvtsi128_si32(sum);
 
-    satd = ((satd + 1) >> 1);
+        satd = ((satd + 1) >> 1);
 
-    return satd;
+        return satd;
+    }
+    else
+    {
+        int k;
+        int satd = 0;
+        int diff[16], m[16], d[16];
+
+        for( k = 0; k < 16; k+=4 )
+        {
+            diff[k+0] = org[0] - cur[0];
+            diff[k+1] = org[1] - cur[1];
+            diff[k+2] = org[2] - cur[2];
+            diff[k+3] = org[3] - cur[3];
+
+            cur += s_cur;
+            org += s_org;
+        }
+
+        m[ 0] = diff[ 0] + diff[12];
+        m[ 1] = diff[ 1] + diff[13];
+        m[ 2] = diff[ 2] + diff[14];
+        m[ 3] = diff[ 3] + diff[15];
+        m[ 4] = diff[ 4] + diff[ 8];
+        m[ 5] = diff[ 5] + diff[ 9];
+        m[ 6] = diff[ 6] + diff[10];
+        m[ 7] = diff[ 7] + diff[11];
+        m[ 8] = diff[ 4] - diff[ 8];
+        m[ 9] = diff[ 5] - diff[ 9];
+        m[10] = diff[ 6] - diff[10];
+        m[11] = diff[ 7] - diff[11];
+        m[12] = diff[ 0] - diff[12];
+        m[13] = diff[ 1] - diff[13];
+        m[14] = diff[ 2] - diff[14];
+        m[15] = diff[ 3] - diff[15];
+
+        d[ 0] = m[ 0] + m[ 4];
+        d[ 1] = m[ 1] + m[ 5];
+        d[ 2] = m[ 2] + m[ 6];
+        d[ 3] = m[ 3] + m[ 7];
+        d[ 4] = m[ 8] + m[12];
+        d[ 5] = m[ 9] + m[13];
+        d[ 6] = m[10] + m[14];
+        d[ 7] = m[11] + m[15];
+        d[ 8] = m[ 0] - m[ 4];
+        d[ 9] = m[ 1] - m[ 5];
+        d[10] = m[ 2] - m[ 6];
+        d[11] = m[ 3] - m[ 7];
+        d[12] = m[12] - m[ 8];
+        d[13] = m[13] - m[ 9];
+        d[14] = m[14] - m[10];
+        d[15] = m[15] - m[11];
+
+        m[ 0] = d[ 0] + d[ 3];
+        m[ 1] = d[ 1] + d[ 2];
+        m[ 2] = d[ 1] - d[ 2];
+        m[ 3] = d[ 0] - d[ 3];
+        m[ 4] = d[ 4] + d[ 7];
+        m[ 5] = d[ 5] + d[ 6];
+        m[ 6] = d[ 5] - d[ 6];
+        m[ 7] = d[ 4] - d[ 7];
+        m[ 8] = d[ 8] + d[11];
+        m[ 9] = d[ 9] + d[10];
+        m[10] = d[ 9] - d[10];
+        m[11] = d[ 8] - d[11];
+        m[12] = d[12] + d[15];
+        m[13] = d[13] + d[14];
+        m[14] = d[13] - d[14];
+        m[15] = d[12] - d[15];
+
+        d[ 0] = m[ 0] + m[ 1];
+        d[ 1] = m[ 0] - m[ 1];
+        d[ 2] = m[ 2] + m[ 3];
+        d[ 3] = m[ 3] - m[ 2];
+        d[ 4] = m[ 4] + m[ 5];
+        d[ 5] = m[ 4] - m[ 5];
+        d[ 6] = m[ 6] + m[ 7];
+        d[ 7] = m[ 7] - m[ 6];
+        d[ 8] = m[ 8] + m[ 9];
+        d[ 9] = m[ 8] - m[ 9];
+        d[10] = m[10] + m[11];
+        d[11] = m[11] - m[10];
+        d[12] = m[12] + m[13];
+        d[13] = m[12] - m[13];
+        d[14] = m[14] + m[15];
+        d[15] = m[15] - m[14];
+
+        satd += (EVC_ABS(d[0]) >> 2);
+        for (k = 1; k < 16; k++)
+        {
+            satd += EVC_ABS(d[k]);
+        }
+        satd = ((satd + 1) >> 1);
+
+        return satd;
+    }
 #else
     int k;
     int satd = 0;
     int diff[16], m[16], d[16];
-
     for( k = 0; k < 16; k+=4 )
     {
         diff[k+0] = org[0] - cur[0];
         diff[k+1] = org[1] - cur[1];
         diff[k+2] = org[2] - cur[2];
         diff[k+3] = org[3] - cur[3];
-
         cur += s_cur;
         org += s_org;
     }
-
     m[ 0] = diff[ 0] + diff[12];
     m[ 1] = diff[ 1] + diff[13];
     m[ 2] = diff[ 2] + diff[14];
@@ -2190,7 +2554,6 @@ int evc_had_4x4(pel *org, pel *cur, int s_org, int s_cur, int step)
     m[13] = diff[ 1] - diff[13];
     m[14] = diff[ 2] - diff[14];
     m[15] = diff[ 3] - diff[15];
-
     d[ 0] = m[ 0] + m[ 4];
     d[ 1] = m[ 1] + m[ 5];
     d[ 2] = m[ 2] + m[ 6];
@@ -2207,7 +2570,6 @@ int evc_had_4x4(pel *org, pel *cur, int s_org, int s_cur, int step)
     d[13] = m[13] - m[ 9];
     d[14] = m[14] - m[10];
     d[15] = m[15] - m[11];
-
     m[ 0] = d[ 0] + d[ 3];
     m[ 1] = d[ 1] + d[ 2];
     m[ 2] = d[ 1] - d[ 2];
@@ -2224,7 +2586,6 @@ int evc_had_4x4(pel *org, pel *cur, int s_org, int s_cur, int step)
     m[13] = d[13] + d[14];
     m[14] = d[13] - d[14];
     m[15] = d[12] - d[15];
-
     d[ 0] = m[ 0] + m[ 1];
     d[ 1] = m[ 0] - m[ 1];
     d[ 2] = m[ 2] + m[ 3];
@@ -2241,21 +2602,29 @@ int evc_had_4x4(pel *org, pel *cur, int s_org, int s_cur, int step)
     d[13] = m[12] - m[13];
     d[14] = m[14] + m[15];
     d[15] = m[15] - m[14];
-
     satd += (EVC_ABS(d[0]) >> 2);
     for (k = 1; k < 16; k++)
     {
         satd += EVC_ABS(d[k]);
     }
     satd = ((satd + 1) >> 1);
-
     return satd;
 #endif
 }
 
-int evc_had_8x8(pel *org, pel *cur, int s_org, int s_cur, int step)
+int evc_had_8x8(pel *org, pel *cur, int s_org, int s_cur, int step
+#if BD_CF_EXT
+                , int bit_depth
+#endif
+)
 {
-#if X86_SSE && (BIT_DEPTH <= 10)
+#if X86_SSE 
+#if BD_CF_EXT
+    if(bit_depth <= 10)
+#else
+    if(BIT_DEPTH <= 10)
+#endif
+    {
 #if OPT_SIMD_HAD_SAD
     {
         int sad = 0;
@@ -2426,8 +2795,11 @@ int evc_had_8x8(pel *org, pel *cur, int s_org, int s_cur, int step)
         src7_8x16b = _mm_unpackhi_epi64(out7_8x16b, pred7_8x16b);
         /**********************   8x8 16 bit Transpose End   *********************/
         /**************** 8x8 horizontal transform *******************************/
-
+#if BD_CF_EXT 
+        if(bit_depth == 8)
+#else
         if (BIT_DEPTH == 8)
+#endif
         {
             /************************* 8x8 Vertical Transform*************************/
             /* r0 + r1 */
@@ -2896,6 +3268,95 @@ int evc_had_8x8(pel *org, pel *cur, int s_org, int s_cur, int step)
 
     return satd;
 #endif
+    }
+    else
+    {
+        int k, i, j, jj;
+        int satd = 0;
+        int diff[64], m1[8][8], m2[8][8], m3[8][8];
+        for(k = 0; k < 64; k += 8)
+        {
+            diff[k + 0] = org[0] - cur[0];
+            diff[k + 1] = org[1] - cur[1];
+            diff[k + 2] = org[2] - cur[2];
+            diff[k + 3] = org[3] - cur[3];
+            diff[k + 4] = org[4] - cur[4];
+            diff[k + 5] = org[5] - cur[5];
+            diff[k + 6] = org[6] - cur[6];
+            diff[k + 7] = org[7] - cur[7];
+            cur += s_cur;
+            org += s_org;
+        }
+        for(j = 0; j < 8; j++)
+        {
+            jj = j << 3;
+            m2[j][0] = diff[jj] + diff[jj + 4];
+            m2[j][1] = diff[jj + 1] + diff[jj + 5];
+            m2[j][2] = diff[jj + 2] + diff[jj + 6];
+            m2[j][3] = diff[jj + 3] + diff[jj + 7];
+            m2[j][4] = diff[jj] - diff[jj + 4];
+            m2[j][5] = diff[jj + 1] - diff[jj + 5];
+            m2[j][6] = diff[jj + 2] - diff[jj + 6];
+            m2[j][7] = diff[jj + 3] - diff[jj + 7];
+            m1[j][0] = m2[j][0] + m2[j][2];
+            m1[j][1] = m2[j][1] + m2[j][3];
+            m1[j][2] = m2[j][0] - m2[j][2];
+            m1[j][3] = m2[j][1] - m2[j][3];
+            m1[j][4] = m2[j][4] + m2[j][6];
+            m1[j][5] = m2[j][5] + m2[j][7];
+            m1[j][6] = m2[j][4] - m2[j][6];
+            m1[j][7] = m2[j][5] - m2[j][7];
+            m2[j][0] = m1[j][0] + m1[j][1];
+            m2[j][1] = m1[j][0] - m1[j][1];
+            m2[j][2] = m1[j][2] + m1[j][3];
+            m2[j][3] = m1[j][2] - m1[j][3];
+            m2[j][4] = m1[j][4] + m1[j][5];
+            m2[j][5] = m1[j][4] - m1[j][5];
+            m2[j][6] = m1[j][6] + m1[j][7];
+            m2[j][7] = m1[j][6] - m1[j][7];
+        }
+        for(i = 0; i < 8; i++)
+        {
+            m3[0][i] = m2[0][i] + m2[4][i];
+            m3[1][i] = m2[1][i] + m2[5][i];
+            m3[2][i] = m2[2][i] + m2[6][i];
+            m3[3][i] = m2[3][i] + m2[7][i];
+            m3[4][i] = m2[0][i] - m2[4][i];
+            m3[5][i] = m2[1][i] - m2[5][i];
+            m3[6][i] = m2[2][i] - m2[6][i];
+            m3[7][i] = m2[3][i] - m2[7][i];
+            m1[0][i] = m3[0][i] + m3[2][i];
+            m1[1][i] = m3[1][i] + m3[3][i];
+            m1[2][i] = m3[0][i] - m3[2][i];
+            m1[3][i] = m3[1][i] - m3[3][i];
+            m1[4][i] = m3[4][i] + m3[6][i];
+            m1[5][i] = m3[5][i] + m3[7][i];
+            m1[6][i] = m3[4][i] - m3[6][i];
+            m1[7][i] = m3[5][i] - m3[7][i];
+            m2[0][i] = m1[0][i] + m1[1][i];
+            m2[1][i] = m1[0][i] - m1[1][i];
+            m2[2][i] = m1[2][i] + m1[3][i];
+            m2[3][i] = m1[2][i] - m1[3][i];
+            m2[4][i] = m1[4][i] + m1[5][i];
+            m2[5][i] = m1[4][i] - m1[5][i];
+            m2[6][i] = m1[6][i] + m1[7][i];
+            m2[7][i] = m1[6][i] - m1[7][i];
+        }
+        satd += EVC_ABS(m2[0][0]) >> 2;
+        for(j = 1; j < 8; j++)
+        {
+            satd += EVC_ABS(m2[0][j]);
+        }
+        for(i = 1; i < 8; i++)
+        {
+            for(j = 0; j < 8; j++)
+            {
+                satd += EVC_ABS(m2[i][j]);
+            }
+        }
+        satd = ((satd + 2) >> 2);
+        return satd;
+    }
 #else
     int k, i, j, jj;
     int satd = 0;
@@ -2998,9 +3459,19 @@ int evc_had_8x8(pel *org, pel *cur, int s_org, int s_cur, int step)
 #endif
 }
 
-int evc_had_16x8(pel *org, pel *cur, int s_org, int s_cur, int step)
+int evc_had_16x8(pel *org, pel *cur, int s_org, int s_cur, int step
+#if BD_CF_EXT
+                 , int bit_depth
+#endif
+)
 {
-#if X86_SSE && (BIT_DEPTH <= 10)
+#if X86_SSE 
+#if BD_CF_EXT
+    if(bit_depth <= 10)
+#else
+    if(BIT_DEPTH <= 10)
+#endif
+    {
 #if OPT_SIMD_HAD_SAD
     {
         int sad = 0;
@@ -3363,7 +3834,11 @@ int evc_had_16x8(pel *org, pel *cur, int s_org, int s_cur, int step)
         src14_8x16b = out14_8x16b;
         src15_8x16b = out15_8x16b;
 
+#if BD_CF_EXT 
+        if(bit_depth == 8)
+#else
         if (BIT_DEPTH == 8)
+#endif
         {
             /************************* 8x8 Vertical Transform*************************/
             /* r0 + r1 */
@@ -4231,7 +4706,9 @@ int evc_had_16x8(pel *org, pel *cur, int s_org, int s_cur, int step)
 
     return satd;
 #endif
-#else
+    }
+    else
+    {
     int k, i, j, jj;
     int satd = 0;
     int diff[128], m1[8][16], m2[8][16];
@@ -4379,12 +4856,157 @@ int evc_had_16x8(pel *org, pel *cur, int s_org, int s_cur, int step)
     satd = (int)(satd / sqrt(16.0 * 8.0) * 2.0);
 
     return satd;
+    }
+#else
+    int k, i, j, jj;
+    int satd = 0;
+    int diff[128], m1[8][16], m2[8][16];
+    for(k = 0; k < 128; k += 16)
+    {
+        diff[k + 0] = org[0] - cur[0];
+        diff[k + 1] = org[1] - cur[1];
+        diff[k + 2] = org[2] - cur[2];
+        diff[k + 3] = org[3] - cur[3];
+        diff[k + 4] = org[4] - cur[4];
+        diff[k + 5] = org[5] - cur[5];
+        diff[k + 6] = org[6] - cur[6];
+        diff[k + 7] = org[7] - cur[7];
+        diff[k + 8]  = org[8]  - cur[8];
+        diff[k + 9]  = org[9]  - cur[9];
+        diff[k + 10] = org[10] - cur[10];
+        diff[k + 11] = org[11] - cur[11];
+        diff[k + 12] = org[12] - cur[12];
+        diff[k + 13] = org[13] - cur[13];
+        diff[k + 14] = org[14] - cur[14];
+        diff[k + 15] = org[15] - cur[15];
+        cur += s_cur;
+        org += s_org;
+    }
+    for(j = 0; j < 8; j++)
+    {
+        jj = j << 4;
+        m2[j][0] = diff[jj] + diff[jj + 8];
+        m2[j][1] = diff[jj + 1] + diff[jj + 9];
+        m2[j][2] = diff[jj + 2] + diff[jj + 10];
+        m2[j][3] = diff[jj + 3] + diff[jj + 11];
+        m2[j][4] = diff[jj + 4] + diff[jj + 12];
+        m2[j][5] = diff[jj + 5] + diff[jj + 13];
+        m2[j][6] = diff[jj + 6] + diff[jj + 14];
+        m2[j][7] = diff[jj + 7] + diff[jj + 15];
+        m2[j][8] = diff[jj] - diff[jj + 8];
+        m2[j][9] = diff[jj + 1] - diff[jj + 9];
+        m2[j][10] = diff[jj + 2] - diff[jj + 10];
+        m2[j][11] = diff[jj + 3] - diff[jj + 11];
+        m2[j][12] = diff[jj + 4] - diff[jj + 12];
+        m2[j][13] = diff[jj + 5] - diff[jj + 13];
+        m2[j][14] = diff[jj + 6] - diff[jj + 14];
+        m2[j][15] = diff[jj + 7] - diff[jj + 15];
+        m1[j][0] = m2[j][0] + m2[j][4];
+        m1[j][1] = m2[j][1] + m2[j][5];
+        m1[j][2] = m2[j][2] + m2[j][6];
+        m1[j][3] = m2[j][3] + m2[j][7];
+        m1[j][4] = m2[j][0] - m2[j][4];
+        m1[j][5] = m2[j][1] - m2[j][5];
+        m1[j][6] = m2[j][2] - m2[j][6];
+        m1[j][7] = m2[j][3] - m2[j][7];
+        m1[j][8] = m2[j][8] + m2[j][12];
+        m1[j][9] = m2[j][9] + m2[j][13];
+        m1[j][10] = m2[j][10] + m2[j][14];
+        m1[j][11] = m2[j][11] + m2[j][15];
+        m1[j][12] = m2[j][8] - m2[j][12];
+        m1[j][13] = m2[j][9] - m2[j][13];
+        m1[j][14] = m2[j][10] - m2[j][14];
+        m1[j][15] = m2[j][11] - m2[j][15];
+        m2[j][0] = m1[j][0] + m1[j][2];
+        m2[j][1] = m1[j][1] + m1[j][3];
+        m2[j][2] = m1[j][0] - m1[j][2];
+        m2[j][3] = m1[j][1] - m1[j][3];
+        m2[j][4] = m1[j][4] + m1[j][6];
+        m2[j][5] = m1[j][5] + m1[j][7];
+        m2[j][6] = m1[j][4] - m1[j][6];
+        m2[j][7] = m1[j][5] - m1[j][7];
+        m2[j][8] = m1[j][8] + m1[j][10];
+        m2[j][9] = m1[j][9] + m1[j][11];
+        m2[j][10] = m1[j][8] - m1[j][10];
+        m2[j][11] = m1[j][9] - m1[j][11];
+        m2[j][12] = m1[j][12] + m1[j][14];
+        m2[j][13] = m1[j][13] + m1[j][15];
+        m2[j][14] = m1[j][12] - m1[j][14];
+        m2[j][15] = m1[j][13] - m1[j][15];
+        m1[j][0] = m2[j][0] + m2[j][1];
+        m1[j][1] = m2[j][0] - m2[j][1];
+        m1[j][2] = m2[j][2] + m2[j][3];
+        m1[j][3] = m2[j][2] - m2[j][3];
+        m1[j][4] = m2[j][4] + m2[j][5];
+        m1[j][5] = m2[j][4] - m2[j][5];
+        m1[j][6] = m2[j][6] + m2[j][7];
+        m1[j][7] = m2[j][6] - m2[j][7];
+        m1[j][8] = m2[j][8] + m2[j][9];
+        m1[j][9] = m2[j][8] - m2[j][9];
+        m1[j][10] = m2[j][10] + m2[j][11];
+        m1[j][11] = m2[j][10] - m2[j][11];
+        m1[j][12] = m2[j][12] + m2[j][13];
+        m1[j][13] = m2[j][12] - m2[j][13];
+        m1[j][14] = m2[j][14] + m2[j][15];
+        m1[j][15] = m2[j][14] - m2[j][15];
+    }
+    for(i = 0; i < 16; i++)
+    {
+        m2[0][i] = m1[0][i] + m1[4][i];
+        m2[1][i] = m1[1][i] + m1[5][i];
+        m2[2][i] = m1[2][i] + m1[6][i];
+        m2[3][i] = m1[3][i] + m1[7][i];
+        m2[4][i] = m1[0][i] - m1[4][i];
+        m2[5][i] = m1[1][i] - m1[5][i];
+        m2[6][i] = m1[2][i] - m1[6][i];
+        m2[7][i] = m1[3][i] - m1[7][i];
+        m1[0][i] = m2[0][i] + m2[2][i];
+        m1[1][i] = m2[1][i] + m2[3][i];
+        m1[2][i] = m2[0][i] - m2[2][i];
+        m1[3][i] = m2[1][i] - m2[3][i];
+        m1[4][i] = m2[4][i] + m2[6][i];
+        m1[5][i] = m2[5][i] + m2[7][i];
+        m1[6][i] = m2[4][i] - m2[6][i];
+        m1[7][i] = m2[5][i] - m2[7][i];
+        m2[0][i] = m1[0][i] + m1[1][i];
+        m2[1][i] = m1[0][i] - m1[1][i];
+        m2[2][i] = m1[2][i] + m1[3][i];
+        m2[3][i] = m1[2][i] - m1[3][i];
+        m2[4][i] = m1[4][i] + m1[5][i];
+        m2[5][i] = m1[4][i] - m1[5][i];
+        m2[6][i] = m1[6][i] + m1[7][i];
+        m2[7][i] = m1[6][i] - m1[7][i];
+    }
+    satd += EVC_ABS(m2[0][0]) >> 2;
+    for (j = 1; j < 16; j++)
+    {
+        satd += EVC_ABS(m2[0][j]);
+    }
+    for (i = 1; i < 8; i++)
+    {
+        for (j = 0; j < 16; j++)
+        {
+            satd += EVC_ABS(m2[i][j]);
+        }
+    }
+    satd = (int)(satd / sqrt(16.0 * 8.0) * 2.0);
+    return satd;
 #endif
 }
 
-int evc_had_8x16(pel *org, pel *cur, int s_org, int s_cur, int step)
+int evc_had_8x16(pel *org, pel *cur, int s_org, int s_cur, int step
+#if BD_CF_EXT
+                 , int bit_depth
+#endif
+)
 {
-#if X86_SSE && (BIT_DEPTH <= 10)
+#if X86_SSE 
+#if BD_CF_EXT
+    if(bit_depth <= 10)
+#else
+    if(BIT_DEPTH <= 10)
+#endif
+    {
 #if OPT_SIMD_HAD_SAD
     {
         int sad = 0;
@@ -4762,8 +5384,11 @@ int evc_had_8x16(pel *org, pel *cur, int s_org, int s_cur, int step)
         src13_8x16b = out13_8x16b;
         src14_8x16b = out14_8x16b;
         src15_8x16b = out15_8x16b;
-
+#if BD_CF_EXT
+        if(bit_depth == 8)
+#else
         if (BIT_DEPTH == 8)
+#endif
         {
             /************************* 8x8 Vertical Transform*************************/
             /* r0 + r1 */
@@ -5608,7 +6233,9 @@ int evc_had_8x16(pel *org, pel *cur, int s_org, int s_cur, int step)
 
     return satd;
 #endif
-#else
+    }
+    else
+    {
     int k, i, j, jj;
     int satd = 0;
     int diff[128], m1[16][8], m2[16][8];
@@ -5747,12 +6374,149 @@ int evc_had_8x16(pel *org, pel *cur, int s_org, int s_cur, int step)
     satd = (int)(satd / sqrt(16.0 * 8.0) * 2.0);
 
     return satd;
+    }
+#else
+    int k, i, j, jj;
+    int satd = 0;
+    int diff[128], m1[16][8], m2[16][8];
+    for(k = 0; k < 128; k += 8)
+    {
+        diff[k + 0] = org[0] - cur[0];
+        diff[k + 1] = org[1] - cur[1];
+        diff[k + 2] = org[2] - cur[2];
+        diff[k + 3] = org[3] - cur[3];
+        diff[k + 4] = org[4] - cur[4];
+        diff[k + 5] = org[5] - cur[5];
+        diff[k + 6] = org[6] - cur[6];
+        diff[k + 7] = org[7] - cur[7];
+        cur += s_cur;
+        org += s_org;
+    }
+    for(j = 0; j < 16; j++)
+    {
+        jj = j << 3;
+        m2[j][0] = diff[jj] + diff[jj + 4];
+        m2[j][1] = diff[jj + 1] + diff[jj + 5];
+        m2[j][2] = diff[jj + 2] + diff[jj + 6];
+        m2[j][3] = diff[jj + 3] + diff[jj + 7];
+        m2[j][4] = diff[jj] - diff[jj + 4];
+        m2[j][5] = diff[jj + 1] - diff[jj + 5];
+        m2[j][6] = diff[jj + 2] - diff[jj + 6];
+        m2[j][7] = diff[jj + 3] - diff[jj + 7];
+        m1[j][0] = m2[j][0] + m2[j][2];
+        m1[j][1] = m2[j][1] + m2[j][3];
+        m1[j][2] = m2[j][0] - m2[j][2];
+        m1[j][3] = m2[j][1] - m2[j][3];
+        m1[j][4] = m2[j][4] + m2[j][6];
+        m1[j][5] = m2[j][5] + m2[j][7];
+        m1[j][6] = m2[j][4] - m2[j][6];
+        m1[j][7] = m2[j][5] - m2[j][7];
+        m2[j][0] = m1[j][0] + m1[j][1];
+        m2[j][1] = m1[j][0] - m1[j][1];
+        m2[j][2] = m1[j][2] + m1[j][3];
+        m2[j][3] = m1[j][2] - m1[j][3];
+        m2[j][4] = m1[j][4] + m1[j][5];
+        m2[j][5] = m1[j][4] - m1[j][5];
+        m2[j][6] = m1[j][6] + m1[j][7];
+        m2[j][7] = m1[j][6] - m1[j][7];
+    }
+    for(i = 0; i < 8; i++)
+    {
+        m1[0][i] = m2[0][i] + m2[8][i];
+        m1[1][i] = m2[1][i] + m2[9][i];
+        m1[2][i] = m2[2][i] + m2[10][i];
+        m1[3][i] = m2[3][i] + m2[11][i];
+        m1[4][i] = m2[4][i] + m2[12][i];
+        m1[5][i] = m2[5][i] + m2[13][i];
+        m1[6][i] = m2[6][i] + m2[14][i];
+        m1[7][i] = m2[7][i] + m2[15][i];
+        m1[8][i] = m2[0][i] - m2[8][i];
+        m1[9][i] = m2[1][i] - m2[9][i];
+        m1[10][i] = m2[2][i] - m2[10][i];
+        m1[11][i] = m2[3][i] - m2[11][i];
+        m1[12][i] = m2[4][i] - m2[12][i];
+        m1[13][i] = m2[5][i] - m2[13][i];
+        m1[14][i] = m2[6][i] - m2[14][i];
+        m1[15][i] = m2[7][i] - m2[15][i];
+        m2[0][i] = m1[0][i] + m1[4][i];
+        m2[1][i] = m1[1][i] + m1[5][i];
+        m2[2][i] = m1[2][i] + m1[6][i];
+        m2[3][i] = m1[3][i] + m1[7][i];
+        m2[4][i] = m1[0][i] - m1[4][i];
+        m2[5][i] = m1[1][i] - m1[5][i];
+        m2[6][i] = m1[2][i] - m1[6][i];
+        m2[7][i] = m1[3][i] - m1[7][i];
+        m2[8][i] = m1[8][i] + m1[12][i];
+        m2[9][i] = m1[9][i] + m1[13][i];
+        m2[10][i] = m1[10][i] + m1[14][i];
+        m2[11][i] = m1[11][i] + m1[15][i];
+        m2[12][i] = m1[8][i] - m1[12][i];
+        m2[13][i] = m1[9][i] - m1[13][i];
+        m2[14][i] = m1[10][i] - m1[14][i];
+        m2[15][i] = m1[11][i] - m1[15][i];
+        m1[0][i] = m2[0][i] + m2[2][i];
+        m1[1][i] = m2[1][i] + m2[3][i];
+        m1[2][i] = m2[0][i] - m2[2][i];
+        m1[3][i] = m2[1][i] - m2[3][i];
+        m1[4][i] = m2[4][i] + m2[6][i];
+        m1[5][i] = m2[5][i] + m2[7][i];
+        m1[6][i] = m2[4][i] - m2[6][i];
+        m1[7][i] = m2[5][i] - m2[7][i];
+        m1[8][i] = m2[8][i] + m2[10][i];
+        m1[9][i] = m2[9][i] + m2[11][i];
+        m1[10][i] = m2[8][i] - m2[10][i];
+        m1[11][i] = m2[9][i] - m2[11][i];
+        m1[12][i] = m2[12][i] + m2[14][i];
+        m1[13][i] = m2[13][i] + m2[15][i];
+        m1[14][i] = m2[12][i] - m2[14][i];
+        m1[15][i] = m2[13][i] - m2[15][i];
+        m2[0][i] = m1[0][i] + m1[1][i];
+        m2[1][i] = m1[0][i] - m1[1][i];
+        m2[2][i] = m1[2][i] + m1[3][i];
+        m2[3][i] = m1[2][i] - m1[3][i];
+        m2[4][i] = m1[4][i] + m1[5][i];
+        m2[5][i] = m1[4][i] - m1[5][i];
+        m2[6][i] = m1[6][i] + m1[7][i];
+        m2[7][i] = m1[6][i] - m1[7][i];
+        m2[8][i] = m1[8][i] + m1[9][i];
+        m2[9][i] = m1[8][i] - m1[9][i];
+        m2[10][i] = m1[10][i] + m1[11][i];
+        m2[11][i] = m1[10][i] - m1[11][i];
+        m2[12][i] = m1[12][i] + m1[13][i];
+        m2[13][i] = m1[12][i] - m1[13][i];
+        m2[14][i] = m1[14][i] + m1[15][i];
+        m2[15][i] = m1[14][i] - m1[15][i];
+    }
+    satd += EVC_ABS(m2[0][0]) >> 2;
+    for (j = 1; j < 8; j++)
+    {
+        satd += EVC_ABS(m2[0][j]);
+    }
+    for (i = 1; i < 16; i++)
+    {
+        for (j = 0; j < 8; j++)
+        {
+            satd += EVC_ABS(m2[i][j]);
+        }
+    }
+    satd = (int)(satd / sqrt(16.0 * 8.0) * 2.0);
+    return satd;
 #endif
 }
 
-int evc_had_8x4(pel *org, pel *cur, int s_org, int s_cur, int step)
+int evc_had_8x4(pel *org, pel *cur, int s_org, int s_cur, int step
+#if BD_CF_EXT
+                , int bit_depth
+#endif
+)
 {
-#if X86_SSE && (BIT_DEPTH <= 10)
+#if X86_SSE
+#if BD_CF_EXT
+    if(bit_depth <= 10)
+#else
+    if(BIT_DEPTH <= 10)
+#endif
+    {
     int k, i;
     int satd = 0;
     __m128i m1[8], m2[8];
@@ -5853,6 +6617,79 @@ int evc_had_8x4(pel *org, pel *cur, int s_org, int s_cur, int step)
     satd = (int)(satd / sqrt(4.0 * 8) * 2);
 
     return satd;
+    }
+    else
+    {
+        int k, i, j, jj;
+        int satd = 0;
+        int diff[32], m1[4][8], m2[4][8];
+        for(k = 0; k < 32; k += 8)
+        {
+            diff[k + 0] = org[0] - cur[0];
+            diff[k + 1] = org[1] - cur[1];
+            diff[k + 2] = org[2] - cur[2];
+            diff[k + 3] = org[3] - cur[3];
+            diff[k + 4] = org[4] - cur[4];
+            diff[k + 5] = org[5] - cur[5];
+            diff[k + 6] = org[6] - cur[6];
+            diff[k + 7] = org[7] - cur[7];
+            cur += s_cur;
+            org += s_org;
+        }
+        for(j = 0; j < 4; j++)
+        {
+            jj = j << 3;
+            m2[j][0] = diff[jj] + diff[jj + 4];
+            m2[j][1] = diff[jj + 1] + diff[jj + 5];
+            m2[j][2] = diff[jj + 2] + diff[jj + 6];
+            m2[j][3] = diff[jj + 3] + diff[jj + 7];
+            m2[j][4] = diff[jj] - diff[jj + 4];
+            m2[j][5] = diff[jj + 1] - diff[jj + 5];
+            m2[j][6] = diff[jj + 2] - diff[jj + 6];
+            m2[j][7] = diff[jj + 3] - diff[jj + 7];
+            m1[j][0] = m2[j][0] + m2[j][2];
+            m1[j][1] = m2[j][1] + m2[j][3];
+            m1[j][2] = m2[j][0] - m2[j][2];
+            m1[j][3] = m2[j][1] - m2[j][3];
+            m1[j][4] = m2[j][4] + m2[j][6];
+            m1[j][5] = m2[j][5] + m2[j][7];
+            m1[j][6] = m2[j][4] - m2[j][6];
+            m1[j][7] = m2[j][5] - m2[j][7];
+            m2[j][0] = m1[j][0] + m1[j][1];
+            m2[j][1] = m1[j][0] - m1[j][1];
+            m2[j][2] = m1[j][2] + m1[j][3];
+            m2[j][3] = m1[j][2] - m1[j][3];
+            m2[j][4] = m1[j][4] + m1[j][5];
+            m2[j][5] = m1[j][4] - m1[j][5];
+            m2[j][6] = m1[j][6] + m1[j][7];
+            m2[j][7] = m1[j][6] - m1[j][7];
+        }
+        for(i = 0; i < 8; i++)
+        {
+            m1[0][i] = m2[0][i] + m2[2][i];
+            m1[1][i] = m2[1][i] + m2[3][i];
+            m1[2][i] = m2[0][i] - m2[2][i];
+            m1[3][i] = m2[1][i] - m2[3][i];
+            m2[0][i] = m1[0][i] + m1[1][i];
+            m2[1][i] = m1[0][i] - m1[1][i];
+            m2[2][i] = m1[2][i] + m1[3][i];
+            m2[3][i] = m1[2][i] - m1[3][i];
+        }
+        satd += EVC_ABS(m2[0][0]) >> 2;
+        for(j = 1; j < 8; j++)
+        {
+            satd += EVC_ABS(m2[0][j]);
+        }
+        for(i = 1; i < 4; i++)
+        {
+            for(j = 0; j < 8; j++)
+            {
+                satd += EVC_ABS(m2[i][j]);
+            }
+        }
+        satd = (int)(satd / sqrt(4.0 * 8.0) * 2.0);
+        return satd;
+    }
 #else
     int k, i, j, jj;
     int satd = 0;
@@ -5937,9 +6774,19 @@ int evc_had_8x4(pel *org, pel *cur, int s_org, int s_cur, int step)
 #endif
 }
 
-int evc_had_4x8(pel *org, pel *cur, int s_org, int s_cur, int step)
+int evc_had_4x8(pel *org, pel *cur, int s_org, int s_cur, int step
+#if BD_CF_EXT
+                , int bit_depth
+#endif
+)
 {
-#if X86_SSE && (BIT_DEPTH <= 10)
+#if X86_SSE 
+#if BD_CF_EXT
+    if(bit_depth <= 10)
+#else
+    if(BIT_DEPTH <= 10)
+#endif
+    {
     int k, i;
     __m128i m1[8], m2[8];
     __m128i n1[4][2];
@@ -6042,6 +6889,75 @@ int evc_had_4x8(pel *org, pel *cur, int s_org, int s_cur, int step)
     satd = (int)(satd / sqrt(4.0 * 8) * 2);
 
     return satd;
+    }
+    else
+    {
+        int k, i, j, jj;
+        int satd = 0;
+        int diff[32], m1[8][4], m2[8][4];
+        for(k = 0; k < 32; k += 4)
+        {
+            diff[k + 0] = org[0] - cur[0];
+            diff[k + 1] = org[1] - cur[1];
+            diff[k + 2] = org[2] - cur[2];
+            diff[k + 3] = org[3] - cur[3];
+            cur += s_cur;
+            org += s_org;
+        }
+        for(j = 0; j < 8; j++)
+        {
+            jj = j << 2;
+            m2[j][0] = diff[jj] + diff[jj + 2];
+            m2[j][1] = diff[jj + 1] + diff[jj + 3];
+            m2[j][2] = diff[jj] - diff[jj + 2];
+            m2[j][3] = diff[jj + 1] - diff[jj + 3];
+            m1[j][0] = m2[j][0] + m2[j][1];
+            m1[j][1] = m2[j][0] - m2[j][1];
+            m1[j][2] = m2[j][2] + m2[j][3];
+            m1[j][3] = m2[j][2] - m2[j][3];
+        }
+        for(i = 0; i<4; i++)
+        {
+            m2[0][i] = m1[0][i] + m1[4][i];
+            m2[1][i] = m1[1][i] + m1[5][i];
+            m2[2][i] = m1[2][i] + m1[6][i];
+            m2[3][i] = m1[3][i] + m1[7][i];
+            m2[4][i] = m1[0][i] - m1[4][i];
+            m2[5][i] = m1[1][i] - m1[5][i];
+            m2[6][i] = m1[2][i] - m1[6][i];
+            m2[7][i] = m1[3][i] - m1[7][i];
+            m1[0][i] = m2[0][i] + m2[2][i];
+            m1[1][i] = m2[1][i] + m2[3][i];
+            m1[2][i] = m2[0][i] - m2[2][i];
+            m1[3][i] = m2[1][i] - m2[3][i];
+            m1[4][i] = m2[4][i] + m2[6][i];
+            m1[5][i] = m2[5][i] + m2[7][i];
+            m1[6][i] = m2[4][i] - m2[6][i];
+            m1[7][i] = m2[5][i] - m2[7][i];
+            m2[0][i] = m1[0][i] + m1[1][i];
+            m2[1][i] = m1[0][i] - m1[1][i];
+            m2[2][i] = m1[2][i] + m1[3][i];
+            m2[3][i] = m1[2][i] - m1[3][i];
+            m2[4][i] = m1[4][i] + m1[5][i];
+            m2[5][i] = m1[4][i] - m1[5][i];
+            m2[6][i] = m1[6][i] + m1[7][i];
+            m2[7][i] = m1[6][i] - m1[7][i];
+        }
+        satd += EVC_ABS(m2[0][0]) >> 2;
+        for(j = 1; j < 4; j++)
+        {
+            satd += EVC_ABS(m2[0][j]);
+        }
+        for(i = 1; i < 8; i++)
+        {
+            for(j = 0; j < 4; j++)
+            {
+                satd += EVC_ABS(m2[i][j]);
+            }
+        }
+        satd = (int)(satd / sqrt(4.0 * 8.0) * 2.0);
+        return satd;
+    }
 #else
     int k, i, j, jj;
     int satd = 0;
@@ -6121,7 +7037,11 @@ int evc_had_4x8(pel *org, pel *cur, int s_org, int s_cur, int step)
 #endif
 }
 
-int evc_had(int w, int h, void *o, void *c, int s_org, int s_cur)
+int evc_had(int w, int h, void *o, void *c, int s_org, int s_cur
+#if BD_CF_EXT
+            , int bit_depth
+#endif
+)
 {
     pel *org = o;
     pel *cur = c;
@@ -6138,7 +7058,11 @@ int evc_had(int w, int h, void *o, void *c, int s_org, int s_cur)
         {
             for(x = 0; x < w; x += 16)
             {
-                sum += evc_had_16x8(&org[x], &cur[x], s_org, s_cur, step);
+                sum += evc_had_16x8(&org[x], &cur[x], s_org, s_cur, step
+#if BD_CF_EXT
+                                    , bit_depth
+#endif
+                );
             }
             org += offset_org;
             cur += offset_cur;
@@ -6153,7 +7077,11 @@ int evc_had(int w, int h, void *o, void *c, int s_org, int s_cur)
         {
             for(x = 0; x < w; x += 8)
             {
-                sum += evc_had_8x16(&org[x], &cur[x], s_org, s_cur, step);
+                sum += evc_had_8x16(&org[x], &cur[x], s_org, s_cur, step
+#if BD_CF_EXT
+                                    , bit_depth
+#endif
+                );
             }
             org += offset_org;
             cur += offset_cur;
@@ -6168,7 +7096,11 @@ int evc_had(int w, int h, void *o, void *c, int s_org, int s_cur)
         {
             for(x = 0; x < w; x += 8)
             {
-                sum += evc_had_8x4(&org[x], &cur[x], s_org, s_cur, step);
+                sum += evc_had_8x4(&org[x], &cur[x], s_org, s_cur, step
+#if BD_CF_EXT
+                                   , bit_depth
+#endif
+                );
             }
             org += offset_org;
             cur += offset_cur;
@@ -6183,7 +7115,11 @@ int evc_had(int w, int h, void *o, void *c, int s_org, int s_cur)
         {
             for(x = 0; x < w; x += 4)
             {
-                sum += evc_had_4x8(&org[x], &cur[x], s_org, s_cur, step);
+                sum += evc_had_4x8(&org[x], &cur[x], s_org, s_cur, step
+#if BD_CF_EXT
+                                   , bit_depth
+#endif
+                );
             }
             org += offset_org;
             cur += offset_cur;
@@ -6198,7 +7134,11 @@ int evc_had(int w, int h, void *o, void *c, int s_org, int s_cur)
         {
             for(x = 0; x < w; x += 8)
             {
-                sum += evc_had_8x8(&org[x], &cur[x*step], s_org, s_cur, step);
+                sum += evc_had_8x8(&org[x], &cur[x*step], s_org, s_cur, step
+#if BD_CF_EXT
+                                   , bit_depth
+#endif
+                );
             }
             org += offset_org;
             cur += offset_cur;
@@ -6213,7 +7153,11 @@ int evc_had(int w, int h, void *o, void *c, int s_org, int s_cur)
         {
             for(x = 0; x < w; x += 4)
             {
-                sum += evc_had_4x4(&org[x], &cur[x*step], s_org, s_cur, step);
+                sum += evc_had_4x4(&org[x], &cur[x*step], s_org, s_cur, step
+#if BD_CF_EXT
+                                   , bit_depth
+#endif
+                );
             }
             org += offset_org;
             cur += offset_cur;
@@ -6238,8 +7182,11 @@ int evc_had(int w, int h, void *o, void *c, int s_org, int s_cur)
     {
         evc_assert(0);
     }
-
+#if BD_CF_EXT
+    return (sum >> (bit_depth - 8));
+#else
     return (sum >> (BIT_DEPTH - 8));
+#endif
 }
 
 /* index: [log2 of width][log2 of height] */

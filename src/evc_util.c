@@ -37,8 +37,11 @@
 #endif
 #include <math.h>
 
-
+#if BD_CF_EXT 
+#define TX_SHIFT1(log2_size, bd)   ((log2_size) - 1 + bd - 8)
+#else
 #define TX_SHIFT1(log2_size)   ((log2_size) - 1 + BIT_DEPTH - 8)
+#endif
 #define TX_SHIFT2(log2_size)   ((log2_size) + 6)
 
 #if ENC_DEC_TRACE
@@ -83,7 +86,17 @@ BOOL is_ptr_aligned(void* ptr, int num_bytes)
   return ((uintptr_t)ptr & mask) == 0;
 }
 
-EVC_PIC * evc_picbuf_alloc(int w, int h, int pad_l, int pad_c, int *err)
+#if BD_CF_EXT
+int INTERNAL_CODEC_BIT_DEPTH;
+int INTERNAL_CODEC_BIT_DEPTH_LUMA;
+int INTERNAL_CODEC_BIT_DEPTH_CHROMA;
+#endif
+
+EVC_PIC * evc_picbuf_alloc(int w, int h, int pad_l, int pad_c, int *err
+#if BD_CF_EXT
+                           , int idc
+#endif
+)
 {
     EVC_PIC *pic = NULL;
     EVC_IMGB *imgb = NULL;
@@ -107,7 +120,16 @@ EVC_PIC * evc_picbuf_alloc(int w, int h, int pad_l, int pad_c, int *err)
     pad[1] = pad_c;
     pad[2] = pad_c;
 
+#if BD_CF_EXT
+    int cs = idc == 0 ? EVC_COLORSPACE_YUV400_10LE : (idc == 1 ? EVC_COLORSPACE_YUV420_10LE : (idc == 2 ? EVC_COLORSPACE_YUV422_10LE : EVC_COLORSPACE_YUV444_10LE));
+    imgb = evc_imgb_create(w, h, cs, opt, pad, align);
+    imgb->cs = CS_FROM_BD_CF(INTERNAL_CODEC_BIT_DEPTH, idc);
+#else
     imgb = evc_imgb_create(w, h, EVC_COLORSPACE_YUV420_10LE, opt, pad, align);
+#if BD_CF_EXT
+    imgb->cs = CS_FROM_BD_420(INTERNAL_CODEC_BIT_DEPTH);
+#endif
+#endif
     evc_assert_gv(imgb != NULL, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
 
     /* set EVC_PIC */
@@ -320,9 +342,9 @@ void scaling_mv(int ratio, s16 mvp[MV_D], s16 mv[MV_D])
 }
 
 void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int h_scu, int scup, u16 avail, int log2_cuw, int log2_cuh, int slice_t
-    , int real_mv[][2][3], u32 *map_scu, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME], u16 avail_lr
-    , u32 curr_ptr, u8 num_refp[REFP_NUM]
-    , EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh, int log2_max_cuwh, u8* map_tidx, int mmvd_idx)
+                           , int real_mv[][2][3], u32 *map_scu, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME], u16 avail_lr
+                           , u32 curr_ptr, u8 num_refp[REFP_NUM]
+                           , EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh, int log2_max_cuwh, u8* map_tidx, int mmvd_idx)
 {
     int ref_mvd = 0;
     int ref_mvd1 = 0;
@@ -4477,9 +4499,17 @@ void evc_init_inverse_scan_sr(u16 *scan_inv, u16 *scan_orig, int width, int heig
 }
 
 
-int evc_get_transform_shift(int log2_size, int type)
+int evc_get_transform_shift(int log2_size, int type
+#if BD_CF_EXT
+                            , int bit_depth
+#endif
+)
 {
+#if BD_CF_EXT 
+    return (type == 0) ? TX_SHIFT1(log2_size, bit_depth) : TX_SHIFT2(log2_size);
+#else
     return (type == 0) ? TX_SHIFT1(log2_size) : TX_SHIFT2(log2_size);
+#endif
 }
 
 void evc_eco_sbac_ctx_initialize(SBAC_CTX_MODEL *model, s16 *ctx_init_model, u16 num_ctx, u8 slice_type, u8 slice_qp)
