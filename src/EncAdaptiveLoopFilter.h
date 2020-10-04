@@ -228,7 +228,11 @@ public:
 #endif
   );
   void destroy();
+#if ETM70_GOLOMB_FIX
+  static int lengthGolomb(int coeffVal, int k, BOOL signed_coeff);
+#else
   static int lengthGolomb(int coeffVal, int k);
+#endif
   static int getGolombKMin(AlfFilterShape& alfShape, const int numFilters, int kMinTab[MAX_NUM_ALF_LUMA_COEFF], int bitsCoeffScan[m_MAX_SCAN_VAL][m_MAX_EXP_GOLOMB]);
 
 private:

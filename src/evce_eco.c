@@ -4026,6 +4026,25 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
     return EVC_OK;
 }
 
+#if ETM70_GOLOMB_FIX
+int evc_lengthGolomb(int coeffVal, int k, BOOL signed_coeff)
+{
+    int numBins = 0;
+    unsigned int symbol = abs(coeffVal);
+    while (symbol >= (unsigned int)(1 << k))
+    {
+        numBins++;
+        symbol -= 1 << k;
+        k++;
+    }
+    numBins += (k + 1);
+    if (signed_coeff && coeffVal != 0)
+    {
+        numBins++;
+    }
+    return numBins;
+}
+#else 
 int evc_lengthGolomb(int coeffVal, int k)
 {
     int m = k == 0 ? 1 : (2 << (k - 1));
@@ -4039,6 +4058,7 @@ int evc_lengthGolomb(int coeffVal, int k)
         return q + 1 + k;
     }
 };
+#endif
 
 int evc_getGolombKMin(evc_AlfFilterShape *  alfShape, int numFilters, int *kMinTab, int bitsCoeffScan[m_MAX_SCAN_VAL][m_MAX_EXP_GOLOMB])
 {
@@ -4090,6 +4110,48 @@ int evc_getGolombKMin(evc_AlfFilterShape *  alfShape, int numFilters, int *kMinT
     return minKStart;
 };
 
+#if ETM70_GOLOMB_FIX
+void evc_alfGolombEncode(EVC_BSW * bs, int coeff, int k, const BOOL signed_coeff)
+{
+
+    unsigned int symbol = abs(coeff);
+    while (symbol >= (unsigned int)(1 << k))
+    {
+        symbol -= 1 << k;
+        k++;
+#if TRACE_HLS
+        evc_bsw_write1_trace(bs, 0, 0);
+#else
+        evc_bsw_write1(bs, 0);
+#endif
+    }
+#if TRACE_HLS
+    evc_bsw_write1_trace(bs, 1, 0);
+#else
+    evc_bsw_write1(bs, 1);
+#endif
+    // write one zero
+
+    if (k > 0)
+    {
+#if TRACE_HLS
+        evc_bsw_write1_trace(bs, symbol & 0x01, 0);
+#else
+        evc_bsw_write(bs, symbol, k);
+#endif
+    }
+
+    if (signed_coeff && coeff != 0)
+    {
+#if TRACE_HLS
+        evc_bsw_write1_trace(bs, sign, (coeff < 0) ? 0 : 1);
+#else
+        evc_bsw_write1(bs, (coeff < 0) ? 0 : 1);
+
+#endif
+    }
+};
+#else
 void evc_alfGolombEncode(EVC_BSW * bs, int coeff, int k)
 {
     int symbol = abs(coeff);
@@ -4132,6 +4194,7 @@ void evc_alfGolombEncode(EVC_BSW * bs, int coeff, int k)
 #endif
     }
 };
+#endif
 
 void evce_truncatedUnaryEqProb(EVC_BSW * bs, int symbol, const int maxSymbol)
 {
@@ -4233,7 +4296,11 @@ void evce_eco_alf_filter(EVC_BSW * bs, evc_AlfSliceParam asp, const BOOL isChrom
 
                 for (int k = 1; k < 15; k++)
                 {
+#if ETM70_GOLOMB_FIX
+                    bitsCoeffScan[alfShape.golombIdx[i]][k] += evc_lengthGolomb(coeffVal, k, TRUE);
+#else
                     bitsCoeffScan[alfShape.golombIdx[i]][k] += evc_lengthGolomb(coeffVal, k);
+#endif
                 }
             }
         }
@@ -4274,7 +4341,11 @@ void evce_eco_alf_filter(EVC_BSW * bs, evc_AlfSliceParam asp, const BOOL isChrom
 
         for (int i = 0; i < alfShape.numCoeff - 1; i++)
         {
+#if ETM70_GOLOMB_FIX
+            evc_alfGolombEncode(bs, coeff[ind* MAX_NUM_ALF_LUMA_COEFF + i], kMinTab[alfShape.golombIdx[i]], TRUE);  // alf_coeff_chroma[i], alf_coeff_luma_delta[i][j]
+#else
             evc_alfGolombEncode(bs, coeff[ind* MAX_NUM_ALF_LUMA_COEFF + i], kMinTab[alfShape.golombIdx[i]]);  // alf_coeff_chroma[i], alf_coeff_luma_delta[i][j]
+#endif
         }
     }
 }
@@ -4358,7 +4429,11 @@ int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps)
         }
         const int iNumFixedFilterPerClass = 16;
         {
+#if ETM70_GOLOMB_FIX
+            evc_alfGolombEncode(bs, alfSliceParam.fixedFilterPattern, 0, FALSE);
+#else
             evc_alfGolombEncode(bs, alfSliceParam.fixedFilterPattern, 0);
+#endif
 
             if (alfSliceParam.fixedFilterPattern == 2)
             {

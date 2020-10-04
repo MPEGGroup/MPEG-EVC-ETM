@@ -113,13 +113,22 @@ void evce_eco_affine_mode(EVC_BSW * bs, int flag);
 int evce_eco_affine_mrg_idx(EVC_BSW *bs, s16 affine_mrg_idx);
 void evce_eco_affine_mvd_flag(EVC_BSW *bs, int flag, int refi);
 void setAlfFilterShape(evc_AlfFilterShape *  alfShape, int shapeSize);
+#if ETM70_GOLOMB_FIX
+int evc_lengthGolomb(int coeffVal, int k, BOOL signed_coeff);
+#else
 int evc_lengthGolomb(int coeffVal, int k);
+#endif
+
 int evc_getGolombKMin(evc_AlfFilterShape *  alfShape, int numFilters, int *kMinTab, int bitsCoeffScan[m_MAX_SCAN_VAL][m_MAX_EXP_GOLOMB]);
 #if TRACE_HEADER
 #define evc_alfGolombEncode(A, B, C) evc_alfGolombEncode_trace(A, B, #B, C)
 void evc_alfGolombEncode_trace(EVC_BSW * bs, int coeff, char * name, int kMinTab);
 #else
+#if ETM70_GOLOMB_FIX
+void evc_alfGolombEncode(EVC_BSW * bs, int coeff, int kMinTab, const BOOL signed_coeff);
+#else
 void evc_alfGolombEncode(EVC_BSW * bs, int coeff, int kMinTab);
+#endif
 #endif
 #if M52291_HDR_DRA
 int evce_eco_dra_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps
