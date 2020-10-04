@@ -6795,11 +6795,11 @@ void evc_DMVR_refine(int w, int h, pel *ref_l0, int s_ref_l0, pel *ref_l1, int s
         if (idx == SAD_LEFT)
         {
             s32 down = -1, right = -1;
-            if (*(SAD_Array + SAD_BOTTOM) < *(SAD_Array + SAD_TOP))
+            if (*(SAD_Array + SAD_BOTTOM) <= *(SAD_Array + SAD_TOP))
             {
                 down = 1;
             }
-            if (*(SAD_Array + SAD_RIGHT) < *(SAD_Array + SAD_LEFT))
+            if (*(SAD_Array + SAD_RIGHT) <= *(SAD_Array + SAD_LEFT))
             {
                 right = 1;
             }
