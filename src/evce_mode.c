@@ -2107,11 +2107,7 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
     evc_assert(abs(log2_cuw - log2_cuh) <= 2);
     mode_cu_init(ctx, core, x, y, log2_cuw, log2_cuh, cud);
 
-#if FIX_BTT_OFF
     if (ctx->sps.sps_btt_flag && log2_cuw == 2 && log2_cuh == 2 && ctx->sps.tool_admvp)
-#else
-    if (log2_cuw == 2 && log2_cuh == 2 && ctx->sps.tool_admvp)
-#endif
     {
         // Check only in main profile
 #if BD_CF_EXT /* should be updated for 4:2:2 and 4:4:4 */
@@ -3361,9 +3357,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
 #if BD_CF_EXT /* should be updated for 4:2:2 and 4:4:4 */
         ctx->sps.chroma_format_idc != 0 &&
 #endif
-#if FIX_BTT_OFF
         ctx->sps.sps_btt_flag &&
-#endif
         log2_cuw == 2 && log2_cuh == 2 && (evce_check_luma(ctx, core) || evce_check_all(ctx, core)) && ctx->sps.tool_admvp
         )
     {
