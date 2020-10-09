@@ -66,11 +66,7 @@ static const s8 tbl_poc_gop_offset[5][15] =
     { -8,   -12, -14,  -15,  -13,  -10,  -11,   -9,   -4,   -6,   -7,   -5,   -2,   -3,   -1}   /* gop_size = 16 */
 };
 
-#if LD_CONFIG_CHANGE
 static const s8 tbl_slice_depth_P_orig[GOP_P] = { FRM_DEPTH_4,  FRM_DEPTH_3,  FRM_DEPTH_4,  FRM_DEPTH_2, FRM_DEPTH_4,  FRM_DEPTH_3, FRM_DEPTH_4,  FRM_DEPTH_1 };
-#else
-static const s8 tbl_slice_depth_P_orig[GOP_P] = { FRM_DEPTH_3,  FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_1 };
-#endif
 
 static const s8 tbl_slice_depth_P[5][16] =
 {
@@ -349,18 +345,12 @@ static int set_enc_param(EVCE_CTX * ctx, EVCE_PARAM * param)
     return ret;
 }
 
-#if FIX_TEMPORAL_ID_SET
 static void set_nalu(EVC_NALU * nalu, int nalu_type, int nuh_temporal_id)
-#else
-static void set_nalu(EVC_NALU * nalu, int nalu_type)
-#endif
 {
     nalu->nal_unit_size = 0;
     nalu->forbidden_zero_bit = 0;
     nalu->nal_unit_type_plus1 = nalu_type + 1;
-#if FIX_TEMPORAL_ID_SET
     nalu->nuh_temporal_id = nuh_temporal_id;
-#endif
     nalu->nuh_reserved_zero_5bits = 0;
     nalu->nuh_extension_flag = 0;
 }
@@ -465,9 +455,7 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->tool_mmvd = ctx->cdsc.tool_mmvd;
     sps->tool_affine = ctx->cdsc.tool_affine;
     sps->tool_dmvr = ctx->cdsc.tool_dmvr;
-#if ADDB_FLAG_FIX
     sps->tool_addb = ctx->cdsc.tool_addb;
-#endif
 #if M52291_HDR_DRA
     sps->tool_dra = ctx->cdsc.tool_dra;
 #endif
@@ -643,7 +631,6 @@ QP_ADAPT_PARAM qp_adapt_param_ra[8] =
     { 8, -7.1444, 0.3000},
 };
 
-#if LD_CONFIG_CHANGE
 QP_ADAPT_PARAM qp_adapt_param_ld[8] =
 {
     {-1,  0.0000, 0.0000 },
@@ -655,19 +642,6 @@ QP_ADAPT_PARAM qp_adapt_param_ld[8] =
     { 5, -6.5000, 0.2590 },
     { 5, -6.5000, 0.2590 },
 };
-#else
-QP_ADAPT_PARAM qp_adapt_param_ld[8] =
-{
-    {-1,  0.0000, 0.0000},
-    { 1,  0.0000, 0.0000},
-    { 4, -6.5000, 0.2590},
-    { 5, -6.5000, 0.2590},
-    { 6, -6.5000, 0.2590},
-    { 7, -6.5000, 0.2590},
-    { 8, -6.5000, 0.2590},
-    { 9, -6.5000, 0.2590},
-};
-#endif
 
 QP_ADAPT_PARAM qp_adapt_param_ai[8] =
 {
@@ -686,13 +660,8 @@ static void select_assign_rpl_for_sh(EVCE_CTX *ctx, EVC_SH *sh)
 {
     //TBD: when NALU types are implemented; if the current picture is an IDR, simply return without doing the rest of the codes for this function
 
-#if LD_CONFIG_CHANGE
     /* introduce this variable for LD reason. The predefined RPL in the cfg file is made assuming GOP size is 4 for LD configuration*/
     int gopSize = (ctx->param.gop_size == 1) ? GOP_P : ctx->param.gop_size;
-#else
-    /* introduce this variable for LD reason. The predefined RPL in the cfg file is made assuming GOP size is 4 for LD configuration*/
-    int gopSize = (ctx->param.gop_size == 1) ? 4 : ctx->param.gop_size;
-#endif
 
     //Assume it the pic is in the normal GOP first. Normal GOP here means it is not the first (few) GOP in the beginning of the bitstream
     sh->rpl_l0_idx = sh->rpl_l1_idx = -1;
@@ -1735,9 +1704,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                 evc_deblock_cu_hor(pic, x, y, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, ctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
                                    , core->tree_cons
                                    , ctx->map_tidx, boundary_filtering
-#if ADDB_FLAG_FIX
                                    , ctx->sps.tool_addb
-#endif
 #if DEBLOCKING_FIX
                                    , ctx->map_ats_inter
 #endif
@@ -1749,9 +1716,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                 evc_deblock_cu_hor(pic, x, y + MAX_TR_SIZE, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, ctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
                                    , core->tree_cons
                                    , ctx->map_tidx, boundary_filtering
-#if ADDB_FLAG_FIX
                                    , ctx->sps.tool_addb
-#endif
 #if DEBLOCKING_FIX
                                    , ctx->map_ats_inter
 #endif
@@ -1766,9 +1731,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                 evc_deblock_cu_hor(pic, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi, ctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
                                    , core->tree_cons
                                    , ctx->map_tidx, boundary_filtering
-#if ADDB_FLAG_FIX
                                    , ctx->sps.tool_addb
-#endif
 #if DEBLOCKING_FIX
                                    , ctx->map_ats_inter
 #endif
@@ -1790,9 +1753,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                                    , ctx->refp, 0
                                    , core->tree_cons
                                    , ctx->map_tidx, boundary_filtering
-#if ADDB_FLAG_FIX
                                    , ctx->sps.tool_addb
-#endif
 #if DEBLOCKING_FIX
                                    , ctx->map_ats_inter
 #endif
@@ -1808,9 +1769,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                                    , ctx->refp, 0
                                    , core->tree_cons
                                    , ctx->map_tidx, boundary_filtering
-#if ADDB_FLAG_FIX
                                    , ctx->sps.tool_addb
-#endif
 #if DEBLOCKING_FIX
                                    , ctx->map_ats_inter
 #endif
@@ -1829,9 +1788,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                                    , ctx->refp, 0
                                    , core->tree_cons
                                    , ctx->map_tidx, boundary_filtering
-#if ADDB_FLAG_FIX
                                    , ctx->sps.tool_addb
-#endif
 #if DEBLOCKING_FIX
                                    , ctx->map_ats_inter
 #endif
@@ -2081,11 +2038,7 @@ int evce_aps_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, EVC_APS *
 
     /* Encode APS nalu header */
     EVC_NALU aps_nalu;
-#if FIX_TEMPORAL_ID_SET
     set_nalu(&aps_nalu, EVC_APS_NUT, ctx->nalu.nuh_temporal_id);
-#else
-    set_nalu(&aps_nalu, EVC_APS_NUT);
-#endif
 
     /* Write APS */
 #if M52291_HDR_DRA
@@ -2131,11 +2084,7 @@ int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     evce_bsw_skip_slice_size(bs);
 
     /* nalu header */
-#if FIX_TEMPORAL_ID_SET
     set_nalu(&nalu, EVC_SPS_NUT, 0);
-#else
-    set_nalu(&nalu, EVC_SPS_NUT);
-#endif
     evce_eco_nalu(bs, &nalu);
 
     /* sequence parameter set*/
@@ -2444,11 +2393,8 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     {
         EVC_BSW  *bs = &ctx->bs;
         EVC_NALU sei_nalu;
-#if FIX_TEMPORAL_ID_SET
+
         set_nalu(&sei_nalu, EVC_SEI_NUT, ctx->nalu.nuh_temporal_id);
-#else
-        set_nalu(&sei_nalu, EVC_SEI_NUT);
-#endif
 
         int* size_field = (int*)(*(&bs->cur));
         u8* cur_tmp = bs->cur;
@@ -2737,11 +2683,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         ctx->lcu_cnt = ctx->f_lcu;
 
         /* Set nalu header */
-#if FIX_TEMPORAL_ID_SET
         set_nalu(&ctx->nalu, ctx->pic_cnt == 0 || (ctx->slice_type == SLICE_I && ctx->param.use_closed_gop) ? EVC_IDR_NUT : EVC_NONIDR_NUT, ctx->nalu.nuh_temporal_id);
-#else
-        set_nalu(&ctx->nalu, ctx->pic_cnt == 0 || (ctx->slice_type == SLICE_I && ctx->param.use_closed_gop) ? EVC_IDR_NUT : EVC_NONIDR_NUT);
-#endif
 
         if (!ctx->sps.tool_rpl)
         {
@@ -2824,9 +2766,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             ctb_cnt_in_tile = ctx->tile[i].f_ctb; //Total LCUs in the current tile
             update_core_loc_param(ctx, core);
 
-#if FIX_DQP_ON
             int bef_cu_qp = ctx->tile[i].qp_prev_eco;
-#endif      
             col_bd = 0;
             if (i% ctx->param.tile_columns)
             {
@@ -2876,9 +2816,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
                 {
                     reset_ibc_search_range(ctx, core->x_pel, core->y_pel, ctx->max_cuwh, ctx->max_cuwh);
                 }
-#if FIX_DQP_ON
                 ctx->tile[i].qp_prev_eco = bef_cu_qp;
-#endif
                 /* entropy coding ************************************************/
                 ret = evce_eco_tree(ctx, core, core->x_pel, core->y_pel, 0, ctx->max_cuwh, ctx->max_cuwh, 0, 1
                                     , NO_SPLIT, split_mode_child, 0, split_allow, 0, 0
@@ -2887,9 +2825,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #endif
                                     , evc_get_default_tree_cons()
                 );
-#if FIX_DQP_ON
                 bef_cu_qp = ctx->tile[i].qp_prev_eco;
-#endif
 #if GRAB_STAT
                 evc_stat_set_enc_state(FALSE);
                 evc_stat_write_lcu(core->x_pel, core->y_pel, ctx->w, ctx->h, ctx->max_cuwh, ctx->log2_culine, ctx, core, ctx->map_cu_data[core->lcu_num].split_mode, ctx->map_cu_data[core->lcu_num].suco_flag);
@@ -3135,11 +3071,8 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             {
                 aps_nalu_size = 0;
                 EVC_NALU aps_nalu;
-#if FIX_TEMPORAL_ID_SET
+
                 set_nalu(&aps_nalu, EVC_APS_NUT, ctx->nalu.nuh_temporal_id);
-#else
-                set_nalu(&aps_nalu, EVC_APS_NUT);
-#endif
 
                 /* Encode APS nalu header */
                 int* size_field = (int*)(*(&bs->cur));
@@ -3614,11 +3547,8 @@ int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
     bs->pdata[1] = &ctx->sbac_enc;
 
     /* nalu header */
-#if FIX_TEMPORAL_ID_SET
     set_nalu(&nalu, EVC_SPS_NUT, 0);
-#else
-    set_nalu(&nalu, EVC_SPS_NUT);
-#endif
+
     evce_eco_nalu(bs, &nalu);
 
     /* sequence parameter set*/
@@ -3729,11 +3659,8 @@ int evce_encode_pps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
     bs->pdata[1] = &ctx->sbac_enc;
 
     /* nalu header */
-#if FIX_TEMPORAL_ID_SET
     set_nalu(&nalu, EVC_PPS_NUT, ctx->nalu.nuh_temporal_id);
-#else
-    set_nalu(&nalu, EVC_PPS_NUT);
-#endif
+
     evce_eco_nalu(bs, &nalu);
 
     /* sequence parameter set*/

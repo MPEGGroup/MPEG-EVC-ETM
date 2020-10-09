@@ -1878,13 +1878,10 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
                         const int s_mod = pi->s_m[Y_C];
                         u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu, ctx->map_tidx);
 
-#if FIX_CONSTRAINT_PRED
                         int constrained_intra_flag = 0 && ctx->pps.constrained_intra_pred_flag;
-#endif
+
                         evc_htdf(rec[i], ctx->tile[core->tile_idx].qp, cuw, cuh, cuw, FALSE, pi->m[Y_C] + (y * s_mod) + x, s_mod, avail_cu
-#if FIX_CONSTRAINT_PRED
                                  , core->scup, ctx->w_scu, ctx->h_scu, ctx->map_scu, constrained_intra_flag
-#endif
 #if BD_CF_EXT
                                  , ctx->sps.bit_depth_luma_minus8 + 8
 #endif
@@ -5812,24 +5809,19 @@ static double pinter_analyze_cu_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, 
                   , ctx->sps.bit_depth_chroma_minus8 + 8
 #endif
         );
-#if FIX_ADMPV_OFF
+
         if (ctx->sps.tool_htdf == 1 && i == Y_C && pi->nnz_best[best_idx][i])
         {
             const int s_mod = pi->s_m[Y_C];
             u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu, ctx->map_tidx);
-#if FIX_CONSTRAINT_PRED
             int constrained_intra_flag = 0 && ctx->pps.constrained_intra_pred_flag;
-#endif
             evc_htdf(rec[i], ctx->sh.qp, cuw, cuh, cuw, FALSE, pi->m[Y_C] + (y * s_mod) + x, s_mod, avail_cu
-#if FIX_CONSTRAINT_PRED
                      , core->scup, ctx->w_scu, ctx->h_scu, ctx->map_scu, constrained_intra_flag
-#endif
 #if BD_CF_EXT
                      , ctx->sps.bit_depth_luma_minus8 + 8
 #endif
             );
         }
-#endif
         core->nnz[i] = pi->nnz_best[best_idx][i];
         evc_mcpy(core->nnz_sub[i], pi->nnz_sub_best[best_idx][i], sizeof(int) * MAX_SUB_TB_NUM);
     }
@@ -6892,13 +6884,10 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
             const int s_mod = pi->s_m[Y_C];
             u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu, ctx->map_tidx);
 
-#if FIX_CONSTRAINT_PRED
             int constrained_intra_flag = 0 && ctx->pps.constrained_intra_pred_flag;
-#endif
+
             evc_htdf(rec[i], ctx->tile[core->tile_idx].qp, cuw, cuh, cuw, FALSE, pi->m[Y_C] + (y * s_mod) + x, s_mod, avail_cu
-#if FIX_CONSTRAINT_PRED
                      , core->scup, ctx->w_scu, ctx->h_scu, ctx->map_scu, constrained_intra_flag
-#endif
 #if BD_CF_EXT
                      , ctx->sps.bit_depth_luma_minus8 + 8
 #endif

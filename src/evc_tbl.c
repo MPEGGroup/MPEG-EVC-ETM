@@ -767,7 +767,6 @@ s16 evc_tbl_inv_tr32[NUM_TRANS_TYPE][32][32];
 s16 evc_tbl_inv_tr64[NUM_TRANS_TYPE][64][64];
 s16 evc_tbl_inv_tr128[NUM_TRANS_TYPE][128][128];
 
-#if ADDB_FLAG_FIX
 const u8 ALPHA_TABLE[52] = { 0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,4,4,5,6,  7,8,9,10,12,13,15,17,  20,22,25,28,32,36,40,45,  50,56,63,71,80,90,101,113,  127,144,162,182,203,226,255,255 };
 const u8 BETA_TABLE[52] = { 0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,2,2,2,3,  3,3,3, 4, 4, 4, 6, 6,   7, 7, 8, 8, 9, 9,10,10,  11,11,12,12,13,13, 14, 14,   15, 15, 16, 16, 17, 17, 18, 18 };
 const u8 CLIP_TAB[52][5] =
@@ -780,7 +779,6 @@ const u8 CLIP_TAB[52][5] =
     { 0, 4, 5, 7, 7 },{ 0, 4, 5, 8, 8 },{ 0, 4, 6, 9, 9 },{ 0, 5, 7,10,10 },{ 0, 6, 8,11,11 },{ 0, 6, 8,13,13 },{ 0, 7,10,14,14 },{ 0, 8,11,16,16 },
     { 0, 9,12,18,18 },{ 0,10,13,20,20 },{ 0,11,15,23,23 },{ 0,13,17,25,25 }
 };
-#endif
 
 const int g_min_in_group[LAST_SIGNIFICANT_GROUPS] = { 0,1,2,3,4,6,8,12,16,24,32,48,64,96 };
 const int g_group_idx[MAX_TR_SIZE] = { 0,1,2,3,4,4,5,5,6,6,6,6,7,7,7,7,8,8,8,8,8,8,8,8,9,9,9,9,9,9,9,9, 10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11 };
@@ -799,7 +797,7 @@ int g_lumaInvScaleLUT[DRA_LUT_MAXSIZE];               // LUT for luma and corres
 double g_chromaInvScaleLUT[2][DRA_LUT_MAXSIZE];               // LUT for chroma scales 
 int g_intChromaInvScaleLUT[2][DRA_LUT_MAXSIZE];               // LUT for chroma scales 
 #endif
-#if HDR_METRIC
+
 const double g_UCF_Filters[8][4][15] = {
   { // UF_F0
     { 2.0,   0.0, +256.0,                +128.0, 8.0},
@@ -885,7 +883,7 @@ const float g_RGB2XYZ_REC[5][9] =
     0.0f, 0.0f, 1.0f
   }
 };
-#endif
+
 #if M52291_HDR_DRA
 // input to table is in the range 0<input<256, as a result of multiplication of 2 scales with max value of <16.
 const int g_dra_chroma_qp_offset_tbl[NUM_CHROMA_QP_OFFSET_LOG] =  // Approximation of Log function at accuracy 1<<9 bits

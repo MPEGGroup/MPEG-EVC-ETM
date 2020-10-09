@@ -42,10 +42,7 @@ extern "C"
  void evc_deblock_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u32 *map_scu, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int log2_max_cuwh, EVC_REFP(*refp)[REFP_NUM]
                          , int ats_inter_mode
                          , TREE_CONS tree_cons
-                         , u8* map_tidx, int boundary_filtering
-#if ADDB_FLAG_FIX
-                         , int tool_addb
-#endif
+                         , u8* map_tidx, int boundary_filtering, int tool_addb
 #if DEBLOCKING_FIX
                          , u8* map_ats_inter
 #endif
@@ -63,9 +60,7 @@ void evc_deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
                         , int ats_inter_mode
                         , TREE_CONS tree_cons
                         , u8 *map_tidx, int boundary_filtering
-#if ADDB_FLAG_FIX
                         , int tool_addb
-#endif
 #if DEBLOCKING_FIX
                         , u8* map_ats_inter
 #endif

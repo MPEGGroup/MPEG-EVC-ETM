@@ -264,14 +264,10 @@ void evce_rdo_bit_cnt_cu_intra(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
     }
     else
     {
-#if FIX_EIPD_OFF 
         if (evce_check_luma(ctx, core))
         {
-#endif
             evce_eco_intra_dir_b(&core->bs_temp, core->ipm[0], core->mpm_b_list, core->mpm_ext, core->pims);
-#if FIX_EIPD_OFF 
         }
-#endif
     }
 #if DQP_RDO
     if (ctx->pps.cu_qp_delta_enabled_flag)
@@ -2107,11 +2103,7 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
     evc_assert(abs(log2_cuw - log2_cuh) <= 2);
     mode_cu_init(ctx, core, x, y, log2_cuw, log2_cuh, cud);
 
-#if FIX_BTT_OFF
     if (ctx->sps.sps_btt_flag && log2_cuw == 2 && log2_cuh == 2 && ctx->sps.tool_admvp)
-#else
-    if (log2_cuw == 2 && log2_cuh == 2 && ctx->sps.tool_admvp)
-#endif
     {
         // Check only in main profile
 #if BD_CF_EXT /* should be updated for 4:2:2 and 4:4:4 */
@@ -2135,13 +2127,7 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
             evc_assert(!evce_check_all(ctx, core));
         }
     }
-#if !FIX_ADMPV_OFF
-    if (!ctx->sps.tool_admvp)
-    {
-        evc_assert(evce_check_all(ctx, core));
-        evc_assert(evce_check_all_preds(ctx, core));
-    }
-#endif
+
     core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, (1 << log2_cuw), (1 << log2_cuh), ctx->w_scu, ctx->h_scu, ctx->map_scu, ctx->map_tidx);
     evc_get_ctx_some_flags(core->x_scu, core->y_scu, 1 << log2_cuw, 1 << log2_cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, core->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
                            , ctx->param.use_ibc_flag, ctx->sps.ibc_log_max_size, ctx->map_tidx);
@@ -2972,9 +2958,7 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
         evc_deblock_cu_hor(pic_dbk, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
                            , core->tree_cons
                            , ctx->map_tidx, 0
-#if ADDB_FLAG_FIX
                            , ctx->sps.tool_addb
-#endif
 #if DEBLOCKING_FIX
                            , ctx->map_ats_inter
 #endif
@@ -3003,9 +2987,7 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
                            , ctx->refp, 0
                            , core->tree_cons
                            , ctx->map_tidx, 0
-#if ADDB_FLAG_FIX
                            , ctx->sps.tool_addb
-#endif
 #if DEBLOCKING_FIX
                            , ctx->map_ats_inter
 #endif
@@ -3365,9 +3347,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
 #if BD_CF_EXT /* should be updated for 4:2:2 and 4:4:4 */
         ctx->sps.chroma_format_idc != 0 &&
 #endif
-#if FIX_BTT_OFF
         ctx->sps.sps_btt_flag &&
-#endif
         log2_cuw == 2 && log2_cuh == 2 && (evce_check_luma(ctx, core) || evce_check_all(ctx, core)) && ctx->sps.tool_admvp
         )
     {

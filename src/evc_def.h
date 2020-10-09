@@ -37,7 +37,7 @@
 #include "evc.h"
 #include "evc_port.h"
 
-#define ETM70_GOLOMB_FIX 1
+#define ETM70_GOLOMB_FIX                             1
 #define MULTIPLE_NAL                                 1
 #if MULTIPLE_NAL  
 #define MAX_NUM_PPS                                  64
@@ -83,27 +83,6 @@
 #define ENC_DBF_CONTROL                              1
 #define ENC_SUPPORT_SHORT_POC_LSB_BITS               1
 
-//bug fixes and platform changes to be applied
-#define QC_MISC_FIX                                  1 
-#define ADDB_FLAG_FIX                                1 
-#define HDR_METRIC                                   1
-#define LD_CONFIG_CHANGE                             1
-#define MMVD_CLEANUP                                 1
-#define SH_DBF_SIGNAL_ALIGN                          1
-#define FIX_BTT_OFF                                  1
-#define FIX_ADMPV_OFF                                1
-#define FIX_DQP_ON                                   1
-#define SEP_HOR_BASE                                 1
-#define CLEANUP_INTRA_PRED                           1
-#define REMOVE_MAIN_RESTRICTION                      1
-#define FIX_CONSTRAINT_PRED                          1
-#define FIX_TEMPORAL_ID_SET                          1
-#define FIX_EIPD_OFF                                 1
-
-#define CLEANUP_SUCO_4X4                             1
-
-#define FIX_DMVR_MV_RANGE                            1
-
 //MPEG 129 adoptions
 #define M52291_HDR_DRA                               1
 
@@ -112,8 +91,6 @@
 #define PROFILE_MAIN                                 1
 #define PROFILE_STILL_PIC_BASELINE                   2
 #define PROFILE_STILL_PIC_MAIN                       3
-
-#define AFFINE_TMVP_SPEC_CONDITION_ALIGN             1
 
 //loop filter
 #define DBF_LONGF                                    0
@@ -290,9 +267,7 @@ enum SAD_POINT_INDEX
 /* HISTORY (START) */
 #define HISTORY_LCU_COPY_BUG_FIX           1
 #define ALLOWED_CHECKED_NUM                23
-#if QC_MISC_FIX
 #define ALLOWED_CHECKED_NUM_SMALL_CU       15
-#endif
 #define ALLOWED_CHECKED_AMVP_NUM           4
 #define AFFINE_UPDATE                      1
 /* ADMVP (END) */
@@ -434,7 +409,6 @@ typedef struct _evc_AlfFilterShape
 #define HDR_MD5_CHECK                      1
 #endif
 
-#if HDR_METRIC
 #define ETM_HDR_REPORT_METRIC_FLAG         1
 #define NB_REF_WHITE                       3
 #define DEG275                             4.7996554429844
@@ -442,7 +416,6 @@ typedef struct _evc_AlfFilterShape
 #define DEG6                               0.1047197551196598
 #define DEG63                              1.099557428756428
 #define DEG25                              0.436332
-#endif
 /* HDR (END) */
 
 /* CABAC ZERO WORD (START) */
@@ -1289,9 +1262,7 @@ typedef struct _EVC_SPS
     int              tool_mmvd;
     int              tool_affine;
     int              tool_dmvr;
-#if ADDB_FLAG_FIX
     int              tool_addb;
-#endif
     int              tool_alf;
     int              tool_htdf;
     int              tool_admvp;

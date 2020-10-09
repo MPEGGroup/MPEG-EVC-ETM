@@ -152,11 +152,9 @@ extern s16 evc_tbl_inv_tr32[NUM_TRANS_TYPE][32][32];
 extern s16 evc_tbl_inv_tr64[NUM_TRANS_TYPE][64][64];
 extern s16 evc_tbl_inv_tr128[NUM_TRANS_TYPE][128][128];
 
-#if ADDB_FLAG_FIX
 extern const u8 ALPHA_TABLE[52];
 extern const u8 BETA_TABLE[52];
 extern const u8 CLIP_TAB[52][5];
-#endif
 
 extern const int g_min_in_group[LAST_SIGNIFICANT_GROUPS];
 extern const int g_group_idx[MAX_TR_SIZE];
@@ -168,11 +166,11 @@ extern int g_lumaInvScaleLUT[DRA_LUT_MAXSIZE];               // LUT for luma and
 extern double g_chromaInvScaleLUT[2][DRA_LUT_MAXSIZE];               // LUT for chroma scales 
 extern int g_intChromaInvScaleLUT[2][DRA_LUT_MAXSIZE];               // LUT for chroma scales 
 #endif
-#if HDR_METRIC
+
 extern const double g_UCF_Filters[8][4][15];
 extern const double g_color_trans[3][3];
 extern const float  g_RGB2XYZ_REC[5][9];
-#endif
+
 #if M52291_HDR_DRA
 extern const int g_dra_chroma_qp_offset_tbl[NUM_CHROMA_QP_OFFSET_LOG];
 extern const int g_dra_exp_nom_v2[NUM_CHROMA_QP_SCALE_EXP];

@@ -249,9 +249,7 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
     {
         evc_bsw_write1(bs, sps->tool_ats);
     }
-#if ADDB_FLAG_FIX
     evc_bsw_write1(bs, sps->tool_addb);
-#endif
 #if !DB_SPEC_ALIGNMENT2
 #if M52291_HDR_DRA
     evc_bsw_write1(bs, sps->tool_dra);
@@ -728,15 +726,13 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
         }
     }
     evc_bsw_write1(bs, sh->deblocking_filter_on);
-#if SH_DBF_SIGNAL_ALIGN
+
     if(sh->deblocking_filter_on && sps->tool_addb)
     {
-#endif
         evc_bsw_write_se(bs, sh->sh_deblock_alpha_offset);
         evc_bsw_write_se(bs, sh->sh_deblock_beta_offset);
-#if SH_DBF_SIGNAL_ALIGN
     }
-#endif
+
     evc_bsw_write(bs, sh->qp, 6);
     evc_bsw_write_se(bs, sh->qp_u_offset);
     evc_bsw_write_se(bs, sh->qp_v_offset);
@@ -992,7 +988,6 @@ EVC_IMGB * imgb_alloc1(int w, int h, int cs)
         }
         imgb->np = 3;
     }
-#if HDR_METRIC
     else if (cs == EVC_COLORSPACE_YUV444_10LE)
     {
         for (i = 0; i < 3; i++)
@@ -1011,7 +1006,6 @@ EVC_IMGB * imgb_alloc1(int w, int h, int cs)
         }
         imgb->np = 3;
     }
-#endif
     else
     {
         printf("unsupported color space\n");
@@ -3755,14 +3749,10 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
             evc_get_mpm_b(core->x_scu, core->y_scu, cuw, cuh, ctx->map_scu, ctx->map_ipm, core->scup, ctx->w_scu,
                           &core->mpm_b_list, core->avail_lr, core->mpm_ext, core->pims, ctx->map_tidx);
 
-#if FIX_EIPD_OFF 
             if (evce_check_luma(ctx, core))
             {
-#endif
                 evce_eco_intra_dir_b(bs, cu_data->ipm[0][cup], core->mpm_b_list, core->mpm_ext, core->pims);
-#if FIX_EIPD_OFF 
             }
-#endif
         }
     }
     else if (core->ibc_flag)

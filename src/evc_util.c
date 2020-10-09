@@ -1746,11 +1746,7 @@ void evc_get_motion_merge_main(int ptr, int slice_type, int scup, s8(*map_refi)[
 
     if (cnt < (small_cu ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP))
     {
-#if QC_MISC_FIX
         for (k = 3; k <= min(history_buffer.currCnt, small_cu ? ALLOWED_CHECKED_NUM_SMALL_CU : ALLOWED_CHECKED_NUM); k += 4)
-#else
-        for (k = 3; k <= min(history_buffer.currCnt, ALLOWED_CHECKED_NUM); k += 4)
-#endif
         {
             p_ref_dst = &(refi[0][cnt]);
             p_map_mv_dst_L0 = mvp[REFP_0][cnt];
@@ -2599,13 +2595,7 @@ int evc_get_suco_flag(s8* suco_flag, int cud, int cup, int cuw, int cuh, int lcu
     int ret = EVC_OK;
     int pos = cup + (((cuh >> 1) >> MIN_CU_LOG2) * (lcu_s >> MIN_CU_LOG2) + ((cuw >> 1) >> MIN_CU_LOG2));
     int shape = SQUARE + (CONV_LOG2(cuw) - CONV_LOG2(cuh));
-#if !CLEANUP_SUCO_4X4
-    if(cuw < 8 && cuh < 8)
-    {
-        *suco_flag = 0;
-        return ret;
-    }
-#endif
+
     *suco_flag = suco_flag_buf[cud][shape][pos];
 
     return ret;
@@ -2615,12 +2605,7 @@ void evc_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lc
 {
     int pos = cup + (((cuh >> 1) >> MIN_CU_LOG2) * (lcu_s >> MIN_CU_LOG2) + ((cuw >> 1) >> MIN_CU_LOG2));
     int shape = SQUARE + (CONV_LOG2(cuw) - CONV_LOG2(cuh));
-#if !CLEANUP_SUCO_4X4
-    if(cuw >= 8 || cuh >= 8)
-#endif
-    {
-        suco_flag_buf[cud][shape][pos] = suco_flag;
-    }
+    suco_flag_buf[cud][shape][pos] = suco_flag;
 }
 
 u8 evc_check_suco_cond(int cuw, int cuh, s8 split_mode, int boundary, u8 log2_max_cuwh, u8 suco_max_depth, u8 suco_depth, u8 log2_min_cu_size)
@@ -4001,19 +3986,13 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
         else
         {
             neb_addr_lb[0] = scup + w_scu * scuh - 1;
-#if AFFINE_TMVP_SPEC_CONDITION_ALIGN
             s32 SameCtuRow = ((y_scu + scuh) << MIN_CU_LOG2 >> log2_max_cuwh) == (y_scu << MIN_CU_LOG2 >> log2_max_cuwh);
             valid_flag_lb[0] = x_scu > 0 && (y_scu + scuh < h_scu) && SameCtuRow;
-#else
-            valid_flag_lb[0] = x_scu > 0 && y_scu + scuh < h_scu;
-#endif
 
             valid_flag_lb[0] = valid_flag_lb[0] && (map_tidx[scup] == map_tidx[neb_addr_lb[0]]) && (map_tidx[scup] == map_tidx[scup-1]);
             if (valid_flag_lb[0])
             {
-#if AFFINE_TMVP_SPEC_CONDITION_ALIGN
-            neb_addr_lb[0] = ((x_scu - 1) >> 1 << 1) + ((y_scu + scuh) >> 1 << 1) * w_scu; // 8x8 grid
-#endif
+                neb_addr_lb[0] = ((x_scu - 1) >> 1 << 1) + ((y_scu + scuh) >> 1 << 1) * w_scu; // 8x8 grid
                 evc_get_mv_collocated(refp, poc, neb_addr_lb[0], scup, w_scu, h_scu, tmvp, &availablePredIdx, sh);
 
                 if ((availablePredIdx == 1) || (availablePredIdx == 3))
@@ -4028,11 +4007,8 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
                     cp_mv[REFP_0][2][MV_X] = 0;
                     cp_mv[REFP_0][2][MV_Y] = 0;
                 }
-#if AFFINE_TMVP_SPEC_CONDITION_ALIGN
+
                 if (((availablePredIdx == 2) || (availablePredIdx == 3)) && slice_type == SLICE_B)
-#else
-                if ((availablePredIdx == 2) || (availablePredIdx == 3))
-#endif
                 {
                     cp_refi[REFP_1][2] = 0;
                     cp_mv[REFP_1][2][MV_X] = tmvp[REFP_1][MV_X];

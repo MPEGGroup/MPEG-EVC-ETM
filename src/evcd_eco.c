@@ -2303,14 +2303,11 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
             }
             else
             {
-#if FIX_EIPD_OFF 
                 int luma_ipm = IPD_DC_B;
                 if (evcd_check_luma(ctx, core))
                 {
-#endif
-                core->ipm[0] = evcd_eco_intra_dir_b(bs, sbac, core->mpm_b_list, core->mpm_ext, core->pims);
-#if FIX_EIPD_OFF 
-                luma_ipm = core->ipm[0];
+                    core->ipm[0] = evcd_eco_intra_dir_b(bs, sbac, core->mpm_b_list, core->mpm_ext, core->pims);
+                    luma_ipm = core->ipm[0];
                 }
                 else
                 {
@@ -2323,9 +2320,6 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                 {
                     core->ipm[1] = luma_ipm;
                 }
-#else
-                core->ipm[1] = core->ipm[0];
-#endif
             }
 
             SET_REFI(core->refi, REFI_INVALID, REFI_INVALID);
@@ -2594,9 +2588,7 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
     {
         evc_bsr_read1(bs, &sps->tool_ats);
     }
-#if ADDB_FLAG_FIX
     evc_bsr_read1(bs, &sps->tool_addb);
-#endif
 #if !DB_SPEC_ALIGNMENT2
 #if M52291_HDR_DRA
     sps->tool_dra = evc_bsr_read1(bs);
@@ -3879,15 +3871,13 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
         }
     }
     evc_bsr_read1(bs, &sh->deblocking_filter_on);
-#if SH_DBF_SIGNAL_ALIGN
+
     if(sh->deblocking_filter_on && sps->tool_addb)
     {
-#endif
         evc_bsr_read_se(bs, &sh->sh_deblock_alpha_offset);
         evc_bsr_read_se(bs, &sh->sh_deblock_beta_offset);
-#if SH_DBF_SIGNAL_ALIGN
     }
-#endif
+
     evc_bsr_read(bs, &sh->qp, 6);
     if (sh->qp < 0 || sh->qp > 51)
     {
