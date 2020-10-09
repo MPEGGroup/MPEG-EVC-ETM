@@ -1772,7 +1772,7 @@ static void print_stat_init(void)
         print("  Output YUV file         : %s \n", op_fname_rec);
     }
     print("---------------------------------------------------------------------------------------\n");
-#if HDR_METRIC
+
 #if ETM_HDR_REPORT_METRIC_FLAG
     if (op_hdr_metric_report)
 #else
@@ -1785,9 +1785,6 @@ static void print_stat_init(void)
     {
         print("POC   Tid   Ftype   QP   PSNR-Y    PSNR-U    PSNR-V    Bits      EncT(ms)  ");
     }
-#else
-    print("POC   Tid   Ftype   QP   PSNR-Y    PSNR-U    PSNR-V    Bits      EncT(ms)  ");
-#endif
     print("MS-SSIM     ");
     print("Ref. List\n");
 
@@ -1910,7 +1907,7 @@ static void find_psnr_8bit(EVC_IMGB * org, EVC_IMGB * rec, double psnr[3])
         psnr[i] = (mse[i]==0.0) ? 100. : fabs( 10*log10(((255*255)/mse[i])) );
     }
 }
-#if HDR_METRIC
+
 double getWPSNRLumaLevelWeight(short pel)
 {
     double x = (double)pel;
@@ -2021,7 +2018,6 @@ static void find_wpsnr_8bit(EVC_IMGB * org, EVC_IMGB * rec, double wpsnr[3])
     }
 }
 
-#endif
 const double gaussian_filter[11][11] =
 {
     {0.000001,0.000008,0.000037,0.000112,0.000219,0.000274,0.000219,0.000112,0.000037,0.000008,0.000001},
@@ -2337,11 +2333,7 @@ static void imgb_list_make_used(IMGB_LIST *list, EVC_MTIME ts)
     list->ts = list->imgb->ts[0] = ts;
 }
 
-static int cal_psnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts, double psnr[3], double* ms_ssim
-#if HDR_METRIC
-    , int hdr_metric_report
-#endif
-)
+static int cal_psnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts, double psnr[3], double* ms_ssim, int hdr_metric_report)
 {
     int            i;
     EVC_IMGB     *imgb_t = NULL;
@@ -2429,21 +2421,17 @@ static int cal_psnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts,
                 imgb_free(imgb_t);
             }
 #endif
-#if HDR_METRIC
             if (!hdr_metric_report)
             {
                 imgblist_inp[i].used = 0;
             }
-#endif
-#if !HDR_METRIC
-            imgblist_inp[i].used = 0;
-#endif
+
             return 0;
         }
     }
     return -1;
 }
-#if HDR_METRIC
+
 static int cal_wpsnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts, double wpsnr[3])
 {
     int            i;
@@ -2983,7 +2971,7 @@ static int cal_hdr_metric(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTI
     }
     return -1;
 }
-#endif
+
 #if M52291_HDR_DRA
 static int write_rec(IMGB_LIST *list, EVC_MTIME *ts, SignalledParamsDRA *p_DRAControl)
 #else
@@ -3022,12 +3010,9 @@ static int write_rec(IMGB_LIST *list, EVC_MTIME *ts)
 }
 
 void print_psnr(EVCE_STAT * stat, double * psnr, double ms_ssim, int bitrate, EVC_CLK clk_end
-#if HDR_METRIC
                 , double *wpsnr
                 , double *deltaE
-                , double *psnrL
-#endif
-)
+                , double *psnrL)
 {
     char  stype;
     int i, j;
@@ -3050,7 +3035,7 @@ void print_psnr(EVCE_STAT * stat, double * psnr, double ms_ssim, int bitrate, EV
         stype = 'U';
         break;
     }
-#if HDR_METRIC
+
 #if ETM_HDR_REPORT_METRIC_FLAG
     if (op_hdr_metric_report)
     {
@@ -3061,7 +3046,6 @@ void print_psnr(EVCE_STAT * stat, double * psnr, double ms_ssim, int bitrate, EV
 
     }
     else
-#endif
     {
         v1print("%-7d%-5d(%c)     %-5d%-10.4f%-10.4f%-10.4f%-10d%-10d%-12.7f", \
             stat->poc, stat->tid, stype, stat->qp, psnr[0], psnr[1], psnr[2], \
@@ -3116,7 +3100,6 @@ int main(int argc, const char **argv)
     double              psnr_avg[3] = { 0, };
     double              ms_ssim = 0;
     double              ms_ssim_avg = 0;
-#if HDR_METRIC
     double              wpsnr[3] = { 0, };
     double              wpsnr_avg[3] = { 0, };
     double deltaE[NB_REF_WHITE];
@@ -3128,7 +3111,6 @@ int main(int argc, const char **argv)
     }
     double deltaE_avg = 0.0;
     double psnrL_avg = 0.0;
-#endif
 #if M52291_HDR_DRA
     EVC_IMGB          *imgb_dra = NULL;
     WCGDDRAControl g_dra_control;
@@ -3580,16 +3562,12 @@ int main(int argc, const char **argv)
 #endif
 #endif
             /* calculate PSNR */
-            if(cal_psnr(ilist_org, ilist_t->imgb, ilist_t->ts, psnr, &ms_ssim
-#if HDR_METRIC
-                        , op_hdr_metric_report
-#endif
-            ))
+            if(cal_psnr(ilist_org, ilist_t->imgb, ilist_t->ts, psnr, &ms_ssim, op_hdr_metric_report))
             {
                 v0print("cannot calculate PSNR\n");
                 return -1;
             }
-#if HDR_METRIC
+
             if (op_hdr_metric_report)
             {
                 if (cal_wpsnr(ilist_org, ilist_t->imgb, ilist_t->ts, wpsnr))
@@ -3603,7 +3581,6 @@ int main(int argc, const char **argv)
                     return -1;
                 }
             }
-#endif
 #if M52291_HDR_DRA
             if (evce_get_pps_dra_flag(id))
             {
@@ -3624,24 +3601,12 @@ int main(int argc, const char **argv)
 
             if(is_first_enc)
             {
-                print_psnr(&stat, psnr, ms_ssim, (stat.write - stat.sei_size + (int)bitrate) << 3, clk_end
-#if HDR_METRIC
-                           , wpsnr
-                           , deltaE
-                           , psnrL
-#endif
-                );
+                print_psnr(&stat, psnr, ms_ssim, (stat.write - stat.sei_size + (int)bitrate) << 3, clk_end, wpsnr, deltaE, psnrL);
                 is_first_enc = 0;
             }
             else
             {
-                print_psnr(&stat, psnr, ms_ssim, (stat.write - stat.sei_size) << 3, clk_end
-#if HDR_METRIC
-                           , wpsnr
-                           , deltaE
-                           , psnrL
-#endif
-                );
+                print_psnr(&stat, psnr, ms_ssim, (stat.write - stat.sei_size) << 3, clk_end, wpsnr, deltaE, psnrL);
             }
 
             bitrate += (stat.write - stat.sei_size);
@@ -3649,11 +3614,11 @@ int main(int argc, const char **argv)
             {
                 ms_ssim_avg += ms_ssim;
             }
-#if HDR_METRIC
+
             for (i = 0; i < 3; i++) wpsnr_avg[i] += wpsnr[i];
             deltaE_avg += deltaE[0];
             psnrL_avg += psnrL[0];
-#endif
+
             /* release recon buffer */
             if (imgb_rec)
             {
@@ -3698,18 +3663,18 @@ int main(int argc, const char **argv)
     psnr_avg[1] /= pic_ocnt;
     psnr_avg[2] /= pic_ocnt;
     ms_ssim_avg  /= pic_ocnt;
-#if HDR_METRIC
+
     wpsnr_avg[0] /= pic_ocnt;
     wpsnr_avg[1] /= pic_ocnt;
     wpsnr_avg[2] /= pic_ocnt;
     deltaE_avg /= pic_ocnt;
     psnrL_avg /= pic_ocnt;
-#endif
+
     v1print("  PSNR Y(dB)       : %-5.4f\n", psnr_avg[0]);
     v1print("  PSNR U(dB)       : %-5.4f\n", psnr_avg[1]);
     v1print("  PSNR V(dB)       : %-5.4f\n", psnr_avg[2]);
     v1print("  MsSSIM_Y         : %-8.7f\n", ms_ssim_avg);
-#if HDR_METRIC
+
 #if ETM_HDR_REPORT_METRIC_FLAG
     if (op_hdr_metric_report)
 #endif
@@ -3721,7 +3686,7 @@ int main(int argc, const char **argv)
         v1print("  deltaE100 Y(dB)  : %-5.4f\n", deltaE_avg);
         v1print("  PSNRL100 U(dB)   : %-5.4f\n", psnrL_avg);
     }
-#endif
+
     v1print("  Total bits(bits) : %-.0f\n", bitrate*8);
     bitrate *= (cdsc.fps * 8);
     bitrate /= pic_ocnt;
@@ -3729,7 +3694,6 @@ int main(int argc, const char **argv)
     v1print("  bitrate(kbps)    : %-5.4f\n", bitrate);
 
 #if SCRIPT_REPORT
-#if HDR_METRIC
 #if ETM_HDR_REPORT_METRIC_FLAG
     if (op_hdr_metric_report)
 #else
@@ -3740,7 +3704,6 @@ int main(int argc, const char **argv)
         v1print("  Summary\t: %-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\t %-5.4f\t\n", bitrate, psnr_avg[0], psnr_avg[1], psnr_avg[2], wpsnr_avg[0], wpsnr_avg[1], wpsnr_avg[2], deltaE_avg, psnrL_avg);
     }
     else
-#endif
     {
         v1print("  Labeles:\t: br,kbps\tPSNR,Y\tPSNR,U\tPSNR,V\t\n");
         v1print("  Summary\t: %-5.4f\t%-5.4f\t%-5.4f\t%-5.4f\n", bitrate, psnr_avg[0], psnr_avg[1], psnr_avg[2]);

@@ -797,7 +797,7 @@ int g_lumaInvScaleLUT[DRA_LUT_MAXSIZE];               // LUT for luma and corres
 double g_chromaInvScaleLUT[2][DRA_LUT_MAXSIZE];               // LUT for chroma scales 
 int g_intChromaInvScaleLUT[2][DRA_LUT_MAXSIZE];               // LUT for chroma scales 
 #endif
-#if HDR_METRIC
+
 const double g_UCF_Filters[8][4][15] = {
   { // UF_F0
     { 2.0,   0.0, +256.0,                +128.0, 8.0},
@@ -883,7 +883,7 @@ const float g_RGB2XYZ_REC[5][9] =
     0.0f, 0.0f, 1.0f
   }
 };
-#endif
+
 #if M52291_HDR_DRA
 // input to table is in the range 0<input<256, as a result of multiplication of 2 scales with max value of <16.
 const int g_dra_chroma_qp_offset_tbl[NUM_CHROMA_QP_OFFSET_LOG] =  // Approximation of Log function at accuracy 1<<9 bits

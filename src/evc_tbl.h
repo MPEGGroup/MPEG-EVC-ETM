@@ -166,11 +166,11 @@ extern int g_lumaInvScaleLUT[DRA_LUT_MAXSIZE];               // LUT for luma and
 extern double g_chromaInvScaleLUT[2][DRA_LUT_MAXSIZE];               // LUT for chroma scales 
 extern int g_intChromaInvScaleLUT[2][DRA_LUT_MAXSIZE];               // LUT for chroma scales 
 #endif
-#if HDR_METRIC
+
 extern const double g_UCF_Filters[8][4][15];
 extern const double g_color_trans[3][3];
 extern const float  g_RGB2XYZ_REC[5][9];
-#endif
+
 #if M52291_HDR_DRA
 extern const int g_dra_chroma_qp_offset_tbl[NUM_CHROMA_QP_OFFSET_LOG];
 extern const int g_dra_exp_nom_v2[NUM_CHROMA_QP_SCALE_EXP];

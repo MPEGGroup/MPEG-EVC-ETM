@@ -84,7 +84,6 @@
 #define ENC_SUPPORT_SHORT_POC_LSB_BITS               1
 
 //bug fixes and platform changes to be applied
-#define HDR_METRIC                                   1
 #define LD_CONFIG_CHANGE                             1
 #define MMVD_CLEANUP                                 1
 #define SH_DBF_SIGNAL_ALIGN                          1
@@ -428,7 +427,6 @@ typedef struct _evc_AlfFilterShape
 #define HDR_MD5_CHECK                      1
 #endif
 
-#if HDR_METRIC
 #define ETM_HDR_REPORT_METRIC_FLAG         1
 #define NB_REF_WHITE                       3
 #define DEG275                             4.7996554429844
@@ -436,7 +434,6 @@ typedef struct _evc_AlfFilterShape
 #define DEG6                               0.1047197551196598
 #define DEG63                              1.099557428756428
 #define DEG25                              0.436332
-#endif
 /* HDR (END) */
 
 /* CABAC ZERO WORD (START) */
