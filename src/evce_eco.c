@@ -3749,14 +3749,10 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
             evc_get_mpm_b(core->x_scu, core->y_scu, cuw, cuh, ctx->map_scu, ctx->map_ipm, core->scup, ctx->w_scu,
                           &core->mpm_b_list, core->avail_lr, core->mpm_ext, core->pims, ctx->map_tidx);
 
-#if FIX_EIPD_OFF 
             if (evce_check_luma(ctx, core))
             {
-#endif
                 evce_eco_intra_dir_b(bs, cu_data->ipm[0][cup], core->mpm_b_list, core->mpm_ext, core->pims);
-#if FIX_EIPD_OFF 
             }
-#endif
         }
     }
     else if (core->ibc_flag)

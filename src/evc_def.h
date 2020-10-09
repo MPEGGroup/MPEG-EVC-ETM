@@ -84,8 +84,6 @@
 #define ENC_SUPPORT_SHORT_POC_LSB_BITS               1
 
 //bug fixes and platform changes to be applied
-#define FIX_EIPD_OFF                                 1
-
 #define CLEANUP_SUCO_4X4                             1
 
 #define FIX_DMVR_MV_RANGE                            1

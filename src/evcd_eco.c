@@ -2303,14 +2303,11 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
             }
             else
             {
-#if FIX_EIPD_OFF 
                 int luma_ipm = IPD_DC_B;
                 if (evcd_check_luma(ctx, core))
                 {
-#endif
-                core->ipm[0] = evcd_eco_intra_dir_b(bs, sbac, core->mpm_b_list, core->mpm_ext, core->pims);
-#if FIX_EIPD_OFF 
-                luma_ipm = core->ipm[0];
+                    core->ipm[0] = evcd_eco_intra_dir_b(bs, sbac, core->mpm_b_list, core->mpm_ext, core->pims);
+                    luma_ipm = core->ipm[0];
                 }
                 else
                 {
@@ -2323,9 +2320,6 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                 {
                     core->ipm[1] = luma_ipm;
                 }
-#else
-                core->ipm[1] = core->ipm[0];
-#endif
             }
 
             SET_REFI(core->refi, REFI_INVALID, REFI_INVALID);
