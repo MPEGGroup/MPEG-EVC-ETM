@@ -48,12 +48,7 @@
 /* Max. and min. Quantization parameter */
 #define MAX_QUANT                51
 #define MIN_QUANT                0
-
-#if LD_CONFIG_CHANGE
 #define GOP_P                    8
-#else
-#define GOP_P                    4
-#endif
 
 /* count of picture including encoding and reference pictures
 0: encoding picture buffer

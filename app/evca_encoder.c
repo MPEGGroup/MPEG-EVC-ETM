@@ -319,13 +319,11 @@ typedef enum _OP_FLAGS
     OP_FLAG_RPL0_18,
     OP_FLAG_RPL0_19,
     OP_FLAG_RPL0_20,
-#if LD_CONFIG_CHANGE
     OP_FLAG_RPL0_21,
     OP_FLAG_RPL0_22,
     OP_FLAG_RPL0_23,
     OP_FLAG_RPL0_24,
     OP_FLAG_RPL0_25,
-#endif
     //...
     OP_FLAG_RPL0_31,
 
@@ -350,13 +348,11 @@ typedef enum _OP_FLAGS
     OP_FLAG_RPL1_18,
     OP_FLAG_RPL1_19,
     OP_FLAG_RPL1_20,
-#if LD_CONFIG_CHANGE
     OP_FLAG_RPL1_21,
     OP_FLAG_RPL1_22,
     OP_FLAG_RPL1_23,
     OP_FLAG_RPL1_24,
     OP_FLAG_RPL1_25,
-#endif
     //...
     OP_FLAG_RPL1_31,
     OP_INTER_SLICE_TYPE,
@@ -969,7 +965,6 @@ static EVC_ARGS_OPTION options[] = \
         "RPL0_20"
     },
 
-#if LD_CONFIG_CHANGE
     {
         EVC_ARGS_NO_KEY,  "RPL0_21", EVC_ARGS_VAL_TYPE_STRING,
         &op_flag[OP_FLAG_RPL0_21], &op_rpl0[21],
@@ -999,7 +994,6 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_FLAG_RPL0_25], &op_rpl0[25],
         "RPL0_25"
     },
-#endif
 
     {
         EVC_ARGS_NO_KEY,  "RPL1_0", EVC_ARGS_VAL_TYPE_STRING,
@@ -1108,7 +1102,6 @@ static EVC_ARGS_OPTION options[] = \
         "RPL1_20"
     },
 
-#if LD_CONFIG_CHANGE
     {
         EVC_ARGS_NO_KEY,  "RPL1_21", EVC_ARGS_VAL_TYPE_STRING,
         &op_flag[OP_FLAG_RPL1_21], &op_rpl1[21],
@@ -1138,7 +1131,7 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_FLAG_RPL1_25], &op_rpl1[25],
         "RPL1_25"
     },
-#endif
+
     {
         EVC_ARGS_NO_KEY,  "inter_slice_type", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_INTER_SLICE_TYPE], &op_inter_slice_type,
