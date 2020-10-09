@@ -2595,13 +2595,7 @@ int evc_get_suco_flag(s8* suco_flag, int cud, int cup, int cuw, int cuh, int lcu
     int ret = EVC_OK;
     int pos = cup + (((cuh >> 1) >> MIN_CU_LOG2) * (lcu_s >> MIN_CU_LOG2) + ((cuw >> 1) >> MIN_CU_LOG2));
     int shape = SQUARE + (CONV_LOG2(cuw) - CONV_LOG2(cuh));
-#if !CLEANUP_SUCO_4X4
-    if(cuw < 8 && cuh < 8)
-    {
-        *suco_flag = 0;
-        return ret;
-    }
-#endif
+
     *suco_flag = suco_flag_buf[cud][shape][pos];
 
     return ret;
@@ -2611,12 +2605,7 @@ void evc_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lc
 {
     int pos = cup + (((cuh >> 1) >> MIN_CU_LOG2) * (lcu_s >> MIN_CU_LOG2) + ((cuw >> 1) >> MIN_CU_LOG2));
     int shape = SQUARE + (CONV_LOG2(cuw) - CONV_LOG2(cuh));
-#if !CLEANUP_SUCO_4X4
-    if(cuw >= 8 || cuh >= 8)
-#endif
-    {
-        suco_flag_buf[cud][shape][pos] = suco_flag;
-    }
+    suco_flag_buf[cud][shape][pos] = suco_flag;
 }
 
 u8 evc_check_suco_cond(int cuw, int cuh, s8 split_mode, int boundary, u8 log2_max_cuwh, u8 suco_max_depth, u8 suco_depth, u8 log2_min_cu_size)
