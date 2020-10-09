@@ -1694,12 +1694,6 @@ int check_conf(EVCE_CDSC* cdsc)
         if (cdsc->tool_cm_init == 0 && cdsc->tool_adcc == 1) { v0print("ADCC cannot be on when CM_INIT is off\n"); success = 0; }
 
 #endif
-
-#if !REMOVE_MAIN_RESTRICTION
-        if (cdsc->tool_eipd    == 0) { v0print("EIPD cannot be off in main profile\n"); success = 0; }
-        if (cdsc->tool_iqt     == 0) { v0print("IQT cannot be off in main profile\n"); success = 0; }
-        if (cdsc->tool_cm_init == 0) { v0print("CM_INIT cannot be off in main profile\n"); success = 0; }
-#endif
     }
 
     if (cdsc->btt == 1)
