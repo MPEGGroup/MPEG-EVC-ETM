@@ -83,9 +83,6 @@
 #define ENC_DBF_CONTROL                              1
 #define ENC_SUPPORT_SHORT_POC_LSB_BITS               1
 
-//bug fixes and platform changes to be applied
-#define FIX_DMVR_MV_RANGE                            1
-
 //MPEG 129 adoptions
 #define M52291_HDR_DRA                               1
 
