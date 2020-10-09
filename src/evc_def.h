@@ -84,7 +84,6 @@
 #define ENC_SUPPORT_SHORT_POC_LSB_BITS               1
 
 //bug fixes and platform changes to be applied
-#define QC_MISC_FIX                                  1 
 #define ADDB_FLAG_FIX                                1 
 #define HDR_METRIC                                   1
 #define LD_CONFIG_CHANGE                             1
@@ -288,9 +287,7 @@ enum SAD_POINT_INDEX
 /* HISTORY (START) */
 #define HISTORY_LCU_COPY_BUG_FIX           1
 #define ALLOWED_CHECKED_NUM                23
-#if QC_MISC_FIX
 #define ALLOWED_CHECKED_NUM_SMALL_CU       15
-#endif
 #define ALLOWED_CHECKED_AMVP_NUM           4
 #define AFFINE_UPDATE                      1
 /* ADMVP (END) */
