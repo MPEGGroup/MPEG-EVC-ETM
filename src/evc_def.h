@@ -37,7 +37,7 @@
 #include "evc.h"
 #include "evc_port.h"
 
-#define ETM70_GOLOMB_FIX 1
+#define ETM70_GOLOMB_FIX                             1
 #define MULTIPLE_NAL                                 1
 #if MULTIPLE_NAL  
 #define MAX_NUM_PPS                                  64
@@ -112,8 +112,6 @@
 #define PROFILE_MAIN                                 1
 #define PROFILE_STILL_PIC_BASELINE                   2
 #define PROFILE_STILL_PIC_MAIN                       3
-
-#define AFFINE_TMVP_SPEC_CONDITION_ALIGN             1
 
 //loop filter
 #define DBF_LONGF                                    0

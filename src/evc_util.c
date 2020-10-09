@@ -4001,19 +4001,13 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
         else
         {
             neb_addr_lb[0] = scup + w_scu * scuh - 1;
-#if AFFINE_TMVP_SPEC_CONDITION_ALIGN
             s32 SameCtuRow = ((y_scu + scuh) << MIN_CU_LOG2 >> log2_max_cuwh) == (y_scu << MIN_CU_LOG2 >> log2_max_cuwh);
             valid_flag_lb[0] = x_scu > 0 && (y_scu + scuh < h_scu) && SameCtuRow;
-#else
-            valid_flag_lb[0] = x_scu > 0 && y_scu + scuh < h_scu;
-#endif
 
             valid_flag_lb[0] = valid_flag_lb[0] && (map_tidx[scup] == map_tidx[neb_addr_lb[0]]) && (map_tidx[scup] == map_tidx[scup-1]);
             if (valid_flag_lb[0])
             {
-#if AFFINE_TMVP_SPEC_CONDITION_ALIGN
-            neb_addr_lb[0] = ((x_scu - 1) >> 1 << 1) + ((y_scu + scuh) >> 1 << 1) * w_scu; // 8x8 grid
-#endif
+                neb_addr_lb[0] = ((x_scu - 1) >> 1 << 1) + ((y_scu + scuh) >> 1 << 1) * w_scu; // 8x8 grid
                 evc_get_mv_collocated(refp, poc, neb_addr_lb[0], scup, w_scu, h_scu, tmvp, &availablePredIdx, sh);
 
                 if ((availablePredIdx == 1) || (availablePredIdx == 3))
@@ -4028,11 +4022,8 @@ int evc_get_affine_merge_candidate(int poc, int slice_type, int scup, s8(*map_re
                     cp_mv[REFP_0][2][MV_X] = 0;
                     cp_mv[REFP_0][2][MV_Y] = 0;
                 }
-#if AFFINE_TMVP_SPEC_CONDITION_ALIGN
+
                 if (((availablePredIdx == 2) || (availablePredIdx == 3)) && slice_type == SLICE_B)
-#else
-                if ((availablePredIdx == 2) || (availablePredIdx == 3))
-#endif
                 {
                     cp_refi[REFP_1][2] = 0;
                     cp_mv[REFP_1][2][MV_X] = tmvp[REFP_1][MV_X];
