@@ -122,9 +122,7 @@ static int  op_tool_amvr          = 1; /* default on */
 static int  op_tool_mmvd          = 1; /* default on */
 static int  op_tool_affine        = 1; /* default on */
 static int  op_tool_dmvr          = 1; /* default on */
-#if ADDB_FLAG_FIX
 static int  op_tool_addb          = 1; /* default on */
-#endif
 static int  op_tool_alf           = 1; /* default on */
 static int  op_tool_admvp         = 1; /* default on */
 #if M53737
@@ -249,9 +247,7 @@ typedef enum _OP_FLAGS
     OP_TOOL_MMVD,
     OP_TOOL_AFFINE,
     OP_TOOL_DMVR,
-#if ADDB_FLAG_FIX
     OP_TOOL_ADDB,
-#endif
     OP_TOOL_ALF,
     OP_TOOL_RPL,
     OP_TOOL_POCS,
@@ -627,13 +623,11 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_TOOL_DMVR], &op_tool_dmvr,
         "dmvr on/off flag"
     },
-#if ADDB_FLAG_FIX
     {
         EVC_ARGS_NO_KEY,  "addb", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_TOOL_ADDB], &op_tool_addb,
         "addb on/off flag"
     },
-#endif
     {
         EVC_ARGS_NO_KEY,  "alf", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_TOOL_ALF], &op_tool_alf,
@@ -1350,9 +1344,7 @@ static int get_conf(EVCE_CDSC * cdsc)
     cdsc->tool_mmvd          = op_tool_mmvd;
     cdsc->tool_affine        = op_tool_affine;
     cdsc->tool_dmvr          = op_tool_dmvr;
-#if ADDB_FLAG_FIX
     cdsc->tool_addb          = op_tool_addb;
-#endif
     cdsc->tool_alf           = op_tool_alf;
     cdsc->tool_admvp         = op_tool_admvp;
 #if M53737
@@ -1636,9 +1628,7 @@ static void print_enc_conf(EVCE_CDSC * cdsc)
 #if ENC_DBF_CONTROL
     printf("DBF.ADDB: %d.%d, ", cdsc->use_deblock, cdsc->tool_addb);
 #else
-#if ADDB_FLAG_FIX
     printf("ADDB: %d, ",    cdsc->tool_addb);
-#endif
 #endif
     printf("ALF: %d, ",     cdsc->tool_alf);
     printf("ADMVP: %d, ",   cdsc->tool_admvp);
@@ -1685,9 +1675,7 @@ int check_conf(EVCE_CDSC* cdsc)
 #if M53737
         if (cdsc->tool_hmvp    == 1) { v0print("HMVP cannot be on in base profile\n"); success = 0; }
 #endif
-#if ADDB_FLAG_FIX
         if (cdsc->tool_addb    == 1) { v0print("ADDB cannot be on in base profile\n"); success = 0; }
-#endif
         if (cdsc->tool_alf     == 1) { v0print("ALF cannot be on in base profile\n"); success = 0; }
         if (cdsc->tool_htdf    == 1) { v0print("HTDF cannot be on in base profile\n"); success = 0; }
         if (cdsc->btt          == 1) { v0print("BTT cannot be on in base profile\n"); success = 0; }

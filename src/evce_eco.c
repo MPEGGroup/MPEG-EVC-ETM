@@ -249,9 +249,7 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
     {
         evc_bsw_write1(bs, sps->tool_ats);
     }
-#if ADDB_FLAG_FIX
     evc_bsw_write1(bs, sps->tool_addb);
-#endif
 #if !DB_SPEC_ALIGNMENT2
 #if M52291_HDR_DRA
     evc_bsw_write1(bs, sps->tool_dra);

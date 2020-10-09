@@ -152,11 +152,9 @@ extern s16 evc_tbl_inv_tr32[NUM_TRANS_TYPE][32][32];
 extern s16 evc_tbl_inv_tr64[NUM_TRANS_TYPE][64][64];
 extern s16 evc_tbl_inv_tr128[NUM_TRANS_TYPE][128][128];
 
-#if ADDB_FLAG_FIX
 extern const u8 ALPHA_TABLE[52];
 extern const u8 BETA_TABLE[52];
 extern const u8 CLIP_TAB[52][5];
-#endif
 
 extern const int g_min_in_group[LAST_SIGNIFICANT_GROUPS];
 extern const int g_group_idx[MAX_TR_SIZE];

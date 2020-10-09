@@ -460,9 +460,6 @@ typedef struct _EVCE_PARAM
     int                 use_deblock;
     int                 deblock_alpha_offset;
     int                 deblock_beta_offset;
-#if    !ADDB_FLAG_FIX
-    int                 use_alf;
-#endif
     /* I-frame period */
     int                 i_period;
     /* force I-frame */

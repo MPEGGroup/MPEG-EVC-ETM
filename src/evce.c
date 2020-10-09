@@ -465,9 +465,7 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
     sps->tool_mmvd = ctx->cdsc.tool_mmvd;
     sps->tool_affine = ctx->cdsc.tool_affine;
     sps->tool_dmvr = ctx->cdsc.tool_dmvr;
-#if ADDB_FLAG_FIX
     sps->tool_addb = ctx->cdsc.tool_addb;
-#endif
 #if M52291_HDR_DRA
     sps->tool_dra = ctx->cdsc.tool_dra;
 #endif
@@ -1735,9 +1733,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                 evc_deblock_cu_hor(pic, x, y, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, ctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
                                    , core->tree_cons
                                    , ctx->map_tidx, boundary_filtering
-#if ADDB_FLAG_FIX
                                    , ctx->sps.tool_addb
-#endif
 #if DEBLOCKING_FIX
                                    , ctx->map_ats_inter
 #endif
@@ -1749,9 +1745,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                 evc_deblock_cu_hor(pic, x, y + MAX_TR_SIZE, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, ctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
                                    , core->tree_cons
                                    , ctx->map_tidx, boundary_filtering
-#if ADDB_FLAG_FIX
                                    , ctx->sps.tool_addb
-#endif
 #if DEBLOCKING_FIX
                                    , ctx->map_ats_inter
 #endif
@@ -1766,9 +1760,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                 evc_deblock_cu_hor(pic, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi, ctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
                                    , core->tree_cons
                                    , ctx->map_tidx, boundary_filtering
-#if ADDB_FLAG_FIX
                                    , ctx->sps.tool_addb
-#endif
 #if DEBLOCKING_FIX
                                    , ctx->map_ats_inter
 #endif
@@ -1790,9 +1782,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                                    , ctx->refp, 0
                                    , core->tree_cons
                                    , ctx->map_tidx, boundary_filtering
-#if ADDB_FLAG_FIX
                                    , ctx->sps.tool_addb
-#endif
 #if DEBLOCKING_FIX
                                    , ctx->map_ats_inter
 #endif
@@ -1808,9 +1798,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                                    , ctx->refp, 0
                                    , core->tree_cons
                                    , ctx->map_tidx, boundary_filtering
-#if ADDB_FLAG_FIX
                                    , ctx->sps.tool_addb
-#endif
 #if DEBLOCKING_FIX
                                    , ctx->map_ats_inter
 #endif
@@ -1829,9 +1817,7 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
                                    , ctx->refp, 0
                                    , core->tree_cons
                                    , ctx->map_tidx, boundary_filtering
-#if ADDB_FLAG_FIX
                                    , ctx->sps.tool_addb
-#endif
 #if DEBLOCKING_FIX
                                    , ctx->map_ats_inter
 #endif

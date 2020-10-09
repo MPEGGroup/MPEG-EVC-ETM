@@ -2972,9 +2972,7 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
         evc_deblock_cu_hor(pic_dbk, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
                            , core->tree_cons
                            , ctx->map_tidx, 0
-#if ADDB_FLAG_FIX
                            , ctx->sps.tool_addb
-#endif
 #if DEBLOCKING_FIX
                            , ctx->map_ats_inter
 #endif
@@ -3003,9 +3001,7 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
                            , ctx->refp, 0
                            , core->tree_cons
                            , ctx->map_tidx, 0
-#if ADDB_FLAG_FIX
                            , ctx->sps.tool_addb
-#endif
 #if DEBLOCKING_FIX
                            , ctx->map_ats_inter
 #endif

@@ -84,7 +84,6 @@
 #define ENC_SUPPORT_SHORT_POC_LSB_BITS               1
 
 //bug fixes and platform changes to be applied
-#define ADDB_FLAG_FIX                                1 
 #define HDR_METRIC                                   1
 #define LD_CONFIG_CHANGE                             1
 #define MMVD_CLEANUP                                 1
@@ -1284,9 +1283,7 @@ typedef struct _EVC_SPS
     int              tool_mmvd;
     int              tool_affine;
     int              tool_dmvr;
-#if ADDB_FLAG_FIX
     int              tool_addb;
-#endif
     int              tool_alf;
     int              tool_htdf;
     int              tool_admvp;

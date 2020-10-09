@@ -43,7 +43,6 @@
 #define EVC_VUI_FIX                     1
 #define ETM_HDR_REPORT_METRIC_FLAG      1
 #define M52291_HDR_DRA                  1
-#define ADDB_FLAG_FIX                   1
 
 #define BD_CF_EXT                       1   //Anubhav (For supporting 4:0:0 format)
 
@@ -558,9 +557,7 @@ typedef struct _EVCE_CDSC
     int            tool_mmvd;
     int            tool_affine;
     int            tool_dmvr;
-#if ADDB_FLAG_FIX
     int            tool_addb;
-#endif
     int            tool_alf;
     int            tool_htdf;
     int            tool_admvp;

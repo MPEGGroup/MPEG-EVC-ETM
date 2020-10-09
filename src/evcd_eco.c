@@ -2594,9 +2594,7 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
     {
         evc_bsr_read1(bs, &sps->tool_ats);
     }
-#if ADDB_FLAG_FIX
     evc_bsr_read1(bs, &sps->tool_addb);
-#endif
 #if !DB_SPEC_ALIGNMENT2
 #if M52291_HDR_DRA
     sps->tool_dra = evc_bsr_read1(bs);

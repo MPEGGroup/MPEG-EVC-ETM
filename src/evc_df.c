@@ -665,8 +665,6 @@ const u8 sm_beta_table[MAX_QP + 1] =
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,7,8,9,10,11,12,13,14,15,16,17,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,62,64
 };
 
-
-#if ADDB_FLAG_FIX
 static const u8 compare_mvs(const int mv0[2], const int mv1[2])
 {
     // Return 1 if vetors difference less then 1 pixel
@@ -838,9 +836,7 @@ static const u8 get_bs(u32 mcu0, u32 x0, u32 y0, u32 mcu1, u32 x1, u32 y1, u32 l
 
     return bs;
 }
-#endif
 
-#if ADDB_FLAG_FIX
 static void deblock_get_pq(pel *buf, int offset, pel* p, pel* q, int size)
 {
     // p and q has DBF_LENGTH elements
@@ -1943,14 +1939,10 @@ static void deblock_addb_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
 
     map_scu = deblock_set_coded_block(map_scu_tmp, w, h, w_scu);
 }
-#endif 
 
 void evc_deblock_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u32 *map_scu, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int log2_max_cuwh, EVC_REFP(*refp)[REFP_NUM], int ats_inter_mode
                         , TREE_CONS tree_cons
-                        , u8* map_tidx, int boundary_filtering
-#if ADDB_FLAG_FIX
-                        , int tool_addb
-#endif
+                        , u8* map_tidx, int boundary_filtering, int tool_addb
 #if DEBLOCKING_FIX
                         , u8* map_ats_inter
 #endif
@@ -1995,10 +1987,7 @@ void evc_deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u3
                         , EVC_REFP(*refp)[REFP_NUM]
                         , int ats_inter_mode
                         , TREE_CONS tree_cons
-                        , u8* map_tidx, int boundary_filtering
-#if ADDB_FLAG_FIX
-                        , int tool_addb
-#endif
+                        , u8* map_tidx, int boundary_filtering, int tool_addb
 #if DEBLOCKING_FIX
                         , u8* map_ats_inter
 #endif
