@@ -726,15 +726,13 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
         }
     }
     evc_bsw_write1(bs, sh->deblocking_filter_on);
-#if SH_DBF_SIGNAL_ALIGN
+
     if(sh->deblocking_filter_on && sps->tool_addb)
     {
-#endif
         evc_bsw_write_se(bs, sh->sh_deblock_alpha_offset);
         evc_bsw_write_se(bs, sh->sh_deblock_beta_offset);
-#if SH_DBF_SIGNAL_ALIGN
     }
-#endif
+
     evc_bsw_write(bs, sh->qp, 6);
     evc_bsw_write_se(bs, sh->qp_u_offset);
     evc_bsw_write_se(bs, sh->qp_v_offset);

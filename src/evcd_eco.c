@@ -3877,15 +3877,13 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
         }
     }
     evc_bsr_read1(bs, &sh->deblocking_filter_on);
-#if SH_DBF_SIGNAL_ALIGN
+
     if(sh->deblocking_filter_on && sps->tool_addb)
     {
-#endif
         evc_bsr_read_se(bs, &sh->sh_deblock_alpha_offset);
         evc_bsr_read_se(bs, &sh->sh_deblock_beta_offset);
-#if SH_DBF_SIGNAL_ALIGN
     }
-#endif
+
     evc_bsr_read(bs, &sh->qp, 6);
     if (sh->qp < 0 || sh->qp > 51)
     {
