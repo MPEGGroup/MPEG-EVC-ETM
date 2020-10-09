@@ -2787,9 +2787,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             ctb_cnt_in_tile = ctx->tile[i].f_ctb; //Total LCUs in the current tile
             update_core_loc_param(ctx, core);
 
-#if FIX_DQP_ON
             int bef_cu_qp = ctx->tile[i].qp_prev_eco;
-#endif      
             col_bd = 0;
             if (i% ctx->param.tile_columns)
             {
@@ -2839,9 +2837,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
                 {
                     reset_ibc_search_range(ctx, core->x_pel, core->y_pel, ctx->max_cuwh, ctx->max_cuwh);
                 }
-#if FIX_DQP_ON
                 ctx->tile[i].qp_prev_eco = bef_cu_qp;
-#endif
                 /* entropy coding ************************************************/
                 ret = evce_eco_tree(ctx, core, core->x_pel, core->y_pel, 0, ctx->max_cuwh, ctx->max_cuwh, 0, 1
                                     , NO_SPLIT, split_mode_child, 0, split_allow, 0, 0
@@ -2850,9 +2846,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #endif
                                     , evc_get_default_tree_cons()
                 );
-#if FIX_DQP_ON
                 bef_cu_qp = ctx->tile[i].qp_prev_eco;
-#endif
 #if GRAB_STAT
                 evc_stat_set_enc_state(FALSE);
                 evc_stat_write_lcu(core->x_pel, core->y_pel, ctx->w, ctx->h, ctx->max_cuwh, ctx->log2_culine, ctx, core, ctx->map_cu_data[core->lcu_num].split_mode, ctx->map_cu_data[core->lcu_num].suco_flag);

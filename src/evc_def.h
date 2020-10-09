@@ -84,7 +84,6 @@
 #define ENC_SUPPORT_SHORT_POC_LSB_BITS               1
 
 //bug fixes and platform changes to be applied
-#define FIX_DQP_ON                                   1
 #define SEP_HOR_BASE                                 1
 #define CLEANUP_INTRA_PRED                           1
 #define REMOVE_MAIN_RESTRICTION                      1
