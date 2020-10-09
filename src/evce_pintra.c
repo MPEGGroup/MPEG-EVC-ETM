@@ -136,14 +136,10 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 
         if(ctx->sps.tool_htdf == 1)
         {
-#if FIX_CONSTRAINT_PRED
             int constrained_intra_flag = 1 && ctx->pps.constrained_intra_pred_flag;
-#endif
 
             evc_htdf(pi->rec[Y_C], ctx->tile[core->tile_idx].qp, cuw, cuh, cuw, TRUE, pi->m[Y_C] + (y * pi->s_m[Y_C]) + x, pi->s_m[Y_C], core->avail_cu
-#if FIX_CONSTRAINT_PRED
                      , core->scup, ctx->w_scu, ctx->h_scu, ctx->map_scu, constrained_intra_flag
-#endif
 #if BD_CF_EXT
                      , ctx->sps.bit_depth_luma_minus8 + 8
 #endif
