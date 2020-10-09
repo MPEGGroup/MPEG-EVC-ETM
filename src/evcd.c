@@ -1149,19 +1149,11 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
         {
             if(evcd_check_luma(ctx, core))
             {
-#if CLEANUP_INTRA_PRED
                 evc_ipred(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh
 #if BD_CF_EXT
                           , ctx->sps.bit_depth_luma_minus8 + 8
 #endif
                 );
-#else
-                evc_ipred(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh, core->avail_cu
-#if BD_CF_EXT
-                          , ctx->sps.bit_depth_luma_minus8 + 8
-#endif
-                );
-#endif
             }
             if(evcd_check_chroma(ctx, core)
 #if BD_CF_EXT
@@ -1169,7 +1161,6 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 #endif
                )
             {
-#if CLEANUP_INTRA_PRED
 #if BD_CF_EXT
                 evc_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> (GET_CHROMA_H_SHIFT(chroma_format_idc))), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C]
                              , core->ipm[1], core->ipm[0], cuw >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), cuh >> (GET_CHROMA_H_SHIFT(chroma_format_idc))
@@ -1190,43 +1181,16 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
                              , ctx->sps.bit_depth_chroma_minus8 + 8
 #endif
                 );
-#else
-#if BD_CF_EXT
-                evc_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> (GET_CHROMA_H_SHIFT(chroma_format_idc))), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C]
-                             , core->ipm[1], core->ipm[0], cuw >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), cuh >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), core->avail_cu
-#else
-                evc_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu
-#endif
-#if BD_CF_EXT
-                             , ctx->sps.bit_depth_chroma_minus8 + 8
-#endif
-                );
-#if BD_CF_EXT
-                evc_ipred_uv(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> (GET_CHROMA_H_SHIFT(chroma_format_idc))), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C]
-                             , core->ipm[1], core->ipm[0], cuw >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), cuh >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), core->avail_cu
-#else
-                evc_ipred_uv(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu
-#endif
-#if BD_CF_EXT
-                             , ctx->sps.bit_depth_chroma_minus8 + 8
-#endif
-                );
-#endif
             }
         }
         else
         {
             if(evcd_check_luma(ctx, core))
             {
-#if CLEANUP_INTRA_PRED
                 evc_ipred_b(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh);
-#else
-                evc_ipred_b(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh, core->avail_cu);
-#endif
             }
             if(evcd_check_chroma(ctx, core))
             {
-#if CLEANUP_INTRA_PRED
 #if FIX_EIPD_OFF 
 #if BD_CF_EXT
                 evc_ipred_uv_b(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> (GET_CHROMA_H_SHIFT(chroma_format_idc))), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C]
@@ -1240,10 +1204,6 @@ static int evcd_eco_unit(EVCD_CTX * ctx, EVCD_CORE * core, int x, int y, int log
 #else
                 evc_ipred_uv_b(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[0], core->ipm[0], cuw >> 1, cuh >> 1);
                 evc_ipred_uv_b(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[0], core->ipm[0], cuw >> 1, cuh >> 1);
-#endif
-#else
-                evc_ipred_uv_b(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[0], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu);
-                evc_ipred_uv_b(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[0], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu);
 #endif
             }
         }

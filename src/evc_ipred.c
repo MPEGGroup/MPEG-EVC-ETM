@@ -342,11 +342,8 @@ static int evc_get_dc(const int numerator, const int w, const int h)
 
   return (numerator * lut_size_plus1[log2_asp_ratio]) >> (basic_shift + shift_w);
 }
-#if CLEANUP_INTRA_PRED
+
 void ipred_dc_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h)
-#else
-void ipred_dc_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h, u16 avail_cu)
-#endif
 {
     int dc = 0;
     int wh, i, j;
@@ -362,11 +359,8 @@ void ipred_dc_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, i
         dst[i] = (pel)dc;
     }
 }
-#if CLEANUP_INTRA_PRED
+
 void ipred_dc(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h)
-#else
-void ipred_dc(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h, u16 avail_cu)
-#endif
 {
     int dc = 0;
     int wh, i, j;
@@ -894,11 +888,8 @@ void ipred_ur(pel *src_le, pel *src_up, pel * src_ri, u16 avail_lr, pel *dst, in
 }
 
 /* intra prediction for baseline profile */
-#if CLEANUP_INTRA_PRED
+
 void evc_ipred_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm, int w, int h)
-#else
-void evc_ipred_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm, int w, int h, u16 avail_cu)
-#endif
 {
     switch(ipm)
     {
@@ -909,11 +900,7 @@ void evc_ipred_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, 
             ipred_hor_b(src_le, src_up, src_ri, avail_lr, dst, w, h);
             break;
         case IPD_DC_B:
-#if CLEANUP_INTRA_PRED
             ipred_dc_b(src_le, src_up, src_ri, avail_lr, dst, w, h);
-#else
-            ipred_dc_b(src_le, src_up, src_ri, avail_lr, dst, w, h, avail_cu);
-#endif
             break;
         case IPD_UL_B:
             ipred_ul(src_le, src_up, src_ri, avail_lr, dst, w, h);
@@ -928,19 +915,11 @@ void evc_ipred_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, 
     }
 }
 
-#if CLEANUP_INTRA_PRED
 void evc_ipred(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm, int w, int h
 #if BD_CF_EXT
                , int bit_depth
 #endif
 )
-#else
-void evc_ipred(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm, int w, int h, u16 avail_cu
-#if BD_CF_EXT
-               , int bit_depth
-#endif
-)
-#endif
 {
     switch(ipm)
     {
@@ -951,11 +930,7 @@ void evc_ipred(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, in
             ipred_hor(src_le, src_up, src_ri, avail_lr, dst, w, h);
             break;
         case IPD_DC:
-#if CLEANUP_INTRA_PRED
             ipred_dc(src_le, src_up, src_ri, avail_lr, dst, w, h);
-#else
-            ipred_dc(src_le, src_up, src_ri, avail_lr, dst, w, h, avail_cu);
-#endif
             break;
         case IPD_PLN:
             ipred_plane(src_le, src_up, src_ri, avail_lr, dst, w, h
@@ -982,20 +957,12 @@ void evc_ipred(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, in
     }
 }
 
-#if CLEANUP_INTRA_PRED
 void evc_ipred_uv_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm_c, int ipm, int w, int h)
-#else
-void evc_ipred_uv_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm_c, int ipm, int w, int h, u16 avail_cu)
-#endif
 {
     switch(ipm_c)
     {
         case IPD_DC_C_B:
-#if CLEANUP_INTRA_PRED
             ipred_dc_b(src_le, src_up, src_ri, avail_lr, dst, w, h);
-#else
-            ipred_dc_b(src_le, src_up, src_ri, avail_lr, dst, w, h, avail_cu);
-#endif
             break;
         case IPD_HOR_C_B:
             ipred_hor_b(src_le, src_up, src_ri, avail_lr, dst, w, h);
@@ -1016,19 +983,11 @@ void evc_ipred_uv_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *ds
     }
 }
 
-#if CLEANUP_INTRA_PRED
 void evc_ipred_uv(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm_c, int ipm, int w, int h
 #if BD_CF_EXT
                   , int bit_depth
 #endif
 )
-#else
-void evc_ipred_uv(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm_c, int ipm, int w, int h, u16 avail_cu
-#if BD_CF_EXT
-                  , int bit_depth
-#endif
-)
-#endif
 {
     if(ipm_c == IPD_DM_C && EVC_IPRED_CHK_CONV(ipm))
     {
@@ -1058,11 +1017,7 @@ void evc_ipred_uv(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst,
             break;
 
         case IPD_DC_C:
-#if CLEANUP_INTRA_PRED
             ipred_dc(src_le, src_up, src_ri, avail_lr, dst, w, h);
-#else
-            ipred_dc(src_le, src_up, src_ri, avail_lr, dst, w, h, avail_cu);
-#endif
             break;
         case IPD_HOR_C:
             ipred_hor(src_le, src_up, src_ri, avail_lr, dst, w, h);

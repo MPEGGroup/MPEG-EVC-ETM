@@ -171,7 +171,6 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 #endif
         if(ctx->sps.tool_eipd)
         {
-#if CLEANUP_INTRA_PRED
 #if BD_CF_EXT
             evc_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> (GET_CHROMA_H_SHIFT(idc))), core->nb[1][2] + 2, core->avail_lr, pi->pred[U_C], core->ipm[1], core->ipm[0]
                          , cuw >> (GET_CHROMA_W_SHIFT(idc)), cuh >> (GET_CHROMA_H_SHIFT(idc))
@@ -192,32 +191,9 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
                          , ctx->sps.bit_depth_chroma_minus8 + 8
 #endif
             );
-#else
-#if BD_CF_EXT
-            evc_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> (GET_CHROMA_H_SHIFT(idc))), core->nb[1][2] + 2, core->avail_lr, pi->pred[U_C], core->ipm[1], core->ipm[0]
-                         , cuw >> (GET_CHROMA_W_SHIFT(idc)), cuh >> (GET_CHROMA_H_SHIFT(idc)), core->avail_cu
-#else
-            evc_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, pi->pred[U_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu
-#endif
-#if BD_CF_EXT
-                         , ctx->sps.bit_depth_chroma_minus8 + 8
-#endif
-            );
-#if BD_CF_EXT
-            evc_ipred_uv(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> (GET_CHROMA_H_SHIFT(idc))), core->nb[2][2] + 2, core->avail_lr, pi->pred[V_C], core->ipm[1], core->ipm[0]
-                         , cuw >> (GET_CHROMA_W_SHIFT(idc)), cuh >> (GET_CHROMA_H_SHIFT(idc)), core->avail_cu
-#else
-            evc_ipred_uv(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, pi->pred[V_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu
-#endif
-#if BD_CF_EXT
-                         , ctx->sps.bit_depth_chroma_minus8 + 8
-#endif
-            );
-#endif
         }
         else
         {
-#if CLEANUP_INTRA_PRED
 #if BD_CF_EXT
             evc_ipred_uv_b(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> (GET_CHROMA_H_SHIFT(idc))), core->nb[1][2] + 2, core->avail_lr, pi->pred[U_C], core->ipm[1], core->ipm[0]
                            , cuw >> (GET_CHROMA_W_SHIFT(idc)), cuh >> (GET_CHROMA_H_SHIFT(idc)));
@@ -226,17 +202,6 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 #else
             evc_ipred_uv_b(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, pi->pred[U_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1);
             evc_ipred_uv_b(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, pi->pred[V_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1);
-#endif
-#else
-#if BD_CF_EXT
-            evc_ipred_uv_b(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> (GET_CHROMA_H_SHIFT(idc))), core->nb[1][2] + 2, core->avail_lr, pi->pred[U_C], core->ipm[1], core->ipm[0]
-                           , cuw >> (GET_CHROMA_W_SHIFT(idc)), cuh >> (GET_CHROMA_H_SHIFT(idc)), core->avail_cu);
-            evc_ipred_uv_b(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> (GET_CHROMA_H_SHIFT(idc))), core->nb[2][2] + 2, core->avail_lr, pi->pred[V_C], core->ipm[1], core->ipm[0]
-                           , cuw >> (GET_CHROMA_W_SHIFT(idc)), cuh >> (GET_CHROMA_H_SHIFT(idc)), core->avail_cu);
-#else
-            evc_ipred_uv_b(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, pi->pred[U_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu);
-            evc_ipred_uv_b(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, pi->pred[V_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, core->avail_cu);
-#endif
 #endif
         }
 #if BD_CF_EXT
@@ -399,27 +364,15 @@ static int make_ipred_list(EVCE_CTX * ctx, EVCE_CORE * core, int log2_cuw, int l
 
         if (ctx->sps.tool_eipd)
         {
-#if CLEANUP_INTRA_PRED
             evc_ipred(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, pred_buf, i, cuw, cuh
 #if BD_CF_EXT
                       , ctx->sps.bit_depth_luma_minus8 + 8
 #endif
             );
-#else
-            evc_ipred(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, pred_buf, i, cuw, cuh, core->avail_cu
-#if BD_CF_EXT
-                      , ctx->sps.bit_depth_luma_minus8 + 8
-#endif
-            );
-#endif
         }
         else
         {
-#if CLEANUP_INTRA_PRED
             evc_ipred_b(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, pred_buf, i, cuw, cuh);
-#else
-            evc_ipred_b(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, pred_buf, i, cuw, cuh, core->avail_cu);
-#endif
         }
 #if BD_CF_EXT
         cost_satd = evce_satd_16b(log2_cuw, log2_cuh, org, pred_buf, s_org, cuw, ctx->sps.bit_depth_luma_minus8+8);
