@@ -246,7 +246,7 @@ void evc_get_nbr(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_
 
     right[-2] = right[-1];
 }
-#if SEP_HOR_BASE
+
 void ipred_hor_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h)
 {
     int i, j;
@@ -259,7 +259,6 @@ void ipred_hor_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, 
         dst += w; src_le++;
     }
 }
-#endif
 
 static const int lut_size_plus1[MAX_CU_LOG2 + 1] = { 2048, 1365, 819, 455, 241, 124, 63, 32 }; // 1/(w+1) = k >> 12
 
@@ -907,11 +906,7 @@ void evc_ipred_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, 
             ipred_vert(src_le, src_up, src_ri, avail_lr, dst, w, h);
             break;
         case IPD_HOR_B:
-#if SEP_HOR_BASE
             ipred_hor_b(src_le, src_up, src_ri, avail_lr, dst, w, h);
-#else
-            ipred_hor(src_le, src_up, src_ri, avail_lr, dst, w, h);
-#endif
             break;
         case IPD_DC_B:
 #if CLEANUP_INTRA_PRED
@@ -1003,11 +998,7 @@ void evc_ipred_uv_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *ds
 #endif
             break;
         case IPD_HOR_C_B:
-#if SEP_HOR_BASE
             ipred_hor_b(src_le, src_up, src_ri, avail_lr, dst, w, h);
-#else
-            ipred_hor(src_le, src_up, src_ri, avail_lr, dst, w, h);
-#endif
             break;
         case IPD_VER_C_B:
             ipred_vert(src_le, src_up, src_ri, avail_lr, dst, w, h);
