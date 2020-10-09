@@ -2131,13 +2131,7 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
             evc_assert(!evce_check_all(ctx, core));
         }
     }
-#if !FIX_ADMPV_OFF
-    if (!ctx->sps.tool_admvp)
-    {
-        evc_assert(evce_check_all(ctx, core));
-        evc_assert(evce_check_all_preds(ctx, core));
-    }
-#endif
+
     core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, (1 << log2_cuw), (1 << log2_cuh), ctx->w_scu, ctx->h_scu, ctx->map_scu, ctx->map_tidx);
     evc_get_ctx_some_flags(core->x_scu, core->y_scu, 1 << log2_cuw, 1 << log2_cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, core->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
                            , ctx->param.use_ibc_flag, ctx->sps.ibc_log_max_size, ctx->map_tidx);

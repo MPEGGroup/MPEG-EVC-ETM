@@ -5812,7 +5812,7 @@ static double pinter_analyze_cu_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, 
                   , ctx->sps.bit_depth_chroma_minus8 + 8
 #endif
         );
-#if FIX_ADMPV_OFF
+
         if (ctx->sps.tool_htdf == 1 && i == Y_C && pi->nnz_best[best_idx][i])
         {
             const int s_mod = pi->s_m[Y_C];
@@ -5829,7 +5829,6 @@ static double pinter_analyze_cu_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, 
 #endif
             );
         }
-#endif
         core->nnz[i] = pi->nnz_best[best_idx][i];
         evc_mcpy(core->nnz_sub[i], pi->nnz_sub_best[best_idx][i], sizeof(int) * MAX_SUB_TB_NUM);
     }
