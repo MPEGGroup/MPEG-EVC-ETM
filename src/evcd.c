@@ -235,7 +235,7 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
     evcd_split_tbl_init(ctx);
 
 #if BD_CF_EXT
-    set_chroma_qp__tbl_loc();
+    set_chroma_qp__tbl_loc(ctx->sps.bit_depth_luma_minus8 + 8);
 #endif
     if(ctx->sps.tool_iqt == 0)
     {
