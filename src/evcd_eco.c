@@ -1622,26 +1622,23 @@ void evcd_eco_direct_mode_flag(EVCD_CTX * ctx, EVCD_CORE * core)
 
 void evcd_eco_merge_mode_flag(EVCD_CTX * ctx, EVCD_CORE * core)
 {
-    if(core->mvr_idx == 0)
+    EVCD_SBAC *sbac;
+    EVC_BSR   *bs;
+    int        merge_mode_flag = 0;
+
+    bs = &ctx->bs;
+    sbac = GET_SBAC_DEC(bs);
+
+    merge_mode_flag = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.merge_mode_flag);
+
+    if(merge_mode_flag)
     {
-        EVCD_SBAC *sbac;
-        EVC_BSR   *bs;
-        int        merge_mode_flag = 0;
-
-        bs = &ctx->bs;
-        sbac = GET_SBAC_DEC(bs);
-
-        merge_mode_flag = evcd_sbac_decode_bin(bs, sbac, sbac->ctx.merge_mode_flag);
-
-        if(merge_mode_flag)
-        {
-            core->inter_dir = PRED_DIR;
-        }
-        EVC_TRACE_COUNTER;
-        EVC_TRACE_STR("merge_mode_flag ");
-        EVC_TRACE_INT(core->inter_dir == PRED_DIR ? PRED_DIR : 0);
-        EVC_TRACE_STR("\n");
+        core->inter_dir = PRED_DIR;
     }
+    EVC_TRACE_COUNTER;
+    EVC_TRACE_STR("merge_mode_flag ");
+    EVC_TRACE_INT(core->inter_dir == PRED_DIR ? PRED_DIR : 0);
+    EVC_TRACE_STR("\n");
 }
 
 void evcd_eco_inter_pred_idc(EVCD_CTX * ctx, EVCD_CORE * core)
@@ -2142,11 +2139,11 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
 #endif
             }
 
-            if (ctx->sps.tool_admvp == 0)
+            if (ctx->sh.slice_type == SLICE_B && ctx->sps.tool_admvp == 0)
             {
                 evcd_eco_direct_mode_flag(ctx, core);
             }
-            else
+            else if(ctx->sps.tool_admvp && core->mvr_idx == 0)
             {
                 evcd_eco_merge_mode_flag(ctx, core);
             }
@@ -2188,7 +2185,10 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
             }
             else
             {
-                evcd_eco_inter_pred_idc(ctx, core); /* inter_pred_idc */
+                if (ctx->sh.slice_type == SLICE_B)
+                {
+                    evcd_eco_inter_pred_idc(ctx, core); /* inter_pred_idc */
+                }
 
                 if (cuw >= 16 && cuh >= 16 && ctx->sps.tool_affine && core->mvr_idx == 0)
                 {

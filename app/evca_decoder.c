@@ -586,11 +586,7 @@ int main(int argc, const char **argv)
                         int align[EVC_IMGB_MAX_PLANE] = { MIN_CU_SIZE, MIN_CU_SIZE >> 1, MIN_CU_SIZE >> 1 };
                         int pad[EVC_IMGB_MAX_PLANE] = { 0, 0, 0, };
 #if BD_CF_EXT
-#if BD_CF_EXT
                         imgb_dra = evc_imgb_create(w, h, CS_FROM_BD_CF(INTERNAL_CODEC_BIT_DEPTH, (CF_FROM_CS(imgb->cs))), 0, pad, align);
-#else
-                        imgb_dra = evc_imgb_create(w, h, CS_FROM_BD_420(INTERNAL_CODEC_BIT_DEPTH), 0, pad, align);
-#endif
 #else
                         imgb_dra = evc_imgb_create(w, h, EVC_COLORSPACE_YUV420_10LE, 0, pad, align);
 #endif

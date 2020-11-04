@@ -180,6 +180,12 @@ int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[N_C][16], int tool_d
         WCGDDRAControl *local_g_dra_control = &l_dra_control;
         SignalledParamsDRA* p_pps_draParams = (SignalledParamsDRA*)pps_draParams;
         memcpy(&(local_g_dra_control->m_signalledDRA), p_pps_draParams, sizeof(SignalledParamsDRA));
+#if BD_CF_EXT
+        local_g_dra_control->m_signalledDRA.m_internal_bd = bit_depth;
+        local_g_dra_control->m_signalledDRA.m_idc = (CF_FROM_CS(pic->imgb->cs));
+        local_g_dra_control->m_internal_bd = bit_depth;
+        local_g_dra_control->m_idc = (CF_FROM_CS(pic->imgb->cs));
+#endif
         evcd_initDRA(local_g_dra_control);
         int align[EVC_IMGB_MAX_PLANE] = { MIN_CU_SIZE, MIN_CU_SIZE >> 1, MIN_CU_SIZE >> 1 };
         int pad[EVC_IMGB_MAX_PLANE] = { 0, 0, 0, };

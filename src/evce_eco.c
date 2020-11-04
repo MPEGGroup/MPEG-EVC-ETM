@@ -3508,11 +3508,11 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                 }
 
                 {
-                    if(ctx->sps.tool_admvp == 0)
+                    if(slice_type == SLICE_B && ctx->sps.tool_admvp == 0)
                     {
                         evce_eco_direct_mode_flag(bs, cu_data->pred_mode[cup] == MODE_DIR);
                     }
-                    else
+                    else if(ctx->sps.tool_admvp)
                     {
                         if(cu_data->mvr_idx[cup] == 0)
                         {
@@ -3549,7 +3549,10 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 
                 if(((cu_data->pred_mode[cup] % ORG_PRED_NUM) != MODE_DIR) && ((cu_data->pred_mode[cup] % ORG_PRED_NUM) != MODE_DIR_MMVD))
                 {
-                    evce_eco_inter_pred_idc(bs, cu_data->refi[cup], slice_type, cuw, cuh, ctx->sps.tool_admvp);
+                    if (slice_type == SLICE_B)
+                    {
+                        evce_eco_inter_pred_idc(bs, cu_data->refi[cup], slice_type, cuw, cuh, ctx->sps.tool_admvp);
+                    }
 
                     // affine inter mode
                     if(cuw >= 16 && cuh >= 16 && cu_data->mvr_idx[cup] == 0 && ctx->sps.tool_affine)

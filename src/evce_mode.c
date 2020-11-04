@@ -475,11 +475,13 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
         {
             evce_eco_merge_idx(&core->bs_temp, mvp_idx[0]);
         }
-        
 
         if((((pidx % ORG_PRED_NUM) != PRED_DIR) && ((pidx % ORG_PRED_NUM) != PRED_DIR_MMVD)) || ((pidx >= AFF_L0) && (pidx <= AFF_6_BI) && (pidx != AFF_DIR)) )
         {
-            evce_eco_inter_pred_idc(&core->bs_temp, refi, slice_type, 1 << core->log2_cuw, 1 << core->log2_cuh, ctx->sps.tool_admvp);
+            if (slice_type == SLICE_B)
+            {
+                evce_eco_inter_pred_idc(&core->bs_temp, refi, slice_type, 1 << core->log2_cuw, 1 << core->log2_cuh, ctx->sps.tool_admvp);
+            }
 
             // affine inter in rdo
             if (core->cuw >= 16 && core->cuh >= 16 && ctx->sps.tool_affine && mvr_idx == 0)
