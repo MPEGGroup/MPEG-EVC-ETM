@@ -904,7 +904,6 @@ EVC_IMGB * imgb_alloc(int w, int h, int cs)
         imgb->np = 3;
 #endif
     }
-#if HDR_METRIC
 #if BD_CF_EXT
     else if(cs == EVC_COLORSPACE_YUV444_10LE_INT)
 #else
@@ -927,7 +926,6 @@ EVC_IMGB * imgb_alloc(int w, int h, int cs)
         }
         imgb->np = 3;
     }
-#endif
     else
     {
         v0print("unsupported color space\n");

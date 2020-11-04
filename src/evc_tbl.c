@@ -367,15 +367,15 @@ int *p_evc_tbl_qp_chroma_dynamic[2];
 int evc_tbl_qp_chroma_dynamic_ext[2][MAX_QP_TABLE_SIZE_EXT];
 int *p_evc_tbl_qp_chroma_dynamic_ext[2] = { &(evc_tbl_qp_chroma_dynamic_ext[0][0]) , &(evc_tbl_qp_chroma_dynamic_ext[1][0]) };
 
-void set_chroma_qp__tbl_loc()
+void set_chroma_qp__tbl_loc(int codec_bit_depth)
 {
-    for(int i = 0; i < 6 * (INTERNAL_CODEC_BIT_DEPTH - 8); i++)
+    for(int i = 0; i < 6 * (codec_bit_depth - 8); i++)
     {
-        evc_tbl_qp_chroma_dynamic_ext[0][i] = i - 6 * (INTERNAL_CODEC_BIT_DEPTH - 8);
-        evc_tbl_qp_chroma_dynamic_ext[1][i] = i - 6 * (INTERNAL_CODEC_BIT_DEPTH - 8);
+        evc_tbl_qp_chroma_dynamic_ext[0][i] = i - 6 * (codec_bit_depth - 8);
+        evc_tbl_qp_chroma_dynamic_ext[1][i] = i - 6 * (codec_bit_depth - 8);
     }
-    p_evc_tbl_qp_chroma_dynamic[0] = &(evc_tbl_qp_chroma_dynamic_ext[0][6 * (INTERNAL_CODEC_BIT_DEPTH - 8)]);
-    p_evc_tbl_qp_chroma_dynamic[1] = &(evc_tbl_qp_chroma_dynamic_ext[1][6 * (INTERNAL_CODEC_BIT_DEPTH - 8)]);
+    p_evc_tbl_qp_chroma_dynamic[0] = &(evc_tbl_qp_chroma_dynamic_ext[0][6 * (codec_bit_depth - 8)]);
+    p_evc_tbl_qp_chroma_dynamic[1] = &(evc_tbl_qp_chroma_dynamic_ext[1][6 * (codec_bit_depth - 8)]);
 }
 #else
 int evc_tbl_qp_chroma_dynamic_ext[2][MAX_QP_TABLE_SIZE_EXT] = { { -12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, }, { -12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, } };
