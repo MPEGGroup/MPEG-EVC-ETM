@@ -235,7 +235,7 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
     evcd_split_tbl_init(ctx);
 
 #if BD_CF_EXT
-    set_chroma_qp__tbl_loc();
+    set_chroma_qp__tbl_loc(ctx->sps.bit_depth_luma_minus8 + 8);
 #endif
     if(ctx->sps.tool_iqt == 0)
     {
@@ -2555,7 +2555,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
                 }
                 ret = evcd_picbuf_check_signature(ctx->pic, ctx->pic_sign, ctx->pps.pic_dra_enabled_flag, effective_dra_control, ctx->w, ctx->h, doCompareMd5
 #if BD_CF_EXT
-                                                  , ctx->sps.chroma_format_idc
+                                                  , ctx->sps.bit_depth_luma_minus8 + 8
 #endif
                 );
 #else

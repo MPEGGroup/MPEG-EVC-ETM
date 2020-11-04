@@ -77,7 +77,7 @@ void evc_derived_chroma_qp_mapping_tables(EVC_CHROMA_TABLE *structChromaQP
 #endif
 );
 #if BD_CF_EXT
-void set_chroma_qp__tbl_loc();
+void set_chroma_qp__tbl_loc(int codec_bit_depth);
 #endif
 
 extern const s16 init_cbf_luma[2][NUM_CTX_CBF_LUMA];

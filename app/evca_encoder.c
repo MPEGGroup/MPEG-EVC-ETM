@@ -3184,13 +3184,13 @@ int main(int argc, const char **argv)
 
     /* read configurations and set values for create descriptor */
     int val;
+#if BD_CF_EXT
+    set_chroma_qp__tbl_loc(op_codec_bit_depth);
+#endif
 #if M52291_HDR_DRA
     val = get_conf(&cdsc, (void*)p_g_dra_control);
 #else
     val = get_conf(&cdsc);
-#endif
-#if BD_CF_EXT
-    set_chroma_qp__tbl_loc();
 #endif
     if(val)
     {
