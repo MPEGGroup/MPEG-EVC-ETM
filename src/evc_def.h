@@ -37,25 +37,18 @@
 #include "evc.h"
 #include "evc_port.h"
 
+//recent bugfixes (to be removed in next minor release)
 #define ETM70_GOLOMB_FIX                             1
 #define MULTIPLE_NAL                                 1
-#if MULTIPLE_NAL  
-#define MAX_NUM_PPS                                  64
-#endif
-
-#define ETM60_HLS_FIX                                1         
+#define ETM60_HLS_FIX                                1
 #define ALF_CONFORMANCE_CHECK                        1
 #define DRA_CONFORMANCE_CHECK                        1  
-
 #define M53744                                       1
-
 #define INTEGR_M53608                                1
 #if INTEGR_M53608
 #define M53608_DRA                                   1
-
 #define M53608_DB_1                                  1 // Change of chroma (tc+1) for bitdepth, clean up for luma bitdepth.
 #define M53608_DB_2                                  1 // modifiy BS during BS derivation process instead of overwrite after derivation
-
 #define M53608_ALF_1                                 1 // SW bug-fix in Cb/Cr filtering order
 #define M53608_ALF_2                                 1 // Optimization of ALF classifier scale
 #define M53608_ALF_3                                 1 // simplification of ALF signaling, tb(v)/tu(v) removal
@@ -71,7 +64,6 @@
 #define M53608_ALF_13                                1 // Improve readability of delta filter coefficients reconstruction 
 #define M53608_ALF_14                                1 // Moving chroma_idc signaling from APS to slice header.
 #endif
-
 #define CLEANUP_AMVR                                 1
 #define RPL_CLEANUP                                  1
 #define DB_SPEC_ALIGNMENT1                           1 
@@ -169,6 +161,10 @@ extern int INTERNAL_CODEC_BIT_DEPTH_CHROMA;
 //                         Certain Tools Parameters                           //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
+#if MULTIPLE_NAL  
+#define MAX_NUM_PPS                                  64
+#endif
+
 /* Partitioning (START) */
 #define INC_QT_DEPTH(qtd, smode)           (smode == SPLIT_QUAD? (qtd + 1) : qtd)
 #define INC_BTT_DEPTH(bttd, smode, bound)  (bound? 0: (smode != SPLIT_QUAD? (bttd + 1) : bttd))
