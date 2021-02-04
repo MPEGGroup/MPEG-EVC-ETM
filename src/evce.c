@@ -2694,7 +2694,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #if M55968_IPIP
 		if (ctx->sps.tool_rpl)
 #endif
-			set_nalu(&ctx->nalu, ctx->pic_cnt == 0 || (ctx->slice_type == SLICE_I && ctx->param.use_closed_gop) ? EVC_IDR_NUT : EVC_NONIDR_NUT, ctx->nalu.nuh_temporal_id);
+		set_nalu(&ctx->nalu, ctx->pic_cnt == 0 || (ctx->slice_type == SLICE_I && ctx->param.use_closed_gop) ? EVC_IDR_NUT : EVC_NONIDR_NUT, ctx->nalu.nuh_temporal_id);
 
         if (!ctx->sps.tool_rpl)
         {
