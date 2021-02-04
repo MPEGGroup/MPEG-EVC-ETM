@@ -78,7 +78,7 @@
 //MPEG 129 adoptions
 #define M52291_HDR_DRA                               1
 
-#define M55968_IPIP                              1
+#define M55968_IPIP                                  1
 
 /* Profiles definitions */
 #define PROFILE_BASELINE                             0

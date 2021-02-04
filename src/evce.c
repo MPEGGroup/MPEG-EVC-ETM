@@ -2603,21 +2603,23 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             ctx->sh.aps_signaled = -1; // reset stored aps id in tile group header
             ctx->aps_temp = 0;
         }
-			
-		if (!ctx->sps.tool_rpl)
-		{
-#if M55968_IPIP
-			set_nalu(&ctx->nalu, ctx->pic_cnt == 0 || (ctx->slice_type == SLICE_I && ctx->param.use_closed_gop) ? EVC_IDR_NUT : EVC_NONIDR_NUT, ctx->nalu.nuh_temporal_id);
 
-			if (ctx->nalu.nal_unit_type_plus1 - 1 != EVC_IDR_NUT)
-			{
-				if (ctx->slice_type != SLICE_B && ctx->param.i_period!=0&&ctx->param.gop_size==1)
-					evc_poc_derivation(ctx->sps, ctx->nalu.nuh_temporal_id, &ctx->poc);
-			}
+        if (!ctx->sps.tool_rpl)
+        {
+#if M55968_IPIP
+            set_nalu(&ctx->nalu, ctx->pic_cnt == 0 || (ctx->slice_type == SLICE_I && ctx->param.use_closed_gop) ? EVC_IDR_NUT : EVC_NONIDR_NUT, ctx->nalu.nuh_temporal_id);
+
+            if (ctx->nalu.nal_unit_type_plus1 - 1 != EVC_IDR_NUT)
+            {
+                if (ctx->slice_type != SLICE_B && ctx->param.i_period!=0&&ctx->param.gop_size==1)
+                {
+                    evc_poc_derivation(ctx->sps, ctx->nalu.nuh_temporal_id, &ctx->poc);
+                }
+            }
 #endif
-			/* initialize reference pictures */
-			ret = evc_picman_refp_init(&ctx->rpm, ctx->sps.max_num_ref_pics, ctx->slice_type, ctx->poc.poc_val, ctx->nalu.nuh_temporal_id, ctx->last_intra_poc, ctx->refp);
-		}
+            /* initialize reference pictures */
+            ret = evc_picman_refp_init(&ctx->rpm, ctx->sps.max_num_ref_pics, ctx->slice_type, ctx->poc.poc_val, ctx->nalu.nuh_temporal_id, ctx->last_intra_poc, ctx->refp);
+        }
         else
         {
             /* Set slice header */
@@ -2692,9 +2694,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         ctx->lcu_cnt = ctx->f_lcu;
 
 #if M55968_IPIP
-		if (ctx->sps.tool_rpl)
+        if (ctx->sps.tool_rpl)
 #endif
-		set_nalu(&ctx->nalu, ctx->pic_cnt == 0 || (ctx->slice_type == SLICE_I && ctx->param.use_closed_gop) ? EVC_IDR_NUT : EVC_NONIDR_NUT, ctx->nalu.nuh_temporal_id);
+        {
+            set_nalu(&ctx->nalu, ctx->pic_cnt == 0 || (ctx->slice_type == SLICE_I && ctx->param.use_closed_gop) ? EVC_IDR_NUT : EVC_NONIDR_NUT, ctx->nalu.nuh_temporal_id);
+        }
 
         if (!ctx->sps.tool_rpl)
         {
