@@ -3201,7 +3201,7 @@ static void mc_filter_c_4pel_vert_sse(s16 *ref,
 
 void evc_mc_l_00(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h
 #if BD_CF_EXT
-                 , int bit_depth
+                 , int bit_depth, int idc
 #endif
 )
 {
@@ -3268,7 +3268,7 @@ void evc_mc_l_00(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pre
 
 void evc_mc_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h
 #if BD_CF_EXT
-                 , int bit_depth
+                 , int bit_depth, int idc
 #endif
 )
 {
@@ -3364,7 +3364,7 @@ void evc_mc_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pre
 
 void evc_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h
 #if BD_CF_EXT
-                 , int bit_depth
+                 , int bit_depth, int idc
 #endif
 )
 {
@@ -3461,7 +3461,7 @@ void evc_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pre
 
 void evc_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h
 #if BD_CF_EXT
-                 , int bit_depth
+                 , int bit_depth, int idc
 #endif
 )
 {
@@ -3637,7 +3637,7 @@ void evc_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
 #if DMVR_PADDING
 void evc_mc_dmvr_l_00(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h
 #if BD_CF_EXT
-                      , int bit_depth
+                      , int bit_depth, int idc
 #endif
 )
 {
@@ -3704,7 +3704,7 @@ void evc_mc_dmvr_l_00(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
 
 void evc_mc_dmvr_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h
 #if BD_CF_EXT
-                      , int bit_depth
+                      , int bit_depth, int idc
 #endif
 )
 {
@@ -3804,7 +3804,7 @@ void evc_mc_dmvr_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
 
 void evc_mc_dmvr_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h
 #if BD_CF_EXT
-                      , int bit_depth
+                      , int bit_depth, int idc
 #endif
 )
 {
@@ -3904,7 +3904,7 @@ void evc_mc_dmvr_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
 
 void evc_mc_dmvr_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h
 #if BD_CF_EXT
-                      , int bit_depth
+                      , int bit_depth, int idc
 #endif
 )
 {
@@ -4085,7 +4085,7 @@ void evc_mc_dmvr_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
 
 void evc_bl_mc_l_00(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h
 #if BD_CF_EXT
-                    , int bit_depth
+                    , int bit_depth, int idc
 #endif
 )
 {
@@ -4152,7 +4152,7 @@ void evc_bl_mc_l_00(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *
 
 void evc_bl_mc_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h
 #if BD_CF_EXT
-                    , int bit_depth
+                    , int bit_depth, int idc
 #endif
 )
 {
@@ -4250,7 +4250,7 @@ void evc_bl_mc_l_n0(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *
 
 void evc_bl_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h
 #if BD_CF_EXT
-                    , int bit_depth
+                  , int bit_depth, int idc
 #endif
 )
 {
@@ -4349,7 +4349,7 @@ void evc_bl_mc_l_0n(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *
 
 void evc_bl_mc_l_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h
 #if BD_CF_EXT
-                    , int bit_depth
+                  , int bit_depth, int idc
 #endif
 )
 {
@@ -4635,7 +4635,7 @@ static const s8 tbl_mc_c_coeff[2][8][4] =
 
 void evc_mc_c_00(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h
 #if BD_CF_EXT
-                 , int bit_depth
+               , int bit_depth, int idc
 #endif
 )
 {
@@ -4702,7 +4702,7 @@ void evc_mc_c_00(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
 
 void evc_mc_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h
 #if BD_CF_EXT
-                 , int bit_depth
+               , int bit_depth, int idc
 #endif
 )
 {
@@ -4799,7 +4799,7 @@ void evc_mc_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
 
 void evc_mc_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h
 #if BD_CF_EXT
-                 , int bit_depth
+               , int bit_depth, int idc
 #endif
 )
 {
@@ -4897,7 +4897,7 @@ void evc_mc_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
 
 void evc_mc_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h
 #if BD_CF_EXT
-                 , int bit_depth
+               , int bit_depth, int idc
 #endif
 )
 {
@@ -5073,7 +5073,7 @@ void evc_mc_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pre
 #if DMVR_PADDING
 void evc_mc_dmvr_c_00(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h
 #if BD_CF_EXT
-                      , int bit_depth
+                    , int bit_depth, int idc
 #endif
 )
 {
@@ -5138,7 +5138,7 @@ void evc_mc_dmvr_c_00(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
 
 void evc_mc_dmvr_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h
 #if BD_CF_EXT
-                      , int bit_depth
+                    , int bit_depth, int idc
 #endif
 )
 {
@@ -5231,7 +5231,7 @@ void evc_mc_dmvr_c_n0(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
 
 void evc_mc_dmvr_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h
 #if BD_CF_EXT
-                      , int bit_depth
+                    , int bit_depth, int idc
 #endif
 )
 {
@@ -5323,7 +5323,7 @@ void evc_mc_dmvr_c_0n(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
 
 void evc_mc_dmvr_c_nn(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h
 #if BD_CF_EXT
-                      , int bit_depth
+                    , int bit_depth, int idc
 #endif
 )
 {
@@ -6486,7 +6486,7 @@ void copy_to_dst(int w, int h, pel *src, pel *dst, int s_stride, int d_stride)
 void predict_new_line(int x, int y, int pic_w, int pic_h, const EVC_PIC *ref_pic, const s16(*mv), const s16(*mv_current), pel *preds_array, const s16(*mv_offsets), int stride, int w, int h
                       , BOOL all_sides
 #if BD_CF_EXT
-                      , int bit_depth_luma, int bit_depth_chroma
+                      , int bit_depth_luma, int bit_depth_chroma, int chroma_format_idc
 #endif
 )
 {
@@ -6514,13 +6514,13 @@ void predict_new_line(int x, int y, int pic_w, int pic_h, const EVC_PIC *ref_pic
 
 #if MC_PRECISION_ADD
 #if BD_CF_EXT
-            evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array + pred_buffer_offset, REF_PRED_EXTENTION_PEL_COUNT, h + (REF_PRED_EXTENTION_PEL_COUNT << 1), bit_depth_luma);
+            evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array + pred_buffer_offset, REF_PRED_EXTENTION_PEL_COUNT, h + (REF_PRED_EXTENTION_PEL_COUNT << 1), bit_depth_luma, chroma_format_idc);
 #else
             evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array + pred_buffer_offset, REF_PRED_EXTENTION_PEL_COUNT, h + (REF_PRED_EXTENTION_PEL_COUNT << 1));
 #endif
 #else
 #if BD_CF_EXT
-            evc_bl_mc_l(ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, stride, preds_array + pred_buffer_offset, REF_PRED_EXTENTION_PEL_COUNT, h + (REF_PRED_EXTENTION_PEL_COUNT << 1), bit_depth_luma);
+            evc_bl_mc_l(ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, stride, preds_array + pred_buffer_offset, REF_PRED_EXTENTION_PEL_COUNT, h + (REF_PRED_EXTENTION_PEL_COUNT << 1), bit_depth_luma, chroma_format_idc);
 #else
             evc_bl_mc_l(ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, stride, preds_array + pred_buffer_offset, REF_PRED_EXTENTION_PEL_COUNT, h + (REF_PRED_EXTENTION_PEL_COUNT << 1));
 #endif
@@ -6541,13 +6541,13 @@ void predict_new_line(int x, int y, int pic_w, int pic_h, const EVC_PIC *ref_pic
 
 #if MC_PRECISION_ADD
 #if BD_CF_EXT
-            evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array + pred_buffer_offset, REF_PRED_EXTENTION_PEL_COUNT, h + (REF_PRED_EXTENTION_PEL_COUNT << 1), bit_depth_luma);
+            evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array + pred_buffer_offset, REF_PRED_EXTENTION_PEL_COUNT, h + (REF_PRED_EXTENTION_PEL_COUNT << 1), bit_depth_luma, chroma_format_idc);
 #else
             evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array + pred_buffer_offset, REF_PRED_EXTENTION_PEL_COUNT, h + (REF_PRED_EXTENTION_PEL_COUNT << 1));
 #endif
 #else
 #if BD_CF_EXT
-            evc_bl_mc_l(ref_pic->y, (qpel_gmv_x), (qpel_gmv_y), ref_pic->s_l, stride, preds_array + pred_buffer_offset, REF_PRED_EXTENTION_PEL_COUNT, h + (REF_PRED_EXTENTION_PEL_COUNT << 1), bit_depth_luma);
+            evc_bl_mc_l(ref_pic->y, (qpel_gmv_x), (qpel_gmv_y), ref_pic->s_l, stride, preds_array + pred_buffer_offset, REF_PRED_EXTENTION_PEL_COUNT, h + (REF_PRED_EXTENTION_PEL_COUNT << 1), bit_depth_luma, chroma_format_idc);
 #else
             evc_bl_mc_l(ref_pic->y, (qpel_gmv_x), (qpel_gmv_y), ref_pic->s_l, stride, preds_array + pred_buffer_offset, REF_PRED_EXTENTION_PEL_COUNT, h + (REF_PRED_EXTENTION_PEL_COUNT << 1));
 #endif
@@ -6573,7 +6573,7 @@ void predict_new_line(int x, int y, int pic_w, int pic_h, const EVC_PIC *ref_pic
 
 #if MC_PRECISION_ADD
 #if BD_CF_EXT
-            evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array + pred_buffer_offset, w + (REF_PRED_EXTENTION_PEL_COUNT << 1), REF_PRED_EXTENTION_PEL_COUNT, bit_depth_luma);
+            evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array + pred_buffer_offset, w + (REF_PRED_EXTENTION_PEL_COUNT << 1), REF_PRED_EXTENTION_PEL_COUNT, bit_depth_luma, chroma_format_idc);
 #else
             evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array + pred_buffer_offset, w + (REF_PRED_EXTENTION_PEL_COUNT << 1), REF_PRED_EXTENTION_PEL_COUNT);
 #endif
@@ -6599,7 +6599,7 @@ void predict_new_line(int x, int y, int pic_w, int pic_h, const EVC_PIC *ref_pic
 
 #if MC_PRECISION_ADD
 #if BD_CF_EXT
-            evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array + pred_buffer_offset, w + (REF_PRED_EXTENTION_PEL_COUNT << 1), REF_PRED_EXTENTION_PEL_COUNT, bit_depth_luma);
+            evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array + pred_buffer_offset, w + (REF_PRED_EXTENTION_PEL_COUNT << 1), REF_PRED_EXTENTION_PEL_COUNT, bit_depth_luma, chroma_format_idc);
 #else
             evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array + pred_buffer_offset, w + (REF_PRED_EXTENTION_PEL_COUNT << 1), REF_PRED_EXTENTION_PEL_COUNT);
 #endif
@@ -7116,7 +7116,7 @@ void final_paddedMC_forDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8
         pel *src = dmvr_padding_buf[i][0] + offset + sub_pred_offset_x + sub_pred_offset_y * PAD_BUFFER_STRIDE;;
         pel *temp = pred[i][Y_C] + sub_pred_offset_x + sub_pred_offset_y * cu_pred_stride;
 #if BD_CF_EXT
-        evc_dmvr_mc_l(src, qpel_gmv_x, qpel_gmv_y, PAD_BUFFER_STRIDE, cu_pred_stride, temp, w, h, bit_depth_luma);
+        evc_dmvr_mc_l(src, qpel_gmv_x, qpel_gmv_y, PAD_BUFFER_STRIDE, cu_pred_stride, temp, w, h, bit_depth_luma, chroma_format_idc);
 #else
         evc_dmvr_mc_l(src, qpel_gmv_x, qpel_gmv_y, PAD_BUFFER_STRIDE, cu_pred_stride, temp, w, h);
 #endif
@@ -7131,16 +7131,16 @@ void final_paddedMC_forDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8
             src = dmvr_padding_buf[i][1] + offset + (sub_pred_offset_x >> (GET_CHROMA_W_SHIFT(chroma_format_idc))) + (sub_pred_offset_y >> (GET_CHROMA_H_SHIFT(chroma_format_idc))) * PAD_BUFFER_STRIDE;
             temp = pred[i][U_C] + (sub_pred_offset_x >> (GET_CHROMA_W_SHIFT(chroma_format_idc))) + (sub_pred_offset_y >> (GET_CHROMA_H_SHIFT(chroma_format_idc))) * (cu_pred_stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)));
 #if BD_CF_EXT
-            evc_dmvr_mc_c(src, qpel_gmv_x, qpel_gmv_y, PAD_BUFFER_STRIDE, cu_pred_stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), temp, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
-                          , h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma);
+            evc_dmvr_mc_c(src, qpel_gmv_x *(2 / (1 + GET_CHROMA_W_SHIFT(chroma_format_idc))), qpel_gmv_y*(2 / (1 + GET_CHROMA_H_SHIFT(chroma_format_idc))), PAD_BUFFER_STRIDE, cu_pred_stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), temp, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                , h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma, chroma_format_idc);
 #else
             evc_dmvr_mc_c(src, qpel_gmv_x, qpel_gmv_y, PAD_BUFFER_STRIDE, cu_pred_stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), temp, w >> 1(GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)));
 #endif
             src = dmvr_padding_buf[i][2] + offset + (sub_pred_offset_x >> (GET_CHROMA_W_SHIFT(chroma_format_idc))) + (sub_pred_offset_y >> (GET_CHROMA_H_SHIFT(chroma_format_idc))) * PAD_BUFFER_STRIDE;
             temp = pred[i][V_C] + (sub_pred_offset_x >> (GET_CHROMA_W_SHIFT(chroma_format_idc))) + (sub_pred_offset_y >> (GET_CHROMA_H_SHIFT(chroma_format_idc))) * (cu_pred_stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)));
 #if BD_CF_EXT
-            evc_dmvr_mc_c(src, qpel_gmv_x, qpel_gmv_y, PAD_BUFFER_STRIDE, cu_pred_stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), temp, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
-                          , h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma);
+            evc_dmvr_mc_c(src, qpel_gmv_x*(2 / (1 + GET_CHROMA_W_SHIFT(chroma_format_idc))), qpel_gmv_y*(2 / (1 + GET_CHROMA_H_SHIFT(chroma_format_idc))), PAD_BUFFER_STRIDE, cu_pred_stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), temp, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                , h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma, chroma_format_idc);
         }
 #else
         evc_dmvr_mc_c(src, qpel_gmv_x, qpel_gmv_y, PAD_BUFFER_STRIDE, cu_pred_stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), temp, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)));
@@ -7149,7 +7149,7 @@ void final_paddedMC_forDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8
         src = dmvr_padding_buf[i][1] + offset + (sub_pred_offset_x >> 1) + (sub_pred_offset_y >> 1) * PAD_BUFFER_STRIDE;;
         temp = pred[i][U_C] + (sub_pred_offset_x >> 1) + (sub_pred_offset_y >> 1) * (cu_pred_stride >> 1);
 #if BD_CF_EXT
-        evc_dmvr_mc_c(src, qpel_gmv_x, qpel_gmv_y, PAD_BUFFER_STRIDE, cu_pred_stride >> 1, temp, w >> 1, h >> 1, bit_depth_chroma);
+        evc_dmvr_mc_c(src, qpel_gmv_x*(2 / (1 + GET_CHROMA_W_SHIFT(chroma_format_idc))), qpel_gmv_y*(2 / (1 + GET_CHROMA_H_SHIFT(chroma_format_idc))), PAD_BUFFER_STRIDE, cu_pred_stride >> 1, temp, w >> 1, h >> 1, bit_depth_chroma, chroma_format_idc);
 #else
         evc_dmvr_mc_c(src, qpel_gmv_x, qpel_gmv_y, PAD_BUFFER_STRIDE, cu_pred_stride >> 1, temp, w >> 1, h >> 1);
 #endif
@@ -7157,7 +7157,7 @@ void final_paddedMC_forDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8
         src = dmvr_padding_buf[i][2] + offset + (sub_pred_offset_x >> 1) + (sub_pred_offset_y >> 1) * PAD_BUFFER_STRIDE;;
         temp = pred[i][V_C] + (sub_pred_offset_x >> 1) + (sub_pred_offset_y >> 1) * (cu_pred_stride >> 1);
 #if BD_CF_EXT
-        evc_dmvr_mc_c(src, qpel_gmv_x, qpel_gmv_y, PAD_BUFFER_STRIDE, cu_pred_stride >> 1, temp, w >> 1, h >> 1, bit_depth_chroma);
+        evc_dmvr_mc_c(src, qpel_gmv_x*(2 / (1 + GET_CHROMA_W_SHIFT(chroma_format_idc))), qpel_gmv_y*(2 / (1 + GET_CHROMA_H_SHIFT(chroma_format_idc))), PAD_BUFFER_STRIDE, cu_pred_stride >> 1, temp, w >> 1, h >> 1, bit_depth_chroma, chroma_format_idc);
 #else
         evc_dmvr_mc_c(src, qpel_gmv_x, qpel_gmv_y, PAD_BUFFER_STRIDE, cu_pred_stride >> 1, temp, w >> 1, h >> 1);
 #endif
@@ -7170,15 +7170,15 @@ void final_paddedMC_forDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8
 #endif
         );
         temp = pred[i][U_C] + (sub_pred_offset_x >> 1) + (sub_pred_offset_y >> 1) * (cu_pred_stride >> 1);
-        evc_mc_c(qpel_gmv_x, qpel_gmv_y, ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cu_pred_stride >> 1, temp, w >> 1, h >> 1
+        evc_mc_c(qpel_gmv_x, qpel_gmv_y, ref_pic->u, qpel_gmv_x*(2 / (1 + GET_CHROMA_W_SHIFT(chroma_format_idc))), qpel_gmv_y*(2 / (1 + GET_CHROMA_H_SHIFT(chroma_format_idc))), ref_pic->s_c, cu_pred_stride >> 1, temp, w >> 1, h >> 1
 #if BD_CF_EXT
-                 , bit_depth_chroma
+                 , bit_depth_chroma, chroma_format_idc
 #endif
         );
         temp = pred[i][V_C] + (sub_pred_offset_x >> 1) + (sub_pred_offset_y >> 1) * (cu_pred_stride >> 1);
-        evc_mc_c(qpel_gmv_x, qpel_gmv_y, ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cu_pred_stride >> 1, temp, w >> 1, h >> 1
+        evc_mc_c(qpel_gmv_x, qpel_gmv_y, ref_pic->v, qpel_gmv_x*(2 / (1 + GET_CHROMA_W_SHIFT(chroma_format_idc))), qpel_gmv_y*(2 / (1 + GET_CHROMA_H_SHIFT(chroma_format_idc))), ref_pic->s_c, cu_pred_stride >> 1, temp, w >> 1, h >> 1
 #if BD_CF_EXT
-                 , bit_depth_chroma
+                 , bit_depth_chroma, chroma_format_idc
 #endif
         );
 #endif
@@ -7245,7 +7245,7 @@ void processDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_
     qpel_gmv_x = (x << 2) + tempMv[MV_X];
     qpel_gmv_y = (y << 2) + tempMv[MV_Y];
 #if BD_CF_EXT
-    evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array[REFP_0], (w + iteration * 2), (h + iteration * 2), bit_depth_luma);
+    evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array[REFP_0], (w + iteration * 2), (h + iteration * 2), bit_depth_luma, chroma_format_idc);
 #else
     evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array[REFP_0], (w + iteration * 2), (h + iteration * 2));
 #endif
@@ -7258,7 +7258,7 @@ void processDMVR(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_
     qpel_gmv_x = (x << 2) + tempMv[MV_X];
     qpel_gmv_y = (y << 2) + tempMv[MV_Y];
 #if BD_CF_EXT
-    evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array[REFP_1], (w + iteration * 2), (h + iteration * 2),bit_depth_luma);
+    evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array[REFP_1], (w + iteration * 2), (h + iteration * 2), bit_depth_luma, chroma_format_idc);
 #else
     evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, stride, preds_array[REFP_1], (w + iteration * 2), (h + iteration * 2));
 #endif
@@ -7545,7 +7545,7 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
         if (!apply_DMVR)
         {
 #if BD_CF_EXT
-            evc_mc_l(mv_before_clipping[REFP_0][MV_X] << 2, mv_before_clipping[REFP_0][MV_Y] << 2, ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, w, pred[0][Y_C], w, h, bit_depth_luma);
+            evc_mc_l(mv_before_clipping[REFP_0][MV_X] << 2, mv_before_clipping[REFP_0][MV_Y] << 2, ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, w, pred[0][Y_C], w, h, bit_depth_luma, chroma_format_idc);
 #else
             evc_mc_l(mv_before_clipping[REFP_0][MV_X] << 2, mv_before_clipping[REFP_0][MV_Y] << 2, ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, w, pred[0][Y_C], w, h);
 #endif
@@ -7559,10 +7559,10 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
         {
 #if BD_CF_EXT
 #if BD_CF_EXT
-            evc_mc_c(mv_before_clipping[REFP_0][MV_X] << 2, mv_before_clipping[REFP_0][MV_Y] << 2, ref_pic->u, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
-                     , pred[0][U_C], w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma);
-            evc_mc_c(mv_before_clipping[REFP_0][MV_X] << 2, mv_before_clipping[REFP_0][MV_Y] << 2, ref_pic->v, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
-                     , pred[0][V_C], w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma);
+            evc_mc_c(mv_before_clipping[REFP_0][MV_X] << 2, mv_before_clipping[REFP_0][MV_Y] << 2, ref_pic->u, (qpel_gmv_x << 2)*(2 / (1 + GET_CHROMA_W_SHIFT(chroma_format_idc))), (qpel_gmv_y << 2)*(2 / (1 + GET_CHROMA_H_SHIFT(chroma_format_idc))), ref_pic->s_c, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                   , pred[0][U_C], w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma, chroma_format_idc);
+            evc_mc_c(mv_before_clipping[REFP_0][MV_X] << 2, mv_before_clipping[REFP_0][MV_Y] << 2, ref_pic->v, (qpel_gmv_x << 2)*(2 / (1 + GET_CHROMA_W_SHIFT(chroma_format_idc))), (qpel_gmv_y << 2)*(2 / (1 + GET_CHROMA_H_SHIFT(chroma_format_idc))), ref_pic->s_c, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                   , pred[0][V_C], w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma, chroma_format_idc);
 #else
             evc_mc_c(mv_before_clipping[REFP_0][MV_X] << 2, mv_before_clipping[REFP_0][MV_Y] << 2, ref_pic->u, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[0][U_C], w >> 1, h >> 1, bit_depth_chroma);
             evc_mc_c(mv_before_clipping[REFP_0][MV_X] << 2, mv_before_clipping[REFP_0][MV_Y] << 2, ref_pic->v, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[0][V_C], w >> 1, h >> 1, bit_depth_chroma);
@@ -7586,7 +7586,7 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
         if(!REFI_IS_VALID(refi[REFP_1]) || !apply_DMVR || !dmvr_poc_condition)
         {
 #if BD_CF_EXT
-            evc_mc_c(mv_before_clipping[REFP_0][MV_X], mv_before_clipping[REFP_0][MV_Y], ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+            evc_mc_c(mv_before_clipping[REFP_0][MV_X], mv_before_clipping[REFP_0][MV_Y], ref_pic->u, qpel_gmv_x*(2 / (1 + GET_CHROMA_W_SHIFT(chroma_format_idc))), qpel_gmv_y*(2 / (1 + GET_CHROMA_H_SHIFT(chroma_format_idc))), ref_pic->s_c, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
                      , pred[0][U_C], w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc))
 #else
             evc_mc_c(mv_before_clipping[REFP_0][MV_X], mv_before_clipping[REFP_0][MV_Y], ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[0][U_C], w >> 1, h >> 1
@@ -7596,7 +7596,7 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
 #endif
             );
 #if BD_CF_EXT
-            evc_mc_c(mv_before_clipping[REFP_0][MV_X], mv_before_clipping[REFP_0][MV_Y], ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+            evc_mc_c(mv_before_clipping[REFP_0][MV_X], mv_before_clipping[REFP_0][MV_Y], ref_pic->v, qpel_gmv_x*(2 / (1 + GET_CHROMA_W_SHIFT(chroma_format_idc))), qpel_gmv_y*(2 / (1 + GET_CHROMA_H_SHIFT(chroma_format_idc))), ref_pic->s_c, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
                      , pred[0][V_C], w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc))
 #else
             evc_mc_c(mv_before_clipping[REFP_0][MV_X], mv_before_clipping[REFP_0][MV_Y], ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[0][V_C], w >> 1, h >> 1
@@ -7632,7 +7632,7 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
         if (!apply_DMVR)
         {
 #if BD_CF_EXT
-            evc_mc_l(mv_before_clipping[REFP_1][MV_X] << 2, mv_before_clipping[REFP_1][MV_Y] << 2, ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, w, pred[bidx][Y_C], w, h, bit_depth_luma);
+            evc_mc_l(mv_before_clipping[REFP_1][MV_X] << 2, mv_before_clipping[REFP_1][MV_Y] << 2, ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, w, pred[bidx][Y_C], w, h, bit_depth_luma, chroma_format_idc);
 #else
             evc_mc_l(mv_before_clipping[REFP_1][MV_X] << 2, mv_before_clipping[REFP_1][MV_Y] << 2, ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, w, pred[bidx][Y_C], w, h);
 #endif
@@ -7646,10 +7646,10 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
         {
 #if BD_CF_EXT
 #if BD_CF_EXT
-            evc_mc_c(mv_before_clipping[REFP_1][MV_X] << 2, mv_before_clipping[REFP_1][MV_Y] << 2, ref_pic->u, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
-                     , pred[bidx][U_C], w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma);
-            evc_mc_c(mv_before_clipping[REFP_1][MV_X] << 2, mv_before_clipping[REFP_1][MV_Y] << 2, ref_pic->v, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
-                     , pred[bidx][V_C], w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma);
+            evc_mc_c(mv_before_clipping[REFP_1][MV_X] << 2, mv_before_clipping[REFP_1][MV_Y] << 2, ref_pic->u, (qpel_gmv_x << 2)*(2 / (1 + GET_CHROMA_W_SHIFT(chroma_format_idc))), (qpel_gmv_y << 2)*(2 / (1 + GET_CHROMA_H_SHIFT(chroma_format_idc))), ref_pic->s_c, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                   , pred[bidx][U_C], w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma, chroma_format_idc);
+            evc_mc_c(mv_before_clipping[REFP_1][MV_X] << 2, mv_before_clipping[REFP_1][MV_Y] << 2, ref_pic->v, (qpel_gmv_x << 2)*(2 / (1 + GET_CHROMA_W_SHIFT(chroma_format_idc))), (qpel_gmv_y << 2)*(2 / (1 + GET_CHROMA_H_SHIFT(chroma_format_idc))), ref_pic->s_c, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                   , pred[bidx][V_C], w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma, chroma_format_idc);
 #else
             evc_mc_c(mv_before_clipping[REFP_1][MV_X] << 2, mv_before_clipping[REFP_1][MV_Y] << 2, ref_pic->u, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[bidx][U_C], w >> 1, h >> 1, bit_depth_chroma);
             evc_mc_c(mv_before_clipping[REFP_1][MV_X] << 2, mv_before_clipping[REFP_1][MV_Y] << 2, ref_pic->v, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_c, w >> 1, pred[bidx][V_C], w >> 1, h >> 1, bit_depth_chroma);
@@ -7674,10 +7674,10 @@ void evc_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM],
         {
 #if BD_CF_EXT
 #if BD_CF_EXT
-            evc_mc_c(mv_before_clipping[REFP_1][MV_X], mv_before_clipping[REFP_1][MV_Y], ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
-                     , pred[bidx][U_C], w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma);
-            evc_mc_c(mv_before_clipping[REFP_1][MV_X], mv_before_clipping[REFP_1][MV_Y], ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
-                     , pred[bidx][V_C], w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma);
+            evc_mc_c(mv_before_clipping[REFP_1][MV_X], mv_before_clipping[REFP_1][MV_Y], ref_pic->u, qpel_gmv_x*(2 / (1 + GET_CHROMA_W_SHIFT(chroma_format_idc))), qpel_gmv_y*(2 / (1 + GET_CHROMA_H_SHIFT(chroma_format_idc))), ref_pic->s_c, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                   , pred[bidx][U_C], w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma, chroma_format_idc);
+            evc_mc_c(mv_before_clipping[REFP_1][MV_X], mv_before_clipping[REFP_1][MV_Y], ref_pic->v, qpel_gmv_x*(2 / (1 + GET_CHROMA_W_SHIFT(chroma_format_idc))), qpel_gmv_y*(2 / (1 + GET_CHROMA_H_SHIFT(chroma_format_idc))), ref_pic->s_c, w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                   , pred[bidx][V_C], w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma, chroma_format_idc);
 #else
             evc_mc_c(mv_before_clipping[REFP_1][MV_X], mv_before_clipping[REFP_1][MV_Y], ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[bidx][U_C], w >> 1, h >> 1, bit_depth_chroma);
             evc_mc_c(mv_before_clipping[REFP_1][MV_X], mv_before_clipping[REFP_1][MV_Y], ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, w >> 1, pred[bidx][V_C], w >> 1, h >> 1, bit_depth_chroma);
@@ -8032,7 +8032,7 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
             qpel_gmv_y = ((y + h) << mc_prec) + mv_scale_tmp_ver;
 
 #if BD_CF_EXT
-            evc_mc_l(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, cuw, (pred_y + w), sub_w, sub_h, bit_depth_luma);
+            evc_mc_l(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, cuw, (pred_y + w), sub_w, sub_h, bit_depth_luma, chroma_format_idc);
 #else
             evc_mc_l(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, cuw, (pred_y + w), sub_w, sub_h);
 #endif
@@ -8167,7 +8167,7 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
             qpel_gmv_y = ((y + h) << mc_prec) + mv_scale_tmp_ver;
 
 #if BD_CF_EXT
-            evc_mc_l(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, cuw, (pred_y + w), sub_w, sub_h, bit_depth_luma);
+            evc_mc_l(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, cuw, (pred_y + w), sub_w, sub_h, bit_depth_luma, chroma_format_idc);
 #else
             evc_mc_l(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->y, qpel_gmv_x, qpel_gmv_y, ref_pic->s_l, cuw, (pred_y + w), sub_w, sub_h);
 #endif
@@ -8181,10 +8181,10 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
             {
 #if BD_CF_EXT
 #if BD_CF_EXT
-                evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
-                         , pred_u + (w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))), max((sub_w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))), 1), max((sub_h >> (GET_CHROMA_H_SHIFT(chroma_format_idc))), 1), bit_depth_chroma);
-                evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
-                         , pred_v + (w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))), max((sub_w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))), 1), max((sub_h >> (GET_CHROMA_H_SHIFT(chroma_format_idc))), 1), bit_depth_chroma);
+                evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->u, qpel_gmv_x*(2 / (1 + GET_CHROMA_W_SHIFT(chroma_format_idc))), qpel_gmv_y*(2 / (1 + GET_CHROMA_H_SHIFT(chroma_format_idc))), ref_pic->s_c, cuw >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                       , pred_u + (w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))), max((sub_w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))), 1), max((sub_h >> (GET_CHROMA_H_SHIFT(chroma_format_idc))), 1), bit_depth_chroma, chroma_format_idc);
+                evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->v, qpel_gmv_x*(2 / (1 + GET_CHROMA_W_SHIFT(chroma_format_idc))), qpel_gmv_y*(2 / (1 + GET_CHROMA_H_SHIFT(chroma_format_idc))), ref_pic->s_c, cuw >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                       , pred_v + (w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))), max((sub_w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))), 1), max((sub_h >> (GET_CHROMA_H_SHIFT(chroma_format_idc))), 1), bit_depth_chroma, chroma_format_idc);
 #else
                 evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> 1, pred_u + (w >> 1), max((sub_w >> 1), 1), max((sub_h >> 1), 1), bit_depth_chroma);
                 evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> 1, pred_v + (w >> 1), max((sub_w >> 1), 1), max((sub_h >> 1), 1), bit_depth_chroma);
@@ -8199,10 +8199,10 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
 #if BD_CF_EXT
             if(chroma_format_idc)
             {
-                evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
-                         , pred_u + (w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))), sub_w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), sub_h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma);
-                evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->v, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
-                         , pred_v + (w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))), sub_w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), sub_h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma);
+                evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->u, qpel_gmv_x*(2 / (1 + GET_CHROMA_W_SHIFT(chroma_format_idc))), qpel_gmv_y*(2 / (1 + GET_CHROMA_H_SHIFT(chroma_format_idc))), ref_pic->s_c, cuw >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                       , pred_u + (w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))), sub_w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), sub_h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma, chroma_format_idc);
+                evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->v, qpel_gmv_x*(2 / (1 + GET_CHROMA_W_SHIFT(chroma_format_idc))), qpel_gmv_y*(2 / (1 + GET_CHROMA_H_SHIFT(chroma_format_idc))), ref_pic->s_c, cuw >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
+                       , pred_v + (w >> (GET_CHROMA_W_SHIFT(chroma_format_idc))), sub_w >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), sub_h >> (GET_CHROMA_H_SHIFT(chroma_format_idc)), bit_depth_chroma, chroma_format_idc);
             }
 #else
             evc_mc_c(mv_scale_tmp_hor_ori, mv_scale_tmp_ver_ori, ref_pic->u, qpel_gmv_x, qpel_gmv_y, ref_pic->s_c, cuw >> 1, pred_u + (w >> 1), sub_w >> 1, sub_h >> 1, bit_depth_chroma);

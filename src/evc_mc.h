@@ -40,8 +40,8 @@ extern "C"
 {
 #endif
 #if BD_CF_EXT
-typedef void(*EVC_MC_L) (pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h, int bit_depth);
-typedef void(*EVC_MC_C) (pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h, int bit_depth);
+typedef void(*EVC_MC_L) (pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h, int bit_depth, int idc);
+typedef void(*EVC_MC_C) (pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h, int bit_depth, int idc);
 #else
 typedef void (*EVC_MC_L) (pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h);
 typedef void (*EVC_MC_C) (pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h);
@@ -51,8 +51,8 @@ extern EVC_MC_C evc_tbl_mc_c[2][2];
 
 #if DMVR_PADDING
 #if BD_CF_EXT
-typedef void(*EVC_DMVR_MC_L) (pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h, int bit_depth);
-typedef void(*EVC_DMVR_MC_C) (pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h, int bit_depth);
+typedef void(*EVC_DMVR_MC_L) (pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h, int bit_depth, int idc);
+typedef void(*EVC_DMVR_MC_C) (pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h, int bit_depth, int idc);
 #else
 typedef void(*EVC_DMVR_MC_L) (pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h);
 typedef void(*EVC_DMVR_MC_C) (pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h);
@@ -65,24 +65,24 @@ extern EVC_DMVR_MC_C evc_tbl_dmvr_mc_c[2][2];
 extern EVC_MC_C evc_tbl_bl_mc_l[2][2];
 #if BD_CF_EXT
 #if MC_PRECISION_ADD
-#define evc_mc_l(ori_mv_x, ori_mv_y, ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h, bit_depth) \
+#define evc_mc_l(ori_mv_x, ori_mv_y, ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h, bit_depth, idc) \
     (evc_tbl_mc_l[((ori_mv_x) | ((ori_mv_x)>>1) | ((ori_mv_x)>>2) | ((ori_mv_x)>>3)) & 0x1])\
         [((ori_mv_y) | ((ori_mv_y)>>1) | ((ori_mv_y)>>2) | ((ori_mv_y)>>3)) & 0x1]\
-        (ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h, bit_depth)
+        (ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h, bit_depth, idc)
 
-#define evc_mc_c(ori_mv_x, ori_mv_y, ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h, bit_depth) \
+#define evc_mc_c(ori_mv_x, ori_mv_y, ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h, bit_depth, idc) \
     (evc_tbl_mc_c[((ori_mv_x) | ((ori_mv_x)>>1) | ((ori_mv_x)>>2)| ((ori_mv_x)>>3) | ((ori_mv_x)>>4)) & 0x1]\
         [((ori_mv_y) | ((ori_mv_y)>>1) | ((ori_mv_y)>>2) | ((ori_mv_y)>>3) | ((ori_mv_y)>>4)) & 0x1])\
-        (ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h, bit_depth)
+        (ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h, bit_depth, idc)
 #if DMVR_PADDING
-#define evc_dmvr_mc_l(ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h, bit_depth) \
+#define evc_dmvr_mc_l(ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h, bit_depth, idc) \
     (evc_tbl_dmvr_mc_l[((gmv_x) | ((gmv_x)>>1) | ((gmv_x)>>2) | ((gmv_x)>>3)) & 0x1])\
         [((gmv_y) | ((gmv_y)>>1) | ((gmv_y)>>2) | ((gmv_y)>>3)) & 0x1]\
-        (ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h, bit_depth)
-#define evc_dmvr_mc_c(ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h, bit_depth) \
+        (ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h, bit_depth, idc)
+#define evc_dmvr_mc_c(ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h, bit_depth, idc) \
     (evc_tbl_dmvr_mc_c[((gmv_x) | ((gmv_x)>>1) | ((gmv_x)>>2)| ((gmv_x)>>3) | ((gmv_x)>>4)) & 0x1]\
         [((gmv_y) | ((gmv_y)>>1) | ((gmv_y)>>2) | ((gmv_y)>>3) | ((gmv_y)>>4)) & 0x1])\
-        (ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h, bit_depth)
+        (ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h, bit_depth, idc)
 #endif
 #else
 #define evc_mc_l(ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h, bit_depth) \
@@ -132,10 +132,10 @@ extern EVC_MC_C evc_tbl_bl_mc_l[2][2];
 #endif
 #if BD_CF_EXT
 #if MC_PRECISION_ADD
-#define evc_bl_mc_l(ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h, bit_depth) \
+#define evc_bl_mc_l(ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h, bit_depth, idc) \
     (evc_tbl_bl_mc_l[((gmv_x) | ((gmv_x)>>1) | ((gmv_x)>>2) | ((gmv_x)>>3)) & 0x1])\
         [((gmv_y) | ((gmv_y)>>1) | ((gmv_y)>>2) | ((gmv_y)>>3)) & 0x1]\
-        (ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h, bit_depth)
+        (ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h, bit_depth, idc)
 #else
 #define evc_bl_mc_l(ref, gmv_x, gmv_y, s_ref, s_pred, pred, w, h, bit_depth) \
     (evc_tbl_bl_mc_l[((gmv_x)|((gmv_x)>>1))&0x1][((gmv_y)|((gmv_y)>>1))&0x1])\
