@@ -370,14 +370,12 @@ static void deblock_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh,
     u = pic->u + t;
     v = pic->v + t;
 
-    unsigned int no_boundary = map_tidx[t_copy] == map_tidx[t1];
-    if (boundary_filtering)
+    unsigned int no_boundary = 1;
+    if (boundary_filtering && y_pel > 0)
     {
         no_boundary = !(map_tidx[t_copy] == map_tidx[t1]);
-        if ((t_copy - w_scu)>0)
-            no_boundary  = no_boundary && ((MCU_GET_SN(map_scu[0])) == (MCU_GET_SN(map_scu[-w_scu])));
-
     }
+
     /* horizontal filtering */
     if(y_pel > 0 && (no_boundary))
     {
@@ -488,10 +486,10 @@ static void deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh,
     map_refi_tmp = map_refi;
     map_mv_tmp = map_mv;
 
-    unsigned int  no_boundary = map_tidx[t_copy] == map_tidx[t1];
-    if (boundary_filtering)
+    unsigned int  no_boundary = 1;
+    if (boundary_filtering && x_pel > 0)
     {
-        no_boundary = !(map_tidx[t_copy] == map_tidx[t1])&& ((MCU_GET_SN(map_scu[0])) == (MCU_GET_SN(map_scu[-1])));
+        no_boundary = !(map_tidx[t_copy] == map_tidx[t1]);
     }
     /* vertical filtering */
     if(x_pel > 0 && MCU_GET_COD(map_scu[-1]) && (no_boundary))
@@ -1392,12 +1390,10 @@ static void deblock_addb_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
     u = pic->u + t;
     v = pic->v + t;
 
-    unsigned int  no_boundary = map_tidx[t_copy] == map_tidx[t1];
-    if (boundary_filtering)
+    unsigned int  no_boundary = 1;
+    if (boundary_filtering && y_pel > 0)
     {
         no_boundary = !(map_tidx[t_copy] == map_tidx[t1]);
-        if ((t_copy - w_scu)>0)
-            no_boundary = no_boundary && ((MCU_GET_SN(map_scu[0])) == (MCU_GET_SN(map_scu[-w_scu])));
     }
 #if DBF_8_8_GRID
     if (align_8_8_grid  && y_pel > 0 && (no_boundary))
@@ -1845,10 +1841,10 @@ static void deblock_addb_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
     }
 #endif
 
-    unsigned int no_boundary = map_tidx[t_copy] == map_tidx[t1];
-    if (boundary_filtering)
+    unsigned int no_boundary = 1;
+    if (boundary_filtering && x_pel > 0)
     {
-        no_boundary = !(map_tidx[t_copy] == map_tidx[t1]) && ((MCU_GET_SN(map_scu[0])) == (MCU_GET_SN(map_scu[-1])));
+        no_boundary = !(map_tidx[t_copy] == map_tidx[t1]);
     }
 
     if (align_8_8_grid && x_pel > 0 && MCU_GET_COD(map_scu[-1]) && (no_boundary))
