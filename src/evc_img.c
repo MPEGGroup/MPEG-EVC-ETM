@@ -111,7 +111,7 @@ EVC_IMGB * evc_imgb_create(int w, int h, int cs, int opt, int pad[EVC_IMGB_MAX_P
 
 #if BD_CF_EXT
             imgb->aw[i] = EVC_ALIGN(w, (a_size >> GET_CHROMA_W_SHIFT(idc)));
-            imgb->ah[i] = EVC_ALIGN(h, (a_size >> GET_CHROMA_W_SHIFT(idc)));
+            imgb->ah[i] = EVC_ALIGN(h, (a_size >> GET_CHROMA_H_SHIFT(idc)));
 #else
             imgb->aw[i] = EVC_ALIGN(w, a_size);
             imgb->ah[i] = EVC_ALIGN(h, a_size);

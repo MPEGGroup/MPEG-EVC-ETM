@@ -223,7 +223,11 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
     ctx->pa.w = ctx->w;
     ctx->pa.h = ctx->h;
     ctx->pa.pad_l = PIC_PAD_SIZE_L;
+#if BD_CF_EXT
+    ctx->pa.pad_c = PIC_PAD_SIZE_L >> (GET_CHROMA_H_SHIFT(sps->chroma_format_idc));
+#else
     ctx->pa.pad_c = PIC_PAD_SIZE_C;
+#endif
     ctx->ref_pic_gap_length = (int)pow(2.0, sps->log2_ref_pic_gap_length);
 #if BD_CF_EXT
     ctx->pa.idc = sps->chroma_format_idc;

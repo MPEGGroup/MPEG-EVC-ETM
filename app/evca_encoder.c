@@ -2352,7 +2352,7 @@ static int cal_psnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts,
                 if(op_out_bit_depth == 8)
                 {
                     find_psnr_8bit(imgblist_inp[i].imgb, imgb_rec, psnr);
-                    find_ms_ssim(imgblist_inp[i].imgb, imgb_rec, ms_ssim, 8);
+                    find_ms_ssim(imgblist_inp[i].imgb, imgb_rec, ms_ssim, op_out_bit_depth);
                 }
                 else /* if(op_out_bit_depth >= 10) */
                 {
@@ -2384,7 +2384,7 @@ static int cal_psnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts,
 #endif
                 imgb_cpy_bd(imgb_t, imgblist_inp[i].imgb);
                 find_psnr_8bit(imgb_t, imgb_rec, psnr);
-                find_ms_ssim(imgb_t, imgb_rec, ms_ssim, 8);
+                find_ms_ssim(imgb_t, imgb_rec, ms_ssim, op_out_bit_depth);
                 imgb_free(imgb_t);
             }
             else
