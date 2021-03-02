@@ -346,7 +346,7 @@ struct _EVCE_PINTER
     /* ME function (Full-ME or Fast-ME) */
     u32            (*fn_me)(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2_cuh, s8 *refi, int lidx, s16 mvp[MV_D], s16 mv[MV_D], int bi
 #if BD_CF_EXT
-                            , int bit_depth_luma
+                            , int bit_depth_luma, int chroma_format_idc
 #endif
                             );
     /* AFFINE ME function (Gradient-ME) */

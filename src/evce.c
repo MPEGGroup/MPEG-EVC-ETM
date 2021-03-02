@@ -1504,7 +1504,11 @@ int evce_ready(EVCE_CTX * ctx)
     ctx->pa.w        = ctx->w;
     ctx->pa.h        = ctx->h;
     ctx->pa.pad_l    = PIC_PAD_SIZE_L;
+#if BD_CF_EXT
+    ctx->pa.pad_c = PIC_PAD_SIZE_L >> (GET_CHROMA_H_SHIFT(ctx->param.chroma_format_idc));
+#else
     ctx->pa.pad_c    = PIC_PAD_SIZE_C;
+#endif
     ctx->pic_cnt     = 0;
     ctx->pic_icnt    = -1;
     ctx->poc.poc_val         = 0;

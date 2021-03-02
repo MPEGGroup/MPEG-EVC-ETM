@@ -755,7 +755,7 @@ static u32 me_ipel_diamond(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2
 
 static u32 me_spel_pattern(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2_cuh, s8 refi, int lidx, s16 gmvp[MV_D], s16 mvi[MV_D], s16 mv[MV_D], int bi
 #if BD_CF_EXT
-                           , int bit_depth_luma
+                           , int bit_depth_luma, int chroma_format_idc
 #endif
 )
 {
@@ -805,13 +805,13 @@ static u32 me_spel_pattern(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2
         /* get the interpolated(predicted) image */
 #if MC_PRECISION_ADD
 #if BD_CF_EXT
-        evc_mc_l((mv_x << 2), (mv_y << 2), ref, (mv_x << 2), (mv_y << 2), s_ref, cuw, pred, cuw, cuh, bit_depth_luma);
+        evc_mc_l((mv_x << 2), (mv_y << 2), ref, (mv_x << 2), (mv_y << 2), s_ref, cuw, pred, cuw, cuh, bit_depth_luma, chroma_format_idc);
 #else
         evc_mc_l((mv_x << 2), (mv_y << 2), ref, (mv_x << 2), (mv_y << 2), s_ref, cuw, pred, cuw, cuh);
 #endif
 #else
 #if BD_CF_EXT
-        evc_mc_l(ref, mv_x, mv_y, s_ref, cuw, pred, cuw, cuh, bit_depth_luma);
+        evc_mc_l(ref, mv_x, mv_y, s_ref, cuw, pred, cuw, cuh, bit_depth_luma, chroma_format_idc);
 #else
         evc_mc_l(ref, mv_x, mv_y, s_ref, cuw, pred, cuw, cuh);
 #endif
@@ -872,13 +872,13 @@ static u32 me_spel_pattern(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2
             /* get the interpolated(predicted) image */
 #if MC_PRECISION_ADD
 #if BD_CF_EXT
-            evc_mc_l((mv_x << 2), (mv_y << 2), ref, (mv_x << 2), (mv_y << 2), s_ref, cuw, pred, cuw, cuh, bit_depth_luma);
+            evc_mc_l((mv_x << 2), (mv_y << 2), ref, (mv_x << 2), (mv_y << 2), s_ref, cuw, pred, cuw, cuh, bit_depth_luma, chroma_format_idc);
 #else
             evc_mc_l((mv_x << 2), (mv_y << 2), ref, (mv_x << 2), (mv_y << 2), s_ref, cuw, pred, cuw, cuh);
 #endif
 #else
 #if BD_CF_EXT
-            evc_mc_l(ref, mv_x, mv_y, s_ref, cuw, pred, cuw, cuh, bit_depth_luma);
+            evc_mc_l(ref, (mv_x ), (mv_y ), s_ref, cuw, pred, cuw, cuh, bit_depth_luma, chroma_format_idc);
 #else
             evc_mc_l(ref, mv_x, mv_y, s_ref, cuw, pred, cuw, cuh);
 #endif
@@ -924,7 +924,7 @@ static u32 me_spel_pattern(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2
 
 static u32 pinter_me_epzs(EVCE_PINTER * pi, int x, int y, int log2_cuw, int log2_cuh, s8 * refi, int lidx, s16 mvp[MV_D], s16 mv[MV_D], int bi
 #if BD_CF_EXT
-                          , int bit_depth_luma
+                          , int bit_depth_luma, int chroma_format_idc
 #endif
 )
 {
@@ -1041,7 +1041,7 @@ static u32 pinter_me_epzs(EVCE_PINTER * pi, int x, int y, int log2_cuw, int log2
         /* sub-pel ME */
         cost = me_spel_pattern(pi, x, y, log2_cuw, log2_cuh, ri, lidx, gmvp, mv, mvt, bi
 #if BD_CF_EXT
-                               , bit_depth_luma
+                               , bit_depth_luma, chroma_format_idc
 #endif
         );
 
@@ -1081,7 +1081,7 @@ static u32 pinter_me_epzs(EVCE_PINTER * pi, int x, int y, int log2_cuw, int log2
 
 static void evc_mc_mmvd(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16 mv[REFP_NUM][MV_D], EVC_REFP(*refp)[REFP_NUM], pel pred[2][N_C][MAX_CU_DIM]
 #if BD_CF_EXT
-                        , int bit_depth_luma
+                        , int bit_depth_luma, int chroma_format_idc
 #endif
 )
 {
@@ -1101,13 +1101,13 @@ static void evc_mc_mmvd(int x, int y, int pic_w, int pic_h, int w, int h, s8 ref
 
 #if MC_PRECISION_ADD
 #if BD_CF_EXT
-        evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, w, pred[0][Y_C], w, h, bit_depth_luma);
+        evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, w, pred[0][Y_C], w, h, bit_depth_luma, chroma_format_idc);
 #else
         evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, w, pred[0][Y_C], w, h);
 #endif
 #else
 #if BD_CF_EXT
-        evc_bl_mc_l(ref_pic->y, (qpel_gmv_x), (qpel_gmv_y), ref_pic->s_l, w, pred[0][Y_C], w, h, bit_depth_luma);
+        evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, w, pred[0][Y_C], w, h, bit_depth_luma, chroma_format_idc);
 #else
         evc_bl_mc_l(ref_pic->y, (qpel_gmv_x), (qpel_gmv_y), ref_pic->s_l, w, pred[0][Y_C], w, h);
 #endif
@@ -1133,7 +1133,7 @@ static void evc_mc_mmvd(int x, int y, int pic_w, int pic_h, int w, int h, s8 ref
 
 #if MC_PRECISION_ADD
 #if BD_CF_EXT
-        evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, w, pred[bidx][Y_C], w, h, bit_depth_luma);
+        evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, w, pred[bidx][Y_C], w, h, bit_depth_luma, chroma_format_idc);
 #else
         evc_bl_mc_l(ref_pic->y, (qpel_gmv_x << 2), (qpel_gmv_y << 2), ref_pic->s_l, w, pred[bidx][Y_C], w, h);
 #endif
@@ -1275,7 +1275,7 @@ static double pinter_residue_rdo_mmvd(EVCE_CTX *ctx, EVCE_CORE *core, int x, int
     /* prediction */
     evc_mc_mmvd(x, y, ctx->w, ctx->h, w, h, pi->refi[pidx], pi->mv[pidx], pi->refp, pred
 #if BD_CF_EXT
-                , ctx->sps.bit_depth_luma_minus8 + 8
+                , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.chroma_format_idc
 #endif
     );
 
@@ -1453,7 +1453,7 @@ void calc_min_cost_ats_inter(EVCE_CTX *ctx, EVCE_CORE *core, pel pred[N_C][MAX_C
     ats_inter_est_dist[0] = sum_dist;
     for (idx = 1; idx < 9; idx++)
     {
-        ats_inter_est_dist[idx] = UINT_MAX;
+        ats_inter_est_dist[idx] = LLONG_MAX;
     }
     for (idx = 1; idx < *num_rdo; idx++)
     {
@@ -1479,7 +1479,7 @@ void calc_min_cost_ats_inter(EVCE_CTX *ctx, EVCE_CORE *core, pel pred[N_C][MAX_C
     {
         for (i = ats_inter_rdo_idx_num; i < ats_inter_rdo_idx_num + 2; i++)
         {
-            s64 min_dist = UINT_MAX;
+            s64 min_dist = LLONG_MAX;
             for (idx = 1; idx < 1 + num_half_ats_inter; idx++)
             {
                 if (dist_temp[idx] < min_dist)
@@ -1488,7 +1488,7 @@ void calc_min_cost_ats_inter(EVCE_CTX *ctx, EVCE_CORE *core, pel pred[N_C][MAX_C
                     ats_inter_rdo_idx_list[i] = idx;
                 }
             }
-            dist_temp[ats_inter_rdo_idx_list[i]] = UINT_MAX;
+            dist_temp[ats_inter_rdo_idx_list[i]] = LLONG_MAX;
         }
         ats_inter_rdo_idx_num += 2;
     }
@@ -1496,7 +1496,7 @@ void calc_min_cost_ats_inter(EVCE_CTX *ctx, EVCE_CORE *core, pel pred[N_C][MAX_C
     {
         for (i = ats_inter_rdo_idx_num; i < ats_inter_rdo_idx_num + 2; i++)
         {
-            s64 min_dist = UINT_MAX;
+            s64 min_dist = LLONG_MAX;
             for (idx = 1 + num_half_ats_inter; idx < 1 + num_half_ats_inter + num_quad_ats_inter; idx++)
             {
                 if (dist_temp[idx] < min_dist)
@@ -1505,7 +1505,7 @@ void calc_min_cost_ats_inter(EVCE_CTX *ctx, EVCE_CORE *core, pel pred[N_C][MAX_C
                     ats_inter_rdo_idx_list[i] = idx;
                 }
             }
-            dist_temp[ats_inter_rdo_idx_list[i]] = UINT_MAX;
+            dist_temp[ats_inter_rdo_idx_list[i]] = LLONG_MAX;
         }
         ats_inter_rdo_idx_num += 2;
     }
@@ -1520,7 +1520,7 @@ void calc_min_cost_ats_inter(EVCE_CTX *ctx, EVCE_CORE *core, pel pred[N_C][MAX_C
     for (idx = 1 + ats_inter_rdo_idx_num; idx < *num_rdo; idx++)
     {
         ats_inter_info_list[idx] = 255;
-        ats_inter_est_dist[idx] = UINT_MAX;
+        ats_inter_est_dist[idx] = LLONG_MAX;
     }
     *num_rdo = ats_inter_rdo_idx_num + 1;
 }
@@ -1651,7 +1651,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
     int    ats_inter_mode_idx;
     u8     ats_inter_avail = check_ats_inter_info_coded(1 << log2_cuw, 1 << log2_cuh, MODE_INTER, ctx->sps.tool_ats);
     s64    ats_inter_est_dist[9];
-    s64    dist_ats_inter0 = UINT_MAX;
+    s64    dist_ats_inter0 = LLONG_MAX;
     double cost_ats_inter0 = MAX_COST;
     u8     root_cbf_ats_inter0 = 255;
     u8     ats_inter_info_match = 255;
@@ -3704,7 +3704,7 @@ static double analyze_bi(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_
             refi[lidx_ref] = refi_cur;
             mecost = pi->fn_me(pi, x, y, log2_cuw, log2_cuh, &refi[lidx_ref], lidx_ref, pi->mvp_scale[lidx_ref][refi_cur][pi->mvp_idx[pidx][lidx_ref]], pi->mv_scale[lidx_ref][refi_cur], bi_idx
 #if BD_CF_EXT
-                               , ctx->sps.bit_depth_luma_minus8 + 8
+                               , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.chroma_format_idc
 #endif
             );
             if(mecost < best_mecost)
@@ -3835,7 +3835,7 @@ static double analyze_bi(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log2_
                 refi[lidx_ref] = refi_cur;
                 mecost = pi->fn_me(pi, x, y, log2_cuw, log2_cuh, &refi[lidx_ref], lidx_ref, pi->mvp[lidx_ref][mvp_idx], pi->mv_scale[lidx_ref][refi_cur], 1
 #if BD_CF_EXT
-                                   , ctx->sps.bit_depth_luma_minus8 + 8
+                                   , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.chroma_format_idc
 #endif
                 );
                 if(mecost < best_mecost)
@@ -5676,7 +5676,7 @@ static double pinter_analyze_cu_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, 
             /* motion search ********************/
             mecost = pi->fn_me(pi, x, y, log2_cuw, log2_cuh, &refi_cur, lidx, mvp[mvp_idx[lidx]], mv, 0
 #if BD_CF_EXT
-                               , ctx->sps.bit_depth_luma_minus8 + 8
+                               , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.chroma_format_idc
 #endif
             );
 
@@ -6132,7 +6132,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
                     {
                         mecost = pi->fn_me(pi, x, y, log2_cuw, log2_cuh, &refi_cur, lidx, mvp[mvp_idx[lidx]], mv, 0
 #if BD_CF_EXT
-                                           , ctx->sps.bit_depth_luma_minus8 + 8
+                                           , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.chroma_format_idc
 #endif
                         );
                     }

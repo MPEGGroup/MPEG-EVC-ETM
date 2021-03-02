@@ -533,8 +533,12 @@ static void imgb_conv_shift_left(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
                                  int shift)
 {
     int i, j, k;
+    int t0;
     u16         * s;
     u16         * d;
+    int clip_min = 0;
+    int clip_max = 0;
+    clip_max = (1 << (BD_FROM_CS(imgb_dst->cs))) - 1;
     for(i = 0; i < imgb_dst->np; i++)
     {
         s = imgb_src->a[i];
@@ -543,7 +547,8 @@ static void imgb_conv_shift_left(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
         {
             for(k = 0; k < imgb_src->w[i]; k++)
             {
-                d[k] = (u16)(s[k] << shift);
+                t0 = (u16)(s[k] << shift);
+                d[k] = (IFVCA_CLIP(t0, clip_min, clip_max));
             }
             s = (short*)(((unsigned char *)s) + imgb_src->s[i]);
             d = (short*)(((unsigned char *)d) + imgb_dst->s[i]);

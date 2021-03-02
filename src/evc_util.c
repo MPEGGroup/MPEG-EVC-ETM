@@ -112,8 +112,13 @@ EVC_PIC * evc_picbuf_alloc(int w, int h, int pad_l, int pad_c, int *err
 
     /* set align value*/
     align[0] = MIN_CU_SIZE;
+#if BD_CF_EXT
+    align[1] = MIN_CU_SIZE;
+    align[2] = MIN_CU_SIZE;
+#else
     align[1] = MIN_CU_SIZE >> 1;
     align[2] = MIN_CU_SIZE >> 1;
+#endif
 
     /* set padding value*/
     pad[0] = pad_l;

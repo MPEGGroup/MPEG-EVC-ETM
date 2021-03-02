@@ -216,18 +216,53 @@ u8 HTDF_table[HTDF_LUT_QP_NUM][1 << HTDF_LUT_SIZE_LOG2] = {
 { 0, 0, 0,  2,  6, 11, 18, 27, 38, 51,  64,  96, 128, 160, 192, 224, },
 };
 
-__inline int read_table(const int z, const u8 *tbl, const int thr, const int table_shift, const int table_round)
+__inline int read_table(const int z, const u8 *tbl, const int thr, const int table_shift, const int table_round, int bit_depth)
 {
+     int bdshift;
+
+    if (bit_depth < 10)
+        bdshift = 10 - bit_depth;
+    else
+        bdshift = bit_depth - 10;
+
 #if HTDF_FAST_TBL
+    int w0;
     const unsigned Shift = sizeof(int) * 8 - 1;
-    const int sg0 = z >> Shift;                                   // sign(z)
-    const int v0 = (z + sg0) ^ sg0;                               // abs(z) 
-    const int r0 = v0 << 0;                                       // scaled abs(z)
-    const int idx = ((v0 + table_round)&thr) >> table_shift;
-    const int w0 = r0 + ((tbl[idx] - r0)&((v0 - thr) >> Shift));  // tbl(abs(z))
-    return (w0 + sg0) ^ sg0;                                      // +-tbl(abs(z))
+    const int sg0 = z >> Shift;                                          // sign(z)
+    const int v0 = (z + sg0) ^ sg0;                                      // abs(z) 
+    if (bit_depth < 10)
+    {
+        const int r0 = v0 << bdshift;                                    // scaled abs(z)
+        const int idx = ((r0 + table_round)&thr) >> table_shift;
+        w0 = v0 + (((tbl[idx] >> bdshift) - v0)&((r0 - thr) >> Shift));  // tbl(abs(z))
+                                                                         // +-tbl(abs(z))
+
+    }
+    else
+    {
+        const int r0 = v0 >> bdshift;                                    // scaled abs(z)
+        const int idx = ((r0 + table_round)&thr) >> table_shift;
+        w0 = v0 + (((tbl[idx] << bdshift) - v0)&((r0 - thr) >> Shift));  // tbl(abs(z))
+                                                                         // +-tbl(abs(z))
+    }
+    return (w0 + sg0) ^ sg0;
 #else
-    return  (z > 0 ? (z < thr ? tbl[(z + table_round) >> table_shift] : z) : (-z < thr ? -tbl[((-z) + table_round) >> table_shift] : z));
+    int x, y, k;
+    if (bit_depth < 10)
+    {
+        x = abs(z) << bdshift;
+        y = z << bdshift;
+        k = -z << bdshift;
+        return  (y > 0 ? (x < thr ? (tbl[(y + table_round) >> table_shift] >>bdshift) : z) : (x < thr ? -(tbl[(k + table_round) >> table_shift]>>bdshift) : z));
+    }
+    else
+    {
+        x = abs(z) >> bdshift;
+        y = z >> bdshift;
+        k = -z >> bdshift;
+        return  (y > 0 ? (x < thr ? (tbl[(y + table_round) >> table_shift] <<bdshift) : z) : (x < thr ? -(tbl[(k + table_round) >> table_shift]<<bdshift) : z));
+    }
+    
 #endif
 }
 
@@ -284,9 +319,9 @@ void evc_htdf_filter_block(pel *block, pel *acc_block, const u8 *tbl, int stride
 
             // filtering
             const int z0 = t0;  // skip DC
-            const int z1 = read_table(t1, tbl, thr, table_shift, table_round);
-            const int z2 = read_table(t2, tbl, thr, table_shift, table_round);
-            const int z3 = read_table(t3, tbl, thr, table_shift, table_round);
+            const int z1 = read_table(t1, tbl, thr, table_shift, table_round, bit_depth);
+            const int z2 = read_table(t2, tbl, thr, table_shift, table_round, bit_depth);
+            const int z3 = read_table(t3, tbl, thr, table_shift, table_round, bit_depth);
 
             // backward transform
             const int iy0 = z0 + z2;

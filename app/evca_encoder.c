@@ -457,13 +457,13 @@ static EVC_ARGS_OPTION options[] = \
     {
         'd',  "input_bit_depth", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_FLAG_IN_BIT_DEPTH], &op_in_bit_depth,
-        "input bitdepth (8(default), 10) "
+        "input bitdepth (8(default), 10, 12) "
     },
 #if BD_CF_EXT
     {
         EVC_ARGS_NO_KEY,  "codec_bit_depth", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_FLAG_CODEC_BIT_DEPTH], &op_codec_bit_depth,
-        "codec internal bitdepth (10(default), 8, 12, 14) "
+        "codec internal bitdepth (10(default), 12) "
     },
     {
         EVC_ARGS_NO_KEY,  "chroma_format", EVC_ARGS_VAL_TYPE_INTEGER,
@@ -474,7 +474,7 @@ static EVC_ARGS_OPTION options[] = \
     {
         EVC_ARGS_NO_KEY,  "output_bit_depth", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_FLAG_OUT_BIT_DEPTH], &op_out_bit_depth,
-        "output bitdepth (8, 10)(default: same as input bitdpeth) "
+        "output bitdepth (8, 10, 12)(default: same as input bitdpeth) "
     },
     {
         EVC_ARGS_NO_KEY,  "ref_pic_gap_length", EVC_ARGS_VAL_TYPE_INTEGER,
@@ -1604,6 +1604,20 @@ static int get_conf(EVCE_CDSC * cdsc)
         p_dra_control->m_dra_descriptor1 = 4;
     }
 #endif
+#if BD_CF_EXT
+    if(cdsc->profile == PROFILE_MAIN)
+    {
+        if(cdsc->chroma_format_idc >= 2)
+            return -3;
+        if(cdsc->codec_bit_depth != 10)
+            return -3;
+    }
+    if(cdsc->profile == PROFILE_BASELINE)
+    {
+        if(!(cdsc->codec_bit_depth == 10 || cdsc->codec_bit_depth == 12))
+            return -3;
+    }
+#endif
     return 0;
 }
 
@@ -2338,7 +2352,7 @@ static int cal_psnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts,
                 if(op_out_bit_depth == 8)
                 {
                     find_psnr_8bit(imgblist_inp[i].imgb, imgb_rec, psnr);
-                    find_ms_ssim(imgblist_inp[i].imgb, imgb_rec, ms_ssim, 8);
+                    find_ms_ssim(imgblist_inp[i].imgb, imgb_rec, ms_ssim, op_out_bit_depth);
                 }
                 else /* if(op_out_bit_depth >= 10) */
                 {
@@ -2370,7 +2384,7 @@ static int cal_psnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts,
 #endif
                 imgb_cpy_bd(imgb_t, imgblist_inp[i].imgb);
                 find_psnr_8bit(imgb_t, imgb_rec, psnr);
-                find_ms_ssim(imgb_t, imgb_rec, ms_ssim, 8);
+                find_ms_ssim(imgb_t, imgb_rec, ms_ssim, op_out_bit_depth);
                 imgb_free(imgb_t);
             }
             else
@@ -3205,6 +3219,11 @@ int main(int argc, const char **argv)
         {
             printf("for DRA internal bit depth should be 10\n");
             print_usage();
+            return -1;
+        }
+        if(val == -3)
+        {
+            printf("profile, bit-depth and color-format combination is not suported\n");
             return -1;
         }
 #endif

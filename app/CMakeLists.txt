@@ -1,9 +1,11 @@
 include_directories ("${PROJECT_SOURCE_DIR}/app")
 
 # Adds sources to the Solution Explorer
-add_executable (evca_encoder evca_encoder.c)
-add_executable (evca_decoder evca_decoder.c)
-add_executable (evca_bitstream_merge evca_bitstream_merge.c)
+file (GLOB APP_INC "*.h") 
+
+add_executable (evca_encoder evca_encoder.c ${APP_INC})
+add_executable (evca_decoder evca_decoder.c ${APP_INC})
+add_executable (evca_bitstream_merge evca_bitstream_merge.c ${APP_INC})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 # Properties->Linker->Input->Additional Dependencies

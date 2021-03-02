@@ -109,8 +109,13 @@ EVC_IMGB * evc_imgb_create(int w, int h, int cs, int opt, int pad[EVC_IMGB_MAX_P
             a_size = (align != NULL)? align[i] : 0;
             p_size = (pad != NULL)? pad[i] : 0;
 
+#if BD_CF_EXT
+            imgb->aw[i] = EVC_ALIGN(w, (a_size >> GET_CHROMA_W_SHIFT(idc)));
+            imgb->ah[i] = EVC_ALIGN(h, (a_size >> GET_CHROMA_H_SHIFT(idc)));
+#else
             imgb->aw[i] = EVC_ALIGN(w, a_size);
             imgb->ah[i] = EVC_ALIGN(h, a_size);
+#endif
 
             imgb->padl[i] = imgb->padr[i]=imgb->padu[i]=imgb->padb[i]=p_size;
 
