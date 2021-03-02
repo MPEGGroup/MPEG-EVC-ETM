@@ -40,7 +40,7 @@
 #define MC_FILTER_MAIN        1
 
 #define MAC_SFT_N0            (6)
-#define MAC_ADD_N0            (1<<5)
+#define MAC_ADD_N0            (0)
 
 #define MAC_SFT_0N            MAC_SFT_N0
 #define MAC_ADD_0N            MAC_ADD_N0
