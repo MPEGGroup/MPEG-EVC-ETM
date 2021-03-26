@@ -463,7 +463,7 @@ static EVC_ARGS_OPTION options[] = \
     {
         EVC_ARGS_NO_KEY,  "codec_bit_depth", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_FLAG_CODEC_BIT_DEPTH], &op_codec_bit_depth,
-        "codec internal bitdepth (10(default), 12) "
+        "codec internal bitdepth (8, 10 (default), 12) "
     },
     {
         EVC_ARGS_NO_KEY,  "chroma_format", EVC_ARGS_VAL_TYPE_INTEGER,
@@ -474,7 +474,7 @@ static EVC_ARGS_OPTION options[] = \
     {
         EVC_ARGS_NO_KEY,  "output_bit_depth", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_FLAG_OUT_BIT_DEPTH], &op_out_bit_depth,
-        "output bitdepth (8, 10, 12)(default: same as input bitdpeth) "
+        "output bitdepth (8, 10, 12) (default: same as input bitdpeth) "
     },
     {
         EVC_ARGS_NO_KEY,  "ref_pic_gap_length", EVC_ARGS_VAL_TYPE_INTEGER,
