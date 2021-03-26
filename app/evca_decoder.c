@@ -116,7 +116,7 @@ static EVC_ARGS_OPTION options[] = \
     {
         EVC_ARGS_NO_KEY,  "output_bit_depth", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_FLAG_OUT_BIT_DEPTH], &op_out_bit_depth,
-        "output bitdepth (8(default), 10) "
+        "output bitdepth (8, 10, 12) (default: same as input bitdpeth) "
     },
     { 0, "", EVC_ARGS_VAL_TYPE_NONE, NULL, NULL, ""} /* termination */
 };
