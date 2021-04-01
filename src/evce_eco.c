@@ -2167,7 +2167,7 @@ int evce_eco_cbf(EVC_BSW * bs, int cbf_y, int cbf_u, int cbf_v, u8 pred_mode, in
                 EVC_TRACE_INT(0);
                 EVC_TRACE_STR("\n");
 
-                return EVC_OK;
+                return 1;
             }
             else
             {
@@ -2354,11 +2354,15 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
     {
         for (i = 0; i < loop_w; i++)
         {
-            evce_eco_cbf(bs, !!nnz_sub[Y_C][(j << 1) | i], !!nnz_sub[U_C][(j << 1) | i], !!nnz_sub[V_C][(j << 1) | i], pred_mode, b_no_cbf, is_sub, j + i, cbf_all, run, tree_cons
+            int is_cbf_all_zero = evce_eco_cbf(bs, !!nnz_sub[Y_C][(j << 1) | i], !!nnz_sub[U_C][(j << 1) | i], !!nnz_sub[V_C][(j << 1) | i], pred_mode, b_no_cbf, is_sub, j + i, cbf_all, run, tree_cons
 #if BD_CF_EXT
-                         , chroma_format_idc
+                                             , chroma_format_idc
 #endif
-            );
+                                  );
+            if (is_cbf_all_zero)
+            {
+                return EVC_OK;
+            }
 #if DQP
             if(ctx->pps.cu_qp_delta_enabled_flag)
             {
