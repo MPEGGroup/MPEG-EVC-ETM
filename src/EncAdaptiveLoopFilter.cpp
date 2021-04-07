@@ -920,7 +920,12 @@ void EncAdaptiveLoopFilter::alfEncoder( CodingStructure& cs, AlfSliceParam* alfS
         , &filter_conformance_flag
 #endif
         );
-
+#if ALF_CONFORMANCE_CHECK
+        if (filter_conformance_flag)
+        {
+           setEnableFlag(&m_alfSliceParamTemp, COMPONENT_Y, false);
+        }
+#endif
         cost += m_lambda[channel];
         if (cost < costMin)
         {
@@ -1002,57 +1007,69 @@ void EncAdaptiveLoopFilter::alfEncoder( CodingStructure& cs, AlfSliceParam* alfS
 
     double distUnfilter = 0;
     const int iterNum = 2 * 2 + 1;
-
     for (int iter = 0; iter < iterNum; iter++)
     {
       if ((iter & 0x01) == 0)
       {
-        cost = m_lambda[channel] * uiCoeffBits;
-#if M53608_ALF_9
-#if M53608_ALF_8
-        cost += deriveCtbAlfEnableFlags(cs, iShapeIdx, COMPONENT_Y, numClasses, (iShapeIdx ? 13 : 7), distUnfilter, true);
-#else
-        cost += deriveCtbAlfEnableFlags(cs, covLrgIdx, COMPONENT_Y, numClasses, isLuma(channel) ? MAX_NUM_ALF_LUMA_COEFF : MAX_NUM_ALF_CHROMA_COEFF, distUnfilter, true);
-#endif
-#else
-#if M53608_ALF_8
-        cost += deriveCtbAlfEnableFlags(cs, iShapeIdx, channel, numClasses, (iShapeIdx ? 13 : 7), distUnfilter, true);
-#else
-        cost += deriveCtbAlfEnableFlags(cs, covLrgIdx, channel, numClasses, isLuma(channel) ? MAX_NUM_ALF_LUMA_COEFF : MAX_NUM_ALF_CHROMA_COEFF, distUnfilter, true);
-#endif
-#endif
-        cost += m_lambda[channel]*(m_numCTUsInPic); 
-        
-        if (cost < costMin)
+        if (!filter_conformance_flag)
         {
-          costMin = cost;
+          cost = m_lambda[channel] * uiCoeffBits;
 #if M53608_ALF_9
-          copyCtuEnableFlag(m_ctuEnableFlagTmp, m_ctuEnableFlag, COMPONENT_Y);
+#if M53608_ALF_8
+          cost += deriveCtbAlfEnableFlags(cs, iShapeIdx, COMPONENT_Y, numClasses, (iShapeIdx ? 13 : 7), distUnfilter, true);
 #else
-          copyCtuEnableFlag(m_ctuEnableFlagTmp, m_ctuEnableFlag, channel);
+          cost += deriveCtbAlfEnableFlags(cs, covLrgIdx, COMPONENT_Y, numClasses, isLuma(channel) ? MAX_NUM_ALF_LUMA_COEFF : MAX_NUM_ALF_CHROMA_COEFF, distUnfilter, true);
 #endif
-          copyAlfSliceParam(alfSliceParam, &m_alfSliceParamTemp, channel);
-          alfSliceParam->isCtbAlfOn = true;
+#else
+#if M53608_ALF_8
+          cost += deriveCtbAlfEnableFlags(cs, iShapeIdx, channel, numClasses, (iShapeIdx ? 13 : 7), distUnfilter, true);
+#else
+          cost += deriveCtbAlfEnableFlags(cs, covLrgIdx, channel, numClasses, isLuma(channel) ? MAX_NUM_ALF_LUMA_COEFF : MAX_NUM_ALF_CHROMA_COEFF, distUnfilter, true);
+#endif
+#endif
+          cost += m_lambda[channel]*(m_numCTUsInPic); 
+        
+          if (cost < costMin)
+          {
+            costMin = cost;
+#if M53608_ALF_9
+            copyCtuEnableFlag(m_ctuEnableFlagTmp, m_ctuEnableFlag, COMPONENT_Y);
+#else
+            copyCtuEnableFlag(m_ctuEnableFlagTmp, m_ctuEnableFlag, channel);
+#endif
+            copyAlfSliceParam(alfSliceParam, &m_alfSliceParamTemp, channel);
+            alfSliceParam->isCtbAlfOn = true;
+          }
         }
       }
       else
       {
+        setEnableFlag(&m_alfSliceParamTemp, COMPONENT_Y, true);
 #if M53608_ALF_9
-          cost = getFilterCoeffAndCost(cs, distUnfilter, COMPONENT_Y, true, iShapeIdx, uiCoeffBits
+        cost = getFilterCoeffAndCost(cs, distUnfilter, COMPONENT_Y, true, iShapeIdx, uiCoeffBits
 #if ALF_CONFORMANCE_CHECK
-              , &filter_conformance_flag
+            , &filter_conformance_flag
 #endif
-          );
+        );
+#if ALF_CONFORMANCE_CHECK
+        if (filter_conformance_flag)
+        {
+          setEnableFlag(&m_alfSliceParamTemp, COMPONENT_Y, false);
+        }
+        else
+        {
+          setEnableFlag(&m_alfSliceParamTemp, COMPONENT_Y, true);
+        }
+
+#endif
 #else
           cost = getFilterCoeffAndCost(cs, distUnfilter, channel, true, iShapeIdx, uiCoeffBits);
 #endif
       }
     }//for iter
-#if ALF_CONFORMANCE_CHECK
-    if (filter_conformance_flag)
-        setEnableFlag(alfSliceParam, COMPONENT_Y, false);
-#endif
+
     }
+
   }//for shapeIdx
 #if M53608_ALF_9
   if (isLuma(channel))
