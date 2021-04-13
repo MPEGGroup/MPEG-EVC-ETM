@@ -356,7 +356,7 @@ static int eco_cbf(EVC_BSR * bs, EVCD_SBAC * sbac, u8 pred_mode, u8 cbf[N_C], in
                 EVC_TRACE_INT(0);
                 EVC_TRACE_STR("\n");
 
-                return EVC_OK;
+                return 1;
             }
             else
             {
@@ -1177,6 +1177,7 @@ int evcd_eco_coef(EVCD_CTX * ctx, EVCD_CORE * core)
     u8 ats_mode_idx = 0;
     u8 is_intra = (core->pred_mode == MODE_INTRA) ? 1 : 0;
 
+    evc_mset(core->is_coef, 0, sizeof(int) * N_C);
     evc_mset(core->is_coef_sub, 0, sizeof(int) * N_C * MAX_SUB_TB_NUM);
 
     for (j = 0; j < loop_h; j++)
@@ -1185,12 +1186,21 @@ int evcd_eco_coef(EVCD_CTX * ctx, EVCD_CORE * core)
         {
             if(cbf_all)
             {
-                ret = eco_cbf(bs, sbac, core->pred_mode, cbf, b_no_cbf, is_sub, j + i, &cbf_all, core->tree_cons
+                int is_cbf_all_zero = eco_cbf(bs, sbac, core->pred_mode, cbf, b_no_cbf, is_sub, j + i, &cbf_all, core->tree_cons
 #if BD_CF_EXT
-                              , ctx->sps.chroma_format_idc
+                                            , ctx->sps.chroma_format_idc
 #endif
-                );
-                evc_assert_rv(ret == EVC_OK, ret);
+                                      );
+                if (is_cbf_all_zero)
+                {
+                    core->qp = GET_QP(ctx->tile[core->tile_num].qp_prev_eco, 0);
+#if BD_CF_EXT
+                    core->qp_y = GET_LUMA_QP(core->qp, ctx->sps.bit_depth_luma_minus8);
+#else
+                    core->qp_y = GET_LUMA_QP(core->qp);
+#endif
+                    return EVC_OK;
+                }
             }
             else
             {
@@ -1301,14 +1311,13 @@ int evcd_eco_coef(EVCD_CTX * ctx, EVCD_CORE * core)
                     }
 #if BD_CF_EXT
                     if(c == 0)
-                        evcd_eco_xcoef(bs, sbac, coef_temp[c], log2_w_sub, log2_h_sub, c, core->ats_inter_info, core->pred_mode == MODE_INTRA, ctx->sps.tool_adcc);
+                        ret = evcd_eco_xcoef(bs, sbac, coef_temp[c], log2_w_sub, log2_h_sub, c, core->ats_inter_info, core->pred_mode == MODE_INTRA, ctx->sps.tool_adcc);
                     else
-                        evcd_eco_xcoef(bs, sbac, coef_temp[c], log2_w_sub - (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc)), log2_h_sub - (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))
-                                       , c, core->ats_inter_info, core->pred_mode == MODE_INTRA, ctx->sps.tool_adcc);
+                        ret = evcd_eco_xcoef(bs, sbac, coef_temp[c], log2_w_sub - (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc)), log2_h_sub - (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))
+                                           , c, core->ats_inter_info, core->pred_mode == MODE_INTRA, ctx->sps.tool_adcc);
 #else
-                    evcd_eco_xcoef(bs, sbac, coef_temp[c], log2_w_sub - (!!c), log2_h_sub - (!!c), c, core->ats_inter_info, core->pred_mode == MODE_INTRA, ctx->sps.tool_adcc);
+                    ret = evcd_eco_xcoef(bs, sbac, coef_temp[c], log2_w_sub - (!!c), log2_h_sub - (!!c), c, core->ats_inter_info, core->pred_mode == MODE_INTRA, ctx->sps.tool_adcc);
 #endif
-
                     evc_assert_rv(ret == EVC_OK, ret);
 
                     core->is_coef_sub[c][(j << 1) | i] = 1;
