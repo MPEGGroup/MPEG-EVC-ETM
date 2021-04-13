@@ -767,7 +767,7 @@ int evce_eco_signature(EVCE_CTX * ctx, EVC_BSW * bs)
 
         /* get picture signature */
 #if HDR_MD5_CHECK
-        if (ctx->pps.pic_dra_enabled_flag == 0)
+        if (ctx->pps->pic_dra_enabled_flag == 0)
         {
 #endif
             ret = evc_picbuf_signature(PIC_CURR(ctx), pic_sign);
@@ -885,7 +885,7 @@ static void imgb_conv_16b_to_8b(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
         }
     }
 }
-static void imgb_cpy(EVC_IMGB * dst, EVC_IMGB * src)
+void evce_imgb_cpy(EVC_IMGB * dst, EVC_IMGB * src)
 {
     int i, bd;
 
@@ -1023,12 +1023,12 @@ int evce_eco_udata_hdr(EVCE_CTX * ctx, EVC_BSW * bs, u8 pic_sign[N_C][16])
     imgb_hdr_md5 = imgb_alloc1(PIC_CURR(ctx)->imgb->w[0], PIC_CURR(ctx)->imgb->h[0],
         EVC_COLORSPACE_YUV420_10LE);
 
-    imgb_cpy(imgb_hdr_md5, PIC_CURR(ctx)->imgb);  // store copy of the reconstructed picture in DPB
+    evce_imgb_cpy(imgb_hdr_md5, PIC_CURR(ctx)->imgb);  // store copy of the reconstructed picture in DPB
 
     int effective_aps_id = ctx->pico->pic.imgb->imgb_active_aps_id;
-    assert(effective_aps_id == ctx->pps.pic_dra_aps_id);
+    assert(effective_aps_id == ctx->pps->pic_dra_aps_id);
     assert(effective_aps_id >= 0 && effective_aps_id < APS_MAX_NUM);
-    SignalledParamsDRA *p_pps_draParams = (SignalledParamsDRA *)ctx->g_void_dra_array;
+    SignalledParamsDRA *p_pps_draParams = ctx->dra_array;
     evc_apply_dra_from_array(imgb_hdr_md5, imgb_hdr_md5, &(p_pps_draParams[0]), effective_aps_id, TRUE);
 
     /* should be aligned before adding user data */
@@ -2360,7 +2360,7 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
 #endif
             );
 #if DQP
-            if(ctx->pps.cu_qp_delta_enabled_flag)
+            if(ctx->pps->cu_qp_delta_enabled_flag)
             {
                 if(enc_dqp == 1)
                 {
@@ -3838,7 +3838,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 
             MCU_SET_COD(map_scu[j]);
 #if DQP
-            if(ctx->pps.cu_qp_delta_enabled_flag)
+            if(ctx->pps->cu_qp_delta_enabled_flag)
             {
                 MCU_RESET_QP(map_scu[j]);
                 MCU_SET_QP(map_scu[j], ctx->tile[core->tile_idx].qp_prev_eco);
@@ -4127,17 +4127,13 @@ void evc_alfGolombEncode(EVC_BSW * bs, int coeff, int k, const BOOL signed_coeff
 
     if (k > 0)
     {
-#if TRACE_HLS
-        evc_bsw_write1_trace(bs, symbol & 0x01, 0);
-#else
         evc_bsw_write(bs, symbol, k);
-#endif
     }
 
     if (signed_coeff && coeff != 0)
     {
 #if TRACE_HLS
-        evc_bsw_write1_trace(bs, sign, (coeff < 0) ? 0 : 1);
+        evc_bsw_write1_trace(bs, (coeff < 0) ? 0 : 1, 0);
 #else
         evc_bsw_write1(bs, (coeff < 0) ? 0 : 1);
 

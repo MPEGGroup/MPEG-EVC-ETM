@@ -1186,7 +1186,7 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
 
                 int availableL, availableR, availableT, availableB;
                 availableL = availableR = availableT = availableB = 1;
-                if (!(ctx->pps.loop_filter_across_tiles_enabled_flag))
+                if (!(ctx->pps->loop_filter_across_tiles_enabled_flag))
                 {
                     tile_boundary_check(&availableL, &availableR, &availableT, &availableB, width, height, xPos, yPos, x_l, x_r, y_l, y_r);
                 }

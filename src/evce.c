@@ -121,6 +121,13 @@ static const s8 tbl_slice_depth_orig[5][15] =
     { FRM_DEPTH_2, FRM_DEPTH_3, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5, \
       FRM_DEPTH_3,  FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5, FRM_DEPTH_4, FRM_DEPTH_5, FRM_DEPTH_5 }
 };
+#if M52291_HDR_DRA
+int evce_set_active_pps_dra_info(EVCE_CTX *ctx, int pps_id);
+int evce_encode_aps(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, int aps_type_id);
+#endif
+int evce_encode_sps(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
+int evce_encode_pps(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
+int evce_generate_pps_array(EVCE_CTX * ctx);
 
 static EVCE_CTX * ctx_alloc(void)
 {
@@ -882,7 +889,8 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
 
     if (ctx->sps.tool_pocs)
     {
-      sh->poc_lsb = ctx->poc.poc_val & ((1 << (ctx->sps.log2_max_pic_order_cnt_lsb_minus4 + 4)) - 1);
+      sh->poc_lsb = (ctx->poc.poc_val - ctx->poc.prev_idr_poc + (1 << (ctx->sps.log2_max_pic_order_cnt_lsb_minus4 + 4))) & 
+                    ((1 << (ctx->sps.log2_max_pic_order_cnt_lsb_minus4 + 4)) - 1);
     }
     if (ctx->sps.tool_rpl)
     {
@@ -978,18 +986,17 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
 static int set_active_pps_info(EVCE_CTX * ctx)
 {
     int active_pps_id = ctx->sh.slice_pic_parameter_set_id;
-    memcpy(&(ctx->pps), &(ctx->pps_array[active_pps_id]), sizeof(EVC_PPS));
-
+    ctx->pps = &(ctx->pps_array[active_pps_id]);
     return EVC_OK;
 }
 
 static int set_active_dra_info(EVCE_CTX * ctx)
 {
-    int dra_aps_id = ctx->pps.pic_dra_aps_id; 
-    ctx->aps_gen_array[1]->aps_id = dra_aps_id;
-    ctx->aps_gen_array[1]->aps_data = (void*)(&((SignalledParamsDRA *)ctx->g_void_dra_array)[dra_aps_id]);
-    ctx->aps_gen_array[1]->signal_flag = ((SignalledParamsDRA *)ctx->g_void_dra_array)[dra_aps_id].m_signal_dra_flag;  // if dra entry was already sent, m_signal_dra_flag is equal to 0
-    evc_assert(ctx->aps_gen_array[1]->signal_flag > -1 && ctx->aps_gen_array[1]->signal_flag < 2);
+    int dra_aps_id = ctx->pps->pic_dra_aps_id; 
+    ctx->aps_gen_array[1].aps_id = dra_aps_id;
+    ctx->aps_gen_array[1].aps_data = (void*)(&ctx->dra_array[dra_aps_id]);
+    ctx->aps_gen_array[1].signal_flag = ctx->dra_array[dra_aps_id].m_signal_dra_flag;  // if dra entry was already sent, m_signal_dra_flag is equal to 0
+    evc_assert(ctx->aps_gen_array[1].signal_flag > -1 && ctx->aps_gen_array[1].signal_flag < 2);
 
     return EVC_OK;
 }
@@ -1190,9 +1197,9 @@ static int evce_eco_tree(EVCE_CTX * ctx, EVCE_CORE * core, int x0, int y0, int c
     bs = &ctx->bs;
     
 #if DQP
-    if(ctx->pps.cu_qp_delta_enabled_flag && ctx->sps.dquant_flag)
+    if(ctx->pps->cu_qp_delta_enabled_flag && ctx->sps.dquant_flag)
     {
-        if (split_mode == NO_SPLIT && (CONV_LOG2(cuw) + CONV_LOG2(cuh) >= ctx->pps.cu_qp_delta_area) && cu_qp_delta_code != 2)
+        if (split_mode == NO_SPLIT && (CONV_LOG2(cuw) + CONV_LOG2(cuh) >= ctx->pps->cu_qp_delta_area) && cu_qp_delta_code != 2)
         {
             if (CONV_LOG2(cuw) == 7 || CONV_LOG2(cuh) == 7)
             {
@@ -1204,8 +1211,8 @@ static int evce_eco_tree(EVCE_CTX * ctx, EVCE_CORE * core, int x0, int y0, int c
             }
             core->cu_qp_delta_is_coded = 0;
         }
-        else if ((((CONV_LOG2(cuw) + CONV_LOG2(cuh) == ctx->pps.cu_qp_delta_area + 1) && (split_mode == SPLIT_TRI_VER || split_mode == SPLIT_TRI_HOR)) ||
-            (CONV_LOG2(cuh) + CONV_LOG2(cuw) == ctx->pps.cu_qp_delta_area && cu_qp_delta_code != 2)))
+        else if ((((CONV_LOG2(cuw) + CONV_LOG2(cuh) == ctx->pps->cu_qp_delta_area + 1) && (split_mode == SPLIT_TRI_VER || split_mode == SPLIT_TRI_HOR)) ||
+            (CONV_LOG2(cuh) + CONV_LOG2(cuw) == ctx->pps->cu_qp_delta_area && cu_qp_delta_code != 2)))
         {
             cu_qp_delta_code = 2;
             core->cu_qp_delta_is_coded = 0;
@@ -1546,6 +1553,78 @@ int evce_ready(EVCE_CTX * ctx)
     ret = set_tile_info(ctx, is_ctx0);
     if (ret != EVC_OK)
         goto ERR;
+
+
+    if (ctx->cdsc.tool_alf || ctx->cdsc.tool_dra)
+    {
+        ctx->aps_gen_array = (EVC_APS_GEN*)evc_malloc(sizeof(EVC_APS_GEN) * 2);
+        evc_assert_gv(ctx->aps_gen_array, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
+        evc_mset(ctx->aps_gen_array, 0, sizeof(EVC_APS_GEN) * 2);
+        evc_resetApsGenReadBuffer(ctx->aps_gen_array);
+
+        if (ctx->cdsc.tool_alf)
+        {
+            ctx->aps_gen_array[0].aps_data = (evc_AlfSliceParam*)evc_malloc(sizeof(evc_AlfSliceParam));
+            evc_assert_gv(ctx->aps_gen_array[0].aps_data, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
+            evc_mset(ctx->aps_gen_array[0].aps_data, 0, sizeof(evc_AlfSliceParam));
+        }
+    }
+
+    if (ctx->cdsc.tool_dra)
+    {
+        ctx->dra_control = (WCGDDRAControl*)evc_malloc(sizeof(WCGDDRAControl));
+        evc_assert_gv(ctx->dra_control, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
+        evc_mset(ctx->dra_control, 0, sizeof(WCGDDRAControl));
+
+#if BD_CF_EXT
+        ctx->dra_control->m_idc = ctx->cdsc.chroma_format_idc;
+#endif
+
+        ctx->dra_control->m_draHistNorm = ctx->cdsc.dra_hist_norm;
+        ctx->dra_control->m_atfNumRanges = ctx->cdsc.dra_num_ranges;
+        evc_mcpy(ctx->dra_control->m_draScaleMap.m_draScaleMapY, ctx->cdsc.dra_scale_map_y, sizeof(double) * 256 * 2);
+        ctx->dra_control->m_draHistNorm = ctx->dra_control->m_draHistNorm == 0 ? 1 : ctx->dra_control->m_draHistNorm;
+        ctx->dra_control->m_chromaQPModel.chromaCbQpScale = ctx->cdsc.dra_cb_qp_scale;
+        ctx->dra_control->m_chromaQPModel.chromaCrQpScale = ctx->cdsc.dra_cr_qp_scale;
+        if (ctx->cdsc.chroma_format_idc == 0)
+        {
+            ctx->dra_control->m_chromaQPModel.chromaCbQpScale = 1;
+            ctx->dra_control->m_chromaQPModel.chromaCrQpScale = 1;
+        }
+        ctx->dra_control->m_chromaQPModel.chromaQpScale = ctx->cdsc.dra_chroma_qp_scale;
+        ctx->dra_control->m_chromaQPModel.chromaQpOffset = ctx->cdsc.dra_chroma_qp_offset;
+        ctx->dra_control->m_chromaQPModel.dra_table_idx = ctx->cdsc.qp;
+#if BD_CF_EXT
+        ctx->dra_control->m_internal_bd = ctx->cdsc.codec_bit_depth;
+        ctx->dra_control->m_idc = ctx->cdsc.chroma_format_idc;
+        if (ctx->cdsc.chroma_format_idc == 0)
+            ctx->dra_control->m_chromaQPModel.dra_table_idx = 58;
+#endif
+        ctx->dra_control->m_chromaQPModel.m_draChromaCbQpOffset = ctx->cdsc.cb_qp_offset;
+        ctx->dra_control->m_chromaQPModel.m_draChromaCrQpOffset = ctx->cdsc.cr_qp_offset;
+        ctx->dra_control->m_chromaQPModel.enabled = 1;
+        ctx->dra_control->m_dra_descriptor2 = QC_SCALE_NUMFBITS;
+        ctx->dra_control->m_dra_descriptor1 = 4;
+
+        ctx->dra_array = (SignalledParamsDRA*)evc_malloc(sizeof(SignalledParamsDRA) * APS_MAX_NUM);
+        evc_assert_gv(ctx->dra_array, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
+        evc_mset(ctx->dra_array, 0, sizeof(SignalledParamsDRA) * APS_MAX_NUM);
+        for (int i = 0; i < APS_MAX_NUM; i++)
+        {
+            ctx->dra_array[i].m_signal_dra_flag = -1;
+        }
+
+        evce_generate_pps_array(ctx);
+        evce_generate_dra_array(ctx->dra_array, ctx->dra_control, 1);
+
+        ctx->aps_gen_array[1].aps_data = (void*)(&ctx->dra_control->m_signalledDRA);
+        ctx->aps_gen_array[1].signal_flag = 1;
+        ctx->aps_gen_array[1].aps_id = 0;   // initial DRA APS
+    }
+    else
+    {
+        ctx->dra_control = NULL;
+    }
 
     return EVC_OK;
 ERR:
@@ -2020,95 +2099,38 @@ int evce_picbuf_get_inbuf(EVCE_CTX * ctx, EVC_IMGB ** imgb)
     return EVC_ERR_UNEXPECTED;
 }
 
-#if M52291_HDR_DRA
-int evce_aps_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, EVC_APS_GEN * aps)
-#else
-int evce_aps_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, EVC_APS * aps)
-#endif
-{
-    EVC_BSW * bs = &ctx->bs;
-    EVC_SPS * sps = &ctx->sps;
-    EVC_PPS * pps = &ctx->pps;
-
-    evc_assert_rv(bitb->addr && bitb->bsize > 0, EVC_ERR_INVALID_ARGUMENT);
-
-    /* bitsteam initialize for sequence */
-    evc_bsw_init(bs, bitb->addr, bitb->bsize, NULL);
-    bs->pdata[1] = &ctx->sbac_enc;
-
-    /* encode sequence parameter set */
-    /* skip first four byte to write the bitstream size */
-    evce_bsw_skip_slice_size(bs);
-
-    /* Encode APS nalu header */
-    EVC_NALU aps_nalu;
-    set_nalu(&aps_nalu, EVC_APS_NUT, ctx->nalu.nuh_temporal_id);
-
-    /* Write APS */
-#if M52291_HDR_DRA
-#if BD_CF_EXT
-    evc_assert_rv(evce_eco_aps_gen(bs, aps, ctx->sps.bit_depth_luma_minus8+8) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
-#else
-    evc_assert_rv(evce_eco_aps_gen(bs, aps) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
-#endif
-#else
-    set_aps(ctx, aps); // TBD: empty function call
-    evc_assert_rv(evce_eco_aps(bs, aps) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
-#endif
-
-    /* de-init BSW */
-    evc_bsw_deinit(bs);
-
-    /* write the bitstream size */
-    evce_bsw_write_nalu_size(bs);
-
-    /* set stat ***************************************************************/
-    evc_mset(stat, 0, sizeof(EVCE_STAT));
-    stat->write = EVC_BSW_GET_WRITE_BYTE(bs);
-    stat->nalu_type = EVC_APS_NUT;
-
-    return EVC_OK;
-}
-
 int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 {
-    EVC_BSW * bs = &ctx->bs;
-    EVC_SPS * sps = &ctx->sps;
-    EVC_PPS * pps = &ctx->pps;
-    EVC_NALU  nalu;
+    int ret;
 
-    evc_assert_rv(bitb->addr && bitb->bsize > 0, EVC_ERR_INVALID_ARGUMENT);
+    ret = bitb->addr && bitb->bsize > 0;
+    evc_assert_rv(ret, EVC_ERR_INVALID_ARGUMENT);
 
-    /* bitsteam initialize for sequence */
-    evc_bsw_init(bs, bitb->addr, bitb->bsize, NULL);
-    bs->pdata[1] = &ctx->sbac_enc;
+    if (ctx->pic_cnt == 0 || (ctx->slice_type == SLICE_I && ctx->param.use_closed_gop)) /* if nalu_type is IDR */
+    {
+        /* sequence parameter set*/
+        ret = evce_encode_sps(ctx, bitb, stat);
+        evc_assert_rv(ret == EVC_OK, ret);
 
-    /* encode sequence parameter set */
-    /* skip first four byte to write the bitstream size */
-    evce_bsw_skip_slice_size(bs);
+        /* picture parameter set*/
+        if (ctx->sps.tool_dra)
+        {
+            evce_set_active_pps_dra_info(ctx, ctx->pps->pps_pic_parameter_set_id);
+        }
+        ret = evce_encode_pps(ctx, bitb, stat);
+        evc_assert_rv(ret == EVC_OK, ret);
 
-    /* nalu header */
-    set_nalu(&nalu, EVC_SPS_NUT, 0);
-    evce_eco_nalu(bs, &nalu);
-
-    /* sequence parameter set*/
-    set_sps(ctx, sps);
-    evc_assert_rv(evce_eco_sps(bs, sps) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
-
-    /* picture parameter set*/
-    set_pps(ctx, pps);
-    evc_assert_rv(evce_eco_pps(bs, sps, pps) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
-
-    /* de-init BSW */
-    evc_bsw_deinit(bs);
-
-    /* write the bitstream size */
-    evce_bsw_write_nalu_size(bs);
-
-    /* set stat ***************************************************************/
-    evc_mset(stat, 0, sizeof(EVCE_STAT));
-    stat->write = EVC_BSW_GET_WRITE_BYTE(bs);
-    stat->nalu_type = EVC_SPS_NUT;
+        /* adapdation parameter set*/
+        if (ctx->sps.tool_dra)
+        {
+            // Send DRA APS, if active PPS enables DRA
+            if (ctx->aps_gen_array[1].signal_flag == 1)
+            {
+                ret = evce_encode_aps(ctx, bitb, stat, 1);
+                evc_assert_rv(ret == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
+            }
+        }
+    }
 
     return EVC_OK;
 }
@@ -2227,7 +2249,6 @@ static void decide_slice_type(EVCE_CTX * ctx)
             {
                 ctx->slice_type = SLICE_I;
                 ctx->slice_depth = FRM_DEPTH_0;
-                ctx->poc.poc_val = 0;
                 ctx->slice_ref_flag = 1;
             }
             else
@@ -2249,9 +2270,9 @@ static void decide_slice_type(EVCE_CTX * ctx)
                 {
                     ctx->slice_depth = FRM_DEPTH_1;
                 }
-                ctx->poc.poc_val = (i_period > 0) ? ctx->pic_cnt % i_period : ctx->pic_cnt;
                 ctx->slice_ref_flag = 1;
             }
+            ctx->poc.poc_val = (ctx->param.use_closed_gop && i_period > 0 && (ctx->pic_cnt % i_period) == 0 ? 0 : (ctx->param.use_closed_gop ? ctx->pic_cnt % i_period : ctx->pic_cnt));
         }
     }
     else /* include B Picture (gop_size = 2 or 4 or 8 or 16) */
@@ -2307,6 +2328,11 @@ static void decide_slice_type(EVCE_CTX * ctx)
     else
     {
         ctx->nalu.nuh_temporal_id = 0;
+    }
+
+    if (ctx->slice_type == SLICE_I && ctx->param.use_closed_gop)
+    {
+        ctx->poc.prev_idr_poc = ctx->poc.poc_val;
     }
 }
 
@@ -2364,6 +2390,7 @@ int evce_enc_pic_prepare(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #endif
     /* initialize bitstream container */
     evc_bsw_init(&ctx->bs, bitb->addr, bitb->bsize, NULL);
+    ctx->bs.pdata[1] = &ctx->sbac_enc;
 
     /* clear map */
     evc_mset_x64a(ctx->map_scu, 0, sizeof(u32) * ctx->f_scu);
@@ -2376,11 +2403,12 @@ int evce_enc_pic_prepare(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     set_active_pps_info(ctx);
 
     PIC_CURR(ctx)->imgb->imgb_active_pps_id = ctx->pico->pic.imgb->imgb_active_pps_id;
-    if (ctx->pps.pic_dra_enabled_flag)
-        PIC_CURR(ctx)->imgb->imgb_active_aps_id = ctx->pps.pic_dra_aps_id;
+    if (ctx->pps->pic_dra_enabled_flag)
+        PIC_CURR(ctx)->imgb->imgb_active_aps_id = ctx->pps->pic_dra_aps_id;
     else
         PIC_CURR(ctx)->imgb->imgb_active_aps_id = -1;
 #endif
+
     return EVC_OK;
 }
 
@@ -2431,7 +2459,7 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
 
     /* set stat */
     stat->write = EVC_BSW_GET_WRITE_BYTE(&ctx->bs);
-    stat->nalu_type = ctx->slice_type == SLICE_I ? EVC_IDR_NUT : EVC_NONIDR_NUT;
+    stat->nalu_type = ctx->slice_type == SLICE_I && ctx->param.use_closed_gop ? EVC_IDR_NUT : EVC_NONIDR_NUT;
     stat->stype = ctx->slice_type;
     stat->fnum = ctx->pic_cnt;
     stat->qp = ctx->sh.qp;
@@ -2477,8 +2505,8 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     EVC_SH    * sh;
     EVC_APS   * aps;  // ALF aps
 #if M52291_HDR_DRA
-    EVC_APS_GEN   *aps_alf = ctx->aps_gen_array[0];
-    EVC_APS_GEN   *aps_dra = ctx->aps_gen_array[1];
+    EVC_APS_GEN   *aps_alf = &ctx->aps_gen_array[0];
+    EVC_APS_GEN   *aps_dra = &ctx->aps_gen_array[1];
 #endif
 
     int         ret;
@@ -2489,7 +2517,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     int         col_bd = 0;
     int num_slice_in_pic = ctx->param.num_slice_in_pic;
     u8  * tiles_in_slice, total_tiles_in_slice, total_tiles_in_slice_copy;
-    u8* curr_temp = NULL;
+    u8* curr_temp = ctx->bs.cur;
     int tile_cnt = 0;
     for (ctx->slice_num = 0; ctx->slice_num < num_slice_in_pic; ctx->slice_num++)
     {
@@ -2602,7 +2630,10 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             ctx->aps_counter = -1;
             aps->aps_id = -1;
 #if M52291_HDR_DRA
-            aps_alf->aps_id = -1;
+            if (aps_alf != NULL)
+            {
+                aps_alf->aps_id = -1;
+            }
 #endif
             ctx->sh.aps_signaled = -1; // reset stored aps id in tile group header
             ctx->aps_temp = 0;
@@ -2615,7 +2646,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
             if (ctx->nalu.nal_unit_type_plus1 - 1 != EVC_IDR_NUT)
             {
-                if (ctx->slice_type != SLICE_B && ctx->param.i_period!=0&&ctx->param.gop_size==1)
+                if (ctx->param.i_period!=0&&ctx->param.gop_size==1)
                 {
                     evc_poc_derivation(ctx->sps, ctx->nalu.nuh_temporal_id, &ctx->poc);
                 }
@@ -2638,7 +2669,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
                 ret = create_explicit_rpl(&ctx->rpm, sh, ctx->poc.poc_val);
                 if (ret == 1)
                 {
-                    if (ctx->pps.rpl1_idx_present_flag)
+                    if (ctx->pps->rpl1_idx_present_flag)
                     {
                         if (sh->rpl_l0_idx == -1)
                         {
@@ -2658,8 +2689,8 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             }
 
 #if RPL_CLEANUP
-            if((sh->rpl_l0.ref_pic_active_num - 1) == ctx->pps.num_ref_idx_default_active_minus1[REFP_0]
-               && (sh->rpl_l1.ref_pic_active_num - 1) == ctx->pps.num_ref_idx_default_active_minus1[REFP_1])
+            if((sh->rpl_l0.ref_pic_active_num - 1) == ctx->pps->num_ref_idx_default_active_minus1[REFP_0]
+               && (sh->rpl_l1.ref_pic_active_num - 1) == ctx->pps->num_ref_idx_default_active_minus1[REFP_1])
             {
                 sh->num_ref_idx_active_override_flag = 0;
             }
@@ -2908,7 +2939,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
                 total_tiles_in_slice--;
             }
 
-            if (ctx->pps.loop_filter_across_tiles_enabled_flag)
+            if (ctx->pps->loop_filter_across_tiles_enabled_flag)
             {
                 /* Peform deblocking across tile boundaries*/
                 k = 0;
@@ -3036,19 +3067,8 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             sh->entry_point_offset_minus1[k - 1] = (u32)((bs)->cur - bs_beg.cur - 4 + (4 - (bs->leftbits >> 3)) + (bs_beg.leftbits >> 3) - 1);
         } // End to tile encoding loop in a slice
 
-        /* Bit-stream re-writing (START) */
-        u8* tmp_ptr1;
-        if (ctx->slice_num == 0)
-        {
-            evc_bsw_init(&ctx->bs, (u8*)bitb->addr, bitb->bsize, NULL);
-            tmp_ptr1 = bs->beg;
-        }
-        else
-        {
-            evc_bsw_init_slice(&ctx->bs, (u8*)curr_temp, bitb->bsize, NULL);
-            tmp_ptr1 = curr_temp;
-        }
-    
+        evc_bsw_init_slice(&ctx->bs, (u8*)curr_temp, bitb->bsize, NULL);
+
 #if TRACE_START_POC
         if (fp_trace_started == 1)
         {
@@ -3132,7 +3152,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #if TRACE_HLS
         s32 tmp_fp_point = ftell(fp_trace);
 #endif
-        ret = evce_eco_sh(bs, &ctx->sps, &ctx->pps, sh, ctx->nalu.nal_unit_type_plus1 - 1);
+        ret = evce_eco_sh(bs, &ctx->sps, ctx->pps, sh, ctx->nalu.nal_unit_type_plus1 - 1);
         evc_assert_rv(ret == EVC_OK, ret);
 
         core->x_lcu = core->y_lcu = 0;
@@ -3279,7 +3299,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         s32 tmp_fp_point2 = ftell(fp_trace);
         fseek(fp_trace, tmp_fp_point, SEEK_SET);
 #endif
-        ret = evce_eco_sh(&bs_sh, &ctx->sps, &ctx->pps, sh, ctx->nalu.nal_unit_type_plus1 - 1);
+        ret = evce_eco_sh(&bs_sh, &ctx->sps, ctx->pps, sh, ctx->nalu.nal_unit_type_plus1 - 1);
         evc_assert_rv(ret == EVC_OK, ret);
 #if TRACE_HLS    
         fseek(fp_trace, tmp_fp_point2, SEEK_SET);
@@ -3308,6 +3328,10 @@ int evce_enc(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     ret = ctx->fn_enc_pic_prepare(ctx, bitb, stat);
     evc_assert_rv(ret == EVC_OK, ret);
 
+    /* encode parameter set */
+    ret = ctx->fn_enc_header(ctx, bitb, stat);
+    evc_assert_rv(ret == EVC_OK, ret);
+
     /* encode one picture */
     ret = ctx->fn_enc_pic(ctx, bitb, stat);
     evc_assert_rv(ret == EVC_OK, ret);
@@ -3332,6 +3356,13 @@ int evce_push_frm(EVCE_CTX * ctx, EVC_IMGB * imgb)
     pic = &ctx->pico->pic;
     PIC_ORIG(ctx) = pic;
 
+    if (ctx->cdsc.tool_dra)
+    {
+        imgb->imgb_active_aps_id = ctx->aps_gen_array[1].aps_id;
+        imgb->imgb_active_pps_id = ctx->pps->pps_pic_parameter_set_id;
+        evc_apply_dra_from_array(imgb, imgb, ctx->dra_array, imgb->imgb_active_aps_id, FALSE);
+    }
+    
     /* set pushed image to current input (original) image */
     evc_mset(pic, 0, sizeof(EVC_PIC));
 
@@ -3397,9 +3428,8 @@ int evce_platform_init(EVCE_CTX * ctx)
     ctx->pf = NULL;
 
 #if M52291_HDR_DRA
-    ctx->aps_gen_array[0] = NULL;
-    ctx->aps_gen_array[1] = NULL;
-    ctx->g_void_dra_array = NULL;
+    ctx->aps_gen_array = NULL;
+    ctx->dra_array = NULL;
 #endif
 
     return EVC_OK;
@@ -3521,37 +3551,8 @@ void evce_delete(EVCE id)
     evc_scan_tbl_delete();
 }
 
-#if M52291_HDR_DRA
-int evce_get_pps_dra_flag(EVCE id)
+int evce_encode_sps(EVCE_CTX *ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 {
-    EVCE_CTX * ctx;
-    EVCE_ID_TO_CTX_RV(id, ctx, EVC_ERR_INVALID_ARGUMENT);
-    return ctx->pps.pic_dra_enabled_flag;
-}
-
-int evce_get_pps_id(EVCE id)
-{
-    EVCE_CTX * ctx;
-    EVCE_ID_TO_CTX_RV(id, ctx, EVC_ERR_INVALID_ARGUMENT);
-    return ctx->pps.pps_pic_parameter_set_id;
-}
-#endif
-
-#if M52291_HDR_DRA
-int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat, void *p_signalledAPS, void *g_void_dra_array)
-#else
-int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
-#endif
-{
-    EVCE_CTX * ctx;
-
-    EVCE_ID_TO_CTX_RV(id, ctx, EVC_ERR_INVALID_ARGUMENT);
-    evc_assert_rv(ctx->fn_enc_header, EVC_ERR_UNEXPECTED);
-#if M52291_HDR_DRA
-    ctx->aps_gen_array[0] = (EVC_APS_GEN*)p_signalledAPS;
-    ctx->aps_gen_array[1] = (EVC_APS_GEN*)(p_signalledAPS) + 1;
-    ctx->g_void_dra_array = g_void_dra_array;
-#endif
     /* update BSB */
     bitb->err = 0;
 
@@ -3561,13 +3562,11 @@ int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
 
     evc_assert_rv(bitb->addr && bitb->bsize > 0, EVC_ERR_INVALID_ARGUMENT);
 
-    /* bitsteam initialize for sequence */
-    evc_bsw_init(bs, bitb->addr, bitb->bsize, NULL);
-    bs->pdata[1] = &ctx->sbac_enc;
+    int* size_field = (int*)(*(&bs->cur));
+    u8* cur_tmp = bs->cur;
 
     /* nalu header */
     set_nalu(&nalu, EVC_SPS_NUT, 0);
-
     evce_eco_nalu(bs, &nalu);
 
     /* sequence parameter set*/
@@ -3578,63 +3577,56 @@ int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
     evc_bsw_deinit(bs);
 
     /* write the bitstream size */
-    evce_bsw_write_nalu_size(bs);
-
-    /* set stat ***************************************************************/
-    evc_mset(stat, 0, sizeof(EVCE_STAT));
-    stat->write = EVC_BSW_GET_WRITE_BYTE(bs);
-    stat->nalu_type = EVC_SPS_NUT;
+    *size_field = (int)(bs->cur - cur_tmp) - 4;
 
     return EVC_OK;
 }
 
 #if MULTIPLE_NAL
-int evce_generate_pps_array(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
+int evce_generate_pps_array(EVCE_CTX * ctx)
 {
-    EVCE_CTX * ctx;
-    EVCE_ID_TO_CTX_RV(id, ctx, EVC_ERR_INVALID_ARGUMENT);
-    set_pps(ctx, &(ctx->pps));
+    set_sps(ctx, &(ctx->sps));
 
     int num_pps = 1;
     for (int i = 0; i < num_pps; i++)
     {
-        ctx->pps.pps_pic_parameter_set_id = i;
-        if (ctx->sps.tool_dra)
+        if (i == 0)
         {
-            ctx->pps.pic_dra_enabled_flag = 1;
-            ctx->pps.pic_dra_aps_id = i % APS_MAX_NUM;
+            evc_mset(&(ctx->pps_array[i]), 0, sizeof(EVC_PPS));
+            ctx->pps = &(ctx->pps_array[i]);
+
+            set_pps(ctx, ctx->pps);
+            ctx->pps->pps_pic_parameter_set_id = i;
+            if (ctx->cdsc.tool_dra)
+            {
+                ctx->pps->pic_dra_enabled_flag = 1;
+                ctx->pps->pic_dra_aps_id = i % APS_MAX_NUM;
+            }
         }
-        memcpy(&(ctx->pps_array[i]), &(ctx->pps), sizeof(EVC_PPS));
+        else
+        {
+            evc_mcpy(&(ctx->pps_array[i]), &(ctx->pps_array[0]), sizeof(EVC_PPS));
+        }
     }
-    memcpy(&(ctx->pps), &(ctx->pps_array[0]), sizeof(EVC_PPS));
 
     return EVC_OK;
 }
 
-int evce_encode_aps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat, int aps_type_id)
+int evce_encode_aps(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, int aps_type_id)
 {
-    EVCE_CTX * ctx;
-    EVCE_ID_TO_CTX_RV(id, ctx, EVC_ERR_INVALID_ARGUMENT);
-    evc_assert_rv(ctx->fn_enc_header, EVC_ERR_UNEXPECTED);
-    EVC_APS_GEN   *aps_dra = ctx->aps_gen_array[1];
+    evc_assert_rv(bitb->addr && bitb->bsize > 0, EVC_ERR_INVALID_ARGUMENT);
+
+    EVC_APS_GEN * aps_dra = &ctx->aps_gen_array[1];
+    EVC_BSW     * bs = &ctx->bs;
+    EVC_NALU      nalu;
+    int         * size_field = (int*)(*(&bs->cur));
+    u8          * cur_tmp = bs->cur;
 
     /* update BSB */
     bitb->err = 0;
 
-    EVC_BSW * bs = &ctx->bs;
-    EVC_NALU  nalu;
-    evc_assert_rv(bitb->addr && bitb->bsize > 0, EVC_ERR_INVALID_ARGUMENT);
-
-    /* bitsteam initialize for sequence */
-    evc_bsw_init(bs, bitb->addr, bitb->bsize, NULL);
-    bs->pdata[1] = &ctx->sbac_enc;
-
     /* nalu header */
     set_nalu(&nalu, EVC_APS_NUT, ctx->nalu.nuh_temporal_id);
-
-    int* size_field = (int*)(*(&bs->cur));
-    u8* cur_tmp = bs->cur;
-
     evce_eco_nalu(bs, &nalu);
     
 #if BD_CF_EXT
@@ -3646,40 +3638,27 @@ int evce_encode_aps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat, int aps_type_id)
     *size_field = (int)(bs->cur - cur_tmp) - 4;
     aps_dra->signal_flag = 0;
 
-    /* set stat ***************************************************************/
-    evc_mset(stat, 0, sizeof(EVCE_STAT));
-    stat->write = EVC_BSW_GET_WRITE_BYTE(bs);
-    stat->nalu_type = EVC_APS_NUT;
-
     return EVC_OK;
 }
 
 #endif
 
-int evce_encode_pps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
+int evce_encode_pps(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 {
-    EVCE_CTX * ctx;
-
-    EVCE_ID_TO_CTX_RV(id, ctx, EVC_ERR_INVALID_ARGUMENT);
-    evc_assert_rv(ctx->fn_enc_header, EVC_ERR_UNEXPECTED);
-
     /* update BSB */
     bitb->err = 0;
 
     EVC_BSW * bs = &ctx->bs;
     EVC_SPS * sps = &ctx->sps;
-    EVC_PPS * pps = &ctx->pps;
+    EVC_PPS * pps = ctx->pps;
     EVC_NALU  nalu;
+    int     * size_field = (int*)(*(&bs->cur));
+    u8      * cur_tmp = bs->cur;
 
     evc_assert_rv(bitb->addr && bitb->bsize > 0, EVC_ERR_INVALID_ARGUMENT);
 
-    /* bitsteam initialize for sequence */
-    evc_bsw_init(bs, bitb->addr, bitb->bsize, NULL);
-    bs->pdata[1] = &ctx->sbac_enc;
-
     /* nalu header */
     set_nalu(&nalu, EVC_PPS_NUT, ctx->nalu.nuh_temporal_id);
-
     evce_eco_nalu(bs, &nalu);
 
     /* sequence parameter set*/
@@ -3690,12 +3669,7 @@ int evce_encode_pps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
     evc_bsw_deinit(bs);
 
     /* write the bitstream size */
-    evce_bsw_write_nalu_size(bs);
-
-    /* set stat ***************************************************************/
-    evc_mset(stat, 0, sizeof(EVCE_STAT));
-    stat->write = EVC_BSW_GET_WRITE_BYTE(bs);
-    stat->nalu_type = EVC_PPS_NUT;
+    *size_field = (int)(bs->cur - cur_tmp) - 4;
 
     return EVC_OK;
 }
@@ -3739,23 +3713,19 @@ static int check_more_frames(EVCE_CTX * ctx)
 }
 
 #if MULTIPLE_NAL
-int evce_set_active_pps_dra_info(EVCE id, int pps_id)
+int evce_set_active_pps_dra_info(EVCE_CTX * ctx, int pps_id)
 {
-    EVCE_CTX * ctx;
-    EVCE_ID_TO_CTX_RV(id, ctx, EVC_ERR_INVALID_ARGUMENT);
-
     if (pps_id == -1)
         ctx->sh.slice_pic_parameter_set_id = (int)rand() % 64;
     else
         ctx->sh.slice_pic_parameter_set_id = pps_id;
-    set_active_pps_info(ctx);
 
-    if (ctx->pps.pic_dra_enabled_flag)
+    if (ctx->pps->pic_dra_enabled_flag)
         set_active_dra_info(ctx);
     else
     {
-        ctx->aps_gen_array[1]->signal_flag = 0;
-        ctx->aps_gen_array[1]->aps_data = NULL;
+        ctx->aps_gen_array[1].signal_flag = 0;
+        ctx->aps_gen_array[1].aps_data = NULL;
     }
 
     return EVC_OK;
@@ -3895,6 +3865,19 @@ int evce_config(EVCE id, int cfg, void * buf, int * size)
         case EVCE_CFG_GET_RECON:
             evc_assert_rv(*size == sizeof(EVC_IMGB**), EVC_ERR_INVALID_ARGUMENT);
             imgb = PIC_CURR(ctx)->imgb;
+
+            if (ctx->sps.tool_dra)
+            {
+                EVC_IMGB * timgb;
+                int ret;
+                ret = ctx->fn_get_inbuf(ctx, &timgb);
+                evc_assert_rv(EVC_OK == ret, ret);
+                evce_imgb_cpy(timgb, imgb);
+                evc_apply_dra_from_array(timgb, timgb, ctx->dra_array, ctx->aps_gen_array[1].aps_id, TRUE);
+                imgb = timgb;
+                imgb->release(imgb);
+            }
+
             *((EVC_IMGB **)buf) = imgb;
             imgb->addref(imgb);
             break;

@@ -49,8 +49,7 @@ static int evc_bsw_flush(EVC_BSW * bs)
     return 0;
 }
 
-void evc_bsw_init(EVC_BSW * bs, u8 * buf, int size,
-                   EVC_BSW_FN_FLUSH fn_flush)
+void evc_bsw_init(EVC_BSW * bs, u8 * buf, int size, EVC_BSW_FN_FLUSH fn_flush)
 {
     bs->size = size;
     bs->beg = buf;
@@ -61,8 +60,7 @@ void evc_bsw_init(EVC_BSW * bs, u8 * buf, int size,
     bs->fn_flush = (fn_flush == NULL ? evc_bsw_flush : fn_flush);
 }
 
-void evc_bsw_init_slice(EVC_BSW * bs, u8 * buf, int size,
-    EVC_BSW_FN_FLUSH fn_flush)
+void evc_bsw_init_slice(EVC_BSW * bs, u8 * buf, int size, EVC_BSW_FN_FLUSH fn_flush)
 {
     bs->size = size;
     bs->cur = buf;

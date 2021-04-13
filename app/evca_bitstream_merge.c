@@ -354,7 +354,8 @@ int main(int argc, const char **argv)
 
             bsr = &ctx->bs;
             sps = &ctx->sps;
-            pps = &ctx->pps;
+            ctx->pps = &(ctx->pps_array[0]);
+            pps = ctx->pps;
             sh = &ctx->sh;
             nalu = &ctx->nalu;
             aps = &ctx->aps;
@@ -404,7 +405,7 @@ int main(int argc, const char **argv)
                     sh->alf_sh_param.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
                     memset(sh->alf_sh_param.alfCtuEnableFlag, 1, N_C * ctx->f_lcu * sizeof(u8));
                     /* decode slice header */
-                    ret = evcd_eco_sh(bsr, &ctx->sps, &ctx->pps, sh, ctx->nalu.nal_unit_type_plus1 - 1);
+                    ret = evcd_eco_sh(bsr, &ctx->sps, ctx->pps, sh, ctx->nalu.nal_unit_type_plus1 - 1);
                     evc_assert_rv(EVC_SUCCEEDED(ret), ret);
 
                     if (bs_num == 0 && sh->slice_type == SLICE_I)
@@ -428,7 +429,7 @@ int main(int argc, const char **argv)
                         {
                             /* re-write slice header */
                             sh->poc_lsb += intra_dist[0];
-                            ret = evce_eco_sh(&bsw, &ctx->sps, &ctx->pps, sh, ctx->nalu.nal_unit_type_plus1 - 1);
+                            ret = evce_eco_sh(&bsw, &ctx->sps, ctx->pps, sh, ctx->nalu.nal_unit_type_plus1 - 1);
                             fwrite(tmp_size, 1, 4, fp_bs_write);
                             fwrite(bs_buf, 1, bs_size, fp_bs_write);
                         }

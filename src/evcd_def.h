@@ -206,7 +206,7 @@ struct _EVCD_CTX
     /* sequence parameter set */
     EVC_SPS                 sps;
     /* picture parameter set */
-    EVC_PPS                 pps;
+    EVC_PPS               * pps;
 #if MULTIPLE_NAL
     EVC_PPS                 pps_array[64];
 #endif
