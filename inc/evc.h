@@ -601,7 +601,13 @@ typedef struct _EVCE_CDSC
     int            picture_crop_bottom_offset;
     EVC_CHROMA_TABLE chroma_qp_table_struct;
 #if M52291_HDR_DRA
-    void * m_DRAMappingApp; 
+    double         dra_hist_norm;
+    int            dra_num_ranges;
+    double         dra_scale_map_y[256][2];
+    double         dra_cb_qp_scale;
+    double         dra_cr_qp_scale;
+    double         dra_chroma_qp_scale;
+    double         dra_chroma_qp_offset;
     int tool_dra;
 #endif
 #if ETM_HDR_REPORT_METRIC_FLAG
@@ -672,17 +678,6 @@ EVCE evce_create(EVCE_CDSC * cdsc, int * err);
 void evce_delete(EVCE id);
 int evce_push(EVCE id, EVC_IMGB * imgb);
 int evce_encode(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat);
-#if M52291_HDR_DRA
-int evce_get_pps_dra_flag(EVCE id);
-int evce_get_pps_id(EVCE id);
-int evce_encode_aps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat, int aps_type_id);
-int evce_set_active_pps_dra_info(EVCE id, int pps_id);
-int evce_generate_pps_array(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat);
-int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat, void *p_signalledDRA, void * g_void_dra_array);
-#else
-int evce_encode_sps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat);
-#endif
-int evce_encode_pps(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat);
 int evce_get_inbuf(EVCE id, EVC_IMGB ** imgb);
 int evce_config(EVCE id, int cfg, void * buf, int * size);
 

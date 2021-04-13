@@ -1058,7 +1058,7 @@ typedef struct _EVC_PIC
     /* image buffer */
     EVC_IMGB       * imgb;
     /* presentation temporal reference of this picture */
-    u32              poc;
+    s32              poc;
     /* 0: not used for reference buffer, reference picture type */
     u8               is_ref;
     /* needed for output? */
@@ -1122,7 +1122,7 @@ typedef struct _EVC_PM
     /* number of reference pictures */
     u8               num_refp[REFP_NUM];
     /* next output POC */
-    u32              poc_next_output;
+    s32              poc_next_output;
     /* POC increment */
     u8               poc_increase;
     /* max number of picture buffer */
@@ -1409,18 +1409,19 @@ typedef struct _evc_SignalledALFParam
 #if M52291_HDR_DRA
 typedef struct _EVC_APS_GEN
 {
-    int signal_flag;
-    int                               aps_type_id;                    // adaptation_parameter_set_type_id
-    int                               aps_id;                    // adaptation_parameter_set_id
-    void * aps_data;
+    int               signal_flag;
+    int               aps_type_id;  // adaptation_parameter_set_type_id
+    int               aps_id;       // adaptation_parameter_set_id
+    void            * aps_data;
 } EVC_APS_GEN;
 #endif
+
 typedef struct _EVC_APS
 {
-    int                               aps_id;                    // adaptation_parameter_set_id
-    int aps_id_y;
-    int aps_id_ch;
-    evc_AlfSliceParam          alf_aps_param;              // alf data
+    int               aps_id;        // adaptation_parameter_set_id
+    int               aps_id_y;
+    int               aps_id_ch;
+    evc_AlfSliceParam alf_aps_param; // alf data
 } EVC_APS;
 
 typedef struct _EVC_SH
@@ -1512,6 +1513,7 @@ typedef struct _EVC_POC
     u32             prev_poc_val;
     /* the decoding order count of the previous picture */
     int             prev_doc_offset;
+    int             prev_idr_poc;
 } EVC_POC;
 
 /*****************************************************************************

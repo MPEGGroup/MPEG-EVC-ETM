@@ -473,7 +473,7 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
             }
 
 #if DQP
-            if(ctx->pps.cu_qp_delta_enabled_flag)
+            if(ctx->pps->cu_qp_delta_enabled_flag)
             {
                 MCU_RESET_QP(map_scu[j]);
                 MCU_SET_IF_COD_SN_QP(map_scu[j], flag, ctx->slice_num, core->qp);

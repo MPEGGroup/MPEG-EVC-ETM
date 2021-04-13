@@ -163,7 +163,7 @@ void evce_rdo_bit_cnt_cu_intra_luma(EVCE_CTX *ctx, EVCE_CORE *core, s32 slice_ty
         evce_eco_intra_dir_b(&core->bs_temp, core->ipm[0], core->mpm_b_list, core->mpm_ext, core->pims);
     }
 #if DQP_RDO
-    if (ctx->pps.cu_qp_delta_enabled_flag)
+    if (ctx->pps->cu_qp_delta_enabled_flag)
     {
         core->cu_qp_delta_code = core->dqp_temp_run.cu_qp_delta_code;
         core->cu_qp_delta_is_coded = core->dqp_temp_run.cu_qp_delta_is_coded;
@@ -180,7 +180,7 @@ void evce_rdo_bit_cnt_cu_intra_luma(EVCE_CTX *ctx, EVCE_CORE *core, s32 slice_ty
 #endif
     );
 #if DQP_RDO
-    if (ctx->pps.cu_qp_delta_enabled_flag)
+    if (ctx->pps->cu_qp_delta_enabled_flag)
     {
         core->dqp_temp_run.cu_qp_delta_code = core->cu_qp_delta_code;
         core->dqp_temp_run.cu_qp_delta_is_coded = core->cu_qp_delta_is_coded;
@@ -270,7 +270,7 @@ void evce_rdo_bit_cnt_cu_intra(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
         }
     }
 #if DQP_RDO
-    if (ctx->pps.cu_qp_delta_enabled_flag)
+    if (ctx->pps->cu_qp_delta_enabled_flag)
     {
         core->cu_qp_delta_code = core->dqp_temp_run.cu_qp_delta_code;
         core->cu_qp_delta_is_coded = core->dqp_temp_run.cu_qp_delta_is_coded;
@@ -279,7 +279,7 @@ void evce_rdo_bit_cnt_cu_intra(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
 #endif
     evce_eco_coef(&core->bs_temp, coef, log2_cuw, log2_cuh, MODE_INTRA, core->nnz_sub, 0, RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_ats, core->ats_intra_cu, core->ats_mode, 0, ctx
 #if DQP
-                  , core, ctx->pps.cu_qp_delta_enabled_flag ? 1 : 0, core->qp
+                  , core, ctx->pps->cu_qp_delta_enabled_flag ? 1 : 0, core->qp
 #endif
                   , core->tree_cons
 #if BD_CF_EXT
@@ -287,7 +287,7 @@ void evce_rdo_bit_cnt_cu_intra(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
 #endif
     );
 #if DQP_RDO
-    if (ctx->pps.cu_qp_delta_enabled_flag)
+    if (ctx->pps->cu_qp_delta_enabled_flag)
     {
         core->dqp_temp_run.cu_qp_delta_code = core->cu_qp_delta_code;
         core->dqp_temp_run.cu_qp_delta_is_coded = core->cu_qp_delta_is_coded;
@@ -363,7 +363,7 @@ void evce_rdo_bit_cnt_cu_ibc(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s
 
     evce_eco_mvd(&core->bs_temp, mvd);
 #if DQP_RDO
-    if (ctx->pps.cu_qp_delta_enabled_flag)
+    if (ctx->pps->cu_qp_delta_enabled_flag)
     {
         core->cu_qp_delta_code = core->dqp_temp_run.cu_qp_delta_code;
         core->cu_qp_delta_is_coded = core->dqp_temp_run.cu_qp_delta_is_coded;
@@ -372,7 +372,7 @@ void evce_rdo_bit_cnt_cu_ibc(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s
 #endif
     evce_eco_coef(&core->bs_temp, coef, core->log2_cuw, core->log2_cuh, MODE_IBC, core->nnz_sub, b_no_cbf, RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_ats, 0, 0, 0, ctx
 #if DQP
-                  , core, ctx->pps.cu_qp_delta_enabled_flag ? 1 : 0, core->qp
+                  , core, ctx->pps->cu_qp_delta_enabled_flag ? 1 : 0, core->qp
 #endif
                   , core->tree_cons
 #if BD_CF_EXT
@@ -380,7 +380,7 @@ void evce_rdo_bit_cnt_cu_ibc(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s
 #endif
     );
 #if DQP_RDO
-    if(ctx->pps.cu_qp_delta_enabled_flag)
+    if(ctx->pps->cu_qp_delta_enabled_flag)
     {
         core->dqp_temp_run.cu_qp_delta_code = core->cu_qp_delta_code;
         core->dqp_temp_run.cu_qp_delta_is_coded = core->cu_qp_delta_is_coded;
@@ -607,7 +607,7 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
         }
     }
 #if DQP_RDO
-    if (ctx->pps.cu_qp_delta_enabled_flag)
+    if (ctx->pps->cu_qp_delta_enabled_flag)
     {
         core->cu_qp_delta_code = core->dqp_temp_run.cu_qp_delta_code;
         core->cu_qp_delta_is_coded = core->dqp_temp_run.cu_qp_delta_is_coded;
@@ -616,7 +616,7 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
 #endif
     evce_eco_coef(&core->bs_temp, coef, core->log2_cuw, core->log2_cuh, MODE_INTER, core->nnz_sub, b_no_cbf, RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_ats, 0, 0, core->ats_inter_info, ctx
 #if DQP
-                  , core, ctx->pps.cu_qp_delta_enabled_flag ? 1 : 0, core->qp
+                  , core, ctx->pps->cu_qp_delta_enabled_flag ? 1 : 0, core->qp
 #endif
                   , core->tree_cons
 #if BD_CF_EXT
@@ -624,7 +624,7 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
 #endif
     );
 #if DQP_RDO
-    if (ctx->pps.cu_qp_delta_enabled_flag)
+    if (ctx->pps->cu_qp_delta_enabled_flag)
     {
         core->dqp_temp_run.cu_qp_delta_code = core->cu_qp_delta_code;
         core->dqp_temp_run.cu_qp_delta_is_coded = core->cu_qp_delta_is_coded;
@@ -1113,7 +1113,7 @@ static int get_cu_pred_data(EVCE_CU_DATA *src, int x, int y, int log2_cuw, int l
 void get_min_max_qp(EVCE_CTX * ctx, EVCE_CORE *core, s8 * min_qp, s8 * max_qp, int * is_dqp_set, SPLIT_MODE split_mode, int cuw, int cuh, u8 qp, int x0, int y0)
 {
     *is_dqp_set = 0;
-    if (!ctx->pps.cu_qp_delta_enabled_flag)
+    if (!ctx->pps->cu_qp_delta_enabled_flag)
     {
         *min_qp = ctx->tile[core->tile_idx].qp;                           // Clip?
         *max_qp = ctx->tile[core->tile_idx].qp;
@@ -1137,7 +1137,7 @@ void get_min_max_qp(EVCE_CTX * ctx, EVCE_CORE *core, s8 * min_qp, s8 * max_qp, i
         {
             *min_qp = qp;                           // Clip?
             *max_qp = qp;
-            if (split_mode == NO_SPLIT && (CONV_LOG2(cuw) + CONV_LOG2(cuh) >= ctx->pps.cu_qp_delta_area) && core->cu_qp_delta_code_mode != 2)
+            if (split_mode == NO_SPLIT && (CONV_LOG2(cuw) + CONV_LOG2(cuh) >= ctx->pps->cu_qp_delta_area) && core->cu_qp_delta_code_mode != 2)
             {
                 core->cu_qp_delta_code_mode = 1;
                 *min_qp = ctx->tile[core->tile_idx].qp;
@@ -1153,8 +1153,8 @@ void get_min_max_qp(EVCE_CTX * ctx, EVCE_CORE *core, s8 * min_qp, s8 * max_qp, i
                     *is_dqp_set = 0;
                 }
             }
-            else if ((((CONV_LOG2(cuw) + CONV_LOG2(cuh) == ctx->pps.cu_qp_delta_area + 1) && (split_mode == SPLIT_TRI_VER || split_mode == SPLIT_TRI_HOR)) ||
-                (CONV_LOG2(cuh) + CONV_LOG2(cuw) == ctx->pps.cu_qp_delta_area && core->cu_qp_delta_code_mode != 2)))
+            else if ((((CONV_LOG2(cuw) + CONV_LOG2(cuh) == ctx->pps->cu_qp_delta_area + 1) && (split_mode == SPLIT_TRI_VER || split_mode == SPLIT_TRI_HOR)) ||
+                (CONV_LOG2(cuh) + CONV_LOG2(cuw) == ctx->pps->cu_qp_delta_area && core->cu_qp_delta_code_mode != 2)))
             {
                 core->cu_qp_delta_code_mode = 2;
                 *is_dqp_set = 1;
@@ -1487,7 +1487,7 @@ static void copy_to_cu_data(EVCE_CTX *ctx, EVCE_CORE *core, EVCE_MODE *mi, s16 c
 #if DQP
             cu_data->qp_y[idx + i] = core->qp_y;
             MCU_RESET_QP(cu_data->map_scu[idx + i]);
-            if (ctx->pps.cu_qp_delta_enabled_flag)
+            if (ctx->pps->cu_qp_delta_enabled_flag)
             {
                 MCU_SET_IF_COD_SN_QP(cu_data->map_scu[idx + i], core->cu_mode == MODE_INTRA, ctx->slice_num, core->qp);
             }
@@ -2162,7 +2162,7 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
                 mi->s_rec[i] = s_rec[i];
             }
 #if DQP_RDO 
-            if (ctx->pps.cu_qp_delta_enabled_flag)
+            if (ctx->pps->cu_qp_delta_enabled_flag)
             {
                 evce_set_qp(ctx, core, core->dqp_next_best[log2_cuw - 2][log2_cuh - 2].prev_QP);
             }
@@ -2243,7 +2243,7 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
             core->inter_satd = EVC_UINT32_MAX;
         }
 #if DQP_RDO
-        if (ctx->pps.cu_qp_delta_enabled_flag)
+        if (ctx->pps->cu_qp_delta_enabled_flag)
         {
             evce_set_qp(ctx, core, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2].curr_QP);
         }
@@ -2933,7 +2933,7 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
                     ctx->map_unrefined_mv[k][REFP_1][MV_Y] = mv[REFP_1][MV_Y];
                 }
 #if DQP
-                if(ctx->pps.cu_qp_delta_enabled_flag)
+                if(ctx->pps->cu_qp_delta_enabled_flag)
                 {
                     MCU_RESET_QP(ctx->map_scu[k]);
                     MCU_SET_QP(ctx->map_scu[k], ctx->core->qp);
@@ -3375,7 +3375,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
     bef_data_idx = evc_get_lr(core->avail_lr);
     core->bef_data_idx = bef_data_idx;
 #if DQP_RDO 
-    if (ctx->pps.cu_qp_delta_enabled_flag)
+    if (ctx->pps->cu_qp_delta_enabled_flag)
     {
         bef_data_idx = (!!(qp - ctx->tile[core->tile_idx].qp) << 2) | bef_data_idx;
         core->bef_data_idx = bef_data_idx;

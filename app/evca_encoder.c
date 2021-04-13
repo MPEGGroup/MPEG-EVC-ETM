@@ -1257,11 +1257,7 @@ static void evca_parse_chroma_qp_mapping_params(EVC_CHROMA_TABLE *dst_struct, EV
     }
 }
 
-#if M52291_HDR_DRA
-static int get_conf(EVCE_CDSC * cdsc, void *p_dra_struct_void)
-#else
 static int get_conf(EVCE_CDSC * cdsc)
-#endif
 {
     int result = 0;
     memset(cdsc, 0, sizeof(EVCE_CDSC));
@@ -1544,64 +1540,39 @@ static int get_conf(EVCE_CDSC * cdsc)
         ++cdsc->rpls_l1_cfg_num;
     }
 #if M52291_HDR_DRA
+    if(op_dra_enable_flag)
     {
-        cdsc->m_DRAMappingApp = p_dra_struct_void;
-        WCGDDRAControl *p_dra_control = ((WCGDDRAControl*)cdsc->m_DRAMappingApp);
-        p_dra_control->m_flagEnabled = op_dra_enable_flag;
-        if (p_dra_control->m_flagEnabled)
+        cdsc->dra_hist_norm = atof(strtok(op_dra_hist_norm, " "));
+        cdsc->dra_num_ranges = op_dra_number_ranges;
+        cdsc->dra_scale_map_y[0][0] = atoi(strtok(op_dra_range, " "));
+        int j = 1;
+        do
         {
-#if BD_CF_EXT
-            if(!(cdsc->codec_bit_depth == 10))
-            {
-                return -2;
-            }
-            p_dra_control->m_idc = cdsc->chroma_format_idc;
-#endif
-            p_dra_control->m_draHistNorm = atof(strtok(op_dra_hist_norm, " "));
-            p_dra_control->m_draHistNorm = p_dra_control->m_draHistNorm == 0 ? 1 : p_dra_control->m_draHistNorm;
-            p_dra_control->m_atfNumRanges = op_dra_number_ranges;
+            char* val = strtok(NULL, " \r");
+            if (!val)
+                break;
+            cdsc->dra_scale_map_y[j++][0] = atoi(val);
+        } while (1);
+        assert(cdsc->dra_num_ranges == j);
 
-            p_dra_control->m_draScaleMap.m_draScaleMapY[0][0] = atoi(strtok(op_dra_range, " "));
-            int j = 1;
-            do
-            {
-                char* val = strtok(NULL, " \r");
-                if (!val)
-                    break;
-                p_dra_control->m_draScaleMap.m_draScaleMapY[j++][0] = atoi(val);
-            } while (1);
-            evc_assert(p_dra_control->m_atfNumRanges == j);
+        cdsc->dra_scale_map_y[0][1] = atof(strtok(op_dra_scale, " "));
+        j = 1;
+        do
+        {
+            char* val = strtok(NULL, " \r");
+            if (!val)
+                break;
+            cdsc->dra_scale_map_y[j++][1] = atof(val);
+        } while (1);
+        assert(cdsc->dra_num_ranges == j);
 
-            p_dra_control->m_draScaleMap.m_draScaleMapY[0][1] = atof(strtok(op_dra_scale, " "));
-            j = 1;
-            do
-            {
-                char* val = strtok(NULL, " \r");
-                if (!val)
-                    break;
-                p_dra_control->m_draScaleMap.m_draScaleMapY[j++][1] = atof(val);
-            } while (1);
-            evc_assert(p_dra_control->m_atfNumRanges == j);
-            p_dra_control->m_draScaleMap.m_draScaleMapY[p_dra_control->m_atfNumRanges][0] = 1024;
-            p_dra_control->m_draScaleMap.m_draScaleMapY[p_dra_control->m_atfNumRanges][1] = p_dra_control->m_draScaleMap.m_draScaleMapY[p_dra_control->m_atfNumRanges - 1][1];
-        }
+        cdsc->dra_scale_map_y[cdsc->dra_num_ranges][0] = 1024;
+        cdsc->dra_scale_map_y[cdsc->dra_num_ranges][1] = cdsc->dra_scale_map_y[cdsc->dra_num_ranges - 1][1];
 
-        p_dra_control->m_chromaQPModel.dra_table_idx = cdsc->qp;
-#if BD_CF_EXT
-        p_dra_control->m_internal_bd = cdsc->codec_bit_depth;
-        p_dra_control->m_idc = cdsc->chroma_format_idc;
-        if(cdsc->chroma_format_idc == 0)
-            p_dra_control->m_chromaQPModel.dra_table_idx = 58;
-#endif
-        p_dra_control->m_chromaQPModel.m_draChromaCbQpOffset = cdsc->cb_qp_offset;
-        p_dra_control->m_chromaQPModel.m_draChromaCrQpOffset = cdsc->cr_qp_offset;
-        p_dra_control->m_chromaQPModel.enabled = 1;
-        p_dra_control->m_chromaQPModel.chromaCbQpScale = atof(op_dra_chroma_cb_scale);
-        p_dra_control->m_chromaQPModel.chromaCrQpScale = atof(op_dra_chroma_cr_scale);
-        p_dra_control->m_chromaQPModel.chromaQpScale = atof(op_dra_chroma_qp_scale);
-        p_dra_control->m_chromaQPModel.chromaQpOffset = atof(op_dra_chroma_qp_offset);
-        p_dra_control->m_dra_descriptor2 = QC_SCALE_NUMFBITS;
-        p_dra_control->m_dra_descriptor1 = 4;
+        cdsc->dra_cb_qp_scale = atof(op_dra_chroma_cb_scale);
+        cdsc->dra_cr_qp_scale = atof(op_dra_chroma_cr_scale);
+        cdsc->dra_chroma_qp_scale = atof(op_dra_chroma_qp_scale);
+        cdsc->dra_chroma_qp_offset = atof(op_dra_chroma_qp_offset);
     }
 #endif
 #if BD_CF_EXT
@@ -2973,11 +2944,7 @@ static int cal_hdr_metric(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTI
     return -1;
 }
 
-#if M52291_HDR_DRA
-static int write_rec(IMGB_LIST *list, EVC_MTIME *ts, SignalledParamsDRA *p_DRAControl)
-#else
 static int write_rec(IMGB_LIST *list, EVC_MTIME *ts)
-#endif
 {
     int i;
 
@@ -2987,15 +2954,6 @@ static int write_rec(IMGB_LIST *list, EVC_MTIME *ts)
         {
             if(op_flag[OP_FLAG_FNAME_REC])
             {
-#if M52291_HDR_DRA
-#if !BD_CF_EXT
-                int effective_aps_id = list[i].imgb->imgb_active_aps_id;
-                if(effective_aps_id >= 0)
-                {
-                    evc_apply_dra_from_array(list[i].imgb, list[i].imgb, p_DRAControl, effective_aps_id, TRUE);
-                }
-#endif
-#endif
                 if(imgb_write(op_fname_rec, list[i].imgb))
                 {
                     v0print("cannot write reconstruction image\n");
@@ -3112,36 +3070,11 @@ int main(int argc, const char **argv)
     }
     double deltaE_avg = 0.0;
     double psnrL_avg = 0.0;
-#if M52291_HDR_DRA
-    EVC_IMGB          *imgb_dra = NULL;
-    WCGDDRAControl g_dra_control;
-    WCGDDRAControl *p_g_dra_control = &g_dra_control;
-    p_g_dra_control->m_signalledDRA.m_signal_dra_flag = -1;
-    cdsc.m_DRAMappingApp = (void*)p_g_dra_control;  // To be re-asign to the cdsc storage after cdsc structure is reset in get_conf().
 
-    SignalledParamsDRA g_dra_control_array[APS_MAX_NUM];
-    for (int i = 0; i < APS_MAX_NUM; i++)
-    {
-        g_dra_control_array[i].m_signal_dra_flag = -1;
-    }
-
-    // local PU buffer for 2 types of APS data: ALF and DRA
-    evc_AlfSliceParam g_alf_control;
-    evc_AlfSliceParam *p_g_alf_control = &g_alf_control;
-
-    // Structure to keep 2 types of APS to read at PU
-    EVC_APS_GEN aps_gen_array[2];
-    EVC_APS_GEN *p_aps_gen_array = aps_gen_array;
-
-    aps_gen_array[0].aps_data = (void*)p_g_alf_control;
-    aps_gen_array[1].aps_data = (void*)&(p_g_dra_control->m_signalledDRA);
-    evc_resetApsGenReadBuffer(p_aps_gen_array);
-#endif
     IMGB_LIST           ilist_org[MAX_BUMP_FRM_CNT];
     IMGB_LIST           ilist_rec[MAX_BUMP_FRM_CNT];
     IMGB_LIST          *ilist_t = NULL;
     static int          is_first_enc = 1;
-
 
     /* parse options */
     ret = evc_args_parse_all(argc, argv, options);
@@ -3201,11 +3134,9 @@ int main(int argc, const char **argv)
 #if BD_CF_EXT
     set_chroma_qp__tbl_loc(op_codec_bit_depth);
 #endif
-#if M52291_HDR_DRA
-    val = get_conf(&cdsc, (void*)p_g_dra_control);
-#else
+
     val = get_conf(&cdsc);
-#endif
+
     if(val)
     {
         if(val == -1)
@@ -3279,113 +3210,6 @@ int main(int argc, const char **argv)
     bitb.addr = bs_buf;
     bitb.bsize = MAX_BS_BUF;
 
-#if M52291_HDR_DRA
-    ret = evce_encode_sps(id, &bitb, &stat, (void *)aps_gen_array, (void *)&(g_dra_control_array[0]));
-#else
-    ret = evce_encode_sps(id, &bitb, &stat);
-#endif
-    if(EVC_FAILED(ret))
-    {
-        v0print("cannot encode SPS\n");
-        return -1;
-    }
-
-    if (op_flag[OP_FLAG_FNAME_OUT])
-    {
-        if (write_data(op_fname_out, bs_buf, stat.write))
-        {
-            v0print("Cannot write header information (SPS)\n");
-            return -1;
-        }
-    }
-
-    bitrate += stat.write;
-
-#if M52291_HDR_DRA
-    /*    generate array of DRA params */
-    if (cdsc.tool_dra)
-    {
-        int num_aps = 1;
-        evce_generate_dra_array(&(g_dra_control_array[0]), p_g_dra_control, num_aps);
-    }
-    else {
-        p_g_dra_control->m_signalledDRA.m_signal_dra_flag = 0;
-    }
-
-    /*    generate array of PPS with id in the range 0.. MAX_NUM_PPS-1 */ 
-    ret = evce_generate_pps_array(id, &bitb, &stat);
-    if (EVC_FAILED(ret))
-    {
-        v0print("cannot allocate array of PPS\n");
-        return -1;
-    }
-
-    int number_pps = 1;
-    for (int i = 0; i < number_pps; i++)
-    {
-        /*    activate PPS by ID for signaling purpose    */
-        evce_set_active_pps_dra_info(id, i);
-
-        ret = evce_encode_pps(id, &bitb, &stat);
-        if (EVC_FAILED(ret))
-        {
-            v0print("cannot encode PPS\n");
-            return -1;
-        }
-
-        if (op_flag[OP_FLAG_FNAME_OUT])
-        {
-            if (write_data(op_fname_out, bs_buf, stat.write))
-            {
-                v0print("Cannot write header information (SPS)\n");
-                return -1;
-            }
-        }
-        bitrate += stat.write;
-        
-        if (cdsc.tool_dra)
-        {
-            // Send DRA APS, if active PPS enables DRA
-            if (aps_gen_array[1].signal_flag == 1)
-            {
-                ret = evce_encode_aps(id, &bitb, &stat, 1);
-
-                if (EVC_FAILED(ret))
-                {
-                    v0print("cannot encode APS\n");
-                    return -1;
-                }
-                if (op_flag[OP_FLAG_FNAME_OUT])
-                {
-                    if (write_data(op_fname_out, bs_buf, stat.write))
-                    {
-                        v0print("Cannot write header information (SPS)\n");
-                        return -1;
-                    }
-                }
-                bitrate += stat.write;
-            }
-        }
-    }
-
-#else
-    ret = evce_encode_pps(id, &bitb, &stat);
-    if (EVC_FAILED(ret))
-    {
-        v0print("cannot encode PPS\n");
-        return -1;
-    }
-    if (op_flag[OP_FLAG_FNAME_OUT])
-    {
-        if (write_data(op_fname_out, bs_buf, stat.write))
-        {
-            v0print("Cannot write header information (SPS)\n");
-            return -1;
-        }
-    }
-#endif
-
-
     if(op_flag[OP_FLAG_SKIP_FRAMES] && op_skip_frames > 0)
     {
         state = STATE_SKIPPING;
@@ -3456,17 +3280,6 @@ int main(int argc, const char **argv)
 #else
             imgb_cpy(imgb_enc, ilist_t->imgb);
 #endif
-#if M52291_HDR_DRA
-            evce_set_active_pps_dra_info(id, 0);
-            imgb_enc->imgb_active_pps_id = evce_get_pps_id(id);
-            if (evce_get_pps_dra_flag(id))
-            {
-                int effective_aps_id = aps_gen_array[1].aps_id;
-                imgb_enc->imgb_active_aps_id = effective_aps_id;
-                imgb_enc->imgb_active_pps_id = evce_get_pps_id(id);
-                evc_apply_dra_from_array(imgb_enc, imgb_enc, &(g_dra_control_array[0]), effective_aps_id, FALSE);
-            }
-#endif
             /* push image to encoder */
             ret = evce_push(id, imgb_enc);
             if(EVC_FAILED(ret))
@@ -3516,58 +3329,15 @@ int main(int argc, const char **argv)
                 v0print("failed to get reconstruction image\n");
                 return -1;
             }
-#if BD_CF_EXT
-#if M52291_HDR_DRA
-            if(evce_get_pps_dra_flag(id))
-            {
-                if(EVC_OK != evce_get_inbuf(id, &imgb_dra))
-                {
-                    v0print("Cannot get original image buffer (DRA)\n");
-                    return -1;
-                }
-                imgb_cpy_bd(imgb_dra, imgb_rec);  // store copy of the reconstructed picture in DPB
-                int effective_aps_id = imgb_dra->imgb_active_aps_id;
-                evc_apply_dra_from_array(imgb_dra, imgb_dra, &(g_dra_control_array[0]), effective_aps_id, TRUE);
-                ilist_t = imgb_list_put(ilist_rec, imgb_dra, imgb_dra->ts[0]);
-                if(ilist_t == NULL)
-                {
-                    v0print("cannot put reconstructed image to list\n");
-                    return -1;
-                }
-            }
-            else
-            {
-                ilist_t = imgb_list_put(ilist_rec, imgb_rec, imgb_rec->ts[0]);
-                if(ilist_t == NULL)
-                {
-                    v0print("cannot put reconstructed image to list\n");
-                    return -1;
-                }
-            }
-#endif
-#else
-            /* store reconstructed image to list */
+
             ilist_t = imgb_list_put(ilist_rec, imgb_rec, imgb_rec->ts[0]);
-            if(ilist_t == NULL)
+            if (ilist_t == NULL)
             {
                 v0print("cannot put reconstructed image to list\n");
                 return -1;
             }
-#if M52291_HDR_DRA
-            if (evce_get_pps_dra_flag(id))
-            {
-                if (EVC_OK != evce_get_inbuf(id, &imgb_dra))
-                {
-                    v0print("Cannot get original image buffer (DRA)\n");
-                    return -1;
-                }
-                imgb_cpy(imgb_dra, ilist_t->imgb);  // store copy of the reconstructed picture in DPB
-                int effective_aps_id = imgb_dra->imgb_active_aps_id;
-                evc_apply_dra_from_array(ilist_t->imgb, ilist_t->imgb, &(g_dra_control_array[0]), effective_aps_id, TRUE);
-            }
-#endif
-#endif
-            /* calculate PSNR */
+
+             /* calculate PSNR */
             if(cal_psnr(ilist_org, ilist_t->imgb, ilist_t->ts, psnr, &ms_ssim, op_hdr_metric_report))
             {
                 v0print("cannot calculate PSNR\n");
@@ -3587,19 +3357,9 @@ int main(int argc, const char **argv)
                     return -1;
                 }
             }
-#if M52291_HDR_DRA
-            if (evce_get_pps_dra_flag(id))
-            {
-#if !BD_CF_EXT
-                imgb_cpy(ilist_t->imgb, imgb_dra);// recover copy of the reconstructed picture for DPB
-#endif
-                imgb_enc->release(imgb_dra);
-            }
-            if (write_rec(ilist_rec, &pic_ocnt, &(g_dra_control_array[0])))
-#else
+
             /* store reconstructed image */
             if (write_rec(ilist_rec, &pic_ocnt))
-#endif
             {
                 v0print("cannot write reconstruction image\n");
                 return -1;
@@ -3652,11 +3412,7 @@ int main(int argc, const char **argv)
     /* store remained reconstructed pictures in output list */
     while(pic_icnt - pic_ocnt > 0)
     {
-#if M52291_HDR_DRA
-        write_rec(ilist_rec, &pic_ocnt, &(g_dra_control_array[0]));
-#else
         write_rec(ilist_rec, &pic_ocnt);
-#endif
     }
     if(pic_icnt != pic_ocnt)
     {

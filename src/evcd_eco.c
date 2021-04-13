@@ -1200,7 +1200,7 @@ int evcd_eco_coef(EVCD_CTX * ctx, EVCD_CORE * core)
 #if DQP            
             int dqp;
             int qp_i_cb, qp_i_cr;
-            if(ctx->pps.cu_qp_delta_enabled_flag && (((!(ctx->sps.dquant_flag) || (core->cu_qp_delta_code == 1 && !core->cu_qp_delta_is_coded))
+            if(ctx->pps->cu_qp_delta_enabled_flag && (((!(ctx->sps.dquant_flag) || (core->cu_qp_delta_code == 1 && !core->cu_qp_delta_is_coded))
                 && (cbf[Y_C] || cbf[U_C] || cbf[V_C])) || (core->cu_qp_delta_code == 2 && !core->cu_qp_delta_is_coded)))
             {
                 dqp = evcd_eco_dqp(bs);
@@ -2079,7 +2079,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
         core->is_coef[Y_C] = core->is_coef[U_C] = core->is_coef[V_C] = 0;   //TODO: Tim why we need to duplicate code here?
         evc_mset(core->is_coef_sub, 0, sizeof(int) * N_C * MAX_SUB_TB_NUM);
 #if DQP //need to check
-        if(ctx->pps.cu_qp_delta_enabled_flag)
+        if(ctx->pps->cu_qp_delta_enabled_flag)
         {
             int qp_i_cb, qp_i_cr;
             core->qp = ctx->tile[core->tile_num].qp_prev_eco;
@@ -2364,7 +2364,6 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
 
 int evcd_eco_nalu(EVC_BSR * bs, EVC_NALU * nalu)
 {
-    //nalu->nal_unit_size = evc_bsr_read(bs, 32);
     evc_bsr_read(bs, &nalu->forbidden_zero_bit, 1);
 
     if (nalu->forbidden_zero_bit != 0)

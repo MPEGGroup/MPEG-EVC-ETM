@@ -1802,7 +1802,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 #endif
         );
 #if DQP_RDO
-        if(ctx->pps.cu_qp_delta_enabled_flag)
+        if(ctx->pps->cu_qp_delta_enabled_flag)
         {
             evce_set_qp(ctx, core, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2].curr_QP);
         }
@@ -1878,7 +1878,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
                         const int s_mod = pi->s_m[Y_C];
                         u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu, ctx->map_tidx);
 
-                        int constrained_intra_flag = 0 && ctx->pps.constrained_intra_pred_flag;
+                        int constrained_intra_flag = 0 && ctx->pps->constrained_intra_pred_flag;
 
                         evc_htdf(rec[i], ctx->tile[core->tile_idx].qp, cuw, cuh, cuw, FALSE, pi->m[Y_C] + (y * s_mod) + x, s_mod, avail_cu
                                  , core->scup, ctx->w_scu, ctx->h_scu, ctx->map_scu, constrained_intra_flag
@@ -2232,7 +2232,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         else
         {
 #if DQP_RDO
-            if (ctx->pps.cu_qp_delta_enabled_flag)
+            if (ctx->pps->cu_qp_delta_enabled_flag)
             {
                 if (core->cu_qp_delta_code_mode != 2)
                 {
@@ -2404,7 +2404,7 @@ static double analyze_skip_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y
     s16          dmvr_mv[MAX_CU_CNT_IN_LCU][REFP_NUM][MV_D];
     core->ats_inter_info = 0;
 #if DQP_RDO
-    if(ctx->pps.cu_qp_delta_enabled_flag)
+    if(ctx->pps->cu_qp_delta_enabled_flag)
     {
         if(core->cu_qp_delta_code_mode != 2)
         {
@@ -2567,7 +2567,7 @@ static void mmvd_base_skip(EVCE_CTX *ctx, EVCE_CORE *core, int real_mv[][2][3], 
     s8 refi[MAX_NUM_MVP];
     s8 refi1[MAX_NUM_MVP];
     int sld[MMVD_BASE_MV_NUM*MMVD_BASE_MV_NUM][2];
-    int idx0, idx1, cnt;
+    int idx0, idx1;
     int s, z, a;
     int sld1[MMVD_BASE_MV_NUM];
     int sld2[MMVD_BASE_MV_NUM];
@@ -2651,12 +2651,7 @@ static void mmvd_base_skip(EVCE_CTX *ctx, EVCE_CORE *core, int real_mv[][2][3], 
         for (idx0 = 0; idx0 < MAX_NUM_MVP; idx0++)
 #endif
         {
-#if INCREASE_MVP_NUM
-            cnt = (slice_t == SLICE_B ? ORG_MAX_NUM_MVP : 1);
-#else
-            cnt = (slice_t == SLICE_B ? MAX_NUM_MVP : 1);
-#endif
-            for (idx1 = 0; idx1 < cnt; idx1++)
+            idx1 = idx0;
             {
                 base_mv[c_num][0][MV_X] = mvp[idx0][MV_X];
                 base_mv[c_num][0][MV_Y] = mvp[idx0][MV_Y];
@@ -2762,7 +2757,7 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
     double       cost, cost_best = MAX_COST;
     double       ad_best_costs[MAX_NUM_MVP];
     int          j;
-    int          cuw, cuh, idx0, idx1, cnt, bit_cnt;
+    int          cuw, cuh, idx0, idx1, bit_cnt;
     s64          cy, cu, cv;
     core->ats_inter_info = 0;
     cuw = (1 << log2_cuw);
@@ -2801,7 +2796,7 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
     }
 
 #if DQP_RDO
-    if(ctx->pps.cu_qp_delta_enabled_flag)
+    if(ctx->pps->cu_qp_delta_enabled_flag)
     {
         if(core->cu_qp_delta_code_mode != 2)
         {
@@ -2813,15 +2808,8 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
     pi->mvp_idx[PRED_SKIP][REFP_1] = 0;
     for (idx0 = 0; idx0 < (cuw*cuh<= NUM_SAMPLES_BLOCK ? MAX_NUM_MVP_SMALL_CU:MAX_NUM_MVP); idx0++)
     {
-        cnt = (ctx->slice_type == SLICE_B ? (cuw * cuh <= NUM_SAMPLES_BLOCK ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP) : 1);
-
-        for(idx1 = 0; idx1 < cnt; idx1++)
+        idx1 = idx0;
         {
-            if(idx0 != idx1)
-            {
-                continue;
-            }
-
             mvp[REFP_0][MV_X] = pi->mvp[REFP_0][idx0][MV_X];
             mvp[REFP_0][MV_Y] = pi->mvp[REFP_0][idx0][MV_Y];
             mvp[REFP_1][MV_X] = pi->mvp[REFP_1][idx1][MV_X];
@@ -2830,7 +2818,7 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
             SET_REFI(refi, pi->refi_pred[REFP_0][idx0], ctx->sh.slice_type == SLICE_B ? pi->refi_pred[REFP_1][idx1] : REFI_INVALID);
             if(!REFI_IS_VALID(refi[REFP_0]) && !REFI_IS_VALID(refi[REFP_1]))
             {
-                continue;
+                assert(0);
             }
 
             evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi, mvp, pi->refp, pi->pred[PRED_NUM], ctx->poc.poc_val, pi->dmvr_template, pi->dmvr_ref_pred_interpolated
@@ -3050,7 +3038,7 @@ static double analyze_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int lo
 
     for(idx0 = 0; idx0 < (cuw*cuh <= NUM_SAMPLES_BLOCK ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP); idx0++)
     {
-        if(0 == core->au8_eval_mvp_idx[idx0])
+        if(ctx->sh.slice_type == SLICE_B && 0 == core->au8_eval_mvp_idx[idx0])
         {
             continue;
         }
@@ -3214,7 +3202,7 @@ static double analyze_skip_mmvd(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, 
 
     core->ats_inter_info = 0;
 #if DQP_RDO
-    if(ctx->pps.cu_qp_delta_enabled_flag)
+    if(ctx->pps->cu_qp_delta_enabled_flag)
     {
         if(core->cu_qp_delta_code_mode != 2)
         {
@@ -5400,7 +5388,7 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
     int          j;
     core->ats_inter_info = 0;
 #if DQP_RDO
-    if(ctx->pps.cu_qp_delta_enabled_flag)
+    if(ctx->pps->cu_qp_delta_enabled_flag)
     {
         if(core->cu_qp_delta_code_mode != 2)
         {
@@ -5814,7 +5802,7 @@ static double pinter_analyze_cu_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, 
         {
             const int s_mod = pi->s_m[Y_C];
             u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu, ctx->map_tidx);
-            int constrained_intra_flag = 0 && ctx->pps.constrained_intra_pred_flag;
+            int constrained_intra_flag = 0 && ctx->pps->constrained_intra_pred_flag;
             evc_htdf(rec[i], ctx->sh.qp, cuw, cuh, cuw, FALSE, pi->m[Y_C] + (y * s_mod) + x, s_mod, avail_cu
                      , core->scup, ctx->w_scu, ctx->h_scu, ctx->map_scu, constrained_intra_flag
 #if BD_CF_EXT
@@ -6884,7 +6872,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
             const int s_mod = pi->s_m[Y_C];
             u16 avail_cu = evc_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu, ctx->map_tidx);
 
-            int constrained_intra_flag = 0 && ctx->pps.constrained_intra_pred_flag;
+            int constrained_intra_flag = 0 && ctx->pps->constrained_intra_pred_flag;
 
             evc_htdf(rec[i], ctx->tile[core->tile_idx].qp, cuw, cuh, cuw, FALSE, pi->m[Y_C] + (y * s_mod) + x, s_mod, avail_cu
                      , core->scup, ctx->w_scu, ctx->h_scu, ctx->map_scu, constrained_intra_flag

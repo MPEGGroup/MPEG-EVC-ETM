@@ -142,6 +142,7 @@ int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS * aps);
 #endif
 int evce_eco_alf_sh_param(EVC_BSW * bs, EVC_SH * sh);
 void evce_eco_ibc_flag(EVC_BSW * bs, int flag, int ctx);
+void evce_imgb_cpy(EVC_IMGB * dst, EVC_IMGB * src);
 #ifdef __cplusplus
 }
 #endif

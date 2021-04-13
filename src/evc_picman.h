@@ -38,7 +38,7 @@
 int evc_picman_refp_rpl_based_init(EVC_PM *pm, EVC_SH *sh, int poc, EVC_REFP(*refp)[REFP_NUM]);
 int evc_picman_refpic_marking(EVC_PM *pm, EVC_SH *sh, int poc);
 
-int evc_picman_refp_init(EVC_PM *pm, int max_num_ref_pics, int slice_type, u32 poc, u8 layer_id, int last_intra, EVC_REFP (*refp)[REFP_NUM]);
+int evc_picman_refp_init(EVC_PM *pm, int max_num_ref_pics, int slice_type, s32 poc, u8 layer_id, int last_intra, EVC_REFP (*refp)[REFP_NUM]);
 
 EVC_PIC * evc_picman_get_empty_pic(EVC_PM *pm, int *err);
 int evc_picman_put_pic(EVC_PM *pm, EVC_PIC *pic, int is_idr, u32 poc, u8 layer_id, int need_for_output, EVC_REFP (*refp)[REFP_NUM], int ref_pic, int pnpf, int ref_pic_gap_length);

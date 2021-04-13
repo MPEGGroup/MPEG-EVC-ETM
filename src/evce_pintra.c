@@ -136,7 +136,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 
         if(ctx->sps.tool_htdf == 1)
         {
-            int constrained_intra_flag = 1 && ctx->pps.constrained_intra_pred_flag;
+            int constrained_intra_flag = 1 && ctx->pps->constrained_intra_pred_flag;
 
             evc_htdf(pi->rec[Y_C], ctx->tile[core->tile_idx].qp, cuw, cuh, cuw, TRUE, pi->m[Y_C] + (y * pi->s_m[Y_C]) + x, pi->s_m[Y_C], core->avail_cu
                      , core->scup, ctx->w_scu, ctx->h_scu, ctx->map_scu, constrained_intra_flag
@@ -479,7 +479,7 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
 
     if(ctx->sps.tool_eipd)
     {
-        evc_get_nbr(x, y, cuw, cuh, mod, s_mod, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C, ctx->pps.constrained_intra_pred_flag, ctx->map_tidx
+        evc_get_nbr(x, y, cuw, cuh, mod, s_mod, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C, ctx->pps->constrained_intra_pred_flag, ctx->map_tidx
 #if BD_CF_EXT
                     , ctx->sps.bit_depth_luma_minus8 + 8
                     , ctx->sps.chroma_format_idc
@@ -490,9 +490,9 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
         {
             evc_get_nbr(x >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc)), y >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc)), cuw >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))
                         , cuh >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc)), mod_cb, s_mod_c, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, U_C
-                        , ctx->pps.constrained_intra_pred_flag, ctx->map_tidx
+                        , ctx->pps->constrained_intra_pred_flag, ctx->map_tidx
 #else
-        evc_get_nbr(x >> 1, y >> 1, cuw >> 1, cuh >> 1, mod_cb, s_mod_c, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, U_C, ctx->pps.constrained_intra_pred_flag, ctx->map_tidx
+        evc_get_nbr(x >> 1, y >> 1, cuw >> 1, cuh >> 1, mod_cb, s_mod_c, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, U_C, ctx->pps->constrained_intra_pred_flag, ctx->map_tidx
 #endif
 #if BD_CF_EXT
                     , ctx->sps.bit_depth_chroma_minus8 + 8
@@ -507,9 +507,9 @@ static double pintra_analyze_cu(EVCE_CTX* ctx, EVCE_CORE* core, int x, int y, in
     {
         evc_get_nbr(x >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc)), y >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc)), cuw >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))
                     , cuh >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc)), mod_cr, s_mod_c, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, V_C
-                    , ctx->pps.constrained_intra_pred_flag, ctx->map_tidx
+                    , ctx->pps->constrained_intra_pred_flag, ctx->map_tidx
 #else
-    evc_get_nbr(x >> 1, y >> 1, cuw >> 1, cuh >> 1, mod_cr, s_mod_c, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, V_C, ctx->pps.constrained_intra_pred_flag, ctx->map_tidx
+    evc_get_nbr(x >> 1, y >> 1, cuw >> 1, cuh >> 1, mod_cr, s_mod_c, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, V_C, ctx->pps->constrained_intra_pred_flag, ctx->map_tidx
 #endif
 #if BD_CF_EXT
                 , ctx->sps.bit_depth_chroma_minus8 + 8
@@ -523,7 +523,7 @@ evc_get_mpm(core->x_scu, core->y_scu, cuw, cuh, ctx->map_scu, ctx->map_ipm, core
     }
     else
     {
-    evc_get_nbr_b(x, y, cuw, cuh, mod, s_mod, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C, ctx->pps.constrained_intra_pred_flag, ctx->map_tidx
+    evc_get_nbr_b(x, y, cuw, cuh, mod, s_mod, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C, ctx->pps->constrained_intra_pred_flag, ctx->map_tidx
 #if BD_CF_EXT
                   , ctx->sps.bit_depth_luma_minus8 + 8
                   , ctx->sps.chroma_format_idc
@@ -534,9 +534,9 @@ evc_get_mpm(core->x_scu, core->y_scu, cuw, cuh, ctx->map_scu, ctx->map_ipm, core
     {
         evc_get_nbr_b(x >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc)), y >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc)), cuw >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))
                       , cuh >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc)), mod_cb, s_mod_c, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, U_C
-                      , ctx->pps.constrained_intra_pred_flag, ctx->map_tidx
+                      , ctx->pps->constrained_intra_pred_flag, ctx->map_tidx
 #else
-    evc_get_nbr_b(x >> 1, y >> 1, cuw >> 1, cuh >> 1, mod_cb, s_mod_c, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, U_C, ctx->pps.constrained_intra_pred_flag, ctx->map_tidx
+    evc_get_nbr_b(x >> 1, y >> 1, cuw >> 1, cuh >> 1, mod_cb, s_mod_c, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, U_C, ctx->pps->constrained_intra_pred_flag, ctx->map_tidx
 #endif
 #if BD_CF_EXT
                   , ctx->sps.bit_depth_chroma_minus8 + 8
@@ -551,9 +551,9 @@ evc_get_mpm(core->x_scu, core->y_scu, cuw, cuh, ctx->map_scu, ctx->map_ipm, core
     {
         evc_get_nbr_b(x >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc)), y >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc)), cuw >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))
                       , cuh >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc)), mod_cr, s_mod_c, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, V_C
-                      , ctx->pps.constrained_intra_pred_flag, ctx->map_tidx
+                      , ctx->pps->constrained_intra_pred_flag, ctx->map_tidx
 #else
-    evc_get_nbr_b(x >> 1, y >> 1, cuw >> 1, cuh >> 1, mod_cr, s_mod_c, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, V_C, ctx->pps.constrained_intra_pred_flag, ctx->map_tidx
+    evc_get_nbr_b(x >> 1, y >> 1, cuw >> 1, cuh >> 1, mod_cr, s_mod_c, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, V_C, ctx->pps->constrained_intra_pred_flag, ctx->map_tidx
 #endif
 #if BD_CF_EXT
                   , ctx->sps.bit_depth_chroma_minus8 + 8

@@ -484,13 +484,13 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
     {
         ii = ctx->tile_in_slice[k++];
         col_bd = 0;
-        if (ii % (ctx->pps.num_tile_columns_minus1 + 1))
+        if (ii % (ctx->pps->num_tile_columns_minus1 + 1))
         {
             int temp = ii - 1;
             while (temp >= 0)
             {
                 col_bd += ctx->tile[temp].w_ctb;
-                if (!(temp % (ctx->pps.num_tile_columns_minus1 + 1))) break;
+                if (!(temp % (ctx->pps->num_tile_columns_minus1 + 1))) break;
                 temp--;
             }
         }
@@ -579,7 +579,7 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
                 const int height = (yPos + ctx->max_cuwh > cs->pPic->h_l) ? (cs->pPic->h_l - yPos) : ctx->max_cuwh;
                 int availableL, availableR, availableT, availableB;
                 availableL = availableR = availableT = availableB = 1;
-                if (!(ctx->pps.loop_filter_across_tiles_enabled_flag))
+                if (!(ctx->pps->loop_filter_across_tiles_enabled_flag))
                 {
                     tile_boundary_check(&availableL, &availableR, &availableT, &availableB, width, height, xPos, yPos, x_l, x_r, y_l, y_r);
                 }

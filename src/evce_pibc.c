@@ -137,7 +137,7 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
 #endif
     );
 #if DQP_RDO
-    if(ctx->pps.cu_qp_delta_enabled_flag)
+    if(ctx->pps->cu_qp_delta_enabled_flag)
     {
         evce_set_qp(ctx, core, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2].curr_QP);
     }
@@ -251,7 +251,7 @@ static double pibc_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
     {
 
 #if DQP_RDO
-        if (ctx->pps.cu_qp_delta_enabled_flag)
+        if (ctx->pps->cu_qp_delta_enabled_flag)
         {
             if (core->cu_qp_delta_code_mode != 2)
             {
