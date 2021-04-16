@@ -665,6 +665,10 @@ EVC_PIC * evc_picman_out_pic(EVC_PM * pm, int * err)
                 return ps[min_idx];
             }
         }
+        else
+        {
+            pm->poc_next_output = 0;
+        }
     }
 
     if(any_need_for_out == 0)
