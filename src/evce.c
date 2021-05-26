@@ -38,8 +38,6 @@
 #include "evce_mode.h"
 #include "evc_util.h"
 #include "enc_alf_wrapper.h"
-int last_intra_poc = INT_MAX;
-BOOL aps_counter_reset = FALSE;
 #include "evce_ibc_hash_wrapper.h"
 
 #if GRAB_STAT
@@ -913,7 +911,7 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
 
     if (ctx->param.arbitrary_slice_flag == 1)
     {
-        ctx->sh.arbitrary_slice_flag = 1;
+        ctx->sh->arbitrary_slice_flag = 1;
         sh->num_remaining_tiles_in_slice_minus1 = ctx->param.num_remaining_tiles_in_slice_minus1[ctx->slice_num];
         if (ctx->tile_cnt > 1)
         {
@@ -985,7 +983,7 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
 #if MULTIPLE_NAL
 static int set_active_pps_info(EVCE_CTX * ctx)
 {
-    int active_pps_id = ctx->sh.slice_pic_parameter_set_id;
+    int active_pps_id = ctx->sh->slice_pic_parameter_set_id;
     ctx->pps = &(ctx->pps_array[active_pps_id]);
     return EVC_OK;
 }
@@ -1162,7 +1160,7 @@ static int set_tile_info(EVCE_CTX * ctx, int is_ctx0)
             for (i = 0; i<w; i++)
             {
                 map_tidx[i] = tidx;
-                MCU_SET_SN(map_scu[i], slice_num);  //Mapping CUs to the slices                    
+                MCU_SET_SN(map_scu[i], slice_num);  //Mapping CUs to the slices
             }
             map_tidx += ctx->w_scu;
             map_scu += ctx->w_scu;
@@ -1249,7 +1247,7 @@ static int evce_eco_tree(EVCE_CTX * ctx, EVCE_CORE * core, int x0, int y0, int c
 #endif
             mode_cons_changed = evc_signal_mode_cons(&core->tree_cons ,&split_struct.tree_cons);
 
-            BOOL mode_cons_signal = mode_cons_changed && (ctx->sh.slice_type != SLICE_I) && (evc_get_mode_cons_by_split(split_mode, cuw, cuh) == eAll)
+            BOOL mode_cons_signal = mode_cons_changed && (ctx->sh->slice_type != SLICE_I) && (evc_get_mode_cons_by_split(split_mode, cuw, cuh) == eAll)
 #if BD_CF_EXT
                 && (ctx->sps.chroma_format_idc == 1)
 #endif
@@ -1263,7 +1261,7 @@ static int evce_eco_tree(EVCE_CTX * ctx, EVCE_CORE * core, int x0, int y0, int c
             if (mode_cons_signal)
             {
 
-                evc_get_ctx_some_flags(PEL2SCU(x0), PEL2SCU(y0), cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode , core->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
+                evc_get_ctx_some_flags(PEL2SCU(x0), PEL2SCU(y0), cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode , core->ctx_flags, ctx->sh->slice_type, ctx->sps.tool_cm_init
                                      , ctx->param.use_ibc_flag, ctx->sps.ibc_log_max_size, ctx->map_tidx);
                 evce_eco_mode_constr(bs, split_struct.tree_cons.mode_cons, core->ctx_flags[CNID_MODE_CONS]);
             }
@@ -1626,6 +1624,11 @@ int evce_ready(EVCE_CTX * ctx)
         ctx->dra_control = NULL;
     }
 
+    ctx->sh_array = (EVC_SH*)evc_malloc(sizeof(EVC_SH) * ctx->param.num_slice_in_pic);
+    evc_assert_gv(ctx->sh_array, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
+    evc_mset(ctx->sh_array, 0, sizeof(EVC_SH) * ctx->param.num_slice_in_pic);
+    ctx->sh = &ctx->sh_array[0];
+
     return EVC_OK;
 ERR:
     for (i = 0; i < (int)ctx->f_lcu; i++)
@@ -1646,6 +1649,7 @@ ERR:
     evc_mfree_fast(ctx->ats_inter_num_pred);
     evc_mfree_fast(ctx->map_cu_mode);
     evc_mfree_fast(ctx->map_tidx);
+    evc_mfree_fast(ctx->sh_array);
 
     for(i = 0; i < ctx->pico_max_cnt; i++)
     {
@@ -1682,6 +1686,7 @@ void evce_flush(EVCE_CTX * ctx)
     evc_mfree_fast(ctx->ats_inter_num_pred);
     evc_mfree_fast(ctx->map_cu_mode);
     evc_mfree_fast(ctx->map_tidx);
+    evc_mfree_fast(ctx->sh_array);
 #if RDO_DBK
     evc_picbuf_free(ctx->pic_dbk);
 #endif
@@ -1707,10 +1712,10 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
 
     core->tree_cons = tree_cons;
 
-    pic->pic_deblock_alpha_offset = ctx->sh.sh_deblock_alpha_offset;
-    pic->pic_deblock_beta_offset = ctx->sh.sh_deblock_beta_offset;
-    pic->pic_qp_u_offset = ctx->sh.qp_u_offset;
-    pic->pic_qp_v_offset = ctx->sh.qp_v_offset;
+    pic->pic_deblock_alpha_offset = ctx->sh->sh_deblock_alpha_offset;
+    pic->pic_deblock_beta_offset = ctx->sh->sh_deblock_beta_offset;
+    pic->pic_qp_u_offset = ctx->sh->qp_u_offset;
+    pic->pic_qp_v_offset = ctx->sh->qp_v_offset;
 
     lcu_num = (x >> ctx->log2_max_cuwh) + (y >> ctx->log2_max_cuwh) * ctx->w_lcu;
     evc_get_split_mode(&split_mode, cud, cup, cuw, cuh, ctx->max_cuwh, ctx->map_cu_data[lcu_num].split_mode);
@@ -1887,13 +1892,12 @@ static void deblock_tree(EVCE_CTX * ctx, EVC_PIC * pic, int x, int y, int cuw, i
     core->tree_cons = tree_cons;
 }
 
-int evce_deblock(EVCE_CTX * ctx, EVC_PIC * pic, int tile_idx, int filter_across_boundary , EVCE_CORE * core)
+int evce_deblock(EVCE_CTX * ctx, EVC_PIC * pic, int tile_idx, int filter_across_boundary, int is_hor_edge, EVCE_CORE * core)
 {
     int i, j;
     int x_l, x_r, y_l, y_r, l_scu, r_scu, t_scu, b_scu;
     u32 k1;
     int scu_in_lcu_wh = 1 << (ctx->log2_max_cuwh - MIN_CU_LOG2);
-    int boundary_filtering = 0;
     x_l = (ctx->tile[tile_idx].ctba_rs_first) % ctx->w_lcu; //entry point lcu's x location
     y_l = (ctx->tile[tile_idx].ctba_rs_first) / ctx->w_lcu; // entry point lcu's y location
     x_r = x_l + ctx->tile[tile_idx].w_ctb;
@@ -1902,17 +1906,14 @@ int evce_deblock(EVCE_CTX * ctx, EVC_PIC * pic, int tile_idx, int filter_across_
     r_scu = EVC_CLIP3(0, ctx->w_scu, x_r*scu_in_lcu_wh);
     t_scu = y_l * scu_in_lcu_wh;
     b_scu = EVC_CLIP3(0, ctx->h_scu, y_r*scu_in_lcu_wh);
-    
-    /* Filtering tile boundaries in case of loop filter is enabled across tiles*/
-    if (filter_across_boundary)
+
+    for (j = t_scu; j < b_scu; j++)
     {
-        int boundary_filtering = 1;
-        /*Horizontal filtering only at the top of the tile */
-        j = t_scu;
         for (i = l_scu; i < r_scu; i++)
         {
             k1 = i + j * ctx->w_scu;
             MCU_CLR_COD(ctx->map_scu[k1]);
+
             if (!MCU_GET_DMVRF(ctx->map_scu[k1]))
             {
                 ctx->map_unrefined_mv[k1][REFP_0][MV_X] = ctx->map_mv[k1][REFP_0][MV_X];
@@ -1921,94 +1922,21 @@ int evce_deblock(EVCE_CTX * ctx, EVC_PIC * pic, int tile_idx, int filter_across_
                 ctx->map_unrefined_mv[k1][REFP_1][MV_Y] = ctx->map_mv[k1][REFP_1][MV_Y];
             }
         }
+    }
 
-        /* horizontal filtering */
-        j = y_l;
+    for(j = y_l; j < y_r; j++)
+    {
         for(i = x_l; i < x_r; i++)
         {
 #if DB_SPEC_ALIGNMENT1
-            deblock_tree(ctx, pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 0/*0 - horizontal filtering of vertical edge*/
-#else
-            deblock_tree(ctx, pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 1
-#endif
-                         , evc_get_default_tree_cons(), core, boundary_filtering);
-        }
-        /*Vertical filtering only at the left boundary of the tile */
-        i = l_scu;
-        for(j = t_scu; j < b_scu; j++)
-        {
-            MCU_CLR_COD(ctx->map_scu[i + j * ctx->w_scu]);
-        }
-        /* vertical filtering */
-        i = x_l;
-        for(j = y_l; j < y_r; j++)
-        {
-#if DB_SPEC_ALIGNMENT1
-            deblock_tree(ctx, pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 1/*1 - vertical filtering of horizontal edge*/
+            deblock_tree(ctx, pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, is_hor_edge
 #else
             deblock_tree(ctx, pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 0
 #endif
-                         , evc_get_default_tree_cons(), core, boundary_filtering);
+                            , evc_get_default_tree_cons(), core, filter_across_boundary);
         }
     }
-    
-    else
-    /* Applying deblocking on the image except tile boundaries*/
-    {
-        
-        for (j = t_scu; j < b_scu; j++)
-        {
-            for (i = l_scu; i < r_scu; i++)
-            {
-                k1 = i + j * ctx->w_scu;
-                MCU_CLR_COD(ctx->map_scu[k1]);
 
-                if (!MCU_GET_DMVRF(ctx->map_scu[k1]))
-                {
-                    ctx->map_unrefined_mv[k1][REFP_0][MV_X] = ctx->map_mv[k1][REFP_0][MV_X];
-                    ctx->map_unrefined_mv[k1][REFP_0][MV_Y] = ctx->map_mv[k1][REFP_0][MV_Y];
-                    ctx->map_unrefined_mv[k1][REFP_1][MV_X] = ctx->map_mv[k1][REFP_1][MV_X];
-                    ctx->map_unrefined_mv[k1][REFP_1][MV_Y] = ctx->map_mv[k1][REFP_1][MV_Y];
-                }
-            }
-        }
-
-        /* horizontal filtering */
-        for (j = y_l; j < y_r; j++)
-        {
-            for(i = x_l; i < x_r; i++)
-            {
-#if DB_SPEC_ALIGNMENT1
-                deblock_tree(ctx, pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 0/*0 - horizontal filtering of vertical edge*/
-#else
-                deblock_tree(ctx, pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 1
-#endif
-                             , evc_get_default_tree_cons(), core, boundary_filtering);
-            }
-        }
-
-        for (j = t_scu; j < b_scu; j++)
-        {
-            for (i = l_scu; i < r_scu; i++)
-            {
-                MCU_CLR_COD(ctx->map_scu[i + j * ctx->w_scu]);
-            }
-        }
-
-        /* vertical filtering */
-        for(j = y_l; j < y_r; j++)
-        {
-            for(i = x_l; i < x_r; i++)
-            {
-#if DB_SPEC_ALIGNMENT1
-                deblock_tree(ctx, pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 1/*1 - vertical filtering of horizontal edge*/
-#else
-                deblock_tree(ctx, pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 0
-#endif
-                             , evc_get_default_tree_cons(), core, boundary_filtering);
-            }
-        }
-    }
     return EVC_OK;
 }
 
@@ -2399,7 +2327,7 @@ int evce_enc_pic_prepare(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     evc_mset_x64a(ctx->map_cu_mode, 0, sizeof(u32) * ctx->f_scu);
 
 #if MULTIPLE_NAL
-    ctx->sh.slice_pic_parameter_set_id = ctx->pico->pic.imgb->imgb_active_pps_id;
+    ctx->sh->slice_pic_parameter_set_id = ctx->pico->pic.imgb->imgb_active_pps_id;
     set_active_pps_info(ctx);
 
     PIC_CURR(ctx)->imgb->imgb_active_pps_id = ctx->pico->pic.imgb->imgb_active_pps_id;
@@ -2462,7 +2390,7 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
     stat->nalu_type = ctx->slice_type == SLICE_I && ctx->param.use_closed_gop ? EVC_IDR_NUT : EVC_NONIDR_NUT;
     stat->stype = ctx->slice_type;
     stat->fnum = ctx->pic_cnt;
-    stat->qp = ctx->sh.qp;
+    stat->qp = ctx->sh->qp;
     stat->poc = ctx->poc.poc_val;
     stat->tid = ctx->nalu.nuh_temporal_id;
 
@@ -2498,118 +2426,132 @@ static void update_core_loc_param(EVCE_CTX * ctx, EVCE_CORE * core)
     core->lcu_num = core->x_lcu + core->y_lcu*ctx->w_lcu; // Init the first lcu_num in tile
 }
 
-int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
+static void set_tile_in_slice(EVCE_CTX * ctx)
 {
-    EVCE_CORE * core;
-    EVC_BSW   * bs;
-    EVC_SH    * sh;
-    EVC_APS   * aps;  // ALF aps
-#if M52291_HDR_DRA
-    EVC_APS_GEN   *aps_alf = &ctx->aps_gen_array[0];
-    EVC_APS_GEN   *aps_dra = &ctx->aps_gen_array[1];
-#endif
-
-    int         ret;
-    u32         i;
-    int         split_mode_child[4];
-    int         split_allow[6] = { 0, 0, 0, 0, 0, 1 };
-    int         ctb_cnt_in_tile = 0;
-    int         col_bd = 0;
-    int num_slice_in_pic = ctx->param.num_slice_in_pic;
-    u8  * tiles_in_slice, total_tiles_in_slice, total_tiles_in_slice_copy;
-    u8* curr_temp = ctx->bs.cur;
-    int tile_cnt = 0;
-    for (ctx->slice_num = 0; ctx->slice_num < num_slice_in_pic; ctx->slice_num++)
+    EVC_SH * sh = ctx->sh;
+    int      tile_cnt = 0;
+    for (int i = 0; i < ctx->slice_num; i++)
     {
-        if (num_slice_in_pic > 1)
+        tile_cnt += ctx->sh_array[i].num_tiles_in_slice;
+    }
+
+    if (ctx->param.num_slice_in_pic > 1)
+    {
+        evc_mset(sh->tile_order, 0, sizeof(u8) * MAX_NUM_TILES_COL * MAX_NUM_TILES_ROW);
+
+        if (!ctx->param.arbitrary_slice_flag)
         {
-            if (!ctx->param.arbitrary_slice_flag)
+            int first_tile_in_slice, last_tile_in_slice, first_tile_col_idx, last_tile_col_idx, delta_tile_idx;
+            int w_tile, w_tile_slice, h_tile_slice;
+
+            w_tile = ctx->param.tile_columns;
+            first_tile_in_slice = ctx->param.slice_boundary_array[ctx->slice_num * 2];
+            last_tile_in_slice = ctx->param.slice_boundary_array[ctx->slice_num * 2 + 1];
+
+            first_tile_col_idx = first_tile_in_slice % w_tile;
+            last_tile_col_idx = last_tile_in_slice % w_tile;
+            delta_tile_idx = last_tile_in_slice - first_tile_in_slice;
+
+            if (last_tile_in_slice < first_tile_in_slice)
             {
-                int first_tile_in_slice, last_tile_in_slice, first_tile_col_idx, last_tile_col_idx, delta_tile_idx;
-                int w_tile, w_tile_slice, h_tile_slice;
-
-                w_tile = ctx->param.tile_columns;
-                first_tile_in_slice = ctx->param.slice_boundary_array[ctx->slice_num * 2];
-                last_tile_in_slice = ctx->param.slice_boundary_array[ctx->slice_num * 2 + 1];
-
-                first_tile_col_idx = first_tile_in_slice % w_tile;
-                last_tile_col_idx = last_tile_in_slice % w_tile;
-                delta_tile_idx = last_tile_in_slice - first_tile_in_slice;
-
-                if (last_tile_in_slice < first_tile_in_slice)
+                if (first_tile_col_idx > last_tile_col_idx)
                 {
-                    if (first_tile_col_idx > last_tile_col_idx)
-                    {
-                        delta_tile_idx += ctx->tile_cnt + w_tile;
-                    }
-                    else
-                    {
-                        delta_tile_idx += ctx->tile_cnt;
-                    }
+                    delta_tile_idx += ctx->tile_cnt + w_tile;
                 }
-                else if (first_tile_col_idx > last_tile_col_idx)
+                else
                 {
-                    delta_tile_idx += w_tile;
-                }
-
-                w_tile_slice = (delta_tile_idx % w_tile) + 1; //Number of tiles in slice width
-                h_tile_slice = (delta_tile_idx / w_tile) + 1;
-                total_tiles_in_slice = w_tile_slice * h_tile_slice;
-                total_tiles_in_slice_copy = total_tiles_in_slice;
-                for (u32 k = 0; k < total_tiles_in_slice; k++)
-                {
-                    ctx->tiles_in_slice[k] = ctx->tile_order[tile_cnt++];
+                    delta_tile_idx += ctx->tile_cnt;
                 }
             }
-            else
+            else if (first_tile_col_idx > last_tile_col_idx)
             {
-                total_tiles_in_slice = ctx->param.num_remaining_tiles_in_slice_minus1[ctx->slice_num] + 2;
-                int bef_tile_num = 0;
-                for (int i = 0; i < ctx->slice_num; ++i)
-                {
-                    bef_tile_num += ctx->param.num_remaining_tiles_in_slice_minus1[i] + 2;
-                }
-                for (u32 k = 0; k < total_tiles_in_slice; k++)
-                {
-                    ctx->tiles_in_slice[k] = ctx->param.tile_array_in_slice[bef_tile_num + k];
-                }
-                total_tiles_in_slice_copy = total_tiles_in_slice;
+                delta_tile_idx += w_tile;
+            }
+
+            w_tile_slice = (delta_tile_idx % w_tile) + 1; //Number of tiles in slice width
+            h_tile_slice = (delta_tile_idx / w_tile) + 1;
+            sh->num_tiles_in_slice = w_tile_slice * h_tile_slice;
+            for (u32 k = 0; k < sh->num_tiles_in_slice; k++)
+            {
+                sh->tile_order[k] = ctx->tile_order[tile_cnt++];
             }
         }
         else
         {
-            if (ctx->param.arbitrary_slice_flag)
+            sh->num_tiles_in_slice = ctx->param.num_remaining_tiles_in_slice_minus1[ctx->slice_num] + 2;
+            int bef_tile_num = 0;
+            for (int i = 0; i < ctx->slice_num; ++i)
             {
-                total_tiles_in_slice = ctx->param.num_remaining_tiles_in_slice_minus1[ctx->slice_num] + 2;
-                int bef_tile_num = 0;
-                for (int i = 0; i < ctx->slice_num; ++i)
-                {
-                    bef_tile_num += ctx->param.num_remaining_tiles_in_slice_minus1[i] + 2;
-                }
-                for (u32 k = 0; k < total_tiles_in_slice; k++)
-                {
-                    ctx->tiles_in_slice[k] = ctx->param.tile_array_in_slice[bef_tile_num + k];
-                }
-                total_tiles_in_slice_copy = total_tiles_in_slice;
+                bef_tile_num += ctx->param.num_remaining_tiles_in_slice_minus1[i] + 2;
             }
-            else
+            for (u32 k = 0; k < sh->num_tiles_in_slice; k++)
             {
-                total_tiles_in_slice = 0;
-                for (u32 k = 0; k < ctx->tile_cnt; k++)
-                {
-                    ctx->tiles_in_slice[total_tiles_in_slice] = k;
-                    total_tiles_in_slice++;
-                }
-                total_tiles_in_slice_copy = total_tiles_in_slice;
+                sh->tile_order[k] = ctx->param.tile_array_in_slice[bef_tile_num + k];
             }
         }
-        tiles_in_slice = ctx->tiles_in_slice;
+    }
+    else
+    {
+        if (ctx->param.arbitrary_slice_flag)
+        {
+            sh->num_tiles_in_slice = ctx->param.num_remaining_tiles_in_slice_minus1[ctx->slice_num] + 2;
+            int bef_tile_num = 0;
+            for (int i = 0; i < ctx->slice_num; ++i)
+            {
+                bef_tile_num += ctx->param.num_remaining_tiles_in_slice_minus1[i] + 2;
+            }
+            for (u32 k = 0; k < sh->num_tiles_in_slice; k++)
+            {
+                sh->tile_order[k] = ctx->param.tile_array_in_slice[bef_tile_num + k];
+            }
+        }
+        else
+        {
+            sh->num_tiles_in_slice = 0;
+            for (u32 k = 0; k < ctx->tile_cnt; k++)
+            {
+                sh->tile_order[sh->num_tiles_in_slice] = k;
+                sh->num_tiles_in_slice++;
+            }
+        }
+    }
+}
 
-        bs = &ctx->bs;
-        core = ctx->core;
-        sh = &ctx->sh;
-        sh->num_tiles_in_slice = total_tiles_in_slice;
-        aps = &ctx->aps;
+int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
+{
+    EVCE_CORE   * core;
+    EVC_BSW     * bs;
+    EVC_SH      * sh;
+    EVC_APS     * aps;  // ALF aps
+#if M52291_HDR_DRA
+    EVC_APS_GEN * aps_alf = &ctx->aps_gen_array[0];
+    EVC_APS_GEN * aps_dra = &ctx->aps_gen_array[1];
+#endif
+
+    int           ret;
+    u32           i;
+    int           split_mode_child[4];
+    int           split_allow[6] = { 0, 0, 0, 0, 0, 1 };
+    int           ctb_cnt_in_tile = 0;
+    int           col_bd = 0;
+    int           num_slice_in_pic = ctx->param.num_slice_in_pic;
+    u8          * tiles_in_slice, total_tiles_in_slice;
+    u8          * curr_temp = ctx->bs.cur;
+
+    static int    last_intra_poc = INT_MAX;
+    static BOOL   aps_counter_reset = FALSE;
+
+    bs = &ctx->bs;
+    core = ctx->core;
+    sh = ctx->sh;
+    aps = &ctx->aps;
+
+    for (ctx->slice_num = 0; ctx->slice_num < num_slice_in_pic; ctx->slice_num++)
+    {
+        ctx->sh = &ctx->sh_array[ctx->slice_num];
+        sh = ctx->sh;
+        set_tile_in_slice(ctx);
+        tiles_in_slice = sh->tile_order;
         aps_counter_reset = FALSE;
 
         if ((int)ctx->poc.poc_val > last_intra_poc)
@@ -2635,7 +2577,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
                 aps_alf->aps_id = -1;
             }
 #endif
-            ctx->sh.aps_signaled = -1; // reset stored aps id in tile group header
+            ctx->sh->aps_signaled = -1; // reset stored aps id in tile group header
             ctx->aps_temp = 0;
         }
 
@@ -2646,7 +2588,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
             if (ctx->nalu.nal_unit_type_plus1 - 1 != EVC_IDR_NUT)
             {
-                if (ctx->param.i_period!=0&&ctx->param.gop_size==1)
+                if (ctx->param.i_period != 0 && ctx->param.gop_size == 1)
                 {
                     evc_poc_derivation(ctx->sps, ctx->nalu.nuh_temporal_id, &ctx->poc);
                 }
@@ -2741,11 +2683,11 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             set_sh(ctx, sh);
         }
 #if BD_CF_EXT
-        core->qp_y = ctx->sh.qp + 6 * ctx->sps.bit_depth_luma_minus8;
+        core->qp_y = ctx->sh->qp + 6 * ctx->sps.bit_depth_luma_minus8;
         core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][sh->qp_u] + 6 * ctx->sps.bit_depth_chroma_minus8;
         core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][sh->qp_v] + 6 * ctx->sps.bit_depth_chroma_minus8;
 #else
-        core->qp_y = ctx->sh.qp + 6 * (BIT_DEPTH - 8);
+        core->qp_y = ctx->sh->qp + 6 * (BIT_DEPTH - 8);
         core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][sh->qp_u] + 6 * (BIT_DEPTH - 8);
         core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][sh->qp_v] + 6 * (BIT_DEPTH - 8);
 #endif
@@ -2758,8 +2700,8 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #endif
         {
 #endif
-        ret = evce_hmvp_init(&(core->history_buffer));
-        evc_assert_rv(ret == EVC_OK, ret);
+            ret = evce_hmvp_init(&(core->history_buffer));
+            evc_assert_rv(ret == EVC_OK, ret);
 #if HISTORY_UNDER_ADMVP_FIX
         }
 #endif
@@ -2767,10 +2709,10 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
         /* LCU encoding */
 #if TRACE_RDO_EXCLUDE_I
-        if(ctx->slice_type != SLICE_I)
+        if (ctx->slice_type != SLICE_I)
         {
 #endif
-        EVC_TRACE_SET(0);
+            EVC_TRACE_SET(0);
 #if TRACE_RDO_EXCLUDE_I
         }
 #endif
@@ -2787,28 +2729,28 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             sh->mmvd_group_enable_flag = 0;
         }
 #if DQP
-        ctx->sh.qp_prev_eco = ctx->sh.qp;
-        ctx->sh.qp_prev_mode = ctx->sh.qp;
-        core->dqp_data[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2].prev_QP = ctx->sh.qp_prev_mode;
-        core->dqp_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2].curr_QP = ctx->sh.qp;
-        core->dqp_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2].prev_QP = ctx->sh.qp;
+        ctx->sh->qp_prev_eco = ctx->sh->qp;
+        ctx->sh->qp_prev_mode = ctx->sh->qp;
+        core->dqp_data[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2].prev_QP = ctx->sh->qp_prev_mode;
+        core->dqp_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2].curr_QP = ctx->sh->qp;
+        core->dqp_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2].prev_QP = ctx->sh->qp;
 #endif
 
         /* Tile wise encoding with in a slice */
         u32 k = 0;
-        total_tiles_in_slice = total_tiles_in_slice_copy;
+        total_tiles_in_slice = sh->num_tiles_in_slice;
 
         while (total_tiles_in_slice)
         {
             int i = tiles_in_slice[k++];
             core->tile_num = i;
-            ctx->tile[i].qp = ctx->sh.qp;
-            ctx->tile[i].qp_prev_eco = ctx->sh.qp;
+            ctx->tile[i].qp = ctx->sh->qp;
+            ctx->tile[i].qp_prev_eco = ctx->sh->qp;
             core->tile_idx = i;
 
             /* CABAC Initialize for each Tile */
-            evce_sbac_reset(GET_SBAC_ENC(bs), ctx->sh.slice_type, ctx->sh.qp, ctx->sps.tool_cm_init);
-            evce_sbac_reset(&core->s_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], ctx->sh.slice_type, ctx->sh.qp, ctx->sps.tool_cm_init);
+            evce_sbac_reset(GET_SBAC_ENC(bs), ctx->sh->slice_type, ctx->sh->qp, ctx->sps.tool_cm_init);
+            evce_sbac_reset(&core->s_curr_best[ctx->log2_max_cuwh - 2][ctx->log2_max_cuwh - 2], ctx->sh->slice_type, ctx->sh->qp, ctx->sps.tool_cm_init);
 
             /*Set entry point for each Tile in the tile Slice*/
             core->x_lcu = (ctx->tile[i].ctba_rs_first) % ctx->w_lcu; //entry point lcu's x location
@@ -2916,81 +2858,92 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             } //End of LCU processing loop for a tile
             total_tiles_in_slice--;
         } //End of Slice encoding loop (All the tiles in a slice)
-             
-        /* deblocking filter */
+    }// End of Slice mode decision
+
+    /* deblocking filter */
 #if ENC_DBF_CONTROL
-        if (sh->deblocking_filter_on)
+    if (sh->deblocking_filter_on)
 #else
-        if (ctx->param.use_deblock)
+    if (ctx->param.use_deblock)
 #endif
-        {
+    {
 #if TRACE_DBF
-            EVC_TRACE_SET(1);
+        EVC_TRACE_SET(1);
 #endif
-            u32 k = 0;
-            int filter_across_boundary = 0;
-            total_tiles_in_slice = total_tiles_in_slice_copy;
-        
-            while (total_tiles_in_slice)
+        for(int is_hor_edge = 0 ; is_hor_edge <= 1 ; is_hor_edge++)
+        {
+            for (int i = 0 ; i < ctx->f_scu; i++)
             {
-                int i = tiles_in_slice[k++];
-                ret = ctx->fn_deblock(ctx, PIC_MODE(ctx), i, filter_across_boundary, core);
-                evc_assert_rv(ret == EVC_OK, ret);
-                total_tiles_in_slice--;
+                MCU_CLR_COD(ctx->map_scu[i]);
             }
 
-            if (ctx->pps->loop_filter_across_tiles_enabled_flag)
+            for (ctx->slice_num = 0; ctx->slice_num < num_slice_in_pic; ctx->slice_num++)
             {
-                /* Peform deblocking across tile boundaries*/
-                k = 0;
-                filter_across_boundary = 1;
-                total_tiles_in_slice = total_tiles_in_slice_copy;
+                sh = ctx->sh = &ctx->sh_array[ctx->slice_num];
+                tiles_in_slice = sh->tile_order;
+                u32 k = 0;
+                total_tiles_in_slice = sh->num_tiles_in_slice;
+
                 while (total_tiles_in_slice)
                 {
                     int i = tiles_in_slice[k++];
-                    ret = ctx->fn_deblock(ctx, PIC_MODE(ctx), i, filter_across_boundary, core);
+                    ret = ctx->fn_deblock(ctx, PIC_MODE(ctx), i, ctx->pps->loop_filter_across_tiles_enabled_flag, is_hor_edge, core);
                     evc_assert_rv(ret == EVC_OK, ret);
                     total_tiles_in_slice--;
                 }
-            } 
-
+            }
+        }
 #if TRACE_DBF
-            EVC_TRACE_SET(0);
+        EVC_TRACE_SET(0);
 #endif
-        }
+    }// End of deblocking filter
 
-        /* adaptive loop filter */
-        sh->alf_on = ctx->sps.tool_alf;
-        if(sh->alf_on)
+    /* adaptive loop filter */
+    sh = ctx->sh = &ctx->sh_array[0];
+    sh->alf_on = ctx->sps.tool_alf;
+    if (sh->alf_on)
+    {
+        ret = ctx->fn_alf(ctx, PIC_MODE(ctx), sh, aps);
+        evc_assert_rv(ret == EVC_OK, ret);
+        for (ctx->slice_num = 1; ctx->slice_num < num_slice_in_pic; ctx->slice_num++)
         {
-            ret = ctx->fn_alf(ctx, PIC_MODE(ctx), sh, aps);
-            evc_assert_rv(ret == EVC_OK, ret);
+            ctx->sh_array[ctx->slice_num].alf_on = ctx->sh_array[0].alf_on;
+            ctx->sh_array[ctx->slice_num].aps_id_y = ctx->sh_array[0].aps_id_y;
+            ctx->sh_array[ctx->slice_num].aps_id_ch = ctx->sh_array[0].aps_id_ch;
+            ctx->sh_array[ctx->slice_num].aps_id_ch2 = ctx->sh_array[0].aps_id_ch2;
+            evc_mcpy(&ctx->sh_array[ctx->slice_num].alf_sh_param, &ctx->sh_array[0].alf_sh_param, sizeof(evc_AlfSliceParam));
         }
+    }
 
-        core->x_lcu = core->y_lcu = 0;
-        core->x_pel = core->y_pel = 0;
-        core->lcu_num = 0;
-        ctx->lcu_cnt = ctx->f_lcu;
-        for (i = 0; i < ctx->f_scu; i++)
-        {
-            MCU_CLR_COD(ctx->map_scu[i]);
-        }
+    core->x_lcu = core->y_lcu = 0;
+    core->x_pel = core->y_pel = 0;
+    core->lcu_num = 0;
+    ctx->lcu_cnt = ctx->f_lcu;
+    for (i = 0; i < ctx->f_scu; i++)
+    {
+        MCU_CLR_COD(ctx->map_scu[i]);
+    }
 
+    for (ctx->slice_num = 0; ctx->slice_num < num_slice_in_pic; ctx->slice_num++)
+    {
+        sh = ctx->sh = &ctx->sh_array[ctx->slice_num];
+        tiles_in_slice = sh->tile_order;
 #if DQP
-        ctx->sh.qp_prev_eco = ctx->sh.qp;
+        ctx->sh->qp_prev_eco = ctx->sh->qp;
 #endif
 #if GRAB_STAT
         evc_stat_set_enc_state(FALSE);
 #endif
-        k = 0;
-        total_tiles_in_slice = total_tiles_in_slice_copy;
+        EVC_TRACE_SET(0);
+        int k = 0;
+        total_tiles_in_slice = sh->num_tiles_in_slice;
         while (total_tiles_in_slice)
         {
             int i = tiles_in_slice[k++];
-            ctx->tile[i].qp = ctx->sh.qp;
-            ctx->tile[i].qp_prev_eco = ctx->sh.qp;
+            ctx->tile[i].qp = ctx->sh->qp;
+            ctx->tile[i].qp_prev_eco = ctx->sh->qp;
             core->tile_idx = i;
-            evce_sbac_reset(GET_SBAC_ENC(bs), ctx->sh.slice_type, ctx->sh.qp, ctx->sps.tool_cm_init);
+            evce_sbac_reset(GET_SBAC_ENC(bs), ctx->sh->slice_type, ctx->sh->qp, ctx->sps.tool_cm_init);
             core->x_lcu = (ctx->tile[i].ctba_rs_first) % ctx->w_lcu; //entry point lcu's x location
             core->y_lcu = (ctx->tile[i].ctba_rs_first) / ctx->w_lcu; // entry point lcu's y location
             ctb_cnt_in_tile = ctx->tile[i].f_ctb; //Total LCUs in the current tile
@@ -3015,7 +2968,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
             }
             while (1) // LCU level CABAC loop
             {
-                evc_AlfSliceParam* alfSliceParam = &(ctx->sh.alf_sh_param);
+                evc_AlfSliceParam* alfSliceParam = &(ctx->sh->alf_sh_param);
                 if ((alfSliceParam->isCtbAlfOn) && (sh->alf_on))
                 {
                     EVCE_SBAC *sbac;
@@ -3027,13 +2980,13 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
                     EVC_TRACE_STR("\n");
                 }
 #if M53608_ALF_14
-                if ((ctx->sh.alfChromaMapSignalled) && (ctx->sh.alf_on))
+                if ((ctx->sh->alfChromaMapSignalled) && (ctx->sh->alf_on))
                 {
                     EVCE_SBAC *sbac;
                     sbac = GET_SBAC_ENC(bs);
                     evce_sbac_encode_bin((int)(*(alfSliceParam->alfCtuEnableFlagChroma + core->lcu_num)), sbac, sbac->ctx.alf_ctb_flag, bs);
                 }
-                if ((ctx->sh.alfChroma2MapSignalled) && (ctx->sh.alf_on))
+                if ((ctx->sh->alfChroma2MapSignalled) && (ctx->sh->alf_on))
                 {
                     EVCE_SBAC *sbac;
                     sbac = GET_SBAC_ENC(bs);
@@ -3104,7 +3057,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         int aps_nalu_size = 0;
     
         /* Encode ALF in APS */
-        if ((ctx->sps.tool_alf) && (ctx->sh.alf_on)) // User defined params
+        if ((ctx->sps.tool_alf) && (ctx->sh->alf_on) && (ctx->slice_num == 0)) // User defined params
         {
             if ((aps->alf_aps_param.enabledFlag[0]) && (aps->alf_aps_param.temporalAlfFlag == 0))    // Encoder defined parameters (RDO): ALF is selected, and new ALF was derived for TG
             {
@@ -3165,7 +3118,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         }
 
 #if DQP
-        ctx->sh.qp_prev_eco = ctx->sh.qp;
+        ctx->sh->qp_prev_eco = ctx->sh->qp;
 #endif
 
 #if GRAB_STAT
@@ -3174,16 +3127,16 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         /* Tile level encoding for a slice */
         /* Tile wise encoding with in a slice */
         k = 0;
-        total_tiles_in_slice = total_tiles_in_slice_copy;
+        total_tiles_in_slice = sh->num_tiles_in_slice;
         while (total_tiles_in_slice)
         {
             int i = tiles_in_slice[k++];
-            ctx->tile[i].qp = ctx->sh.qp;
-            ctx->tile[i].qp_prev_eco = ctx->sh.qp;
+            ctx->tile[i].qp = ctx->sh->qp;
+            ctx->tile[i].qp_prev_eco = ctx->sh->qp;
             core->tile_idx = i;
 
             /* CABAC Initialize for each Tile */
-            evce_sbac_reset(GET_SBAC_ENC(bs), ctx->sh.slice_type, ctx->sh.qp, ctx->sps.tool_cm_init);
+            evce_sbac_reset(GET_SBAC_ENC(bs), ctx->sh->slice_type, ctx->sh->qp, ctx->sps.tool_cm_init);
 
             /*Set entry point for each Tile in the tile Slice*/
             core->x_lcu = (ctx->tile[i].ctba_rs_first) % ctx->w_lcu; //entry point lcu's x location
@@ -3213,7 +3166,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 
             while (1) // LCU level CABAC loop
             {
-                evc_AlfSliceParam* alfSliceParam = &(ctx->sh.alf_sh_param);
+                evc_AlfSliceParam* alfSliceParam = &(ctx->sh->alf_sh_param);
                 if ((alfSliceParam->isCtbAlfOn) && (sh->alf_on))
                 {
                     EVCE_SBAC *sbac;
@@ -3512,7 +3465,7 @@ EVCE evce_create(EVCE_CDSC * cdsc, int * err)
     /* set default value for ctx */
     ctx->magic = EVCE_MAGIC_CODE;
     ctx->id = (EVCE)ctx;
-    ctx->sh.aps_signaled = -1;
+    ctx->sh->aps_signaled = -1;
     evc_init_multi_tbl();
     evc_init_multi_inv_tbl();
 
@@ -3716,9 +3669,9 @@ static int check_more_frames(EVCE_CTX * ctx)
 int evce_set_active_pps_dra_info(EVCE_CTX * ctx, int pps_id)
 {
     if (pps_id == -1)
-        ctx->sh.slice_pic_parameter_set_id = (int)rand() % 64;
+        ctx->sh->slice_pic_parameter_set_id = (int)rand() % 64;
     else
-        ctx->sh.slice_pic_parameter_set_id = pps_id;
+        ctx->sh->slice_pic_parameter_set_id = pps_id;
 
     if (ctx->pps->pic_dra_enabled_flag)
         set_active_dra_info(ctx);

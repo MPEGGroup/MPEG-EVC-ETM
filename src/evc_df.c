@@ -370,10 +370,10 @@ static void deblock_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh,
     u = pic->u + t;
     v = pic->v + t;
 
-    unsigned int no_boundary = 1;
-    if (boundary_filtering && y_pel > 0)
+    int no_boundary = 0;
+    if (y_pel > 0)
     {
-        no_boundary = !(map_tidx[t_copy] == map_tidx[t1]);
+        no_boundary = (map_tidx[t_copy] == map_tidx[t1]) || boundary_filtering;
     }
 
     /* horizontal filtering */
@@ -486,10 +486,10 @@ static void deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh,
     map_refi_tmp = map_refi;
     map_mv_tmp = map_mv;
 
-    unsigned int  no_boundary = 1;
-    if (boundary_filtering && x_pel > 0)
+    int no_boundary = 0;
+    if (x_pel > 0)
     {
-        no_boundary = !(map_tidx[t_copy] == map_tidx[t1]);
+        no_boundary = (map_tidx[t_copy] == map_tidx[t1]) || boundary_filtering;
     }
     /* vertical filtering */
     if(x_pel > 0 && MCU_GET_COD(map_scu[-1]) && (no_boundary))
@@ -551,10 +551,10 @@ static void deblock_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int cuh,
         }
     }
 
-    no_boundary = map_tidx[t_copy] == map_tidx[t2];
-    if (boundary_filtering)
+    no_boundary = 0;
+    if (x_pel + cuw < pic->w_l)
     {
-        no_boundary = !(map_tidx[t_copy] == map_tidx[t2])&& ((MCU_GET_SN(map_scu[0])) == (MCU_GET_SN(map_scu[w])));
+        no_boundary = (map_tidx[t_copy] == map_tidx[t2]) || boundary_filtering;
     }
 
     map_scu = map_scu_tmp;
@@ -1390,10 +1390,10 @@ static void deblock_addb_cu_hor(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
     u = pic->u + t;
     v = pic->v + t;
 
-    unsigned int  no_boundary = 1;
-    if (boundary_filtering && y_pel > 0)
+    int no_boundary = 0;
+    if (y_pel > 0)
     {
-        no_boundary = !(map_tidx[t_copy] == map_tidx[t1]);
+        no_boundary = (map_tidx[t_copy] == map_tidx[t1]) || boundary_filtering;
     }
 #if DBF_8_8_GRID
     if (align_8_8_grid  && y_pel > 0 && (no_boundary))
@@ -1570,6 +1570,7 @@ static void deblock_addb_cu_ver_yuv(EVC_PIC *pic, int x_pel, int y_pel, int log2
 #else
     const int bitdepth_scale = (BIT_DEPTH - 8);
 #endif
+
     for (i = 0; i < h; i++)
     {
 #if TRACE_DBF
@@ -1841,10 +1842,10 @@ static void deblock_addb_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
     }
 #endif
 
-    unsigned int no_boundary = 1;
-    if (boundary_filtering && x_pel > 0)
+    int no_boundary = 0;
+    if (x_pel > 0)
     {
-        no_boundary = !(map_tidx[t_copy] == map_tidx[t1]);
+        no_boundary = (map_tidx[t_copy] == map_tidx[t1]) || boundary_filtering;
     }
 
     if (align_8_8_grid && x_pel > 0 && MCU_GET_COD(map_scu[-1]) && (no_boundary))
@@ -1877,10 +1878,10 @@ static void deblock_addb_cu_ver(EVC_PIC *pic, int x_pel, int y_pel, int cuw, int
 #if FIX_PARALLEL_DBF
     map_cu = map_cu_tmp;
 #endif
-    no_boundary = map_tidx[t_copy] == map_tidx[t2];
-    if (boundary_filtering)
+    no_boundary = 0;
+    if (x_pel + cuw < pic->w_l)
     {
-        no_boundary = !(map_tidx[t_copy] == map_tidx[t2]) && ((MCU_GET_SN(map_scu[0])) == (MCU_GET_SN(map_scu[w])));
+        no_boundary = (map_tidx[t_copy] == map_tidx[t2]) || boundary_filtering;
     }
 
 #if DBF_8_8_GRID

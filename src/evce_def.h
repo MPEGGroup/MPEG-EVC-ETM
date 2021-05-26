@@ -821,7 +821,8 @@ struct _EVCE_CTX
     /* nal unit header */
     EVC_NALU               nalu;
     /* slice header */
-    EVC_SH                 sh;
+    EVC_SH               * sh;
+    EVC_SH               * sh_array;
     /* reference picture manager */
     EVC_PM                 rpm;
     /* create descriptor */
@@ -961,9 +962,9 @@ struct _EVCE_CTX
     /* tile index map (width in SCU x height in SCU) of
     raster scan order in a frame */
     u8                   * map_tidx;
-    u8                    tile_to_slice_map[MAX_NUM_TILES_COL * MAX_NUM_TILES_ROW];
-    u8                    tiles_in_slice[MAX_NUM_TILES_COL * MAX_NUM_TILES_ROW];
-    u8                    tile_order[MAX_NUM_TILES_COL * MAX_NUM_TILES_ROW];
+    u8                     tile_to_slice_map[MAX_NUM_TILES_COL * MAX_NUM_TILES_ROW];
+    u8                     tiles_in_slice[MAX_NUM_TILES_COL * MAX_NUM_TILES_ROW];
+    u8                     tile_order[MAX_NUM_TILES_COL * MAX_NUM_TILES_ROW];
 
     int (*fn_ready)(EVCE_CTX * ctx);
     void (*fn_flush)(EVCE_CTX * ctx);
@@ -975,7 +976,7 @@ struct _EVCE_CTX
     int (*fn_enc_pic_finish)(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
 
     int (*fn_push)(EVCE_CTX * ctx, EVC_IMGB * img);
-    int (*fn_deblock)(EVCE_CTX * ctx, EVC_PIC * pic, int tile_idx, int filter_across_boundary, EVCE_CORE * core);
+    int (*fn_deblock)(EVCE_CTX * ctx, EVC_PIC * pic, int tile_idx, int filter_across_boundary, int is_hor_edge, EVCE_CORE * core);
 
     void* enc_alf;
     int(*fn_alf)(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh, EVC_APS* aps);
@@ -1031,7 +1032,7 @@ void evce_platform_deinit(EVCE_CTX * ctx);
 int evce_enc_pic_prepare(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
 int evce_enc_pic_finish(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
 int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
-int evce_deblock(EVCE_CTX * ctx, EVC_PIC * pic, int tile_idx, int filter_across_boundary, EVCE_CORE * core);
+int evce_deblock(EVCE_CTX * ctx, EVC_PIC * pic, int tile_idx, int filter_across_boundary, int is_hor_edge, EVCE_CORE * core);
 int evce_enc(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
 int evce_push_frm(EVCE_CTX * ctx, EVC_IMGB * img);
 int evce_ready(EVCE_CTX * ctx);
