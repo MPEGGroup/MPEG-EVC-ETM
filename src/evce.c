@@ -2200,7 +2200,7 @@ static void decide_slice_type(EVCE_CTX * ctx)
                 }
                 ctx->slice_ref_flag = 1;
             }
-            ctx->poc.poc_val = (ctx->param.use_closed_gop && i_period > 0 && (ctx->pic_cnt % i_period) == 0 ? 0 : (ctx->param.use_closed_gop ? ctx->pic_cnt % i_period : ctx->pic_cnt));
+            ctx->poc.poc_val = (ctx->param.use_closed_gop && i_period > 0 && (ctx->pic_cnt % i_period) == 0 ? 0 : (ctx->param.use_closed_gop && i_period > 0 ? ctx->pic_cnt % i_period : ctx->pic_cnt));
         }
     }
     else /* include B Picture (gop_size = 2 or 4 or 8 or 16) */
