@@ -117,7 +117,7 @@ void alf_aps_enc_opt_process(EncAdaptiveLoopFilter* p, const double* lambdas, EV
         m_lastRasPoc = INT_MAX;
         m_pendingRasInit = TRUE;
     }
-    if (ctx->sh.slice_type == SLICE_I)
+    if (ctx->sh->slice_type == SLICE_I)
     {
         m_lastRasPoc = ctx->poc.poc_val;
     }
@@ -142,7 +142,7 @@ void alf_aps_enc_opt_process(EncAdaptiveLoopFilter* p, const double* lambdas, EV
         storeEncALFParamLineAPS(&alfSliceParam, tidx);
         alfSliceParam.store2ALFBufferFlag = m_store2ALFBufferFlag;
     }
-    if (ctx->sh.slice_type == SLICE_I)
+    if (ctx->sh->slice_type == SLICE_I)
     {
         if (alfSliceParam.enabledFlag[0] && m_store2ALFBufferFlag)
         {
@@ -541,31 +541,38 @@ void EncAdaptiveLoopFilter::Enc_ALFProcess(CodingStructure& cs, const double *la
   recLuma.yuv[2] = recLuma2; recLuma.s[2] = s1;
 
   int  x_l, x_r, y_l, y_r, w_tile, h_tile;
-  int col_bd = 0;
-  int total_tiles_in_slice = ctx->sh.num_tiles_in_slice;
-
+  int  col_bd = 0;
+  int  total_tiles_in_slice = ctx->sh->num_tiles_in_slice;
+  u8 * tiles_in_slice;
   u32 k = 0;
   int ii=0;
-  while (total_tiles_in_slice)
+
+  for (int slice_num = 0; slice_num < ctx->param.num_slice_in_pic; slice_num++)
   {
-
-    ii = ctx->tiles_in_slice[k++];
-    int x_loc = ((ctx->tile[ii].ctba_rs_first) % ctx->w_lcu);
-    int y_loc = ((ctx->tile[ii].ctba_rs_first) / ctx->w_lcu);
-    x_l = x_loc << ctx->log2_max_cuwh; //entry point CTB's x location
-    y_l = y_loc << ctx->log2_max_cuwh; //entry point CTB's y location
-    x_r = x_l + ((int)(ctx->tile[ii].w_ctb) << ctx->log2_max_cuwh);
-    y_r = y_l + ((int)(ctx->tile[ii].h_ctb) << ctx->log2_max_cuwh);
-    w_tile = x_r > ((int)ctx->w_scu << MIN_CU_LOG2) ? ((int)ctx->w_scu << MIN_CU_LOG2) - x_l : x_r - x_l;
-    h_tile = y_r > ((int)ctx->h_scu << MIN_CU_LOG2) ? ((int)ctx->h_scu << MIN_CU_LOG2) - y_l : y_r - y_l;
-    Pel * recLuma0_tile = recLuma0 + x_l + y_l * s;
-    Pel * recoYuv0_tile = recoYuv0 + x_l + y_l * rStride;
-    copy_and_extend_tile(recLuma0_tile, s, recoYuv0_tile, rStride, w_tile, h_tile, m);
-    Area blk = { x_l, y_l, w_tile, h_tile };
-    deriveClassification(m_classifier, recLuma0, s, &blk);
-    total_tiles_in_slice--;
+      ctx->sh = &ctx->sh_array[slice_num];
+      tiles_in_slice = ctx->sh->tile_order;
+      total_tiles_in_slice = ctx->sh->num_tiles_in_slice;
+      k = 0;
+      ii = 0;
+      while (total_tiles_in_slice)
+      {
+          ii = tiles_in_slice[k++];
+          int x_loc = ((ctx->tile[ii].ctba_rs_first) % ctx->w_lcu);
+          int y_loc = ((ctx->tile[ii].ctba_rs_first) / ctx->w_lcu);
+          x_l = x_loc << ctx->log2_max_cuwh; //entry point CTB's x location
+          y_l = y_loc << ctx->log2_max_cuwh; //entry point CTB's y location
+          x_r = x_l + ((int)(ctx->tile[ii].w_ctb) << ctx->log2_max_cuwh);
+          y_r = y_l + ((int)(ctx->tile[ii].h_ctb) << ctx->log2_max_cuwh);
+          w_tile = x_r > ((int)ctx->w_scu << MIN_CU_LOG2) ? ((int)ctx->w_scu << MIN_CU_LOG2) - x_l : x_r - x_l;
+          h_tile = y_r > ((int)ctx->h_scu << MIN_CU_LOG2) ? ((int)ctx->h_scu << MIN_CU_LOG2) - y_l : y_r - y_l;
+          Pel * recLuma0_tile = recLuma0 + x_l + y_l * s;
+          Pel * recoYuv0_tile = recoYuv0 + x_l + y_l * rStride;
+          copy_and_extend_tile(recLuma0_tile, s, recoYuv0_tile, rStride, w_tile, h_tile, m);
+          Area blk = { x_l, y_l, w_tile, h_tile };
+          deriveClassification(m_classifier, recLuma0, s, &blk);
+          total_tiles_in_slice--;
+      }
   }
-
   copy_and_extend(recLuma0, s, recoYuv0, rStride, w, h, m);
 #if BD_CF_EXT
   if(cs.idc)
@@ -628,81 +635,87 @@ void EncAdaptiveLoopFilter::Enc_ALFProcess(CodingStructure& cs, const double *la
       m_resetALFBufferFlag = true;
 
   }
-  k = 0;
-  ii = 0;
-  total_tiles_in_slice = ctx->sh.num_tiles_in_slice;
-  while (total_tiles_in_slice)
+
+  for (int slice_num = 0; slice_num < ctx->param.num_slice_in_pic; slice_num++)
   {
-    int ii = ctx->tiles_in_slice[k++];
-    int x_loc = ((ctx->tile[ii].ctba_rs_first) % ctx->w_lcu);
-    int y_loc = ((ctx->tile[ii].ctba_rs_first) / ctx->w_lcu);
+      ctx->sh = &ctx->sh_array[slice_num];
+      tiles_in_slice = ctx->sh->tile_order;
+      total_tiles_in_slice = ctx->sh->num_tiles_in_slice;
+      k = 0;
+      ii = 0;
+      while (total_tiles_in_slice)
+      {
+          int ii = tiles_in_slice[k++];
+          int x_loc = ((ctx->tile[ii].ctba_rs_first) % ctx->w_lcu);
+          int y_loc = ((ctx->tile[ii].ctba_rs_first) / ctx->w_lcu);
 
-    col_bd = 0;
-    if (ii% ctx->param.tile_columns)
-    {
-        int temp = ii - 1;
-        while (temp >= 0)
-        {
-            col_bd += ctx->tile[temp].w_ctb;
-            if (!(temp%ctx->param.tile_columns)) break;
-            temp--;
-        }
-    }
-    else
-    {
-        col_bd = 0;
-    }
+          col_bd = 0;
+          if (ii% ctx->param.tile_columns)
+          {
+              int temp = ii - 1;
+              while (temp >= 0)
+              {
+                  col_bd += ctx->tile[temp].w_ctb;
+                  if (!(temp%ctx->param.tile_columns)) break;
+                  temp--;
+              }
+          }
+          else
+          {
+              col_bd = 0;
+          }
 
-    x_l = x_loc << ctx->log2_max_cuwh; //entry point CTB's x location
-    y_l = y_loc << ctx->log2_max_cuwh; //entry point CTB's y location
-    x_r = x_l + ((int)(ctx->tile[ii].w_ctb) << ctx->log2_max_cuwh);
-    y_r = y_l + ((int)(ctx->tile[ii].h_ctb) << ctx->log2_max_cuwh);
-    w_tile = x_r >((int)ctx->w_scu << MIN_CU_LOG2) ? ((int)ctx->w_scu << MIN_CU_LOG2) - x_l : x_r - x_l;
-    h_tile = y_r > ((int)ctx->h_scu << MIN_CU_LOG2) ? ((int)ctx->h_scu << MIN_CU_LOG2) - y_l : y_r - y_l;
-    //This is for YUV420 only 
-    Pel * recLuma0_tile = recLuma0 + x_l + y_l * s;
-    Pel * recoYuv0_tile = recoYuv0 + x_l + y_l * rStride;
-    copy_and_extend_tile(recLuma0_tile, s, recoYuv0_tile, rStride, w_tile, h_tile, m);
+          x_l = x_loc << ctx->log2_max_cuwh; //entry point CTB's x location
+          y_l = y_loc << ctx->log2_max_cuwh; //entry point CTB's y location
+          x_r = x_l + ((int)(ctx->tile[ii].w_ctb) << ctx->log2_max_cuwh);
+          y_r = y_l + ((int)(ctx->tile[ii].h_ctb) << ctx->log2_max_cuwh);
+          w_tile = x_r > ((int)ctx->w_scu << MIN_CU_LOG2) ? ((int)ctx->w_scu << MIN_CU_LOG2) - x_l : x_r - x_l;
+          h_tile = y_r > ((int)ctx->h_scu << MIN_CU_LOG2) ? ((int)ctx->h_scu << MIN_CU_LOG2) - y_l : y_r - y_l;
+          //This is for YUV420 only 
+          Pel * recLuma0_tile = recLuma0 + x_l + y_l * s;
+          Pel * recoYuv0_tile = recoYuv0 + x_l + y_l * rStride;
+          copy_and_extend_tile(recLuma0_tile, s, recoYuv0_tile, rStride, w_tile, h_tile, m);
 #if BD_CF_EXT
-    Pel * recLuma1_tile = recLuma1 + (x_l >> (GET_CHROMA_W_SHIFT(cs.idc))) + (y_l >> (GET_CHROMA_H_SHIFT(cs.idc))) * (s1);
-    Pel * recLuma2_tile = recLuma2 + (x_l >> (GET_CHROMA_W_SHIFT(cs.idc))) + (y_l >> (GET_CHROMA_H_SHIFT(cs.idc))) * (s1);
-    Pel * recoYuv2_tile = recoYuv2 + (x_l >> (GET_CHROMA_W_SHIFT(cs.idc))) + (y_l >> (GET_CHROMA_H_SHIFT(cs.idc))) * picReco->s_c;
-    Pel * recoYuv1_tile = recoYuv1 + (x_l >> (GET_CHROMA_W_SHIFT(cs.idc))) + (y_l >> (GET_CHROMA_H_SHIFT(cs.idc))) * picReco->s_c;
-    if(cs.idc)
-    {
-        copy_and_extend_tile(recLuma1_tile, s1, recoYuv1_tile, picReco->s_c, (w_tile >> (GET_CHROMA_W_SHIFT(cs.idc))), (h_tile >> (GET_CHROMA_H_SHIFT(cs.idc))), m);
-        copy_and_extend_tile(recLuma2_tile, s1, recoYuv2_tile, picReco->s_c, (w_tile >> (GET_CHROMA_W_SHIFT(cs.idc))), (h_tile >> (GET_CHROMA_H_SHIFT(cs.idc))), m);
-    }
+          Pel * recLuma1_tile = recLuma1 + (x_l >> (GET_CHROMA_W_SHIFT(cs.idc))) + (y_l >> (GET_CHROMA_H_SHIFT(cs.idc))) * (s1);
+          Pel * recLuma2_tile = recLuma2 + (x_l >> (GET_CHROMA_W_SHIFT(cs.idc))) + (y_l >> (GET_CHROMA_H_SHIFT(cs.idc))) * (s1);
+          Pel * recoYuv2_tile = recoYuv2 + (x_l >> (GET_CHROMA_W_SHIFT(cs.idc))) + (y_l >> (GET_CHROMA_H_SHIFT(cs.idc))) * picReco->s_c;
+          Pel * recoYuv1_tile = recoYuv1 + (x_l >> (GET_CHROMA_W_SHIFT(cs.idc))) + (y_l >> (GET_CHROMA_H_SHIFT(cs.idc))) * picReco->s_c;
+          if (cs.idc)
+          {
+              copy_and_extend_tile(recLuma1_tile, s1, recoYuv1_tile, picReco->s_c, (w_tile >> (GET_CHROMA_W_SHIFT(cs.idc))), (h_tile >> (GET_CHROMA_H_SHIFT(cs.idc))), m);
+              copy_and_extend_tile(recLuma2_tile, s1, recoYuv2_tile, picReco->s_c, (w_tile >> (GET_CHROMA_W_SHIFT(cs.idc))), (h_tile >> (GET_CHROMA_H_SHIFT(cs.idc))), m);
+          }
 #else
-    Pel * recLuma1_tile = recLuma1 + (x_l >> 1) + (y_l >> 1) * (s1);
-    Pel * recLuma2_tile = recLuma2 + (x_l >> 1) + (y_l >> 1) * (s1);
-    Pel * recoYuv1_tile = recoYuv1 + (x_l >> 1) + (y_l >> 1) * picReco->s_c;
-    Pel * recoYuv2_tile = recoYuv2 + (x_l >> 1) + (y_l >> 1) * picReco->s_c;
+          Pel * recLuma1_tile = recLuma1 + (x_l >> 1) + (y_l >> 1) * (s1);
+          Pel * recLuma2_tile = recLuma2 + (x_l >> 1) + (y_l >> 1) * (s1);
+          Pel * recoYuv1_tile = recoYuv1 + (x_l >> 1) + (y_l >> 1) * picReco->s_c;
+          Pel * recoYuv2_tile = recoYuv2 + (x_l >> 1) + (y_l >> 1) * picReco->s_c;
 
-    copy_and_extend_tile(recLuma1_tile, s1, recoYuv1_tile, picReco->s_c, (w_tile >> 1), (h_tile >> 1), m);
-    copy_and_extend_tile(recLuma2_tile, s1, recoYuv2_tile, picReco->s_c, (w_tile >> 1), (h_tile >> 1), m);
+          copy_and_extend_tile(recLuma1_tile, s1, recoYuv1_tile, picReco->s_c, (w_tile >> 1), (h_tile >> 1), m);
+          copy_and_extend_tile(recLuma2_tile, s1, recoYuv2_tile, picReco->s_c, (w_tile >> 1), (h_tile >> 1), m);
 #endif
 
-    // reconstruct 
+          // reconstruct 
 #if ALF_CONFORMANCE_CHECK
-    if (alfSliceParam->enabledFlag[COMPONENT_Y])
-    {
-        alfReconstructor(cs, alfSliceParam, orgYuv.yuv[0], orgYuv.s[0], recLuma.yuv[0], recLuma.s[0], COMPONENT_Y, ii, col_bd);
-    }
-    if (alfSliceParam->enabledFlag[COMPONENT_Cb])
-    {
-        alfReconstructor(cs, alfSliceParam, orgYuv.yuv[1], orgYuv.s[1], recLuma.yuv[1], recLuma.s[1], COMPONENT_Cb, ii, col_bd);
-    }
-    if (alfSliceParam->enabledFlag[COMPONENT_Cr])
-    {
-        alfReconstructor(cs, alfSliceParam, orgYuv.yuv[2], orgYuv.s[2], recLuma.yuv[2], recLuma.s[2], COMPONENT_Cr, ii, col_bd);
-    }
+          if (alfSliceParam->enabledFlag[COMPONENT_Y])
+          {
+              alfReconstructor(cs, alfSliceParam, orgYuv.yuv[0], orgYuv.s[0], recLuma.yuv[0], recLuma.s[0], COMPONENT_Y, ii, col_bd);
+          }
+          if (alfSliceParam->enabledFlag[COMPONENT_Cb])
+          {
+              alfReconstructor(cs, alfSliceParam, orgYuv.yuv[1], orgYuv.s[1], recLuma.yuv[1], recLuma.s[1], COMPONENT_Cb, ii, col_bd);
+          }
+          if (alfSliceParam->enabledFlag[COMPONENT_Cr])
+          {
+              alfReconstructor(cs, alfSliceParam, orgYuv.yuv[2], orgYuv.s[2], recLuma.yuv[2], recLuma.s[2], COMPONENT_Cr, ii, col_bd);
+          }
 #else
-    alfReconstructor(cs, alfSliceParam, orgYuv.yuv[0], orgYuv.s[0], recLuma.yuv[0], recLuma.s[0], COMPONENT_Y, ii, col_bd);
-    alfReconstructor(cs, alfSliceParam, orgYuv.yuv[1], orgYuv.s[1], recLuma.yuv[1], recLuma.s[1], COMPONENT_Cb, ii, col_bd);
-    alfReconstructor(cs, alfSliceParam, orgYuv.yuv[2], orgYuv.s[2], recLuma.yuv[2], recLuma.s[2], COMPONENT_Cr, ii, col_bd);
+          alfReconstructor(cs, alfSliceParam, orgYuv.yuv[0], orgYuv.s[0], recLuma.yuv[0], recLuma.s[0], COMPONENT_Y, ii, col_bd);
+          alfReconstructor(cs, alfSliceParam, orgYuv.yuv[1], orgYuv.s[1], recLuma.yuv[1], recLuma.s[1], COMPONENT_Cb, ii, col_bd);
+          alfReconstructor(cs, alfSliceParam, orgYuv.yuv[2], orgYuv.s[2], recLuma.yuv[2], recLuma.s[2], COMPONENT_Cr, ii, col_bd);
 #endif
-    total_tiles_in_slice--;
+          total_tiles_in_slice--;
+      }
   }
   for( int i = 0; i < ctx->f_lcu; i++ )
   {

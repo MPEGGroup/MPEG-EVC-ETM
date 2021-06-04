@@ -477,12 +477,9 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
     const int m = MAX_ALF_FILTER_LENGTH >> 1;
     const int s = w + m + m;
     int col_bd = 0;
-    u32 k = 0;
-    ii = 0;
-    int num_tiles_in_slice = ctx->num_tiles_in_slice;
-    while (num_tiles_in_slice)
+
+    for(ii = 0 ; ii < ctx->w_tile * ctx->h_tile ; ii++)
     {
-        ii = ctx->tile_in_slice[k++];
         col_bd = 0;
         if (ii % (ctx->pps->num_tile_columns_minus1 + 1))
         {
@@ -822,7 +819,6 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
                 ctuIdx = x_loc + y_loc * ctx->w_lcu;
             }
         }
-        num_tiles_in_slice--;
     }
 }
 

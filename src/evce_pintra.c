@@ -119,7 +119,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
         DQP_LOAD(core->dqp_temp_run, core->dqp_curr_best[log2_cuw - 2][log2_cuh - 2]);
 #endif
         evce_sbac_bit_reset(&core->s_temp_run);
-        evce_rdo_bit_cnt_cu_intra_luma(ctx, core, ctx->sh.slice_type, core->scup, pi->coef_tmp);
+        evce_rdo_bit_cnt_cu_intra_luma(ctx, core, ctx->sh->slice_type, core->scup, pi->coef_tmp);
         bit_cnt = evce_get_bit_number(&core->s_temp_run);
 
         evc_sub_block_itdq(pi->coef_tmp, log2_cuw, log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->nnz, core->nnz_sub, ctx->sps.tool_iqt, core->ats_intra_cu, core->ats_mode, core->ats_inter_info
@@ -277,7 +277,7 @@ static double pintra_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, pel *org_luma, 
 
         evce_sbac_bit_reset(&core->s_temp_run);
 
-        evce_rdo_bit_cnt_cu_intra_chroma(ctx, core, ctx->sh.slice_type, core->scup, coef);
+        evce_rdo_bit_cnt_cu_intra_chroma(ctx, core, ctx->sh->slice_type, core->scup, coef);
 
         bit_cnt = evce_get_bit_number(&core->s_temp_run);
 #if BD_CF_EXT
@@ -837,7 +837,7 @@ evc_get_mpm(core->x_scu, core->y_scu, cuw, cuh, ctx->map_scu, ctx->map_ipm, core
 #endif
 
     evce_sbac_bit_reset(&core->s_temp_run);
-    evce_rdo_bit_cnt_cu_intra(ctx, core, ctx->sh.slice_type, core->scup, coef);
+    evce_rdo_bit_cnt_cu_intra(ctx, core, ctx->sh->slice_type, core->scup, coef);
 
     bit_cnt = evce_get_bit_number(&core->s_temp_run);
     cost = RATE_TO_COST_LAMBDA(ctx->lambda[0], bit_cnt);

@@ -3399,7 +3399,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
     EVC_TRACE_INT(cuh);
 
 #if ENC_DEC_TRACE
-    if (ctx->sh.slice_type != SLICE_I && ctx->sps.sps_btt_flag)
+    if (ctx->sh->slice_type != SLICE_I && ctx->sps.sps_btt_flag)
     {
         EVC_TRACE_STR("tree status ");
         EVC_TRACE_INT(core->tree_cons.tree_type);
@@ -3411,7 +3411,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
     EVC_TRACE_STR("\n");
 
     evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, core->ctx_flags
-                         , ctx->sh.slice_type, ctx->sps.tool_cm_init , ctx->param.use_ibc_flag, ctx->sps.ibc_log_max_size, ctx->map_tidx);    
+                         , ctx->sh->slice_type, ctx->sps.tool_cm_init , ctx->param.use_ibc_flag, ctx->sps.ibc_log_max_size, ctx->map_tidx);    
 
     if (ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2)
     {
@@ -3456,7 +3456,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 
             if(core->mmvd_flag)
             {
-                evce_eco_mmvd_info(bs, cu_data->mmvd_idx[cup], ctx->sh.mmvd_group_enable_flag && !(cuw*cuh <= NUM_SAMPLES_BLOCK));
+                evce_eco_mmvd_info(bs, cu_data->mmvd_idx[cup], ctx->sh->mmvd_group_enable_flag && !(cuw*cuh <= NUM_SAMPLES_BLOCK));
             }
             else
             {
@@ -3533,7 +3533,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 
                         if((cu_data->pred_mode[cup] == MODE_DIR_MMVD))
                         {
-                            evce_eco_mmvd_info(bs, cu_data->mmvd_idx[cup], ctx->sh.mmvd_group_enable_flag && !(cuw*cuh <= NUM_SAMPLES_BLOCK));
+                            evce_eco_mmvd_info(bs, cu_data->mmvd_idx[cup], ctx->sh->mmvd_group_enable_flag && !(cuw*cuh <= NUM_SAMPLES_BLOCK));
                         }
                     }
 
@@ -3705,7 +3705,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
             }
         }
     }
-    else if (((ctx->sh.slice_type == SLICE_I || evce_check_only_intra(ctx, core)) && ctx->param.use_ibc_flag))
+    else if (((ctx->sh->slice_type == SLICE_I || evce_check_only_intra(ctx, core)) && ctx->param.use_ibc_flag))
     {
         if (core->skip_flag == 0 && evce_check_luma(ctx, core))
         {

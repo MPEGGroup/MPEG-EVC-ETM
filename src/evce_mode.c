@@ -458,7 +458,7 @@ void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
 
             if((pidx == PRED_DIR_MMVD))
             {
-                evce_eco_mmvd_info(&core->bs_temp, pi->mmvd_idx[pidx], ctx->sh.mmvd_group_enable_flag && !((1 << core->log2_cuw)*(1 << core->log2_cuh) <= NUM_SAMPLES_BLOCK));
+                evce_eco_mmvd_info(&core->bs_temp, pi->mmvd_idx[pidx], ctx->sh->mmvd_group_enable_flag && !((1 << core->log2_cuw)*(1 << core->log2_cuh) <= NUM_SAMPLES_BLOCK));
             }
         }
 
@@ -647,7 +647,7 @@ void evce_rdo_bit_cnt_cu_skip(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, 
 
         if(core->mmvd_flag)
         {
-            evce_eco_mmvd_info(&core->bs_temp, c_num, ctx->sh.mmvd_group_enable_flag && !((1 << core->log2_cuw)*(1 << core->log2_cuh) <= NUM_SAMPLES_BLOCK));
+            evce_eco_mmvd_info(&core->bs_temp, c_num, ctx->sh->mmvd_group_enable_flag && !((1 << core->log2_cuw)*(1 << core->log2_cuh) <= NUM_SAMPLES_BLOCK));
         }
         else
         {
@@ -1130,7 +1130,7 @@ void get_min_max_qp(EVCE_CTX * ctx, EVCE_CORE *core, s8 * min_qp, s8 * max_qp, i
             else
             {
                 *min_qp = ctx->tile[core->tile_idx].qp;
-                *max_qp = ctx->tile[core->tile_idx].qp + ctx->sh.dqp;
+                *max_qp = ctx->tile[core->tile_idx].qp + ctx->sh->dqp;
             }
         }
         else
@@ -1141,7 +1141,7 @@ void get_min_max_qp(EVCE_CTX * ctx, EVCE_CORE *core, s8 * min_qp, s8 * max_qp, i
             {
                 core->cu_qp_delta_code_mode = 1;
                 *min_qp = ctx->tile[core->tile_idx].qp;
-                *max_qp = ctx->tile[core->tile_idx].qp + ctx->sh.dqp;
+                *max_qp = ctx->tile[core->tile_idx].qp + ctx->sh->dqp;
 
                 if (CONV_LOG2(cuw) == 7 || CONV_LOG2(cuh) == 7)
                 {
@@ -1159,7 +1159,7 @@ void get_min_max_qp(EVCE_CTX * ctx, EVCE_CORE *core, s8 * min_qp, s8 * max_qp, i
                 core->cu_qp_delta_code_mode = 2;
                 *is_dqp_set = 1;
                 *min_qp = ctx->tile[core->tile_idx].qp;
-                *max_qp = ctx->tile[core->tile_idx].qp + ctx->sh.dqp;
+                *max_qp = ctx->tile[core->tile_idx].qp + ctx->sh->dqp;
             }
         }
     }
@@ -1199,15 +1199,15 @@ static int mode_cu_init(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int log2
 
 #if BD_CF_EXT
     core->qp_y = GET_LUMA_QP(core->qp, ctx->sps.bit_depth_luma_minus8);
-    qp_i_cb = EVC_CLIP3(-6 * ctx->sps.bit_depth_chroma_minus8, 57, core->qp + ctx->sh.qp_u_offset);
-    qp_i_cr = EVC_CLIP3(-6 * ctx->sps.bit_depth_chroma_minus8, 57, core->qp + ctx->sh.qp_v_offset);
+    qp_i_cb = EVC_CLIP3(-6 * ctx->sps.bit_depth_chroma_minus8, 57, core->qp + ctx->sh->qp_u_offset);
+    qp_i_cr = EVC_CLIP3(-6 * ctx->sps.bit_depth_chroma_minus8, 57, core->qp + ctx->sh->qp_v_offset);
     core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][qp_i_cb] + 6 * ctx->sps.bit_depth_chroma_minus8;
     core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][qp_i_cr] + 6 * ctx->sps.bit_depth_chroma_minus8;
 #else
     core->qp_y = GET_LUMA_QP(core->qp);
 
-    qp_i_cb = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + ctx->sh.qp_u_offset);
-    qp_i_cr = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + ctx->sh.qp_v_offset);
+    qp_i_cb = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + ctx->sh->qp_u_offset);
+    qp_i_cr = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + ctx->sh->qp_v_offset);
 
     core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][qp_i_cb] + 6 * (BIT_DEPTH - 8);
     core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][qp_i_cr] + 6 * (BIT_DEPTH - 8);
@@ -2131,7 +2131,7 @@ static double mode_coding_unit(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int
     }
 
     core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, (1 << log2_cuw), (1 << log2_cuh), ctx->w_scu, ctx->h_scu, ctx->map_scu, ctx->map_tidx);
-    evc_get_ctx_some_flags(core->x_scu, core->y_scu, 1 << log2_cuw, 1 << log2_cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, core->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
+    evc_get_ctx_some_flags(core->x_scu, core->y_scu, 1 << log2_cuw, 1 << log2_cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, core->ctx_flags, ctx->sh->slice_type, ctx->sps.tool_cm_init
                            , ctx->param.use_ibc_flag, ctx->sps.ibc_log_max_size, ctx->map_tidx);
 
     /* inter *************************************************************/
@@ -2674,7 +2674,7 @@ void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *p
     int y_begin_uv = (((ctx->tile[core->tile_num].ctba_rs_first) / ctx->w_lcu) << ctx->log2_max_cuwh)>>1;
 #endif
 
-    if(ctx->sh.deblocking_filter_on)
+    if(ctx->sh->deblocking_filter_on)
     {
         do_filter = 1;
     }
@@ -3468,8 +3468,8 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
         }
 #endif
 #if DQP
-        ctx->sh.qp_prev_mode = core->dqp_data[log2_cuw - 2][log2_cuh - 2].prev_QP;
-        best_dqp = ctx->sh.qp_prev_mode;
+        ctx->sh->qp_prev_mode = core->dqp_data[log2_cuw - 2][log2_cuh - 2].prev_QP;
+        best_dqp = ctx->sh->qp_prev_mode;
 #endif
         split_mode = NO_SPLIT;
         if(split_allow[split_mode])
@@ -3709,7 +3709,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
         next_split = 0;
     }
 
-    if(cost_best != MAX_COST && ctx->sh.slice_type == SLICE_I && core->ibc_flag != 1)
+    if(cost_best != MAX_COST && ctx->sh->slice_type == SLICE_I && core->ibc_flag != 1)
     {
         int dist_cu = core->dist_cu_best;
         int dist_cu_th = 1 << (log2_cuw + log2_cuh + 7);
@@ -3801,7 +3801,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                         split_struct.tree_cons.changed = tree_cons.mode_cons == eAll && !evc_is_chroma_split_allowed(cuw, cuh, split_mode);
 #endif
                         mode_cons_changed = evc_signal_mode_cons(&core->tree_cons, &split_struct.tree_cons);
-                        mode_cons_signal = mode_cons_changed && (ctx->sh.slice_type != SLICE_I) && (evc_get_mode_cons_by_split(split_mode, cuw, cuh) == eAll)
+                        mode_cons_signal = mode_cons_changed && (ctx->sh->slice_type != SLICE_I) && (evc_get_mode_cons_by_split(split_mode, cuw, cuh) == eAll)
 #if BD_CF_EXT
                             && ctx->sps.chroma_format_idc == 1
 #endif

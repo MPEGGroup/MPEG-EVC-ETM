@@ -1473,7 +1473,7 @@ typedef struct _EVC_SH
     int              aps_signaled;
     int              aps_id_y;
     int              aps_id_ch;
-    EVC_APS*         aps;
+    EVC_APS        * aps;
     evc_AlfSliceParam alf_sh_param;
     u16              num_tiles_in_slice;
 #if M53608_ALF_14
@@ -1484,6 +1484,7 @@ typedef struct _EVC_SH
     u32              alfChroma2MapSignalled;
     int              aps_id_ch2;
 #endif
+    u8               tile_order[MAX_NUM_TILES_COL * MAX_NUM_TILES_ROW];
 } EVC_SH;
 
 /*****************************************************************************
