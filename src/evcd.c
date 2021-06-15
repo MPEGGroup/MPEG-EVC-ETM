@@ -2392,7 +2392,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 #endif
                 for (int is_hor_edge = 0; is_hor_edge <= 1; is_hor_edge++)
                 {
-                    for (int i = 0; i < ctx->f_scu; i++)
+                    for (u32 i = 0; i < ctx->f_scu; i++)
                     {
                         MCU_CLR_COD(ctx->map_scu[i]);
                     }

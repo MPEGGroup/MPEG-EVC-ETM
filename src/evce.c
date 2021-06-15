@@ -2535,7 +2535,8 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     int           ctb_cnt_in_tile = 0;
     int           col_bd = 0;
     int           num_slice_in_pic = ctx->param.num_slice_in_pic;
-    u8          * tiles_in_slice, total_tiles_in_slice;
+    u8          * tiles_in_slice;
+    u16           total_tiles_in_slice;
     u8          * curr_temp = ctx->bs.cur;
 
     static int    last_intra_poc = INT_MAX;
@@ -2872,7 +2873,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
 #endif
         for(int is_hor_edge = 0 ; is_hor_edge <= 1 ; is_hor_edge++)
         {
-            for (int i = 0 ; i < ctx->f_scu; i++)
+            for (u32 i = 0 ; i < ctx->f_scu; i++)
             {
                 MCU_CLR_COD(ctx->map_scu[i]);
             }
