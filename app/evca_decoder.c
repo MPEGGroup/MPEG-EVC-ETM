@@ -630,7 +630,7 @@ int main(int argc, const char **argv)
                     return -1;
                 }
 
-                fprintf(fp_opl, "%d %d %d ", opl.poc, w, h);
+                fprintf(fp_opl, "%d %d %d ", opl.poc, w - (imgb->crop_l + imgb->crop_r) * 2, h - (imgb->crop_t + imgb->crop_b) * 2);
                 for (int i = 0; i < N_C; ++i)
                 {
                     for (int j = 0; j < 16; ++j)

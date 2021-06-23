@@ -2428,6 +2428,15 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 
             if (ctx->use_opl)
             {
+                if (ctx->sps.picture_cropping_flag) 
+                {
+                    ctx->pic->imgb->crop_idx = ctx->sps.picture_cropping_flag;
+                    ctx->pic->imgb->crop_l = ctx->sps.picture_crop_left_offset;
+                    ctx->pic->imgb->crop_r = ctx->sps.picture_crop_right_offset;
+                    ctx->pic->imgb->crop_t = ctx->sps.picture_crop_top_offset;
+                    ctx->pic->imgb->crop_b = ctx->sps.picture_crop_bottom_offset;
+                }
+
 #if M52291_HDR_DRA
                 int doCompareMd5 = 0;
                 SignalledParamsDRA *effective_dra_control;
