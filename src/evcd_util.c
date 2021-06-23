@@ -48,6 +48,39 @@ EVC_PIC * evcd_picbuf_alloc(PICBUF_ALLOCATOR * pa, int * ret)
     );
 }
 
+int evcd_opl_md5_imgb(EVC_IMGB *imgb, u8 digest[N_C][16])
+{
+    EVC_MD5 md5[N_C];
+    int i, j;
+
+    assert(EVC_COLORSPACE_IS_YUV_PLANAR(imgb->cs));
+    int scale = 2;
+    for (i = 0; i < imgb->np; i++)
+    {
+        evc_md5_init(&md5[i]);
+
+        for (j = (scale * imgb->crop_t); j < imgb->h[i] - (scale * imgb->crop_b); j++)
+        {
+            evc_md5_update(&md5[i], ((u8 *)imgb->a[i]) + j*imgb->s[i] + (scale * imgb->crop_l) * 2, (imgb->w[i] - scale * (imgb->crop_l + imgb->crop_r)) * 2);
+        }
+        if (i == 0)
+        {
+            scale = scale >> 1; // for YUV420
+        }
+
+        evc_md5_finish(&md5[i], digest[i]);
+    }
+
+    return EVC_OK;
+}
+
+
+int evcd_opl_signature(EVC_PIC *pic, u8 signature[N_C][16])
+{
+    return evcd_opl_md5_imgb(pic->imgb, signature);
+}
+
+
 void evcd_picbuf_free(PICBUF_ALLOCATOR * pa, EVC_PIC * pic)
 {
     evc_picbuf_free(pic);
@@ -211,6 +244,10 @@ int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[N_C][16], int tool_d
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
     }
 
+    u8 opl_sign[N_C][16] = { { 0 } };
+    ret = evcd_opl_signature(pic, opl_sign);
+
+    evc_assert_rv(EVC_SUCCEEDED(ret), ret);
     if (doCompare)
     {
         if (memcmp(signature, pic_sign[0], N_C * 16) != 0)
@@ -219,7 +256,7 @@ int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[N_C][16], int tool_d
         }
     }
 
-    memcpy(pic->digest, pic_sign, N_C * 16);
+    memcpy(pic->digest, opl_sign, N_C * 16);
 
     return EVC_OK;
 }

@@ -37,6 +37,8 @@
 void evcd_picbuf_expand(EVCD_CTX * ctx, EVC_PIC * pic);
 EVC_PIC * evcd_picbuf_alloc(PICBUF_ALLOCATOR * pa, int * ret);
 void evcd_picbuf_free(PICBUF_ALLOCATOR * pa, EVC_PIC * pic);
+int evcd_opl_md5_imgb(EVC_IMGB * imgb, u8 digest[N_C][16]);
+int evcd_opl_signature(EVC_PIC * pic, u8 md5_out[N_C][16]);
 
 #if HDR_MD5_CHECK
 int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[N_C][16], int tool_dra, void* pps_draParams, u16 width, u16 height, int doCompare
