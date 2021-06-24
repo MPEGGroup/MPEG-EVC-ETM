@@ -919,6 +919,16 @@ void evce_imgb_cpy(EVC_IMGB * dst, EVC_IMGB * src)
     {
         dst->ts[i] = src->ts[i];
     }
+    if (src->crop_idx)
+    {
+        dst->crop_idx = src->crop_idx;
+        dst->crop_l = src->crop_l;
+        dst->crop_r = src->crop_r;
+        dst->crop_t = src->crop_t;
+        dst->crop_b = src->crop_b;
+    }
+    dst->imgb_active_pps_id = src->imgb_active_pps_id;
+    dst->imgb_active_aps_id = src->imgb_active_aps_id;
 }
 static void imgb_free1(EVC_IMGB * imgb)
 {

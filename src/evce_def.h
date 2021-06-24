@@ -975,7 +975,7 @@ struct _EVCE_CTX
     int (*fn_enc_pic)(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
     int (*fn_enc_pic_finish)(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
 
-    int (*fn_push)(EVCE_CTX * ctx, EVC_IMGB * img);
+    int (*fn_push)(EVCE_CTX * ctx, EVC_IMGB * img_list[EVCE_TF_FRAME_NUM]);
     int (*fn_deblock)(EVCE_CTX * ctx, EVC_PIC * pic, int tile_idx, int filter_across_boundary, int is_hor_edge, EVCE_CORE * core);
 
     void* enc_alf;
@@ -1034,7 +1034,7 @@ int evce_enc_pic_finish(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
 int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
 int evce_deblock(EVCE_CTX * ctx, EVC_PIC * pic, int tile_idx, int filter_across_boundary, int is_hor_edge, EVCE_CORE * core);
 int evce_enc(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
-int evce_push_frm(EVCE_CTX * ctx, EVC_IMGB * img);
+int evce_push_frm(EVCE_CTX * ctx, EVC_IMGB * img_list[EVCE_TF_FRAME_NUM]);
 int evce_ready(EVCE_CTX * ctx);
 void evce_flush(EVCE_CTX * ctx);
 int evce_picbuf_get_inbuf(EVCE_CTX * ctx, EVC_IMGB ** img);

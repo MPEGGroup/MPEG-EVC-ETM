@@ -44,7 +44,7 @@
 #define VERBOSE_NONE               VERBOSE_0
 #define VERBOSE_FRAME              VERBOSE_1
 #define VERBOSE_ALL                VERBOSE_2
-#define MAX_BUMP_FRM_CNT           (8 <<1)
+#define MAX_BUMP_FRM_CNT           (16 <<1)
 
 #define MAX_BS_BUF                 (16*1024*1024)
 
@@ -192,6 +192,8 @@ static int op_picture_crop_left_offset   = 0;
 static int op_picture_crop_right_offset  = 0;
 static int op_picture_crop_top_offset    = 0;
 static int op_picture_crop_bottom_offset = 0;
+
+static int op_temporal_filter = 0;
 
 typedef enum _OP_FLAGS
 {
@@ -361,6 +363,7 @@ typedef enum _OP_FLAGS
     OP_PIC_CROP_RIGHT,
     OP_PIC_CROP_TOP,
     OP_PIC_CROP_BOTTOM,
+    OP_TEMPORAL_FILTER,
 
     OP_FLAG_MAX
 } OP_FLAGS;
@@ -1162,6 +1165,11 @@ static EVC_ARGS_OPTION options[] = \
         &op_flag[OP_PIC_CROP_BOTTOM], &op_picture_crop_bottom_offset,
         "INTER_SLICE_TYPE"
     },
+    {
+        EVC_ARGS_NO_KEY,  "temporal_filter", EVC_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_TEMPORAL_FILTER], &op_temporal_filter,
+        "Temporal Filter on/off"
+    },
 
     {0, "", EVC_ARGS_VAL_TYPE_NONE, NULL, NULL, ""} /* termination */
 };
@@ -1312,6 +1320,8 @@ static int get_conf(EVCE_CDSC * cdsc)
     {
         op_out_bit_depth = op_in_bit_depth;
     }
+    cdsc->cs = CS_FROM_BD_CF(op_codec_bit_depth, op_chroma_format_idc);
+    cdsc->temporal_filter = op_temporal_filter;
 #if BD_CF_EXT
     cdsc->codec_bit_depth = op_codec_bit_depth;
     INTERNAL_CODEC_BIT_DEPTH = op_codec_bit_depth;
@@ -2299,6 +2309,20 @@ static IMGB_LIST *imgb_list_get_empty(IMGB_LIST *list)
     return NULL;
 }
 
+static IMGB_LIST *imgb_list_get_ts(IMGB_LIST *list, EVC_MTIME ts)
+{
+    int i;
+
+    for (i = 0; i < MAX_BUMP_FRM_CNT; i++)
+    {
+        if (list[i].ts == ts)
+        {
+            return &list[i];
+        }
+    }
+    return NULL;
+}
+
 static void imgb_list_make_used(IMGB_LIST *list, EVC_MTIME ts)
 {
     list->used = 1;
@@ -3040,6 +3064,46 @@ int setup_bumping(EVCE id)
     return 0;
 }
 
+int static push_frm_list(EVCE id, IMGB_LIST ilist_org[MAX_BUMP_FRM_CNT] , EVC_MTIME pic_icnt)
+{
+    EVC_IMGB  * img_list[5];
+    IMGB_LIST * ilist_t = NULL;
+    int ret;
+
+    int img_cnt, range;
+    if (op_temporal_filter == 1)
+    {
+        img_cnt = EVCE_TF_FW_1;
+        range = EVCE_TF_RANGE;
+    }
+    else
+    {
+        img_cnt = EVCE_TF_CR;
+        range = 0;
+    }
+    for (EVC_MTIME ts = pic_icnt - range; ts <= pic_icnt + range; ts++)
+    {
+        ilist_t = imgb_list_get_ts(ilist_org, ts);
+        if (ilist_t == NULL)
+        {
+            img_list[img_cnt++] = NULL;
+        }
+        else
+        {
+            img_list[img_cnt++] = ilist_t->imgb;
+        }
+    }
+
+    /* push image to encoder */
+    ret = evce_push(id, img_list);
+    if (EVC_FAILED(ret))
+    {
+        v0print("evce_push() failed\n");
+        return EVC_ERR;
+    }
+    return EVC_OK;
+}
+
 int main(int argc, const char **argv)
 {
     STATES              state = STATE_ENCODING;
@@ -3053,7 +3117,7 @@ int main(int argc, const char **argv)
     EVCE_STAT          stat;
     int                 i, ret, size;
     EVC_CLK            clk_beg, clk_end, clk_tot;
-    EVC_MTIME          pic_icnt, pic_ocnt, pic_skip;
+    EVC_MTIME          pic_icnt, pic_ocnt, pic_skip, pic_rcnt;
     double              bitrate;
     double              psnr[3] = { 0, };
     double              psnr_avg[3] = { 0, };
@@ -3210,7 +3274,9 @@ int main(int argc, const char **argv)
     bitb.addr = bs_buf;
     bitb.bsize = MAX_BS_BUF;
 
-    if(op_flag[OP_FLAG_SKIP_FRAMES] && op_skip_frames > 0)
+    int skip_frames = op_skip_frames - EVCE_TF_RANGE > 0 ? op_skip_frames - EVCE_TF_RANGE : 0;;
+
+    if (op_flag[OP_FLAG_SKIP_FRAMES] && skip_frames > 0)
     {
         state = STATE_SKIPPING;
     }
@@ -3219,13 +3285,14 @@ int main(int argc, const char **argv)
     pic_icnt = 0;
     pic_ocnt = 0;
     pic_skip = 0;
+    pic_rcnt = (skip_frames - EVCE_TF_RANGE) > 0 ? -EVCE_TF_RANGE : -(skip_frames & 1);
 
     /* encode pictures *******************************************************/
     while(1)
     {
         if(state == STATE_SKIPPING)
         {
-            if(pic_skip < op_skip_frames)
+            if(pic_skip < skip_frames)
             {
                 ilist_t = imgb_list_get_empty(ilist_org);
                 if(ilist_t == NULL)
@@ -3258,38 +3325,39 @@ int main(int argc, const char **argv)
             }
 
             /* read original image */
-            if (pic_icnt >= op_max_frm_num ||imgb_read(fp_inp, ilist_t->imgb))
+            if (pic_icnt >= op_max_frm_num || imgb_read(fp_inp, ilist_t->imgb))
             {
                 v2print("reached end of original file (or reading error)\n");
                 state = STATE_BUMPING;
+                while (pic_icnt < pic_rcnt && pic_icnt < op_max_frm_num)
+                {
+                    ret = push_frm_list(id, ilist_org, pic_icnt);
+                    if (EVC_FAILED(ret))
+                    {
+                        v0print("evce_push() failed\n");
+                        return -1;
+                    }
+                    pic_icnt++;
+                }
                 setup_bumping(id);
                 continue;
             }
-            imgb_list_make_used(ilist_t, pic_icnt);
+            imgb_list_make_used(ilist_t, pic_rcnt);
 
-            /* get encodng buffer */
-            if(EVC_OK != evce_get_inbuf(id, &imgb_enc))
+            if (pic_rcnt++ < EVCE_TF_RANGE)
             {
-                v0print("Cannot get original image buffer\n");
-                return -1;
+                continue;
             }
-#if BD_CF_EXT
-            imgb_enc->cs = CS_FROM_BD_CF(INTERNAL_CODEC_BIT_DEPTH, op_chroma_format_idc);
-            /* copy original image to encoding buffer */
-            imgb_cpy_inp_to_codec(imgb_enc, ilist_t->imgb);
-#else
-            imgb_cpy(imgb_enc, ilist_t->imgb);
-#endif
-            /* push image to encoder */
-            ret = evce_push(id, imgb_enc);
-            if(EVC_FAILED(ret))
+            else
             {
-                v0print("evce_push() failed\n");
-                return -1;
+                ret = push_frm_list(id, ilist_org, pic_icnt);
+                if (EVC_FAILED(ret))
+                {
+                    v0print("evce_push() failed\n");
+                    return -1;
+                }
+                pic_icnt++;
             }
-            /* release encoding buffer */
-            imgb_enc->release(imgb_enc);
-            pic_icnt++;
         }
         /* encoding */
         clk_beg = evc_clk_get();

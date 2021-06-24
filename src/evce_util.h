@@ -80,6 +80,6 @@ u8 evce_check_only_intra(EVCE_CTX *ctx, EVCE_CORE * core);
 u8 evce_check_only_inter(EVCE_CTX *ctx, EVCE_CORE * core);
 u8 evce_check_all_preds(EVCE_CTX *ctx, EVCE_CORE * core);
 MODE_CONS evce_derive_mode_cons(EVCE_CTX *ctx, int luc_num, int cup);
-
+void evce_temporal_filter(EVCE_CTX * ctx, EVC_IMGB * img_list[EVCE_TF_FRAME_NUM], int curr_fr);
 
 #endif /* _EVCE_UTIL_H_ */
