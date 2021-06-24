@@ -2041,6 +2041,27 @@ int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         evc_assert_rv(ret == EVC_OK, ret);
 
         /* picture parameter set*/
+#if MULTIPLE_DRA_BUG_FIX
+        int tempPPS_ID = ctx->sh->slice_pic_parameter_set_id;
+        int number_pps = 1;
+        for (int i = 0; i < number_pps; i++)
+        {
+            if (ctx->sps.tool_dra)
+            {
+                evce_set_active_pps_dra_info(ctx, i);  
+                /* Signal reffered DRA APS */
+                if (ctx->aps_gen_array[1].signal_flag == 1)
+                {
+                    ret = evce_encode_aps(ctx, bitb, stat, 1);
+                    evc_assert_rv(ret == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
+                }
+            }
+            ret = evce_encode_pps(ctx, bitb, stat);
+            evc_assert_rv(ret == EVC_OK, ret);
+        }
+        if (number_pps > 1)
+            evce_set_active_pps_dra_info(ctx, tempPPS_ID);
+#else
         if (ctx->sps.tool_dra)
         {
             evce_set_active_pps_dra_info(ctx, ctx->pps->pps_pic_parameter_set_id);
@@ -2058,6 +2079,7 @@ int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
                 evc_assert_rv(ret == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
             }
         }
+#endif
     }
 
     return EVC_OK;
@@ -3328,7 +3350,10 @@ int evce_push_frm(EVCE_CTX * ctx, EVC_IMGB * imgb)
     {
         imgb->imgb_active_aps_id = ctx->aps_gen_array[1].aps_id;
         imgb->imgb_active_pps_id = ctx->pps->pps_pic_parameter_set_id;
-        evc_apply_dra_from_array(imgb, imgb, ctx->dra_array, imgb->imgb_active_aps_id, FALSE);
+#if MULTIPLE_DRA_BUG_FIX
+        if (ctx->pps_array[imgb->imgb_active_pps_id].pic_dra_enabled_flag)
+#endif
+            evc_apply_dra_from_array(imgb, imgb, ctx->dra_array, imgb->imgb_active_aps_id, FALSE);
     }
     
     /* set pushed image to current input (original) image */
@@ -3558,7 +3583,9 @@ int evce_generate_pps_array(EVCE_CTX * ctx)
     int num_pps = 1;
     for (int i = 0; i < num_pps; i++)
     {
+#if !MULTIPLE_DRA_BUG_FIX
         if (i == 0)
+#endif
         {
             evc_mset(&(ctx->pps_array[i]), 0, sizeof(EVC_PPS));
             ctx->pps = &(ctx->pps_array[i]);
@@ -3569,13 +3596,21 @@ int evce_generate_pps_array(EVCE_CTX * ctx)
             {
                 ctx->pps->pic_dra_enabled_flag = 1;
                 ctx->pps->pic_dra_aps_id = i % APS_MAX_NUM;
+#if MULTIPLE_DRA_BUG_FIX
+                memcpy(&(ctx->pps_array[i]), ctx->pps, sizeof(EVC_PPS));
+#endif
             }
         }
+#if !MULTIPLE_DRA_BUG_FIX
         else
         {
             evc_mcpy(&(ctx->pps_array[i]), &(ctx->pps_array[0]), sizeof(EVC_PPS));
         }
+#endif
     }
+#if MULTIPLE_DRA_BUG_FIX
+    ctx->pps = &(ctx->pps_array[0]); // init with 0 pps
+#endif
 
     return EVC_OK;
 }
@@ -3687,6 +3722,9 @@ int evce_set_active_pps_dra_info(EVCE_CTX * ctx, int pps_id)
         ctx->sh->slice_pic_parameter_set_id = (int)rand() % 64;
     else
         ctx->sh->slice_pic_parameter_set_id = pps_id;
+#if MULTIPLE_DRA_BUG_FIX
+    set_active_pps_info(ctx);
+#endif
 
     if (ctx->pps->pic_dra_enabled_flag)
         set_active_dra_info(ctx);
@@ -3835,16 +3873,23 @@ int evce_config(EVCE id, int cfg, void * buf, int * size)
             imgb = PIC_CURR(ctx)->imgb;
 
             if (ctx->sps.tool_dra)
-            {
-                EVC_IMGB * timgb;
-                int ret;
-                ret = ctx->fn_get_inbuf(ctx, &timgb);
-                evc_assert_rv(EVC_OK == ret, ret);
-                evce_imgb_cpy(timgb, imgb);
-                evc_apply_dra_from_array(timgb, timgb, ctx->dra_array, ctx->aps_gen_array[1].aps_id, TRUE);
-                imgb = timgb;
-                imgb->release(imgb);
-            }
+#if MULTIPLE_DRA_BUG_FIX
+                if (ctx->pps_array[imgb->imgb_active_pps_id].pic_dra_enabled_flag)
+#endif
+                {
+                    EVC_IMGB * timgb;
+                    int ret;
+                    ret = ctx->fn_get_inbuf(ctx, &timgb);
+                    evc_assert_rv(EVC_OK == ret, ret);
+                    evce_imgb_cpy(timgb, imgb);
+#if MULTIPLE_DRA_BUG_FIX
+                    evc_apply_dra_from_array(timgb, timgb, ctx->dra_array, imgb->imgb_active_aps_id, TRUE);
+#else                                
+                    evc_apply_dra_from_array(timgb, timgb, ctx->dra_array, ctx->aps_gen_array[1].aps_id, TRUE);
+#endif
+                    imgb = timgb;
+                    imgb->release(imgb);
+                }
 
             *((EVC_IMGB **)buf) = imgb;
             imgb->addref(imgb);
