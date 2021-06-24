@@ -3310,7 +3310,7 @@ int evce_enc(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     pic_cnt = ctx->pic_icnt - ctx->frm_rnum;
     gop_size = ctx->param.gop_size;
 
-    ctx->force_slice = ((ctx->pic_ticnt % gop_size >= ctx->pic_ticnt - pic_cnt + 1) && FORCE_OUT(ctx)) ? 1 : 0;
+    ctx->force_slice = (((int)ctx->pic_ticnt % gop_size >= (int)ctx->pic_ticnt - pic_cnt + 1) && FORCE_OUT(ctx)) ? 1 : 0;
 
     evc_assert_rv(bitb->addr && bitb->bsize > 0, EVC_ERR_INVALID_ARGUMENT);
 
@@ -3333,9 +3333,17 @@ int evce_enc(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     return EVC_OK;
 }
 
-int evce_push_frm(EVCE_CTX * ctx, EVC_IMGB * imgb)
+int evce_push_frm(EVCE_CTX * ctx, EVC_IMGB * img_list[EVCE_TF_FRAME_NUM])
 {
     EVC_PIC    * pic;
+    EVC_IMGB   * imgb = NULL;
+
+    /* get encodng buffer */
+    
+    if (EVC_OK != ctx->fn_get_inbuf(ctx, &imgb))
+    {
+        return EVC_ERR;
+    }
 
     ctx->pic_icnt++;
 
@@ -3346,16 +3354,6 @@ int evce_push_frm(EVCE_CTX * ctx, EVC_IMGB * imgb)
     pic = &ctx->pico->pic;
     PIC_ORIG(ctx) = pic;
 
-    if (ctx->cdsc.tool_dra)
-    {
-        imgb->imgb_active_aps_id = ctx->aps_gen_array[1].aps_id;
-        imgb->imgb_active_pps_id = ctx->pps->pps_pic_parameter_set_id;
-#if MULTIPLE_DRA_BUG_FIX
-        if (ctx->pps_array[imgb->imgb_active_pps_id].pic_dra_enabled_flag)
-#endif
-            evc_apply_dra_from_array(imgb, imgb, ctx->dra_array, imgb->imgb_active_aps_id, FALSE);
-    }
-    
     /* set pushed image to current input (original) image */
     evc_mset(pic, 0, sizeof(EVC_PIC));
 
@@ -3377,7 +3375,21 @@ int evce_push_frm(EVCE_CTX * ctx, EVC_IMGB * imgb)
 
     pic->imgb = imgb;
 
-    imgb->addref(imgb);
+    imgb->cs = ctx->cdsc.cs;
+    /* copy original image to encoding buffer */
+    evce_imgb_cpy(imgb, img_list[EVCE_TF_CR]);
+
+    if (ctx->cdsc.temporal_filter)
+    {
+        evce_temporal_filter(ctx, img_list, ctx->pic_icnt);
+    }
+
+    if (ctx->cdsc.tool_dra)
+    {
+        imgb->imgb_active_aps_id = ctx->aps_gen_array[1].aps_id;
+        imgb->imgb_active_pps_id = ctx->pps->pps_pic_parameter_set_id;
+        evc_apply_dra_from_array(imgb, imgb, ctx->dra_array, imgb->imgb_active_aps_id, FALSE);
+    }
 
     return EVC_OK;
 }
@@ -3763,14 +3775,14 @@ int evce_encode(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
     return ctx->fn_enc(ctx, bitb, stat);
 }
 
-int evce_push(EVCE id, EVC_IMGB * img)
+int evce_push(EVCE id, EVC_IMGB * img_list[EVCE_TF_FRAME_NUM])
 {
     EVCE_CTX * ctx;
 
     EVCE_ID_TO_CTX_RV(id, ctx, EVC_ERR_INVALID_ARGUMENT);
     evc_assert_rv(ctx->fn_push, EVC_ERR_UNEXPECTED);
 
-    return ctx->fn_push(ctx, img);
+    return ctx->fn_push(ctx, img_list);
 }
 
 int evce_config(EVCE id, int cfg, void * buf, int * size)
@@ -3920,17 +3932,6 @@ int evce_config(EVCE id, int cfg, void * buf, int * size)
     }
 
     return EVC_OK;
-}
-
-int evce_get_inbuf(EVCE id, EVC_IMGB ** img)
-{
-    EVCE_CTX *ctx;
-
-    EVCE_ID_TO_CTX_RV(id, ctx, EVC_ERR_INVALID_ARGUMENT);
-    evc_assert_rv(ctx->fn_get_inbuf, EVC_ERR_UNEXPECTED);
-    evc_assert_rv(img != NULL, EVC_ERR_INVALID_ARGUMENT);
-
-    return ctx->fn_get_inbuf(ctx, img);
 }
 
 void evce_malloc_1d(void** dst, int size)

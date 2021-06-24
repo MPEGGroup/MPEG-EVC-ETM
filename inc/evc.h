@@ -222,6 +222,20 @@ typedef enum _CHROMA_FORMAT
 #endif
 
 /*****************************************************************************
+ * temporal filter
+ *****************************************************************************/
+#define EVCE_TF_RANGE 2
+enum EVCE_TF_FRAME
+{
+    EVCE_TF_FW_1,
+    EVCE_TF_FW_0,
+    EVCE_TF_CR,
+    EVCE_TF_BW_0,
+    EVCE_TF_BW_1,
+    EVCE_TF_FRAME_NUM
+};
+
+/*****************************************************************************
  * config types for decoder
  *****************************************************************************/
 #define EVCD_CFG_SET_USE_PIC_SIGNATURE  (301)
@@ -617,6 +631,7 @@ typedef struct _EVCE_CDSC
     EVC_RPL rpls_l1[MAX_NUM_RPLS];
     int rpls_l0_cfg_num;
     int rpls_l1_cfg_num;
+    int temporal_filter;
 
 } EVCE_CDSC;
 
@@ -676,9 +691,8 @@ typedef void  * EVCE;
 
 EVCE evce_create(EVCE_CDSC * cdsc, int * err);
 void evce_delete(EVCE id);
-int evce_push(EVCE id, EVC_IMGB * imgb);
+int evce_push(EVCE id, EVC_IMGB * img_list[EVCE_TF_FRAME_NUM]);
 int evce_encode(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat);
-int evce_get_inbuf(EVCE id, EVC_IMGB ** imgb);
 int evce_config(EVCE id, int cfg, void * buf, int * size);
 
 #ifdef __cplusplus
