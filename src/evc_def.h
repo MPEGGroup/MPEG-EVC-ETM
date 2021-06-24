@@ -38,6 +38,7 @@
 #include "evc_port.h"
 
 //recent bugfixes (to be removed in next minor release)
+#define MULTIPLE_DRA_BUG_FIX                         1   // Bug-fix for multiple PPS/APS signaling for DRA.
 #define ETM70_GOLOMB_FIX                             1
 #define MULTIPLE_NAL                                 1
 #define ETM60_HLS_FIX                                1
