@@ -2305,7 +2305,7 @@ void EncAdaptiveLoopFilter::conformaceCheck(AlfSliceParam* alfSliceParam, u8* fi
         {
             for (int j = 0; j < numCoeff - 1; j++)
             {
-                lumaCoeff[i * MAX_NUM_ALF_LUMA_COEFF + j] = alfSliceParam->lumaCoeff[i * MAX_NUM_ALF_LUMA_COEFF + j] + alfSliceParam->lumaCoeff[(i - 1) * MAX_NUM_ALF_LUMA_COEFF + j];
+                lumaCoeff[i * MAX_NUM_ALF_LUMA_COEFF + j] = alfSliceParam->lumaCoeff[i * MAX_NUM_ALF_LUMA_COEFF + j] + lumaCoeff[(i - 1) * MAX_NUM_ALF_LUMA_COEFF + j];
             }
         }
     }
