@@ -908,7 +908,7 @@ void evce_temporal_filter(EVCE_CTX * ctx, EVC_IMGB * img_list[EVCE_TF_FRAME_NUM]
             }
             pic_cnt++;
         }
-        else
+        else if (i < EVCE_TF_CR)
         {
             curr_idx--;
         }
