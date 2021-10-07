@@ -3274,7 +3274,8 @@ int main(int argc, const char **argv)
     bitb.addr = bs_buf;
     bitb.bsize = MAX_BS_BUF;
 
-    int skip_frames = op_skip_frames - EVCE_TF_RANGE > 0 ? op_skip_frames - EVCE_TF_RANGE : 0;;
+    int tf_range = op_temporal_filter ? 2 : 0;
+    int skip_frames = op_skip_frames - tf_range > 0 ? op_skip_frames - tf_range : 0;;
 
     if (op_flag[OP_FLAG_SKIP_FRAMES] && skip_frames > 0)
     {
@@ -3285,7 +3286,7 @@ int main(int argc, const char **argv)
     pic_icnt = 0;
     pic_ocnt = 0;
     pic_skip = 0;
-    pic_rcnt = (skip_frames - EVCE_TF_RANGE) > 0 ? -EVCE_TF_RANGE : -(skip_frames & 1);
+    pic_rcnt = (skip_frames - tf_range) > 0 ? -tf_range : -(skip_frames & 1);
 
     /* encode pictures *******************************************************/
     while(1)
@@ -3344,7 +3345,7 @@ int main(int argc, const char **argv)
             }
             imgb_list_make_used(ilist_t, pic_rcnt);
 
-            if (pic_rcnt++ < EVCE_TF_RANGE)
+            if (pic_rcnt++ < tf_range)
             {
                 continue;
             }
