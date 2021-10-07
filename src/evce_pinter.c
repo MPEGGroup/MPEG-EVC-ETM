@@ -1447,7 +1447,10 @@ void calc_min_cost_ats_inter(EVCE_CTX *ctx, EVCE_CORE *core, pel pred[N_C][MAX_C
             }
         }
     }
+
+#if !ATS_INTER_LINUX_WA
     assert(abs((int)(sum_dist - (dist_no_resi[Y_C] + dist_no_resi[U_C] * ctx->dist_chroma_weight[0] + dist_no_resi[V_C] * ctx->dist_chroma_weight[1]))) < 32);
+#endif
 
     //estimate rd cost for each ATS_INTER mode
     ats_inter_est_dist[0] = sum_dist;
