@@ -224,16 +224,9 @@ typedef enum _CHROMA_FORMAT
 /*****************************************************************************
  * temporal filter
  *****************************************************************************/
-#define EVCE_TF_RANGE 2
-enum EVCE_TF_FRAME
-{
-    EVCE_TF_FW_1,
-    EVCE_TF_FW_0,
-    EVCE_TF_CR,
-    EVCE_TF_BW_0,
-    EVCE_TF_BW_1,
-    EVCE_TF_FRAME_NUM
-};
+#define EVCE_TF_RANGE 4
+#define EVCE_TF_CR EVCE_TF_RANGE
+#define EVCE_TF_FRAME_NUM ((EVCE_TF_RANGE << 1) + 1)
 
 /*****************************************************************************
  * config types for decoder
