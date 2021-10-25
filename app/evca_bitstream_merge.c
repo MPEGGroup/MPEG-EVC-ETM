@@ -277,7 +277,7 @@ int main(int argc, const char **argv)
     FILE            * fp_bs = NULL;
     FILE            * fp_bs_write = NULL;
     int               bs_num, max_bs_num;
-    u8                tmp_size[4];
+    u8                bs_size_buf[4];
     int               bs_end_pos;
     int               intra_dist[2];
     int               intra_dist_idx = 0;
@@ -290,6 +290,18 @@ int main(int argc, const char **argv)
     EVC_NALU        * nalu;
     EVCD_CTX        * ctx;
     EVC_APS         * aps;
+
+    int               prev_is_aps = 0;
+    int               tmp_bs_size = 0;
+    u8                tmp_bs_size_buf[4];
+    unsigned char   * tmp_bs_buf = NULL;
+    tmp_bs_buf = malloc(MAX_BS_BUF);
+    memset(tmp_bs_buf, 0, sizeof(u8) * MAX_BS_BUF);
+    if (tmp_bs_buf == NULL)
+    {
+        v0print("ERROR: cannot allocate bit buffer, size=%d\n", MAX_BS_BUF);
+        return -1;
+    }
 
     // set line buffering (_IOLBF) for stdout to prevent incomplete logs when app crashed.
     setvbuf(stdout, NULL, _IOLBF, 1024);
@@ -336,10 +348,10 @@ int main(int argc, const char **argv)
         {
             bs_size = read_nalu(fp_bs, &bs_read_pos, bs_buf);
 
-            tmp_size[0] = (bs_size & 0x000000ff) >> 0;  //TBD(@Chernyak): is there a better way?
-            tmp_size[1] = (bs_size & 0x0000ff00) >> 8;
-            tmp_size[2] = (bs_size & 0x00ff0000) >> 16;
-            tmp_size[3] = (bs_size & 0xff000000) >> 24;
+            bs_size_buf[0] = (bs_size & 0x000000ff) >> 0;  //TBD(@Chernyak): is there a better way?
+            bs_size_buf[1] = (bs_size & 0x0000ff00) >> 8;
+            bs_size_buf[2] = (bs_size & 0x00ff0000) >> 16;
+            bs_size_buf[3] = (bs_size & 0xff000000) >> 24;
 
             if (bs_size <= 0)
             {
@@ -382,7 +394,7 @@ int main(int argc, const char **argv)
                     sh->mmvd_group_enable_flag = sps->tool_mmvd;
                     if (!bs_num)
                     {
-                        fwrite(tmp_size, 1, 4, fp_bs_write);
+                        fwrite(bs_size_buf, 1, 4, fp_bs_write);
                         fwrite(bs_buf, 1, bs_size, fp_bs_write);
                     }
                     break;
@@ -391,13 +403,25 @@ int main(int argc, const char **argv)
                     evc_assert_rv(EVC_SUCCEEDED(ret), ret);
                     if (!bs_num)
                     {
-                        fwrite(tmp_size, 1, 4, fp_bs_write);
+                        fwrite(bs_size_buf, 1, 4, fp_bs_write);
                         fwrite(bs_buf, 1, bs_size, fp_bs_write);
                     }
                     break;
                 case EVC_APS_NUT:
-                    fwrite(tmp_size, 1, 4, fp_bs_write);
-                    fwrite(bs_buf, 1, bs_size, fp_bs_write);
+                    prev_is_aps = 1;
+                    if (!bs_num)
+                    {
+                        prev_is_aps = 0;
+                        fwrite(bs_size_buf, 1, 4, fp_bs_write);
+                        fwrite(bs_buf, 1, bs_size, fp_bs_write);
+                    }
+                    else
+                    {
+                        memset(tmp_bs_buf, 0, sizeof(u8) * MAX_BS_BUF);
+                        tmp_bs_size = bs_size;
+                        memcpy(tmp_bs_size_buf, bs_size_buf, sizeof(u8) * 4);
+                        memcpy(tmp_bs_buf, bs_buf, sizeof(u8) * bs_size);
+                    }
                     break;
                 case EVC_NONIDR_NUT:
                 case EVC_IDR_NUT:
@@ -416,7 +440,7 @@ int main(int argc, const char **argv)
 
                     if (bs_num == 0)
                     {
-                        fwrite(tmp_size, 1, 4, fp_bs_write);
+                        fwrite(bs_size_buf, 1, 4, fp_bs_write);
                         fwrite(bs_buf, 1, bs_size, fp_bs_write);
                     }
                     else
@@ -424,13 +448,20 @@ int main(int argc, const char **argv)
                         if (!intra_dist_idx && sh->slice_type == SLICE_I)
                         {
                             intra_dist_idx++;
+                            prev_is_aps = 0;
                         }
                         else
                         {
+                            if (prev_is_aps == 1)
+                            {
+                                fwrite(tmp_bs_size_buf, 1, 4, fp_bs_write);
+                                fwrite(tmp_bs_buf, 1, tmp_bs_size, fp_bs_write);
+                                prev_is_aps = 0;
+                            }
                             /* re-write slice header */
                             sh->poc_lsb += intra_dist[0];
                             ret = evce_eco_sh(&bsw, &ctx->sps, ctx->pps, sh, ctx->nalu.nal_unit_type_plus1 - 1);
-                            fwrite(tmp_size, 1, 4, fp_bs_write);
+                            fwrite(bs_size_buf, 1, 4, fp_bs_write);
                             fwrite(bs_buf, 1, bs_size, fp_bs_write);
                         }
                     }
