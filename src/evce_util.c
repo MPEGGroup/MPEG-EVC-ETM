@@ -444,9 +444,9 @@ static int get_motion_cost(EVC_PIC * pic_cur, EVC_PIC * pic_ref, int x, int y, i
 
 }
 
-static void get_motion(EVC_PIC * pic_cur, EVC_PIC * pic_ref, int block_size, void * prev_mv, int factor, int d_range)
+static void get_motion(EVC_PIC * pic_cur, EVC_PIC * pic_ref, int block_size, void * prev_mv, int * map_error, int factor, int d_range)
 {
-    int range = 5;
+    int range = d_range ? 0 : 5;
     int step  = block_size;
     int pic_w = pic_cur->w_l;
     int pic_h = pic_cur->h_l;
@@ -463,10 +463,9 @@ static void get_motion(EVC_PIC * pic_cur, EVC_PIC * pic_ref, int block_size, voi
     int store_mv_idx = d_range == 0 ? 0 : 1;
 
     static int print_cnt = 0;
-
-    for (int y = 0; y + block_size < pic_h; y += step)
+    for (int y = 0; y + block_size <= pic_h; y += step)
     {
-        for (int x = 0; x + block_size < pic_w; x += step)
+        for (int x = 0; x + block_size <= pic_w; x += step)
         {
             best_cost = block_size * block_size * 1024 * 1024;
 
@@ -477,10 +476,11 @@ static void get_motion(EVC_PIC * pic_cur, EVC_PIC * pic_ref, int block_size, voi
             }
             else
             {
-                for (int py = -2; py <= 2; py++)
+                for (int py = -1; py <= 1; py++)
                 {
                     int test_y = y / (2 * block_size) + py;
-                    for (int px = -2; px <= 2; px++)
+
+                    for (int px = -1; px <= 1; px++)
                     {
                         int test_x = x / (2 * block_size) + px;
                         if ((test_x >= 0) && (test_x < pic_w / (2 * block_size)) && (test_y >= 0) && (test_y < pic_h / (2 * block_size)))
@@ -499,6 +499,13 @@ static void get_motion(EVC_PIC * pic_cur, EVC_PIC * pic_ref, int block_size, voi
                             }
                         }
                     }
+                }
+                int cost = get_motion_cost(pic_cur, pic_ref, x, y, 0, 0, block_size, best_cost);
+                if (cost < best_cost)
+                {
+                    best_cost = cost;
+                    best_mv[MV_X] = 0;
+                    best_mv[MV_Y] = 0;
                 }
             }
 
@@ -554,6 +561,78 @@ static void get_motion(EVC_PIC * pic_cur, EVC_PIC * pic_ref, int block_size, voi
                 }
             }
 
+            if (y > 0)
+            {
+
+                int above_idx;
+                int above_mv[MV_D];
+                if (store_mv_idx == 0)
+                {
+                    above_idx = ((y - step) / step) * pic_w_scu + x / step;
+                }
+                else
+                {
+                    above_idx = ((y - step) >> MIN_CU_LOG2) * pic_w_scu + (x >> MIN_CU_LOG2);
+                }
+                above_mv[MV_X] = pic_ref->map_mv[above_idx][store_mv_idx][MV_X];
+                above_mv[MV_Y] = pic_ref->map_mv[above_idx][store_mv_idx][MV_Y];
+
+                int cost = get_motion_cost(pic_cur, pic_ref, x, y, above_mv[MV_X], above_mv[MV_Y], block_size, best_cost);
+                if (cost < best_cost)
+                {
+                    best_cost = cost;
+                    best_mv[MV_X] = above_mv[MV_X];
+                    best_mv[MV_Y] = above_mv[MV_Y];
+                }
+            }
+            if (x > 0)
+            {
+
+                int left_idx;
+                int left_mv[MV_D];
+                if (store_mv_idx == 0)
+                {
+                    left_idx = (y / step) * pic_w_scu + (x - step) / step;
+                }
+                else
+                {
+                    left_idx = (y >> MIN_CU_LOG2) * pic_w_scu + ((x - step) >> MIN_CU_LOG2);
+                }
+                left_mv[MV_X] = pic_ref->map_mv[left_idx][store_mv_idx][MV_X];
+                left_mv[MV_Y] = pic_ref->map_mv[left_idx][store_mv_idx][MV_Y];
+
+                int cost = get_motion_cost(pic_cur, pic_ref, x, y, left_mv[MV_X], left_mv[MV_Y], block_size, best_cost);
+                if (cost < best_cost)
+                {
+                    best_cost = cost;
+                    best_mv[MV_X] = left_mv[MV_X];
+                    best_mv[MV_Y] = left_mv[MV_Y];
+                }
+            }
+
+            // calculate average
+            double avg = 0.0;
+            for (int x1 = 0; x1 < block_size; x1++)
+            {
+                for (int y1 = 0; y1 < block_size; y1++)
+                {
+                    avg += *(pic_cur->y + (x + x1 + pic_cur->s_l * (y + y1)));
+                }
+            }
+            avg = avg / (block_size * block_size);
+
+            // calculate variance
+            double variance = 0;
+            for (int x1 = 0; x1 < block_size; x1++)
+            {
+                for (int y1 = 0; y1 < block_size; y1++)
+                {
+                    int pix = *(pic_cur->y + (x + x1 + pic_cur->s_l * (y + y1)));
+                    variance += (pix - avg) * (pix - avg);
+                }
+            }
+            best_cost = 20 * ((best_cost + 5.0) / (variance + 5.0)) + (best_cost / (block_size * block_size)) / 50;
+
             if (store_mv_idx == 0)
             {
                 int idx = (y / step) * pic_w_scu + x / step;
@@ -573,10 +652,11 @@ static void get_motion(EVC_PIC * pic_cur, EVC_PIC * pic_ref, int block_size, voi
                         int scu = ((y >> MIN_CU_LOG2) + sy) * pic_w_scu + (x >> MIN_CU_LOG2) + sx;
                         pic_ref->map_mv[scu][store_mv_idx][MV_X] = best_mv[MV_X];
                         pic_ref->map_mv[scu][store_mv_idx][MV_Y] = best_mv[MV_Y];
+                        map_error[scu] = best_cost;
                     }
                 }
             }
-       }
+        }
     }
 }
 
@@ -703,17 +783,18 @@ static void apply_motion(EVC_PIC * pic_ref)
     evc_mfree(tmp_img);
 }
 
-static void apply_filter(EVCE_CTX * ctx, EVC_PIC * tmp_pic[5][3], int pic_cnt, int curr_idx, double overall_strength)
+static void apply_filter(EVCE_CTX * ctx, EVC_PIC * tmp_pic[EVCE_TF_FRAME_NUM][3], int * map_noise[EVCE_TF_FRAME_NUM]
+                       , int* map_error[EVCE_TF_FRAME_NUM], int pic_cnt, int curr_idx, double overall_strength)
 {
     const double sigma_zero_point = 10.0;
     const double sigma_multiplier = 9.0;
     const double chroma_factor = 0.55;
-    const double ref_strengths[3][2] =
+    const double ref_strengths[3][4] =
     { // abs(POC offset)
-      //  1,    2
-      {0.85, 0.60},  // s_range * 2
-      {1.20, 1.00},  // s_range
-      {0.30, 0.30}   // otherwise
+      //  1,    2     3     4
+      {0.85, 0.57, 0.41, 0.33},  // m_range * 2
+      {1.13, 0.97, 0.81, 0.57},  // m_range
+      {0.30, 0.30, 0.30, 0.30}   // otherwise
     };
 
     const double luma_sigma_sq = (ctx->param.qp - sigma_zero_point) * (ctx->param.qp - sigma_zero_point) * sigma_multiplier;
@@ -722,16 +803,13 @@ static void apply_filter(EVCE_CTX * ctx, EVC_PIC * tmp_pic[5][3], int pic_cnt, i
     const int chroma_idc = CF_FROM_CS(tmp_pic[curr_idx][0]->imgb->cs);
     const int bit_depth = BD_FROM_CS(tmp_pic[curr_idx][0]->imgb->cs);
     int cs_num = chroma_idc == 0 ? 1 : 3;
-
     pel * tmp_dst = (pel *)evc_malloc(sizeof(pel) * tmp_pic[curr_idx][0]->h_l * tmp_pic[curr_idx][0]->w_l);
-
-
     int ref_strength_row = 2;
-    if (pic_cnt - 1 == 4)
+    if (pic_cnt - 1 == EVCE_TF_RANGE * 2)
     {
         ref_strength_row = 0;
     }
-    else if (pic_cnt - 1 == 2)
+    else if (pic_cnt - 1 == EVCE_TF_RANGE)
     {
         ref_strength_row = 1;
     }
@@ -742,9 +820,10 @@ static void apply_filter(EVCE_CTX * ctx, EVC_PIC * tmp_pic[5][3], int pic_cnt, i
     for (int c = 0; c < cs_num; c++)
     {
         int height, width;
-        pel *src_pel_row, *dst_pel_row;
+        pel * src_pel_row, *dst_pel_row;
         int src_s, dst_s;
         double sigma_sq, weight_scaling;
+        const int block_size = c == 0 ? 8 : 4;
 
         if (c == Y_C)
         {
@@ -777,6 +856,9 @@ static void apply_filter(EVCE_CTX * ctx, EVC_PIC * tmp_pic[5][3], int pic_cnt, i
             weight_scaling = overall_strength * chroma_factor;
         }
 
+        const int w_shift = c == 0 ? 0 : GET_CHROMA_W_SHIFT(chroma_idc);
+        const int h_shift = c == 0 ? 0 : GET_CHROMA_H_SHIFT(chroma_idc);
+
         for (int y = 0; y < height; y++, src_pel_row += src_s, dst_pel_row += dst_s)
         {
             const pel *src_pel = src_pel_row;
@@ -786,6 +868,76 @@ static void apply_filter(EVCE_CTX * ctx, EVC_PIC * tmp_pic[5][3], int pic_cnt, i
                 const int org_val = (int)*src_pel;
                 double temporal_weight_sum = 1.0;
                 double new_val = (double)org_val;
+
+                int scup_luma = c == Y_C ? ((y >> MIN_CU_LOG2) * (width >> MIN_CU_LOG2) + (x >> MIN_CU_LOG2)) :
+                                           ((y >> (MIN_CU_LOG2 - h_shift)) * (width >> (MIN_CU_LOG2 - w_shift)) + (x >> (MIN_CU_LOG2 - w_shift)));
+                int map_pos = (y / block_size) * (width / block_size) + (x / block_size);
+
+                if ((y % block_size == 0) && (x % block_size == 0))
+                {
+                    
+
+                    for (int i = 0; i < pic_cnt ; i++)
+                    {
+                        if (i == curr_idx)
+                        {
+                            continue;
+                        }
+
+                        pel* corrected_pel;
+                        int corrected_s;
+                        if (c == Y_C)
+                        {
+                            corrected_pel = tmp_pic[i][0]->y + (y * tmp_pic[i][0]->s_l + x);
+                            corrected_s = tmp_pic[i][0]->s_l;
+                        }
+                        else if (c == U_C)
+                        {
+                            corrected_pel = tmp_pic[i][0]->u + (y * tmp_pic[i][0]->s_c + x);
+                            corrected_s = tmp_pic[i][0]->s_c;
+                        }
+                        else
+                        {
+                            corrected_pel = tmp_pic[i][0]->v + (y * tmp_pic[i][0]->s_c + x);
+                            corrected_s = tmp_pic[i][0]->s_c;
+                        }
+
+                        double variance = 0, diffsum = 0;
+                        for (int y1 = 0; y1 < block_size - 1; y1++)
+                        {
+                            for (int x1 = 0; x1 < block_size - 1; x1++)
+                            {
+                                int pix  = src_pel[x1];
+                                int pixR = src_pel[x1 + 1];
+                                int pixD = src_pel[x1 + src_s];
+                                int ref  = corrected_pel[ y1       * corrected_s + x1];
+                                int refR = corrected_pel[ y1       * corrected_s + x1 + 1];
+                                int refD = corrected_pel[ (y1 + 1) * corrected_s + x1];
+
+                                int diff = pix - ref;
+                                int diffR = pixR - refR;
+                                int diffD = pixD - refD;
+
+                                variance += diff * diff;
+                                diffsum += (diffR - diff) * (diffR - diff);
+                                diffsum += (diffD - diff) * (diffD - diff);
+                            }
+                        }
+                        map_noise[i][map_pos] = (int)round((300 * variance + 50) / (10 * diffsum + 50));
+                        //srcFrameInfo[i].mvs.get(x / blkSize, y / blkSize).noise = (int)round((300 * variance + 50) / (10 * diffsum + 50));
+                    }
+                }
+
+                double min_error = 9999999;
+                for (int i = 0; i < pic_cnt; i++)
+                {
+                    if (i == curr_idx)
+                    {
+                        continue;
+                    }
+                    min_error = EVC_MIN(min_error, (double)map_error[i][scup_luma]);
+                }
+
                 for (int i = 0; i < pic_cnt; i++)
                 {
                     if (i == curr_idx)
@@ -807,12 +959,22 @@ static void apply_filter(EVCE_CTX * ctx, EVC_PIC * tmp_pic[5][3], int pic_cnt, i
                         corrected_pel = tmp_pic[i][0]->v + (y * tmp_pic[i][0]->s_c + x);
                     }
 
+                    const int error = map_error[i][scup_luma];
+                    const int noise = map_noise[i][map_pos];
                     const int ref_val = (int)*corrected_pel;
                     double diff = (double)(ref_val - org_val);
                     diff *= bd_diff_weighting;
                     double diff_sq = diff * diff;
-                    const int index = EVC_MIN(1, EVC_ABS(curr_idx - i) - 1);
-                    const double weight = weight_scaling * ref_strengths[ref_strength_row][index] * exp(-diff_sq / (2 * sigma_sq));
+                    const int index = EVC_MIN(3, EVC_ABS(curr_idx - i) - 1);
+
+                    double ww = 1, sw = 1;
+                    ww *= (noise < 25) ? 1 : 1.2;
+                    sw *= (noise < 25) ? 1.3 : 0.8;
+                    ww *= (error < 50) ? 1.2 : ((error > 100) ? 0.8 : 1);
+                    sw *= (error < 50) ? 1.3 : 1;
+                    ww *= ((min_error + 1) / (error + 1));
+                    const double weight = weight_scaling * ref_strengths[ref_strength_row][index] * ww * exp(-diff_sq / (2 * sw * sigma_sq));
+
                     new_val += weight * ref_val;
                     temporal_weight_sum += weight;
                 }
@@ -850,12 +1012,26 @@ static void evce_gen_subpic(pel * src_y, pel * dst_y, int w, int h, int s_s, int
     }
 }
 
+static void evce_tf_create_map(int ** map, PICBUF_ALLOCATOR* pa)
+{
+    /* allocate maps */
+    int w_scu = (pa->w + ((1 << MIN_CU_LOG2) - 1)) >> MIN_CU_LOG2;
+    int h_scu = (pa->h + ((1 << MIN_CU_LOG2) - 1)) >> MIN_CU_LOG2;
+    int f_scu = w_scu * h_scu;
+
+    int size = sizeof(int) * f_scu * REFP_NUM;
+    *map = evc_malloc_fast(size);
+    evc_mset_x64a(*map, 0, size);
+}
+
 void evce_temporal_filter(EVCE_CTX * ctx, EVC_IMGB * img_list[EVCE_TF_FRAME_NUM], int curr_fr)
 {
     PICBUF_ALLOCATOR sub_pa[3] = { 0 };
     EVC_PIC * tmp_pic[EVCE_TF_FRAME_NUM][3] = { NULL };
     int first_fr, end_fr, ret;
     int search_range = EVCE_TF_RANGE;
+    int* map_error[EVCE_TF_FRAME_NUM] = { NULL };
+    int* map_noise[EVCE_TF_FRAME_NUM] = { NULL };
 
     first_fr = curr_fr - search_range;
     end_fr   = curr_fr + search_range;
@@ -886,9 +1062,13 @@ void evce_temporal_filter(EVCE_CTX * ctx, EVC_IMGB * img_list[EVCE_TF_FRAME_NUM]
 
         if (img_list[i] != NULL)
         {
+            evce_tf_create_map(&map_error[pic_cnt], &sub_pa[0]);
+            evce_tf_create_map(&map_noise[pic_cnt], &sub_pa[0]);
+
             for (int s = 0; s < 3; s++)
             {
                 tmp_pic[pic_cnt][s] = ctx->pa.fn_alloc(&sub_pa[s], &ret);
+
                 if (s == 0)
                 {
                     evce_imgb_cpy(tmp_pic[pic_cnt][s]->imgb, img_list[i]);
@@ -924,13 +1104,11 @@ void evce_temporal_filter(EVCE_CTX * ctx, EVC_IMGB * img_list[EVCE_TF_FRAME_NUM]
             {
                 continue;
             }
-            get_motion(tmp_pic[curr_idx][2], tmp_pic[i][2], 16, NULL, 1, 0);
-            get_motion(tmp_pic[curr_idx][1], tmp_pic[i][1], 16, tmp_pic[i][2]->map_mv, 2, 0);
-            get_motion(tmp_pic[curr_idx][0], tmp_pic[i][0], 16, tmp_pic[i][1]->map_mv, 2, 0);
-            get_motion(tmp_pic[curr_idx][0], tmp_pic[i][0], 8, tmp_pic[i][0]->map_mv, 1, 1);
+            get_motion(tmp_pic[curr_idx][2], tmp_pic[i][2], 16, NULL, NULL, 1, 0);
+            get_motion(tmp_pic[curr_idx][1], tmp_pic[i][1], 16, tmp_pic[i][2]->map_mv, NULL, 2, 0);
+            get_motion(tmp_pic[curr_idx][0], tmp_pic[i][0], 16, tmp_pic[i][1]->map_mv, NULL, 2, 0);
+            get_motion(tmp_pic[curr_idx][0], tmp_pic[i][0], 8,  tmp_pic[i][0]->map_mv, map_error[i], 1, 1);
         }
-
-        fflush(stdout);
 
         /* apply motion */
         for (int i = 0; i < pic_cnt; i++)
@@ -943,7 +1121,7 @@ void evce_temporal_filter(EVCE_CTX * ctx, EVC_IMGB * img_list[EVCE_TF_FRAME_NUM]
         }
 
         /* bilateral filter */
-        apply_filter(ctx, tmp_pic, pic_cnt, curr_idx, strength);
+        apply_filter(ctx, tmp_pic, map_noise, map_error, pic_cnt, curr_idx, strength);
     }
 
     /* free buffer */

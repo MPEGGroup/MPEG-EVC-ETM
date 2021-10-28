@@ -3066,14 +3066,14 @@ int setup_bumping(EVCE id)
 
 int static push_frm_list(EVCE id, IMGB_LIST ilist_org[MAX_BUMP_FRM_CNT] , EVC_MTIME pic_icnt)
 {
-    EVC_IMGB  * img_list[5];
+    EVC_IMGB  * img_list[EVCE_TF_FRAME_NUM];
     IMGB_LIST * ilist_t = NULL;
     int ret;
 
     int img_cnt, range;
     if (op_temporal_filter == 1)
     {
-        img_cnt = EVCE_TF_FW_1;
+        img_cnt = 0;
         range = EVCE_TF_RANGE;
     }
     else
@@ -3274,7 +3274,7 @@ int main(int argc, const char **argv)
     bitb.addr = bs_buf;
     bitb.bsize = MAX_BS_BUF;
 
-    int tf_range = op_temporal_filter ? 2 : 0;
+    int tf_range = op_temporal_filter ? EVCE_TF_RANGE : 0;
     int skip_frames = op_skip_frames - tf_range > 0 ? op_skip_frames - tf_range : 0;;
 
     if (op_flag[OP_FLAG_SKIP_FRAMES] && skip_frames > 0)
@@ -3286,7 +3286,7 @@ int main(int argc, const char **argv)
     pic_icnt = 0;
     pic_ocnt = 0;
     pic_skip = 0;
-    pic_rcnt = (skip_frames - tf_range) > 0 ? -tf_range : -(skip_frames & 1);
+    pic_rcnt = op_skip_frames > 0 ? (op_skip_frames - tf_range > 0 ? -tf_range : -op_skip_frames) : 0;
 
     /* encode pictures *******************************************************/
     while(1)
