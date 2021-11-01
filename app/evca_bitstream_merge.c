@@ -309,6 +309,10 @@ int main(int argc, const char **argv)
     max_bs_num = argc - 2;
     fp_bs_write = fopen(argv[max_bs_num + 1], "wb");
 
+    int curr_last_i_aps = 0;
+    int prev_last_i_aps = 0;
+    char aps_mapping[32];
+    int aps_offset;
     for (bs_num = 0; bs_num < max_bs_num; bs_num++)
     {
         fp_bs = fopen(argv[bs_num + 1], "rb");
@@ -343,6 +347,10 @@ int main(int argc, const char **argv)
         }
 
         bs_read_pos = 0;
+        prev_last_i_aps = curr_last_i_aps;
+        evc_mset(aps_mapping, -1, sizeof(char) * 32);
+        aps_mapping[0] = prev_last_i_aps;
+        aps_offset = 0;
 
         do
         {
@@ -415,13 +423,12 @@ int main(int argc, const char **argv)
                         fwrite(bs_size_buf, 1, 4, fp_bs_write);
                         fwrite(bs_buf, 1, bs_size, fp_bs_write);
                     }
-                    else
-                    {
-                        memset(tmp_bs_buf, 0, sizeof(u8) * MAX_BS_BUF);
-                        tmp_bs_size = bs_size;
-                        memcpy(tmp_bs_size_buf, bs_size_buf, sizeof(u8) * 4);
-                        memcpy(tmp_bs_buf, bs_buf, sizeof(u8) * bs_size);
-                    }
+
+                    memset(tmp_bs_buf, 0, sizeof(u8) * MAX_BS_BUF);
+                    tmp_bs_size = bs_size;
+                    memcpy(tmp_bs_size_buf, bs_size_buf, sizeof(u8) * 4);
+                    memcpy(tmp_bs_buf, bs_buf, sizeof(u8) * bs_size);
+
                     break;
                 case EVC_NONIDR_NUT:
                 case EVC_IDR_NUT:
@@ -442,6 +449,10 @@ int main(int argc, const char **argv)
                     {
                         fwrite(bs_size_buf, 1, 4, fp_bs_write);
                         fwrite(bs_buf, 1, bs_size, fp_bs_write);
+                        if (sh->slice_type == SLICE_I)
+                        {
+                            curr_last_i_aps = tmp_bs_buf[2] >> 3;
+                        }
                     }
                     else
                     {
@@ -454,12 +465,33 @@ int main(int argc, const char **argv)
                         {
                             if (prev_is_aps == 1)
                             {
+                                int cod_aps_id = tmp_bs_buf[2] >> 3;
+
+                                int chg_aps_id = (cod_aps_id + aps_mapping[0] + aps_offset) & 0x1f;
+                                if (chg_aps_id == aps_mapping[0])
+                                {
+                                    chg_aps_id++;
+                                    aps_offset++;
+                                }
+                                aps_mapping[cod_aps_id] = chg_aps_id;
+
+                                tmp_bs_buf[2] = (tmp_bs_buf[2] & 0x7) | ((chg_aps_id & 0x1f) << 3);
                                 fwrite(tmp_bs_size_buf, 1, 4, fp_bs_write);
                                 fwrite(tmp_bs_buf, 1, tmp_bs_size, fp_bs_write);
+                                
+                                if (sh->slice_type == SLICE_I)
+                                {
+                                    curr_last_i_aps = chg_aps_id;
+                                }
+
                                 prev_is_aps = 0;
                             }
+
                             /* re-write slice header */
                             sh->poc_lsb += intra_dist[0];
+                            sh->aps_id_y   = aps_mapping[sh->aps_id_y];
+                            sh->aps_id_ch  = aps_mapping[sh->aps_id_ch];
+                            sh->aps_id_ch2 = aps_mapping[sh->aps_id_ch2];
                             ret = evce_eco_sh(&bsw, &ctx->sps, ctx->pps, sh, ctx->nalu.nal_unit_type_plus1 - 1);
                             fwrite(bs_size_buf, 1, 4, fp_bs_write);
                             fwrite(bs_buf, 1, bs_size, fp_bs_write);
