@@ -61,10 +61,14 @@ static int sad_16b(int w, int h, void *src1, void *src2, int s_src1, int s_src2
         s2 += s_src2;
     }
 
-#if BD_CF_EXT 
+#if FULL_BITDEPTH_RDO
+    return (sad);
+#else
+#if BD_CF_EXT
     return (sad >> (bit_depth - 8));
 #else
     return (sad >> (BIT_DEPTH - 8));
+#endif
 #endif
 }
 
@@ -115,10 +119,14 @@ static int sad_16b_sse_4x2(int w, int h, void * src1, void * src2, int s_src1, i
     sad += _mm_extract_epi32(sac0, 2);
     sad += _mm_extract_epi32(sac0, 3);
 
+#if FULL_BITDEPTH_RDO
+    return (sad);
+#else
 #if BD_CF_EXT 
     return (sad >> (bit_depth - 8));
 #else
     return (sad >> (BIT_DEPTH - 8));
+#endif
 #endif
 }
 
@@ -151,10 +159,14 @@ static int sad_16b_sse_4x2n(int w, int h, void * src1, void * src2, int s_src1, 
     sad += _mm_extract_epi32(sac0, 2);
     sad += _mm_extract_epi32(sac0, 3);
 
+#if FULL_BITDEPTH_RDO
+    return (sad);
+#else
 #if BD_CF_EXT 
     return (sad >> (bit_depth - 8));
 #else
     return (sad >> (BIT_DEPTH - 8));
+#endif
 #endif
 }
 
@@ -184,10 +196,14 @@ static int sad_16b_sse_4x4(int w, int h, void * src1, void * src2, int s_src1, i
     sad += _mm_extract_epi32(sac0, 2);
     sad += _mm_extract_epi32(sac0, 3);
 
+#if FULL_BITDEPTH_RDO
+    return (sad);
+#else
 #if BD_CF_EXT 
     return (sad >> (bit_depth - 8));
 #else
     return (sad >> (BIT_DEPTH - 8));
+#endif
 #endif
 }
 
@@ -375,10 +391,14 @@ static int sad_16b_sse_16x2(int w, int h, void * src1, void * src2, int s_src1, 
     sad += _mm_extract_epi32(s00, 2);
     sad += _mm_extract_epi32(s00, 3);
 
+#if FULL_BITDEPTH_RDO
+    return (sad);
+#else
 #if BD_CF_EXT 
     return (sad >> (bit_depth - 8));
 #else
     return (sad >> (BIT_DEPTH - 8));
+#endif
 #endif
 }
 #if !OPT_SIMD_SAD
@@ -777,10 +797,14 @@ static int sad_16b_sse_8x2(int w, int h, void * src1, void * src2, int s_src1, i
         sad = val[0] + val[1] + val[2] + val[3];
     }
 
+#if FULL_BITDEPTH_RDO
+    return (sad);
+#else
 #if BD_CF_EXT 
     return (sad >> (bit_depth - 8));
 #else
     return (sad >> (BIT_DEPTH - 8));
+#endif
 #endif
 }
 
@@ -879,10 +903,14 @@ static int sad_16b_sse_8x4n(int w, int h, void * src1, void * src2, int s_src1, 
         int *val = (int*)&result;
         sad = val[0] + val[1] + val[2] + val[3];
     }
+#if FULL_BITDEPTH_RDO
+    return (sad);
+#else
 #if BD_CF_EXT 
     return (sad >> (bit_depth - 8));
 #else
     return (sad >> (BIT_DEPTH - 8));
+#endif
 #endif
 }
 
@@ -988,10 +1016,15 @@ static int sad_16b_sse_16nx4n(int w, int h, void * src1, void * src2, int s_src1
         int *val = (int*)&result;
         sad = val[0] + val[1] + val[2] + val[3];
     }
+	
+#if FULL_BITDEPTH_RDO
+    return (sad);
+#else	
 #if BD_CF_EXT 
     return (sad >> (bit_depth - 8));
 #else
     return (sad >> (BIT_DEPTH - 8));
+#endif
 #endif
 }
 #endif
@@ -1622,10 +1655,14 @@ static s64 ssd_16b(int w, int h, void *src1, void *src2, int s_src1, int s_src2
     s16 * s2;
     int     i, j, diff;
     s64   ssd;
+#if FULL_BITDEPTH_RDO
+    const int shift = 0;
+#else	
 #if BD_CF_EXT 
     const int shift = (bit_depth - 8) << 1;
 #else
     const int shift = (BIT_DEPTH - 8) << 1;
+#endif
 #endif
 
     s1 = (s16 *)src1;
@@ -1682,11 +1719,16 @@ static s64 ssd_16b_sse_4x2(int w, int h, void * src1, void * src2, int s_src1, i
     s64   ssd;
     s16 * s1;
     s16 * s2;
+#if FULL_BITDEPTH_RDO
+    const int shift = 0;
+#else	
 #if BD_CF_EXT 
     const int shift = (bit_depth - 8) << 1;
 #else
     const int shift = (BIT_DEPTH - 8) << 1;
 #endif
+#endif
+
     __m128i s00, s01, s00a;
 
     s1 = (s16 *)src1;
@@ -1714,11 +1756,16 @@ static s64 ssd_16b_sse_4x4(int w, int h, void * src1, void * src2, int s_src1, i
     s64   ssd;
     s16 * s1;
     s16 * s2;
+#if FULL_BITDEPTH_RDO
+    const int shift = 0;
+#else
 #if BD_CF_EXT 
     const int shift = (bit_depth - 8) << 1;
 #else
     const int shift = (BIT_DEPTH- 8) << 1;
 #endif
+#endif
+
     __m128i s00, s01, s00a;
 
     s1 = (s16 *)src1;
@@ -1748,10 +1795,14 @@ static s64 ssd_16b_sse_4x8(int w, int h, void * src1, void * src2, int s_src1, i
     s64   ssd;
     s16 * s1;
     s16 * s2;
+#if FULL_BITDEPTH_RDO
+    const int shift = 0;
+#else
 #if BD_CF_EXT 
     const int shift = (bit_depth - 8) << 1;
 #else
     const int shift = (BIT_DEPTH - 8) << 1;
+#endif
 #endif
     __m128i s00, s01, s00a;
 
@@ -1786,11 +1837,16 @@ static s64 ssd_16b_sse_4x16(int w, int h, void * src1, void * src2, int s_src1, 
     s64   ssd;
     s16 * s1;
     s16 * s2;
+#if FULL_BITDEPTH_RDO
+    const int shift = 0;
+#else
 #if BD_CF_EXT 
     const int shift = (bit_depth - 8) << 1;
 #else
     const int shift = (BIT_DEPTH - 8) << 1;
 #endif
+#endif
+
     __m128i s00, s01, s00a;
 
     s1 = (s16 *)src1;
@@ -1832,10 +1888,14 @@ static s64 ssd_16b_sse_4x32(int w, int h, void * src1, void * src2, int s_src1, 
     s64   ssd;
     s16 * s1;
     s16 * s2;
+#if FULL_BITDEPTH_RDO
+    const int shift = 0;
+#else
 #if BD_CF_EXT 
     const int shift = (bit_depth - 8) << 1;
 #else
     const int shift = (BIT_DEPTH - 8) << 1;
+#endif
 #endif
     __m128i s00, s01, s00a;
 
@@ -1894,10 +1954,14 @@ static s64 ssd_16b_sse_8x2(int w, int h, void * src1, void * src2, int s_src1, i
     s64   ssd;
     s16 * s1;
     s16 * s2;
+#if FULL_BITDEPTH_RDO
+    const int shift = 0;
+#else
 #if BD_CF_EXT 
     const int shift = (bit_depth - 8) << 1;
 #else
     const int shift = (BIT_DEPTH - 8) << 1;
+#endif
 #endif
     __m128i s00, s01, s02, s00a;
 
@@ -1926,10 +1990,14 @@ static s64 ssd_16b_sse_8x4(int w, int h, void * src1, void * src2, int s_src1, i
     s64   ssd;
     s16 * s1;
     s16 * s2;
+#if FULL_BITDEPTH_RDO
+    const int shift = 0;
+#else
 #if BD_CF_EXT 
     const int shift = (bit_depth - 8) << 1;
 #else
     const int shift = (BIT_DEPTH - 8) << 1;
+#endif
 #endif
     __m128i s00, s01, s02, s00a;
 
@@ -1960,10 +2028,14 @@ static s64 ssd_16b_sse_8x8(int w, int h, void * src1, void * src2, int s_src1, i
     s64   ssd;
     s16 * s1;
     s16 * s2;
+#if FULL_BITDEPTH_RDO
+    const int shift = 0;
+#else
 #if BD_CF_EXT 
     const int shift = (bit_depth - 8) << 1;
 #else
     const int shift = (BIT_DEPTH- 8) << 1;
+#endif
 #endif
     __m128i s00, s01, s02, s00a;
 
@@ -1995,24 +2067,28 @@ static s64 ssd_16b_sse_8nx2n(int w, int h, void * src1, void * src2, int s_src1,
 #endif
 )
 {
-    s64   ssd;
+    s64   ssd = 0;
     s16 * s1;
     s16 * s2;
     int     i, j;
+#if FULL_BITDEPTH_RDO
+    const int shift = 0;
+#else
 #if BD_CF_EXT 
     const int shift = (bit_depth - 8) << 1;
 #else
     const int shift = (BIT_DEPTH - 8) << 1;
 #endif
+#endif
+
     __m128i s00, s01, s02, s00a;
 
     s1 = (s16 *)src1;
     s2 = (s16 *)src2;
 
-    s00a = _mm_setzero_si128();
-
     for(i = 0; i<(h >> 1); i++)
     {
+        s00a = _mm_setzero_si128();
         for(j = 0; j<(w >> 3); j++)
         {
             SSE_SSD_16B_8PEL(s1, s2, shift, s00, s01, s02, s00a);
@@ -2023,11 +2099,12 @@ static s64 ssd_16b_sse_8nx2n(int w, int h, void * src1, void * src2, int s_src1,
         }
         s1 += (s_src1 << 1) - ((w >> 3) << 8);
         s2 += (s_src2 << 1) - ((w >> 3) << 8);
+
+        ssd += _mm_extract_epi32(s00a, 0);
+        ssd += _mm_extract_epi32(s00a, 1);
+        ssd += _mm_extract_epi32(s00a, 2);
+        ssd += _mm_extract_epi32(s00a, 3);
     }
-    ssd = _mm_extract_epi32(s00a, 0);
-    ssd += _mm_extract_epi32(s00a, 1);
-    ssd += _mm_extract_epi32(s00a, 2);
-    ssd += _mm_extract_epi32(s00a, 3);
 
     return ssd;
 }
@@ -2038,24 +2115,28 @@ static s64 ssd_16b_sse_8nx4n(int w, int h, void * src1, void * src2, int s_src1,
 #endif
 )
 {
-    s64   ssd;
+    s64   ssd = 0;
     s16 * s1;
     s16 * s2;
     int     i, j;
+#if FULL_BITDEPTH_RDO
+    const int shift = 0;
+#else
 #if BD_CF_EXT 
     const int shift = (bit_depth - 8) << 1;
 #else
     const int shift = (BIT_DEPTH - 8) << 1;
+#endif
 #endif
     __m128i s00, s01, s02, s00a;
 
     s1 = (s16 *)src1;
     s2 = (s16 *)src2;
 
-    s00a = _mm_setzero_si128();
-
     for(i = 0; i<(h >> 2); i++)
     {
+        s00a = _mm_setzero_si128();
+
         for(j = 0; j<(w >> 3); j++)
         {
             SSE_SSD_16B_8PEL(s1, s2, shift, s00, s01, s02, s00a);
@@ -2068,12 +2149,12 @@ static s64 ssd_16b_sse_8nx4n(int w, int h, void * src1, void * src2, int s_src1,
         }
         s1 += (s_src1 << 2) - ((w >> 3) << 3);
         s2 += (s_src2 << 2) - ((w >> 3) << 3);
-    }
-    ssd = _mm_extract_epi32(s00a, 0);
-    ssd += _mm_extract_epi32(s00a, 1);
-    ssd += _mm_extract_epi32(s00a, 2);
-    ssd += _mm_extract_epi32(s00a, 3);
 
+        ssd += _mm_extract_epi32(s00a, 0);
+        ssd += _mm_extract_epi32(s00a, 1);
+        ssd += _mm_extract_epi32(s00a, 2);
+        ssd += _mm_extract_epi32(s00a, 3);
+    }
     return ssd;
 }
 
@@ -2083,24 +2164,28 @@ static s64 ssd_16b_sse_8nx8n(int w, int h, void * src1, void * src2, int s_src1,
 #endif
 )
 {
-    s64   ssd;
+    s64   ssd = 0;
     s16 * s1;
     s16 * s2;
     int     i, j;
+#if FULL_BITDEPTH_RDO
+    const int shift = 0;
+#else
 #if BD_CF_EXT 
     const int shift = (bit_depth - 8) << 1;
 #else
     const int shift = (BIT_DEPTH- 8) << 1;
+#endif
 #endif
     __m128i s00, s01, s02, s00a;
 
     s1 = (s16 *)src1;
     s2 = (s16 *)src2;
 
-    s00a = _mm_setzero_si128();
-
     for(i=0; i<(h>>3); i++)
     {
+        s00a = _mm_setzero_si128();
+
         for(j=0; j<(w>>3); j++)
         {
             SSE_SSD_16B_8PEL(s1, s2, shift, s00, s01, s02, s00a);
@@ -2116,11 +2201,12 @@ static s64 ssd_16b_sse_8nx8n(int w, int h, void * src1, void * src2, int s_src1,
         }
         s1 += (s_src1<<3) - ((w>>3)<<3);
         s2 += (s_src2<<3) - ((w>>3)<<3);
+
+        ssd += _mm_extract_epi32(s00a, 0);
+        ssd += _mm_extract_epi32(s00a, 1);
+        ssd += _mm_extract_epi32(s00a, 2);
+        ssd += _mm_extract_epi32(s00a, 3);
     }
-    ssd = _mm_extract_epi32(s00a, 0);
-    ssd += _mm_extract_epi32(s00a, 1);
-    ssd += _mm_extract_epi32(s00a, 2);
-    ssd += _mm_extract_epi32(s00a, 3);
 
     return ssd;
 }
@@ -7182,10 +7268,14 @@ int evc_had(int w, int h, void *o, void *c, int s_org, int s_cur
     {
         evc_assert(0);
     }
+#if FULL_BITDEPTH_RDO
+    return (sum);
+#else
 #if BD_CF_EXT
     return (sum >> (bit_depth - 8));
 #else
     return (sum >> (BIT_DEPTH - 8));
+#endif
 #endif
 }
 

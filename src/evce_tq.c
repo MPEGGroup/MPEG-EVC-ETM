@@ -1127,7 +1127,11 @@ void evce_init_err_scale(
 
             err_scale = (double)(1 << SCALE_BITS) * pow(2.0, -tr_shift);
 #if BD_CF_EXT 
+#if FULL_BITDEPTH_RDO
+            err_scale = err_scale / q_value;
+#else
             err_scale = err_scale / q_value / (1 << ((bit_depth - 8)));
+#endif
 #else
             err_scale = err_scale / q_value / (1 << ((BIT_DEPTH - 8)));
 #endif

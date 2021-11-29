@@ -966,12 +966,23 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
 #endif
     sh->sh_deblock_alpha_offset = ctx->cdsc.deblock_aplha_offset;
     sh->sh_deblock_beta_offset = ctx->cdsc.deblock_beta_offset;
-
+#if FULL_BITDEPTH_RDO
+    qp_l_i = sh->qp + 6 * ctx->sps.bit_depth_luma_minus8;
+#else
     qp_l_i = sh->qp;
+#endif
     ctx->lambda[0] = 0.57 * pow(2.0, (qp_l_i - 12.0) / 3.0);
+#if FULL_BITDEPTH_RDO
+    qp_c_i = p_evc_tbl_qp_chroma_dynamic[0][sh->qp_u] + 6 * ctx->sps.bit_depth_chroma_minus8;
+#else
     qp_c_i = p_evc_tbl_qp_chroma_dynamic[0][sh->qp_u];
+#endif
     ctx->dist_chroma_weight[0] = pow(2.0, (qp_l_i - qp_c_i) / 3.0);
+#if FULL_BITDEPTH_RDO
+    qp_c_i = p_evc_tbl_qp_chroma_dynamic[1][sh->qp_v] + 6 * ctx->sps.bit_depth_chroma_minus8;
+#else
     qp_c_i = p_evc_tbl_qp_chroma_dynamic[1][sh->qp_v];
+#endif
     ctx->dist_chroma_weight[1] = pow(2.0, (qp_l_i - qp_c_i) / 3.0);
     ctx->lambda[1] = ctx->lambda[0] / ctx->dist_chroma_weight[0];
     ctx->lambda[2] = ctx->lambda[0] / ctx->dist_chroma_weight[1];
@@ -1945,9 +1956,13 @@ int evce_alf_aps(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh, EVC_APS* aps)
     EncAdaptiveLoopFilter* p = (EncAdaptiveLoopFilter*)(ctx->enc_alf);
 
     double lambdas[3];
+#if FULL_BITDEPTH_RDO
+    for (int i = 0; i < 3; i++)
+        lambdas[i] = ctx->lambda[i];
+#else
     for (int i = 0; i < 3; i++)
         lambdas[i] = (ctx->lambda[i]) * ALF_LAMBDA_SCALE; //this is for appr match of different lambda sets
-
+#endif
 
     set_resetALFBufferFlag(p, sh->slice_type == SLICE_I ? 1 : 0);
     alf_aps_enc_opt_process(p, lambdas, ctx, pic, &(sh->alf_sh_param));
