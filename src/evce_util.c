@@ -36,6 +36,7 @@
 #include "evce_def.h"
 #include "evce_util.h"
 #include <math.h>
+
 /******************************************************************************
  * picture buffer alloc/free/expand
  ******************************************************************************/
@@ -631,8 +632,11 @@ static void get_motion(EVC_PIC * pic_cur, EVC_PIC * pic_ref, int block_size, voi
                     variance += (pix - avg) * (pix - avg);
                 }
             }
+#if FIX_TF_WARNING
+            best_cost = (int)(20 * ((best_cost + 5.0) / (variance + 5.0)) + (best_cost / (block_size * block_size)) / 50);
+#else
             best_cost = 20 * ((best_cost + 5.0) / (variance + 5.0)) + (best_cost / (block_size * block_size)) / 50;
-
+#endif
             if (store_mv_idx == 0)
             {
                 int idx = (y / step) * pic_w_scu + x / step;

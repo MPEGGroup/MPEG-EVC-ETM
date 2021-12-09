@@ -37,6 +37,9 @@
 #include "evc.h"
 #include "evc_port.h"
 
+#define FULL_BITDEPTH_RDO                            1
+#define FIX_TF_WARNING                               1
+
 //recent bugfixes (to be removed in next minor release)
 #define ATS_INTER_LINUX_WA                           1   // A quick workaround: to be handled properly  
 #define MULTIPLE_DRA_BUG_FIX                         1   // Bug-fix for multiple PPS/APS signaling for DRA.
