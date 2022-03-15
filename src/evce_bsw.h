@@ -62,11 +62,11 @@ struct _EVC_BSW
     /*! size of bitstream buffer in byte */
     int                size;
     /*! address of function for flush */
-    EVC_BSW_FN_FLUSH  fn_flush;
+    EVC_BSW_FN_FLUSH   fn_flush;
     /*! arbitrary data, if needs */
-    int                 ndata[4];
+    int                ndata[4];
     /*! arbitrary address, if needs */
-    void              * pdata[4];
+    void             * pdata[4];
 };
 
 /* is bitstream byte aligned? */

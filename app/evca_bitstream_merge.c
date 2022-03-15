@@ -290,7 +290,6 @@ int main(int argc, const char **argv)
     EVC_NALU        * nalu;
     EVCD_CTX        * ctx;
     EVC_APS         * aps;
-
     int               prev_is_aps = 0;
     int               tmp_bs_size = 0;
     u8                tmp_bs_size_buf[4];

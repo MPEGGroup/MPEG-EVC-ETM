@@ -49,14 +49,8 @@ static char op_fname_out[256] = "\0";
 static char op_fname_opl[256] = "\0";
 static int  op_max_frm_num = 0;
 static int  op_use_pic_signature = 0;
-#if BD_CF_EXT
 static int  op_out_bit_depth = 0;
-#else
-static int  op_out_bit_depth = 8;
-#endif
-#if BD_CF_EXT
 static int  op_out_chroma_format = 1;
-#endif
 
 typedef enum _STATES
 {
@@ -240,7 +234,7 @@ static void print_stat(EVCD_STAT * stat, int ret)
 
         v1print("\n");
 
-        //TBD the following stages need to be further hadnled in the proper places
+        //TBD the following stages need to be further handled in the proper places
         /*if(ret == EVC_OK)
         {
             v1print("\n");
@@ -297,20 +291,8 @@ static int set_extra_config(EVCD id)
 
 static int write_dec_img(EVCD id, char * fname, EVC_IMGB * img, EVC_IMGB * imgb_t)
 {
-#if BD_CF_EXT
     imgb_cpy_codec_to_out(imgb_t, img);
     if(imgb_write(op_fname_out, imgb_t)) return -1;
-#else
-    if(op_out_bit_depth == 8)
-    {
-        imgb_conv_16b_to_8b(imgb_t, img, 2);
-        if(imgb_write(op_fname_out, imgb_t)) return -1;
-    }
-    else
-    {
-        if(imgb_write(op_fname_out, img)) return -1;
-    }
-#endif
     return EVC_OK;
 }
 
@@ -318,38 +300,34 @@ int main(int argc, const char **argv)
 {
     STATES             state = STATE_DECODING;
     unsigned char    * bs_buf = NULL;
-    EVCD              id = NULL;
-    EVCD_CDSC         cdsc;
-    EVC_BITB          bitb;
-    EVC_IMGB        * imgb;
+    EVCD               id = NULL;
+    EVCD_CDSC          cdsc;
+    EVC_BITB           bitb;
+    EVC_IMGB         * imgb;
     /*temporal buffer for video bit depth less than 10bit */
-    EVC_IMGB        * imgb_t = NULL;
-    EVCD_STAT         stat;
-    EVCD_OPL          opl;
-    int               ret;
-    EVC_CLK           clk_beg, clk_tot;
+    EVC_IMGB         * imgb_t = NULL;
+    EVCD_STAT          stat;
+    EVCD_OPL           opl;
+    int                ret;
+    EVC_CLK            clk_beg, clk_tot;
     int                bs_cnt, pic_cnt;
     int                bs_size, bs_read_pos = 0;
     int                w, h;
     FILE             * fp_bs = NULL;
-
-#if M52291_HDR_DRA
-    int sps_dra_enable_flag = 0;
-    int pps_dra_enable_flag = 0;
-    EVC_IMGB          *imgb_dra = NULL;
+    int                sps_dra_enable_flag = 0;
+    int                pps_dra_enable_flag = 0;
+    EVC_IMGB         * imgb_dra = NULL;
     // global CVS buffer for DRA control
     SignalledParamsDRA g_dra_control_array[32];
     // local PU buffer for 2 types of APS data: ALF and DRA
-    evc_AlfSliceParam g_alf_control;
+    evc_AlfSliceParam  g_alf_control;
     evc_AlfSliceParam *p_g_alf_control = &g_alf_control;
-
-    WCGDDRAControl g_dra_control_effective;
-    WCGDDRAControl g_dra_control_read;
-    WCGDDRAControl *p_g_dra_control_read = &g_dra_control_read;
-
+    WCGDDRAControl     g_dra_control_effective;
+    WCGDDRAControl     g_dra_control_read;
+    WCGDDRAControl    *p_g_dra_control_read = &g_dra_control_read;
     // Structure to keep 2 types of APS to read at PU
-    EVC_APS_GEN aps_gen_array[2];
-    EVC_APS_GEN *p_aps_gen_array = &(aps_gen_array[0]);
+    EVC_APS_GEN        aps_gen_array[2];
+    EVC_APS_GEN       *p_aps_gen_array = &(aps_gen_array[0]);
 
     for (int i = 0; i < 32; i++)
     {
@@ -359,7 +337,6 @@ int main(int argc, const char **argv)
     aps_gen_array[0].aps_data = (void*)p_g_alf_control;
     aps_gen_array[1].aps_data = (void*)(&(g_dra_control_read.m_signalledDRA));
     evc_resetApsGenReadBuffer(p_aps_gen_array);
-#endif
 
 #if DECODING_TIME_TEST
     clk_beg = evc_clk_get();
@@ -462,7 +439,6 @@ int main(int argc, const char **argv)
             clk_beg = evc_clk_get();
 #endif
             /* main decoding block */
-#if M52291_HDR_DRA
             ret = evcd_decode(id, &bitb, &stat, (void*)(p_aps_gen_array), (void*) (&(g_dra_control_array[0])));
             sps_dra_enable_flag = evcd_get_sps_dra_flag(id);
             if (sps_dra_enable_flag)
@@ -486,9 +462,6 @@ int main(int argc, const char **argv)
                     g_dra_control_effective.m_signalledDRA.m_signal_dra_flag = 0;
                 }
             }
-#else
-            ret = evcd_decode(id, &bitb, &stat);
-#endif
 
             if(EVC_FAILED(ret))
             {
@@ -533,37 +506,21 @@ int main(int argc, const char **argv)
             w = imgb->w[0];
             h = imgb->h[0];
 
-#if BD_CF_EXT
             op_out_bit_depth = op_out_bit_depth == 0 ? INTERNAL_CODEC_BIT_DEPTH : op_out_bit_depth;
-#endif
+
             if(op_flag[OP_FLAG_FNAME_OUT])
             {
-#if BD_CF_EXT
                 if(imgb_t == NULL)
                 {
-#if BD_CF_EXT
                     imgb_t = imgb_alloc(w, h, CS_FROM_BD_CF(op_out_bit_depth, (CF_FROM_CS(imgb->cs))));
-#else
-                    imgb_t = imgb_alloc(w, h, CS_FROM_BD_420(op_out_bit_depth));
-#endif
+
                     if(imgb_t == NULL)
                     {
                         v0print("failed to allocate temporay image buffer\n");
                         return -1;
                     }
                 }
-#else
-                if(op_out_bit_depth == 8 && imgb_t == NULL)
-                {
-                    imgb_t = imgb_alloc(w, h, EVC_COLORSPACE_YUV420);
-                    if(imgb_t == NULL)
-                    {
-                        v0print("failed to allocate temporay image buffer\n");
-                        return -1;
-                    }
-                }
-#endif
-#if M52291_HDR_DRA
+
                 int pps_dra_id = imgb->imgb_active_aps_id;
                 if ((sps_dra_enable_flag == 1) && (pps_dra_id >= 0))
                 {
@@ -571,12 +528,12 @@ int main(int argc, const char **argv)
                     assert((pps_dra_id > -1) && (pps_dra_id < 32) && (g_dra_control_array[pps_dra_id].m_signal_dra_flag == 1));
                     memcpy(&(g_dra_control_effective.m_signalledDRA), &(g_dra_control_array[pps_dra_id]), sizeof(SignalledParamsDRA));
                     evcd_assign_pps_draParam(id, &(g_dra_control_effective.m_signalledDRA));
- #if BD_CF_EXT
+
                     g_dra_control_effective.m_signalledDRA.m_internal_bd = INTERNAL_CODEC_BIT_DEPTH;
                     g_dra_control_effective.m_signalledDRA.m_idc = (CF_FROM_CS(imgb->cs));
                     g_dra_control_effective.m_internal_bd = INTERNAL_CODEC_BIT_DEPTH;
                     g_dra_control_effective.m_idc = (CF_FROM_CS(imgb->cs));
-#endif
+
                     if (g_dra_control_effective.m_flagEnabled)
                     {
                         evcd_initDRA(&g_dra_control_effective);
@@ -585,39 +542,35 @@ int main(int argc, const char **argv)
                     {
                         int align[EVC_IMGB_MAX_PLANE] = { MIN_CU_SIZE, MIN_CU_SIZE >> 1, MIN_CU_SIZE >> 1 };
                         int pad[EVC_IMGB_MAX_PLANE] = { 0, 0, 0, };
-#if BD_CF_EXT
+
                         imgb_dra = evc_imgb_create(w, h, CS_FROM_BD_CF(INTERNAL_CODEC_BIT_DEPTH, (CF_FROM_CS(imgb->cs))), 0, pad, align);
-#else
-                        imgb_dra = evc_imgb_create(w, h, EVC_COLORSPACE_YUV420_10LE, 0, pad, align);
-#endif
+
                         if (imgb_dra == NULL)
                         {
                             v0print("Cannot get original image buffer (DRA)\n");
                             return -1;
                         }
-#if BD_CF_EXT
+
                         imgb_cpy_bd(imgb_dra, imgb);
-#else
-                        imgb_cpy(imgb_dra, imgb);
-#endif
+
                         evc_apply_dra_chroma_plane(imgb, imgb, &g_dra_control_effective, 1, TRUE);
                         evc_apply_dra_chroma_plane(imgb, imgb, &g_dra_control_effective, 2, TRUE);
-                        evc_apply_dra_luma_plane(imgb, imgb, &g_dra_control_effective, 0, TRUE );
+                        evc_apply_dra_luma_plane(imgb, imgb, &g_dra_control_effective, 0, TRUE);
                         write_dec_img(id, op_fname_out, imgb, imgb_t);
-#if BD_CF_EXT
+
                         imgb_cpy_bd(imgb, imgb_dra);
-#else
-                        imgb_cpy(imgb, imgb_dra);
-#endif
+
                         imgb_dra->release(imgb_dra);
                     }
                     else
+                    {
                         write_dec_img(id, op_fname_out, imgb, imgb_t);
-                }else
+                    }
+                }
+                else
+                {
                     write_dec_img(id, op_fname_out, imgb, imgb_t);
-#else
-                write_dec_img(id, op_fname_out, imgb, imgb_t);
-#endif
+                }
             }
 
             if (op_flag[OP_FLAG_FNAME_OPL])

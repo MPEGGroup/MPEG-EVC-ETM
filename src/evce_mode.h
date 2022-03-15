@@ -45,11 +45,7 @@ void evce_rdo_bit_cnt_cu_intra(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
 void evce_rdo_bit_cnt_cu_intra_luma(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s32 cup, s16 coef[N_C][MAX_CU_DIM]);
 void evce_rdo_bit_cnt_cu_intra_chroma(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s32 cup, s16 coef[N_C][MAX_CU_DIM]);
 void evce_rdo_bit_cnt_cu_inter(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s32 cup, s8 refi[REFP_NUM], s16 mvd[REFP_NUM][MV_D], s16 coef[N_C][MAX_CU_DIM], int pidx, u8 * mvp_idx, u8 mvr_idx, u8 bi_idx, s16 affine_mvd[REFP_NUM][VER_NUM][MV_D]);
-void evce_rdo_bit_cnt_cu_inter_chroma(EVCE_CTX * ctx, EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM], int pidx);
-
-void evce_rdo_bit_cnt_cu_ibc(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s32 cup, s16 mvd[MV_D],
-  s16 coef[N_C][MAX_CU_DIM], u8 mvp_idx, u8 pred_mode);
-
+void evce_rdo_bit_cnt_cu_ibc(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s32 cup, s16 mvd[MV_D], s16 coef[N_C][MAX_CU_DIM], u8 mvp_idx, u8 pred_mode);
 void evce_rdo_bit_cnt_cu_inter_comp(EVCE_CORE * core, s16 coef[N_C][MAX_CU_DIM], int ch_type, int pidx, EVCE_CTX * ctx, TREE_CONS tree_cons);
 void evce_rdo_bit_cnt_cu_skip(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s32 cup, int mvp_idx0, int mvp_idx1, int c_num, int tool_mmvd);
 void evce_rdo_bit_cnt_mvp(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type, s8 refi[REFP_NUM], s16 mvd[REFP_NUM][MV_D], int pidx, int mvp_idx);
@@ -58,12 +54,11 @@ void evce_sbac_bit_reset(EVCE_SBAC * sbac);
 u32  evce_get_bit_number(EVCE_SBAC * sbac);
 void evce_init_bits_est();
 u16  evc_get_lr(u16 avail_lr);
-u16  evc_get_bef_data_idx(EVCE_CORE * core);
 void evce_init_bef_data(EVCE_CORE * core, EVCE_CTX * ctx);
 
 #if RDO_DBK
 void calc_delta_dist_filter_boundary(EVCE_CTX* ctx, EVC_PIC *pic_rec, EVC_PIC *pic_org, int cuw, int cuh, pel(*src)[MAX_CU_DIM], int s_src, int x, int y, u16 avail_lr
-                                   , u8 intra_flag, u8 cbf_l, s8 *refi, s16(*mv)[MV_D], u8 is_mv_from_mvf, u8 ats_inter_info, EVCE_CORE * core);
+                                     , u8 intra_flag, u8 cbf_l, s8 *refi, s16(*mv)[MV_D], u8 is_mv_from_mvf, u8 ats_inter_info, EVCE_CORE * core);
 #endif
 
 int evce_hmvp_init(EVC_HISTORY_BUFFER *history_buffer);

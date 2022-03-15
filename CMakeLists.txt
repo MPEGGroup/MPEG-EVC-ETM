@@ -6,13 +6,13 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Set compiler flags and options. 
 if( MSVC )
-	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3")
 elseif( UNIX OR MINGW )
-	set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O3 -fomit-frame-pointer -Wall -Wno-unused-function -Wno-unused-but-set-variable -Wno-unused-variable -Wno-attributes -Werror -Wno-strict-overflow -Wno-unknown-pragmas -Wno-stringop-overflow -std=c99")
-	set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-pointer-sign")
-	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3 -fomit-frame-pointer -Wall -Werror -std=c++11")
-	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-function -Wno-unused-but-set-variable -Wno-unused-variable -Wno-attributes -Wno-strict-overflow -Wno-sign-compare -Wno-unused-value -Wno-unknown-pragmas")
-	set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm -lstdc++")
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O3 -fomit-frame-pointer -Wall -Wno-unused-function -Wno-unused-but-set-variable -Wno-unused-variable -Wno-attributes -Werror -Wno-strict-overflow -Wno-unknown-pragmas -Wno-stringop-overflow -std=c99")
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-pointer-sign")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O3 -fomit-frame-pointer -Wall -Werror -std=c++11")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-function -Wno-unused-but-set-variable -Wno-unused-variable -Wno-attributes -Wno-strict-overflow -Wno-sign-compare -Wno-unused-value -Wno-unknown-pragmas")
+    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm -lstdc++")
 endif()
 
 # Command to output information to the console

@@ -1059,35 +1059,15 @@ static EVC_TX evce_tbl_tx[MAX_TR_LOG2] =
     tx_pb64
 };
 
-void evce_trans_ats_intra(s16* coef, int log2_cuw, int log2_cuh, u8 ats_intra_cu, u8 ats_mode
-#if BD_CF_EXT
-                          , int bit_depth
-#endif
-)
+void evce_trans_ats_intra(s16* coef, int log2_cuw, int log2_cuh, u8 ats_intra_cu, u8 ats_mode, int bit_depth)
 {
-#if BD_CF_EXT 
     evc_t_MxN_ats_intra(coef, (1 << log2_cuw), (1 << log2_cuh), bit_depth, ats_intra_cu, ats_mode);
-#else
-    evc_t_MxN_ats_intra(coef, (1 << log2_cuw), (1 << log2_cuh), BIT_DEPTH, ats_intra_cu, ats_mode);
-#endif
 }
 
-void evce_trans(s16 * coef, int log2_cuw, int log2_cuh, int iqt_flag
-#if BD_CF_EXT
-                , int bit_depth
-#endif
-)
+void evce_trans(s16 * coef, int log2_cuw, int log2_cuh, int iqt_flag, int bit_depth)
 {
-    int shift1 = evc_get_transform_shift(log2_cuw, 0
-#if BD_CF_EXT
-                                         , bit_depth
-#endif
-    );
-    int shift2 = evc_get_transform_shift(log2_cuh, 1
-#if BD_CF_EXT
-                                         , bit_depth
-#endif
-    );
+    int shift1 = evc_get_transform_shift(log2_cuw, 0, bit_depth);
+    int shift2 = evc_get_transform_shift(log2_cuh, 1, bit_depth);
 
     if(iqt_flag == 1)
     {
@@ -1103,11 +1083,7 @@ void evce_trans(s16 * coef, int log2_cuw, int log2_cuh, int iqt_flag
     }
 }
 
-void evce_init_err_scale(
-#if BD_CF_EXT
-    int bit_depth
-#endif
-)
+void evce_init_err_scale(int bit_depth)
 {
     double err_scale;
     int qp;
@@ -1119,21 +1095,13 @@ void evce_init_err_scale(
 
         for (i = 0; i < MAX_CU_DEPTH; i++)
         {
-#if BD_CF_EXT 
             int tr_shift = MAX_TX_DYNAMIC_RANGE - bit_depth - (i + 1);
-#else
-            int tr_shift = MAX_TX_DYNAMIC_RANGE - BIT_DEPTH - (i + 1);
-#endif
 
             err_scale = (double)(1 << SCALE_BITS) * pow(2.0, -tr_shift);
-#if BD_CF_EXT 
 #if FULL_BITDEPTH_RDO
             err_scale = err_scale / q_value;
 #else
             err_scale = err_scale / q_value / (1 << ((bit_depth - 8)));
-#endif
-#else
-            err_scale = err_scale / q_value / (1 << ((BIT_DEPTH - 8)));
 #endif
             err_scale_tbl[qp][i] = (s64)(err_scale * (double)(1 << ERR_SCALE_PRECISION_BITS));
         }
@@ -1213,7 +1181,6 @@ __inline static s64 get_rate_sig_coeff(int significance, int ctx_sig_coeff, s64 
 {    s64 rate = core->rdoq_est_sig_coeff[ctx_sig_coeff][significance];
     return GET_I_COST(rate, lambda);
 }
-
 
 __inline static int get_ic_rate(int abs_level, int ctx_gtA, int ctx_gtB, int rparam, int c1_idx, int c2_idx, int num_gtA, int num_gtB, EVCE_CORE * core)
 {
@@ -1464,7 +1431,6 @@ static __inline s64 get_ic_rate_cost_rl(u32 abs_level, u32 run, s32 ctx_run, u32
 
 static __inline u32 get_coded_level_rl(s64* rd64_uncoded_cost, s64* rd64_coded_cost, s64 level_double, u32 max_abs_level,
                                        u32 run, u16 ctx_run, u16 ctx_level, s32 q_bits, s64 err_scale, s64 lambda, EVCE_CORE * core)
-
 {
     u32 best_abs_level = 0;
     s64 err1 = (level_double * err_scale) >> ERR_SCALE_PRECISION_BITS;
@@ -1490,11 +1456,7 @@ static __inline u32 get_coded_level_rl(s64* rd64_uncoded_cost, s64* rd64_coded_c
     return best_abs_level;
 }
 
-int evce_rdoq_run_length_cc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s16 *dst_tmp, int log2_cuw, int log2_cuh, int ch_type, int sps_cm_init_flag, EVCE_CORE * core
-#if BD_CF_EXT
-                            , int bit_depth
-#endif
-)
+int evce_rdoq_run_length_cc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s16 *dst_tmp, int log2_cuw, int log2_cuh, int ch_type, int sps_cm_init_flag, EVCE_CORE * core, int bit_depth)
 {
     const int qp_rem = qp % 6;
     const int ns_shift = ((log2_cuw + log2_cuh) & 1) ? 7 : 0;
@@ -1502,18 +1464,13 @@ int evce_rdoq_run_length_cc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, 
     const int ns_offset = ((log2_cuw + log2_cuh) & 1) ? (1 << (ns_shift - 1)) : 0;
     const int q_value = (quant_scale[qp_rem] * ns_scale + ns_offset) >> ns_shift;
     const int log2_size = (log2_cuw + log2_cuh) >> 1;
-#if BD_CF_EXT 
     const int tr_shift = MAX_TX_DYNAMIC_RANGE - bit_depth - (log2_size);
-#else
-    const int tr_shift = MAX_TX_DYNAMIC_RANGE - BIT_DEPTH - (log2_size);
-#endif
     const u32 max_num_coef = 1 << (log2_cuw + log2_cuh);
     const u16 *scan = evc_scan_tbl[COEF_SCAN_ZIGZAG][log2_cuw - 1][log2_cuh - 1];
     const int ctx_last = (ch_type == Y_C) ? 0 : 1;
     const int q_bits = QUANT_SHIFT + tr_shift + (qp / 6);
     int nnz = 0;
     int sum_all = 0;
-
     u32 scan_pos;
     u32 run;
     u32 prev_level;
@@ -1649,23 +1606,14 @@ int evce_rdoq_run_length_cc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, 
     return nnz;
 }
 
-int evce_rdoq_method_adcc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s16 *dst_tmp, int log2_cuw, int log2_cuh, int ch_type, int sps_cm_init_flag, EVCE_CORE * core
-#if BD_CF_EXT
-                          , int bit_depth
-#endif
-)
+int evce_rdoq_method_adcc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s16 *dst_tmp, int log2_cuw, int log2_cuh, int ch_type, int sps_cm_init_flag, EVCE_CORE * core, int bit_depth)
 {
     const int ns_shift = ((log2_cuw + log2_cuh) & 1) ? 7 : 0;
     const int ns_scale = ((log2_cuw + log2_cuh) & 1) ? 181 : 1;
     const int qp_rem = qp % 6;
     const int q_value = (quant_scale[qp_rem] * ns_scale) >> ns_shift;
     const int log2_size = (log2_cuw + log2_cuh) >> 1;
-#if BD_CF_EXT 
     const int tr_shift = MAX_TX_DYNAMIC_RANGE - bit_depth - (log2_size);
-#else
-    const int tr_shift = MAX_TX_DYNAMIC_RANGE - BIT_DEPTH - (log2_size);
-#endif
-
     s64 err_scale = err_scale_tbl[qp_rem][log2_size - 1];
     s64 lambda = (s64)(d_lambda * (double)(1 << SCALE_BITS) + 0.5);
     int q_bits;
@@ -1681,7 +1629,6 @@ int evce_rdoq_method_adcc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
     int cg_size = 1 << cg_log2_size;
     int last_scan_set;
     int sub_set;
-
     int offset1 = (sps_cm_init_flag == 1) ? ((ch_type == Y_C) ? 0 : NUM_CTX_GTX_LUMA) : ((ch_type == Y_C) ? 0 : 1);
     int offset0 = (sps_cm_init_flag == 1) ? ((ch_type == Y_C) ? (log2_block_size <= 2 ? 0 : NUM_CTX_SIG_COEFF_LUMA_TU << (EVC_MIN(1, (log2_block_size - 3)))) : NUM_CTX_SIG_COEFF_LUMA) : (ch_type == Y_C ? 0 : 1);
     int c1_idx = 0;
@@ -1700,17 +1647,14 @@ int evce_rdoq_method_adcc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
     int sig_rate_delta[MAX_TR_DIM];
     int delta_u[MAX_TR_DIM];
     s16 coef_dst[MAX_TR_DIM];
-    
     int sum_all = 0;
     int blk_pos;
     s64 tmp_level_double[MAX_TR_DIM];
-
     int num_nz = 0;
     int is_last_x = 0;
     int is_last_y = 0;
     int is_last_nz = 0;
     int num_gtA, num_gtB;
-
     s64 sig_last_cost[MAX_TR_DIM];
     s64 sig_last_cost0[MAX_TR_DIM];
     s64 sig_cost_delta[MAX_TR_DIM];
@@ -1718,6 +1662,7 @@ int evce_rdoq_method_adcc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
     int numNonZeroCoefs = 0;
     int last_pos_in_raster_from_scan = -1;
     int scan_pos = 0;
+
     q_bits = QUANT_SHIFT + tr_shift + (qp / 6);
 
     scan = evc_scan_tbl[scan_type][log2_cuw - 1][log2_cuh - 1];
@@ -1938,11 +1883,7 @@ int evce_rdoq_method_adcc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
     return nnz;
 }
 
-int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw, int log2_cuh, u16 scale, int ch_type, int slice_type, int sps_cm_init_flag, int tool_adcc, EVCE_CORE * core
-#if BD_CF_EXT
-                   , int bit_depth
-#endif
-)
+int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw, int log2_cuh, u16 scale, int ch_type, int slice_type, int sps_cm_init_flag, int tool_adcc, EVCE_CORE * core, int bit_depth)
 {
     int nnz = 0;
 
@@ -1958,11 +1899,8 @@ int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw,
         const int ns_scale = ((log2_cuw + log2_cuh) & 1) ? 181 : 1;
         s64 zero_coeff_threshold;
         BOOL is_coded = 0;
-#if BD_CF_EXT 
+
         tr_shift = MAX_TX_DYNAMIC_RANGE - bit_depth - log2_size + ns_shift;
-#else
-        tr_shift = MAX_TX_DYNAMIC_RANGE - BIT_DEPTH - log2_size + ns_shift;
-#endif
         shift = QUANT_SHIFT + tr_shift + (qp / 6);
 
 #define FAST_RDOQ_INTRA_RND_OFST  201 //171
@@ -1992,19 +1930,11 @@ int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw,
     {
         if(tool_adcc)
         {
-            nnz = evce_rdoq_method_adcc(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type, sps_cm_init_flag, core
-#if BD_CF_EXT
-                                        , bit_depth
-#endif
-            );
+            nnz = evce_rdoq_method_adcc(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type, sps_cm_init_flag, core, bit_depth);
         }
         else
         {
-            nnz = evce_rdoq_run_length_cc(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type, sps_cm_init_flag, core
-#if BD_CF_EXT
-                                          , bit_depth
-#endif
-            );
+            nnz = evce_rdoq_run_length_cc(qp, lambda, is_intra, coef, coef, log2_cuw, log2_cuh, ch_type, sps_cm_init_flag, core, bit_depth);
         }
     }
     else
@@ -2019,11 +1949,7 @@ int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw,
         const int ns_shift = ((log2_cuw + log2_cuh) & 1) ? 7 : 0;
         const int ns_scale = ((log2_cuw + log2_cuh) & 1) ? 181 : 1;
 
-#if BD_CF_EXT 
         tr_shift = MAX_TX_DYNAMIC_RANGE - bit_depth - log2_size + ns_shift;
-#else
-        tr_shift = MAX_TX_DYNAMIC_RANGE - BIT_DEPTH - log2_size + ns_shift;
-#endif
         shift = QUANT_SHIFT + tr_shift + (qp / 6);
         offset = (s64)((slice_type == SLICE_I) ? 171 : 85) << (s64)(shift - 9);
 
@@ -2042,46 +1968,23 @@ int evce_quant_nnz(u8 qp, double lambda, int is_intra, s16 * coef, int log2_cuw,
 
 
 int evce_tq_nnz(u8 qp, double lambda, s16 * coef, int log2_cuw, int log2_cuh, u16 scale, int slice_type, int ch_type, int is_intra, int sps_cm_init_flag, int iqt_flag
-                , u8 ats_intra_cu, u8 ats_mode, int tool_adcc, EVCE_CORE * core
-#if BD_CF_EXT
-                , int bit_depth
-#endif
-)
+                , u8 ats_intra_cu, u8 ats_mode, int tool_adcc, EVCE_CORE * core, int bit_depth)
 {
     if(ats_intra_cu)
     {
-        evce_trans_ats_intra(coef, log2_cuw, log2_cuh, ats_intra_cu, ats_mode
-#if BD_CF_EXT
-                             , bit_depth
-#endif
-        );
+        evce_trans_ats_intra(coef, log2_cuw, log2_cuh, ats_intra_cu, ats_mode, bit_depth);
     }
     else
     {
-        evce_trans(coef, log2_cuw, log2_cuh, iqt_flag
-#if BD_CF_EXT
-                   , bit_depth
-#endif
-        );
+        evce_trans(coef, log2_cuw, log2_cuh, iqt_flag, bit_depth);
     }
 
-    return evce_quant_nnz(qp, lambda, is_intra, coef, log2_cuw, log2_cuh, scale, ch_type, slice_type, sps_cm_init_flag, tool_adcc, core
-#if BD_CF_EXT
-                          , bit_depth
-#endif
-    );
+    return evce_quant_nnz(qp, lambda, is_intra, coef, log2_cuw, log2_cuh, scale, ch_type, slice_type, sps_cm_init_flag, tool_adcc, core, bit_depth);
 }
 
 int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int slice_type, int nnz[N_C]
                       , int nnz_sub[N_C][MAX_SUB_TB_NUM], int is_intra, double lambda_y, double lambda_u, double lambda_v, int run_stats, int sps_cm_init_flag, int iqt_flag
-                      , u8 ats_intra_cu, u8 ats_mode, u8 ats_inter_info, int tool_adcc
-                      , TREE_CONS tree_cons
-                      , EVCE_CORE * core
-#if BD_CF_EXT
-                      , int bit_depth
-                      , int chroma_format_idc
-#endif
-)
+                      , u8 ats_intra_cu, u8 ats_mode, u8 ats_inter_info, int tool_adcc, TREE_CONS tree_cons, EVCE_CORE * core, int bit_depth, int chroma_format_idc)
 {
     run_stats = evc_get_run(run_stats, tree_cons);
     int run[N_C] = {run_stats & 1, (run_stats >> 1) & 1, (run_stats >> 2) & 1};
@@ -2101,12 +2004,11 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
     u8 ats_intra_cu_on = 0;
     u8 ats_mode_idx = 0;
 
-#if BD_CF_EXT
     if(!chroma_format_idc)
     {
         run[1] = run[2] = 0;
     }
-#endif
+
     if (ats_inter_info)
     {
         get_tu_size(ats_inter_info, log2_cuw, log2_cuh, &log2_w_sub, &log2_h_sub);
@@ -2129,24 +2031,16 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
 
                 if(run[c])
                 {
-#if BD_CF_EXT
                     int pos_sub_x = c==0 ? (i * (1 << (log2_w_sub))) : (i * (1 << (log2_w_sub - (GET_CHROMA_W_SHIFT(chroma_format_idc)))));
                     int pos_sub_y = c==0 ? j * (1 << (log2_h_sub )) * (stride) : j * (1 << (log2_h_sub - (GET_CHROMA_H_SHIFT(chroma_format_idc)))) * (stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)));
-#else
-                    int pos_sub_x = i * (1 << (log2_w_sub - !!c));
-                    int pos_sub_y = j * (1 << (log2_h_sub - !!c)) * (stride >> (!!c));
-#endif
 
                     if(loop_h + loop_w > 2)
                     {
-#if BD_CF_EXT
                         if(c==0)
                             evc_block_copy(coef[c] + pos_sub_x + pos_sub_y, stride, coef_temp_buf[c], sub_stride, log2_w_sub, log2_h_sub);
                         else
                             evc_block_copy(coef[c] + pos_sub_x + pos_sub_y, stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), coef_temp_buf[c], sub_stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), log2_w_sub - (GET_CHROMA_W_SHIFT(chroma_format_idc)), log2_h_sub - (GET_CHROMA_H_SHIFT(chroma_format_idc)));
-#else
-                        evc_block_copy(coef[c] + pos_sub_x + pos_sub_y, stride >> (!!c), coef_temp_buf[c], sub_stride >> (!!c), log2_w_sub - (!!c), log2_h_sub - (!!c));
-#endif
+
                         coef_temp[c] = coef_temp_buf[c];
                     }
                     else
@@ -2155,47 +2049,28 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
                     }
 
                     int scale = quant_scale[qp[c] % 6];
-#if BD_CF_EXT
+
                     if(c == 0)
                     {
                         nnz_sub[c][(j << 1) | i] = evce_tq_nnz(qp[c], lambda[c], coef_temp[c], log2_w_sub, log2_h_sub, scale, slice_type, c, is_intra, sps_cm_init_flag, iqt_flag
-                                                               , ats_intra_cu_on, ats_mode_idx, tool_adcc, core
-#if BD_CF_EXT
-                                                               , bit_depth
-#endif
-                        );
+                                                               , ats_intra_cu_on, ats_mode_idx, tool_adcc, core, bit_depth);
                     }
                     else
                     {
                         nnz_sub[c][(j << 1) | i] = evce_tq_nnz(qp[c], lambda[c], coef_temp[c], log2_w_sub - (GET_CHROMA_W_SHIFT(chroma_format_idc))
                                                                , log2_h_sub - (GET_CHROMA_H_SHIFT(chroma_format_idc)), scale, slice_type, c, is_intra, sps_cm_init_flag, iqt_flag
-                                                               , ats_intra_cu_on, ats_mode_idx, tool_adcc, core
-#if BD_CF_EXT
-                                                               , bit_depth
-#endif
-                        );
+                                                               , ats_intra_cu_on, ats_mode_idx, tool_adcc, core, bit_depth);
                     }
-#else
-                    nnz_sub[c][(j << 1) | i] = evce_tq_nnz(qp[c], lambda[c], coef_temp[c], log2_w_sub - !!c, log2_h_sub - !!c, scale, slice_type, c, is_intra, sps_cm_init_flag, iqt_flag
-                                                           , ats_intra_cu_on, ats_mode_idx, tool_adcc, core
-#if BD_CF_EXT
-                                                           , bit_depth
-#endif
-                    );
-#endif
+
                     nnz_temp[c] += nnz_sub[c][(j << 1) | i];
 
                     if(loop_h + loop_w > 2)
                     {
-#if BD_CF_EXT
                         if(c == 0)
                             evc_block_copy(coef_temp_buf[c], sub_stride, coef[c] + pos_sub_x + pos_sub_y, stride, log2_w_sub, log2_h_sub);
                         else
                             evc_block_copy(coef_temp_buf[c], sub_stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), coef[c] + pos_sub_x + pos_sub_y
                                            , stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), log2_w_sub - (GET_CHROMA_W_SHIFT(chroma_format_idc)), log2_h_sub - (GET_CHROMA_H_SHIFT(chroma_format_idc)));
-#else
-                        evc_block_copy(coef_temp_buf[c], sub_stride >> (!!c), coef[c] + pos_sub_x + pos_sub_y, stride >> (!!c), log2_w_sub - (!!c), log2_h_sub - (!!c));
-#endif
                     }
                 }
             }

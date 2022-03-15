@@ -36,16 +36,10 @@
 #include "evc_def.h"
 #include "evc_tbl.h"
 
-#define ITX_SHIFT1   (7)                     /* shift after 1st IT stage */
-#if BD_CF_EXT 
-#define ITX_SHIFT2(bit_depth)                 (12 - (bit_depth - 8))  /* shift after 2nd IT stage */
-#else
-#define ITX_SHIFT2   (12 - (BIT_DEPTH - 8))  /* shift after 2nd IT stage */
-#endif
-
+#define ITX_SHIFT1                           (7)                     /* shift after 1st IT stage */
+#define ITX_SHIFT2(bit_depth)                (12 - (bit_depth - 8))  /* shift after 2nd IT stage */
 #define ITX_CLIP(x) \
     (s16)(((x)<MIN_TX_VAL)? MIN_TX_VAL: (((x)>MAX_TX_VAL)? MAX_TX_VAL: (x)))
-
 #define MAX_TX_DYNAMIC_RANGE_32               31
 #define MAX_TX_VAL_32                       2147483647
 #define MIN_TX_VAL_32                      (-2147483647-1)
@@ -227,7 +221,6 @@ static void itx_pb4b(void *src, void *dst, int shift, int line, int step)
     {
         RUN_ITX_PB4(src, dst, s32, s16);
     }
-
 }
 
 static void itx_pb8b(void *src, void *dst, int shift, int line, int step)
@@ -450,7 +443,6 @@ static void itx_pb32b(void *src, void *dst, int shift, int line, int step)
     {
         RUN_ITX_PB32(src, dst, s32, s16);
     }
-
 }
 
 static void itx_pb64b(void *src, void *dst, int shift, int line, int step)
@@ -565,7 +557,6 @@ static void itx_pb64b(void *src, void *dst, int shift, int line, int step)
     {
         RUN_ITX_PB64(src, dst, s32, s16);
     }
-    
 }
 
 void evc_itrans_ats_intra_DST7_B4(s16 *coeff, s16 *block, int shift, int line, int skip_line, int skip_line_2);
@@ -585,11 +576,7 @@ INV_TRANS *evc_itrans_map_tbl[16][5] =
     { NULL, evc_itrans_ats_intra_DST7_B4, evc_itrans_ats_intra_DST7_B8, evc_itrans_ats_intra_DST7_B16, evc_itrans_ats_intra_DST7_B32 },
 };
 
-void evc_itrans_ats_intra(s16 *coef, int log2_cuw, int log2_cuh, u8 ats_mode, int skip_w, int skip_h
-#if BD_CF_EXT
-                          , int bit_depth
-#endif
-);
+void evc_itrans_ats_intra(s16 *coef, int log2_cuw, int log2_cuh, u8 ats_mode, int skip_w, int skip_h, int bit_depth);
 void evc_it_MxN_ats_intra(s16 *coef, int tuw, int tuh, int bit_depth, const int max_log2_tr_dynamic_range, u8 ats_intra_tridx, int skip_w, int skip_h);
 
 void evc_init_multi_tbl()
@@ -1248,46 +1235,25 @@ static EVC_ITX tbl_itx[MAX_TR_LOG2] =
     itx_pb64
 };
 
-void evc_itrans(s16 *coef, int log2_cuw, int log2_cuh, int iqt_flag
-#if BD_CF_EXT
-                , int bit_depth
-#endif
-)
+void evc_itrans(s16 *coef, int log2_cuw, int log2_cuh, int iqt_flag, int bit_depth)
 {
     if(iqt_flag)
     {
         s16 t[MAX_TR_DIM]; /* temp buffer */
         tbl_itx[log2_cuh - 1](coef, t, ITX_SHIFT1, 1 << log2_cuw);
-#if BD_CF_EXT 
         tbl_itx[log2_cuw - 1](t, coef, ITX_SHIFT2(bit_depth), 1 << log2_cuh);
-#else
-        tbl_itx[log2_cuw - 1](t, coef, ITX_SHIFT2, 1 << log2_cuh);
-#endif
     }
     else
     {
         s32 tb[MAX_TR_DIM]; /* temp buffer */
         tbl_itxb[log2_cuh - 1](coef, tb, 0, 1 << log2_cuw, 0);
-#if BD_CF_EXT 
         tbl_itxb[log2_cuw - 1](tb, coef, (ITX_SHIFT1 + ITX_SHIFT2(bit_depth)), 1 << log2_cuh, 1);
-#else
-        tbl_itxb[log2_cuw - 1](tb, coef, (ITX_SHIFT1 + ITX_SHIFT2), 1 << log2_cuh, 1);
-#endif
     }
 }
 
-
-void evc_itrans_ats_intra(s16* coef, int log2_w, int log2_h, u8 ats_mode, int skip_w, int skip_h
-#if BD_CF_EXT
-                          , int bit_depth
-#endif
-)
+void evc_itrans_ats_intra(s16* coef, int log2_w, int log2_h, u8 ats_mode, int skip_w, int skip_h, int bit_depth)
 {
-#if BD_CF_EXT 
     evc_it_MxN_ats_intra(coef, (1 << log2_w), (1 << log2_h), bit_depth, 15, ats_mode, skip_w, skip_h);
-#else
-    evc_it_MxN_ats_intra(coef, (1 << log2_w), (1 << log2_h), BIT_DEPTH, 15, ats_mode, skip_w, skip_h);
-#endif
 }
 
 static void evc_dquant(s16 *coef, int log2_w, int log2_h, int scale, s32 offset, u8 shift)
@@ -1303,11 +1269,7 @@ static void evc_dquant(s16 *coef, int log2_w, int log2_h, int scale, s32 offset,
     }
 }
 
-void evc_itdq(s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag, u8 ats_intra_cu, u8 ats_mode
-#if BD_CF_EXT
-              , int bit_depth
-#endif
-)
+void evc_itdq(s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag, u8 ats_intra_cu, u8 ats_mode, int bit_depth)
 {
     s32 offset;
     u8 shift;
@@ -1324,11 +1286,7 @@ void evc_itdq(s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag, u8 ats
     int cuw = 1 << log2_w;
     int cuh = 1 << log2_h;
 
-#if BD_CF_EXT 
     tr_shift = MAX_TX_DYNAMIC_RANGE - bit_depth - log2_size;
-#else
-    tr_shift = MAX_TX_DYNAMIC_RANGE - BIT_DEPTH - log2_size;
-#endif
     shift = QUANT_IQUANT_SHIFT - QUANT_SHIFT - tr_shift;
     shift += ns_shift;
     offset = (shift == 0) ? 0 : (1 << (shift - 1));
@@ -1359,29 +1317,16 @@ void evc_itdq(s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag, u8 ats
 
     if(ats_intra_cu)
     {
-        evc_itrans_ats_intra(coef, log2_w, log2_h, ats_mode, skip_w, skip_h
-#if BD_CF_EXT
-                             , bit_depth
-#endif
-        );
+        evc_itrans_ats_intra(coef, log2_w, log2_h, ats_mode, skip_w, skip_h, bit_depth);
     }
     else
     {
-        evc_itrans(coef, log2_w, log2_h, iqt_flag
-#if BD_CF_EXT
-                   , bit_depth
-#endif
-        );
+        evc_itrans(coef, log2_w, log2_h, iqt_flag, bit_depth);
     }
 }
 
 void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int flag[N_C], int nnz_sub[N_C][MAX_SUB_TB_NUM], int iqt_flag
-                        , u8 ats_intra_cu, u8 ats_mode, u8 ats_inter_info
-#if BD_CF_EXT
-                        , int bit_depth
-                        , int chroma_format_idc
-#endif
-)
+                        , u8 ats_intra_cu, u8 ats_mode, u8 ats_inter_info, int bit_depth, int chroma_format_idc)
 {
     s16 *coef_temp[N_C];
     s16 coef_temp_buf[N_C][MAX_TR_DIM];
@@ -1409,10 +1354,9 @@ void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u
         {
             for(c = 0; c < N_C; c++)
             {
-#if BD_CF_EXT
                 if((c!=0) && !chroma_format_idc)
                     continue;
-#endif
+
                 ats_intra_cu_on = (c == 0)? ats_intra_cu : 0;
                 ats_mode_idx = (c == 0) ? ats_mode : 0;
 
@@ -1423,25 +1367,17 @@ void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u
 
                 if(nnz_sub[c][(j << 1) | i])
                 {
-#if BD_CF_EXT
                     int pos_sub_x = c == 0 ? (i * (1 << (log2_w_sub))) : (i * (1 << (log2_w_sub - (GET_CHROMA_W_SHIFT(chroma_format_idc)))));
                     int pos_sub_y = c == 0 ? j * (1 << (log2_h_sub)) * (stride) : j * (1 << (log2_h_sub - (GET_CHROMA_H_SHIFT(chroma_format_idc)))) * (stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)));
-#else
-                    int pos_sub_x = i * (1 << (log2_w_sub - !!c));
-                    int pos_sub_y = j * (1 << (log2_h_sub - !!c)) * (stride >> (!!c));
-#endif
 
                     if(loop_h + loop_w > 2)
                     {
-#if BD_CF_EXT
                         if(c == 0)
                             evc_block_copy(coef[c] + pos_sub_x + pos_sub_y, stride, coef_temp_buf[c], sub_stride, log2_w_sub, log2_h_sub);
                         else
                             evc_block_copy(coef[c] + pos_sub_x + pos_sub_y, stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), coef_temp_buf[c], sub_stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
                                            , log2_w_sub - (GET_CHROMA_W_SHIFT(chroma_format_idc)), log2_h_sub - (GET_CHROMA_H_SHIFT(chroma_format_idc)));
-#else
-                        evc_block_copy(coef[c] + pos_sub_x + pos_sub_y, stride >> (!!c), coef_temp_buf[c], sub_stride >> (!!c), log2_w_sub - (!!c), log2_h_sub - (!!c));
-#endif
+
                         coef_temp[c] = coef_temp_buf[c];
                     }
                     else
@@ -1457,45 +1393,26 @@ void evc_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u
                     {
                         scale = evc_tbl_dq_scale_b[qp[c] % 6] << (qp[c] / 6);
                     }
-#if BD_CF_EXT
+
                     if(c == 0)
                     {
-                        evc_itdq(coef_temp[c], log2_w_sub, log2_h_sub, scale, iqt_flag, ats_intra_cu_on, ats_mode_idx
-#if BD_CF_EXT
-                                 , bit_depth
-#endif
-                        );
+                        evc_itdq(coef_temp[c], log2_w_sub, log2_h_sub, scale, iqt_flag, ats_intra_cu_on, ats_mode_idx, bit_depth);
                     }
                     else
                     {
-                        evc_itdq(coef_temp[c], log2_w_sub - (GET_CHROMA_W_SHIFT(chroma_format_idc)), log2_h_sub - (GET_CHROMA_H_SHIFT(chroma_format_idc)), scale, iqt_flag, ats_intra_cu_on, ats_mode_idx
-#if BD_CF_EXT
-                                 , bit_depth
-#endif
-                        );
+                        evc_itdq(coef_temp[c], log2_w_sub - (GET_CHROMA_W_SHIFT(chroma_format_idc)), log2_h_sub - (GET_CHROMA_H_SHIFT(chroma_format_idc)), scale, iqt_flag, ats_intra_cu_on, ats_mode_idx, bit_depth);
                     }
-#else
-                    evc_itdq(coef_temp[c], log2_w_sub - !!c, log2_h_sub - !!c, scale, iqt_flag, ats_intra_cu_on, ats_mode_idx
-#if BD_CF_EXT
-                             , bit_depth
-#endif
-                    );
-#endif
+
                     if(loop_h + loop_w > 2)
                     {
-#if BD_CF_EXT
                         if(c == 0)
                             evc_block_copy(coef_temp_buf[c], sub_stride, coef[c] + pos_sub_x + pos_sub_y, stride, log2_w_sub, log2_h_sub);
                         else
                             evc_block_copy(coef_temp_buf[c], sub_stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), coef[c] + pos_sub_x + pos_sub_y, stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc))
                                            , log2_w_sub - (GET_CHROMA_W_SHIFT(chroma_format_idc)), log2_h_sub - (GET_CHROMA_H_SHIFT(chroma_format_idc)));
-#else
-                        evc_block_copy(coef_temp_buf[c], sub_stride >> (!!c), coef[c] + pos_sub_x + pos_sub_y, stride >> (!!c), log2_w_sub - (!!c), log2_h_sub - (!!c));
-#endif
                     }
                 }
             }
         }
-
     }
 }

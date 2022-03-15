@@ -37,13 +37,12 @@
 #include "evc_def.h"
 #include <stdlib.h>
 
-#if M52291_HDR_DRA
-typedef struct _quantParamDRA {
-
+typedef struct _quantParamDRA
+{
     int m_value;  // Currently 32 bit is considered sufficient
     int m_numFracBits;
     int m_numTotBits;
-}quantParamDRA;
+} quantParamDRA;
 
 typedef struct _DRAChromaOffControl
 {
@@ -56,7 +55,7 @@ typedef struct _DRAChromaOffControl
     int m_draChromaCbQpOffset;
     int m_draChromaCrQpOffset;
 
-}DRAChromaOffControl;
+} DRAChromaOffControl;
 
 typedef struct _DRAScaleMapping
 {
@@ -76,11 +75,10 @@ typedef struct _SignalledParamsDRA
     int m_dra_cb_scale_value;
     int m_dra_cr_scale_value;
     int m_dra_scale_value[33 - 1];
-#if BD_CF_EXT
     int m_internal_bd;
     int m_idc;
-#endif
-}SignalledParamsDRA;
+
+} SignalledParamsDRA;
 
 typedef struct _WCGDDRAControl
 {
@@ -120,10 +118,8 @@ typedef struct _WCGDDRAControl
     int    m_globalOffset;
     int    m_globalEnd;
 
-#if BD_CF_EXT
     int m_idc;
     int m_internal_bd;
-#endif
 
 } WCGDDRAControl;
 
@@ -145,7 +141,6 @@ void evc_apply_dra_chroma_plane(EVC_IMGB * dst, EVC_IMGB * src, WCGDDRAControl *
 void evc_addDraApsToBuffer(SignalledParamsDRA* p_g_dra_control_array, EVC_APS_GEN *p_aps_gen_array);
 void evc_resetApsGenReadBuffer(EVC_APS_GEN *p_aps_gen_array);
 void evc_apply_dra_from_array(EVC_IMGB * dst, EVC_IMGB * src, SignalledParamsDRA * p_dra_control_array, int dra_id, int backwardMap);
-#endif
 
 #endif 
 /* _EVC_DRA_H_ */

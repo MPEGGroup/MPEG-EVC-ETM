@@ -60,33 +60,32 @@ typedef std::pair<int, int> Position;
 class EVCE_IBC_HashMap
 {
 private:
-  int     m_picWidth;
-  int     m_picHeight;
+    int     m_picWidth;
+    int     m_picHeight;
 
-  unsigned int xxCalcBlockHash(const pel* pel, const int stride, const int width, const int height, unsigned int crc);
+    unsigned int xxCalcBlockHash(const pel* pel, const int stride, const int width, const int height, unsigned int crc);
 
-  void    xxBuildPicHashMap(const EVC_PIC* pic);
+    void    xxBuildPicHashMap(const EVC_PIC* pic);
 
-  static  uint32_t xxComputeCrc32c16bit(uint32_t crc, const pel pel);
+    static  uint32_t xxComputeCrc32c16bit(uint32_t crc, const pel pel);
 
 public:
     unsigned int**  m_pos2Hash;
     std::unordered_map<unsigned int, std::vector<Position>> m_hash2Pos;
 
 public:
-  uint32_t (*m_computeCrc32c) (uint32_t crc, const pel pel);
+    uint32_t(*m_computeCrc32c) (uint32_t crc, const pel pel);
 
-  EVCE_IBC_HashMap();
-  virtual ~EVCE_IBC_HashMap();
+    EVCE_IBC_HashMap();
+    virtual ~EVCE_IBC_HashMap();
 
-  void    init(const int picWidth, const int picHeight);
-  void    destroy();
-  void    rebuildPicHashMap(const EVC_PIC* pic);
-  bool    ibcHashMatch(EVCE_CTX *ctx, int cu_x, int cu_y, int log2_cuw, int log2_cuh,
-      std::vector<Position>& cand, const int maxCand, const int searchRange4SmallBlk);
-  int     getHashHitRatio(EVCE_CTX *ctx, int cu_x, int cu_y, int log2_cuw, int log2_cuh);
+    void    init(const int picWidth, const int picHeight);
+    void    destroy();
+    void    rebuildPicHashMap(const EVC_PIC* pic);
+    bool    ibcHashMatch(EVCE_CTX *ctx, int cu_x, int cu_y, int log2_cuw, int log2_cuh,
+                         std::vector<Position>& cand, const int maxCand, const int searchRange4SmallBlk);
+    int     getHashHitRatio(EVCE_CTX *ctx, int cu_x, int cu_y, int log2_cuw, int log2_cuh);
 };
-
 
 #endif 
 #endif

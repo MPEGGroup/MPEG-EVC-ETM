@@ -35,22 +35,10 @@
 #define _EVC_RECON_H_
 
 
-void evc_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, pel *rec, u8 ats_inter_info
-#if BD_CF_EXT
-               , int bit_depth
-#endif
-);
+void evc_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, pel *rec, u8 ats_inter_info, int bit_depth);
 void evc_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pel pred[N_C][MAX_CU_DIM], int nnz[N_C], EVC_PIC *pic, u8 ats_inter_info, TREE_CONS tree_cons
-#if BD_CF_EXT
-                   , int bit_depth
-                   , int chroma_format_idc
-#endif
-);
+                   , int bit_depth, int chroma_format_idc);
 void evc_htdf(s16* rec, int qp, int w, int h, int s, BOOL intra_block_flag, pel* rec_pic, int s_pic, int avail_cu
-              , int scup, int w_scu, int h_scu, u32 * map_scu, int constrained_intra_pred
-#if BD_CF_EXT
-              , int bit_depth
-#endif
-);
+              , int scup, int w_scu, int h_scu, u32 * map_scu, int constrained_intra_pred, int bit_depth);
 
 #endif /* _EVC_RECON_H_ */

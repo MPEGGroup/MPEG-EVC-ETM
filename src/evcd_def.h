@@ -47,7 +47,7 @@ typedef struct _EVCD_SBAC
 {
     u32            range;
     u32            value;
-    EVC_SBAC_CTX  ctx;
+    EVC_SBAC_CTX   ctx;
 } EVCD_SBAC;
 /*****************************************************************************
  * CORE information used for decoding process.
@@ -65,9 +65,8 @@ typedef struct _EVCD_CORE
     pel            dmvr_template[MAX_CU_DIM];
     pel            dmvr_half_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + 1) * (MAX_CU_SIZE + 1)];
     pel            dmvr_ref_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT)) * (MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT))];
-
 #if DMVR_PADDING
-    pel  dmvr_padding_buf[2][N_C][PAD_BUFFER_STRIDE * PAD_BUFFER_STRIDE];
+    pel            dmvr_padding_buf[2][N_C][PAD_BUFFER_STRIDE * PAD_BUFFER_STRIDE];
 #endif
     /* neighbor pixel buffer for intra prediction */
     pel            nb[N_C][N_REF][MAX_CU_SIZE * 3];
@@ -77,7 +76,7 @@ typedef struct _EVCD_CORE
     s16            mv[REFP_NUM][MV_D];
 #if DMVR_LAG
     /* dmvr refined motion vector for current CU */
-    s16             dmvr_mv[MAX_CU_CNT_IN_LCU][REFP_NUM][MV_D];
+    s16            dmvr_mv[MAX_CU_CNT_IN_LCU][REFP_NUM][MV_D];
 #endif
     /* CU position in current frame in SCU unit */
     u32            scup;
@@ -92,7 +91,7 @@ typedef struct _EVCD_CORE
     /* intra prediction direction of current CU */
     u8             ipm[2];
     /* most probable mode for intra prediction */
-    u8             * mpm_b_list;
+    u8           * mpm_b_list;
     u8             mpm[2];
     u8             mpm_ext[8];
     u8             pims[IPD_CNT]; /* probable intra mode set*/
@@ -113,16 +112,12 @@ typedef struct _EVCD_CORE
     u8             qp_v;
     s16            affine_mv[REFP_NUM][VER_NUM][MV_D];
     u8             affine_flag;
-
     u8             ibc_flag;
     u8             ibc_skip_flag;
     u8             ibc_merge_flag;
-
-#if DQP
     u8             qp;
     u8             cu_qp_delta_code;
     u8             cu_qp_delta_is_coded;
-#endif
     /************** current LCU *************/
     /* address of current LCU,  */
     u16            lcu_num;
@@ -139,30 +134,24 @@ typedef struct _EVCD_CORE
     /* SUCO flag for current LCU */
     s8             suco_flag[NUM_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
     /* platform specific data, if needed */
-    void          *pf;
+    void         * pf;
     s16            mmvd_idx;
     u8             mmvd_flag;
     /* ATS_INTRA flags */
     u8             ats_intra_cu;
     u8             ats_intra_mode_h;
     u8             ats_intra_mode_v;
-
     /* ATS_INTER info (index + position)*/
     u8             ats_inter_info;
     /* temporal pixel buffer for inter prediction */
     pel            eif_tmp_buffer[ (MAX_CU_SIZE + 2) * (MAX_CU_SIZE + 2) ];
     u8             mvr_idx;
-#if DMVR_FLAG
-    u8            dmvr_flag;
-#endif
-
+    u8             dmvr_flag;
     /* history-based motion vector prediction candidate list */
     EVC_HISTORY_BUFFER     history_buffer;
-#if AFFINE_UPDATE
     // spatial neighboring MV of affine block
     s8             refi_sp[REFP_NUM];
     s16            mv_sp[REFP_NUM][MV_D];
-#endif
 #if TRACE_ENC_CU_DATA
     u64            trace_idx;
 #endif
@@ -207,17 +196,13 @@ struct _EVCD_CTX
     EVC_SPS                 sps;
     /* picture parameter set */
     EVC_PPS               * pps;
-#if MULTIPLE_NAL
     EVC_PPS                 pps_array[64];
-#endif
     /* adaptation parameter set */
     EVC_APS                 aps;
     u8                      aps_temp;
-#if M52291_HDR_DRA
-    void * p_pps_draParams;
-    void                 *void_aps_gen_array; 
-    void                  *g_void_dra_array;
-#endif
+    void                  * p_pps_draParams;
+    void                  * void_aps_gen_array; 
+    void                  * g_void_dra_array;
     /* current decoded (decoding) picture buffer */
     EVC_PIC               * pic;
     /* SBAC */
@@ -234,7 +219,6 @@ struct _EVCD_CTX
     u16                     min_cuwh;
     /* log2 of minimum CU width and height */
     u8                      log2_min_cuwh;
-
     /* MAPS *******************************************************************/
     /* SCU map for CU information */
     u32                   * map_scu;

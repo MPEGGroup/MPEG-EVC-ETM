@@ -127,15 +127,12 @@ typedef struct CodingStructure
 {
     void * pCtx;
     EVC_PIC * pPic;
-
     int tempStride; //to pass strides easily
     int picStride;
-#if BD_CF_EXT
     int idc; //chroma format idc
-#endif
+
 } CodingStructure;
 
-#if 1
 #define MAX_NUM_ALF_CLASSES             25
 #define MAX_NUM_ALF_LUMA_COEFF          13
 #define MAX_NUM_ALF_CHROMA_COEFF        7
@@ -145,68 +142,68 @@ typedef struct CodingStructure
 
 static const int pattern5[25] =
 {
-          0,
-          1,  2,  3,
-          4,  5,  6,  5,  4,
-          3,  2,  1,
-          0
+    0,
+    1,  2,  3,
+    4,  5,  6,  5,  4,
+    3,  2,  1,
+    0
 };
 
 static const int pattern7[25] =
 {
-      0,
-      1,  2,  3,
-      4,  5,  6,  7,  8,
-      9, 10, 11, 12, 11, 10, 9,
-      8,  7,  6,  5,  4,
-      3,  2,  1,
-      0
+    0,
+    1,  2,  3,
+    4,  5,  6,  7,  8,
+    9, 10, 11, 12, 11, 10, 9,
+    8,  7,  6,  5,  4,
+    3,  2,  1,
+    0
 };
 
 static const int weights5[14] =
 {
-      2,
-      2, 2, 2,
-      2, 2, 1, 1
+    2,
+    2, 2, 2,
+    2, 2, 1, 1
 };
 
 static const int weights7[14] =
 {
-  2,
-  2,  2,  2,
-  2,  2,  2,  2,  2,
-  2,  2,  2,  1,  1
+    2,
+    2,  2,  2,
+    2,  2,  2,  2,  2,
+    2,  2,  2,  1,  1
 };
 
 static const int golombIdx5[14] =
 {
-  0,
-  0, 1, 0,
-  0, 1
+    0,
+    0, 1, 0,
+    0, 1
 };
 
 static const int golombIdx7[14] =
 {
-  0,
-  0, 1, 0,
-  0, 1, 2, 1, 0,
-  0, 1, 2
+    0,
+    0, 1, 0,
+    0, 1, 2, 1, 0,
+    0, 1, 2
 };
 
 static const int patternToLargeFilter5[13] =
 {
-  0,
-  0, 1, 0,
-  0, 2, 3, 4, 0,
-  0, 5, 6, 7
+    0,
+    0, 1, 0,
+    0, 2, 3, 4, 0,
+    0, 5, 6, 7
 };
 
 static const int patternToLargeFilter7[13] =
 {
-  1,
-  2, 3, 4,
-  5, 6, 7, 8, 9,
-  10,11,12,13
+    1,
+    2, 3, 4,
+    5, 6, 7, 8, 9,
+    10,11,12,13
 };
 
 // The structure below must be aligned to identical structure in evc_def.h!
@@ -238,30 +235,23 @@ struct AlfSliceParam
     int                          numLumaFilters;                                          // number_of_filters_minus1 + 1
     BOOL                         coeffDeltaFlag;                                          // alf_coefficients_delta_flag
     BOOL                         coeffDeltaPredModeFlag;                                  // coeff_delta_pred_mode_flag
-    AlfFilterShape(*filterShapes)[2];
-
+    AlfFilterShape             (*filterShapes)[2];
     int                          fixedFilterPattern;                                     //0: no pred from pre-defined filters; 1: all are predicted but could be different values; 2: some predicted and some not
                                                                                          //when ALF_LOWDELAY is 1, fixedFilterPattern 0: all are predected, fixedFilterPattern 1: some predicted and some not
     int                          fixedFilterIdx[MAX_NUM_ALF_CLASSES];
-#if M53608_ALF_7
     u8                           fixedFilterUsageFlag[MAX_NUM_ALF_CLASSES];
-#endif
     int                          tLayer;
     BOOL                         temporalAlfFlag;         //indicate whether reuse previous ALF coefficients
     int                          prevIdx;                 //index of the reused ALF coefficients
     int                          prevIdxComp[MAX_NUM_CHANNEL_TYPE];
-    BOOL resetALFBufferFlag;
-    BOOL store2ALFBufferFlag;
-
+    BOOL                         resetALFBufferFlag;
+    BOOL                         store2ALFBufferFlag;
     // encoder side variables
-    u32 m_filterPoc;  // store POC value for which filter was produced
-    u32 m_minIdrPoc;  // Minimal of 2 IDR POC available for current coded nalu  (to identify availability of this filter for temp prediction)
-    u32 m_maxIdrPoc;  // Max of 2 IDR POC available for current coded nalu  (to identify availability of this filter for temp prediction)
-#if M53608_ALF_14
-    BOOL chromaFilterPresent;
-#endif
+    u32                          m_filterPoc;  // store POC value for which filter was produced
+    u32                          m_minIdrPoc;  // Minimal of 2 IDR POC available for current coded nalu  (to identify availability of this filter for temp prediction)
+    u32                          m_maxIdrPoc;  // Max of 2 IDR POC available for current coded nalu  (to identify availability of this filter for temp prediction)
+    BOOL                         chromaFilterPresent;
 };
-#endif
 
 enum Direction
 {
@@ -325,21 +315,13 @@ extern void copyAlfParam(AlfSliceParam* dst, AlfSliceParam* src);
 extern void copyAlfParamChroma(AlfSliceParam* dst, AlfSliceParam* src);
 void store_alf_paramline_from_aps(AlfSliceParam* pAlfParam, u8 idx);
 void load_alf_paramline_from_aps_buffer(AlfSliceParam* pAlfParam, u8 idx);
-void load_alf_paramline_from_aps_buffer2(AlfSliceParam* pAlfParam, u8 idxY, u8 idxUV
-#if M53608_ALF_14
-                                         , u8 alfChromaIdc
-#endif
-);
+void load_alf_paramline_from_aps_buffer2(AlfSliceParam* pAlfParam, u8 idxY, u8 idxUV, u8 alfChromaIdc);
 extern u8 m_nextFreeAlfIdxInBuffer;
 extern void resetAlfParam(AlfSliceParam* dst);
 extern void resetIdrIndexListBufferAPS();
 extern int  getProtectIdxFromList(int idx);
 extern void storeEncALFParamLineAPS(AlfSliceParam* pAlfParam, unsigned tLayer);
-void AdaptiveLoopFilter_create(const int picWidth, const int picHeight, const int maxCUWidth, const int maxCUHeight, const int maxCUDepth
-#if BD_CF_EXT
-                               , int idc
-#endif
-);
+void AdaptiveLoopFilter_create(const int picWidth, const int picHeight, const int maxCUWidth, const int maxCUHeight, const int maxCUDepth, int idc);
 void AdaptiveLoopFilter_destroy();
 void deriveClassificationBlk( AlfClassifier** classifier, const pel * srcLuma, const int srcStride, const Area * blk, const int shift );
 void filterBlk_7( AlfClassifier** classifier, pel * recDst, const int dstStride, const pel * recSrc, const int srcStride, const Area* blk, const ComponentID compId, short* filterSet, const ClpRng* clpRng );

@@ -78,11 +78,7 @@
 #define ME_LEV_QPEL              3
 
 /* maximum inbuf count */
-#if M52291_HDR_DRA
 #define EVCE_MAX_INBUF_CNT      34
-#else
-#define EVCE_MAX_INBUF_CNT      33
-#endif
 
 /* maximum cost value */
 #define MAX_COST                (1.7e+308)
@@ -97,7 +93,6 @@ typedef struct _EVCE_MODE
     int  *ndata[4];
     pel  *rec[N_C];
     int   s_rec[N_C];
-
     /* CU count in a CU row in a LCU (== log2_max_cuwh - MIN_CU_LOG2) */
     u8    log2_culine;
     /* reference indices */
@@ -116,24 +111,17 @@ typedef struct _EVCE_MODE
 #endif
     /* mv */
     s16   mv[REFP_NUM][MV_D];
-
     pel  *pred_y_best;
-
     s16   affine_mv[REFP_NUM][VER_NUM][MV_D];
     s16   affine_mvd[REFP_NUM][VER_NUM][MV_D];
-
     int   cu_mode;
     u8    affine_flag;
-
-#if AFFINE_UPDATE 
     // spatial neighboring MV of affine block
     s8    refi_sp[REFP_NUM];
     s16   mv_sp[REFP_NUM][MV_D];
-#endif
     u8    ats_intra_cu;
     u8    ats_intra_mode_h;
     u8    ats_intra_mode_v;
-
 #if TRACE_ENC_CU_DATA
     u64   trace_cu_idx;
 #endif
@@ -162,10 +150,9 @@ typedef struct _EVCE_PICO
     /* original picture store */
     EVC_PIC                pic;
     /* input picture count */
-    u32                     pic_icnt;
+    u32                    pic_icnt;
     /* be used for encoding input */
-    u8                      is_used;
-
+    u8                     is_used;
     /* address of sub-picture */
     EVC_PIC              * spic;
 } EVCE_PICO;
@@ -178,38 +165,31 @@ typedef struct _EVCE_PINTRA
     /* temporary prediction buffer */
     pel                 pred[N_C][MAX_CU_DIM];
     pel                 pred_cache[IPD_CNT][MAX_CU_DIM]; // only for luma
-
     /* reconstruction buffer */
     pel                 rec[N_C][MAX_CU_DIM];
-
     s16                 coef_tmp[N_C][MAX_CU_DIM];
     s16                 coef_best[N_C][MAX_CU_DIM];
     int                 nnz_best[N_C];
     int                 nnz_sub_best[N_C][MAX_SUB_TB_NUM];
     pel                 rec_best[N_C][MAX_CU_DIM];
-
     /* original (input) picture buffer */
-    EVC_PIC          * pic_o;
+    EVC_PIC           * pic_o;
     /* address of original (input) picture buffer */
     pel               * o[N_C];
     /* stride of original (input) picture buffer */
     int                 s_o[N_C];
     /* mode picture buffer */
-    EVC_PIC          * pic_m;
+    EVC_PIC           * pic_m;
     /* address of mode picture buffer */
-
     pel               * m[N_C];
     /* stride of mode picture buffer */
     int                 s_m[N_C];
-
     /* QP for luma */
     u8                  qp_y;
     /* QP for chroma */
     u8                  qp_u;
     u8                  qp_v;
-
     int                 slice_type;
-
     int                 complexity;
     void              * pdata[4];
     int               * ndata[4];
@@ -227,16 +207,11 @@ struct _EVCE_PINTER
 {
     /* temporary prediction buffer (only used for ME)*/
     pel  pred_buf[MAX_CU_DIM];
-#if !CODE_CLEAN
-    /* reconstruction buffer */
-    pel  rec_buf[N_C][MAX_CU_DIM];
-#endif
     /* temporary buffer for analyze_cu */
     s8   refi[PRED_NUM][REFP_NUM];
     /* Ref idx predictor */
     s8   refi_pred[REFP_NUM][MAX_NUM_MVP]; 
     u8   mvp_idx[PRED_NUM][REFP_NUM];
-
     s16  mvp_scale[REFP_NUM][MAX_NUM_ACTIVE_REF_FRAME][MAX_NUM_MVP][MV_D];
     s16  mv_scale[REFP_NUM][MAX_NUM_ACTIVE_REF_FRAME][MV_D];
     u8   mvp_idx_temp_for_bi[PRED_NUM][REFP_NUM][MAX_NUM_ACTIVE_REF_FRAME];
@@ -248,15 +223,13 @@ struct _EVCE_PINTER
     s8   first_refi[PRED_NUM][REFP_NUM];
     u8   bi_idx[PRED_NUM];
     u8   curr_bi;
-    int max_search_range;
+    int  max_search_range;
     s16  affine_mvp_scale[REFP_NUM][MAX_NUM_ACTIVE_REF_FRAME][MAX_NUM_MVP][VER_NUM][MV_D];
     s16  affine_mv_scale[REFP_NUM][MAX_NUM_ACTIVE_REF_FRAME][VER_NUM][MV_D];
     u8   mvp_idx_scale[REFP_NUM][MAX_NUM_ACTIVE_REF_FRAME];
-
     s16  affine_mvp[REFP_NUM][MAX_NUM_MVP][VER_NUM][MV_D];
     s16  affine_mv[PRED_NUM][REFP_NUM][VER_NUM][MV_D];
     s16  affine_mvd[PRED_NUM][REFP_NUM][VER_NUM][MV_D];
-
     pel  p_error[MAX_CU_DIM];
     int  i_gradient[2][MAX_CU_DIM];
     s16  resi[N_C][MAX_CU_DIM];
@@ -269,27 +242,23 @@ struct _EVCE_PINTER
 #endif
     s16  mv[PRED_NUM][REFP_NUM][MV_D];
     s16  mvd[PRED_NUM][REFP_NUM][MV_D];
-
     s16  org_bi[MAX_CU_DIM];
     s32  mot_bits[REFP_NUM];
     /* temporary prediction buffer (only used for ME)*/
     pel  pred[PRED_NUM+1][2][N_C][MAX_CU_DIM];
     pel  dmvr_template[MAX_CU_DIM];
-    pel dmvr_half_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + 1) * (MAX_CU_SIZE + 1)];
+    pel  dmvr_half_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + 1) * (MAX_CU_SIZE + 1)];
 #if DMVR_PADDING
     pel  dmvr_padding_buf[PRED_NUM][N_C][PAD_BUFFER_STRIDE * PAD_BUFFER_STRIDE];
 #endif
     pel  dmvr_ref_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT)) * (MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT))];
-
     /* reconstruction buffer */
     pel  rec[PRED_NUM][N_C][MAX_CU_DIM];
     /* last one buffer used for RDO */
     s16  coef[PRED_NUM+1][N_C][MAX_CU_DIM];
-
     s16  residue[N_C][MAX_CU_DIM];
     int  nnz_best[PRED_NUM][N_C];
     int  nnz_sub_best[PRED_NUM][N_C][MAX_SUB_TB_NUM];
-
     u8   num_refp;
     /* minimum clip value */
     s16  min_clip[MV_D];
@@ -299,19 +268,18 @@ struct _EVCE_PINTER
     s16  search_range_ipel[MV_D]; 
     /* search range for sub-pel */
     s16  search_range_spel[MV_D]; 
-    s8  (*search_pattern_hpel)[2];
+    s8 (*search_pattern_hpel)[2];
     u8   search_pattern_hpel_cnt;
-    s8  (*search_pattern_qpel)[2];
+    s8 (*search_pattern_qpel)[2];
     u8   search_pattern_qpel_cnt;
-
     /* original (input) picture buffer */
-    EVC_PIC        *pic_o;
+    EVC_PIC         *pic_o;
     /* address of original (input) picture buffer */
     pel             *o[N_C];
     /* stride of original (input) picture buffer */
     int              s_o[N_C];
     /* mode picture buffer */
-    EVC_PIC        *pic_m;
+    EVC_PIC         *pic_m;
     /* address of mode picture buffer */
     pel             *m[N_C];
     /* stride of mode picture buffer */
@@ -320,7 +288,7 @@ struct _EVCE_PINTER
     s16            (*map_mv)[REFP_NUM][MV_D];
 #if DMVR_LAG
     /* unrefined motion vector map */
-    s16(*map_unrefined_mv)[REFP_NUM][MV_D];
+    s16            (*map_unrefined_mv)[REFP_NUM][MV_D];
 #endif
     /* picture width in SCU unit */
     u16              w_scu;
@@ -331,7 +299,7 @@ struct _EVCE_PINTER
     u8               qp_v;
     u32              lambda_mv;
     /* reference pictures */
-    EVC_REFP      (*refp)[REFP_NUM];
+    EVC_REFP       (*refp)[REFP_NUM];
     int              slice_type;
     /* search level for motion estimation */
     int              me_level;
@@ -344,81 +312,58 @@ struct _EVCE_PINTER
     int              gop_size;
     int              sps_amvr_flag;
     /* ME function (Full-ME or Fast-ME) */
-    u32            (*fn_me)(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2_cuh, s8 *refi, int lidx, s16 mvp[MV_D], s16 mv[MV_D], int bi
-#if BD_CF_EXT
-                            , int bit_depth_luma, int chroma_format_idc
-#endif
-                            );
+    u32            (*fn_me)(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2_cuh, s8 *refi, int lidx, s16 mvp[MV_D], s16 mv[MV_D], int bi, int bit_depth_luma, int chroma_format_idc);
     /* AFFINE ME function (Gradient-ME) */
     u32            (*fn_affine_me)(EVCE_PINTER *pi, int x, int y, int log2_cuw, int log2_cuh, s8 *refi, int lidx, s16 mvp[VER_NUM][MV_D], s16 mv[VER_NUM][MV_D], int bi, int vertex_num, pel *tmp
-#if BD_CF_EXT
-                                   , int bit_depth_luma, int bit_depth_chroma
-                                   , int chroma_format_idc
-#endif
-                                   );
+                                   , int bit_depth_luma, int bit_depth_chroma, int chroma_format_idc);
 };
 
 typedef struct _EVCE_PIBC EVCE_PIBC;
 struct _EVCE_PIBC
 {
   /* filtered reconstruction buffer */
-  pel  unfiltered_rec_buf[N_C][MAX_CU_DIM];
-
+  pel             unfiltered_rec_buf[N_C][MAX_CU_DIM];
   /* temporary buffer for analyze_cu */
-  s8   refi[REFP_NUM];
+  s8              refi[REFP_NUM];
   /* Ref idx predictor */
-  s8   refi_pred[REFP_NUM];
-
-  u8 pred_mode;
-  u8 ibc_flag;
-
-
-  int search_range_x;
-  int search_range_y;
-
-  u8   mvp_idx;
+  s8              refi_pred[REFP_NUM];
+  u8              pred_mode;
+  u8              ibc_flag;
+  int             search_range_x;
+  int             search_range_y;
+  u8              mvp_idx;
   /* MV predictor */
-  s16  mvp[MAX_NUM_MVP][MV_D];
-
-  s16  mv[REFP_NUM][MV_D];
-  s16  mvd[MV_D];
-
-  s32  mot_bits;
-
+  s16             mvp[MAX_NUM_MVP][MV_D];
+  s16             mv[REFP_NUM][MV_D];
+  s16             mvd[MV_D];
+  s32             mot_bits;
   /* last one buffer used for RDO */
-  s16  coef[N_C][MAX_CU_DIM];
-
-  s16  inv_coef[N_C][MAX_CU_DIM];
-
-  s16  residue[N_C][MAX_CU_DIM];
-  int  nnz_best[N_C];
+  s16             coef[N_C][MAX_CU_DIM];
+  s16             inv_coef[N_C][MAX_CU_DIM];
+  s16             residue[N_C][MAX_CU_DIM];
+  int             nnz_best[N_C];
   // xxu to be checked
-  int  nnz_sub_best[PRED_NUM][N_C][MAX_SUB_TB_NUM];
+  int             nnz_sub_best[PRED_NUM][N_C][MAX_SUB_TB_NUM];
   /* minimum clip value */
-  s16  min_clip[MV_D];
+  s16             min_clip[MV_D];
   /* maximum clip value */
-  s16  max_clip[MV_D];
-
+  s16             max_clip[MV_D];
   /* original (input) picture buffer */
   EVC_PIC        *pic_o;
   /* address of original (input) picture buffer */
   pel            *o[N_C];
   /* stride of original (input) picture buffer */
-  int            s_o[N_C];
-
+  int             s_o[N_C];
   /* mode picture buffer */
   EVC_PIC        *pic_m;
   /* address of mode picture buffer */
   pel            *m[N_C];
   /* stride of mode picture buffer */
-  int            s_m[N_C];
-
+  int             s_m[N_C];
   /* ctu size log2 table */
-  s8 ctu_log2_tbl[MAX_CU_SIZE + 1];
-
+  s8              ctu_log2_tbl[MAX_CU_SIZE + 1];
   /* temporary prediction buffer (only used for ME)*/
-  pel  pred[REFP_NUM][N_C][MAX_CU_DIM];
-
+  pel             pred[REFP_NUM][N_C][MAX_CU_DIM];
   /* picture width in SCU unit */
   u16             w_scu;
   /* QP for luma of current encoding CU */
@@ -427,12 +372,10 @@ struct _EVCE_PIBC
   u8              qp_u;
   u8              qp_v;
   u32             lambda_mv;
-
   int             slice_type;
-
   int             complexity;
-  void            *pdata[4];
-  int             *ndata[4];
+  void           *pdata[4];
+  int            *ndata[4];
 };
 
 /* EVC encoder parameter */
@@ -484,13 +427,9 @@ typedef struct _EVCE_PARAM
     int                 ibc_hash_search_range_4smallblk;
     int                 ibc_fast_method;
     int                 use_hgop;
-#if DQP_CFG
     /* config parameter for cu_qp_delta_area*/
     int                 cu_qp_delta_area;
-#endif
-#if BD_CF_EXT
     int                 chroma_format_idc;
-#endif
     int                 qp_incread_frame;           /* 10 bits*/
     /* number of tile' columns (1-20)*/
     int                 tile_columns;
@@ -498,14 +437,15 @@ typedef struct _EVCE_PARAM
     int                 tile_rows;
     /* flag for uniform spacing tiles */
     int                 uniform_spacing_tiles;
-    int                  num_slice_in_pic;
+    int                 num_slice_in_pic;
     /* Array for storing slice boundaries*/ 
     /* In EVC slices are rectangular only (No rasterscan tiles)
     Slice boundaries stores the tile index of top left and bottom right tiles */
-    int            slice_boundary_array[2 * 600];
-    int            tile_array_in_slice[2 * 600];
-    int            arbitrary_slice_flag;
-    u32            num_remaining_tiles_in_slice_minus1[600];
+    int                 slice_boundary_array[2 * 600];
+    int                 tile_array_in_slice[2 * 600];
+    int                 arbitrary_slice_flag;
+    u32                 num_remaining_tiles_in_slice_minus1[600];
+
 } EVCE_PARAM;
 
 typedef struct _EVCE_SBAC
@@ -524,8 +464,7 @@ typedef struct _EVCE_SBAC
     u32            bin_counter;
 #endif 
 } EVCE_SBAC;
-#if DQP
-#if DQP_RDO
+
 typedef struct _EVCE_DQP
 {
     s8            prev_QP;
@@ -533,8 +472,7 @@ typedef struct _EVCE_DQP
     s8            cu_qp_delta_is_coded;
     s8            cu_qp_delta_code;
 } EVCE_DQP;
-#endif
-#endif
+
 typedef struct _EVCE_CU_DATA
 {
     s8  split_mode[NUM_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
@@ -549,9 +487,7 @@ typedef struct _EVCE_CU_DATA
     s8  **ipm;
     u8  *skip_flag;
     u8  *ibc_flag;
-#if DMVR_FLAG
     u8  *dmvr_flag;
-#endif
     s8  **refi;    
     u8  **mvp_idx; 
     u8  *mvr_idx;
@@ -603,22 +539,20 @@ typedef struct _EVCE_BEF_DATA
     int    ats_intra_cu_idx_intra;
     int    ats_intra_cu_idx_inter;
 } EVCE_BEF_DATA;
+
 /*****************************************************************************
  * CORE information used for encoding process.
  *
  * The variables in this structure are very often used in encoding process.
  *****************************************************************************/
-
 typedef struct _EVCE_CORE
 {
     /* coefficient buffer of current CU */
     s16            coef[N_C][MAX_CU_DIM];
     /* CU data for RDO */
-    EVCE_CU_DATA  cu_data_best[MAX_CU_DEPTH][MAX_CU_DEPTH];
-    EVCE_CU_DATA  cu_data_temp[MAX_CU_DEPTH][MAX_CU_DEPTH];
-#if DQP
-    EVCE_DQP      dqp_data[MAX_CU_DEPTH][MAX_CU_DEPTH];
-#endif
+    EVCE_CU_DATA   cu_data_best[MAX_CU_DEPTH][MAX_CU_DEPTH];
+    EVCE_CU_DATA   cu_data_temp[MAX_CU_DEPTH][MAX_CU_DEPTH];
+    EVCE_DQP       dqp_data[MAX_CU_DEPTH][MAX_CU_DEPTH];
     /* temporary coefficient buffer */
     s16            ctmp[N_C][MAX_CU_DIM];
     /* pred buffer of current CU. [1][x][x] is used for bi-pred */
@@ -627,20 +561,16 @@ typedef struct _EVCE_CORE
     pel            nb[N_C][N_REF][MAX_CU_SIZE * 3];
     /* current encoding LCU number */
     int            lcu_num;
-#if DQP
     /*QP for current encoding CU. Used to derive Luma and chroma qp*/
     u8             qp;
     u8             cu_qp_delta_code;
     u8             cu_qp_delta_is_coded;
     u8             cu_qp_delta_code_mode;
-#if DQP_RDO
     EVCE_DQP       dqp_curr_best[MAX_CU_DEPTH][MAX_CU_DEPTH];
     EVCE_DQP       dqp_next_best[MAX_CU_DEPTH][MAX_CU_DEPTH];
     EVCE_DQP       dqp_temp_best;
     EVCE_DQP       dqp_temp_best_merge;
     EVCE_DQP       dqp_temp_run;
-#endif
-#endif
     /* QP for luma of current encoding CU */
     u8             qp_y;
     /* QP for chroma of current encoding CU */
@@ -717,12 +647,7 @@ typedef struct _EVCE_CORE
     EVCE_SBAC      s_temp_prev_comp_best;
     EVCE_SBAC      s_temp_prev_comp_run;
     EVCE_SBAC      s_curr_before_split[MAX_CU_DEPTH][MAX_CU_DEPTH];
-#if DQP_RDO 
     EVCE_BEF_DATA  bef_data[MAX_CU_DEPTH][MAX_CU_DEPTH][MAX_CU_CNT_IN_LCU][MAX_BEF_DATA_NUM];
-#else
-    EVCE_BEF_DATA bef_data[MAX_CU_DEPTH][MAX_CU_DEPTH][MAX_CU_CNT_IN_LCU][NUM_NEIB];
-#endif
-
     double         cost_best;
     u32            inter_satd;
     s32            dist_cu;
@@ -730,11 +655,9 @@ typedef struct _EVCE_CORE
     /* temporal pixel buffer for inter prediction */
     pel            eif_tmp_buffer[(MAX_CU_SIZE + 2) * (MAX_CU_SIZE + 2)];
     u8             au8_eval_mvp_idx[MAX_NUM_MVP];
-#if DMVR_FLAG
     u8             dmvr_flag;
-#endif
 #if TRACE_ENC_CU_DATA
-    u64  trace_idx;
+    u64            trace_idx;
 #endif
     int            tile_num;
     /* current tile index */
@@ -769,7 +692,7 @@ typedef struct _EVCE_CORE
  *
  * All have to be stored are in this structure.
  *****************************************************************************/
- typedef struct _EVCE_CTX EVCE_CTX;
+typedef struct _EVCE_CTX EVCE_CTX;
 
 struct _EVCE_CTX
 {
@@ -804,15 +727,11 @@ struct _EVCE_CTX
     EVC_SPS                sps;
     /* picture parameter set */
     EVC_PPS              * pps;
-#if MULTIPLE_NAL
-    EVC_PPS                 pps_array[64];
-#endif
+    EVC_PPS                pps_array[64];
     /* adaptation parameter set */
-#if M52291_HDR_DRA
     EVC_APS_GEN          * aps_gen_array;
     SignalledParamsDRA   * dra_array;
     WCGDDRAControl       * dra_control;
-#endif
     EVC_APS                aps;
     u8                     aps_counter;
     u8                     aps_temp;
@@ -1000,9 +919,7 @@ struct _EVCE_CTX
 
     double(*fn_pintra_analyze_cu)(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, \
                                   int log2_cuw, int log2_cuh, EVCE_MODE *mi, \
-                                  s16 coef[N_C][MAX_CU_DIM], pel *rec[N_C], int s_rec[N_C]
-
-                                  );
+                                  s16 coef[N_C][MAX_CU_DIM], pel *rec[N_C], int s_rec[N_C]);
     int (*fn_pintra_set_complexity)(EVCE_CTX * ctx, int complexity);
 
     /* inter prediction functions */
@@ -1011,8 +928,7 @@ struct _EVCE_CTX
 
     double (*fn_pinter_analyze_cu)(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, \
                                    int log2_cuw, int log2_cuh, EVCE_MODE *mi, \
-                                   s16 coef[N_C][MAX_CU_DIM], pel *rec[N_C], int s_rec[N_C]
-                                   );
+                                   s16 coef[N_C][MAX_CU_DIM], pel *rec[N_C], int s_rec[N_C]);
 
     int (*fn_pinter_set_complexity)(EVCE_CTX * ctx, int complexity);
     void *ibc_hash_handle;
@@ -1020,7 +936,7 @@ struct _EVCE_CTX
     int(*fn_pibc_init_lcu)(EVCE_CTX * ctx, EVCE_CORE * core);
 
     double(*fn_pibc_analyze_cu)(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
-      int log2_cuw, int log2_cuh, EVCE_MODE *mi, s16 coef[N_C][MAX_CU_DIM], pel *rec[N_C], int s_rec[N_C]);
+           int log2_cuw, int log2_cuh, EVCE_MODE *mi, s16 coef[N_C][MAX_CU_DIM], pel *rec[N_C], int s_rec[N_C]);
 
     int(*fn_pibc_set_complexity)(EVCE_CTX * ctx, int complexity);
     /* platform specific data, if needed */

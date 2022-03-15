@@ -65,7 +65,7 @@ void reset_ibc_search_range(EVCE_CTX *ctx, int cu_x, int cu_y, int log2_cuw, int
 
 // for ibc pu validation
 IBC_INLINE int is_bv_valid(EVCE_CTX *ctx, int x, int y, int width, int height, int log2_cuw, int log2_cuh
-                         , int pic_width, int pic_height, int x_bv, int y_bv, int ctu_size, EVCE_CORE * core)
+                           , int pic_width, int pic_height, int x_bv, int y_bv, int ctu_size, EVCE_CORE * core)
 {
     int x_scu = 0, y_scu = 0;
     int log2_scuw = 0, log2_scuh = 0;
@@ -79,9 +79,7 @@ IBC_INLINE int is_bv_valid(EVCE_CTX *ctx, int x, int y, int width, int height, i
     scuw = 1 << log2_scuw;
     scuh = 1 << log2_scuh;
 
-
     const int ctu_size_log2 = ctx->pibc.ctu_log2_tbl[ctu_size];
-
 
     int ref_right_x = x + x_bv + width - 1;
     int ref_bottom_y = y + y_bv + height - 1;
@@ -293,32 +291,32 @@ IBC_INLINE int is_bv_valid(EVCE_CTX *ctx, int x, int y, int width, int height, i
 
     if (ctx->sps.sps_suco_flag)
     {
-      // check the availablity of bottom-left corner
-      int ref_pos_BL_scup = (ref_pos_BR_y_scu * ctx->w_scu) + ref_pos_LT_x_scu;
-      int curr_scup = ((y_scu)* ctx->w_scu) + (x_scu);
-
-      avail_cu = MCU_GET_COD(ctx->map_scu[ref_pos_BL_scup]) && (ctx->map_tidx[curr_scup] == ctx->map_tidx[ref_pos_BL_scup]);
-      if (avail_cu == 0)
-      {
-        return 0;
-      }
-
-      // check if the reference block cross the uncoded block
-      if (ref_pos_BR_x >= x && ref_pos_BR_y < y)
-      {
-        int check_point_x = ref_pos_LT_x + width / 2;
-        int check_point_y = ref_pos_BR_y;
-        int check_point_x_scu = PEL2SCU(check_point_x);
-        int check_point_y_scu = PEL2SCU(check_point_y);
-        int check_point_scup = (check_point_y_scu * ctx->w_scu) + check_point_x_scu;
+        // check the availablity of bottom-left corner
+        int ref_pos_BL_scup = (ref_pos_BR_y_scu * ctx->w_scu) + ref_pos_LT_x_scu;
         int curr_scup = ((y_scu)* ctx->w_scu) + (x_scu);
 
-        avail_cu = MCU_GET_COD(ctx->map_scu[check_point_scup]) && (ctx->map_tidx[curr_scup] == ctx->map_tidx[check_point_scup]);
+        avail_cu = MCU_GET_COD(ctx->map_scu[ref_pos_BL_scup]) && (ctx->map_tidx[curr_scup] == ctx->map_tidx[ref_pos_BL_scup]);
         if (avail_cu == 0)
         {
-          return 0;
+            return 0;
         }
-      }
+
+        // check if the reference block cross the uncoded block
+        if (ref_pos_BR_x >= x && ref_pos_BR_y < y)
+        {
+            int check_point_x = ref_pos_LT_x + width / 2;
+            int check_point_y = ref_pos_BR_y;
+            int check_point_x_scu = PEL2SCU(check_point_x);
+            int check_point_y_scu = PEL2SCU(check_point_y);
+            int check_point_scup = (check_point_y_scu * ctx->w_scu) + check_point_x_scu;
+            int curr_scup = ((y_scu)* ctx->w_scu) + (x_scu);
+
+            avail_cu = MCU_GET_COD(ctx->map_scu[check_point_scup]) && (ctx->map_tidx[curr_scup] == ctx->map_tidx[check_point_scup]);
+            if (avail_cu == 0)
+            {
+                return 0;
+            }
+        }
     }
 
     return 1;

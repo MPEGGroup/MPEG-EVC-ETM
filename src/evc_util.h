@@ -93,18 +93,14 @@ BOOL is_ptr_aligned(void* ptr, int num_bytes);
 u16 evc_get_avail_inter(int x_scu, int y_scu, int w_scu, int h_scu, int scup, int cuw, int cuh, u32 *map_scu, u8* map_tidx);
 u16 evc_get_avail_intra(int x_scu, int y_scu, int w_scu, int h_scu, int scup, int log2_cuw, int log2_cuh, u32 *map_scu, u8* map_tidx);
 u16 evc_get_avail_ibc(int x_scu, int y_scu, int w_scu, int h_scu, int scup, int cuw, int cuh, u32 * map_scu, u8* map_tidx);
-EVC_PIC* evc_picbuf_alloc(int w, int h, int pad_l, int pad_c, int *err
-#if BD_CF_EXT
-                          , int idc
-#endif
-);
+EVC_PIC* evc_picbuf_alloc(int w, int h, int pad_l, int pad_c, int *err, int idc);
 void evc_picbuf_free(EVC_PIC *pic);
 void evc_picbuf_expand(EVC_PIC *pic, int exp_l, int exp_c);
 
 void evc_poc_derivation(EVC_SPS sps, int tid, EVC_POC *poc);
 
-void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int h_scu, int scup, u16 avail, int cuw, int cuh, int slice_t, int real_mv[][2][3], u32 *map_scu, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME], u16 avail_lr
-                           , u32 curr_ptr, u8 num_refp[REFP_NUM]
+void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int h_scu, int scup, u16 avail, int cuw, int cuh, int slice_t
+                           , int real_mv[][2][3], u32 *map_scu, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME], u16 avail_lr, u32 curr_ptr, u8 num_refp[REFP_NUM]
                            , EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh, int log2_max_cuwh, u8 * map_tidx, int mmvd_idx);
 
 void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_scu, int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag[MAX_NUM_POSSIBLE_SCAND], u32 *map_scu, u16 avail_lr, int num_mvp, int is_ibc, u8 * map_tidx);
@@ -116,11 +112,7 @@ void evc_get_default_motion(int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag
                             , int w_scu
 #endif
                             , EVC_HISTORY_BUFFER history_buffer
-#if M53737
                             , int hmvp_flag
-#else
-                            , int admvp_flag
-#endif
 );
 
 s8 evc_get_first_refi(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int cuw, int cuh, int w_scu, int h_scu, u32 *map_scu, u8 mvr_idx, u16 avail_lr
@@ -128,11 +120,7 @@ s8 evc_get_first_refi(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[
                       , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
                       , EVC_HISTORY_BUFFER history_buffer
-#if M53737
                       , int hmvp_flag
-#else
-                      , int admvp_flag
-#endif
                       , u8 * map_tidx);
 
 void evc_get_motion(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],
@@ -159,21 +147,9 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int poc, int scup, int lidx, s8 cur_ref
                              , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
                              , EVC_HISTORY_BUFFER history_buffer
-#if M53737
                              , int hmvp_flag
-#else
-                             , int admvp_flag
-#endif
                              , u8* map_tidx);
-#if !CODE_CLEAN
-void evc_get_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int num_refp, \
-                            s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
-                            int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][MV_D], s8 refi_pred[MAX_NUM_MVP], u32* map_scu, u16 avail_lr
-#if DMVR_LAG
-                            , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
-#endif
-                            , u8 * map_tidx);
-#endif
+
 enum
 {
     SPLIT_MAX_PART_COUNT = 4
@@ -278,12 +254,7 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
                           , const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int qt_depth, int btt_depth
                           , int x, int y, int im_w, int im_h
                           , u8* remaining_split, int sps_btt_flag
-                          , MODE_CONS mode_cons
-);
-
-#if DQP
-u8  *evc_get_dqp_used(int x_scu, int y_scu, int w_scu, u8 * map_dqp_input, int dqp_depth);
-#endif
+                          , MODE_CONS mode_cons);
 
 void evc_init_scan_sr(int *scan, int size_x, int size_y, int width, int height, int scan_type);
 void evc_init_inverse_scan_sr(u16 *scan_inv, u16 *scan_orig, int width, int height, int scan_type);
@@ -297,11 +268,7 @@ int get_rice_para(s16 *pcoeff, int blkpos, int width, int height, int base_level
 }
 #endif
 
-int evc_get_transform_shift(int log2_size, int type
-#if BD_CF_EXT
-                            , int bit_depth
-#endif
-);
+int evc_get_transform_shift(int log2_size, int type, int bit_depth);
 
 void evc_eco_sbac_ctx_initialize(SBAC_CTX_MODEL *ctx, s16 *ctx_init_model, u16 num_ctx, u8 slice_type, u8 slice_qp);
 
@@ -323,7 +290,6 @@ u8 evc_check_all(TREE_CONS tree_cons);
 u8 evc_check_only_intra(TREE_CONS tree_cons);
 u8 evc_check_only_inter(TREE_CONS tree_cons);
 u8 evc_check_all_preds(TREE_CONS tree_cons);
-//u8 evc_get_cur_tree(TREE_CONS tree_cons);       // Return current tree type: 0 - luma (or dual) and 1 - chroma.
 TREE_CONS evc_get_default_tree_cons();
 void evc_set_tree_mode(TREE_CONS* dest, MODE_CONS mode);
 MODE_CONS evc_get_mode_cons_by_split(SPLIT_MODE split_mode, int cuw, int cuh);

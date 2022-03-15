@@ -46,12 +46,7 @@ void evce_pic_free(PICBUF_ALLOCATOR *pa, EVC_PIC *pic);
 void evce_bsw_skip_slice_size(EVC_BSW *bs);
 int evce_bsw_write_nalu_size(EVC_BSW *bs);
 
-void evce_diff_pred(int x, int y, int log2_cuw, int log2_cuh, EVC_PIC *org, pel pred[N_C][MAX_CU_DIM], s16 diff[N_C][MAX_CU_DIM]
-#if BD_CF_EXT
-                    , int bit_depth_luma, int bit_depth_chroma
-                    , int chroma_format_idc
-#endif
-);
+void evce_diff_pred(int x, int y, int log2_cuw, int log2_cuh, EVC_PIC *org, pel pred[N_C][MAX_CU_DIM], s16 diff[N_C][MAX_CU_DIM], int bit_depth_luma, int bit_depth_chroma, int chroma_format_idc);
 
 #if RDO_DBK
 void evc_set_affine_mvf(EVCE_CTX * ctx, EVCE_CORE * core, int w, int h, s8 refi[REFP_NUM], s16 mv[REFP_NUM][VER_NUM][MV_D], int vertex_num);
@@ -59,16 +54,12 @@ void evc_set_affine_mvf(EVCE_CTX * ctx, EVCE_CORE * core, int w, int h, s8 refi[
 
 #define SBAC_STORE(dst, src) evc_mcpy(&dst, &src, sizeof(EVCE_SBAC))
 #define SBAC_LOAD(dst, src)  evc_mcpy(&dst, &src, sizeof(EVCE_SBAC))
-#if DQP_RDO
+
 #define DQP_STORE(dst, src) evc_mcpy(&dst, &src, sizeof(EVCE_DQP))
 #define DQP_LOAD(dst, src)  evc_mcpy(&dst, &src, sizeof(EVCE_DQP))
 void evce_set_qp(EVCE_CTX *ctx, EVCE_CORE *core, u8 qp);
-#endif
-#if BD_CF_EXT
+
 int evce_create_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh, int chroma_format_idc);
-#else
-int evce_create_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh);
-#endif
 int evce_delete_cu_data(EVCE_CU_DATA *cu_data, int log2_cuw, int log2_cuh);
 
 void evce_split_tbl_init(EVCE_CTX *ctx);

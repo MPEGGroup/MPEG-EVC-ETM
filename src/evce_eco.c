@@ -33,14 +33,10 @@
 
 #include "evce_def.h"
 #include <limits.h>
-
 #include <math.h>
 #include "wrapper.h"
 #include "enc_alf_wrapper.h"
-
-#if M52291_HDR_DRA
 #include "evc_util.h"
-#endif
 
 #if GRAB_STAT
 #include "evc_debug.h"
@@ -97,12 +93,13 @@ int evce_eco_ref_pic_list_mod(EVC_BSW * bs)
     return EVC_OK;
 }
 
-#if EVC_VUI_FIX
-int evce_eco_hrd_parameters(EVC_BSW * bs, EVC_HRD * hrd) {
+int evce_eco_hrd_parameters(EVC_BSW * bs, EVC_HRD * hrd)
+{
     evc_bsw_write_ue(bs, hrd->cpb_cnt_minus1);
     evc_bsw_write(bs, hrd->bit_rate_scale, 4);
     evc_bsw_write(bs, hrd->cpb_size_scale, 4);
-    for (int SchedSelIdx = 0; SchedSelIdx <= hrd->cpb_cnt_minus1; SchedSelIdx++) {
+    for (int SchedSelIdx = 0; SchedSelIdx <= hrd->cpb_cnt_minus1; SchedSelIdx++)
+    {
         evc_bsw_write_ue(bs, hrd->bit_rate_value_minus1[SchedSelIdx]);
         evc_bsw_write_ue(bs, hrd->cpb_size_value_minus1[SchedSelIdx]);
         evc_bsw_write1(bs, hrd->cbr_flag[SchedSelIdx]);
@@ -118,9 +115,11 @@ int evce_eco_hrd_parameters(EVC_BSW * bs, EVC_HRD * hrd) {
 int evce_eco_vui(EVC_BSW * bs, EVC_VUI * vui)
 {
     evc_bsw_write1(bs, vui->aspect_ratio_info_present_flag);
-    if (vui->aspect_ratio_info_present_flag) {
+    if (vui->aspect_ratio_info_present_flag)
+    {
         evc_bsw_write(bs, vui->aspect_ratio_idc, 8);
-        if (vui->aspect_ratio_idc == EXTENDED_SAR) {
+        if (vui->aspect_ratio_idc == EXTENDED_SAR)
+        {
             evc_bsw_write(bs, vui->sar_width, 16);
             evc_bsw_write(bs, vui->sar_height, 16);
         }
@@ -129,27 +128,29 @@ int evce_eco_vui(EVC_BSW * bs, EVC_VUI * vui)
     if (vui->overscan_info_present_flag)
         evc_bsw_write1(bs, vui->overscan_appropriate_flag);
     evc_bsw_write1(bs, vui->video_signal_type_present_flag);
-    if (vui->video_signal_type_present_flag) {
+    if (vui->video_signal_type_present_flag)
+    {
         evc_bsw_write(bs, vui->video_format, 3);
         evc_bsw_write1(bs, vui->video_full_range_flag);
         evc_bsw_write1(bs, vui->colour_description_present_flag);
-        if (vui->colour_description_present_flag) {
+        if (vui->colour_description_present_flag)
+        {
             evc_bsw_write(bs, vui->colour_primaries, 8);
             evc_bsw_write(bs, vui->transfer_characteristics, 8);
             evc_bsw_write(bs, vui->matrix_coefficients, 8);
         }
     }
     evc_bsw_write1(bs, vui->chroma_loc_info_present_flag);
-    if (vui->chroma_loc_info_present_flag) {
+    if (vui->chroma_loc_info_present_flag)
+    {
         evc_bsw_write_ue(bs, vui->chroma_sample_loc_type_top_field);
         evc_bsw_write_ue(bs, vui->chroma_sample_loc_type_bottom_field);
     }
     evc_bsw_write1(bs, vui->neutral_chroma_indication_flag);
-#if ETM60_HLS_FIX
     evc_bsw_write1(bs, vui->field_seq_flag);
-#endif
     evc_bsw_write1(bs, vui->timing_info_present_flag);
-    if (vui->timing_info_present_flag) {
+    if (vui->timing_info_present_flag)
+    {
         evc_bsw_write(bs, vui->num_units_in_tick, 32);
         evc_bsw_write(bs, vui->time_scale, 32);
         evc_bsw_write1(bs, vui->fixed_pic_rate_flag);
@@ -164,7 +165,8 @@ int evce_eco_vui(EVC_BSW * bs, EVC_VUI * vui)
         evc_bsw_write1(bs, vui->low_delay_hrd_flag);
     evc_bsw_write1(bs, vui->pic_struct_present_flag);
     evc_bsw_write1(bs, vui->bitstream_restriction_flag);
-    if (vui->bitstream_restriction_flag) {
+    if (vui->bitstream_restriction_flag)
+    {
         evc_bsw_write1(bs, vui->motion_vectors_over_pic_boundaries_flag);
         evc_bsw_write_ue(bs, vui->max_bytes_per_pic_denom);
         evc_bsw_write_ue(bs, vui->max_bits_per_mb_denom);
@@ -176,12 +178,6 @@ int evce_eco_vui(EVC_BSW * bs, EVC_VUI * vui)
 
     return EVC_OK;
 }
-#else
-int evce_eco_vui(EVC_BSW * bs)
-{
-    return EVC_OK;
-}
-#endif
 
 
 int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
@@ -223,9 +219,7 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
         evc_bsw_write1(bs, sps->tool_amvr);
         evc_bsw_write1(bs, sps->tool_dmvr);
         evc_bsw_write1(bs, sps->tool_mmvd);
-#if M53737
         evc_bsw_write1(bs, sps->tool_hmvp);
-#endif
     }
 
     evc_bsw_write1(bs, sps->tool_eipd);
@@ -250,23 +244,13 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
         evc_bsw_write1(bs, sps->tool_ats);
     }
     evc_bsw_write1(bs, sps->tool_addb);
-#if !DB_SPEC_ALIGNMENT2
-#if M52291_HDR_DRA
-    evc_bsw_write1(bs, sps->tool_dra);
-#endif
-#endif
     evc_bsw_write1(bs, sps->tool_alf);
     evc_bsw_write1(bs, sps->tool_htdf);
     evc_bsw_write1(bs, sps->tool_rpl);
     evc_bsw_write1(bs, sps->tool_pocs);
-#if DQP
     evc_bsw_write1(bs, sps->dquant_flag);
-#endif
-#if DB_SPEC_ALIGNMENT2
-#if M52291_HDR_DRA
     evc_bsw_write1(bs, sps->tool_dra);
-#endif
-#endif
+
     if (sps->tool_pocs)
     {
         evc_bsw_write_ue(bs, sps->log2_max_pic_order_cnt_lsb_minus4);
@@ -279,18 +263,14 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
             evc_bsw_write_ue(bs, sps->log2_ref_pic_gap_length);
         }
     }
-#if !M53744
-    evc_bsw_write_ue(bs, sps->sps_max_dec_pic_buffering_minus1);
-#endif
+
     if (!sps->tool_rpl)
     {
         evc_bsw_write_ue(bs, sps->max_num_ref_pics);
     }
     else
     {
-#if M53744
         evc_bsw_write_ue(bs, sps->sps_max_dec_pic_buffering_minus1);
-#endif
         evc_bsw_write1(bs, sps->long_term_ref_pics_flag);
         evc_bsw_write1(bs, sps->rpl1_same_as_rpl0_flag);
 
@@ -315,9 +295,7 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
         evc_bsw_write_ue(bs, sps->picture_crop_bottom_offset);
     }
 
-#if M53744
     if (sps->chroma_format_idc != 0)
-#endif
     {
         evc_bsw_write1(bs, sps->chroma_qp_table_struct.chroma_qp_table_present_flag);
         if (sps->chroma_qp_table_struct.chroma_qp_table_present_flag)
@@ -338,11 +316,8 @@ int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps)
 
     evc_bsw_write1(bs, sps->vui_parameters_present_flag);
     if (sps->vui_parameters_present_flag)
-#if EVC_VUI_FIX
         evce_eco_vui(bs, &(sps->vui_parameters));
-#else
-        evce_eco_vui(bs); //To be implemented
-#endif
+
     u32 t0 = 0;
     while(!EVC_BSW_IS_BYTE_ALIGN(bs))
     {
@@ -402,41 +377,20 @@ int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps)
         }
     }
 
-#if M52291_HDR_DRA
     evc_bsw_write1(bs, pps->pic_dra_enabled_flag);
-#if ETM60_HLS_FIX
     if (pps->pic_dra_enabled_flag)
     {
         evc_bsw_write(bs, pps->pic_dra_aps_id, APS_MAX_NUM_IN_BITS);
     }
-#else
-    if (sps->tool_dra)
-    {
-        evc_bsw_write1(bs, pps->pic_dra_enabled_present_flag);
-#if DB_SPEC_ALIGNMENT2
-        if (pps->pic_dra_enabled_present_flag) {
-            evc_bsw_write1(bs, pps->pic_dra_enabled_flag);
-            if (pps->pic_dra_enabled_flag)
-                evc_bsw_write(bs, pps->pic_dra_aps_id, APS_TYPE_ID_BITS);
-        }
-#else
-        evc_bsw_write1(bs, pps->pic_dra_enabled_flag);
-        evc_bsw_write(bs, pps->pic_dra_aps_id, APS_TYPE_ID_BITS);
-#endif
-    }
-#endif
-#endif
+
     evc_bsw_write1(bs, pps->arbitrary_slice_present_flag);
     evc_bsw_write1(bs, pps->constrained_intra_pred_flag); 
-
-#if DQP
-
     evc_bsw_write1(bs, pps->cu_qp_delta_enabled_flag);
     if (pps->cu_qp_delta_enabled_flag)
     {
         evc_bsw_write_ue(bs, pps->cu_qp_delta_area - 6);
     }
-#endif
+
     u32 t0 = 0;
     while (!EVC_BSW_IS_BYTE_ALIGN(bs))
     {
@@ -449,12 +403,7 @@ int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps)
     return EVC_OK;
 }
 
-#if M52291_HDR_DRA
-int evce_eco_aps_gen(EVC_BSW * bs, EVC_APS_GEN * aps
-#if BD_CF_EXT
-                     , int bit_depth
-#endif
-)
+int evce_eco_aps_gen(EVC_BSW * bs, EVC_APS_GEN * aps, int bit_depth)
 {
 #if TRACE_HLS        
     EVC_TRACE_STR("***********************************\n");
@@ -475,13 +424,13 @@ int evce_eco_aps_gen(EVC_BSW * bs, EVC_APS_GEN * aps
         evce_eco_alf_aps_param(bs, aps); // signal ALF filter parameter except ALF map
     }
     else if (aps->aps_type_id == 1)
-        evce_eco_dra_aps_param(bs, aps
-#if BD_CF_EXT
-                               , bit_depth
-#endif
-        );
+    {
+        evce_eco_dra_aps_param(bs, aps, bit_depth);
+    }
     else
+    {
         printf("This version of ETM doesnot support this APS type: %d\n", aps->aps_type_id);
+    }
 
     u8 aps_extension_flag = 0;
     evc_bsw_write1(bs, aps_extension_flag);
@@ -507,35 +456,6 @@ int evce_eco_aps_gen(EVC_BSW * bs, EVC_APS_GEN * aps
 #endif
     return EVC_OK;
 }
-#else
-int evce_eco_aps(EVC_BSW * bs, EVC_APS * aps)
-{
-    evc_bsw_write(bs, aps->aps_id, APS_MAX_NUM_IN_BITS); // signal APS ID
-    evce_eco_alf_aps_param(bs, aps); // signal ALF filter parameter except ALF map
-
-    u8 aps_extension_flag = 0;
-    evc_bsw_write1(bs, aps_extension_flag);
-
-    // Dmytro: This is a temporal solution for: Decoder confirming EVC specification version 1, shall not depend on the value of aps_extension_data_flag. 
-    // Assert shall be removed after implementing more_rbsp_data function
-    assert(aps_extension_flag == 0);
-    if (aps_extension_flag)
-    {
-        while (0/*more_rbsp_data()*/)
-        {
-            u8 aps_extension_data_flag;
-            evc_bsw_write1(bs, aps_extension_data_flag);
-        }
-    }
-
-    while (!EVC_BSW_IS_BYTE_ALIGN(bs))
-    {
-        evc_bsw_write1(bs, 0);
-    }
-
-    return EVC_OK;
-}
-#endif
 
 int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut)
 {
@@ -554,9 +474,8 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
     }
 
     evc_bsw_write_ue(bs, sh->slice_pic_parameter_set_id);
-#if M53744
+
     if (!pps->single_tile_in_pic_flag)
-#endif
     {
         evc_bsw_write1(bs, sh->single_tile_in_slice_flag);
         evc_bsw_write(bs, sh->first_tile_id, pps->tile_id_len_minus1 + 1);
@@ -605,7 +524,6 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
         {
             evc_bsw_write(bs, sh->aps_id_y, APS_MAX_NUM_IN_BITS);
             evce_eco_alf_sh_param(bs, sh); // signaling ALF map
-#if M53608_ALF_14
             sh->alfChromaIdc = ((sh->alf_sh_param.enabledFlag[2]) << 1) + sh->alf_sh_param.enabledFlag[1];
             evc_bsw_write(bs, sh->alfChromaIdc, 2);
             if (sh->alfChromaIdc == 1)
@@ -628,17 +546,13 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
                 sh->ChromaAlfEnabledFlag = 0;
                 sh->ChromaAlfEnabled2Flag = 0;
             }
-#endif
-#if M53608_ALF_14
+
             if (sh->alfChromaIdc && (sps->chroma_format_idc == 1 || sps->chroma_format_idc == 2))
             {
-#endif
                 evc_bsw_write(bs, sh->aps_id_ch, APS_MAX_NUM_IN_BITS);
-#if M53608_ALF_14
             }
-#endif
         }
-#if M53608_ALF_14
+
         if (sps->chroma_format_idc == 3 && sh->ChromaAlfEnabledFlag)
         {
             evc_bsw_write(bs, sh->aps_id_ch, APS_MAX_NUM_IN_BITS);
@@ -649,7 +563,6 @@ int evce_eco_sh(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
             evc_bsw_write(bs, sh->aps_id_ch2, APS_MAX_NUM_IN_BITS);
             evc_bsw_write1(bs, sh->alfChroma2MapSignalled);
         }
-#endif
     }
 
     if (nut != EVC_IDR_NUT)
@@ -813,9 +726,10 @@ int evce_eco_sei(EVCE_CTX * ctx, EVC_BSW * bs)
 
     return EVC_OK;
 }
+
 #if HDR_MD5_CHECK
 static void __imgb_cpy_plane(void *src, void *dst, int bw, int h, int s_src,
-    int s_dst)
+                             int s_dst)
 {
     int i;
     unsigned char *s, *d;
@@ -830,9 +744,11 @@ static void __imgb_cpy_plane(void *src, void *dst, int bw, int h, int s_src,
         d += s_dst;
     }
 }
+
 #define EVCA_CLIP(n,min,max) (((n)>(max))? (max) : (((n)<(min))? (min) : (n)))
+
 static void imgb_conv_8b_to_16b(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
-    int shift)
+                                int shift)
 {
     int i, j, k;
 
@@ -857,9 +773,8 @@ static void imgb_conv_8b_to_16b(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
 }
 
 static void imgb_conv_16b_to_8b(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
-    int shift)
+                                int shift)
 {
-
     int i, j, k, t0, add;
 
     short         * s;
@@ -885,6 +800,7 @@ static void imgb_conv_16b_to_8b(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
         }
     }
 }
+
 void evce_imgb_cpy(EVC_IMGB * dst, EVC_IMGB * src)
 {
     int i, bd;
@@ -901,12 +817,12 @@ void evce_imgb_cpy(EVC_IMGB * dst, EVC_IMGB * src)
         }
     }
     else if (src->cs == EVC_COLORSPACE_YUV420 &&
-        dst->cs == EVC_COLORSPACE_YUV420_10LE)
+             dst->cs == EVC_COLORSPACE_YUV420_10LE)
     {
         imgb_conv_8b_to_16b(dst, src, 2);
     }
     else if (src->cs == EVC_COLORSPACE_YUV420_10LE &&
-        dst->cs == EVC_COLORSPACE_YUV420)
+             dst->cs == EVC_COLORSPACE_YUV420)
     {
         imgb_conv_16b_to_8b(dst, src, 2);
     }
@@ -930,6 +846,7 @@ void evce_imgb_cpy(EVC_IMGB * dst, EVC_IMGB * src)
     dst->imgb_active_pps_id = src->imgb_active_pps_id;
     dst->imgb_active_aps_id = src->imgb_active_aps_id;
 }
+
 static void imgb_free1(EVC_IMGB * imgb)
 {
     int i;
@@ -1026,12 +943,13 @@ EVC_IMGB * imgb_alloc1(int w, int h, int cs)
     imgb->cs = cs;
     return imgb;
 }
+
 int evce_eco_udata_hdr(EVCE_CTX * ctx, EVC_BSW * bs, u8 pic_sign[N_C][16])
 {
     int ret;
     EVC_IMGB *imgb_hdr_md5 = NULL;
     imgb_hdr_md5 = imgb_alloc1(PIC_CURR(ctx)->imgb->w[0], PIC_CURR(ctx)->imgb->h[0],
-        EVC_COLORSPACE_YUV420_10LE);
+                               EVC_COLORSPACE_YUV420_10LE);
 
     evce_imgb_cpy(imgb_hdr_md5, PIC_CURR(ctx)->imgb);  // store copy of the reconstructed picture in DPB
 
@@ -1055,6 +973,7 @@ int evce_eco_udata_hdr(EVCE_CTX * ctx, EVC_BSW * bs, u8 pic_sign[N_C][16])
     return EVC_OK;
 }
 #endif
+
 static void evc_bsw_write_est(EVCE_SBAC *sbac, u32 byte, int len)
 {
     sbac->bitcounter += len;
@@ -1336,9 +1255,7 @@ void evce_sbac_reset(EVCE_SBAC *sbac, u8 slice_type, u8 slice_qp, int sps_cm_ini
         evc_eco_sbac_ctx_initialize(sbac_ctx->cbf_cb, (s16*)init_cbf_cb, NUM_CTX_CBF_CB, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->cbf_cr, (s16*)init_cbf_cr, NUM_CTX_CBF_CR, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->cbf_all, (s16*)init_cbf_all, NUM_CTX_CBF_ALL, slice_type, slice_qp);
-#if DQP
         evc_eco_sbac_ctx_initialize(sbac_ctx->delta_qp, (s16*)init_dqp, NUM_CTX_DELTA_QP, slice_type, slice_qp);
-#endif
         evc_eco_sbac_ctx_initialize(sbac_ctx->sig_coeff_flag, (s16*)init_sig_coeff_flag, NUM_CTX_SIG_COEFF_FLAG, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->coeff_abs_level_greaterAB_flag, (s16*)init_coeff_abs_level_greaterAB_flag, NUM_CTX_GTX, slice_type, slice_qp);
         evc_eco_sbac_ctx_initialize(sbac_ctx->last_sig_coeff_x_prefix, (s16*)init_last_sig_coeff_x_prefix, NUM_CTX_LAST_SIG_COEFF, slice_type, slice_qp);
@@ -1426,9 +1343,7 @@ void evce_sbac_reset(EVCE_SBAC *sbac, u8 slice_type, u8 slice_qp, int sps_cm_ini
         for(i = 0; i < NUM_CTX_BTT_SPLIT_DIR; i++) sbac_ctx->btt_split_dir[i] = PROB_INIT;
         for(i = 0; i < NUM_CTX_BTT_SPLIT_TYPE; i++) sbac_ctx->btt_split_type[i] = PROB_INIT;
         for(i = 0; i < NUM_CTX_SUCO_FLAG; i++) sbac_ctx->suco_flag[i] = PROB_INIT;
-#if DQP
         for(i = 0; i < NUM_CTX_DELTA_QP; i++) sbac_ctx->delta_qp[i] = PROB_INIT;
-#endif
         for(i = 0; i < NUM_CTX_AFFINE_FLAG; i++) sbac_ctx->affine_flag[i] = PROB_INIT;
         for(i = 0; i < NUM_CTX_AFFINE_MODE; i++) sbac_ctx->affine_mode[i] = PROB_INIT;
         for(i = 0; i < NUM_CTX_AFFINE_MRG; i++) sbac_ctx->affine_mrg[i] = PROB_INIT;
@@ -1578,16 +1493,16 @@ static void evce_eco_skip_flag(EVC_BSW * bs, int flag, int ctx)
 
 void evce_eco_ibc_flag(EVC_BSW * bs, int flag, int ctx)
 {
-  EVCE_SBAC *sbac;
-  sbac = GET_SBAC_ENC(bs);
-  evce_sbac_encode_bin(flag, sbac, sbac->ctx.ibc_flag + ctx, bs);
+    EVCE_SBAC *sbac;
+    sbac = GET_SBAC_ENC(bs);
+    evce_sbac_encode_bin(flag, sbac, sbac->ctx.ibc_flag + ctx, bs);
 #if TRACE_ADDITIONAL_FLAGS
-  EVC_TRACE_COUNTER;
-  EVC_TRACE_STR("ibc pred mode ");
-  EVC_TRACE_INT(!!flag);
-  EVC_TRACE_STR("ctx ");
-  EVC_TRACE_INT(ctx);
-  EVC_TRACE_STR("\n");
+    EVC_TRACE_COUNTER;
+    EVC_TRACE_STR("ibc pred mode ");
+    EVC_TRACE_INT(!!flag);
+    EVC_TRACE_STR("ctx ");
+    EVC_TRACE_INT(ctx);
+    EVC_TRACE_STR("\n");
 #endif
 }
 
@@ -1631,14 +1546,14 @@ void evce_eco_tile_end_flag(EVC_BSW * bs, int flag)
 
 void evce_eco_run_length_cc(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int num_sig, int ch_type)
 {
-    EVCE_SBAC    *sbac;
-    EVC_SBAC_CTX *sbac_ctx;
+    EVCE_SBAC     *sbac;
+    EVC_SBAC_CTX  *sbac_ctx;
     u32            num_coeff, scan_pos;
     u32            sign, level, prev_level, run, last_flag;
     s32            t0;
     const u16     *scanp;
     s16            coef_cur;
-    int ctx_last = 0;
+    int            ctx_last = 0;
 
     sbac = GET_SBAC_ENC(bs);
     sbac_ctx = &sbac->ctx;
@@ -1836,8 +1751,6 @@ static void evce_eco_adcc(EVC_BSW *bs, s16 *coef, int log2_w, int log2_h, int nu
     int cnt_nz = 0;
     int blkpos, sx, sy;
     int sig_coeff_flag;
-
-
     int max_num_coef = width * height;
     scan = evc_scan_tbl[scan_type][log2_w - 1][log2_h - 1];
 
@@ -2143,11 +2056,7 @@ int evce_eco_ats_inter_info(EVC_BSW * bs, int log2_cuw, int log2_cuh, int ats_in
     }
 }
 
-int evce_eco_cbf(EVC_BSW * bs, int cbf_y, int cbf_u, int cbf_v, u8 pred_mode, int b_no_cbf, int is_sub, int sub_pos, int cbf_all, int run[N_C], TREE_CONS tree_cons
-#if BD_CF_EXT
-                 , int chroma_format_idc
-#endif
-)
+int evce_eco_cbf(EVC_BSW * bs, int cbf_y, int cbf_u, int cbf_v, u8 pred_mode, int b_no_cbf, int is_sub, int sub_pos, int cbf_all, int run[N_C], TREE_CONS tree_cons, int chroma_format_idc)
 {
     EVCE_SBAC    *sbac;
     EVC_SBAC_CTX *sbac_ctx;
@@ -2190,11 +2099,7 @@ int evce_eco_cbf(EVC_BSW * bs, int cbf_y, int cbf_u, int cbf_v, u8 pred_mode, in
             }
         }
 
-#if BD_CF_EXT
         if(run[U_C] && chroma_format_idc != 0)
-#else
-        if (run[U_C])
-#endif
         {
             evce_sbac_encode_bin(cbf_u, sbac, sbac_ctx->cbf_cb, bs);
             EVC_TRACE_COUNTER;
@@ -2203,11 +2108,7 @@ int evce_eco_cbf(EVC_BSW * bs, int cbf_y, int cbf_u, int cbf_v, u8 pred_mode, in
             EVC_TRACE_STR("\n");
         }
 
-#if BD_CF_EXT
         if(run[V_C] && chroma_format_idc != 0)
-#else
-        if (run[V_C])
-#endif
         {
             evce_sbac_encode_bin(cbf_v, sbac, sbac_ctx->cbf_cr, bs);
             EVC_TRACE_COUNTER;
@@ -2227,11 +2128,7 @@ int evce_eco_cbf(EVC_BSW * bs, int cbf_y, int cbf_u, int cbf_v, u8 pred_mode, in
     }
     else
     {
-#if BD_CF_EXT
         if(run[U_C] && chroma_format_idc != 0)
-#else
-        if (run[U_C])
-#endif
         {
             evc_assert(evc_check_chroma(tree_cons));
             evce_sbac_encode_bin(cbf_u, sbac, sbac_ctx->cbf_cb, bs);
@@ -2241,11 +2138,7 @@ int evce_eco_cbf(EVC_BSW * bs, int cbf_y, int cbf_u, int cbf_v, u8 pred_mode, in
             EVC_TRACE_STR("\n");
         }
 
-#if BD_CF_EXT
         if(run[V_C] && chroma_format_idc != 0)
-#else
-        if (run[V_C])
-#endif
         {
             evc_assert(evc_check_chroma(tree_cons));
             evce_sbac_encode_bin(cbf_v, sbac, sbac_ctx->cbf_cr, bs);
@@ -2269,7 +2162,6 @@ int evce_eco_cbf(EVC_BSW * bs, int cbf_y, int cbf_u, int cbf_v, u8 pred_mode, in
     return EVC_OK;
 }
 
-#if DQP
 int evce_eco_dqp(EVC_BSW * bs, int ref_qp, int cur_qp)
 {
     int abs_dqp, dqp, t0;
@@ -2299,18 +2191,10 @@ int evce_eco_dqp(EVC_BSW * bs, int ref_qp, int cur_qp)
 
     return EVC_OK;
 }
-#endif
 
 int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 pred_mode, int nnz_sub[N_C][MAX_SUB_TB_NUM], int b_no_cbf, int run_stats
-                  , int tool_ats, u8 ats_intra_cu, u8 ats_mode, u8 ats_inter_info, EVCE_CTX * ctx
-#if DQP
-                  , EVCE_CORE * core, int enc_dqp, u8 cur_qp
-#endif
-                  , TREE_CONS tree_cons
-#if BD_CF_EXT
-                  , int chroma_format_idc
-#endif
-)
+                  , int tool_ats, u8 ats_intra_cu, u8 ats_mode, u8 ats_inter_info, EVCE_CTX * ctx, EVCE_CORE * core, int enc_dqp, u8 cur_qp, TREE_CONS tree_cons
+                  , int chroma_format_idc)
 {
     run_stats = evc_get_run(run_stats, tree_cons);
     int run[N_C] = { run_stats & 1, (run_stats >> 1) & 1, (run_stats >> 2) & 1 };
@@ -2364,16 +2248,12 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
     {
         for (i = 0; i < loop_w; i++)
         {
-            int is_cbf_all_zero = evce_eco_cbf(bs, !!nnz_sub[Y_C][(j << 1) | i], !!nnz_sub[U_C][(j << 1) | i], !!nnz_sub[V_C][(j << 1) | i], pred_mode, b_no_cbf, is_sub, j + i, cbf_all, run, tree_cons
-#if BD_CF_EXT
-                                             , chroma_format_idc
-#endif
-                                  );
+            int is_cbf_all_zero = evce_eco_cbf(bs, !!nnz_sub[Y_C][(j << 1) | i], !!nnz_sub[U_C][(j << 1) | i], !!nnz_sub[V_C][(j << 1) | i], pred_mode, b_no_cbf, is_sub, j + i, cbf_all, run, tree_cons, chroma_format_idc);
             if (is_cbf_all_zero)
             {
                 return EVC_OK;
             }
-#if DQP
+
             if(ctx->pps->cu_qp_delta_enabled_flag)
             {
                 if(enc_dqp == 1)
@@ -2388,7 +2268,6 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
                     }
                 }
             }
-#endif
 
             if (tool_ats && (!!nnz_sub[Y_C][(j << 1) | i]) && (log2_cuw <= 5 && log2_cuh <= 5) && is_intra && run[Y_C])
             {
@@ -2418,24 +2297,16 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
             {
                 if (nnz_sub[c][(j << 1) | i] && run[c])
                 {
-#if BD_CF_EXT
                     int pos_sub_x = c == 0 ? (i * (1 << (log2_w_sub))) : (i * (1 << (log2_w_sub - (GET_CHROMA_W_SHIFT(chroma_format_idc)))));
                     int pos_sub_y = c == 0 ? j * (1 << (log2_h_sub)) * (stride) : j * (1 << (log2_h_sub - (GET_CHROMA_H_SHIFT(chroma_format_idc)))) * (stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)));
-#else
-                    int pos_sub_x = i * (1 << (log2_w_sub - !!c));
-                    int pos_sub_y = j * (1 << (log2_h_sub - !!c)) * (stride >> (!!c));
-#endif
 
                     if (is_sub)
                     {
-#if BD_CF_EXT
                         if(c == 0)
                             evc_block_copy(coef[c] + pos_sub_x + pos_sub_y, stride, coef_temp_buf[c], sub_stride, log2_w_sub, log2_h_sub);
                         else
                             evc_block_copy(coef[c] + pos_sub_x + pos_sub_y, stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), coef_temp_buf[c], sub_stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), log2_w_sub - (GET_CHROMA_W_SHIFT(chroma_format_idc)), log2_h_sub - (GET_CHROMA_H_SHIFT(chroma_format_idc)));
-#else
-                        evc_block_copy(coef[c] + pos_sub_x + pos_sub_y, stride >> (!!c), coef_temp_buf[c], sub_stride >> (!!c), log2_w_sub - (!!c), log2_h_sub - (!!c));
-#endif
+
                         coef_temp[c] = coef_temp_buf[c];
                     }
                     else
@@ -2443,26 +2314,18 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
                         coef_temp[c] = coef[c];
                     }
 
-#if BD_CF_EXT
                     if(c==0)
                         evce_eco_xcoef(bs, coef_temp[c], log2_w_sub, log2_h_sub, nnz_sub[c][(j << 1) | i], c, ctx->sps.tool_adcc);
                     else
                         evce_eco_xcoef(bs, coef_temp[c], log2_w_sub - (GET_CHROMA_W_SHIFT(chroma_format_idc)), log2_h_sub - (GET_CHROMA_H_SHIFT(chroma_format_idc)), nnz_sub[c][(j << 1) | i], c, ctx->sps.tool_adcc);
-#else
-                    evce_eco_xcoef(bs, coef_temp[c], log2_w_sub - (!!c), log2_h_sub - (!!c), nnz_sub[c][(j << 1) | i], c, ctx->sps.tool_adcc);
-#endif
 
                     if (is_sub)
                     {
-#if BD_CF_EXT
                         if(c == 0)
                             evc_block_copy(coef_temp_buf[c], sub_stride, coef[c] + pos_sub_x + pos_sub_y, stride, log2_w_sub, log2_h_sub);
                         else
                             evc_block_copy(coef_temp_buf[c], sub_stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), coef[c] + pos_sub_x + pos_sub_y
-                                , stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), log2_w_sub - (GET_CHROMA_W_SHIFT(chroma_format_idc)), log2_h_sub - (GET_CHROMA_H_SHIFT(chroma_format_idc)));
-#else
-                        evc_block_copy(coef_temp_buf[c], sub_stride >> (!!c), coef[c] + pos_sub_x + pos_sub_y, stride >> (!!c), log2_w_sub - (!!c), log2_h_sub - (!!c));
-#endif
+                                           , stride >> (GET_CHROMA_W_SHIFT(chroma_format_idc)), log2_w_sub - (GET_CHROMA_W_SHIFT(chroma_format_idc)), log2_h_sub - (GET_CHROMA_H_SHIFT(chroma_format_idc)));
                     }
                 }
             }
@@ -2551,7 +2414,6 @@ int evce_eco_intra_dir_b(EVC_BSW *bs, u8 ipm, u8  * mpm, u8 mpm_ext[8], u8 pims[
 int evce_eco_intra_dir(EVC_BSW *bs, u8 ipm, u8 mpm[2], u8 mpm_ext[8], u8 pims[IPD_CNT])
 {
     EVCE_SBAC *sbac;
-
     int t0;
     sbac = GET_SBAC_ENC(bs);
     if(ipm == mpm[0] || ipm == mpm[1])
@@ -2758,7 +2620,7 @@ int evce_eco_refi(EVC_BSW *bs, int num_refp, int refi)
 {
     EVCE_SBAC    *sbac = GET_SBAC_ENC(bs);
     EVC_SBAC_CTX *sbac_ctx = &sbac->ctx;
-    int            i, bin;
+    int           i, bin;
 
     if(num_refp > 1)
     {
@@ -2997,15 +2859,15 @@ static int cu_init(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int cup, int cu
     }
     else if (core->cu_mode == MODE_IBC)
     {
-      core->ibc_flag = 1;
+        core->ibc_flag = 1;
 
-      if (!evce_check_luma(ctx, core))
-      {
-          evc_assert(0);
-      }
-      core->mmvd_flag = 0; // core->new_skip_flag = 0;
-      core->affine_flag = 0;
-      core->avail_cu = evc_get_avail_ibc(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, core->cuw, core->cuh, ctx->map_scu, ctx->map_tidx);
+        if (!evce_check_luma(ctx, core))
+        {
+            evc_assert(0);
+        }
+        core->mmvd_flag = 0; // core->new_skip_flag = 0;
+        core->affine_flag = 0;
+        core->avail_cu = evc_get_avail_ibc(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, core->cuw, core->cuh, ctx->map_scu, ctx->map_tidx);
     }
     else
     {
@@ -3025,9 +2887,8 @@ static int cu_init(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int cup, int cu
     }
 
     core->avail_lr = evc_check_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu, ctx->map_tidx);
-#if DMVR_FLAG
     core->dmvr_flag = 0;
-#endif
+
     return EVC_OK;
 }
 
@@ -3050,27 +2911,14 @@ static void coef_rect_to_series(EVCE_CTX * ctx, s16 *coef_src[N_C], int x, int y
         }
 
     }
-    if(evce_check_chroma(ctx, core)
-#if BD_CF_EXT
-       && ctx->sps.chroma_format_idc
-#endif
-       )
+    if(evce_check_chroma(ctx, core) && ctx->sps.chroma_format_idc)
     {
-#if BD_CF_EXT
         x >>= (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc));
         y >>= (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc));
         cuw >>= (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc));
         cuh >>= (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc));
 
         sidx = (x&((ctx->max_cuwh >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) - 1)) + ((y&((ctx->max_cuwh >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) - 1)) << (ctx->log2_max_cuwh - (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))));
-#else
-        x >>= 1;
-        y >>= 1;
-        cuw >>= 1;
-        cuh >>= 1;
-
-        sidx = (x&((ctx->max_cuwh >> 1) - 1)) + ((y&((ctx->max_cuwh >> 1) - 1)) << (ctx->log2_max_cuwh - 1));
-#endif
         didx = 0;
 
         for(j = 0; j < cuh; j++)
@@ -3081,11 +2929,7 @@ static void coef_rect_to_series(EVCE_CTX * ctx, s16 *coef_src[N_C], int x, int y
                 coef_dst[V_C][didx] = coef_src[V_C][sidx + i];
                 didx++;
             }
-#if BD_CF_EXT
             sidx += (ctx->max_cuwh >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc)));
-#else
-            sidx += (ctx->max_cuwh >> 1);
-#endif
         }
     }
 }
@@ -3387,9 +3231,9 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 #if TRACE_ENC_CU_DATA_CHECK
     evc_assert(core->trace_idx != 0);
 #endif
-#if DQP
+
     int enc_dqp;
-#endif
+
     slice_type = ctx->slice_type;
      
     bs = &ctx->bs;
@@ -3421,7 +3265,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
     EVC_TRACE_STR("\n");
 
     evc_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, core->ctx_flags
-                         , ctx->sh->slice_type, ctx->sps.tool_cm_init , ctx->param.use_ibc_flag, ctx->sps.ibc_log_max_size, ctx->map_tidx);    
+                           , ctx->sh->slice_type, ctx->sps.tool_cm_init , ctx->param.use_ibc_flag, ctx->sps.ibc_log_max_size, ctx->map_tidx);    
 
     if (ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2)
     {
@@ -3506,10 +3350,10 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                 }
 
             if (((( core->cu_mode
-                != MODE_INTRA) || (ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
-                && !evce_check_only_inter(ctx, core) ) 
-                && evce_check_luma(ctx, core)
-                && ctx->param.use_ibc_flag && core->log2_cuw <= ctx->sps.ibc_log_max_size && core->log2_cuh <= ctx->sps.ibc_log_max_size)
+                 != MODE_INTRA) || (ctx->sps.tool_admvp && core->log2_cuw == MIN_CU_LOG2 && core->log2_cuh == MIN_CU_LOG2))
+                 && !evce_check_only_inter(ctx, core) ) 
+                 && evce_check_luma(ctx, core)
+                 && ctx->param.use_ibc_flag && core->log2_cuw <= ctx->sps.ibc_log_max_size && core->log2_cuh <= ctx->sps.ibc_log_max_size)
             {
                 evce_eco_ibc_flag(bs, core->ibc_flag, core->ctx_flags[CNID_IBC_FLAG]);
             }
@@ -3737,7 +3581,7 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                         core->mpm, core->avail_lr, core->mpm_ext, core->pims, ctx->map_tidx);
             if (evce_check_luma(ctx, core))
             {
-            evce_eco_intra_dir(bs, cu_data->ipm[0][cup], core->mpm, core->mpm_ext, core->pims);
+                evce_eco_intra_dir(bs, cu_data->ipm[0][cup], core->mpm, core->mpm_ext, core->pims);
             }
             if (evce_check_chroma(ctx, core))
             {
@@ -3755,9 +3599,8 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
                     }
                 }
                 evc_assert(cu_data->ipm[1][cup] != IPD_INVALID);
-#if BD_CF_EXT
+
                 if(ctx->sps.chroma_format_idc != 0)
-#endif
                     evce_eco_intra_dir_c(bs, cu_data->ipm[1][cup], luma_ipm);
             }
         }
@@ -3774,20 +3617,20 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
     }
     else if (core->ibc_flag)
     {
-      if (core->skip_flag == 0)
-      {
-        if (core->cu_mode == MODE_IBC)        // Does this condition required?
+        if (core->skip_flag == 0)
         {
-            if (!evce_check_luma(ctx, core))
+            if (core->cu_mode == MODE_IBC)        // Does this condition required?
             {
-                evc_assert(0);
-            }
-            else
-            {
-                evce_eco_mvd(bs, cu_data->mvd[cup][REFP_0]);
+                if (!evce_check_luma(ctx, core))
+                {
+                    evc_assert(0);
+                }
+                else
+                {
+                    evce_eco_mvd(bs, cu_data->mvd[cup][REFP_0]);
+                }
             }
         }
-      }
     }
 
     if((core->skip_flag == 0) && (core->mmvd_flag == 0))
@@ -3800,24 +3643,12 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
         {
             b_no_cbf = 0;
         }
-#if DQP
+
         enc_dqp = 1;
-#endif
+
         evce_eco_coef(bs, coef, core->log2_cuw, core->log2_cuh, core->cu_mode
                       , core->nnz_sub, b_no_cbf, RUN_L | RUN_CB | RUN_CR, ctx->sps.tool_ats, cu_data->ats_intra_cu[cup], (cu_data->ats_mode_h[cup] << 1 | cu_data->ats_mode_v[cup]), core->ats_inter_info
-#if DQP
-                      , ctx
-#if BD_CF_EXT
-                      , core, enc_dqp, cu_data->qp_y[cup] - 6 * ctx->sps.bit_depth_luma_minus8
-#else
-                      , core, enc_dqp, cu_data->qp_y[cup] - 6 * (BIT_DEPTH - 8)
-#endif
-#endif
-                      , core->tree_cons
-#if BD_CF_EXT
-                      , ctx->sps.chroma_format_idc
-#endif
-        );
+                      , ctx, core, enc_dqp, cu_data->qp_y[cup] - 6 * ctx->sps.bit_depth_luma_minus8, core->tree_cons, ctx->sps.chroma_format_idc);
     }
 
     map_scu = ctx->map_scu + core->scup;
@@ -3828,85 +3659,84 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
 
     if (evce_check_luma(ctx, core))
     {
-    for(i = 0; i < h; i++)
-    {
-        for(j = 0; j < w; j++)
+        for (i = 0; i < h; i++)
         {
-            if((core->skip_flag) || (core->mmvd_flag))
+            for (j = 0; j < w; j++)
             {
-                MCU_SET_SF(map_scu[j]);
-            }
-            else
-            {
-                MCU_CLR_SF(map_scu[j]);
-            }
-            int sub_idx = ((!!(i & 32)) << 1) | (!!(j & 32));
-            if (core->nnz_sub[Y_C][sub_idx] > 0)
-            {
-                MCU_SET_CBFL(map_scu[j]);
-            }
-            else
-            {
-                MCU_CLR_CBFL(map_scu[j]);
-            }
+                if ((core->skip_flag) || (core->mmvd_flag))
+                {
+                    MCU_SET_SF(map_scu[j]);
+                }
+                else
+                {
+                    MCU_CLR_SF(map_scu[j]);
+                }
+                int sub_idx = ((!!(i & 32)) << 1) | (!!(j & 32));
+                if (core->nnz_sub[Y_C][sub_idx] > 0)
+                {
+                    MCU_SET_CBFL(map_scu[j]);
+                }
+                else
+                {
+                    MCU_CLR_CBFL(map_scu[j]);
+                }
 
-            MCU_SET_COD(map_scu[j]);
-#if DQP
-            if(ctx->pps->cu_qp_delta_enabled_flag)
-            {
-                MCU_RESET_QP(map_scu[j]);
-                MCU_SET_QP(map_scu[j], ctx->tile[core->tile_idx].qp_prev_eco);
-            }
-#endif
+                MCU_SET_COD(map_scu[j]);
 
-            if(core->affine_flag)
-            {
-                MCU_SET_AFF(map_scu[j], core->affine_flag);
+                if (ctx->pps->cu_qp_delta_enabled_flag)
+                {
+                    MCU_RESET_QP(map_scu[j]);
+                    MCU_SET_QP(map_scu[j], ctx->tile[core->tile_idx].qp_prev_eco);
+                }
 
-                MCU_SET_AFF_LOGW(map_affine[j], core->log2_cuw);
-                MCU_SET_AFF_LOGH(map_affine[j], core->log2_cuh);
-                MCU_SET_AFF_XOFF(map_affine[j], j);
-                MCU_SET_AFF_YOFF(map_affine[j], i);
-            }
-            else
-            {
-                MCU_CLR_AFF(map_scu[j]);
-            }
+                if (core->affine_flag)
+                {
+                    MCU_SET_AFF(map_scu[j], core->affine_flag);
 
-            if (core->ibc_flag)
-            {
-              MCU_SET_IBC(map_scu[j]);
-            }
-            else
-            {
-              MCU_CLR_IBC(map_scu[j]);
-            }
-            
-            MCU_SET_LOGW(map_cu_mode[j], core->log2_cuw);
-            MCU_SET_LOGH(map_cu_mode[j], core->log2_cuh);
+                    MCU_SET_AFF_LOGW(map_affine[j], core->log2_cuw);
+                    MCU_SET_AFF_LOGH(map_affine[j], core->log2_cuh);
+                    MCU_SET_AFF_XOFF(map_affine[j], j);
+                    MCU_SET_AFF_YOFF(map_affine[j], i);
+                }
+                else
+                {
+                    MCU_CLR_AFF(map_scu[j]);
+                }
 
-            if (core->mmvd_flag)
-            {
-                MCU_SET_MMVDS(map_cu_mode[j]);
+                if (core->ibc_flag)
+                {
+                    MCU_SET_IBC(map_scu[j]);
+                }
+                else
+                {
+                    MCU_CLR_IBC(map_scu[j]);
+                }
+
+                MCU_SET_LOGW(map_cu_mode[j], core->log2_cuw);
+                MCU_SET_LOGH(map_cu_mode[j], core->log2_cuh);
+
+                if (core->mmvd_flag)
+                {
+                    MCU_SET_MMVDS(map_cu_mode[j]);
+                }
+                else
+                {
+                    MCU_CLR_MMVDS(map_cu_mode[j]);
+                }
             }
-            else
-            {
-                MCU_CLR_MMVDS(map_cu_mode[j]);
-            }
+            map_scu += ctx->w_scu;
+            map_affine += ctx->w_scu;
+            map_cu_mode += ctx->w_scu;
         }
-        map_scu += ctx->w_scu;
-        map_affine += ctx->w_scu;
-        map_cu_mode += ctx->w_scu;
-    }
-    if (core->ats_inter_info)
-    {
-        assert(core->nnz_sub[Y_C][0] == core->nnz[Y_C]);
-        assert(core->nnz_sub[U_C][0] == core->nnz[U_C]);
-        assert(core->nnz_sub[V_C][0] == core->nnz[V_C]);
-        set_cu_cbf_flags(core->nnz[Y_C], core->ats_inter_info, core->log2_cuw, core->log2_cuh, ctx->map_scu + core->scup, ctx->w_scu);
+        if (core->ats_inter_info)
+        {
+            assert(core->nnz_sub[Y_C][0] == core->nnz[Y_C]);
+            assert(core->nnz_sub[U_C][0] == core->nnz[U_C]);
+            assert(core->nnz_sub[V_C][0] == core->nnz[V_C]);
+            set_cu_cbf_flags(core->nnz[Y_C], core->ats_inter_info, core->log2_cuw, core->log2_cuh, ctx->map_scu + core->scup, ctx->w_scu);
+        }
     }
 
-    }
     if (evce_check_chroma(ctx, core))
     {
         if (!evce_check_luma(ctx, core))
@@ -4033,7 +3863,6 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
     return EVC_OK;
 }
 
-#if ETM70_GOLOMB_FIX
 int evc_lengthGolomb(int coeffVal, int k, BOOL signed_coeff)
 {
     int numBins = 0;
@@ -4051,26 +3880,11 @@ int evc_lengthGolomb(int coeffVal, int k, BOOL signed_coeff)
     }
     return numBins;
 }
-#else 
-int evc_lengthGolomb(int coeffVal, int k)
-{
-    int m = k == 0 ? 1 : (2 << (k - 1));
-    int q = coeffVal / m;
-    if(coeffVal != 0)
-    {
-        return q + 2 + k;
-    }
-    else
-    {
-        return q + 1 + k;
-    }
-};
-#endif
 
 int evc_getGolombKMin(evc_AlfFilterShape *  alfShape, int numFilters, int *kMinTab, int bitsCoeffScan[m_MAX_SCAN_VAL][m_MAX_EXP_GOLOMB])
 {
     int kStart;
-  const int maxGolombIdx = alfShape->filterType == 0 ? 2 : 3;
+    const int maxGolombIdx = alfShape->filterType == 0 ? 2 : 3;
 
     int minBitsKStart = INT_MAX;
     int minKStart = -1;
@@ -4115,12 +3929,10 @@ int evc_getGolombKMin(evc_AlfFilterShape *  alfShape, int numFilters, int *kMinT
     }
 
     return minKStart;
-};
+}
 
-#if ETM70_GOLOMB_FIX
 void evc_alfGolombEncode(EVC_BSW * bs, int coeff, int k, const BOOL signed_coeff)
 {
-
     unsigned int symbol = abs(coeff);
     while (symbol >= (unsigned int)(1 << k))
     {
@@ -4153,51 +3965,7 @@ void evc_alfGolombEncode(EVC_BSW * bs, int coeff, int k, const BOOL signed_coeff
 
 #endif
     }
-};
-#else
-void evc_alfGolombEncode(EVC_BSW * bs, int coeff, int k)
-{
-    int symbol = abs(coeff);
-
-    int m = (int)pow(2.0, k);
-    int q = symbol / m;
-
-    for(int i = 0; i < q; i++)
-    {
-#if TRACE_HLS
-        evc_bsw_write1_trace(bs, 1, 0);
-#else
-        evc_bsw_write1(bs, 1);
-#endif
-    }
-#if TRACE_HLS
-    evc_bsw_write1_trace(bs, 0, 0);
-#else
-    evc_bsw_write1(bs, 0);
-#endif
-    // write one zero
-
-    for(int i = 0; i < k; i++)
-    {
-#if TRACE_HLS
-        evc_bsw_write1_trace(bs, symbol & 0x01, 0);
-#else
-        evc_bsw_write1(bs, symbol & 0x01);
-#endif
-        symbol >>= 1;
-    }
-
-    if(coeff != 0)
-    {
-        int sign = (coeff > 0) ? 1 : 0;
-#if TRACE_HLS
-        evc_bsw_write1_trace(bs, sign, 0);
-#else
-        evc_bsw_write1(bs, sign);
-#endif
-    }
-};
-#endif
+}
 
 void evce_truncatedUnaryEqProb(EVC_BSW * bs, int symbol, const int maxSymbol)
 {
@@ -4299,11 +4067,7 @@ void evce_eco_alf_filter(EVC_BSW * bs, evc_AlfSliceParam asp, const BOOL isChrom
 
                 for (int k = 1; k < 15; k++)
                 {
-#if ETM70_GOLOMB_FIX
                     bitsCoeffScan[alfShape.golombIdx[i]][k] += evc_lengthGolomb(coeffVal, k, TRUE);
-#else
-                    bitsCoeffScan[alfShape.golombIdx[i]][k] += evc_lengthGolomb(coeffVal, k);
-#endif
                 }
             }
         }
@@ -4344,48 +4108,29 @@ void evce_eco_alf_filter(EVC_BSW * bs, evc_AlfSliceParam asp, const BOOL isChrom
 
         for (int i = 0; i < alfShape.numCoeff - 1; i++)
         {
-#if ETM70_GOLOMB_FIX
             evc_alfGolombEncode(bs, coeff[ind* MAX_NUM_ALF_LUMA_COEFF + i], kMinTab[alfShape.golombIdx[i]], TRUE);  // alf_coeff_chroma[i], alf_coeff_luma_delta[i][j]
-#else
-            evc_alfGolombEncode(bs, coeff[ind* MAX_NUM_ALF_LUMA_COEFF + i], kMinTab[alfShape.golombIdx[i]]);  // alf_coeff_chroma[i], alf_coeff_luma_delta[i][j]
-#endif
         }
     }
 }
-#if M52291_HDR_DRA
-int evce_eco_dra_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps
-#if BD_CF_EXT
-                           , int bit_depth
-#endif
-)
+
+int evce_eco_dra_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps, int bit_depth)
 {
     SignalledParamsDRA *p_dra_param = (SignalledParamsDRA *)aps->aps_data;
     evc_bsw_write(bs, (u32)p_dra_param->m_dra_descriptor1, 4);
     evc_bsw_write(bs, (u32)p_dra_param->m_dra_descriptor2, 4);
     evc_bsw_write_ue(bs, (u32)p_dra_param->m_numRanges - 1);
     evc_bsw_write1(bs, p_dra_param->m_equalRangesFlag);
-#if BD_CF_EXT
     evc_bsw_write(bs, (u32)p_dra_param->m_inRanges[0], bit_depth); // delta_luma_dqp_change_point
-#else
-    evc_bsw_write(bs, (u32)p_dra_param->m_inRanges[0], QC_IN_RANGE_NUM_BITS); // delta_luma_dqp_change_point
-#endif
+
     if (p_dra_param->m_equalRangesFlag == TRUE)
     {
-#if BD_CF_EXT
         evc_bsw_write(bs, (u32)p_dra_param->m_deltaVal, bit_depth);
-#else
-        evc_bsw_write(bs, (u32)p_dra_param->m_deltaVal, QC_IN_RANGE_NUM_BITS);
-#endif
     }
     else
     {
         for (int i = 1; i <= p_dra_param->m_numRanges; i++)
         {
-#if BD_CF_EXT
             evc_bsw_write(bs, (u32)(p_dra_param->m_inRanges[i] - p_dra_param->m_inRanges[i - 1]), bit_depth);
-#else
-            evc_bsw_write(bs, (u32)(p_dra_param->m_inRanges[i] - p_dra_param->m_inRanges[i - 1]), QC_IN_RANGE_NUM_BITS);
-#endif
         }
     }
 
@@ -4401,9 +4146,7 @@ int evce_eco_dra_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps
     p_dra_param->m_signal_dra_flag = 0; // dra was sent
     return EVC_OK;
 }
-#endif
 
-#if INTEGR_M53608
 int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps)
 {
     evc_AlfSliceParam *p_alfSliceParam = (evc_AlfSliceParam *)aps->aps_data;
@@ -4432,11 +4175,7 @@ int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps)
         }
         const int iNumFixedFilterPerClass = 16;
         {
-#if ETM70_GOLOMB_FIX
             evc_alfGolombEncode(bs, alfSliceParam.fixedFilterPattern, 0, FALSE);
-#else
-            evc_alfGolombEncode(bs, alfSliceParam.fixedFilterPattern, 0);
-#endif
 
             if (alfSliceParam.fixedFilterPattern == 2)
             {
@@ -4470,125 +4209,6 @@ int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps)
     return EVC_OK;
 }
 
-#else
-#if M52291_HDR_DRA
-int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS_GEN * aps)
-{
-    evc_AlfSliceParam *p_alfSliceParam = (evc_AlfSliceParam *)aps->aps_data;
-    evc_AlfSliceParam alfSliceParam = *p_alfSliceParam;
-
-#else
-int evce_eco_alf_aps_param(EVC_BSW * bs, EVC_APS * aps)
-{
-    evc_AlfSliceParam alfSliceParam = aps->alf_aps_param;
-#endif
-
-    evc_bsw_write1(bs, alfSliceParam.enabledFlag[0]); //"alf_slice_enable_flag"
-#if !M53608_ALF_5
-    if (!alfSliceParam.enabledFlag[0])
-    {
-        return 0;
-    }
-#endif
-#if M53608_ALF_14
-    u8 alfChromaSignalled = (alfSliceParam.enabledFlag[1] || alfSliceParam.enabledFlag[2]);
-    evc_bsw_write1(bs, alfChromaSignalled); //"alf_chroma_enable_flag"
-#else
-    const int alfChromaIdc = alfSliceParam.enabledFlag[1] * 2 + alfSliceParam.enabledFlag[2];
-    evce_truncatedUnaryEqProb(bs, alfChromaIdc, 3);
-#endif
-#if M53608_ALF_5
-    if (alfSliceParam.enabledFlag[0])
-#endif
-    {
-#if M53608_ALF_3
-        evc_bsw_write_ue(bs, alfSliceParam.numLumaFilters - 1);
-#else
-        evce_xWriteTruncBinCode(bs, alfSliceParam.numLumaFilters - 1, MAX_NUM_ALF_CLASSES);
-#endif
-#if M53608_ALF_10
-        evc_bsw_write1(bs, alfSliceParam.lumaFilterType); //  "filter_type_flag"
-#else
-        evc_bsw_write1(bs, !alfSliceParam.lumaFilterType); //  "filter_type_flag"
-#endif
-
-        if (alfSliceParam.numLumaFilters > 1)
-        {
-            for (int i = 0; i < MAX_NUM_ALF_CLASSES; i++)
-            {
-#if M53608_ALF_3
-                evc_bsw_write(bs, (u32)(alfSliceParam.filterCoeffDeltaIdx[i]), evc_tbl_log2[alfSliceParam.numLumaFilters - 1] + 1);
-#else
-                evce_xWriteTruncBinCode(bs, (u32)(alfSliceParam.filterCoeffDeltaIdx[i]), alfSliceParam.numLumaFilters);  //filter_coeff_delta[i]
-#endif
-            }
-        }
-#if !M53608_ALF_6 
-        char codetab_pred[3] = { 1, 0, 2 };
-#endif
-        const int iNumFixedFilterPerClass = 16;
-        {
-#if M53608_ALF_6 
-            evc_alfGolombEncode(bs, alfSliceParam.fixedFilterPattern, 0);
-#else
-            evc_alfGolombEncode(bs, codetab_pred[alfSliceParam.fixedFilterPattern], 0);
-#endif
-
-            if (alfSliceParam.fixedFilterPattern == 2)
-            {
-                for (int classIdx = 0; classIdx < MAX_NUM_ALF_CLASSES; classIdx++)
-                {
-#if M53608_ALF_7
-                    evc_bsw_write1(bs, alfSliceParam.fixedFilterUsageFlag[classIdx] ? 1 : 0); // "fixed_filter_flag"
-#else
-                    evc_bsw_write1(bs, alfSliceParam.fixedFilterIdx[classIdx] > 0 ? 1 : 0); // "fixed_filter_flag"
-#endif
-                }
-            }
-            if (alfSliceParam.fixedFilterPattern > 0)
-            {
-                for (int classIdx = 0; classIdx < MAX_NUM_ALF_CLASSES; classIdx++)
-                {
-#if M53608_ALF_7
-                    if (alfSliceParam.fixedFilterUsageFlag[classIdx] > 0)
-#else
-                    if (alfSliceParam.fixedFilterIdx[classIdx] > 0)
-#endif
-                    {
-#if M53608_ALF_3
-#if M53608_ALF_7
-                        evc_bsw_write(bs, alfSliceParam.fixedFilterIdx[classIdx], evc_tbl_log2[iNumFixedFilterPerClass - 1] + 1);
-#else
-                        evc_bsw_write(bs, alfSliceParam.fixedFilterIdx[classIdx] - 1, evc_tbl_log2[iNumFixedFilterPerClass - 1] + 1);
-#endif
-#else
-#if M53608_ALF_7
-                        evce_xWriteTruncBinCode(bs, alfSliceParam.fixedFilterIdx[classIdx], iNumFixedFilterPerClass);
-#else
-                        evce_xWriteTruncBinCode(bs, alfSliceParam.fixedFilterIdx[classIdx] - 1, iNumFixedFilterPerClass);
-#endif
-#endif
-                    }
-                }
-            }
-        }
-
-        evce_eco_alf_filter(bs, alfSliceParam, FALSE);
-    }
-#if M53608_ALF_14
-    if (alfChromaSignalled)
-#else
-    if (alfChromaIdc)
-#endif
-    {
-        {
-            evce_eco_alf_filter(bs, alfSliceParam, TRUE);
-        }
-    }
-
-    return EVC_OK;
-}
-#endif
 int evce_eco_alf_sh_param(EVC_BSW * bs, EVC_SH * sh)
 {
     evc_AlfSliceParam * alfSliceParam = &sh->alf_sh_param;

@@ -282,6 +282,7 @@ void evc_bsr_read1(EVC_BSR * bs, u32 * val)
 
     *val = code;
 }
+
 void evc_bsr_read_ue(EVC_BSR * bs, u32 * val)
 {
     int clz, len;
@@ -332,4 +333,3 @@ void evc_bsr_read_se(EVC_BSR * bs, s32 * val)
     *val = ((*val & 0x01) ? ((*val + 1) >> 1) : -(*val >> 1));
 }
 #endif
-

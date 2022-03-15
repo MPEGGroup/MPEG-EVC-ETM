@@ -47,11 +47,7 @@ typedef struct AlfFilterShape AlfFilterShape;
 EncAdaptiveLoopFilter* new_enc_ALF();
 void delete_enc_ALF(EncAdaptiveLoopFilter*);
 
-void call_create_enc_ALF(EncAdaptiveLoopFilter* p, const int picWidth, const int picHeight, const int maxCUWidth, const int maxCUHeight, const int maxCUDepth
-#if BD_CF_EXT
-                         , int idc
-#endif
-);
+void call_create_enc_ALF(EncAdaptiveLoopFilter* p, const int picWidth, const int picHeight, const int maxCUWidth, const int maxCUHeight, const int maxCUDepth, int idc);
 void call_destroy_enc_ALF(EncAdaptiveLoopFilter* p);
 
 void set_resetALFBufferFlag(EncAdaptiveLoopFilter* p, int flag);

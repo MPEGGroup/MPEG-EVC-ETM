@@ -59,30 +59,12 @@ extern "C"
         (chk) = 0;
 
 void evc_get_nbr_b(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_cu, pel nb[N_C][N_REF][MAX_CU_SIZE * 3], int scup, u32 *map_scu
-                   , int w_scu, int h_scu, int ch_type, int constrained_intra_pred, u8* map_tidx
-#if BD_CF_EXT
-                   , int bit_depth
-                   , int chroma_format_idc
-#endif
-);
+                   , int w_scu, int h_scu, int ch_type, int constrained_intra_pred, u8* map_tidx, int bit_depth, int chroma_format_idc);
 void evc_get_nbr(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_cu, pel nb[N_C][N_REF][MAX_CU_SIZE * 3], int scup, u32 *map_scu
-                 , int w_scu, int h_scu, int ch_type, int constrained_intra_pred, u8 * map_tidx
-#if BD_CF_EXT
-                 , int bit_depth
-                 , int chroma_format_idc
-#endif
-);
+                 , int w_scu, int h_scu, int ch_type, int constrained_intra_pred, u8 * map_tidx, int bit_depth, int chroma_format_idc);
 
-void evc_ipred(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm, int w, int h
-#if BD_CF_EXT
-               , int bit_depth
-#endif
-);
-void evc_ipred_uv(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm_c, int ipm, int w, int h
-#if BD_CF_EXT
-                  , int bit_depth
-#endif
-);
+void evc_ipred(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm, int w, int h, int bit_depth);
+void evc_ipred_uv(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm_c, int ipm, int w, int h, int bit_depth);
 void evc_ipred_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm, int w, int h);
 void evc_ipred_uv_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm_c, int ipm, int w, int h);
 

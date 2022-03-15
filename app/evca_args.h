@@ -54,11 +54,7 @@ extern "C"
 #define EVC_ARGS_NO_KEY                   (127)
 #define EVC_ARGS_KEY_LONG_CONFIG          "config"
 
-#define QC_MULT_CONFIG 1
-#if QC_MULT_CONFIG
-   #define MAX_NUM_CONF_FILES 16
-#endif
-
+#define MAX_NUM_CONF_FILES                16
 
 typedef struct _EVC_ARGS_OPTION
 {
@@ -69,7 +65,6 @@ typedef struct _EVC_ARGS_OPTION
     void * val; /* actual value */
     char   desc[512]; /* description of option */
 } EVC_ARGS_OPTION;
-
 
 static int evc_args_search_long_arg(EVC_ARGS_OPTION * opts, const char * argv)
 {
@@ -89,7 +84,6 @@ static int evc_args_search_long_arg(EVC_ARGS_OPTION * opts, const char * argv)
     }
     return -1;
 }
-
 
 static int evc_args_search_short_arg(EVC_ARGS_OPTION * ops, const char argv)
 {
@@ -164,7 +158,7 @@ static int evc_args_get_help(EVC_ARGS_OPTION * ops, int idx, char * help)
     }
     return 0;
 }
-#if !REMOVE_WARNING
+
 static int evc_args_get_arg(EVC_ARGS_OPTION * ops, int idx, char * result)
 {
     char vtype[32];
@@ -203,9 +197,8 @@ static int evc_args_get_arg(EVC_ARGS_OPTION * ops, int idx, char * result)
             value, o->desc);
 
     return 0;
-
 }
-#endif
+
 static int evc_parse_cfg(FILE * fp, EVC_ARGS_OPTION * ops)
 {
     char * parser;
@@ -242,9 +235,8 @@ static int evc_parse_cfg(FILE * fp, EVC_ARGS_OPTION * ops)
     return 0;
 }
 
-
 static int evc_parse_cmd(int argc, const char * argv[], EVC_ARGS_OPTION * ops,
-                          int * idx)
+                         int * idx)
 {
     int    aidx; /* arg index */
     int    oidx; /* option index */
@@ -294,64 +286,50 @@ NO_MORE:
 ERR:
     return -1;
 }
-#if REMOVE_WARNING
-int evc_args_parse_all(int argc, const char * argv[],
-  EVC_ARGS_OPTION * ops)
-#else
+
 static int evc_args_parse_all(int argc, const char * argv[],
-                               EVC_ARGS_OPTION * ops)
-#endif
+                              EVC_ARGS_OPTION * ops)
 {
     int i, ret = 0, idx = 0;
     EVC_ARGS_OPTION *o;
     const char *fname_cfg = NULL;
     FILE *fp;
+    int num_configs = 0;
+    int posConfFiles[MAX_NUM_CONF_FILES];
+    memset(&posConfFiles, -1, sizeof(int) * MAX_NUM_CONF_FILES);
 
-#if QC_MULT_CONFIG 
-
-	int num_configs = 0;
-	int posConfFiles[MAX_NUM_CONF_FILES];
-	memset(&posConfFiles, -1, sizeof(int) * MAX_NUM_CONF_FILES);
-#endif
     /* config file parsing */
-    for(i = 1; i < argc; i++)
+    for (i = 1; i < argc; i++)
     {
-        if(!strcmp(argv[i], "--"EVC_ARGS_KEY_LONG_CONFIG))
+        if (!strcmp(argv[i], "--"EVC_ARGS_KEY_LONG_CONFIG))
         {
-            if(i + 1 < argc)
+            if (i + 1 < argc)
             {
-#if QC_MULT_CONFIG
-				num_configs++;
-				posConfFiles[num_configs - 1] = i + 1;
-#else
-                fname_cfg = argv[i + 1];
-                break;
-#endif
+                num_configs++;
+                posConfFiles[num_configs - 1] = i + 1;
             }
         }
     }
-#if QC_MULT_CONFIG
-	for (int i = 0; i < num_configs; i++)
-	{
-		fname_cfg = argv[posConfFiles[i]];
-#endif
-    if(fname_cfg)
-    {
-        fp = fopen(fname_cfg, "r");
-        if(fp == NULL) return -1; /* config file error */
 
-        if(evc_parse_cfg(fp, ops))
+    for (int i = 0; i < num_configs; i++)
+    {
+        fname_cfg = argv[posConfFiles[i]];
+        if (fname_cfg)
         {
+            fp = fopen(fname_cfg, "r");
+            if (fp == NULL) return -1; /* config file error */
+
+            if (evc_parse_cfg(fp, ops))
+            {
+                fclose(fp);
+                return -1; /* config file error */
+            }
             fclose(fp);
-            return -1; /* config file error */
         }
-        fclose(fp);
     }
-#if QC_MULT_CONFIG
-	}
-#endif
+
     /* command line parsing */
-    while(1)
+    while (1)
     {
         ret = evc_parse_cmd(argc, argv, ops, &idx);
         if(ret <= 0) break;
@@ -374,7 +352,7 @@ static int evc_args_parse_all(int argc, const char * argv[],
     }
     return ret;
 }
-#if !REMOVE_WARNING
+
 static int evc_args_parse_int_x_int(char * str, int * num0, int * num1)
 {
     char str0_t[64];
@@ -408,7 +386,6 @@ static int evc_args_parse_int_x_int(char * str, int * num0, int * num1)
         if(str1[i] < 0x30 || str1[i] > 0x39) return -1; /* not a number */
     }
 
-
     strncpy(str0_t, str0, cnt0);
     str0_t[cnt0] = '\0';
 
@@ -417,11 +394,9 @@ static int evc_args_parse_int_x_int(char * str, int * num0, int * num1)
 
     return 0;
 }
-#endif
 
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif /*_EVC_ARGS_H_ */

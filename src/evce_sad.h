@@ -40,61 +40,31 @@ extern "C"
 #endif
 
 #include "evc_port.h"
-#if BD_CF_EXT
-typedef int(*EVCE_FN_SAD) (int w, int h, void *src1, void *src2, int s_src1, int s_src2, int bit_depth);
-typedef int(*EVCE_FN_SATD)(int w, int h, void *src1, void *src2, int s_src1, int s_src2, int bit_depth);
-typedef s64(*EVCE_FN_SSD) (int w, int h, void *src1, void *src2, int s_src1, int s_src2, int bit_depth);
-typedef void(*EVCE_FN_DIFF)(int w, int h, void *src1, void *src2, int s_src1, int s_src2, int s_diff, s16 *diff, int bit_depth);
-#else
-typedef int  (*EVCE_FN_SAD) (int w, int h, void *src1, void *src2, int s_src1, int s_src2);
-typedef int  (*EVCE_FN_SATD)(int w, int h, void *src1, void *src2, int s_src1, int s_src2);
-typedef s64  (*EVCE_FN_SSD) (int w, int h, void *src1, void *src2, int s_src1, int s_src2);
-typedef void (*EVCE_FN_DIFF)(int w, int h, void *src1, void *src2, int s_src1, int s_src2, int s_diff, s16 *diff);
-#endif
+
+typedef int  (*EVCE_FN_SAD ) (int w, int h, void *src1, void *src2, int s_src1, int s_src2, int bit_depth);
+typedef int  (*EVCE_FN_SATD) (int w, int h, void *src1, void *src2, int s_src1, int s_src2, int bit_depth);
+typedef s64  (*EVCE_FN_SSD ) (int w, int h, void *src1, void *src2, int s_src1, int s_src2, int bit_depth);
+typedef void (*EVCE_FN_DIFF) (int w, int h, void *src1, void *src2, int s_src1, int s_src2, int s_diff, s16 *diff, int bit_depth);
+
 extern const EVCE_FN_SAD evce_tbl_sad_16b[8][8];
-#if BD_CF_EXT
 #define evce_sad_16b(log2w, log2h, src1, src2, s_src1, s_src2, bit_depth)\
     evce_tbl_sad_16b[log2w][log2h](1<<(log2w), 1<<(log2h), src1, src2, s_src1, s_src2, bit_depth)
 #define evce_sad_bi_16b(log2w, log2h, src1, src2, s_src1, s_src2, bit_depth)\
     (evce_tbl_sad_16b[log2w][log2h](1<<(log2w), 1<<(log2h), src1, src2, s_src1, s_src2, bit_depth) >> 1)
-#else
-#define evce_sad_16b(log2w, log2h, src1, src2, s_src1, s_src2)\
-    evce_tbl_sad_16b[log2w][log2h](1<<(log2w), 1<<(log2h), src1, src2, s_src1, s_src2)
-
-#define evce_sad_bi_16b(log2w, log2h, src1, src2, s_src1, s_src2)\
-    (evce_tbl_sad_16b[log2w][log2h](1<<(log2w), 1<<(log2h), src1, src2, s_src1, s_src2) >> 1)
-#endif
-
 
 extern const EVCE_FN_SATD evce_tbl_satd_16b[8][8];
-#if BD_CF_EXT
 #define evce_satd_16b(log2w, log2h, src1, src2, s_src1, s_src2, bit_depth)\
     evce_tbl_satd_16b[log2w][log2h](1<<(log2w), 1<<(log2h), src1, src2, s_src1, s_src2, bit_depth)
 #define evce_satd_bi_16b(log2w, log2h, src1, src2, s_src1, s_src2, bit_depth)\
     (evce_tbl_satd_16b[log2w][log2h](1<<(log2w), 1<<(log2h), src1, src2, s_src1, s_src2, bit_depth) >> 1)
-#else
-#define evce_satd_16b(log2w, log2h, src1, src2, s_src1, s_src2)\
-    evce_tbl_satd_16b[log2w][log2h](1<<(log2w), 1<<(log2h), src1, src2, s_src1, s_src2)
-#define evce_satd_bi_16b(log2w, log2h, src1, src2, s_src1, s_src2)\
-    (evce_tbl_satd_16b[log2w][log2h](1<<(log2w), 1<<(log2h), src1, src2, s_src1, s_src2) >> 1)
-#endif
 
-#if BD_CF_EXT
 extern const EVCE_FN_SSD evce_tbl_ssd_16b[8][8];
 #define evce_ssd_16b(log2w, log2h, src1, src2, s_src1, s_src2, bit_depth)\
     evce_tbl_ssd_16b[log2w][log2h](1<<(log2w), 1<<(log2h), src1, src2, s_src1, s_src2, bit_depth)
+
 extern const EVCE_FN_DIFF evce_tbl_diff_16b[8][8];
 #define evce_diff_16b(log2w, log2h, src1, src2, s_src1, s_src2, s_diff, diff, bit_depth) \
     evce_tbl_diff_16b[log2w][log2h](1<<(log2w), 1<<(log2h), src1, src2, s_src1, s_src2, s_diff, diff, bit_depth)
-#else
-extern const EVCE_FN_SSD evce_tbl_ssd_16b[8][8];
-#define evce_ssd_16b(log2w, log2h, src1, src2, s_src1, s_src2)\
-    evce_tbl_ssd_16b[log2w][log2h](1<<(log2w), 1<<(log2h), src1, src2, s_src1, s_src2)
-
-extern const EVCE_FN_DIFF evce_tbl_diff_16b[8][8];
-#define evce_diff_16b(log2w, log2h, src1, src2, s_src1, s_src2, s_diff, diff) \
-    evce_tbl_diff_16b[log2w][log2h](1<<(log2w), 1<<(log2h), src1, src2, s_src1, s_src2, s_diff, diff)
-#endif
 
 #ifdef __cplusplus
 }

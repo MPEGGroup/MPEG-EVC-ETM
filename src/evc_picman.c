@@ -555,8 +555,8 @@ int evc_picman_refpic_marking(EVC_PM *pm, EVC_SH *sh, int poc_val)
 }
 
 int evc_picman_put_pic(EVC_PM * pm, EVC_PIC * pic, int is_idr,
-                        u32 poc, u8 temporal_id, int need_for_output,
-                        EVC_REFP(*refp)[REFP_NUM], int ref_pic, int tool_rpl, int ref_pic_gap_length)
+                       u32 poc, u8 temporal_id, int need_for_output,
+                       EVC_REFP(*refp)[REFP_NUM], int ref_pic, int tool_rpl, int ref_pic_gap_length)
 {
     /* manage RPB */
     if(is_idr)

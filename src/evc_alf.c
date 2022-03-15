@@ -92,17 +92,9 @@ void delete_ALF(AdaptiveLoopFilter* p)
     free(p);
 }
 
-void call_create_ALF(AdaptiveLoopFilter* p, const int picWidth, const int picHeight, const int maxCUWidth, const int maxCUHeight, const int maxCUDepth
-#if BD_CF_EXT
-                     , int idc
-#endif
-)
+void call_create_ALF(AdaptiveLoopFilter* p, const int picWidth, const int picHeight, const int maxCUWidth, const int maxCUHeight, const int maxCUDepth, int idc)
 {
-    AdaptiveLoopFilter_create(picWidth, picHeight, maxCUWidth, maxCUHeight, maxCUDepth
-#if BD_CF_EXT
-                              , idc
-#endif
-    );
+    AdaptiveLoopFilter_create(picWidth, picHeight, maxCUWidth, maxCUHeight, maxCUDepth, idc);
 }
 
 void call_destroy_ALF(AdaptiveLoopFilter* p)
@@ -120,23 +112,16 @@ void store_dec_aps_to_buffer(EVCD_CTX * ctx)
     alfSliceParam.enabledFlag[COMPONENT_Y] = (iAlfSliceParam.enabledFlag[0]);
     alfSliceParam.enabledFlag[COMPONENT_Cb] = (iAlfSliceParam.enabledFlag[1]);
     alfSliceParam.enabledFlag[COMPONENT_Cr] = (iAlfSliceParam.enabledFlag[2]);
-#if M53608_ALF_14
     alfSliceParam.chromaFilterPresent = iAlfSliceParam.chromaFilterPresent;
-#endif
-
     alfSliceParam.numLumaFilters = iAlfSliceParam.numLumaFilters;
     alfSliceParam.lumaFilterType = (AlfFilterType)(iAlfSliceParam.lumaFilterType);
     alfSliceParam.chromaCtbPresentFlag = (iAlfSliceParam.chromaCtbPresentFlag);
-
     memcpy(alfSliceParam.filterCoeffDeltaIdx, iAlfSliceParam.filterCoeffDeltaIdx, MAX_NUM_ALF_CLASSES * sizeof(short));
     memcpy(alfSliceParam.lumaCoeff, iAlfSliceParam.lumaCoeff, sizeof(short)*MAX_NUM_ALF_CLASSES*MAX_NUM_ALF_LUMA_COEFF);
     memcpy(alfSliceParam.chromaCoeff, iAlfSliceParam.chromaCoeff, sizeof(short)*MAX_NUM_ALF_CHROMA_COEFF);
     memcpy(alfSliceParam.fixedFilterIdx, iAlfSliceParam.fixedFilterIdx, MAX_NUM_ALF_CLASSES * sizeof(int));
-#if M53608_ALF_7
     memcpy(alfSliceParam.fixedFilterUsageFlag, iAlfSliceParam.fixedFilterUsageFlag, MAX_NUM_ALF_CLASSES * sizeof(u8));
-#endif
     alfSliceParam.fixedFilterPattern = iAlfSliceParam.fixedFilterPattern;
-
     alfSliceParam.coeffDeltaFlag = (iAlfSliceParam.coeffDeltaFlag);
     alfSliceParam.coeffDeltaPredModeFlag = (iAlfSliceParam.coeffDeltaPredModeFlag);
 
@@ -160,6 +145,7 @@ void store_dec_aps_to_buffer(EVCD_CTX * ctx)
 
     store_alf_paramline_from_aps(&(alfSliceParam), alfSliceParam.prevIdx);
 }
+
 void call_dec_alf_process_aps(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * pic)
 {
     CodingStructure cs;
@@ -170,11 +156,7 @@ void call_dec_alf_process_aps(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * p
     alfSliceParam.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
     memset(alfSliceParam.alfCtuEnableFlag, 0, N_C * ctx->f_lcu * sizeof(u8));
     // load filter from buffer
-    load_alf_paramline_from_aps_buffer2(&(alfSliceParam), ctx->sh.aps_id_y, ctx->sh.aps_id_ch
-#if M53608_ALF_14
-                                        , ctx->sh.alfChromaIdc
-#endif
-    );
+    load_alf_paramline_from_aps_buffer2(&(alfSliceParam), ctx->sh.aps_id_y, ctx->sh.aps_id_ch, ctx->sh.alfChromaIdc);
 
     // load filter map buffer
     alfSliceParam.isCtbAlfOn = ctx->sh.alf_sh_param.isCtbAlfOn;
@@ -186,15 +168,9 @@ AlfFilterShape m_filterShapes[MAX_NUM_CHANNEL_TYPE][2];
 
 void init_AdaptiveLoopFilter(AdaptiveLoopFilter* p)
 {
-#if BD_CF_EXT
     m_clpRngs.comp[0] = (ClpRng) { .min = 0, .max = (1<<INTERNAL_CODEC_BIT_DEPTH) - 1, .bd = INTERNAL_CODEC_BIT_DEPTH, .n = 0 };
     m_clpRngs.comp[1] = (ClpRng) { .min = 0, .max = (1 << INTERNAL_CODEC_BIT_DEPTH_CHROMA) - 1, .bd = INTERNAL_CODEC_BIT_DEPTH, .n = 0 };
     m_clpRngs.comp[2] = (ClpRng) { .min = 0, .max = (1 << INTERNAL_CODEC_BIT_DEPTH_CHROMA) - 1, .bd = INTERNAL_CODEC_BIT_DEPTH, .n = 0 };
-#else
-    m_clpRngs.comp[0] = (ClpRng){ .min=0, .max=1023, .bd=10, .n=0 };
-    m_clpRngs.comp[1] = (ClpRng){ .min=0, .max=1023, .bd=10, .n=0 };
-    m_clpRngs.comp[2] = (ClpRng){ .min=0, .max=1023, .bd=10, .n=0 };
-#endif
     m_clpRngs.used = FALSE;
     m_clpRngs.chroma = FALSE;
 
@@ -251,7 +227,6 @@ void init_AlfFilterShape(void* _th, int size)
 */
 void copy_and_extend_tile(pel* tmpYuv, const int s, const pel* recYuv, const int s2, const int w, const int h, const int m)
 {
-
     //copy
     for (int j = 0; j < h; j++)
         memcpy(tmpYuv + j * s, recYuv + j * s2, sizeof(pel) * w);
@@ -259,8 +234,10 @@ void copy_and_extend_tile(pel* tmpYuv, const int s, const pel* recYuv, const int
     //extend
     pel * p = tmpYuv;
     // do left and right margins
-    for (int y = 0; y < h; y++) {
-        for (int x = 0; x < m; x++) {
+    for (int y = 0; y < h; y++)
+    {
+        for (int x = 0; x < m; x++)
+        {
             *(p - m + x) = p[0];
             p[w + x] = p[w - 1];
         }
@@ -270,14 +247,16 @@ void copy_and_extend_tile(pel* tmpYuv, const int s, const pel* recYuv, const int
     // p is now the (0,height) (bottom left of image within bigger picture
     p -= (s + m);
     // p is now the (-margin, height-1)
-    for (int y = 0; y < m; y++) {
+    for (int y = 0; y < m; y++)
+    {
         memcpy(p + (y + 1) * s, p, sizeof(pel) * (w + (m << 1)));
     }
 
     // pi is still (-marginX, height-1)
     p -= ((h - 1) * s);
     // pi is now (-marginX, 0)
-    for (int y = 0; y < m; y++) {
+    for (int y = 0; y < m; y++)
+    {
         memcpy(p - (y + 1) * s, p, sizeof(pel) * (w + (m << 1)));
     }
 }
@@ -294,7 +273,6 @@ void copy_and_extend_tile(pel* tmpYuv, const int s, const pel* recYuv, const int
  */
 void copy_and_extend( pel* tmpYuv, const int s, const pel* recYuv, const int s2, const int w, const int h, const int m )
 {
-
 //copy
     for (int j = 0; j < h; j++)
         memcpy(tmpYuv + j * s, recYuv + j * s2, sizeof(pel) * w);
@@ -303,8 +281,10 @@ void copy_and_extend( pel* tmpYuv, const int s, const pel* recYuv, const int s2,
 
     pel * p = tmpYuv;
 // do left and right margins
-    for (int y = 0; y < h; y++) {
-        for (int x = 0; x < m; x++) {
+    for (int y = 0; y < h; y++)
+    {
+        for (int x = 0; x < m; x++)
+        {
             *(p - m + x) = p[0];
             p[w + x] = p[w - 1];
         }
@@ -314,118 +294,120 @@ void copy_and_extend( pel* tmpYuv, const int s, const pel* recYuv, const int s2,
 // p is now the (0,height) (bottom left of image within bigger picture
     p -= (s + m);
 // p is now the (-margin, height-1)
-    for (int y = 0; y < m; y++) {
+    for (int y = 0; y < m; y++)
+    {
         memcpy(p + (y + 1) * s, p, sizeof(pel) * (w + (m << 1)));
     }
 
 // pi is still (-marginX, height-1)
     p -= ((h - 1) * s);
 // pi is now (-marginX, 0)
-    for (int y = 0; y < 3; y++) {
+    for (int y = 0; y < 3; y++)
+    {
         memcpy(p - (y + 1) * s, p, sizeof(pel) * (w + (m << 1)));
     }
 
 } // <-- end of copy and extend
 
-int getMaxGolombIdx( AlfFilterType filterType )
+int getMaxGolombIdx(AlfFilterType filterType)
 {
-  return filterType == ALF_FILTER_5 ? 2 : 3;
+    return filterType == ALF_FILTER_5 ? 2 : 3;
 }
 
 const int m_fixedFilterCoeff[m_fixedFilterNum][13] =
 {
-  { 0,   2,   7, -12,  -4, -11,  -2,  31,  -9,   6,  -4,  30, 444 - (1 << (m_NUM_BITS - 1)) },
-  { -26,   4,  17,  22,  -7,  19,  40,  47,  49, -28,  35,  48,  72 - (1 << (m_NUM_BITS - 1)) },
-  { -24,  -8,  30,  64, -13,  18,  18,  27,  80,   0,  31,  19,  28 - (1 << (m_NUM_BITS - 1)) },
-  { -4, -14,  44, 100,  -7,   6,  -4,   8,  90,  26,  26, -12,  -6 - (1 << (m_NUM_BITS - 1)) },
-  { -17,  -9,  23,  -3, -15,  20,  53,  48,  16, -25,  42,  66, 114 - (1 << (m_NUM_BITS - 1)) },
-  { -12,  -2,   1, -19,  -5,   8,  66,  80,  -2, -25,  20,  78, 136 - (1 << (m_NUM_BITS - 1)) },
-  { 2,   8, -23, -14,  -3, -23,  64,  86,  35, -17,  -4,  79, 132 - (1 << (m_NUM_BITS - 1)) },
-  { 12,   4, -39,  -7,   1, -20,  78,  13,  -8,  11, -42,  98, 310 - (1 << (m_NUM_BITS - 1)) },
-  { 0,   3,  -4,   0,   2,  -7,   6,   0,   0,   3,  -8,  11, 500 - (1 << (m_NUM_BITS - 1)) },
-  { 4,  -7, -25, -19,  -9,   8,  86,  65, -14,  -7,  -7,  97, 168 - (1 << (m_NUM_BITS - 1)) },
-  { 3,   3,   2, -30,   6, -34,  43,  71, -10,   4, -23,  77, 288 - (1 << (m_NUM_BITS - 1)) },
-  { 12,  -3, -34, -14,  -5, -14,  88,  28, -12,   8, -34, 112, 248 - (1 << (m_NUM_BITS - 1)) },
-  { -1,   6,   8, -29,   7, -27,  15,  60,  -4,   6, -21,  39, 394 - (1 << (m_NUM_BITS - 1)) },
-  { 8,  -1,  -7, -22,   5, -41,  63,  40, -13,   7, -28, 105, 280 - (1 << (m_NUM_BITS - 1)) },
-  { 1,   3,  -5,  -1,   1, -10,  12,  -1,   0,   3,  -9,  19, 486 - (1 << (m_NUM_BITS - 1)) },
-  { 10,  -1, -23, -14,  -3, -27,  78,  24, -14,   8, -28, 102, 288 - (1 << (m_NUM_BITS - 1)) },
-  { 0,   0,  -1,   0,   0,  -1,   1,   0,   0,   0,   0,   1, 512 - (1 << (m_NUM_BITS - 1)) },
-  { 7,   3, -19,  -7,   2, -27,  51,   8,  -6,   7, -24,  64, 394 - (1 << (m_NUM_BITS - 1)) },
-  { 11, -10, -22, -22, -11, -12,  87,  49, -20,   4, -16, 108, 220 - (1 << (m_NUM_BITS - 1)) },
-  { 17,  -2, -69,  -4,  -4,  22, 106,  31,  -7,  13, -63, 121, 190 - (1 << (m_NUM_BITS - 1)) },
-  { 1,   4,  -1,  -7,   5, -26,  24,   0,   1,   3, -18,  51, 438 - (1 << (m_NUM_BITS - 1)) },
-  { 3,   5, -10,  -2,   4, -17,  17,   1,  -2,   6, -16,  27, 480 - (1 << (m_NUM_BITS - 1)) },
-  { 9,   2, -23,  -5,   6, -45,  90, -22,   1,   7, -39, 121, 308 - (1 << (m_NUM_BITS - 1)) },
-  { 4,   5, -15,  -2,   4, -22,  34,  -2,  -2,   7, -22,  48, 438 - (1 << (m_NUM_BITS - 1)) },
-  { 6,   8, -22,  -3,   4, -32,  57,  -3,  -4,  11, -43, 102, 350 - (1 << (m_NUM_BITS - 1)) },
-  { 2,   5, -11,   1,  12, -46,  64, -32,   7,   4, -31,  85, 392 - (1 << (m_NUM_BITS - 1)) },
-  { 5,   5, -12,  -8,   6, -48,  74, -13,  -1,   7, -41, 129, 306 - (1 << (m_NUM_BITS - 1)) },
-  { 0,   1,  -1,   0,   1,  -3,   2,   0,   0,   1,  -3,   4, 508 - (1 << (m_NUM_BITS - 1)) },
-  { -1,   3,  16, -42,   6, -16,   2, 105,   6,   6, -31,  43, 318 - (1 << (m_NUM_BITS - 1)) },
-  { 7,   8, -27,  -4,  -4, -23,  46,  79,  64,  -8, -13,  68, 126 - (1 << (m_NUM_BITS - 1)) },
-  { -3,  12,  -4, -34,  14,  -6, -24, 179,  56,   2, -48,  15, 194 - (1 << (m_NUM_BITS - 1)) },
-  { 8,   0, -16, -25,  -1, -29,  68,  84,   3,  -3, -18,  94, 182 - (1 << (m_NUM_BITS - 1)) },
-  { -3,  -1,  22, -32,   2, -20,   5,  89,   0,   9, -18,  40, 326 - (1 << (m_NUM_BITS - 1)) },
-  { 14,   6, -51,  22, -10, -22,  36,  75, 106,  -4, -11,  56,  78 - (1 << (m_NUM_BITS - 1)) },
-  { 1,  38, -59,  14,   8, -44, -18, 156,  80,  -1, -42,  29, 188 - (1 << (m_NUM_BITS - 1)) },
-  { -1,   2,   4,  -9,   3, -13,   7,  17,  -4,   2,  -6,  17, 474 - (1 << (m_NUM_BITS - 1)) },
-  { 11,  -2, -15, -36,   2, -32,  67,  89, -19,  -1, -14, 103, 206 - (1 << (m_NUM_BITS - 1)) },
-  { -1,  10,   3, -28,   7, -27,   7, 117,  34,   1, -35,  51, 234 - (1 << (m_NUM_BITS - 1)) },
-  { 3,   3,   4, -18,   6, -40,  36,  18,  -8,   7, -25,  86, 368 - (1 << (m_NUM_BITS - 1)) },
-  { -1,   3,   9, -18,   5, -26,  12,  37, -11,   3,  -7,  32, 436 - (1 << (m_NUM_BITS - 1)) },
-  { 0,  17, -38,  -9, -28, -17,  25,  48, 103,   2,  40,  69,  88 - (1 << (m_NUM_BITS - 1)) },
-  { 6,   4, -11, -20,   5, -32,  51,  77,  17,   0, -25,  84, 200 - (1 << (m_NUM_BITS - 1)) },
-  { 0,  -5,  28, -24,  -1, -22,  18,  -9,  17,  -1, -12, 107, 320 - (1 << (m_NUM_BITS - 1)) },
-  { -10,  -4,  17, -30, -29,  31,  40,  49,  44, -26,  67,  67,  80 - (1 << (m_NUM_BITS - 1)) },
-  { -30, -12,  39,  15, -21,  32,  29,  26,  71,  20,  43,  28,  32 - (1 << (m_NUM_BITS - 1)) },
-  { 6,  -7,  -7, -34, -21,  15,  53,  60,  12, -26,  45,  89, 142 - (1 << (m_NUM_BITS - 1)) },
-  { -1,  -5,  59, -58,  -8, -30,   2,  17,  34,  -7,  25, 111, 234 - (1 << (m_NUM_BITS - 1)) },
-  { 7,   1,  -7, -20,  -9, -22,  48,  27,  -4,  -6,   0, 107, 268 - (1 << (m_NUM_BITS - 1)) },
-  { -2,  22,  29, -70,  -4, -28,   2,  19,  94, -40,  14, 110, 220 - (1 << (m_NUM_BITS - 1)) },
-  { 13,   0, -22, -27, -11, -15,  66,  44,  -7,  -5, -10, 121, 218 - (1 << (m_NUM_BITS - 1)) },
-  { 10,   6, -22, -14,  -2, -33,  68,  15,  -9,   5, -35, 135, 264 - (1 << (m_NUM_BITS - 1)) },
-  { 2,  11,   4, -32,  -3, -20,  23,  18,  17,  -1, -28,  88, 354 - (1 << (m_NUM_BITS - 1)) },
-  { 0,   3,  -2,  -1,   3, -16,  16,  -3,   0,   2, -12,  35, 462 - (1 << (m_NUM_BITS - 1)) },
-  { 1,   6,  -6,  -3,  10, -51,  70, -31,   5,   6, -42, 125, 332 - (1 << (m_NUM_BITS - 1)) },
-  { 5,  -7,  61, -71, -36,  -6,  -2,  15,  57,  18,  14, 108, 200 - (1 << (m_NUM_BITS - 1)) },
-  { 9,   1,  35, -70, -73,  28,  13,   1,  96,  40,  36,  80, 120 - (1 << (m_NUM_BITS - 1)) },
-  { 11,  -7,  33, -72, -78,  48,  33,  37,  35,   7,  85,  76,  96 - (1 << (m_NUM_BITS - 1)) },
-  { 4,  15,   1, -26, -24, -19,  32,  29,  -8,  -6,  21, 125, 224 - (1 << (m_NUM_BITS - 1)) },
-  { 11,   8,  14, -57, -63,  21,  34,  51,   7,  -3,  69,  89, 150 - (1 << (m_NUM_BITS - 1)) },
-  { 7,  16,  -7, -31, -38,  -5,  41,  44, -11, -10,  45, 109, 192 - (1 << (m_NUM_BITS - 1)) },
-  { 5,  16,  16, -46, -55,   3,  22,  32,  13,   0,  48, 107, 190 - (1 << (m_NUM_BITS - 1)) },
-  { 2,  10,  -3, -14,  -9, -28,  39,  15, -10,  -5,  -1, 123, 274 - (1 << (m_NUM_BITS - 1)) },
-  { 3,  11,  11, -27, -17, -24,  18,  22,   2,   4,   3, 100, 300 - (1 << (m_NUM_BITS - 1)) },
-  { 0,   1,   7,  -9,   3, -20,  16,   3,  -2,   0,  -9,  61, 410 - (1 << (m_NUM_BITS - 1)) },
+    { 0,   2,   7, -12,  -4, -11,  -2,  31,  -9,   6,  -4,  30, 444 - (1 << (m_NUM_BITS - 1)) },
+    { -26,   4,  17,  22,  -7,  19,  40,  47,  49, -28,  35,  48,  72 - (1 << (m_NUM_BITS - 1)) },
+    { -24,  -8,  30,  64, -13,  18,  18,  27,  80,   0,  31,  19,  28 - (1 << (m_NUM_BITS - 1)) },
+    { -4, -14,  44, 100,  -7,   6,  -4,   8,  90,  26,  26, -12,  -6 - (1 << (m_NUM_BITS - 1)) },
+    { -17,  -9,  23,  -3, -15,  20,  53,  48,  16, -25,  42,  66, 114 - (1 << (m_NUM_BITS - 1)) },
+    { -12,  -2,   1, -19,  -5,   8,  66,  80,  -2, -25,  20,  78, 136 - (1 << (m_NUM_BITS - 1)) },
+    { 2,   8, -23, -14,  -3, -23,  64,  86,  35, -17,  -4,  79, 132 - (1 << (m_NUM_BITS - 1)) },
+    { 12,   4, -39,  -7,   1, -20,  78,  13,  -8,  11, -42,  98, 310 - (1 << (m_NUM_BITS - 1)) },
+    { 0,   3,  -4,   0,   2,  -7,   6,   0,   0,   3,  -8,  11, 500 - (1 << (m_NUM_BITS - 1)) },
+    { 4,  -7, -25, -19,  -9,   8,  86,  65, -14,  -7,  -7,  97, 168 - (1 << (m_NUM_BITS - 1)) },
+    { 3,   3,   2, -30,   6, -34,  43,  71, -10,   4, -23,  77, 288 - (1 << (m_NUM_BITS - 1)) },
+    { 12,  -3, -34, -14,  -5, -14,  88,  28, -12,   8, -34, 112, 248 - (1 << (m_NUM_BITS - 1)) },
+    { -1,   6,   8, -29,   7, -27,  15,  60,  -4,   6, -21,  39, 394 - (1 << (m_NUM_BITS - 1)) },
+    { 8,  -1,  -7, -22,   5, -41,  63,  40, -13,   7, -28, 105, 280 - (1 << (m_NUM_BITS - 1)) },
+    { 1,   3,  -5,  -1,   1, -10,  12,  -1,   0,   3,  -9,  19, 486 - (1 << (m_NUM_BITS - 1)) },
+    { 10,  -1, -23, -14,  -3, -27,  78,  24, -14,   8, -28, 102, 288 - (1 << (m_NUM_BITS - 1)) },
+    { 0,   0,  -1,   0,   0,  -1,   1,   0,   0,   0,   0,   1, 512 - (1 << (m_NUM_BITS - 1)) },
+    { 7,   3, -19,  -7,   2, -27,  51,   8,  -6,   7, -24,  64, 394 - (1 << (m_NUM_BITS - 1)) },
+    { 11, -10, -22, -22, -11, -12,  87,  49, -20,   4, -16, 108, 220 - (1 << (m_NUM_BITS - 1)) },
+    { 17,  -2, -69,  -4,  -4,  22, 106,  31,  -7,  13, -63, 121, 190 - (1 << (m_NUM_BITS - 1)) },
+    { 1,   4,  -1,  -7,   5, -26,  24,   0,   1,   3, -18,  51, 438 - (1 << (m_NUM_BITS - 1)) },
+    { 3,   5, -10,  -2,   4, -17,  17,   1,  -2,   6, -16,  27, 480 - (1 << (m_NUM_BITS - 1)) },
+    { 9,   2, -23,  -5,   6, -45,  90, -22,   1,   7, -39, 121, 308 - (1 << (m_NUM_BITS - 1)) },
+    { 4,   5, -15,  -2,   4, -22,  34,  -2,  -2,   7, -22,  48, 438 - (1 << (m_NUM_BITS - 1)) },
+    { 6,   8, -22,  -3,   4, -32,  57,  -3,  -4,  11, -43, 102, 350 - (1 << (m_NUM_BITS - 1)) },
+    { 2,   5, -11,   1,  12, -46,  64, -32,   7,   4, -31,  85, 392 - (1 << (m_NUM_BITS - 1)) },
+    { 5,   5, -12,  -8,   6, -48,  74, -13,  -1,   7, -41, 129, 306 - (1 << (m_NUM_BITS - 1)) },
+    { 0,   1,  -1,   0,   1,  -3,   2,   0,   0,   1,  -3,   4, 508 - (1 << (m_NUM_BITS - 1)) },
+    { -1,   3,  16, -42,   6, -16,   2, 105,   6,   6, -31,  43, 318 - (1 << (m_NUM_BITS - 1)) },
+    { 7,   8, -27,  -4,  -4, -23,  46,  79,  64,  -8, -13,  68, 126 - (1 << (m_NUM_BITS - 1)) },
+    { -3,  12,  -4, -34,  14,  -6, -24, 179,  56,   2, -48,  15, 194 - (1 << (m_NUM_BITS - 1)) },
+    { 8,   0, -16, -25,  -1, -29,  68,  84,   3,  -3, -18,  94, 182 - (1 << (m_NUM_BITS - 1)) },
+    { -3,  -1,  22, -32,   2, -20,   5,  89,   0,   9, -18,  40, 326 - (1 << (m_NUM_BITS - 1)) },
+    { 14,   6, -51,  22, -10, -22,  36,  75, 106,  -4, -11,  56,  78 - (1 << (m_NUM_BITS - 1)) },
+    { 1,  38, -59,  14,   8, -44, -18, 156,  80,  -1, -42,  29, 188 - (1 << (m_NUM_BITS - 1)) },
+    { -1,   2,   4,  -9,   3, -13,   7,  17,  -4,   2,  -6,  17, 474 - (1 << (m_NUM_BITS - 1)) },
+    { 11,  -2, -15, -36,   2, -32,  67,  89, -19,  -1, -14, 103, 206 - (1 << (m_NUM_BITS - 1)) },
+    { -1,  10,   3, -28,   7, -27,   7, 117,  34,   1, -35,  51, 234 - (1 << (m_NUM_BITS - 1)) },
+    { 3,   3,   4, -18,   6, -40,  36,  18,  -8,   7, -25,  86, 368 - (1 << (m_NUM_BITS - 1)) },
+    { -1,   3,   9, -18,   5, -26,  12,  37, -11,   3,  -7,  32, 436 - (1 << (m_NUM_BITS - 1)) },
+    { 0,  17, -38,  -9, -28, -17,  25,  48, 103,   2,  40,  69,  88 - (1 << (m_NUM_BITS - 1)) },
+    { 6,   4, -11, -20,   5, -32,  51,  77,  17,   0, -25,  84, 200 - (1 << (m_NUM_BITS - 1)) },
+    { 0,  -5,  28, -24,  -1, -22,  18,  -9,  17,  -1, -12, 107, 320 - (1 << (m_NUM_BITS - 1)) },
+    { -10,  -4,  17, -30, -29,  31,  40,  49,  44, -26,  67,  67,  80 - (1 << (m_NUM_BITS - 1)) },
+    { -30, -12,  39,  15, -21,  32,  29,  26,  71,  20,  43,  28,  32 - (1 << (m_NUM_BITS - 1)) },
+    { 6,  -7,  -7, -34, -21,  15,  53,  60,  12, -26,  45,  89, 142 - (1 << (m_NUM_BITS - 1)) },
+    { -1,  -5,  59, -58,  -8, -30,   2,  17,  34,  -7,  25, 111, 234 - (1 << (m_NUM_BITS - 1)) },
+    { 7,   1,  -7, -20,  -9, -22,  48,  27,  -4,  -6,   0, 107, 268 - (1 << (m_NUM_BITS - 1)) },
+    { -2,  22,  29, -70,  -4, -28,   2,  19,  94, -40,  14, 110, 220 - (1 << (m_NUM_BITS - 1)) },
+    { 13,   0, -22, -27, -11, -15,  66,  44,  -7,  -5, -10, 121, 218 - (1 << (m_NUM_BITS - 1)) },
+    { 10,   6, -22, -14,  -2, -33,  68,  15,  -9,   5, -35, 135, 264 - (1 << (m_NUM_BITS - 1)) },
+    { 2,  11,   4, -32,  -3, -20,  23,  18,  17,  -1, -28,  88, 354 - (1 << (m_NUM_BITS - 1)) },
+    { 0,   3,  -2,  -1,   3, -16,  16,  -3,   0,   2, -12,  35, 462 - (1 << (m_NUM_BITS - 1)) },
+    { 1,   6,  -6,  -3,  10, -51,  70, -31,   5,   6, -42, 125, 332 - (1 << (m_NUM_BITS - 1)) },
+    { 5,  -7,  61, -71, -36,  -6,  -2,  15,  57,  18,  14, 108, 200 - (1 << (m_NUM_BITS - 1)) },
+    { 9,   1,  35, -70, -73,  28,  13,   1,  96,  40,  36,  80, 120 - (1 << (m_NUM_BITS - 1)) },
+    { 11,  -7,  33, -72, -78,  48,  33,  37,  35,   7,  85,  76,  96 - (1 << (m_NUM_BITS - 1)) },
+    { 4,  15,   1, -26, -24, -19,  32,  29,  -8,  -6,  21, 125, 224 - (1 << (m_NUM_BITS - 1)) },
+    { 11,   8,  14, -57, -63,  21,  34,  51,   7,  -3,  69,  89, 150 - (1 << (m_NUM_BITS - 1)) },
+    { 7,  16,  -7, -31, -38,  -5,  41,  44, -11, -10,  45, 109, 192 - (1 << (m_NUM_BITS - 1)) },
+    { 5,  16,  16, -46, -55,   3,  22,  32,  13,   0,  48, 107, 190 - (1 << (m_NUM_BITS - 1)) },
+    { 2,  10,  -3, -14,  -9, -28,  39,  15, -10,  -5,  -1, 123, 274 - (1 << (m_NUM_BITS - 1)) },
+    { 3,  11,  11, -27, -17, -24,  18,  22,   2,   4,   3, 100, 300 - (1 << (m_NUM_BITS - 1)) },
+    { 0,   1,   7,  -9,   3, -20,  16,   3,  -2,   0,  -9,  61, 410 - (1 << (m_NUM_BITS - 1)) },
 };
 const int m_classToFilterMapping[MAX_NUM_ALF_CLASSES][ALF_FIXED_FILTER_NUM] =
 {
-  { 0,   1,   2,   3,   4,   5,   6,   7,   9,  19,  32,  41,  42,  44,  46,  63 },
-  { 0,   1,   2,   4,   5,   6,   7,   9,  11,  16,  25,  27,  28,  31,  32,  47 },
-  { 5,   7,   9,  11,  12,  14,  15,  16,  17,  18,  19,  21,  22,  27,  31,  35 },
-  { 7,   8,   9,  11,  14,  15,  16,  17,  18,  19,  22,  23,  24,  25,  35,  36 },
-  { 7,   8,  11,  13,  14,  15,  16,  17,  19,  20,  21,  22,  23,  24,  25,  27 },
-  { 1,   2,   3,   4,   6,  19,  29,  30,  33,  34,  37,  41,  42,  44,  47,  54 },
-  { 1,   2,   3,   4,   6,  11,  28,  29,  30,  31,  32,  33,  34,  37,  47,  63 },
-  { 0,   1,   4,   6,  10,  12,  13,  19,  28,  29,  31,  32,  34,  35,  36,  37 },
-  { 6,   9,  10,  12,  13,  16,  19,  20,  28,  31,  35,  36,  37,  38,  39,  52 },
-  { 7,   8,  10,  11,  12,  13,  19,  23,  25,  27,  28,  31,  35,  36,  38,  39 },
-  { 1,   2,   3,   5,  29,  30,  33,  34,  40,  43,  44,  46,  54,  55,  59,  62 },
-  { 1,   2,   3,   4,  29,  30,  31,  33,  34,  37,  40,  41,  43,  44,  59,  61 },
-  { 0,   1,   3,   6,  19,  28,  29,  30,  31,  32,  33,  34,  37,  41,  44,  61 },
-  { 1,   6,  10,  13,  19,  28,  29,  30,  32,  33,  34,  35,  37,  41,  48,  52 },
-  { 0,   5,   6,  10,  19,  27,  28,  29,  32,  37,  38,  40,  41,  47,  49,  58 },
-  { 1,   2,   3,   4,  11,  29,  33,  42,  43,  44,  45,  46,  48,  55,  56,  59 },
-  { 0,   1,   2,   5,   7,   9,  29,  40,  43,  44,  45,  47,  48,  56,  59,  63 },
-  { 0,   4,   5,   9,  14,  19,  26,  35,  36,  43,  45,  47,  48,  49,  50,  51 },
-  { 9,  11,  12,  14,  16,  19,  20,  24,  26,  36,  38,  47,  49,  50,  51,  53 },
-  { 7,   8,  13,  14,  20,  21,  24,  25,  26,  27,  35,  38,  47,  50,  52,  53 },
-  { 1,   2,   4,  29,  33,  40,  41,  42,  43,  44,  45,  46,  54,  55,  56,  58 },
-  { 2,   4,  32,  40,  42,  43,  44,  45,  46,  54,  55,  56,  58,  59,  60,  62 },
-  { 0,  19,  42,  43,  45,  46,  48,  54,  55,  56,  57,  58,  59,  60,  61,  62 },
-  { 8,  13,  36,  42,  45,  46,  51,  53,  54,  57,  58,  59,  60,  61,  62,  63 },
-  { 8,  13,  20,  27,  36,  38,  42,  46,  52,  53,  56,  57,  59,  61,  62,  63 },
+    { 0,   1,   2,   3,   4,   5,   6,   7,   9,  19,  32,  41,  42,  44,  46,  63 },
+    { 0,   1,   2,   4,   5,   6,   7,   9,  11,  16,  25,  27,  28,  31,  32,  47 },
+    { 5,   7,   9,  11,  12,  14,  15,  16,  17,  18,  19,  21,  22,  27,  31,  35 },
+    { 7,   8,   9,  11,  14,  15,  16,  17,  18,  19,  22,  23,  24,  25,  35,  36 },
+    { 7,   8,  11,  13,  14,  15,  16,  17,  19,  20,  21,  22,  23,  24,  25,  27 },
+    { 1,   2,   3,   4,   6,  19,  29,  30,  33,  34,  37,  41,  42,  44,  47,  54 },
+    { 1,   2,   3,   4,   6,  11,  28,  29,  30,  31,  32,  33,  34,  37,  47,  63 },
+    { 0,   1,   4,   6,  10,  12,  13,  19,  28,  29,  31,  32,  34,  35,  36,  37 },
+    { 6,   9,  10,  12,  13,  16,  19,  20,  28,  31,  35,  36,  37,  38,  39,  52 },
+    { 7,   8,  10,  11,  12,  13,  19,  23,  25,  27,  28,  31,  35,  36,  38,  39 },
+    { 1,   2,   3,   5,  29,  30,  33,  34,  40,  43,  44,  46,  54,  55,  59,  62 },
+    { 1,   2,   3,   4,  29,  30,  31,  33,  34,  37,  40,  41,  43,  44,  59,  61 },
+    { 0,   1,   3,   6,  19,  28,  29,  30,  31,  32,  33,  34,  37,  41,  44,  61 },
+    { 1,   6,  10,  13,  19,  28,  29,  30,  32,  33,  34,  35,  37,  41,  48,  52 },
+    { 0,   5,   6,  10,  19,  27,  28,  29,  32,  37,  38,  40,  41,  47,  49,  58 },
+    { 1,   2,   3,   4,  11,  29,  33,  42,  43,  44,  45,  46,  48,  55,  56,  59 },
+    { 0,   1,   2,   5,   7,   9,  29,  40,  43,  44,  45,  47,  48,  56,  59,  63 },
+    { 0,   4,   5,   9,  14,  19,  26,  35,  36,  43,  45,  47,  48,  49,  50,  51 },
+    { 9,  11,  12,  14,  16,  19,  20,  24,  26,  36,  38,  47,  49,  50,  51,  53 },
+    { 7,   8,  13,  14,  20,  21,  24,  25,  26,  27,  35,  38,  47,  50,  52,  53 },
+    { 1,   2,   4,  29,  33,  40,  41,  42,  43,  44,  45,  46,  54,  55,  56,  58 },
+    { 2,   4,  32,  40,  42,  43,  44,  45,  46,  54,  55,  56,  58,  59,  60,  62 },
+    { 0,  19,  42,  43,  45,  46,  48,  54,  55,  56,  57,  58,  59,  60,  61,  62 },
+    { 8,  13,  36,  42,  45,  46,  51,  53,  54,  57,  58,  59,  60,  61,  62,  63 },
+    { 8,  13,  20,  27,  36,  38,  42,  46,  52,  53,  56,  57,  59,  61,  62,  63 },
 };
 
 void tile_boundary_check(int* availableL, int* availableR, int* availableT, int* availableB, const int width, const int height, int xPos, int yPos, int x_l, int x_r, int y_l, int y_r)
@@ -510,61 +492,34 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
         pel * recYuv = cs->pPic->y;
         pel * tmpYuv = m_tempBuf + s * m + m;
         //chroma (for 4:2:0 only)
-#if BD_CF_EXT
         const int s1 = (w >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + m + m;
-#else
-        const int s1 = (w >> 1) + m + m;
-#endif
         pel * recYuv1 = cs->pPic->u;
         pel * tmpYuv1 = m_tempBuf1 + s1 * m + m; //m, not m-1, is left for unification with VVC
         pel * recYuv2 = cs->pPic->v;
         pel * tmpYuv2 = m_tempBuf2 + s1 * m + m; //m, not m-1, is left for unification with VVC
-
         Pel * recLuma0_tile = tmpYuv + x_l + y_l * s;
-#if BD_CF_EXT
         Pel * recLuma1_tile = tmpYuv1 + (x_l >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + (y_l >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) * (s1);
         Pel * recLuma2_tile = tmpYuv2 + (x_l >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + (y_l >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) * (s1);
-#else
-        Pel * recLuma1_tile = tmpYuv1 + (x_l >> 1) + (y_l >> 1) * (s1);
-        Pel * recLuma2_tile = tmpYuv2 + (x_l >> 1) + (y_l >> 1) * (s1);
-#endif
-
         Pel * recoYuv0_tile = recYuv + x_l + y_l * cs->pPic->s_l;
-#if BD_CF_EXT
         Pel * recoYuv1_tile = recYuv1 + (x_l >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + (y_l >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) * cs->pPic->s_c;
         Pel * recoYuv2_tile = recYuv2 + (x_l >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + (y_l >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) * cs->pPic->s_c;
-#else
-        Pel * recoYuv1_tile = recYuv1 + (x_l >> 1) + (y_l >> 1) * cs->pPic->s_c;
-        Pel * recoYuv2_tile = recYuv2 + (x_l >> 1) + (y_l >> 1) * cs->pPic->s_c;
-#endif
 
         copy_and_extend_tile(recLuma0_tile, s, recoYuv0_tile, cs->pPic->s_l, w_tile, h_tile, m);
-#if BD_CF_EXT
+
         if(ctx->sps.chroma_format_idc)
         {
             copy_and_extend_tile(recLuma1_tile, s1, recoYuv1_tile, cs->pPic->s_c, (w_tile >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))), (h_tile >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))), m);
             copy_and_extend_tile(recLuma2_tile, s1, recoYuv2_tile, cs->pPic->s_c, (w_tile >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))), (h_tile >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))), m);
         }
-#else
-        copy_and_extend_tile(recLuma1_tile, s1, recoYuv1_tile, cs->pPic->s_c, (w_tile >> 1), (h_tile >> 1), m);
-        copy_and_extend_tile(recLuma2_tile, s1, recoYuv2_tile, cs->pPic->s_c, (w_tile >> 1), (h_tile >> 1), m);
-#endif
 
         int l_zero_offset = (MAX_CU_SIZE + m + m) * m + m;
         int l_stride = MAX_CU_SIZE + 2 * (MAX_ALF_FILTER_LENGTH >> 1);
         pel l_buffer[(MAX_CU_SIZE + 2 * (MAX_ALF_FILTER_LENGTH >> 1)) *(MAX_CU_SIZE + 2 * (MAX_ALF_FILTER_LENGTH >> 1))];
         pel *p_buffer = l_buffer + l_zero_offset;
-#if BD_CF_EXT
         int l_zero_offset_chroma = ((MAX_CU_SIZE >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + m + m) * m + m;
         int l_stride_chroma = (MAX_CU_SIZE >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + 2 * (MAX_ALF_FILTER_LENGTH >> 1);
         pel l_buffer_cb[((MAX_CU_SIZE) + 2 * (MAX_ALF_FILTER_LENGTH >> 1)) *((MAX_CU_SIZE) + 2 * (MAX_ALF_FILTER_LENGTH >> 1))];
         pel l_buffer_cr[((MAX_CU_SIZE) + 2 * (MAX_ALF_FILTER_LENGTH >> 1)) *((MAX_CU_SIZE) + 2 * (MAX_ALF_FILTER_LENGTH >> 1))];
-#else
-        int l_zero_offset_chroma = ((MAX_CU_SIZE >> 1) + m + m) * m + m;
-        int l_stride_chroma = (MAX_CU_SIZE >> 1) + 2 * (MAX_ALF_FILTER_LENGTH >> 1);
-        pel l_buffer_cb[((MAX_CU_SIZE >> 1) + 2 * (MAX_ALF_FILTER_LENGTH >> 1)) *((MAX_CU_SIZE >> 1) + 2 * (MAX_ALF_FILTER_LENGTH >> 1))];
-        pel l_buffer_cr[((MAX_CU_SIZE >> 1) + 2 * (MAX_ALF_FILTER_LENGTH >> 1)) *((MAX_CU_SIZE >> 1) + 2 * (MAX_ALF_FILTER_LENGTH >> 1))];
-#endif
         pel *p_buffer_cr = l_buffer_cr + l_zero_offset_chroma;
         pel *p_buffer_cb = l_buffer_cb + l_zero_offset_chroma;
 
@@ -647,24 +602,15 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
                         p->m_filter7x7Blk(m_classifier, recYuv + xPos + yPos * (cs->pPic->s_l), cs->pPic->s_l, p_buffer, l_stride, &blk, COMPONENT_Y, m_coeffFinal, &(m_clpRngs.comp[COMPONENT_Y]));
                     }
                 }
-#if BD_CF_EXT
+
                 if(ctx->sps.chroma_format_idc)
                 {
-#endif
-#if BD_CF_EXT
                     for(int i = m; i < ((height >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) + m); i++)
-#else
-                    for(int i = m; i < ((height >> 1) + m); i++)
-#endif
                     {
                         int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
-#if BD_CF_EXT
                         int srcPos_offset = (xPos >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + (yPos >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) * s1;
                         int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + m + m);
-#else
-                        int srcPos_offset = (xPos >> 1) + (yPos >> 1) * s1;
-                        int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> 1) + m + m);
-#endif
+
                         memcpy(p_buffer_cb + dstPos + m, tmpYuv1 + srcPos_offset + (i - m) * s1, sizeof(pel) * (stride - 2 * m));
                         memcpy(p_buffer_cr + dstPos + m, tmpYuv2 + srcPos_offset + (i - m) * s1, sizeof(pel) * (stride - 2 * m));
                         for(int j = 0; j < m; j++)
@@ -679,7 +625,7 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
                                 p_buffer_cb[dstPos + j] = tmpYuv1[srcPos_offset + (i - m) * s1 + m - j];
                                 p_buffer_cr[dstPos + j] = tmpYuv2[srcPos_offset + (i - m) * s1 + m - j];
                             }
-#if BD_CF_EXT
+
                             if(availableR)
                             {
                                 p_buffer_cb[dstPos + j + (width >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + m] = tmpYuv1[srcPos_offset + (i - m) * s1 + (width >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + j];
@@ -690,31 +636,15 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
                                 p_buffer_cb[dstPos + j + (width >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + m] = tmpYuv1[srcPos_offset + (i - m) * s1 + (width >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) - j - 2];
                                 p_buffer_cr[dstPos + j + (width >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + m] = tmpYuv2[srcPos_offset + (i - m) * s1 + (width >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) - j - 2];
                             }
-#else
-                            if(availableR)
-                            {
-                                p_buffer_cb[dstPos + j + (width >> 1) + m] = tmpYuv1[srcPos_offset + (i - m) * s1 + (width >> 1) + j];
-                                p_buffer_cr[dstPos + j + (width >> 1) + m] = tmpYuv2[srcPos_offset + (i - m) * s1 + (width >> 1) + j];
-                            }
-                            else
-                            {
-                                p_buffer_cb[dstPos + j + (width >> 1) + m] = tmpYuv1[srcPos_offset + (i - m) * s1 + (width >> 1) - j - 2];
-                                p_buffer_cr[dstPos + j + (width >> 1) + m] = tmpYuv2[srcPos_offset + (i - m) * s1 + (width >> 1) - j - 2];
-                            }
-#endif
                         }
                     }
 
                     for(int i = 0; i < m; i++)
                     {
                         int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
-#if BD_CF_EXT
                         int srcPos_offset = (xPos >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + (yPos >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) * s1;
                         int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + m + m);
-#else
-                        int srcPos_offset = (xPos >> 1) + (yPos >> 1) * s1;
-                        int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> 1) + m + m);
-#endif
+
                         if(availableT)
                         {
                             memcpy(p_buffer_cb + dstPos, tmpYuv1 + srcPos_offset - (m - i) * s1 - m, sizeof(pel) * stride);
@@ -732,30 +662,20 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
                             memcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos + (2 * m - 2 * i) * l_stride_chroma, sizeof(pel) * stride);
                         }
                     }
-#if BD_CF_EXT
+
                     for(int i = ((height >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) + m); i < ((height >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) + m + m); i++)
                     {
                         int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
                         int srcPos_offset = (xPos >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + (yPos >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) * s1;
                         int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + m + m);
-#else
-                    for(int i = ((height >> 1) + m); i < ((height >> 1) + m + m); i++)
-                    {
-                        int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
-                        int srcPos_offset = (xPos >> 1) + (yPos >> 1) * s1;
-                        int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> 1) + m + m);
-#endif
+
                         if(availableB)
                         {
                             memcpy(p_buffer_cb + dstPos, tmpYuv1 + srcPos_offset + (i - m) * s1 - m, sizeof(pel) * stride);
                         }
                         else
                         {
-#if BD_CF_EXT
                             memcpy(p_buffer_cb + dstPos, p_buffer_cb + dstPos - (2 * (i - (height >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
-#else
-                            memcpy(p_buffer_cb + dstPos, p_buffer_cb + dstPos - (2 * (i - (height >> 1) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
-#endif
                         }
 
                         if(availableB)
@@ -764,50 +684,26 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
                         }
                         else
                         {
-#if BD_CF_EXT
                             memcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos - (2 * (i - (height >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
-#else
-                            memcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos - (2 * (i - (height >> 1) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
-#endif
                         }
                     }
-#if BD_CF_EXT
                 }
-#endif
+
                 for(int compIdx = 1; compIdx < MAX_NUM_COMPONENT; compIdx++)
                 {
                     ComponentID compID = (ComponentID)(compIdx);
-#if BD_CF_EXT
                     const int chromaScaleX = (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc));
                     const int chromaScaleY = (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc));
-#else
-                    const int chromaScaleX = 1; //getComponentScaleX(compID, tmpYuv.chromaFormat);
-                    const int chromaScaleY = 1; //getComponentScaleY(compID, tmpYuv.chromaFormat);
-#endif
-#if M53608_ALF_1
+
                     if(alfSliceParam->enabledFlag[compIdx])
                     {
                         assert(m_ctuEnableFlag[compIdx][ctuIdx] == 1);
                         Area blk = {0, 0, width >> chromaScaleX, height >> chromaScaleY};
                         if(compIdx == 1)
-#if BD_CF_EXT
                             p->m_filter5x5Blk(m_classifier, recYuv1 + (xPos >> chromaScaleX) + (yPos >> chromaScaleY) * (cs->pPic->s_c), cs->pPic->s_c, p_buffer_cb, l_stride_chroma, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
-#else
-                            p->m_filter5x5Blk(m_classifier, recYuv1 + (xPos >> 1) + (yPos >> 1) * (cs->pPic->s_c), cs->pPic->s_c, p_buffer_cb, l_stride_chroma, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
-#endif
+
                         else if(compIdx == 2)
-#if BD_CF_EXT
                             p->m_filter5x5Blk(m_classifier, recYuv2 + (xPos >> chromaScaleX) + (yPos >> chromaScaleY) * (cs->pPic->s_c), cs->pPic->s_c, p_buffer_cr, l_stride_chroma, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
-#else
-                            p->m_filter5x5Blk(m_classifier, recYuv2 + (xPos >> 1) + (yPos >> 1) * (cs->pPic->s_c), cs->pPic->s_c, p_buffer_cr, l_stride_chroma, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
-#endif
-#else
-                    if(alfSliceParam->enabledFlag[compIdx] && m_ctuEnableFlag[compIdx][ctuIdx])
-                    {
-                        Area blk = {0, 0, width >> chromaScaleX, height >> chromaScaleY};
-                        p->m_filter5x5Blk(m_classifier, recYuv1 + (xPos >> 1) + (yPos >> 1) * (cs->pPic->s_c), cs->pPic->s_c, p_buffer_cb, l_stride_chroma, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
-                        p->m_filter5x5Blk(m_classifier, recYuv2 + (xPos >> 1) + (yPos >> 1) * (cs->pPic->s_c), cs->pPic->s_c, p_buffer_cr, l_stride_chroma, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
-#endif
                     }
                 }
                 x_loc++;
@@ -822,7 +718,6 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
     }
 }
 
-#if INTEGR_M53608
 void reconstructCoeff(AlfSliceParam* alfSliceParam, ChannelType channel, const BOOL bRdo, const BOOL bRedo)
 {
     int factor = bRdo ? 0 : (1 << (m_NUM_BITS - 1));
@@ -873,10 +768,9 @@ void reconstructCoeff(AlfSliceParam* alfSliceParam, ChannelType channel, const B
                     int coeffIdx = m_filterShapes[CHANNEL_TYPE_LUMA][filterType].patternToLargeFilter[i] - 1;
                     curCoeff += coeff[filterIdx * MAX_NUM_ALF_LUMA_COEFF + coeffIdx];
                 }
-#if ALF_CONFORMANCE_CHECK
-            if (bRdo == 0)
-                evc_assert(curCoeff >= -(1 << 9) && curCoeff <= (1 << 9) - 1);
-#endif
+
+                if (bRdo == 0)
+                    evc_assert(curCoeff >= -(1 << 9) && curCoeff <= (1 << 9) - 1);
                 m_coeffFinal[classIdx* MAX_NUM_ALF_LUMA_COEFF + i] = curCoeff;
             }
 
@@ -887,10 +781,8 @@ void reconstructCoeff(AlfSliceParam* alfSliceParam, ChannelType channel, const B
                 sum += (m_coeffFinal[classIdx* MAX_NUM_ALF_LUMA_COEFF + i] << 1);
             }
             m_coeffFinal[classIdx* MAX_NUM_ALF_LUMA_COEFF + numCoeffLargeMinus1] = factor - sum;
-#if ALF_CONFORMANCE_CHECK
-        if (bRdo == 0)
-            evc_assert(m_coeffFinal[classIdx* MAX_NUM_ALF_LUMA_COEFF + numCoeffLargeMinus1] >= -(1 << 10) && m_coeffFinal[classIdx* MAX_NUM_ALF_LUMA_COEFF + numCoeffLargeMinus1] <= (1 << 10) - 1);
-#endif
+            if (bRdo == 0)
+                evc_assert(m_coeffFinal[classIdx* MAX_NUM_ALF_LUMA_COEFF + numCoeffLargeMinus1] >= -(1 << 10) && m_coeffFinal[classIdx* MAX_NUM_ALF_LUMA_COEFF + numCoeffLargeMinus1] <= (1 << 10) - 1);
         }
 
         if (bRedo && alfSliceParam->coeffDeltaPredModeFlag)
@@ -912,238 +804,21 @@ void reconstructCoeff(AlfSliceParam* alfSliceParam, ChannelType channel, const B
             for (int i = 0; i < numCoeffMinus1; i++)
             {
                 sum += (coeff[filterIdx* MAX_NUM_ALF_LUMA_COEFF + i] << 1);
-#if ALF_CONFORMANCE_CHECK
-            if (bRdo == 0)
-                evc_assert(coeff[filterIdx* MAX_NUM_ALF_LUMA_COEFF + i] >= -(1 << 9) && coeff[filterIdx* MAX_NUM_ALF_LUMA_COEFF + i] <= (1 << 9) - 1);
-#endif
+                if (bRdo == 0)
+                    evc_assert(coeff[filterIdx* MAX_NUM_ALF_LUMA_COEFF + i] >= -(1 << 9) && coeff[filterIdx* MAX_NUM_ALF_LUMA_COEFF + i] <= (1 << 9) - 1);
             }
             coeff[filterIdx* MAX_NUM_ALF_LUMA_COEFF + numCoeffMinus1] = factor - sum;
-#if ALF_CONFORMANCE_CHECK
-        if (bRdo == 0)
-            evc_assert(coeff[filterIdx* MAX_NUM_ALF_LUMA_COEFF + numCoeffMinus1] >= -(1 << 10) && coeff[filterIdx* MAX_NUM_ALF_LUMA_COEFF + numCoeffMinus1] <= (1 << 10) - 1);
-#endif
+            if (bRdo == 0)
+                evc_assert(coeff[filterIdx* MAX_NUM_ALF_LUMA_COEFF + numCoeffMinus1] >= -(1 << 10) && coeff[filterIdx* MAX_NUM_ALF_LUMA_COEFF + numCoeffMinus1] <= (1 << 10) - 1);
         }
         return;
     }
-    }
-#else
-void reconstructCoeff(AlfSliceParam* alfSliceParam, ChannelType channel, const BOOL bRdo, const BOOL bRedo)
-{
-  int factor = bRdo ? 0 : (1 << (m_NUM_BITS - 1));
-  AlfFilterType filterType = channel == CHANNEL_TYPE_LUMA ? alfSliceParam->lumaFilterType : ALF_FILTER_5;
-  int numClasses = channel == CHANNEL_TYPE_LUMA ? MAX_NUM_ALF_CLASSES : 1;
-  int numCoeff = filterType == ALF_FILTER_5 ? 7 : 13;
-  int numCoeffMinus1 = numCoeff - 1;
-  int numFilters = channel == CHANNEL_TYPE_LUMA ? alfSliceParam->numLumaFilters : 1;
-  short* coeff = channel == CHANNEL_TYPE_LUMA ? alfSliceParam->lumaCoeff : alfSliceParam->chromaCoeff;
-#if M53608_ALF_13
-  if (isLuma(channel))
-  {
-      if (alfSliceParam->coeffDeltaPredModeFlag)
-      {
-          for (int i = 1; i < numFilters; i++)
-          {
-              for (int j = 0; j < numCoeffMinus1; j++)
-              {
-                  coeff[i * MAX_NUM_ALF_LUMA_COEFF + j] += coeff[(i - 1) * MAX_NUM_ALF_LUMA_COEFF + j];
-              }
-          }
-      }
-
-      memset(m_coeffFinal, 0, sizeof(m_coeffFinal));
-      int numCoeffLargeMinus1 = MAX_NUM_ALF_LUMA_COEFF - 1;
-      for (int classIdx = 0; classIdx < numClasses; classIdx++)
-      {
-          int filterIdx = alfSliceParam->filterCoeffDeltaIdx[classIdx];
-          int fixedFilterIdx = alfSliceParam->fixedFilterIdx[classIdx];
-#if M53608_ALF_7
-          u8  fixedFilterUsageFlag = alfSliceParam->fixedFilterUsageFlag[classIdx];
-          int fixedFilterUsed = fixedFilterUsageFlag;
-          int fixedFilterMapIdx = fixedFilterIdx;
-#else
-          int fixedFilterUsed = (fixedFilterIdx == 0 ? 0 : 1);
-          int fixedFilterMapIdx = fixedFilterIdx - 1;
-#endif
-#if M53608_ALF_7
-          if (fixedFilterUsed)
-#else
-          if (fixedFilterIdx > 0)
-#endif
-          {
-#if M53608_ALF_7
-              fixedFilterIdx = m_classToFilterMapping[classIdx][fixedFilterMapIdx];
-#else
-              fixedFilterIdx = m_classToFilterMapping[classIdx][fixedFilterIdx - 1];
-#endif
-          }
-
-          for (int i = 0; i < numCoeffLargeMinus1; i++)
-          {
-              int curCoeff = 0;
-              //fixed filter
-#if M53608_ALF_7
-              if (fixedFilterUsageFlag > 0)
-#else
-              if (fixedFilterIdx > 0)
-#endif
-              {
-                  curCoeff = m_fixedFilterCoeff[fixedFilterIdx][i];
-              }
-              //add coded coeff
-              if (m_filterShapes[CHANNEL_TYPE_LUMA][filterType].patternToLargeFilter[i] > 0)
-              {
-                  int coeffIdx = m_filterShapes[CHANNEL_TYPE_LUMA][filterType].patternToLargeFilter[i] - 1;
-                  curCoeff += coeff[filterIdx * MAX_NUM_ALF_LUMA_COEFF + coeffIdx];
-              }
-              m_coeffFinal[classIdx* MAX_NUM_ALF_LUMA_COEFF + i] = curCoeff;
-          }
-
-          //last coeff
-          int sum = 0;
-          for (int i = 0; i < numCoeffLargeMinus1; i++)
-          {
-              sum += (m_coeffFinal[classIdx* MAX_NUM_ALF_LUMA_COEFF + i] << 1);
-          }
-          m_coeffFinal[classIdx* MAX_NUM_ALF_LUMA_COEFF + numCoeffLargeMinus1] = factor - sum;
-      }
-
-      if (bRedo && alfSliceParam->coeffDeltaPredModeFlag)
-      {
-          for (int i = numFilters - 1; i > 0; i--)
-          {
-              for (int j = 0; j < numCoeffMinus1; j++)
-              {
-                  coeff[i * MAX_NUM_ALF_LUMA_COEFF + j] = coeff[i * MAX_NUM_ALF_LUMA_COEFF + j] - coeff[(i - 1) * MAX_NUM_ALF_LUMA_COEFF + j];
-              }
-          }
-      }
-  }
-  else
-  {
-      for (int filterIdx = 0; filterIdx < numFilters; filterIdx++)
-      {
-        int sum = 0;
-        for (int i = 0; i < numCoeffMinus1; i++)
-        {
-          sum += (coeff[filterIdx* MAX_NUM_ALF_LUMA_COEFF + i] << 1);
-        }
-        coeff[filterIdx* MAX_NUM_ALF_LUMA_COEFF + numCoeffMinus1] = factor - sum;
-      }
-      return;
-  }
-#else
-if (alfSliceParam->coeffDeltaPredModeFlag && channel == CHANNEL_TYPE_LUMA)
-{
-    for (int i = 1; i < numFilters; i++)
-    {
-        for (int j = 0; j < numCoeffMinus1; j++)
-        {
-            coeff[i * MAX_NUM_ALF_LUMA_COEFF + j] += coeff[(i - 1) * MAX_NUM_ALF_LUMA_COEFF + j];
-        }
-    }
 }
 
-if (isChroma(channel))
+void AdaptiveLoopFilter_create(const int picWidth, const int picHeight, const int maxCUWidth, const int maxCUHeight, const int maxCUDepth, int idc)
 {
-    for (int filterIdx = 0; filterIdx < numFilters; filterIdx++)
-    {
-        int sum = 0;
-        for (int i = 0; i < numCoeffMinus1; i++)
-        {
-            sum += (coeff[filterIdx* MAX_NUM_ALF_LUMA_COEFF + i] << 1);
-        }
-        coeff[filterIdx* MAX_NUM_ALF_LUMA_COEFF + numCoeffMinus1] = factor - sum;
-    }
-    return;
-}
-
-memset(m_coeffFinal, 0, sizeof(m_coeffFinal));
-int numCoeffLargeMinus1 = MAX_NUM_ALF_LUMA_COEFF - 1;
-for (int classIdx = 0; classIdx < numClasses; classIdx++)
-{
-    int filterIdx = alfSliceParam->filterCoeffDeltaIdx[classIdx];
-    int fixedFilterIdx = alfSliceParam->fixedFilterIdx[classIdx];
-#if M53608_ALF_7
-    u8  fixedFilterUsageFlag = alfSliceParam->fixedFilterUsageFlag[classIdx];
-    int fixedFilterUsed = fixedFilterUsageFlag;
-    int fixedFilterMapIdx = fixedFilterIdx;
-#else
-    int fixedFilterUsed = (fixedFilterIdx == 0 ? 0 : 1);
-    int fixedFilterMapIdx = fixedFilterIdx - 1;
-#endif
-#if M53608_ALF_7
-    if (fixedFilterUsed)
-#else
-    if (fixedFilterIdx > 0)
-#endif
-    {
-#if M53608_ALF_7
-        fixedFilterIdx = m_classToFilterMapping[classIdx][fixedFilterMapIdx];
-#else
-        fixedFilterIdx = m_classToFilterMapping[classIdx][fixedFilterIdx - 1];
-#endif
-    }
-
-    for (int i = 0; i < numCoeffLargeMinus1; i++)
-    {
-        int curCoeff = 0;
-        //fixed filter
-#if M53608_ALF_7
-        if (fixedFilterUsageFlag > 0)
-#else
-        if (fixedFilterIdx > 0)
-#endif
-        {
-            curCoeff = m_fixedFilterCoeff[fixedFilterIdx][i];
-        }
-        //add coded coeff
-        if (m_filterShapes[CHANNEL_TYPE_LUMA][filterType].patternToLargeFilter[i] > 0)
-        {
-            int coeffIdx = m_filterShapes[CHANNEL_TYPE_LUMA][filterType].patternToLargeFilter[i] - 1;
-            curCoeff += coeff[filterIdx * MAX_NUM_ALF_LUMA_COEFF + coeffIdx];
-        }
-        m_coeffFinal[classIdx* MAX_NUM_ALF_LUMA_COEFF + i] = curCoeff;
-    }
-
-    //last coeff
-    int sum = 0;
-    for (int i = 0; i < numCoeffLargeMinus1; i++)
-    {
-        sum += (m_coeffFinal[classIdx* MAX_NUM_ALF_LUMA_COEFF + i] << 1);
-    }
-    m_coeffFinal[classIdx* MAX_NUM_ALF_LUMA_COEFF + numCoeffLargeMinus1] = factor - sum;
-}
-
-if (bRedo && alfSliceParam->coeffDeltaPredModeFlag)
-{
-    for (int i = numFilters - 1; i > 0; i--)
-    {
-        for (int j = 0; j < numCoeffMinus1; j++)
-        {
-            coeff[i * MAX_NUM_ALF_LUMA_COEFF + j] = coeff[i * MAX_NUM_ALF_LUMA_COEFF + j] - coeff[(i - 1) * MAX_NUM_ALF_LUMA_COEFF + j];
-        }
-    }
-}
-#endif
-}
-#endif
-
-void AdaptiveLoopFilter_create(const int picWidth, const int picHeight, const int maxCUWidth, const int maxCUHeight, const int maxCUDepth
-#if BD_CF_EXT
-                               , int idc
-#endif
-)
-{
-#if BD_CF_EXT
     const ChromaFormat format = idc;
-#else
-    const ChromaFormat format = CHROMA_420;
-#endif
-#if BD_CF_EXT
     const int inputBitDepth[MAX_NUM_CHANNEL_TYPE] = {INTERNAL_CODEC_BIT_DEPTH, INTERNAL_CODEC_BIT_DEPTH_CHROMA};
-#else
-    const int inputBitDepth[MAX_NUM_CHANNEL_TYPE] = {10, 10};
-#endif
 
     memcpy(m_inputBitDepth, inputBitDepth, sizeof(m_inputBitDepth));
     m_picWidth = picWidth;
@@ -1162,13 +837,8 @@ void AdaptiveLoopFilter_create(const int picWidth, const int picHeight, const in
     init_AlfFilterShape(&m_filterShapes[CHANNEL_TYPE_CHROMA][0], 5);
 
     m_tempBuf = (pel*)malloc((picWidth + 7)*(picHeight + 7) * sizeof(pel)); // +7 is of filter diameter //todo: check this
-#if BD_CF_EXT 
     m_tempBuf1 = (pel*)malloc(((picWidth >> (GET_CHROMA_W_SHIFT(idc))) + 7)*((picHeight >> (GET_CHROMA_H_SHIFT(idc))) + 7) * sizeof(pel)); // for chroma just left for unification
     m_tempBuf2 = (pel*)malloc(((picWidth >> (GET_CHROMA_W_SHIFT(idc))) + 7)*((picHeight >> (GET_CHROMA_H_SHIFT(idc))) + 7) * sizeof(pel));
-#else
-    m_tempBuf1 = (pel*)malloc(((picWidth >> 1) + 7)*((picHeight >> 1) + 7) * sizeof(pel)); // for chroma just left for unification
-    m_tempBuf2 = (pel*)malloc(((picWidth >> 1) + 7)*((picHeight >> 1) + 7) * sizeof(pel));
-#endif
 
     // Classification
     m_classifier = (AlfClassifier**)malloc(picHeight * sizeof(AlfClassifier*));
@@ -1177,7 +847,6 @@ void AdaptiveLoopFilter_create(const int picWidth, const int picHeight, const in
         m_classifier[i] = (AlfClassifier*)malloc(picWidth * sizeof(AlfClassifier));
         memset(m_classifier[i], 0, picWidth * sizeof(AlfClassifier));
     }
-
 }
 
 void AdaptiveLoopFilter_destroy()
@@ -1314,19 +983,9 @@ void deriveClassificationBlk(AlfClassifier** classifier, const pel * srcLuma, co
             int sumH = pYhor[j] + pYhor2[j] + pYhor4[j] + pYhor6[j];
             int sumD0 = pYdig0[j] + pYdig02[j] + pYdig04[j] + pYdig06[j];
             int sumD1 = pYdig1[j] + pYdig12[j] + pYdig14[j] + pYdig16[j];
-
             int tempAct = sumV + sumH;
-#if M53608_ALF_2 
-#if BD_CF_EXT
             int activity = (Pel)Clip3(0, maxActivity, tempAct >> (INTERNAL_CODEC_BIT_DEPTH - 2));
-#else
-            int activity = (Pel)Clip3(0, maxActivity, tempAct >> (BIT_DEPTH - 2));
-#endif
-#else
-            int activity = (Pel)Clip3(0, maxActivity, (tempAct * 32) >> shift);
-#endif
             int classIdx = th[activity];
-
             int hv1, hv0, d1, d0, hvd1, hvd0;
 
             if(sumV > sumH)
@@ -1618,29 +1277,24 @@ void filterBlk_5(AlfClassifier** classifier, pel * recDst, const int dstStride, 
 void copyAlfParamChroma(AlfSliceParam* dst, AlfSliceParam* src)
 {
     memcpy(dst->chromaCoeff, src->chromaCoeff, sizeof(short)*MAX_NUM_ALF_CHROMA_COEFF);
-#if M53608_ALF_14
+
     dst->chromaFilterPresent = src->chromaFilterPresent;
-#endif
     dst->chromaCtbPresentFlag = src->chromaCtbPresentFlag;
     dst->enabledFlag[1] = src->enabledFlag[1];
     dst->enabledFlag[2] = src->enabledFlag[2];
-
 }
 
 void copyAlfParam(AlfSliceParam* dst, AlfSliceParam* src)
 {
     memcpy(dst->enabledFlag, src->enabledFlag, sizeof(BOOL)*MAX_NUM_COMPONENT);
-#if M53608_ALF_14
     dst->chromaFilterPresent = src->chromaFilterPresent;
-#endif
     memcpy(dst->lumaCoeff, src->lumaCoeff, sizeof(short)*MAX_NUM_ALF_CLASSES * MAX_NUM_ALF_LUMA_COEFF);
     memcpy(dst->chromaCoeff, src->chromaCoeff, sizeof(short)*MAX_NUM_ALF_CHROMA_COEFF);
     memcpy(dst->filterCoeffDeltaIdx, src->filterCoeffDeltaIdx, sizeof(short)*MAX_NUM_ALF_CLASSES);
     memcpy(dst->filterCoeffFlag, src->filterCoeffFlag, sizeof(BOOL)*MAX_NUM_ALF_CLASSES);
     memcpy(dst->fixedFilterIdx, src->fixedFilterIdx, sizeof(int)*MAX_NUM_ALF_CLASSES);
-#if M53608_ALF_7
     memcpy(dst->fixedFilterUsageFlag, src->fixedFilterUsageFlag, sizeof(u8)*MAX_NUM_ALF_CLASSES);
-#endif
+
     dst->lumaFilterType = src->lumaFilterType;
     dst->numLumaFilters = src->numLumaFilters;
     dst->coeffDeltaFlag = src->coeffDeltaFlag;
@@ -1676,9 +1330,7 @@ void resetAlfParam(AlfSliceParam* dst)
     dst->chromaCtbPresentFlag = FALSE;
     dst->fixedFilterPattern = 0;
     memset(dst->fixedFilterIdx, 0, sizeof(dst->fixedFilterIdx));
-#if M53608_ALF_7
     memset(dst->fixedFilterUsageFlag, 0, sizeof(dst->fixedFilterUsageFlag));
-#endif
     dst->temporalAlfFlag = FALSE;
     dst->prevIdx = 0;
     dst->prevIdxComp[0] = 0;
@@ -1792,15 +1444,11 @@ void store_alf_paramline_from_aps(AlfSliceParam* pAlfParam, u8 idx)
     m_acAlfLineBufferCurrentSize = m_acAlfLineBufferCurrentSize > APS_MAX_NUM ? APS_MAX_NUM : m_acAlfLineBufferCurrentSize;  // Increment used ALF circular buffer size 
 }
 
-void load_alf_paramline_from_aps_buffer2(AlfSliceParam* pAlfParam, u8 idxY, u8 idxUV
-#if M53608_ALF_14
-     ,u8 alfChromaIdc
-#endif
-)
+void load_alf_paramline_from_aps_buffer2(AlfSliceParam* pAlfParam, u8 idxY, u8 idxUV, u8 alfChromaIdc)
 {
     copyAlfParam(pAlfParam, &(m_acAlfLineBuffer[idxY]));
     assert(pAlfParam->enabledFlag[0] == 1);
-#if M53608_ALF_14
+
     if (alfChromaIdc)
     {
         copyAlfParamChroma(pAlfParam, &(m_acAlfLineBuffer[idxUV]));
@@ -1813,9 +1461,6 @@ void load_alf_paramline_from_aps_buffer2(AlfSliceParam* pAlfParam, u8 idxY, u8 i
         pAlfParam->enabledFlag[1] = 0;
         pAlfParam->enabledFlag[2] = 0;
     }
-#else
-    copyAlfParamChroma(pAlfParam, &(m_acAlfLineBuffer[idxUV]));
-#endif
 }
 
 void load_alf_paramline_from_aps_buffer(AlfSliceParam* pAlfParam, u8 idx)

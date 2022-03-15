@@ -78,11 +78,9 @@ EVC_IMGB * evc_imgb_create(int w, int h, int cs, int opt, int pad[EVC_IMGB_MAX_P
     imgb = (EVC_IMGB *)evc_malloc(sizeof(EVC_IMGB));
     evc_assert_rv(imgb, NULL);
     evc_mset(imgb, 0, sizeof(EVC_IMGB));
-#if MULTIPLE_NAL
     imgb->imgb_active_pps_id = -1;
     imgb->imgb_active_aps_id = -1;
-#endif
-#if BD_CF_EXT
+
     int bit_depth = (BD_FROM_CS(cs));
     int idc = CF_FROM_CS(cs);
     int np = idc == 0 ? 1 : 3;
@@ -92,14 +90,6 @@ EVC_IMGB * evc_imgb_create(int w, int h, int cs, int opt, int pad[EVC_IMGB_MAX_P
         if(bit_depth == 8) bd = 1;
         else /*if(cs == EVC_COLORSPACE_YUV420_10LE)*/ bd = 2;
         for(i=0;i<np;i++)
-#else
-    if(cs == EVC_COLORSPACE_YUV420 || cs == EVC_COLORSPACE_YUV420_10LE)
-    {
-        if(cs == EVC_COLORSPACE_YUV420) bd = 1;
-        else /*if(cs == EVC_COLORSPACE_YUV420_10LE)*/ bd = 2;
-
-        for(i=0; i<3; i++)
-#endif
         {
             imgb->w[i] = w;
             imgb->h[i] = h;
@@ -109,13 +99,8 @@ EVC_IMGB * evc_imgb_create(int w, int h, int cs, int opt, int pad[EVC_IMGB_MAX_P
             a_size = (align != NULL)? align[i] : 0;
             p_size = (pad != NULL)? pad[i] : 0;
 
-#if BD_CF_EXT
             imgb->aw[i] = EVC_ALIGN(w, (a_size >> GET_CHROMA_W_SHIFT(idc)));
             imgb->ah[i] = EVC_ALIGN(h, (a_size >> GET_CHROMA_H_SHIFT(idc)));
-#else
-            imgb->aw[i] = EVC_ALIGN(w, a_size);
-            imgb->ah[i] = EVC_ALIGN(h, a_size);
-#endif
 
             imgb->padl[i] = imgb->padr[i]=imgb->padu[i]=imgb->padb[i]=p_size;
 
@@ -126,25 +111,17 @@ EVC_IMGB * evc_imgb_create(int w, int h, int cs, int opt, int pad[EVC_IMGB_MAX_P
             imgb->baddr[i] = evc_malloc(imgb->bsize[i]);
 
             imgb->a[i] = ((u8*)imgb->baddr[i]) + imgb->padu[i]*imgb->s[i] +
-                imgb->padl[i]*bd;
+                         imgb->padl[i]*bd;
 
             if(i == 0) 
-            { 
-#if BD_CF_EXT
+            {
                 if((GET_CHROMA_W_SHIFT(idc)))
                     w = (w + 1) >> (GET_CHROMA_W_SHIFT(idc));
                 if((GET_CHROMA_H_SHIFT(idc)))
                     h = (h + 1) >> (GET_CHROMA_H_SHIFT(idc));
-#else
-                w = (w+1)>>1; h = (h+1)>>1; 
-#endif
             }
         }
-#if BD_CF_EXT
         imgb->np = np;
-#else
-        imgb->np = 3;
-#endif
     }
     else
     {

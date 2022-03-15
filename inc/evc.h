@@ -35,44 +35,24 @@
 #ifndef _EVC_H_
 #define _EVC_H_
 
-#define MULTIPLE_NAL                    1
-
-#define M53737                          1
-
-#define ENC_DBF_CONTROL                 1
-#define EVC_VUI_FIX                     1
-#define ETM_HDR_REPORT_METRIC_FLAG      1
-#define M52291_HDR_DRA                  1
-
-#define BD_CF_EXT                       1   //Anubhav (For supporting 4:0:0 format)
-
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-      
-#if M52291_HDR_DRA
+
+#define ETM_HDR_REPORT_METRIC_FLAG      1
+
 #define QC_SCALE_NUMFBITS               9   // # frac. bits for scale (Y/Cb/Cr)
 #define QC_INVSCALE_NUMFBITS            9   // # frac. bits for inv. scale (Y/Cb/Cr)
 #define QC_OFFSET_NUMFBITS              7   // # frac. bits for offset (Y/Cb/Cr)
-#if !BD_CF_EXT
-#define QC_IN_RANGE_NUM_BITS            BIT_DEPTH  // # bits of input
-#endif
 #define DRA_LUT_MAXSIZE                 1024
 
 #define NUM_CHROMA_QP_OFFSET_LOG        55
 #define NUM_CHROMA_QP_SCALE_EXP         25
-#endif
 
 #define MAX_QP_TABLE_SIZE               58   
-#if BD_CF_EXT
 #define MAX_QP_TABLE_SIZE_EXT           94
-#else
-#define MAX_QP_TABLE_SIZE_EXT           70   
-#endif
 
-#define USE_TILE_GROUP_DQP              1
-#define DQP_CFG                         1
 /*****************************************************************************
  * return values and error code
  *****************************************************************************/
@@ -138,7 +118,6 @@ extern "C"
 #define EVC_COLORSPACE_YUV422_10BE     505 /* YUV422 10bit big-endian */
 #define EVC_COLORSPACE_YUV444_10LE     506 /* YUV444 10bit little-endian */
 #define EVC_COLORSPACE_YUV444_10BE     507 /* YUV444 10bit big-endian */
-#if BD_CF_EXT
 #define EVC_COLORSPACE_YUV444_10LE_INT 508 /* YUV444 10bit little-endian 4 byte representation*/
 #define EVC_COLORSPACE_YUV400_12LE     600 /* Y 10bit little-endian */
 #define EVC_COLORSPACE_YUV420_12LE     602 /* YUV420 12bit little-endian */
@@ -157,8 +136,6 @@ extern "C"
 #define EVC_COLORSPACE_YUV400_16LE     800 /* Y 10bit little-endian */
 #define EVC_COLORSPACE_YUV420_16LE     802 /* YUV420 16bit little-endian */
 #define EVC_COLORSPACE_YUV420_16BE     803 /* YUV420 16bit big-endian */
-#endif
-
 #define EVC_COLORSPACE_YUV_PLANAR_END  999
 
 /* RGB pack ******************************************************************/
@@ -182,7 +159,6 @@ extern "C"
 #define EVC_COLORSPACE_IS_RGB_PACK(cs)   \
     ((cs)>=EVC_COLORSPACE_RGB_PACK_START &&  (cs)<=EVC_COLORSPACE_RGB_PACK_END)
 
-#if BD_CF_EXT
 #define BD_FROM_CS(cs)    \
     (((cs)<EVC_COLORSPACE_YUV400_10LE) ? 8 : ((cs)<EVC_COLORSPACE_YUV400_12LE ? 10 : ((cs)<EVC_COLORSPACE_YUV400_14LE ? 12 : 14)))
 #define CHROMA_FORMAT_400(cs)     \
@@ -219,7 +195,6 @@ typedef enum _CHROMA_FORMAT
     NUMBER_CHROMA_FORMAT = 4
 
 } CHROMA_FORMAT;
-#endif
 
 /*****************************************************************************
  * temporal filter
@@ -388,10 +363,8 @@ struct _EVC_IMGB
     int                 crop_r;
     int                 crop_t;
     int                 crop_b;
-#if MULTIPLE_NAL
-    int imgb_active_pps_id;
-    int imgb_active_aps_id;
-#endif
+    int                 imgb_active_pps_id;
+    int                 imgb_active_aps_id;
 };
 
 /*****************************************************************************
@@ -414,7 +387,7 @@ typedef struct _EVC_BITB
     /* arbitrary address, if needs */
     void              * pdata[4];
     /* time-stamps */
-    EVC_MTIME          ts[4];
+    EVC_MTIME           ts[4];
 
 } EVC_BITB;
 
@@ -519,33 +492,27 @@ typedef struct _EVCE_CDSC
         - (0), in case of still pic
     */
     int            disable_hgop;
-
     int            ref_pic_gap_length;
-
     /* use closed GOP sturcture
        - 0 : use open GOP (default)
        - 1 : use closed GOP */
-    int            closed_gop; 
-
+    int            closed_gop;
     /* enable intra-block copy feature
     - 0 : disable IBC (default)
     - 1 : enable IBC featuer */
-    int  ibc_flag;
-    int  ibc_search_range_x;
-    int  ibc_search_range_y;
-    int  ibc_hash_search_flag;
-    int  ibc_hash_search_max_cand;
-    int  ibc_hash_search_range_4smallblk;
-    int  ibc_fast_method;
-
+    int            ibc_flag;
+    int            ibc_search_range_x;
+    int            ibc_search_range_y;
+    int            ibc_hash_search_flag;
+    int            ibc_hash_search_max_cand;
+    int            ibc_hash_search_range_4smallblk;
+    int            ibc_fast_method;
     /* bit depth of input video */
     int            in_bit_depth;
     /* bit depth of output video */
     int            out_bit_depth;
-#if BD_CF_EXT
     int            codec_bit_depth;
     int            chroma_format_idc;
-#endif
     int            profile;
     int            level;
     int            toolset_idc_h;
@@ -568,9 +535,7 @@ typedef struct _EVCE_CDSC
     int            tool_alf;
     int            tool_htdf;
     int            tool_admvp;
-#if M53737
     int            tool_hmvp;
-#endif
     int            tool_eipd;
     int            tool_iqt;
     int            tool_cm_init;
@@ -579,15 +544,11 @@ typedef struct _EVCE_CDSC
     int            tool_pocs;
     int            cb_qp_offset;
     int            cr_qp_offset;
-#if DQP_CFG
     int            use_dqp;
     int            cu_qp_delta_area;
-#endif
     int            tool_ats;
     int            constrained_intra_pred;
-#if ENC_DBF_CONTROL
     int            use_deblock;
-#endif
     int            deblock_aplha_offset;
     int            deblock_beta_offset;
     int            tile_uniform_spacing_flag;
@@ -607,7 +568,6 @@ typedef struct _EVCE_CDSC
     int            picture_crop_top_offset;
     int            picture_crop_bottom_offset;
     EVC_CHROMA_TABLE chroma_qp_table_struct;
-#if M52291_HDR_DRA
     double         dra_hist_norm;
     int            dra_num_ranges;
     double         dra_scale_map_y[256][2];
@@ -615,16 +575,15 @@ typedef struct _EVCE_CDSC
     double         dra_cr_qp_scale;
     double         dra_chroma_qp_scale;
     double         dra_chroma_qp_offset;
-    int tool_dra;
-#endif
+    int            tool_dra;
 #if ETM_HDR_REPORT_METRIC_FLAG
-    int tool_hdr_metric;
+    int            tool_hdr_metric;
 #endif
-    EVC_RPL rpls_l0[MAX_NUM_RPLS];
-    EVC_RPL rpls_l1[MAX_NUM_RPLS];
-    int rpls_l0_cfg_num;
-    int rpls_l1_cfg_num;
-    int temporal_filter;
+    EVC_RPL        rpls_l0[MAX_NUM_RPLS];
+    EVC_RPL        rpls_l1[MAX_NUM_RPLS];
+    int            rpls_l0_cfg_num;
+    int            rpls_l1_cfg_num;
+    int            temporal_filter;
 
 } EVCE_CDSC;
 
@@ -664,15 +623,11 @@ typedef void  * EVCD;
 
 EVCD evcd_create(EVCD_CDSC * cdsc, int * err);
 void evcd_delete(EVCD id);
-#if M52291_HDR_DRA
 int evcd_get_sps_dra_flag(EVCD id);
 int evcd_get_pps_dra_flag(EVCD id);
 int evcd_get_pps_dra_id(EVCD id);
 int evcd_assign_pps_draParam(EVCD id, void * p_draParams);
 int evcd_decode(EVCD id, EVC_BITB * bitb, EVCD_STAT * stat, void * p_gen_aps_array, void * g_void_dra_array);
-#else
-int evcd_decode(EVCD id, EVC_BITB * bitb, EVCD_STAT * stat);
-#endif
 int evcd_pull(EVCD id, EVC_IMGB ** img, EVCD_OPL * opl);
 int evcd_config(EVCD id, int cfg, void * buf, int * size);
 

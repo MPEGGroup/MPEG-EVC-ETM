@@ -71,22 +71,15 @@ extern int* evc_tbl_qp_chroma_ajudst;
 extern int evc_tbl_qp_chroma_dynamic_ext[2][MAX_QP_TABLE_SIZE_EXT];
 extern int* p_evc_tbl_qp_chroma_dynamic_ext[2];// pointer to [0th position in evc_tbl_qp_chroma_dynamic_ext]
 extern int* p_evc_tbl_qp_chroma_dynamic[2];    // pointer to [12th position in evc_tbl_qp_chroma_dynamic_ext]
-void evc_derived_chroma_qp_mapping_tables(EVC_CHROMA_TABLE *structChromaQP
-#if BD_CF_EXT
-                                          , int bit_depth
-#endif
-);
-#if BD_CF_EXT
+
+void evc_derived_chroma_qp_mapping_tables(EVC_CHROMA_TABLE *structChromaQP, int bit_depth);
 void set_chroma_qp__tbl_loc(int codec_bit_depth);
-#endif
 
 extern const s16 init_cbf_luma[2][NUM_CTX_CBF_LUMA];
 extern const s16 init_cbf_cb[2][NUM_CTX_CBF_CR];
 extern const s16 init_cbf_cr[2][NUM_CTX_CBF_CB];
 extern const s16 init_cbf_all[2][NUM_CTX_CBF_ALL];
-#if DQP
 extern const s16 init_dqp[2][NUM_CTX_DELTA_QP];
-#endif
 extern const s16 init_pred_mode[2][NUM_CTX_PRED_MODE];
 extern const s16 init_mode_cons[2][NUM_CTX_MODE_CONS];
 extern const s16 init_direct_mode_flag[2][NUM_CTX_DIRECT_MODE_FLAG];
@@ -171,10 +164,8 @@ extern const double g_UCF_Filters[8][4][15];
 extern const double g_color_trans[3][3];
 extern const float  g_RGB2XYZ_REC[5][9];
 
-#if M52291_HDR_DRA
 extern const int g_dra_chroma_qp_offset_tbl[NUM_CHROMA_QP_OFFSET_LOG];
 extern const int g_dra_exp_nom_v2[NUM_CHROMA_QP_SCALE_EXP];
-#endif
 
 #ifdef __cplusplus
 }

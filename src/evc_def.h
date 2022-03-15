@@ -37,53 +37,8 @@
 #include "evc.h"
 #include "evc_port.h"
 
-#define FULL_BITDEPTH_RDO                            1
-#define FIX_TF_WARNING                               1
 
-//recent bugfixes (to be removed in next minor release)
-#define ATS_INTER_LINUX_WA                           1   // A quick workaround: to be handled properly  
-#define MULTIPLE_DRA_BUG_FIX                         1   // Bug-fix for multiple PPS/APS signaling for DRA.
-#define ETM70_GOLOMB_FIX                             1
-#define MULTIPLE_NAL                                 1
-#define ETM60_HLS_FIX                                1
-#define ALF_CONFORMANCE_CHECK                        1
-#define DRA_CONFORMANCE_CHECK                        1  
-#define M53744                                       1
-#define INTEGR_M53608                                1
-#if INTEGR_M53608
-#define M53608_DRA                                   1
-#define M53608_DB_1                                  1 // Change of chroma (tc+1) for bitdepth, clean up for luma bitdepth.
-#define M53608_DB_2                                  1 // modifiy BS during BS derivation process instead of overwrite after derivation
-#define M53608_ALF_1                                 1 // SW bug-fix in Cb/Cr filtering order
-#define M53608_ALF_2                                 1 // Optimization of ALF classifier scale
-#define M53608_ALF_3                                 1 // simplification of ALF signaling, tb(v)/tu(v) removal
-#define M53608_ALF_4                                 1 // align usage of coeff delta flag between SW and spec
-#define M53608_ALF_5                                 1 // alf luma enable flag only for control alf luma info parsing
-#define M53608_ALF_6                                 1 // Fix to spec/SW misalignment: filter pattern mapping, SW aligned to spec
-#define M53608_ALF_7                                 1 // fix usage of fixed filter index 0, separate fixed filter usage and index flag
-#define M53608_ALF_8                                 1 // fix luma shape idx usage during ALF RDO process
-#define M53608_ALF_9                                 1 // separate RD for Cb and Cr
-#define M53608_ALF_10                                1 // fix luma filter type signaling
-#define M53608_ALF_11                                1 // filter 5x5 align
-#define M53608_ALF_12                                1 // Improve readability of delta filter coefficients parsing 
-#define M53608_ALF_13                                1 // Improve readability of delta filter coefficients reconstruction 
-#define M53608_ALF_14                                1 // Moving chroma_idc signaling from APS to slice header.
-#endif
-#define CLEANUP_AMVR                                 1
-#define RPL_CLEANUP                                  1
-#define DB_SPEC_ALIGNMENT1                           1 
-#define DB_SPEC_ALIGNMENT2                           1 // SW restructuring, spec alighnment, no impact on performance.
-#define CHECK_TOOL_DEPENDENCIES                      1
-#define HISTORY_UNDER_ADMVP_FIX                      1
-#define DEBLOCKING_FIX                               1
-#define CODE_CLEAN                                   1
-#define ENC_DBF_CONTROL                              1
-#define ENC_SUPPORT_SHORT_POC_LSB_BITS               1
-
-//MPEG 129 adoptions
-#define M52291_HDR_DRA                               1
-
-#define M55968_IPIP                                  1
+#define ATS_INTER_LINUX_WA                           1   // A quick workaround: to be handled properly
 
 /* Profiles definitions */
 #define PROFILE_BASELINE                             0
@@ -91,22 +46,12 @@
 #define PROFILE_STILL_PIC_BASELINE                   2
 #define PROFILE_STILL_PIC_MAIN                       3
 
-//loop filter
-#define DBF_LONGF                                    0
-#define DBF_IMPROVE                                  1
-
-#define BD_CF_EXT                                    1   //Anubhav (For supporting 4:0:0 format)
-#if BD_CF_EXT
-extern int INTERNAL_CODEC_BIT_DEPTH;
-extern int INTERNAL_CODEC_BIT_DEPTH_LUMA;
-extern int INTERNAL_CODEC_BIT_DEPTH_CHROMA;
-#else
-#define INTERNAL_CODEC_BIT_DEPTH                     BIT_DEPTH
-#define INTERNAL_CODEC_BIT_DEPTH_LUMA                BIT_DEPTH
-#define INTERNAL_CODEC_BIT_DEPTH_CHROMA              BIT_DEPTH
-#endif
-
-//fast algorithm
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                           Encoder Opitmizations                            //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+/* fast algorithms */
 #define FAST_RECURSE_OPT                             1
 #define FAST_RECURSE_OPT_FIX                         1 
 #define FAST_ALG_EXT                                 0
@@ -116,31 +61,17 @@ extern int INTERNAL_CODEC_BIT_DEPTH_CHROMA;
 #define ET_AMVP                                      1 // skip AMVP based on skip/merge cost
 #define ET_BY_RDC_CHILD_SPLIT                        0 // early termination of split based on RD cost & child split (10% EncT)
 #endif
-
-#define DQP_EVC                                      1
-#if DQP_EVC
-#define DQP                                          1
-#define DQP_RDO                                      1
-#define GET_QP(qp,dqp)                               ((qp + dqp + 52) % 52)
-#if BD_CF_EXT
-#define GET_LUMA_QP(qp, qp_bd_offset)                (qp + 6 * qp_bd_offset)
-#else
-#define GET_LUMA_QP(qp)                              (qp + 6 * (BIT_DEPTH - 8))
-#endif
-#endif
-
-//platform tools & trivial improvement
-#define MC_PRECISION_ADD                             2 
-#define USE_RDOQ                                     1 // Use RDOQ
-#define RDO_DBK                                      1 // include DBK changes into distortion
-
-//fast algorithm
 #define ENC_ECU_DEPTH                                8 // for early CU termination
 #define ENC_ECU_ADAPTIVE                             1 // for early CU termination
 #define ENC_ECU_DEPTH_B                              8 // for early CU termination
 #define MULTI_REF_ME_STEP                            1 // for ME speed-up
 #define FAST_MERGE_THR                               1.3
 #define ENC_SUCO_FAST_CONFIG                         1  /* fast config: 1(low complexity), 2(medium complexity), 4(high_complexity) */
+
+/* encoder tools */
+#define USE_RDOQ                                     1 // Use RDOQ
+#define RDO_DBK                                      1 // include DBK changes into distortion
+#define FULL_BITDEPTH_RDO                            1
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -168,9 +99,7 @@ extern int INTERNAL_CODEC_BIT_DEPTH_CHROMA;
 //                         Certain Tools Parameters                           //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
-#if MULTIPLE_NAL  
 #define MAX_NUM_PPS                                  64
-#endif
 
 /* Partitioning (START) */
 #define INC_QT_DEPTH(qtd, smode)           (smode == SPLIT_QUAD? (qtd + 1) : qtd)
@@ -206,12 +135,6 @@ extern int INTERNAL_CODEC_BIT_DEPTH_CHROMA;
 /* AMVR (END)  */
 
 /* DBF (START) */
-#if DBF_IMPROVE
-#define DBF_8_8_GRID                       1  // Filter edges which are aligned with an 8 x 8 grid
-#define FIX_PARALLEL_DBF                   1  // Fix Parallel deblocking for "longer tap" filter especially for vertical edges
-#define DBF_DISABLE_SCU                    1  // Disable deblock for small CU (length < 8)
-#endif
-
 // Constants
 #define DBF_LENGTH                         4
 #define DBF_LENGTH_CHROMA                  2
@@ -223,26 +146,15 @@ extern int INTERNAL_CODEC_BIT_DEPTH_CHROMA;
 /* DBF (END) */
 
 /* MERGE (START) */
-#define MERGE_MVP                          1
-#define INCREASE_MVP_NUM                   1
 /* MERGE (END) */
 
 /* DMVR (START) */
-#define USE_MR_SAD                         0
-#define MRSAD_FIX                          1
-#if M53744
-#define EARLY_TERMINATION_FIX              1
-#endif
 #define DMVR_SUBCU                         1
 #if DMVR_SUBCU
 #define DMVR_SUBCU_SIZE                    16
 #endif
 #define DMVR_PADDING                       1
 #define DMVR_LAG                           1 /* 0 - refined MV used only for MC, 1- refined MV used for deblocking and TMVP, 2 -  refined MV used for spatial neighbors as per lag2 CTB pipeline*/
-#if DMVR_LAG
-#define DMVR_FLAG                          1
-#endif
-
 #define DMVR_ITER_COUNT                    2
 #define REF_PRED_POINTS_NUM                9
 #define REF_PRED_EXTENTION_PEL_COUNT       1
@@ -268,18 +180,15 @@ enum SAD_POINT_INDEX
 /* DMVR (END) */
 
 /* HISTORY (START) */
-#define HISTORY_LCU_COPY_BUG_FIX           1
 #define ALLOWED_CHECKED_NUM                23
 #define ALLOWED_CHECKED_NUM_SMALL_CU       15
 #define ALLOWED_CHECKED_AMVP_NUM           4
-#define AFFINE_UPDATE                      1
 /* ADMVP (END) */
 
 /* ALF (START) */
 #define MAX_NUM_TLAYER                     6      
 #define MAX_NUM_ALFS_PER_TLAYER            6
 #define ALF_LAMBDA_SCALE                   17
-
 #define MAX_NUM_ALF_CLASSES                25
 #define MAX_NUM_ALF_LUMA_COEFF             13
 #define MAX_NUM_ALF_CHROMA_COEFF           7
@@ -330,12 +239,9 @@ enum SAD_POINT_INDEX
 #define MAX_NUM_ALF_CHROMA_COEFF           7
 #define MAX_ALF_FILTER_LENGTH              7
 #define MAX_NUM_ALF_COEFF                 (MAX_ALF_FILTER_LENGTH * MAX_ALF_FILTER_LENGTH / 2 + 1)
-
 #define APS_MAX_NUM                        32
-#define APS_MAX_NUM_IN_BITS                5 
-#if M52291_HDR_DRA
+#define APS_MAX_NUM_IN_BITS                5
 #define APS_TYPE_ID_BITS                   3
-#endif
 
 // The structure below must be aligned to identical structure in evc_alf.c!
 typedef struct _evc_AlfFilterShape
@@ -367,6 +273,11 @@ typedef struct _evc_AlfFilterShape
 #define is_ats_inter_horizontal(idx)       (idx == 2 || idx == 4)
 #define is_ats_inter_quad_size(idx)        (idx == 3 || idx == 4)
 /* TRANSFORM PACKAGE (END) */
+
+/* QUANTIZATION (START) */
+#define GET_QP(qp,dqp)                     ((qp + dqp + 52) % 52)
+#define GET_LUMA_QP(qp, qp_bd_offset)      (qp + 6 * qp_bd_offset)
+/* QUANTIZATION (END) */
 
 /* ADCC (START) */
 #define LOG2_RATIO_GTA                     1
@@ -407,11 +318,7 @@ typedef struct _evc_AlfFilterShape
 /* IBC (END) */
 
 /* HDR (START) */
-#if M52291_HDR_DRA
-#define DBF_CLIP_FIX                       1
 #define HDR_MD5_CHECK                      1
-#endif
-
 #define ETM_HDR_REPORT_METRIC_FLAG         1
 #define NB_REF_WHITE                       3
 #define DEG275                             4.7996554429844
@@ -501,16 +408,15 @@ extern int fp_trace_started;
 
 /* number of picture order count lsb bit */
 #define POC_LSB_BIT                       (8)
-#if !BD_CF_EXT
-#define BIT_DEPTH                          10
-#endif
-#if BD_CF_EXT 
-#define PEL2BYTE(pel,cs)                   ((pel)*(((BD_FROM_CS(cs)) + 7)>>3))
-#else
-#define PEL2BYTE(pel)                      ((pel)*((BIT_DEPTH + 7)>>3))
-#endif
 
-#define STRIDE_IMGB2PIC(s_imgb)            ((s_imgb)>>1)
+#define PEL2BYTE(pel,cs)                  ((pel)*(((BD_FROM_CS(cs)) + 7)>>3))
+
+/* Internal bit-depth */
+extern int INTERNAL_CODEC_BIT_DEPTH;
+extern int INTERNAL_CODEC_BIT_DEPTH_LUMA;
+extern int INTERNAL_CODEC_BIT_DEPTH_CHROMA;
+
+#define STRIDE_IMGB2PIC(s_imgb)           ((s_imgb)>>1)
 
 #define Y_C                                0  /* Y luma */
 #define U_C                                1  /* Cb Chroma */
@@ -560,14 +466,10 @@ extern int fp_trace_started;
 #define PIC_PAD_SIZE_C                     (PIC_PAD_SIZE_L >> 1)
 
 /* number of MVP candidates */
-#if INCREASE_MVP_NUM
 #define MAX_NUM_MVP_SMALL_CU               4
 #define MAX_NUM_MVP                        6
 #define NUM_SAMPLES_BLOCK                  32 // 16..64
 #define ORG_MAX_NUM_MVP                    4
-#else
-#define MAX_NUM_MVP                        4
-#endif
 #define MAX_NUM_POSSIBLE_SCAND             13
 
 /* for GOP 16 test, increase to 32 */
@@ -578,13 +480,8 @@ extern int fp_trace_started;
 #define EXTRA_FRAME                        MAX_NUM_ACTIVE_REF_FRAME
 
 /* maximum picture buffer size */
-#if M52291_HDR_DRA
-#define DRA_FRAME 1
+#define DRA_FRAME                          1
 #define MAX_PB_SIZE                       (MAX_NUM_REF_PICS + EXTRA_FRAME + DRA_FRAME)
-#else
-#define MAX_PB_SIZE                       (MAX_NUM_REF_PICS + EXTRA_FRAME)
-#endif
-
 #define MAX_NUM_TILES_ROW                  22
 #define MAX_NUM_TILES_COL                  20
 
@@ -750,8 +647,7 @@ extern int fp_trace_started;
 #define INTRA_MPM_NUM                      2
 #define INTRA_PIMS_NUM                     8
 
-#define IBC_MAX_CU_LOG2                      6 /* max block size for ibc search in unit of log2 */
-//#define IBC_MAX_CAND_SIZE                    (1 << IBC_MAX_CU_LOG2)
+#define IBC_MAX_CU_LOG2                    6 /* max block size for ibc search in unit of log2 */
 
 /*****************************************************************************
 * Transform
@@ -800,9 +696,7 @@ typedef enum _TRANS_TYPE
 #define MCU_SET_QP(m, qp)       (m)=((m)|((qp)&0x7F)<<16)
 /* get QP from map */
 #define MCU_GET_QP(m)           (int)(((m)>>16)&0x7F)
-#if DQP
 #define MCU_RESET_QP(m)         (m)=((m) & (~((127)<<16)))
-#endif
 
 /* set skip mode flag */
 #define MCU_SET_SF(m)           (m)=((m)|(1<<23))
@@ -818,20 +712,20 @@ typedef enum _TRANS_TYPE
 /* clear luma cbf flag */
 #define MCU_CLR_CBFL(m)         (m)=((m) & (~(1<<24)))
 
-#if DMVR_FLAG
 /* set dmvr flag */
 #define MCU_SET_DMVRF(m)         (m)=((m)|(1<<25))
 /* get dmvr flag */
 #define MCU_GET_DMVRF(m)         (int)(((m)>>25) & 1)
 /* clear dmvr flag */
 #define MCU_CLR_DMVRF(m)         (m)=((m) & (~(1<<25)))
-#endif
+
 /* set ibc mode flag */
 #define MCU_SET_IBC(m)          (m)=((m)|(1<<26))
 /* get ibc mode flag */
 #define MCU_GET_IBC(m)          (int)(((m)>>26) & 1)
 /* clear ibc mode flag */
 #define MCU_CLR_IBC(m)          (m)=((m) & (~(1<<26)))
+
 /* set encoded/decoded CU to map */
 #define MCU_SET_COD(m)          (m)=((m)|(1<<31))
 /* get encoded/decoded CU flag from map */
@@ -929,9 +823,7 @@ typedef u16 SBAC_CTX_MODEL;
 #define NUM_CTX_CC_LEVEL                   24
 #define NUM_CTX_ALF_CTB_FLAG               1
 #define NUM_CTX_SPLIT_CU_FLAG              1
-#if DQP
 #define NUM_CTX_DELTA_QP                   1
-#endif
 #define NUM_CTX_ATS_INTRA_CU_FLAG          1
 #define NUM_CTX_ATS_MODE_FLAG              1
 #define NUM_CTX_ATS_INTER_FLAG             2
@@ -986,9 +878,7 @@ typedef struct _EVC_SBAC_CTX
     SBAC_CTX_MODEL   suco_flag                     [NUM_CTX_SUCO_FLAG];
     SBAC_CTX_MODEL   alf_ctb_flag                  [NUM_CTX_ALF_CTB_FLAG];
     SBAC_CTX_MODEL   split_cu_flag                 [NUM_CTX_SPLIT_CU_FLAG];
-#if DQP
     SBAC_CTX_MODEL   delta_qp                      [NUM_CTX_DELTA_QP];
-#endif
     SBAC_CTX_MODEL   ats_mode                      [NUM_CTX_ATS_MODE_FLAG];
     SBAC_CTX_MODEL   ats_cu_inter_flag             [NUM_CTX_ATS_INTER_FLAG];
     SBAC_CTX_MODEL   ats_cu_inter_quad_flag        [NUM_CTX_ATS_INTER_QUAD_FLAG];
@@ -1106,9 +996,7 @@ struct _PICBUF_ALLOCATOR
     int              ndata[4];
     /* arbitrary address, if needs */
     void            *pdata[4];
-#if BD_CF_EXT
     int              idc;
-#endif
 };
 
 /*****************************************************************************
@@ -1160,16 +1048,15 @@ typedef struct _EVC_REFP
  *****************************************************************************/
 typedef struct _EVC_NALU
 {
-    int nal_unit_size;
-    int forbidden_zero_bit;
-    int nal_unit_type_plus1;
-    int nuh_temporal_id;
-    int nuh_reserved_zero_5bits;
-    int nuh_extension_flag;
+    int              nal_unit_size;
+    int              forbidden_zero_bit;
+    int              nal_unit_type_plus1;
+    int              nuh_temporal_id;
+    int              nuh_reserved_zero_5bits;
+    int              nuh_extension_flag;
 } EVC_NALU;
 
 
-#if EVC_VUI_FIX
 #define     EXTENDED_SAR 255
 #define     NUM_CPB 32
 
@@ -1178,16 +1065,16 @@ typedef struct _EVC_NALU
 *****************************************************************************/
 typedef struct _EVC_HRD
 {
-    int cpb_cnt_minus1;
-    int bit_rate_scale;
-    int cpb_size_scale;
-    int bit_rate_value_minus1[NUM_CPB];
-    int cpb_size_value_minus1[NUM_CPB];
-    int cbr_flag[NUM_CPB];
-    int initial_cpb_removal_delay_length_minus1;
-    int cpb_removal_delay_length_minus1;
-    int dpb_output_delay_length_minus1;
-    int time_offset_length;
+    int              cpb_cnt_minus1;
+    int              bit_rate_scale;
+    int              cpb_size_scale;
+    int              bit_rate_value_minus1[NUM_CPB];
+    int              cpb_size_value_minus1[NUM_CPB];
+    int              cbr_flag[NUM_CPB];
+    int              initial_cpb_removal_delay_length_minus1;
+    int              cpb_removal_delay_length_minus1;
+    int              dpb_output_delay_length_minus1;
+    int              time_offset_length;
 } EVC_HRD;
 
 /*****************************************************************************
@@ -1195,47 +1082,42 @@ typedef struct _EVC_HRD
 *****************************************************************************/
 typedef struct _EVC_VUI
 {
-
-    int aspect_ratio_info_present_flag;
-    int aspect_ratio_idc;
-    int sar_width;
-    int sar_height;
-    int overscan_info_present_flag;
-    int overscan_appropriate_flag;
-    int video_signal_type_present_flag;
-    int video_format;
-    int video_full_range_flag;
-    int colour_description_present_flag;
-    int colour_primaries;
-    int transfer_characteristics;
-    int matrix_coefficients;
-    int chroma_loc_info_present_flag;
-    int chroma_sample_loc_type_top_field;
-    int chroma_sample_loc_type_bottom_field;
-    int neutral_chroma_indication_flag;
-#if ETM60_HLS_FIX
-    int field_seq_flag;
-#endif
-    int timing_info_present_flag;
-    int num_units_in_tick;
-    int time_scale;
-    int fixed_pic_rate_flag;
-    int nal_hrd_parameters_present_flag;
-    int vcl_hrd_parameters_present_flag;
-    int low_delay_hrd_flag;
-    int pic_struct_present_flag;
-    int bitstream_restriction_flag;
-    int motion_vectors_over_pic_boundaries_flag;
-    int max_bytes_per_pic_denom;
-    int max_bits_per_mb_denom;
-    int log2_max_mv_length_horizontal;
-    int log2_max_mv_length_vertical;
-    int num_reorder_pics;
-    int max_dec_pic_buffering;
-
-    EVC_HRD hrd_parameters;
+    int              aspect_ratio_info_present_flag;
+    int              aspect_ratio_idc;
+    int              sar_width;
+    int              sar_height;
+    int              overscan_info_present_flag;
+    int              overscan_appropriate_flag;
+    int              video_signal_type_present_flag;
+    int              video_format;
+    int              video_full_range_flag;
+    int              colour_description_present_flag;
+    int              colour_primaries;
+    int              transfer_characteristics;
+    int              matrix_coefficients;
+    int              chroma_loc_info_present_flag;
+    int              chroma_sample_loc_type_top_field;
+    int              chroma_sample_loc_type_bottom_field;
+    int              neutral_chroma_indication_flag;
+    int              field_seq_flag;
+    int              timing_info_present_flag;
+    int              num_units_in_tick;
+    int              time_scale;
+    int              fixed_pic_rate_flag;
+    int              nal_hrd_parameters_present_flag;
+    int              vcl_hrd_parameters_present_flag;
+    int              low_delay_hrd_flag;
+    int              pic_struct_present_flag;
+    int              bitstream_restriction_flag;
+    int              motion_vectors_over_pic_boundaries_flag;
+    int              max_bytes_per_pic_denom;
+    int              max_bits_per_mb_denom;
+    int              log2_max_mv_length_horizontal;
+    int              log2_max_mv_length_vertical;
+    int              num_reorder_pics;
+    int              max_dec_pic_buffering;
+    EVC_HRD          hrd_parameters;
 } EVC_VUI;
-#endif
 
 /*****************************************************************************
  * sequence parameter set
@@ -1269,9 +1151,7 @@ typedef struct _EVC_SPS
     int              tool_alf;
     int              tool_htdf;
     int              tool_admvp;
-#if M53737
     int              tool_hmvp;
-#endif
     int              tool_eipd;
     int              tool_iqt;
     int              tool_cm_init;
@@ -1291,25 +1171,19 @@ typedef struct _EVC_SPS
     EVC_RPL          rpls_l0[MAX_NUM_RPLS];
     int              num_ref_pic_lists_in_sps1;
     EVC_RPL          rpls_l1[MAX_NUM_RPLS];
-
     int              picture_cropping_flag;
     int              picture_crop_left_offset;
     int              picture_crop_right_offset;
     int              picture_crop_top_offset;
     int              picture_crop_bottom_offset;
-#if DQP
     int              dquant_flag;              /*1 specifies the improved delta qp signaling processes is used*/
-#endif
     EVC_CHROMA_TABLE chroma_qp_table_struct;
     u32              ibc_flag;                   /* 1 bit : flag of enabling IBC or not */
     int              ibc_log_max_size;           /* log2 max ibc size */
     int              vui_parameters_present_flag;
-#if M52291_HDR_DRA
-    int tool_dra;
-#endif
-#if EVC_VUI_FIX
-    EVC_VUI vui_parameters;
-#endif
+    int              tool_dra;
+    EVC_VUI          vui_parameters;
+
 } EVC_SPS;
 
 /*****************************************************************************
@@ -1317,35 +1191,29 @@ typedef struct _EVC_SPS
 *****************************************************************************/
 typedef struct _EVC_PPS
 {
-    int pps_pic_parameter_set_id;
-    int pps_seq_parameter_set_id;
-    int num_ref_idx_default_active_minus1[2];
-    int additional_lt_poc_lsb_len;
-    int rpl1_idx_present_flag;
-    int single_tile_in_pic_flag;
-    int num_tile_columns_minus1;
-    int num_tile_rows_minus1;
-    int uniform_tile_spacing_flag;
-    int tile_column_width_minus1[MAX_NUM_TILES_ROW];
-    int tile_row_height_minus1[MAX_NUM_TILES_COL];
-    int loop_filter_across_tiles_enabled_flag;
-    int tile_offset_lens_minus1;
-    int tile_id_len_minus1;
-    int explicit_tile_id_flag;
-    int tile_id_val[MAX_NUM_TILES_ROW][MAX_NUM_TILES_COL];
-    int arbitrary_slice_present_flag;
-    int constrained_intra_pred_flag;
-#if DQP
-    int cu_qp_delta_enabled_flag;
-    int cu_qp_delta_area;
-#endif
-#if M52291_HDR_DRA
-#if !ETM60_HLS_FIX
-    int pic_dra_enabled_present_flag;
-#endif
-    int pic_dra_enabled_flag;
-    int pic_dra_aps_id;
-#endif
+    int              pps_pic_parameter_set_id;
+    int              pps_seq_parameter_set_id;
+    int              num_ref_idx_default_active_minus1[2];
+    int              additional_lt_poc_lsb_len;
+    int              rpl1_idx_present_flag;
+    int              single_tile_in_pic_flag;
+    int              num_tile_columns_minus1;
+    int              num_tile_rows_minus1;
+    int              uniform_tile_spacing_flag;
+    int              tile_column_width_minus1[MAX_NUM_TILES_ROW];
+    int              tile_row_height_minus1[MAX_NUM_TILES_COL];
+    int              loop_filter_across_tiles_enabled_flag;
+    int              tile_offset_lens_minus1;
+    int              tile_id_len_minus1;
+    int              explicit_tile_id_flag;
+    int              tile_id_val[MAX_NUM_TILES_ROW][MAX_NUM_TILES_COL];
+    int              arbitrary_slice_present_flag;
+    int              constrained_intra_pred_flag;
+    int              cu_qp_delta_enabled_flag;
+    int              cu_qp_delta_area;
+    int              pic_dra_enabled_flag;
+    int              pic_dra_aps_id;
+
 } EVC_PPS;
 
 /*****************************************************************************
@@ -1353,65 +1221,52 @@ typedef struct _EVC_PPS
  *****************************************************************************/
 typedef struct _evc_AlfSliceParam
 {
-    BOOL isCtbAlfOn;
-    u8 *alfCtuEnableFlag;
-#if M53608_ALF_14
-    u8 *alfCtuEnableFlagChroma;
-    u8 *alfCtuEnableFlagChroma2;
-#endif
-
-    BOOL                         enabledFlag[3];                                          // alf_slice_enable_flag, alf_chroma_idc
-    int                          lumaFilterType;                                          // filter_type_flag
-    BOOL                         chromaCtbPresentFlag;                                    // alf_chroma_ctb_present_flag
-    short                        lumaCoeff[MAX_NUM_ALF_CLASSES * MAX_NUM_ALF_LUMA_COEFF]; // alf_coeff_luma_delta[i][j]
-    short                        chromaCoeff[MAX_NUM_ALF_CHROMA_COEFF];                   // alf_coeff_chroma[i]
-    short                        filterCoeffDeltaIdx[MAX_NUM_ALF_CLASSES];                // filter_coeff_delta[i]
-    BOOL                         filterCoeffFlag[MAX_NUM_ALF_CLASSES];                    // filter_coefficient_flag[i]
-    int                          numLumaFilters;                                          // number_of_filters_minus1 + 1
-    BOOL                         coeffDeltaFlag;                                          // alf_coefficients_delta_flag
-    BOOL                         coeffDeltaPredModeFlag;                                  // coeff_delta_pred_mode_flag
-
-    int fixedFilterPattern;
-    int fixedFilterIdx[MAX_NUM_ALF_CLASSES];
-#if M53608_ALF_7
-    u8  fixedFilterUsageFlag[MAX_NUM_ALF_CLASSES];
-#endif
-    int tLayer;
-    BOOL temporalAlfFlag;
-    int prevIdx;
-    int prevIdxComp[2];
-    BOOL resetALFBufferFlag;
-    BOOL store2ALFBufferFlag;
-#if M53608_ALF_14
-    BOOL chromaFilterPresent;
-#endif
+    BOOL            isCtbAlfOn;
+    u8             *alfCtuEnableFlag;
+    u8             *alfCtuEnableFlagChroma;
+    u8             *alfCtuEnableFlagChroma2;
+    BOOL            enabledFlag[3];                                          // alf_slice_enable_flag, alf_chroma_idc
+    int             lumaFilterType;                                          // filter_type_flag
+    BOOL            chromaCtbPresentFlag;                                    // alf_chroma_ctb_present_flag
+    short           lumaCoeff[MAX_NUM_ALF_CLASSES * MAX_NUM_ALF_LUMA_COEFF]; // alf_coeff_luma_delta[i][j]
+    short           chromaCoeff[MAX_NUM_ALF_CHROMA_COEFF];                   // alf_coeff_chroma[i]
+    short           filterCoeffDeltaIdx[MAX_NUM_ALF_CLASSES];                // filter_coeff_delta[i]
+    BOOL            filterCoeffFlag[MAX_NUM_ALF_CLASSES];                    // filter_coefficient_flag[i]
+    int             numLumaFilters;                                          // number_of_filters_minus1 + 1
+    BOOL            coeffDeltaFlag;                                          // alf_coefficients_delta_flag
+    BOOL            coeffDeltaPredModeFlag;                                  // coeff_delta_pred_mode_flag
+    int             fixedFilterPattern;
+    int             fixedFilterIdx[MAX_NUM_ALF_CLASSES];
+    u8              fixedFilterUsageFlag[MAX_NUM_ALF_CLASSES];
+    int             tLayer;
+    BOOL            temporalAlfFlag;
+    int             prevIdx;
+    int             prevIdxComp[2];
+    BOOL            resetALFBufferFlag;
+    BOOL            store2ALFBufferFlag;
+    BOOL            chromaFilterPresent;
 
 } evc_AlfSliceParam;
 
 typedef struct _evc_SignalledALFParam
 {
-    BOOL isCtbAlfOn;
-
-    BOOL                         enabledFlag[3];                                          // alf_slice_enable_flag, alf_chroma_idc
-    int                          lumaFilterType;                                          // filter_type_flag
-    BOOL                         chromaCtbPresentFlag;                                    // alf_chroma_ctb_present_flag
-    short                        chromaCoeff[MAX_NUM_ALF_CHROMA_COEFF];                   // alf_coeff_chroma[i]
-    short                        filterCoeffDeltaIdx[MAX_NUM_ALF_CLASSES];                // filter_coeff_delta[i]
-    BOOL                         filterCoeffFlag[MAX_NUM_ALF_CLASSES];                    // filter_coefficient_flag[i]
-    int                          numLumaFilters;                                          // number_of_filters_minus1 + 1
-    BOOL                         coeffDeltaFlag;                                          // alf_coefficients_delta_flag
-    BOOL                         coeffDeltaPredModeFlag;                                  // coeff_delta_pred_mode_flag
-
-    int fixedFilterPattern;
-    int fixedFilterIdx[MAX_NUM_ALF_CLASSES];
-#if M53608_ALF_7
-    u8  fixedFilterUsageFlag[MAX_NUM_ALF_CLASSES];
-#endif
-    int prevIdx;
+    BOOL            isCtbAlfOn;
+    BOOL            enabledFlag[3];                                          // alf_slice_enable_flag, alf_chroma_idc
+    int             lumaFilterType;                                          // filter_type_flag
+    BOOL            chromaCtbPresentFlag;                                    // alf_chroma_ctb_present_flag
+    short           chromaCoeff[MAX_NUM_ALF_CHROMA_COEFF];                   // alf_coeff_chroma[i]
+    short           filterCoeffDeltaIdx[MAX_NUM_ALF_CLASSES];                // filter_coeff_delta[i]
+    BOOL            filterCoeffFlag[MAX_NUM_ALF_CLASSES];                    // filter_coefficient_flag[i]
+    int             numLumaFilters;                                          // number_of_filters_minus1 + 1
+    BOOL            coeffDeltaFlag;                                          // alf_coefficients_delta_flag
+    BOOL            coeffDeltaPredModeFlag;                                  // coeff_delta_pred_mode_flag
+    int             fixedFilterPattern;
+    int             fixedFilterIdx[MAX_NUM_ALF_CLASSES];
+    u8              fixedFilterUsageFlag[MAX_NUM_ALF_CLASSES];
+    int             prevIdx;
 
 } evc_SignalledALFParam;
 
-#if M52291_HDR_DRA
 typedef struct _EVC_APS_GEN
 {
     int               signal_flag;
@@ -1419,7 +1274,6 @@ typedef struct _EVC_APS_GEN
     int               aps_id;       // adaptation_parameter_set_id
     void            * aps_data;
 } EVC_APS_GEN;
-#endif
 
 typedef struct _EVC_APS
 {
@@ -1446,15 +1300,12 @@ typedef struct _EVC_SH
     int              collocated_from_ref_idx;         // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
     int              collocated_mvp_source_list_idx;  // Specifies source (List ID) in collocated pic that provides MV information 
     s32              poc_lsb;
-
     /*   HLS_RPL */
     u32              ref_pic_list_sps_flag[2];
     int              rpl_l0_idx;                            //-1 means this slice does not use RPL candidate in SPS for RPL0
     int              rpl_l1_idx;                            //-1 means this slice does not use RPL candidate in SPS for RPL1
-
     EVC_RPL          rpl_l0;
     EVC_RPL          rpl_l1;
-
     u32              num_ref_idx_active_override_flag;
     int              deblocking_filter_on;
     int              sh_deblock_alpha_offset;
@@ -1465,12 +1316,10 @@ typedef struct _EVC_SH
     int              qp_u_offset;
     int              qp_v_offset;
     u32              entry_point_offset_minus1[MAX_NUM_TILES_ROW * MAX_NUM_TILES_COL];
-#if DQP
     /*QP of previous cu in decoding order (used for dqp)*/
     u8               qp_prev_eco;
     u8               dqp;
     u8               qp_prev_mode;
-#endif
     u32              alf_on;
     u32              mmvd_group_enable_flag;
     u8               ctb_alf_on;
@@ -1481,14 +1330,12 @@ typedef struct _EVC_SH
     EVC_APS        * aps;
     evc_AlfSliceParam alf_sh_param;
     u16              num_tiles_in_slice;
-#if M53608_ALF_14
     u32              alfChromaIdc;
     u32              ChromaAlfEnabledFlag;
     u32              ChromaAlfEnabled2Flag;
     u32              alfChromaMapSignalled;
     u32              alfChroma2MapSignalled;
     int              aps_id_ch2;
-#endif
     u8               tile_order[MAX_NUM_TILES_COL * MAX_NUM_TILES_ROW];
 } EVC_SH;
 

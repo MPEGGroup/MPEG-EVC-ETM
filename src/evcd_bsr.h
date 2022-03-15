@@ -67,7 +67,7 @@ struct _EVC_BSR
     /*! size of original bitstream in byte */
     int                size;
     /*! Function pointer for bs_flush */
-    EVC_BSR_FN_FLUSH  fn_flush;
+    EVC_BSR_FN_FLUSH   fn_flush;
     /*! arbitrary data, if needs */
     int                ndata[4];
     /*! arbitrary address, if needs */

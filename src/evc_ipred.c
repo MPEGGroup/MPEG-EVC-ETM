@@ -34,15 +34,9 @@
 #include "evcd_def.h"
 
 void evc_get_nbr_b(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_cu, pel nb[N_C][N_REF][MAX_CU_SIZE * 3], int scup, u32 * map_scu
-                   , int w_scu, int h_scu, int ch_type, int constrained_intra_pred, u8* map_tidx
-#if BD_CF_EXT
-                   , int bit_depth
-                   , int chroma_format_idc
-#endif
-)
+                   , int w_scu, int h_scu, int ch_type, int constrained_intra_pred, u8* map_tidx, int bit_depth, int chroma_format_idc)
 {
     int  i, j;
-#if BD_CF_EXT
     int  scuw = (ch_type == Y_C) ? (cuw >> MIN_CU_LOG2) : (cuw >> (MIN_CU_LOG2 - (GET_CHROMA_W_SHIFT(chroma_format_idc))));
     int  scuh = (ch_type == Y_C) ? (cuh >> MIN_CU_LOG2) : (cuh >> (MIN_CU_LOG2 - (GET_CHROMA_H_SHIFT(chroma_format_idc))));
     scuh = ((ch_type != Y_C) && (chroma_format_idc == 2)) ? scuh * 2 : scuh;
@@ -50,13 +44,6 @@ void evc_get_nbr_b(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avai
     unit_size = ((ch_type != Y_C) && (chroma_format_idc == 3)) ? unit_size * 2 : unit_size;
     int  x_scu = PEL2SCU(ch_type == Y_C ? x : x << (GET_CHROMA_W_SHIFT(chroma_format_idc)));
     int  y_scu = PEL2SCU(ch_type == Y_C ? y : y << (GET_CHROMA_H_SHIFT(chroma_format_idc)));
-#else
-    int  scuw = (ch_type == Y_C) ? (cuw >> MIN_CU_LOG2) : (cuw >> (MIN_CU_LOG2 - 1));
-    int  scuh = (ch_type == Y_C) ? (cuh >> MIN_CU_LOG2) : (cuh >> (MIN_CU_LOG2 - 1));
-    int  unit_size = (ch_type == Y_C) ? MIN_CU_SIZE : (MIN_CU_SIZE >> 1);
-    int  x_scu = PEL2SCU(ch_type == Y_C ? x : x << 1);
-    int  y_scu = PEL2SCU(ch_type == Y_C ? y : y << 1);
-#endif
     pel *tmp = src;
     pel *left = nb[ch_type][0] + 2;
     pel *up = nb[ch_type][1] + cuh;
@@ -68,14 +55,10 @@ void evc_get_nbr_b(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avai
     }
     else
     {
-#if BD_CF_EXT
         up[-1] = 1 << (bit_depth - 1);
-#else
-        up[-1] = 1 << (BIT_DEPTH - 1);
-#endif
     }
 
-    for (i = 0; i < (scuw + scuh); i++)   
+    for (i = 0; i < (scuw + scuh); i++)
     {
         int is_avail = (y_scu > 0) && (x_scu + i < w_scu);
         if (is_avail && MCU_GET_COD(map_scu[scup - w_scu + i]) && (!constrained_intra_pred || MCU_GET_IF(map_scu[scup - w_scu + i])) &&
@@ -85,11 +68,7 @@ void evc_get_nbr_b(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avai
         }
         else
         {
-#if BD_CF_EXT
             evc_mset_16b(up + i * unit_size, 1 << (bit_depth - 1), unit_size);
-#else
-            evc_mset_16b(up + i * unit_size, 1 << (BIT_DEPTH - 1), unit_size);
-#endif
         }
     }
     
@@ -108,11 +87,7 @@ void evc_get_nbr_b(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avai
         }
         else
         {
-#if BD_CF_EXT
             evc_mset_16b(left + i * unit_size, 1 << (bit_depth - 1), unit_size);
-#else
-            evc_mset_16b(left + i * unit_size, 1 << (BIT_DEPTH - 1), unit_size);
-#endif
             src += (s_src * unit_size);
         }
     }
@@ -120,15 +95,9 @@ void evc_get_nbr_b(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avai
 }
 
 void evc_get_nbr(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_cu, pel nb[N_C][N_REF][MAX_CU_SIZE * 3], int scup, u32 * map_scu
-                 , int w_scu, int h_scu, int ch_type, int constrained_intra_pred, u8 * map_tidx
-#if BD_CF_EXT
-                 , int bit_depth
-                 , int chroma_format_idc
-#endif
-)
+                 , int w_scu, int h_scu, int ch_type, int constrained_intra_pred, u8 * map_tidx, int bit_depth, int chroma_format_idc)
 {
     int  i, j;
-#if BD_CF_EXT
     int  scuw = (ch_type == Y_C) ? (cuw >> MIN_CU_LOG2) : (cuw >> (MIN_CU_LOG2 - (GET_CHROMA_W_SHIFT(chroma_format_idc))));
     int  scuh = (ch_type == Y_C) ? (cuh >> MIN_CU_LOG2) : (cuh >> (MIN_CU_LOG2 - (GET_CHROMA_H_SHIFT(chroma_format_idc))));
     scuh = ((ch_type != Y_C) && (chroma_format_idc == 2)) ? scuh * 2 : scuh;
@@ -136,13 +105,6 @@ void evc_get_nbr(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_
     unit_size = ((ch_type != Y_C) && (chroma_format_idc == 3)) ? unit_size * 2 : unit_size;
     int  x_scu = PEL2SCU(ch_type == Y_C ? x : x << (GET_CHROMA_W_SHIFT(chroma_format_idc)));
     int  y_scu = PEL2SCU(ch_type == Y_C ? y : y << (GET_CHROMA_H_SHIFT(chroma_format_idc)));
-#else
-    int  scuw = (ch_type == Y_C) ? (cuw >> MIN_CU_LOG2) : (cuw >> (MIN_CU_LOG2 - 1));
-    int  scuh = (ch_type == Y_C) ? (cuh >> MIN_CU_LOG2) : (cuh >> (MIN_CU_LOG2 - 1));
-    int  unit_size = (ch_type == Y_C) ? MIN_CU_SIZE : (MIN_CU_SIZE >> 1);
-    int  x_scu = PEL2SCU(ch_type == Y_C ? x : x << 1);
-    int  y_scu = PEL2SCU(ch_type == Y_C ? y : y << 1);
-#endif
     pel *tmp = src;
     pel *left = nb[ch_type][0] + 2;
     pel *up = nb[ch_type][1] + cuh;
@@ -155,11 +117,7 @@ void evc_get_nbr(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_
     }
     else
     {
-#if BD_CF_EXT
         up[-1] = 1 << (bit_depth - 1);
-#else
-        up[-1] = 1 << (BIT_DEPTH - 1);
-#endif
     }
 
     for (i = 0; i < (scuw + scuh); i++)
@@ -393,11 +351,7 @@ void ipred_dc(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int
     }
 }
 
-void ipred_plane(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h
-#if BD_CF_EXT
-                 , int bit_depth
-#endif
-)
+void ipred_plane(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h, int bit_depth)
 {
     pel *rsrc;
     int  coef_h = 0, coef_v = 0;
@@ -440,11 +394,7 @@ void ipred_plane(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, 
             temp2 = temp;
             for(x = w - 1; x >= 0; x--)
             {
-#if BD_CF_EXT
                 dst[x] = EVC_CLIP3(0, (1 << bit_depth) - 1, temp2 >> 5);
-#else
-                dst[x] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, temp2 >> 5);
-#endif
                 temp2 += b;
             }
             temp += c; dst += w;
@@ -475,11 +425,7 @@ void ipred_plane(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, 
             temp2 = temp;
             for(x = 0; x < w; x++)
             {
-#if BD_CF_EXT
                 dst[x] = EVC_CLIP3(0, (1 << bit_depth) - 1, temp2 >> 5);
-#else
-                dst[x] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, temp2 >> 5);
-#endif
                 temp2 += b;
             }
             temp += c; dst += w;
@@ -487,11 +433,7 @@ void ipred_plane(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, 
     }
 }
 
-void ipred_bi(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h
-#if BD_CF_EXT
-              , int bit_depth
-#endif
-)
+void ipred_bi(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h, int bit_depth)
 {
     int x, y;
     int ishift_x = evc_tbl_log2[w];
@@ -567,11 +509,7 @@ void ipred_bi(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int
                 predx += ri[y];
                 ref_up[x] += up[x];
                 dst[x] = ((predx << ishift_y) + (ref_up[x] << ishift_x) + wxy + offset) >> ishift_xy;
-#if BD_CF_EXT
                 dst[x] = EVC_CLIP3(0, (1 << bit_depth) - 1, dst[x]);
-#else
-                dst[x] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, dst[x]);
-#endif
                 wxy += wy[y];
             }
             dst += w;
@@ -606,11 +544,7 @@ void ipred_bi(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int
             {
                 predx += le[y];
                 ref_up[x] += up[x];
-#if BD_CF_EXT
                 dst[x] = EVC_CLIP3(0, (1 << bit_depth) - 1, (((predx << ishift_y) + (ref_up[x] << ishift_x) + wxy + offset) >> ishift_xy));
-#else
-                dst[x] = EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, (((predx << ishift_y) + (ref_up[x] << ishift_x) + wxy + offset) >> ishift_xy));
-#endif
                 wxy += wy[y];
             }
             dst += w;
@@ -626,11 +560,7 @@ void ipred_bi(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int
 #define ADI_4T_FILTER_OFFSET              (1<<(ADI_4T_FILTER_BITS-1))
 
 __inline
-pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ipm, int i, int j, int w, int pos_min, int pos_max, int h
-#if BD_CF_EXT
-                  , int bit_depth
-#endif
-)
+pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ipm, int i, int j, int w, int pos_min, int pos_max, int h, int bit_depth)
 {
     int offset;
     int t_dx, t_dy;
@@ -819,18 +749,10 @@ pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ip
 
     temp_pel = (src_ch[pn_n1] * filter[0] + src_ch[p] * filter[1] + src_ch[pn] * filter[2] + src_ch[pn_p2] * filter[3] + filter_offset) >> filter_bits;
 
-#if BD_CF_EXT
     return EVC_CLIP3(0, (1 << bit_depth) - 1, temp_pel);
-#else
-    return EVC_CLIP3(0, (1 << BIT_DEPTH) - 1, temp_pel);
-#endif
 }
 
-void ipred_ang(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h, int ipm
-#if BD_CF_EXT
-               , int bit_depth
-#endif
-)
+void ipred_ang(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h, int ipm, int bit_depth)
 {
     int i, j;
     const int pos_max = w + h - 1;
@@ -840,11 +762,7 @@ void ipred_ang(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, in
     {
         for(i = 0; i < w; i++)
         {
-            dst[i] = ipred_ang_val(src_up, src_le, src_ri, avail_lr, ipm, i, j, w, pos_min, pos_max, h
-#if BD_CF_EXT
-                                   , bit_depth
-#endif
-            );
+            dst[i] = ipred_ang_val(src_up, src_le, src_ri, avail_lr, ipm, i, j, w, pos_min, pos_max, h, bit_depth);
         }
         dst += w;
     }
@@ -915,11 +833,7 @@ void evc_ipred_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, 
     }
 }
 
-void evc_ipred(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm, int w, int h
-#if BD_CF_EXT
-               , int bit_depth
-#endif
-)
+void evc_ipred(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm, int w, int h, int bit_depth)
 {
     switch(ipm)
     {
@@ -933,26 +847,14 @@ void evc_ipred(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, in
             ipred_dc(src_le, src_up, src_ri, avail_lr, dst, w, h);
             break;
         case IPD_PLN:
-            ipred_plane(src_le, src_up, src_ri, avail_lr, dst, w, h
-#if BD_CF_EXT
-                        , bit_depth
-#endif
-            );
+            ipred_plane(src_le, src_up, src_ri, avail_lr, dst, w, h, bit_depth);
             break;
 
         case IPD_BI:
-            ipred_bi(src_le, src_up, src_ri, avail_lr, dst, w, h
-#if BD_CF_EXT
-                     , bit_depth
-#endif
-            );
+            ipred_bi(src_le, src_up, src_ri, avail_lr, dst, w, h, bit_depth);
             break;
         default:
-            ipred_ang(src_le, src_up, src_ri, avail_lr, dst, w, h, ipm
-#if BD_CF_EXT
-                      , bit_depth
-#endif
-            );
+            ipred_ang(src_le, src_up, src_ri, avail_lr, dst, w, h, ipm, bit_depth);
             break;
     }
 }
@@ -983,11 +885,7 @@ void evc_ipred_uv_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *ds
     }
 }
 
-void evc_ipred_uv(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm_c, int ipm, int w, int h
-#if BD_CF_EXT
-                  , int bit_depth
-#endif
-)
+void evc_ipred_uv(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm_c, int ipm, int w, int h, int bit_depth)
 {
     if(ipm_c == IPD_DM_C && EVC_IPRED_CHK_CONV(ipm))
     {
@@ -1000,18 +898,10 @@ void evc_ipred_uv(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst,
             switch(ipm)
             {
                 case IPD_PLN:
-                    ipred_plane(src_le, src_up, src_ri, avail_lr, dst, w, h
-#if BD_CF_EXT
-                                , bit_depth
-#endif
-                    );
+                    ipred_plane(src_le, src_up, src_ri, avail_lr, dst, w, h, bit_depth);
                     break;
                 default:
-                    ipred_ang(src_le, src_up, src_ri, avail_lr, dst, w, h, ipm
-#if BD_CF_EXT
-                              , bit_depth
-#endif
-                    );
+                    ipred_ang(src_le, src_up, src_ri, avail_lr, dst, w, h, ipm, bit_depth);
                     break;
             }
             break;
@@ -1027,11 +917,7 @@ void evc_ipred_uv(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst,
             break;
 
         case IPD_BI_C:
-            ipred_bi(src_le, src_up, src_ri, avail_lr, dst, w, h
-#if BD_CF_EXT
-                     , bit_depth
-#endif
-            );
+            ipred_bi(src_le, src_up, src_ri, avail_lr, dst, w, h, bit_depth);
             break;
         default:
             printf("\n illegal chroma intra prediction mode\n");

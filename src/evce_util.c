@@ -47,11 +47,7 @@ void evce_picbuf_expand(EVCE_CTX *ctx, EVC_PIC *pic)
 
 EVC_PIC * evce_pic_alloc(PICBUF_ALLOCATOR * pa, int * ret)
 {
-    return evc_picbuf_alloc(pa->w, pa->h, pa->pad_l, pa->pad_c, ret
-#if BD_CF_EXT
-                            , pa->idc
-#endif
-    );
+    return evc_picbuf_alloc(pa->w, pa->h, pa->pad_l, pa->pad_c, ret, pa->idc);
 }
 
 void evce_pic_free(PICBUF_ALLOCATOR *pa, EVC_PIC *pic)
@@ -80,12 +76,7 @@ int evce_bsw_write_nalu_size(EVC_BSW *bs)
     return size;
 }
 
-void evce_diff_pred(int x, int y, int log2_cuw, int log2_cuh, EVC_PIC *org, pel pred[N_C][MAX_CU_DIM], s16 diff[N_C][MAX_CU_DIM]
-#if BD_CF_EXT
-                    , int bit_depth_luma, int bit_depth_chroma
-                    , int chroma_format_idc
-#endif
-)
+void evce_diff_pred(int x, int y, int log2_cuw, int log2_cuh, EVC_PIC *org, pel pred[N_C][MAX_CU_DIM], s16 diff[N_C][MAX_CU_DIM], int bit_depth_luma, int bit_depth_chroma, int chroma_format_idc)
 {
     pel * buf;
     int cuw, cuh, stride;
@@ -97,48 +88,27 @@ void evce_diff_pred(int x, int y, int log2_cuw, int log2_cuh, EVC_PIC *org, pel 
     /* Y */
     buf = org->y + (y * stride) + x;
 
-#if BD_CF_EXT
     evce_diff_16b(log2_cuw, log2_cuh, buf, pred[Y_C], stride, cuw, cuw, diff[Y_C], bit_depth_luma);
-#else
-    evce_diff_16b(log2_cuw, log2_cuh, buf, pred[Y_C], stride, cuw, cuw, diff[Y_C]);
-#endif
-#if BD_CF_EXT
+
     if(!chroma_format_idc)
         return;
-#endif
-#if BD_CF_EXT
+
     cuw >>= (GET_CHROMA_W_SHIFT(chroma_format_idc));
     cuh >>= (GET_CHROMA_H_SHIFT(chroma_format_idc));
     x >>= (GET_CHROMA_W_SHIFT(chroma_format_idc));
     y >>= (GET_CHROMA_H_SHIFT(chroma_format_idc));
     log2_cuw -= (GET_CHROMA_W_SHIFT(chroma_format_idc));
     log2_cuh -= (GET_CHROMA_H_SHIFT(chroma_format_idc));
-#else
-    cuw >>= 1;
-    cuh >>= 1;
-    x >>= 1;
-    y >>= 1;
-    log2_cuw--;
-    log2_cuh--;
-#endif
 
     stride = org->s_c;
 
     /* U */
     buf = org->u + (y * stride) + x;
-#if BD_CF_EXT
     evce_diff_16b(log2_cuw, log2_cuh, buf, pred[U_C], stride, cuw, cuw, diff[U_C], bit_depth_chroma);
-#else
-    evce_diff_16b(log2_cuw, log2_cuh, buf, pred[U_C], stride, cuw, cuw, diff[U_C]);
-#endif
 
     /* V */
     buf = org->v + (y * stride) + x;
-#if BD_CF_EXT
     evce_diff_16b(log2_cuw, log2_cuh, buf, pred[V_C], stride, cuw, cuw, diff[V_C], bit_depth_chroma);
-#else
-    evce_diff_16b(log2_cuw, log2_cuh, buf, pred[V_C], stride, cuw, cuw, diff[V_C]);
-#endif
 }
 
 #if RDO_DBK
@@ -265,26 +235,17 @@ void evc_set_affine_mvf(EVCE_CTX * ctx, EVCE_CORE * core, int w, int h, s8 refi[
 }
 #endif
 
-#if DQP_RDO
 void evce_set_qp(EVCE_CTX *ctx, EVCE_CORE *core, u8 qp)
 {
     u8 qp_i_cb, qp_i_cr;
     core->qp = qp;
-#if BD_CF_EXT
     core->qp_y = GET_LUMA_QP(core->qp, ctx->sps.bit_depth_luma_minus8);
     qp_i_cb = EVC_CLIP3(-6 * ctx->sps.bit_depth_chroma_minus8, 57, core->qp + ctx->sh->qp_u_offset);
     qp_i_cr = EVC_CLIP3(-6 * ctx->sps.bit_depth_chroma_minus8, 57, core->qp + ctx->sh->qp_v_offset);
     core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][qp_i_cb] + 6 * ctx->sps.bit_depth_chroma_minus8;
     core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][qp_i_cr] + 6 * ctx->sps.bit_depth_chroma_minus8;
-#else
-    core->qp_y = GET_LUMA_QP(core->qp);
-    qp_i_cb = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + ctx->sh->qp_u_offset);
-    qp_i_cr = EVC_CLIP3(-6 * (BIT_DEPTH - 8), 57, core->qp + ctx->sh->qp_v_offset);
-    core->qp_u = p_evc_tbl_qp_chroma_dynamic[0][qp_i_cb] + 6 * (BIT_DEPTH - 8);
-    core->qp_v = p_evc_tbl_qp_chroma_dynamic[1][qp_i_cr] + 6 * (BIT_DEPTH - 8);
-#endif
 }
-#endif
+
 void evce_split_tbl_init(EVCE_CTX *ctx)
 {
     evc_split_tbl[BLOCK_11][IDX_MAX] = ctx->cdsc.framework_cb_max;
@@ -299,16 +260,17 @@ void evce_split_tbl_init(EVCE_CTX *ctx)
 
 u8 evce_check_luma(EVCE_CTX *ctx, EVCE_CORE * core)
 {
-    return evc_check_luma(core->tree_cons);    
+    return evc_check_luma(core->tree_cons);
 }
 
 u8 evce_check_chroma(EVCE_CTX *ctx, EVCE_CORE * core)
 {
-    return evc_check_chroma(core->tree_cons);    
+    return evc_check_chroma(core->tree_cons);
 }
+
 u8 evce_check_all(EVCE_CTX *ctx, EVCE_CORE * core)
 {
-    return evc_check_all(core->tree_cons);    
+    return evc_check_all(core->tree_cons);
 }
 
 u8 evce_check_only_intra(EVCE_CTX *ctx, EVCE_CORE * core)
@@ -323,7 +285,7 @@ u8 evce_check_only_inter(EVCE_CTX *ctx, EVCE_CORE * core)
 
 u8 evce_check_all_preds(EVCE_CTX *ctx, EVCE_CORE * core)
 {
-    return evc_check_all_preds(core->tree_cons);       
+    return evc_check_all_preds(core->tree_cons);
 }
 
 MODE_CONS evce_derive_mode_cons(EVCE_CTX *ctx, int lcu_num, int cup)
@@ -442,7 +404,6 @@ static int get_motion_cost(EVC_PIC * pic_cur, EVC_PIC * pic_ref, int x, int y, i
         }
     }
     return cost;
-
 }
 
 static void get_motion(EVC_PIC * pic_cur, EVC_PIC * pic_ref, int block_size, void * prev_mv, int * map_error, int factor, int d_range)
@@ -564,7 +525,6 @@ static void get_motion(EVC_PIC * pic_cur, EVC_PIC * pic_ref, int block_size, voi
 
             if (y > 0)
             {
-
                 int above_idx;
                 int above_mv[MV_D];
                 if (store_mv_idx == 0)
@@ -588,7 +548,6 @@ static void get_motion(EVC_PIC * pic_cur, EVC_PIC * pic_ref, int block_size, voi
             }
             if (x > 0)
             {
-
                 int left_idx;
                 int left_mv[MV_D];
                 if (store_mv_idx == 0)
@@ -632,11 +591,9 @@ static void get_motion(EVC_PIC * pic_cur, EVC_PIC * pic_ref, int block_size, voi
                     variance += (pix - avg) * (pix - avg);
                 }
             }
-#if FIX_TF_WARNING
+
             best_cost = (int)(20 * ((best_cost + 5.0) / (variance + 5.0)) + (best_cost / (block_size * block_size)) / 50);
-#else
-            best_cost = 20 * ((best_cost + 5.0) / (variance + 5.0)) + (best_cost / (block_size * block_size)) / 50;
-#endif
+
             if (store_mv_idx == 0)
             {
                 int idx = (y / step) * pic_w_scu + x / step;
@@ -670,7 +627,6 @@ static void apply_motion(EVC_PIC * pic_ref)
     const int chroma_idc = CF_FROM_CS(pic_ref->imgb->cs);
     const int bit_depth = BD_FROM_CS(pic_ref->imgb->cs);
     int cs_num = chroma_idc == 0 ? 1 : 3;
-
     pel * tmp_img = (pel *)evc_malloc(sizeof(pel) * pic_ref->h_l * pic_ref->w_l);
 
     for (int c = 0 ; c < cs_num ; c++)
@@ -781,7 +737,6 @@ static void apply_motion(EVC_PIC * pic_ref)
             dst += src_s;
             src += width;
         }
-
     }
 
     evc_mfree(tmp_img);
@@ -879,8 +834,6 @@ static void apply_filter(EVCE_CTX * ctx, EVC_PIC * tmp_pic[EVCE_TF_FRAME_NUM][3]
 
                 if ((y % block_size == 0) && (x % block_size == 0))
                 {
-                    
-
                     for (int i = 0; i < pic_cnt ; i++)
                     {
                         if (i == curr_idx)
@@ -1063,7 +1016,6 @@ void evce_temporal_filter(EVCE_CTX * ctx, EVC_IMGB * img_list[EVCE_TF_FRAME_NUM]
     int curr_idx = EVCE_TF_CR, pic_cnt = 0;
     for (int i = 0; i < EVCE_TF_FRAME_NUM; i++)
     {
-
         if (img_list[i] != NULL)
         {
             evce_tf_create_map(&map_error[pic_cnt], &sub_pa[0]);
@@ -1096,7 +1048,6 @@ void evce_temporal_filter(EVCE_CTX * ctx, EVC_IMGB * img_list[EVCE_TF_FRAME_NUM]
         {
             curr_idx--;
         }
-
     }
 
     if (pic_cnt > 1)

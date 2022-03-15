@@ -71,11 +71,7 @@ extern "C"
     {
         u32 cost = 0;
         u32 min_cost = EVC_UINT32_MAX;
-
-
         EVCE_PIBC *pi = &ctx->pibc;
-
-
         EVCE_IBC_HashMap* p_hash = (EVCE_IBC_HashMap*)p;
 
         mvp[MV_X] = 0;

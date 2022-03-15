@@ -37,12 +37,8 @@
 #endif
 #include <math.h>
 
-#if BD_CF_EXT 
 #define TX_SHIFT1(log2_size, bd)   ((log2_size) - 1 + bd - 8)
-#else
-#define TX_SHIFT1(log2_size)   ((log2_size) - 1 + BIT_DEPTH - 8)
-#endif
-#define TX_SHIFT2(log2_size)   ((log2_size) + 6)
+#define TX_SHIFT2(log2_size)       ((log2_size) + 6)
 
 #if ENC_DEC_TRACE
 FILE *fp_trace;
@@ -86,17 +82,11 @@ BOOL is_ptr_aligned(void* ptr, int num_bytes)
   return ((uintptr_t)ptr & mask) == 0;
 }
 
-#if BD_CF_EXT
 int INTERNAL_CODEC_BIT_DEPTH;
 int INTERNAL_CODEC_BIT_DEPTH_LUMA;
 int INTERNAL_CODEC_BIT_DEPTH_CHROMA;
-#endif
 
-EVC_PIC * evc_picbuf_alloc(int w, int h, int pad_l, int pad_c, int *err
-#if BD_CF_EXT
-                           , int idc
-#endif
-)
+EVC_PIC * evc_picbuf_alloc(int w, int h, int pad_l, int pad_c, int *err, int idc)
 {
     EVC_PIC *pic = NULL;
     EVC_IMGB *imgb = NULL;
@@ -112,29 +102,17 @@ EVC_PIC * evc_picbuf_alloc(int w, int h, int pad_l, int pad_c, int *err
 
     /* set align value*/
     align[0] = MIN_CU_SIZE;
-#if BD_CF_EXT
     align[1] = MIN_CU_SIZE;
     align[2] = MIN_CU_SIZE;
-#else
-    align[1] = MIN_CU_SIZE >> 1;
-    align[2] = MIN_CU_SIZE >> 1;
-#endif
 
     /* set padding value*/
     pad[0] = pad_l;
     pad[1] = pad_c;
     pad[2] = pad_c;
 
-#if BD_CF_EXT
     int cs = idc == 0 ? EVC_COLORSPACE_YUV400_10LE : (idc == 1 ? EVC_COLORSPACE_YUV420_10LE : (idc == 2 ? EVC_COLORSPACE_YUV422_10LE : EVC_COLORSPACE_YUV444_10LE));
     imgb = evc_imgb_create(w, h, cs, opt, pad, align);
     imgb->cs = CS_FROM_BD_CF(INTERNAL_CODEC_BIT_DEPTH, idc);
-#else
-    imgb = evc_imgb_create(w, h, EVC_COLORSPACE_YUV420_10LE, opt, pad, align);
-#if BD_CF_EXT
-    imgb->cs = CS_FROM_BD_420(INTERNAL_CODEC_BIT_DEPTH);
-#endif
-#endif
     evc_assert_gv(imgb != NULL, ret, EVC_ERR_OUT_OF_MEMORY, ERR);
 
     /* set EVC_PIC */
@@ -347,8 +325,7 @@ void scaling_mv(int ratio, s16 mvp[MV_D], s16 mv[MV_D])
 }
 
 void evc_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], EVC_REFP refp[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int h_scu, int scup, u16 avail, int log2_cuw, int log2_cuh, int slice_t
-                           , int real_mv[][2][3], u32 *map_scu, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME], u16 avail_lr
-                           , u32 curr_ptr, u8 num_refp[REFP_NUM]
+                           , int real_mv[][2][3], u32 *map_scu, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME], u16 avail_lr, u32 curr_ptr, u8 num_refp[REFP_NUM]
                            , EVC_HISTORY_BUFFER history_buffer, int admvp_flag, EVC_SH* sh, int log2_max_cuwh, u8* map_tidx, int mmvd_idx)
 {
     int ref_mvd = 0;
@@ -936,11 +913,7 @@ s8 evc_get_first_refi(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[
                       , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
 #endif
                       , EVC_HISTORY_BUFFER history_buffer
-#if M53737
                       , int hmvp_flag
-#else
-                      , int admvp_flag
-#endif
                       , u8* map_tidx
 )
 {
@@ -957,11 +930,7 @@ s8 evc_get_first_refi(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[
                            , w_scu
 #endif
                            , history_buffer
-#if M53737
                            , hmvp_flag
-#else
-                           , admvp_flag
-#endif
     );
 
     assert(mvr_idx < 5);
@@ -986,11 +955,7 @@ void evc_get_default_motion(int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag
                             , int w_scu
 #endif
                             , EVC_HISTORY_BUFFER history_buffer
-#if M53737
                             , int hmvp_flag
-#else
-                            , int admvp_flag
-#endif
 )
 {
     int k;
@@ -1063,11 +1028,8 @@ void evc_get_default_motion(int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag
             }
         }
     }
-#if M53737
+
     if(hmvp_flag)
-#else
-    if(admvp_flag)
-#endif
     {
         if(!found)
         {
@@ -1103,20 +1065,9 @@ void evc_get_default_motion(int neb_addr[MAX_NUM_POSSIBLE_SCAND], int valid_flag
     }
 }
 
-void evc_get_motion_from_mvr(u8 mvr_idx, int poc, int scup, int lidx, s8 cur_refi, int num_refp, \
-                             s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM], \
-                             int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][MV_D], s8 refi[MAX_NUM_MVP], u32* map_scu, u16 avail_lr
-#if DMVR_FLAG
-                             , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
-#endif
-                             , EVC_HISTORY_BUFFER history_buffer
-#if M53737
-                             , int hmvp_flag
-#else
-                             , int admvp_flag
-#endif
-                             , u8* map_tidx
-)
+void evc_get_motion_from_mvr(u8 mvr_idx, int poc, int scup, int lidx, s8 cur_refi, int num_refp, s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM]
+                             , int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][MV_D], s8 refi[MAX_NUM_MVP], u32* map_scu, u16 avail_lr
+                             , s16(*map_unrefined_mv)[REFP_NUM][MV_D], EVC_HISTORY_BUFFER history_buffer, int hmvp_flag, u8* map_tidx)
 {
     int i, t0, poc_refi_cur;
     int ratio[MAX_NUM_REF_PICS];
@@ -1134,31 +1085,14 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int poc, int scup, int lidx, s8 cur_ref
                            , w_scu
 #endif
                            , history_buffer
-#if M53737
                            , hmvp_flag
-#else
-                           , admvp_flag
-#endif
     );
 
     poc_refi_cur = refp[cur_refi][lidx].poc;
     for(i = 0; i < num_refp; i++)
     {
         t0 = poc - refp[i][lidx].poc;
-
-#if CLEANUP_AMVR
         ratio[i] = ((poc - poc_refi_cur) << MVP_SCALING_PRECISION) / t0;
-#else
-        if(t0 != 0)
-        {
-            ratio[i] = ((poc - poc_refi_cur) << MVP_SCALING_PRECISION) / t0;
-        }
-
-        if(ratio[i] == 0 || t0 == 0)
-        {
-            ratio[i] = 1 << MVP_SCALING_PRECISION;
-        }
-#endif
     }
 
     assert(mvr_idx < 5);
@@ -1219,7 +1153,6 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int poc, int scup, int lidx, s8 cur_ref
     else
     {
         refi[0] = default_refi;
-#if CLEANUP_AMVR
         if(refi[0] == cur_refi)
         {
             mvp_temp[MV_X] = default_mv[MV_X];
@@ -1229,10 +1162,6 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int poc, int scup, int lidx, s8 cur_ref
         {
             scaling_mv(ratio[refi[0]], default_mv, mvp_temp);
         }
-#else
-        mvp_temp[MV_X] = default_mv[MV_X];
-        mvp_temp[MV_Y] = default_mv[MV_Y];
-#endif
     }
     mvp[0][MV_X] = (mvp_temp[MV_X] >= 0) ? (((mvp_temp[MV_X] + rounding) >> mvr_idx) << mvr_idx) : -(((-mvp_temp[MV_X] + rounding) >> mvr_idx) << mvr_idx);
     mvp[0][MV_Y] = (mvp_temp[MV_Y] >= 0) ? (((mvp_temp[MV_Y] + rounding) >> mvr_idx) << mvr_idx) : -(((-mvp_temp[MV_Y] + rounding) >> mvr_idx) << mvr_idx);
@@ -1285,121 +1214,7 @@ void evc_get_motion(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[RE
     mvp[3][MV_X] = refp[0][lidx].map_mv[scup][0][MV_X];
     mvp[3][MV_Y] = refp[0][lidx].map_mv[scup][0][MV_Y];
 }
-#if !CODE_CLEAN
-void evc_get_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int num_refp, s16(*map_mv)[REFP_NUM][MV_D], s8(*map_refi)[REFP_NUM], EVC_REFP(*refp)[REFP_NUM],
-                            int cuw, int cuh, int w_scu, int h_scu, u16 avail, s16 mvp[MAX_NUM_MVP][MV_D], s8 refi[MAX_NUM_MVP], u32* map_scu, u16 avail_lr
-#if DMVR_LAG
-                            , s16(*map_unrefined_mv)[REFP_NUM][MV_D]
-#endif
-                            , u8* map_tidx)
-{
-    int cnt, i, t0, poc_refi_cur, dpoc_co;
-    int ratio[MAX_NUM_REF_PICS] = {0,}, ratio_tmvp = 0;
-    int neb_addr[MAX_NUM_POSSIBLE_SCAND], valid_flag[MAX_NUM_POSSIBLE_SCAND];
-    s8(*map_refi_co)[REFP_NUM];
 
-    evc_check_motion_availability(scup, cuw, cuh, w_scu, h_scu, neb_addr, valid_flag, map_scu, avail_lr, 0, 0, map_tidx);
-
-    poc_refi_cur = refp[cur_refi][lidx].poc;
-    for(i = 0; i < num_refp; i++)
-    {
-        t0 = poc - refp[i][lidx].poc;
-
-        if(t0 != 0)
-        {
-            ratio[i] = ((poc - poc_refi_cur) << MVP_SCALING_PRECISION) / t0;
-        }
-        if(ratio[i] == 0 || t0 == 0)
-        {
-            ratio[i] = 1 << MVP_SCALING_PRECISION;
-        }
-    }
-#if INCREASE_MVP_NUM
-    for(cnt = 0; cnt < ORG_MAX_NUM_MVP - 1; cnt++)
-#else
-    for(cnt = 0; cnt < MAX_NUM_MVP - 1; cnt++)
-#endif
-    {
-        if(valid_flag[cnt])
-        {
-            refi[cnt] = REFI_IS_VALID(map_refi[neb_addr[cnt]][lidx]) ? map_refi[neb_addr[cnt]][lidx] : REFI_INVALID;
-            if(refi[cnt] == cur_refi)
-            {
-#if DMVR_LAG
-                if(MCU_GET_DMVRF(map_scu[neb_addr[cnt]])
-#if (DMVR_LAG == 2)
-                   && (!evc_use_refine_mv(scup, neb_addr[cnt], w_scu))
-#endif
-                   )
-                {
-                    mvp[cnt][MV_X] = map_unrefined_mv[neb_addr[cnt]][lidx][MV_X];
-                    mvp[cnt][MV_Y] = map_unrefined_mv[neb_addr[cnt]][lidx][MV_Y];
-                }
-                else
-#endif
-                {
-
-                    mvp[cnt][MV_X] = map_mv[neb_addr[cnt]][lidx][MV_X];
-                    mvp[cnt][MV_Y] = map_mv[neb_addr[cnt]][lidx][MV_Y];
-                }
-            }
-            else if(refi[cnt] == REFI_INVALID)
-            {
-                mvp[cnt][MV_X] = 0;
-                mvp[cnt][MV_Y] = 0;
-            }
-            else
-            {
-#if DMVR_LAG
-                if(MCU_GET_DMVRF(map_scu[neb_addr[cnt]])
-#if (DMVR_LAG == 2)
-                   && (!evc_use_refine_mv(scup, neb_addr[cnt], w_scu))
-#endif
-                   )
-                {
-                    scaling_mv(ratio[refi[cnt]], map_unrefined_mv[neb_addr[cnt]][lidx], mvp[cnt]);
-                }
-                else
-#endif
-                {
-                    scaling_mv(ratio[refi[cnt]], map_mv[neb_addr[cnt]][lidx], mvp[cnt]);
-                }
-            }
-        }
-        else
-        {
-            refi[cnt] = 0;
-            mvp[cnt][MV_X] = 0;
-            mvp[cnt][MV_Y] = 0;
-        }
-    }
-
-    refi[cnt] = 0;
-    map_refi_co = refp[0][REFP_1].map_refi;
-    if(REFI_IS_VALID(map_refi_co[scup][REFP_0]))
-    {
-        dpoc_co = refp[0][REFP_1].poc - refp[0][REFP_1].list_poc[0];
-        ratio_tmvp = 1 << MVP_SCALING_PRECISION;
-        if(dpoc_co == 0)
-        {
-            mvp[cnt][MV_X] = 0;
-            mvp[cnt][MV_Y] = 0;
-        }
-        else
-        {
-            ratio_tmvp = ((poc - poc_refi_cur) << MVP_SCALING_PRECISION) / dpoc_co;
-            scaling_mv(ratio_tmvp, refp[0][REFP_1].map_mv[scup][REFP_0], mvp[cnt]);
-        }
-    }
-    else
-    {
-        refi[cnt] = 0;
-        mvp[cnt][MV_X] = 0;
-        mvp[cnt][MV_Y] = 0;
-    }
-}
-#endif
-#if MERGE_MVP
 static int evc_get_right_below_scup_qc_merge(int scup, int cuw, int cuh, int w_scu, int h_scu, int bottom_right, int log2_max_cuwh)
 {
     int scuw = cuw >> MIN_CU_LOG2;
@@ -1483,7 +1298,6 @@ static int evc_get_right_below_scup(int scup, int cuw, int cuh, int w_scu, int h
         return y_scu*w_scu + x_scu;
     }
 }
-#endif
 
 BOOL check_bi_applicability(int slice_type, int cuw, int cuh, int is_sps_admvp)
 {
@@ -1842,9 +1656,7 @@ void evc_clip_mv_pic(int x, int y, int maxX, int maxY, s16 mvp[REFP_NUM][MV_D])
     mvp[REFP_1][MV_Y] = (y + mvp[REFP_1][MV_Y]) > maxY ? (maxY - y) : mvp[REFP_1][MV_Y];
 }
 
-void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 poc, int scup, int c_scu, u16 w_scu, u16 h_scu, s16 mvp[REFP_NUM][MV_D]
-                    , int sps_admvp_flag
-)
+void evc_get_mv_dir(EVC_REFP refp[REFP_NUM], u32 poc, int scup, int c_scu, u16 w_scu, u16 h_scu, s16 mvp[REFP_NUM][MV_D], int sps_admvp_flag)
 {
     s16 mvc[MV_D];
     int dpoc_co, dpoc_L0, dpoc_L1;
@@ -2523,23 +2335,21 @@ void evc_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int boun
         {
             if(log2_cuw > log2_cuh)
             {
+                split_allow[SPLIT_BI_HOR] = ALLOW_SPLIT_RATIO(log2_cuw, log2_cuw - log2_cuh + 1);
+
+                log2_sub_cuw = log2_cuw - 1;
+                log2_sub_cuh = log2_cuh;
+                long_side = log2_sub_cuw > log2_sub_cuh ? log2_sub_cuw : log2_sub_cuh;
+                ratio = EVC_ABS(log2_sub_cuw - log2_sub_cuh);
+
+                split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(long_side, ratio);
+                if (from_boundary_b && (ratio == 3 || ratio == 4))
                 {
-                    split_allow[SPLIT_BI_HOR] = ALLOW_SPLIT_RATIO(log2_cuw, log2_cuw - log2_cuh + 1);
-
-                    log2_sub_cuw = log2_cuw - 1;
-                    log2_sub_cuh = log2_cuh;
-                    long_side = log2_sub_cuw > log2_sub_cuh ? log2_sub_cuw : log2_sub_cuh;
-                    ratio = EVC_ABS(log2_sub_cuw - log2_sub_cuh);
-
-                    split_allow[SPLIT_BI_VER] = ALLOW_SPLIT_RATIO(long_side, ratio);
-                    if (from_boundary_b && (ratio == 3 || ratio == 4))
-                    {
-                        split_allow[SPLIT_BI_VER] = 1;
-                    }
-
-                    split_allow[SPLIT_TRI_VER] = ALLOW_SPLIT_TRI(log2_cuw) && (log2_cuw > log2_cuh || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuw, 2)));
-                    split_allow[SPLIT_TRI_HOR] = ALLOW_SPLIT_TRI(log2_cuh) && (log2_cuh > log2_cuw || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuh, 2)));
+                    split_allow[SPLIT_BI_VER] = 1;
                 }
+
+                split_allow[SPLIT_TRI_VER] = ALLOW_SPLIT_TRI(log2_cuw) && (log2_cuw > log2_cuh || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuw, 2)));
+                split_allow[SPLIT_TRI_HOR] = ALLOW_SPLIT_TRI(log2_cuh) && (log2_cuh > log2_cuw || (log2_cuw == log2_cuh && ALLOW_SPLIT_RATIO(log2_cuh, 2)));
             }
             else
             {
@@ -2661,7 +2471,7 @@ u16 evc_check_nev_avail(int x_scu, int y_scu, int cuw, int cuh, int w_scu, int h
 }
 
 void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u32* map_scu, u32* map_cu_mode, u8* ctx, u8 slice_type
-                          , int sps_cm_init_flag, u8 ibc_flag, u8 ibc_log_max_size, u8* map_tidx)
+                            , int sps_cm_init_flag, u8 ibc_flag, u8 ibc_log_max_size, u8* map_tidx)
 {
     int nev_info[NUM_CNID][3];
     int scun[3], avail[3];
@@ -2780,7 +2590,7 @@ void evc_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u
     }
 }
 
-void evc_mv_rounding_s32( s32 hor, int ver, s32 * rounded_hor, s32 * rounded_ver, s32 right_shift, int left_shift )
+void evc_mv_rounding_s32(s32 hor, int ver, s32 * rounded_hor, s32 * rounded_ver, s32 right_shift, int left_shift)
 {
     int offset = (right_shift > 0) ? (1 << (right_shift - 1)) : 0;
     *rounded_hor = ((hor + offset - (hor >= 0)) >> right_shift) << left_shift;
@@ -2789,28 +2599,23 @@ void evc_mv_rounding_s32( s32 hor, int ver, s32 * rounded_hor, s32 * rounded_ver
 
 void evc_rounding_s32(s32 comp, s32 *rounded_comp, int right_shift, int left_shift)
 {
-  int offset = (right_shift > 0) ? (1 << (right_shift - 1)) : 0;
-  *rounded_comp = ((comp + offset - (comp >= 0)) >> right_shift) << left_shift;
+    int offset = (right_shift > 0) ? (1 << (right_shift - 1)) : 0;
+    *rounded_comp = ((comp + offset - (comp >= 0)) >> right_shift) << left_shift;
 }
 
 void derive_affine_subblock_size_bi( s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi[REFP_NUM], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num, BOOL* mem_band_conditions_for_eif_are_satisfied)
 {
     int w = cuw;
     int h = cuh;
-#if MC_PRECISION_ADD
-    int mc_prec_add = MC_PRECISION_ADD;
-#else
-    int mc_prec_add = 0;
-#endif
     int mv_wx, mv_wy;
     int l = 0;
 
     *sub_w = cuw;
     *sub_h = cuh;
 
-    for ( l = 0; l < REFP_NUM; l++ )
+    for (l = 0; l < REFP_NUM; l++)
     {
-        if ( REFI_IS_VALID( refi[l] ) )
+        if (REFI_IS_VALID(refi[l]))
         {
             int dmv_hor_x, dmv_ver_x, dmv_hor_y, dmv_ver_y;
 
@@ -2819,68 +2624,62 @@ void derive_affine_subblock_size_bi( s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi
             dmv_hor_y = ((ac_mv[l][1][MV_Y] - ac_mv[l][0][MV_Y]) << 7) >> evc_tbl_log2[cuw];
             if (vertex_num == 3)
             {
-              dmv_ver_x = ((ac_mv[l][2][MV_X] - ac_mv[l][0][MV_X]) << 7) >> evc_tbl_log2[cuh]; // deltaMvVer
-              dmv_ver_y = ((ac_mv[l][2][MV_Y] - ac_mv[l][0][MV_Y]) << 7) >> evc_tbl_log2[cuh];
+                dmv_ver_x = ((ac_mv[l][2][MV_X] - ac_mv[l][0][MV_X]) << 7) >> evc_tbl_log2[cuh]; // deltaMvVer
+                dmv_ver_y = ((ac_mv[l][2][MV_Y] - ac_mv[l][0][MV_Y]) << 7) >> evc_tbl_log2[cuh];
             }
             else
             {
-              dmv_ver_x = -dmv_hor_y;                                                    // deltaMvVer
-              dmv_ver_y = dmv_hor_x;
+                dmv_ver_x = -dmv_hor_y;                                                    // deltaMvVer
+                dmv_ver_y = dmv_hor_x;
             }
 
             mv_wx = max(abs(dmv_hor_x), abs(dmv_hor_y)), mv_wy = max(abs(dmv_ver_x), abs(dmv_ver_y));
             int sub_lut[4] = { 32, 16, 8, 8 };
             if (mv_wx > 4)
             {
-              w = 4;
+                w = 4;
             }
             else if (mv_wx == 0)
             {
-              w = cuw;
+                w = cuw;
             }
             else
             {
-              w = sub_lut[mv_wx - 1];
+                w = sub_lut[mv_wx - 1];
             }
 
             if (mv_wy > 4)
             {
-              h = 4;
+                h = 4;
             }
             else if (mv_wy == 0)
             {
-              h = cuh;
+                h = cuh;
             }
             else
             {
-              h = sub_lut[mv_wy - 1];
+                h = sub_lut[mv_wy - 1];
             }
 
-            *sub_w = min( *sub_w, w );
-            *sub_h = min( *sub_h, h );
+            *sub_w = min(*sub_w, w);
+            *sub_h = min(*sub_h, h);
         }
     }
 
-    int apply_eif = check_eif_applicability_bi( ac_mv, refi, cuw, cuh, vertex_num, mem_band_conditions_for_eif_are_satisfied);
+    int apply_eif = check_eif_applicability_bi(ac_mv, refi, cuw, cuh, vertex_num, mem_band_conditions_for_eif_are_satisfied);
 
-    if ( !apply_eif )
+    if (!apply_eif)
     {
-      *sub_w = max( *sub_w, AFFINE_ADAPT_EIF_SIZE );
-      *sub_h = max( *sub_h, AFFINE_ADAPT_EIF_SIZE );
+        *sub_w = max(*sub_w, AFFINE_ADAPT_EIF_SIZE);
+        *sub_h = max(*sub_h, AFFINE_ADAPT_EIF_SIZE);
     }
 }
 
-void derive_affine_subblock_size( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num, BOOL* mem_band_conditions_for_eif_are_satisfied)
+void derive_affine_subblock_size(s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int *sub_w, int *sub_h, int vertex_num, BOOL* mem_band_conditions_for_eif_are_satisfied)
 {
     int w = cuw;
     int h = cuh;
-#if MC_PRECISION_ADD
-    int mc_prec_add = MC_PRECISION_ADD;
-#else
-    int mc_prec_add = 0;
-#endif
     int mv_wx, mv_wy;
-
     int dmv_hor_x, dmv_ver_x, dmv_hor_y, dmv_ver_y;
 
     // convert to 2^(storeBit + bit) precision
@@ -2888,138 +2687,138 @@ void derive_affine_subblock_size( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, in
     dmv_hor_y = ((ac_mv[1][MV_Y] - ac_mv[0][MV_Y]) << 7) >> evc_tbl_log2[cuw];
     if (vertex_num == 3)
     {
-      dmv_ver_x = ((ac_mv[2][MV_X] - ac_mv[0][MV_X]) << 7) >> evc_tbl_log2[cuh]; // deltaMvVer
-      dmv_ver_y = ((ac_mv[2][MV_Y] - ac_mv[0][MV_Y]) << 7) >> evc_tbl_log2[cuh];
+        dmv_ver_x = ((ac_mv[2][MV_X] - ac_mv[0][MV_X]) << 7) >> evc_tbl_log2[cuh]; // deltaMvVer
+        dmv_ver_y = ((ac_mv[2][MV_Y] - ac_mv[0][MV_Y]) << 7) >> evc_tbl_log2[cuh];
     }
     else
     {
-      dmv_ver_x = -dmv_hor_y;                                                    // deltaMvVer
-      dmv_ver_y = dmv_hor_x;
+        dmv_ver_x = -dmv_hor_y;                                                    // deltaMvVer
+        dmv_ver_y = dmv_hor_x;
     }
 
     mv_wx = max(abs(dmv_hor_x), abs(dmv_hor_y)), mv_wy = max(abs(dmv_ver_x), abs(dmv_ver_y));
     int sub_lut[4] = { 32, 16, 8, 8 };
     if (mv_wx > 4)
     {
-      w = 4;
+        w = 4;
     }
     else if (mv_wx == 0)
     {
-      w = cuw;
+        w = cuw;
     }
     else
     {
-      w = sub_lut[mv_wx - 1];
+        w = sub_lut[mv_wx - 1];
     }
 
     if (mv_wy > 4)
     {
-      h = 4;
+        h = 4;
     }
     else if (mv_wy == 0)
     {
-      h = cuh;
+        h = cuh;
     }
     else
     {
-      h = sub_lut[mv_wy - 1];
+        h = sub_lut[mv_wy - 1];
     }
 
     *sub_w = w;
     *sub_h = h;
 
-    int apply_eif = check_eif_applicability_uni( ac_mv, cuw, cuh, vertex_num, mem_band_conditions_for_eif_are_satisfied);
+    int apply_eif = check_eif_applicability_uni(ac_mv, cuw, cuh, vertex_num, mem_band_conditions_for_eif_are_satisfied);
 
-    if ( !apply_eif )
+    if (!apply_eif)
     {
-      *sub_w = max( *sub_w, AFFINE_ADAPT_EIF_SIZE );
-      *sub_h = max( *sub_h, AFFINE_ADAPT_EIF_SIZE );
+        *sub_w = max(*sub_w, AFFINE_ADAPT_EIF_SIZE);
+        *sub_h = max(*sub_h, AFFINE_ADAPT_EIF_SIZE);
     }
 }
 
-void calculate_affine_motion_model_parameters( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int vertex_num, int d_hor[MV_D], int d_ver[MV_D], int mv_additional_precision )
+void calculate_affine_motion_model_parameters(s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int vertex_num, int d_hor[MV_D], int d_ver[MV_D], int mv_additional_precision)
 {
-  assert( MV_X == 0 && MV_Y == 1 );
-  assert( vertex_num == 2 || vertex_num == 3 );
+    assert(MV_X == 0 && MV_Y == 1);
+    assert(vertex_num == 2 || vertex_num == 3);
 
-  // convert to 2^(storeBit + bit) precision
+    // convert to 2^(storeBit + bit) precision
 
-  for ( int comp = MV_X; comp < MV_D; ++comp )
-    d_hor[comp] = ( ( ac_mv[1][comp] - ac_mv[0][comp] ) << mv_additional_precision ) >> evc_tbl_log2[cuw];
+    for (int comp = MV_X; comp < MV_D; ++comp)
+        d_hor[comp] = ((ac_mv[1][comp] - ac_mv[0][comp]) << mv_additional_precision) >> evc_tbl_log2[cuw];
 
-  for ( int comp = MV_X; comp < MV_D; ++comp )
-  {
-    if ( vertex_num == 3 )
-      d_ver[comp] = ( ( ac_mv[2][comp] - ac_mv[0][comp] ) << mv_additional_precision ) >> evc_tbl_log2[cuh]; // deltaMvVer
-    else
-      d_ver[comp] = comp == MV_X ? -d_hor[1 - comp] : d_hor[1 - comp];
-  }
+    for (int comp = MV_X; comp < MV_D; ++comp)
+    {
+        if (vertex_num == 3)
+            d_ver[comp] = ((ac_mv[2][comp] - ac_mv[0][comp]) << mv_additional_precision) >> evc_tbl_log2[cuh]; // deltaMvVer
+        else
+            d_ver[comp] = comp == MV_X ? -d_hor[1 - comp] : d_hor[1 - comp];
+    }
 }
 
-void calculate_bounding_box_size( int w, int h, s16 ac_mv[VER_NUM][MV_D], int d_hor[MV_D], int d_ver[MV_D], int mv_precision, int *b_box_w, int *b_box_h )
+void calculate_bounding_box_size(int w, int h, s16 ac_mv[VER_NUM][MV_D], int d_hor[MV_D], int d_ver[MV_D], int mv_precision, int *b_box_w, int *b_box_h)
 {
-  int corners[MV_D][4] = { 0, };
+    int corners[MV_D][4] = { 0, };
 
-  corners[MV_X][0] = 0;
-  corners[MV_X][1] = corners[MV_X][0] + ( w + 1 ) * ( d_hor[MV_X] + ( 1 << mv_precision) ) ;
-  corners[MV_X][2] = corners[MV_X][0] + ( h + 1 ) * d_ver[MV_X];
-  corners[MV_X][3] = corners[MV_X][1] + corners[MV_X][2] - corners[MV_X][0];
+    corners[MV_X][0] = 0;
+    corners[MV_X][1] = corners[MV_X][0] + (w + 1) * (d_hor[MV_X] + (1 << mv_precision));
+    corners[MV_X][2] = corners[MV_X][0] + (h + 1) * d_ver[MV_X];
+    corners[MV_X][3] = corners[MV_X][1] + corners[MV_X][2] - corners[MV_X][0];
 
-  corners[MV_Y][0] = 0;
-  corners[MV_Y][1] = corners[MV_Y][0] + ( w + 1 ) * d_hor[MV_Y];
-  corners[MV_Y][2] = corners[MV_Y][0] + ( h + 1 ) * ( d_ver[MV_Y] + ( 1 << mv_precision ) );
-  corners[MV_Y][3] = corners[MV_Y][1] + corners[MV_Y][2] - corners[MV_Y][0];
+    corners[MV_Y][0] = 0;
+    corners[MV_Y][1] = corners[MV_Y][0] + (w + 1) * d_hor[MV_Y];
+    corners[MV_Y][2] = corners[MV_Y][0] + (h + 1) * (d_ver[MV_Y] + (1 << mv_precision));
+    corners[MV_Y][3] = corners[MV_Y][1] + corners[MV_Y][2] - corners[MV_Y][0];
 
-  int max[MV_D] = { 0, }, min[MV_D] = { 0, }, diff[MV_D] = { 0, };
+    int max[MV_D] = { 0, }, min[MV_D] = { 0, }, diff[MV_D] = { 0, };
 
-  for ( int coord = MV_X; coord < MV_D; ++coord )
-  {
-    max[coord] = max( max( corners[coord][0], corners[coord][1] ), max( corners[coord][2], corners[coord][3] ) );
+    for (int coord = MV_X; coord < MV_D; ++coord)
+    {
+        max[coord] = max(max(corners[coord][0], corners[coord][1]), max(corners[coord][2], corners[coord][3]));
 
-    min[coord] = min( min( corners[coord][0], corners[coord][1] ), min( corners[coord][2], corners[coord][3] ) );
+        min[coord] = min(min(corners[coord][0], corners[coord][1]), min(corners[coord][2], corners[coord][3]));
 
-    diff[coord] = ( max[coord] - min[coord] + ( 1 << mv_precision ) - 1 ) >> mv_precision; //ceil
-  }
+        diff[coord] = (max[coord] - min[coord] + (1 << mv_precision) - 1) >> mv_precision; //ceil
+    }
 
-  *b_box_w = diff[MV_X] + 1 + 1;
-  *b_box_h = diff[MV_Y] + 1 + 1;
+    *b_box_w = diff[MV_X] + 1 + 1;
+    *b_box_h = diff[MV_Y] + 1 + 1;
 }
 
 BOOL check_eif_num_fetched_lines_restrictions( s16 ac_mv[VER_NUM][MV_D], int d_hor[MV_D], int d_ver[MV_D], int mv_precision )
 {
-  if ( d_ver[MV_Y] < -1 << mv_precision )
-    return FALSE;
+    if (d_ver[MV_Y] < -1 << mv_precision)
+        return FALSE;
 
-  if( ( max( 0, d_ver[MV_Y] ) + abs( d_hor[MV_Y] ) ) * ( 1 + EIF_HW_SUBBLOCK_SIZE ) > ( EIF_NUM_ALLOWED_FETCHED_LINES_FOR_THE_FIRST_LINE - 2 ) << mv_precision )
-    return FALSE;
+    if ((max(0, d_ver[MV_Y]) + abs(d_hor[MV_Y])) * (1 + EIF_HW_SUBBLOCK_SIZE) > (EIF_NUM_ALLOWED_FETCHED_LINES_FOR_THE_FIRST_LINE - 2) << mv_precision)
+        return FALSE;
 
-  return TRUE;
+    return TRUE;
 }
 
-BOOL check_eif_applicability_uni( s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int vertex_num, BOOL* mem_band_conditions_are_satisfied)
+BOOL check_eif_applicability_uni(s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int vertex_num, BOOL* mem_band_conditions_are_satisfied)
 {
-  assert( mem_band_conditions_are_satisfied );
+    assert(mem_band_conditions_are_satisfied);
 
-  int mv_additional_precision = MAX_CU_LOG2;
-  int mv_precision = 2 + mv_additional_precision;
+    int mv_additional_precision = MAX_CU_LOG2;
+    int mv_precision = 2 + mv_additional_precision;
 
-  int d_hor[MV_D] = { 0, 0 }, d_ver[MV_D] = { 0, 0 };
+    int d_hor[MV_D] = { 0, 0 }, d_ver[MV_D] = { 0, 0 };
 
-  calculate_affine_motion_model_parameters( ac_mv, cuw, cuh, vertex_num, d_hor, d_ver, mv_additional_precision );
+    calculate_affine_motion_model_parameters(ac_mv, cuw, cuh, vertex_num, d_hor, d_ver, mv_additional_precision);
 
-  *mem_band_conditions_are_satisfied = FALSE;
+    *mem_band_conditions_are_satisfied = FALSE;
 
-  int bounding_box_w = 0, bounding_box_h = 0;
-  calculate_bounding_box_size( EIF_HW_SUBBLOCK_SIZE, EIF_HW_SUBBLOCK_SIZE, ac_mv, d_hor, d_ver, mv_precision, &bounding_box_w, &bounding_box_h );
+    int bounding_box_w = 0, bounding_box_h = 0;
+    calculate_bounding_box_size(EIF_HW_SUBBLOCK_SIZE, EIF_HW_SUBBLOCK_SIZE, ac_mv, d_hor, d_ver, mv_precision, &bounding_box_w, &bounding_box_h);
 
-  *mem_band_conditions_are_satisfied = bounding_box_w * bounding_box_h <= MAX_MEMORY_ACCESS_BI;
+    *mem_band_conditions_are_satisfied = bounding_box_w * bounding_box_h <= MAX_MEMORY_ACCESS_BI;
 
-  if (!check_eif_num_fetched_lines_restrictions(ac_mv, d_hor, d_ver, mv_precision))
-  {
-      return FALSE;
-  }
+    if (!check_eif_num_fetched_lines_restrictions(ac_mv, d_hor, d_ver, mv_precision))
+    {
+        return FALSE;
+    }
 
-  return TRUE;
+    return TRUE;
 }
 
 BOOL check_eif_applicability_bi(s16 ac_mv[REFP_NUM][VER_NUM][MV_D], s8 refi[REFP_NUM], int cuw, int cuh, int vertex_num, BOOL* mem_band_conditions_are_satisfied)
@@ -3333,12 +3132,9 @@ void evc_get_affine_motion_scaling(int poc, int scup, int lidx, s8 cur_refi, int
     s16 mvp_cand_rb[AFFINE_MAX_NUM_RB][MV_D];
     int neb_addr_rb[AFFINE_MAX_NUM_RB];
     int valid_flag_rb[AFFINE_MAX_NUM_RB];
+
     //-------------------  INIT  -------------------//
-#if INCREASE_MVP_NUM
     for(i = 0; i < ORG_MAX_NUM_MVP; i++)
-#else
-    for(i = 0; i < MAX_NUM_MVP; i++)
-#endif
     {
         for(j = 0; j < VER_NUM; j++)
         {
@@ -4337,8 +4133,6 @@ int evc_get_ctx_remain_inc(s16 *pcoeff, int blkpos, int width, int height, int c
 
     pdata = pcoeff + pos_x + (pos_y << log2_w);
 
-
-
     int numPos = 0;
     int sumAbsAll = 0;
     if (pos_x < width_m1)
@@ -4479,18 +4273,9 @@ void evc_init_inverse_scan_sr(u16 *scan_inv, u16 *scan_orig, int width, int heig
     }
 }
 
-
-int evc_get_transform_shift(int log2_size, int type
-#if BD_CF_EXT
-                            , int bit_depth
-#endif
-)
+int evc_get_transform_shift(int log2_size, int type, int bit_depth)
 {
-#if BD_CF_EXT 
     return (type == 0) ? TX_SHIFT1(log2_size, bit_depth) : TX_SHIFT2(log2_size);
-#else
-    return (type == 0) ? TX_SHIFT1(log2_size) : TX_SHIFT2(log2_size);
-#endif
 }
 
 void evc_eco_sbac_ctx_initialize(SBAC_CTX_MODEL *model, s16 *ctx_init_model, u16 num_ctx, u8 slice_type, u8 slice_qp)
@@ -4770,12 +4555,12 @@ void evc_split_get_suco_order(int suco_flag, SPLIT_MODE mode, int suco_order[SPL
     }
 }
 
-int  evc_split_is_TT(SPLIT_MODE mode)
+int evc_split_is_TT(SPLIT_MODE mode)
 {
     return (mode == SPLIT_TRI_HOR) || (mode == SPLIT_TRI_VER) ? 1 : 0;
 }
 
-int  evc_split_is_BT(SPLIT_MODE mode)
+int evc_split_is_BT(SPLIT_MODE mode)
 {
     return (mode == SPLIT_BI_HOR) || (mode == SPLIT_BI_VER) ? 1 : 0;
 }
@@ -4983,7 +4768,6 @@ void evc_get_mv_collocated(EVC_REFP(*refp)[REFP_NUM], u32 poc, int scup, int c_s
     int ver_refi[REFP_NUM] = { -1, -1 };
     memset(mvp, 0, sizeof(s16) * REFP_NUM * MV_D);
 
-
     s8(*map_refi_co)[REFP_NUM] = colPic.map_refi;
     dpoc[REFP_0] = poc - refp[0][REFP_0].poc;
     dpoc[REFP_1] = poc - refp[0][REFP_1].poc;
@@ -5037,7 +4821,6 @@ void evc_get_mv_collocated(EVC_REFP(*refp)[REFP_NUM], u32 poc, int scup, int c_s
         }
     }
 
-
     {
         int maxX = PIC_PAD_SIZE_L + (w_scu << MIN_CU_LOG2) - 1;
         int maxY = PIC_PAD_SIZE_L + (h_scu << MIN_CU_LOG2) - 1;
@@ -5053,7 +4836,6 @@ void evc_get_mv_collocated(EVC_REFP(*refp)[REFP_NUM], u32 poc, int scup, int c_s
 int evc_get_luma_cup(int x_scu, int y_scu, int cu_w_scu, int cu_h_scu, int w_scu)
 {
     return (y_scu + (cu_h_scu >> 1)) * w_scu + x_scu + (cu_w_scu >> 1);
-    //return (y_scu + (cu_h_scu - 1)) * w_scu + x_scu + (cu_w_scu - 1);
 }
 
 u8 evc_check_chroma_split_allowed(int luma_width, int luma_height)
@@ -5094,7 +4876,6 @@ enum TQC_RUN evc_get_run(enum TQC_RUN run_list, TREE_CONS tree_cons)
     }
     return ans;
 }
-
 
 u8 evc_check_luma(TREE_CONS tree_cons)
 {

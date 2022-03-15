@@ -41,11 +41,7 @@ void evcd_picbuf_expand(EVCD_CTX * ctx, EVC_PIC * pic)
 
 EVC_PIC * evcd_picbuf_alloc(PICBUF_ALLOCATOR * pa, int * ret)
 {
-    return evc_picbuf_alloc(pa->w, pa->h, pa->pad_l, pa->pad_c, ret
-#if BD_CF_EXT
-                            , pa->idc
-#endif
-    );
+    return evc_picbuf_alloc(pa->w, pa->h, pa->pad_l, pa->pad_c, ret, pa->idc);
 }
 
 int evcd_opl_md5_imgb(EVC_IMGB *imgb, u8 digest[N_C][16])
@@ -74,20 +70,19 @@ int evcd_opl_md5_imgb(EVC_IMGB *imgb, u8 digest[N_C][16])
     return EVC_OK;
 }
 
-
 int evcd_opl_signature(EVC_PIC *pic, u8 signature[N_C][16])
 {
     return evcd_opl_md5_imgb(pic->imgb, signature);
 }
 
-
 void evcd_picbuf_free(PICBUF_ALLOCATOR * pa, EVC_PIC * pic)
 {
     evc_picbuf_free(pic);
 }
+
 #if HDR_MD5_CHECK
 static void __imgb_cpy_plane(void *src, void *dst, int bw, int h, int s_src,
-    int s_dst)
+                             int s_dst)
 {
     int i;
     unsigned char *s, *d;
@@ -102,9 +97,11 @@ static void __imgb_cpy_plane(void *src, void *dst, int bw, int h, int s_src,
         d += s_dst;
     }
 }
+
 #define EVCA_CLIP(n,min,max) (((n)>(max))? (max) : (((n)<(min))? (min) : (n)))
+
 static void imgb_conv_8b_to_16b(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
-    int shift)
+                                int shift)
 {
     int i, j, k;
 
@@ -129,9 +126,8 @@ static void imgb_conv_8b_to_16b(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
 }
 
 static void imgb_conv_16b_to_8b(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
-    int shift)
+                                int shift)
 {
-
     int i, j, k, t0, add;
 
     short         * s;
@@ -157,6 +153,7 @@ static void imgb_conv_16b_to_8b(EVC_IMGB * imgb_dst, EVC_IMGB * imgb_src,
         }
     }
 }
+
 static void imgb_cpy(EVC_IMGB * dst, EVC_IMGB * src)
 {
     int i, bd;
@@ -169,16 +166,16 @@ static void imgb_cpy(EVC_IMGB * dst, EVC_IMGB * src)
         for (i = 0; i < src->np; i++)
         {
             __imgb_cpy_plane(src->a[i], dst->a[i], bd*src->w[i], src->h[i],
-                src->s[i], dst->s[i]);
+                             src->s[i], dst->s[i]);
         }
     }
     else if (src->cs == EVC_COLORSPACE_YUV420 &&
-        dst->cs == EVC_COLORSPACE_YUV420_10LE)
+             dst->cs == EVC_COLORSPACE_YUV420_10LE)
     {
         imgb_conv_8b_to_16b(dst, src, 2);
     }
     else if (src->cs == EVC_COLORSPACE_YUV420_10LE &&
-        dst->cs == EVC_COLORSPACE_YUV420)
+             dst->cs == EVC_COLORSPACE_YUV420)
     {
         imgb_conv_16b_to_8b(dst, src, 2);
     }
@@ -191,34 +188,28 @@ static void imgb_cpy(EVC_IMGB * dst, EVC_IMGB * src)
     {
         dst->ts[i] = src->ts[i];
     }
-#if M52291_HDR_DRA
+
     dst->imgb_active_aps_id = src->imgb_active_aps_id;
     dst->imgb_active_pps_id = src->imgb_active_pps_id;
-#endif
 }
 
-int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[N_C][16], int tool_dra, void* pps_draParams, u16 width, u16 height, int doCompare
-#if BD_CF_EXT
-                                , int bit_depth
-#endif
-)
+int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[N_C][16], int tool_dra, void* pps_draParams, u16 width, u16 height, int doCompare, int bit_depth)
 {
     u8 pic_sign[N_C][16] = { {0} };
     int ret;
     if (tool_dra)
     {
-
         EVC_IMGB *imgb_hdr_md5 = NULL;
         WCGDDRAControl l_dra_control;
         WCGDDRAControl *local_g_dra_control = &l_dra_control;
         SignalledParamsDRA* p_pps_draParams = (SignalledParamsDRA*)pps_draParams;
         memcpy(&(local_g_dra_control->m_signalledDRA), p_pps_draParams, sizeof(SignalledParamsDRA));
-#if BD_CF_EXT
+
         local_g_dra_control->m_signalledDRA.m_internal_bd = bit_depth;
         local_g_dra_control->m_signalledDRA.m_idc = (CF_FROM_CS(pic->imgb->cs));
         local_g_dra_control->m_internal_bd = bit_depth;
         local_g_dra_control->m_idc = (CF_FROM_CS(pic->imgb->cs));
-#endif
+
         evcd_initDRA(local_g_dra_control);
         int align[EVC_IMGB_MAX_PLANE] = { MIN_CU_SIZE, MIN_CU_SIZE >> 1, MIN_CU_SIZE >> 1 };
         int pad[EVC_IMGB_MAX_PLANE] = { 0, 0, 0, };
@@ -263,11 +254,7 @@ int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[N_C][16], int tool_d
 #endif
 
 #if !HDR_MD5_CHECK
-int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16]
-#if BD_CF_EXT
-                                , int bit_depth
-#endif
-)
+int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16], int bit_depth)
 {
     u8 pic_sign[16];
     int ret;
@@ -402,8 +389,8 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
     s8  (*map_refi)[REFP_NUM];
     s16 (*map_mv)[REFP_NUM][MV_D];
 #if DMVR_LAG
-    s16(*map_unrefined_mv)[REFP_NUM][MV_D];
-    u32 idx;
+    s16 (*map_unrefined_mv)[REFP_NUM][MV_D];
+    u32   idx;
 #endif
     u32  *map_scu;
     s8   *map_ipm;
@@ -414,7 +401,6 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
     int   w_scu;
     int   i, j;
     int   flag;
-
     u32  *map_affine;
     u32  *map_cu_mode;
 
@@ -441,162 +427,154 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
 
     if (evcd_check_luma(ctx, core))
     {
-    for(i = 0; i < h_cu; i++)
-    {
-        for(j = 0; j < w_cu; j++)
+        for (i = 0; i < h_cu; i++)
         {
-            if(core->pred_mode == MODE_SKIP)
+            for (j = 0; j < w_cu; j++)
             {
-                MCU_SET_SF(map_scu[j]);
-            }
-            else
-            {
-                MCU_CLR_SF(map_scu[j]);
-            }
-#if DMVR_FLAG
-            if((core->pred_mode == MODE_SKIP) || (core->pred_mode == MODE_DIR))
-            {
-                if(core->dmvr_flag)
+                if (core->pred_mode == MODE_SKIP)
                 {
-                    MCU_SET_DMVRF(map_scu[j]);
+                    MCU_SET_SF(map_scu[j]);
                 }
                 else
                 {
-                    MCU_CLR_DMVRF(map_scu[j]);
+                    MCU_CLR_SF(map_scu[j]);
                 }
-            }
-#endif
-            int sub_idx = ((!!(i & 32)) << 1) | (!!(j & 32));
-            if (core->is_coef_sub[Y_C][sub_idx])
-            {
-                MCU_SET_CBFL(map_scu[j]);
-            }
-            else
-            {
-                MCU_CLR_CBFL(map_scu[j]);
-            }
 
-            if(core->affine_flag)
-            {
-                MCU_SET_AFF(map_scu[j], core->affine_flag);
+                if ((core->pred_mode == MODE_SKIP) || (core->pred_mode == MODE_DIR))
+                {
+                    if (core->dmvr_flag)
+                    {
+                        MCU_SET_DMVRF(map_scu[j]);
+                    }
+                    else
+                    {
+                        MCU_CLR_DMVRF(map_scu[j]);
+                    }
+                }
 
-                MCU_SET_AFF_LOGW(map_affine[j], core->log2_cuw);
-                MCU_SET_AFF_LOGH(map_affine[j], core->log2_cuh);
-                MCU_SET_AFF_XOFF(map_affine[j], j);
-                MCU_SET_AFF_YOFF(map_affine[j], i);
-            }
-            else
-            {
-                MCU_CLR_AFF(map_scu[j]);
-            }
-            if (core->ibc_flag)
-            {
-              MCU_SET_IBC(map_scu[j]);
-            }
-            else
-            {
-              MCU_CLR_IBC(map_scu[j]);
-            }
-            MCU_SET_LOGW(map_cu_mode[j], core->log2_cuw);
-            MCU_SET_LOGH(map_cu_mode[j], core->log2_cuh);
+                int sub_idx = ((!!(i & 32)) << 1) | (!!(j & 32));
+                if (core->is_coef_sub[Y_C][sub_idx])
+                {
+                    MCU_SET_CBFL(map_scu[j]);
+                }
+                else
+                {
+                    MCU_CLR_CBFL(map_scu[j]);
+                }
 
-            if(core->mmvd_flag)
-            {
-                MCU_SET_MMVDS(map_cu_mode[j]);
-            }
-            else
-            {
-                MCU_CLR_MMVDS(map_cu_mode[j]);
-            }
+                if (core->affine_flag)
+                {
+                    MCU_SET_AFF(map_scu[j], core->affine_flag);
 
-#if DQP
-            if(ctx->pps->cu_qp_delta_enabled_flag)
-            {
-                MCU_RESET_QP(map_scu[j]);
-                MCU_SET_IF_COD_SN_QP(map_scu[j], flag, ctx->slice_num, core->qp);
-            }
-            else
-            {
-                MCU_SET_IF_COD_SN_QP(map_scu[j], flag, ctx->slice_num, ctx->tile[core->tile_num].qp);
-            }
-#else
-            MCU_SET_IF_COD_SN_QP(map_scu[j], flag, ctx->slice_num, ctx->tile[core->tile_num].qp);
-#endif
+                    MCU_SET_AFF_LOGW(map_affine[j], core->log2_cuw);
+                    MCU_SET_AFF_LOGH(map_affine[j], core->log2_cuh);
+                    MCU_SET_AFF_XOFF(map_affine[j], j);
+                    MCU_SET_AFF_YOFF(map_affine[j], i);
+                }
+                else
+                {
+                    MCU_CLR_AFF(map_scu[j]);
+                }
+                if (core->ibc_flag)
+                {
+                    MCU_SET_IBC(map_scu[j]);
+                }
+                else
+                {
+                    MCU_CLR_IBC(map_scu[j]);
+                }
+                MCU_SET_LOGW(map_cu_mode[j], core->log2_cuw);
+                MCU_SET_LOGH(map_cu_mode[j], core->log2_cuh);
 
-            map_refi[j][REFP_0] = core->refi[REFP_0];
-            map_refi[j][REFP_1] = core->refi[REFP_1];
-            map_ats_inter[j] = core->ats_inter_info;
-            if (core->pred_mode == MODE_IBC)
-            {
-                map_ats_inter[j] = 0;
-            }
+                if (core->mmvd_flag)
+                {
+                    MCU_SET_MMVDS(map_cu_mode[j]);
+                }
+                else
+                {
+                    MCU_CLR_MMVDS(map_cu_mode[j]);
+                }
+
+                if (ctx->pps->cu_qp_delta_enabled_flag)
+                {
+                    MCU_RESET_QP(map_scu[j]);
+                    MCU_SET_IF_COD_SN_QP(map_scu[j], flag, ctx->slice_num, core->qp);
+                }
+                else
+                {
+                    MCU_SET_IF_COD_SN_QP(map_scu[j], flag, ctx->slice_num, ctx->tile[core->tile_num].qp);
+                }
+
+                map_refi[j][REFP_0] = core->refi[REFP_0];
+                map_refi[j][REFP_1] = core->refi[REFP_1];
+                map_ats_inter[j] = core->ats_inter_info;
+                if (core->pred_mode == MODE_IBC)
+                {
+                    map_ats_inter[j] = 0;
+                }
 
 #if DMVR_LAG
-            if(core->dmvr_flag)
-            {
-                map_mv[j][REFP_0][MV_X] = core->dmvr_mv[idx + j][REFP_0][MV_X];
-                map_mv[j][REFP_0][MV_Y] = core->dmvr_mv[idx + j][REFP_0][MV_Y];
-                map_mv[j][REFP_1][MV_X] = core->dmvr_mv[idx + j][REFP_1][MV_X];
-                map_mv[j][REFP_1][MV_Y] = core->dmvr_mv[idx + j][REFP_1][MV_Y];
+                if (core->dmvr_flag)
+                {
+                    map_mv[j][REFP_0][MV_X] = core->dmvr_mv[idx + j][REFP_0][MV_X];
+                    map_mv[j][REFP_0][MV_Y] = core->dmvr_mv[idx + j][REFP_0][MV_Y];
+                    map_mv[j][REFP_1][MV_X] = core->dmvr_mv[idx + j][REFP_1][MV_X];
+                    map_mv[j][REFP_1][MV_Y] = core->dmvr_mv[idx + j][REFP_1][MV_Y];
 
-                map_unrefined_mv[j][REFP_0][MV_X] = core->mv[REFP_0][MV_X];
-                map_unrefined_mv[j][REFP_0][MV_Y] = core->mv[REFP_0][MV_Y];
-                map_unrefined_mv[j][REFP_1][MV_X] = core->mv[REFP_1][MV_X];
-                map_unrefined_mv[j][REFP_1][MV_Y] = core->mv[REFP_1][MV_Y];
-            }
-            else
+                    map_unrefined_mv[j][REFP_0][MV_X] = core->mv[REFP_0][MV_X];
+                    map_unrefined_mv[j][REFP_0][MV_Y] = core->mv[REFP_0][MV_Y];
+                    map_unrefined_mv[j][REFP_1][MV_X] = core->mv[REFP_1][MV_X];
+                    map_unrefined_mv[j][REFP_1][MV_Y] = core->mv[REFP_1][MV_Y];
+                }
+                else
 #endif
-            {
-
-                map_mv[j][REFP_0][MV_X] = core->mv[REFP_0][MV_X];
-                map_mv[j][REFP_0][MV_Y] = core->mv[REFP_0][MV_Y];
-                map_mv[j][REFP_1][MV_X] = core->mv[REFP_1][MV_X];
-                map_mv[j][REFP_1][MV_Y] = core->mv[REFP_1][MV_Y];
+                {
+                    map_mv[j][REFP_0][MV_X] = core->mv[REFP_0][MV_X];
+                    map_mv[j][REFP_0][MV_Y] = core->mv[REFP_0][MV_Y];
+                    map_mv[j][REFP_1][MV_X] = core->mv[REFP_1][MV_X];
+                    map_mv[j][REFP_1][MV_Y] = core->mv[REFP_1][MV_Y];
 #if DMVR_LAG
-                map_unrefined_mv[j][REFP_0][MV_X] = core->mv[REFP_0][MV_X];
-                map_unrefined_mv[j][REFP_0][MV_Y] = core->mv[REFP_0][MV_Y];
-                map_unrefined_mv[j][REFP_1][MV_X] = core->mv[REFP_1][MV_X];
-                map_unrefined_mv[j][REFP_1][MV_Y] = core->mv[REFP_1][MV_Y];
+                    map_unrefined_mv[j][REFP_0][MV_X] = core->mv[REFP_0][MV_X];
+                    map_unrefined_mv[j][REFP_0][MV_Y] = core->mv[REFP_0][MV_Y];
+                    map_unrefined_mv[j][REFP_1][MV_X] = core->mv[REFP_1][MV_X];
+                    map_unrefined_mv[j][REFP_1][MV_Y] = core->mv[REFP_1][MV_Y];
 #endif
+                }
 
+                map_ipm[j] = core->ipm[0];
             }
+            map_refi += w_scu;
+            map_mv += w_scu;
+#if DMVR_LAG
+            map_unrefined_mv += w_scu;
+            idx += w_cu;
+#endif
+            map_scu += w_scu;
+            map_ipm += w_scu;
 
-            map_ipm[j] = core->ipm[0];
+            map_affine += w_scu;
+            map_cu_mode += w_scu;
+            map_ats_inter += w_scu;
         }
-        map_refi += w_scu;
-        map_mv += w_scu;
-#if DMVR_LAG
-        map_unrefined_mv += w_scu;
-        idx += w_cu;
-#endif
-        map_scu += w_scu;
-        map_ipm += w_scu;
 
-        map_affine += w_scu;
-        map_cu_mode += w_scu;
-        map_ats_inter += w_scu;
-    }
+        if (core->ats_inter_info)
+        {
+            assert(core->is_coef_sub[Y_C][0] == core->is_coef[Y_C]);
+            assert(core->is_coef_sub[U_C][0] == core->is_coef[U_C]);
+            assert(core->is_coef_sub[V_C][0] == core->is_coef[V_C]);
+            set_cu_cbf_flags(core->is_coef[Y_C], core->ats_inter_info, core->log2_cuw, core->log2_cuh, ctx->map_scu + core->scup, ctx->w_scu);
+        }
 
-    if (core->ats_inter_info)
-    {
-        assert(core->is_coef_sub[Y_C][0] == core->is_coef[Y_C]);
-        assert(core->is_coef_sub[U_C][0] == core->is_coef[U_C]);
-        assert(core->is_coef_sub[V_C][0] == core->is_coef[V_C]);
-        set_cu_cbf_flags(core->is_coef[Y_C], core->ats_inter_info, core->log2_cuw, core->log2_cuh, ctx->map_scu + core->scup, ctx->w_scu);
-    }
+        if (core->affine_flag)
+        {
+            evcd_set_affine_mvf(ctx, core);
+        }
 
-    if(core->affine_flag)
-    {
-        evcd_set_affine_mvf(ctx, core);
-    }
+        map_refi = ctx->map_refi + scup;
+        map_mv = ctx->map_mv + scup;
 
-#if HISTORY_LCU_COPY_BUG_FIX
-    map_refi = ctx->map_refi + scup;
-    map_mv = ctx->map_mv + scup;
-
-    evc_mcpy(core->mv, map_mv, sizeof(core->mv));
-    evc_mcpy(core->refi, map_refi, sizeof(core->refi));
-#endif
+        evc_mcpy(core->mv, map_mv, sizeof(core->mv));
+        evc_mcpy(core->refi, map_refi, sizeof(core->refi));
     }
 #if MVF_TRACE
     // Trace MVF in decoder
@@ -920,11 +898,7 @@ void evcd_draw_partition(EVCD_CTX * ctx, EVC_PIC * pic)
     int * ret = NULL;
     char file_name[256];
 
-    tmp = evc_picbuf_alloc(ctx->w, ctx->h, pic->pad_l, pic->pad_c, ret
-#if BD_CF_EXT
-        , ctx->param.chroma_format_idc
-#endif
-    );
+    tmp = evc_picbuf_alloc(ctx->w, ctx->h, pic->pad_l, pic->pad_c, ret, ctx->param.chroma_format_idc);
 
     cpy_pic(pic, tmp);
 
@@ -983,9 +957,9 @@ void evcd_get_mmvd_motion(EVCD_CTX * ctx, EVCD_CORE * core)
     cuw = (1 << core->log2_cuw);
     cuh = (1 << core->log2_cuh);
 
-    evc_get_mmvd_mvp_list(ctx->map_refi, ctx->refp[0], ctx->map_mv, ctx->w_scu, ctx->h_scu, core->scup, core->avail_cu, core->log2_cuw, core->log2_cuh, ctx->sh.slice_type, real_mv, ctx->map_scu, REF_SET, core->avail_lr
-        , ctx->poc.poc_val, ctx->dpm.num_refp
-        , core->history_buffer, ctx->sps.tool_admvp, &ctx->sh, ctx->log2_max_cuwh, ctx->map_tidx, core->mmvd_idx);
+    evc_get_mmvd_mvp_list(ctx->map_refi, ctx->refp[0], ctx->map_mv, ctx->w_scu, ctx->h_scu, core->scup, core->avail_cu, core->log2_cuw, core->log2_cuh, ctx->sh.slice_type
+                          , real_mv, ctx->map_scu, REF_SET, core->avail_lr, ctx->poc.poc_val, ctx->dpm.num_refp
+                          , core->history_buffer, ctx->sps.tool_admvp, &ctx->sh, ctx->log2_max_cuwh, ctx->map_tidx, core->mmvd_idx);
 
     core->mv[REFP_0][MV_X] = real_mv[core->mmvd_idx][0][MV_X];
     core->mv[REFP_0][MV_Y] = real_mv[core->mmvd_idx][0][MV_Y];
