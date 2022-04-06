@@ -220,6 +220,8 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
         evc_assert_rv(cdsc->max_b_frames == 0, EVC_ERR_INVALID_ARGUMENT);
     }
 
+    param->temporal_filter = cdsc->temporal_filter;
+
     if (cdsc->max_b_frames == 0)
     {
         if (cdsc->ref_pic_gap_length == 0)
@@ -229,7 +231,32 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
         evc_assert_rv(cdsc->ref_pic_gap_length == 1 || cdsc->ref_pic_gap_length == 2 || \
                       cdsc->ref_pic_gap_length == 4 || cdsc->ref_pic_gap_length == 8 || \
                       cdsc->ref_pic_gap_length == 16, EVC_ERR_INVALID_ARGUMENT);
+
+        if (param->temporal_filter)
+        {
+            param->tf_p_frames = 4;
+            param->tf_f_frames = 0;
+
+            param->tf_st_num      = 1;
+            param->tf_st_frame[0] = 8;
+            param->tf_st_value[0] = 0.1;
+        }
     }
+    else
+    {
+        if (param->temporal_filter)
+        {
+            param->tf_p_frames = 4;
+            param->tf_f_frames = 4;
+
+            param->tf_st_num      = 2;
+            param->tf_st_frame[1] = 8;
+            param->tf_st_value[1] = 0.95;
+            param->tf_st_frame[0] = 16;
+            param->tf_st_value[0] = 1.5;
+        }
+    }
+    param->tf_frames = param->tf_p_frames + param->tf_f_frames + 1;
 
     /* set default encoding parameter */
     param->w              = cdsc->w;
@@ -1427,8 +1454,7 @@ int evce_ready(EVCE_CTX * ctx)
 
     ret = evc_picman_init(&ctx->rpm, MAX_PB_SIZE, MAX_NUM_REF_PICS, &ctx->pa);
     evc_assert_g(EVC_SUCCEEDED(ret), ERR);
-
-    ctx->pico_max_cnt = 1 + (ctx->param.max_b_frames << 1) ;
+    ctx->pico_max_cnt = 1 + ctx->param.tf_f_frames + (ctx->param.max_b_frames << 1);
     ctx->frm_rnum = ctx->param.max_b_frames;
     ctx->qp = ctx->param.qp;
     ctx->deblock_alpha_offset = ctx->param.deblock_alpha_offset;
@@ -3092,7 +3118,7 @@ int evce_enc(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     return EVC_OK;
 }
 
-int evce_push_frm(EVCE_CTX * ctx, EVC_IMGB * img_list[EVCE_TF_FRAME_NUM])
+int evce_push_frm(EVCE_CTX* ctx, EVC_IMGB* img_list[EVCE_TF_MAX_FRAME_NUM])
 {
     EVC_PIC    * pic;
     EVC_IMGB   * imgb = NULL;
@@ -3136,7 +3162,7 @@ int evce_push_frm(EVCE_CTX * ctx, EVC_IMGB * img_list[EVCE_TF_FRAME_NUM])
 
     imgb->cs = ctx->cdsc.cs;
     /* copy original image to encoding buffer */
-    evce_imgb_cpy(imgb, img_list[EVCE_TF_CR]);
+    evce_imgb_cpy(imgb, img_list[ctx->param.tf_p_frames]);
 
     if (ctx->cdsc.temporal_filter)
     {
@@ -3507,7 +3533,7 @@ int evce_encode(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat)
     return ctx->fn_enc(ctx, bitb, stat);
 }
 
-int evce_push(EVCE id, EVC_IMGB * img_list[EVCE_TF_FRAME_NUM])
+int evce_push(EVCE id, EVC_IMGB* img_list[EVCE_TF_MAX_FRAME_NUM])
 {
     EVCE_CTX * ctx;
 
@@ -3651,6 +3677,14 @@ int evce_config(EVCE id, int cfg, void * buf, int * size)
         case EVCE_CFG_GET_DEBLOCK_B_OFFSET:
             evc_assert_rv(*size == sizeof(int), EVC_ERR_INVALID_ARGUMENT);
             *((int *)buf) = ctx->param.deblock_beta_offset;
+            break;
+        case EVCE_CFG_GET_TF_P_FRAMES:
+            evc_assert_rv(*size == sizeof(int), EVC_ERR_INVALID_ARGUMENT);
+            *((int*)buf) = ctx->param.tf_p_frames;
+            break;
+        case EVCE_CFG_GET_TF_F_FRAMES:
+            evc_assert_rv(*size == sizeof(int), EVC_ERR_INVALID_ARGUMENT);
+            *((int*)buf) = ctx->param.tf_f_frames;
             break;
         default:
             evc_trace("unknown config value (%d)\n", cfg);

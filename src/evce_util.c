@@ -742,8 +742,8 @@ static void apply_motion(EVC_PIC * pic_ref)
     evc_mfree(tmp_img);
 }
 
-static void apply_filter(EVCE_CTX * ctx, EVC_PIC * tmp_pic[EVCE_TF_FRAME_NUM][3], int * map_noise[EVCE_TF_FRAME_NUM]
-                       , int* map_error[EVCE_TF_FRAME_NUM], int pic_cnt, int curr_idx, double overall_strength)
+static void apply_filter(EVCE_CTX* ctx, EVC_PIC* tmp_pic[EVCE_TF_MAX_FRAME_NUM][3], int* map_noise[EVCE_TF_MAX_FRAME_NUM]
+                       , int* map_error[EVCE_TF_MAX_FRAME_NUM], int pic_cnt, int curr_idx, double overall_strength)
 {
     const double sigma_zero_point = 10.0;
     const double sigma_multiplier = 9.0;
@@ -763,16 +763,16 @@ static void apply_filter(EVCE_CTX * ctx, EVC_PIC * tmp_pic[EVCE_TF_FRAME_NUM][3]
     const int bit_depth = BD_FROM_CS(tmp_pic[curr_idx][0]->imgb->cs);
     int cs_num = chroma_idc == 0 ? 1 : 3;
     pel * tmp_dst = (pel *)evc_malloc(sizeof(pel) * tmp_pic[curr_idx][0]->h_l * tmp_pic[curr_idx][0]->w_l);
-    int ref_strength_row = 2;
-    if (pic_cnt - 1 == EVCE_TF_RANGE * 2)
+    int ref_strength_row = 0;
+    if (ctx->param.tf_f_frames)
     {
-        ref_strength_row = 0;
+        ref_strength_row = (pic_cnt - 1 == (ctx->param.tf_p_frames + ctx->param.tf_f_frames)) ? 
+                           0 : ((pic_cnt - 1 == ctx->param.tf_f_frames) ? 1 : 2);
     }
-    else if (pic_cnt - 1 == EVCE_TF_RANGE)
+    else
     {
-        ref_strength_row = 1;
+        ref_strength_row = 1;;
     }
-
     const pel max_val = (1 << bit_depth) - 1;
     const double bd_diff_weighting = 1024.0 / (max_val + 1);
 
@@ -981,29 +981,44 @@ static void evce_tf_create_map(int ** map, PICBUF_ALLOCATOR* pa)
     evc_mset_x64a(*map, 0, size);
 }
 
-void evce_temporal_filter(EVCE_CTX * ctx, EVC_IMGB * img_list[EVCE_TF_FRAME_NUM], int curr_fr)
+void evce_temporal_filter(EVCE_CTX* ctx, EVC_IMGB* img_list[EVCE_TF_MAX_FRAME_NUM], int curr_fr)
 {
     PICBUF_ALLOCATOR sub_pa[3] = { 0 };
-    EVC_PIC * tmp_pic[EVCE_TF_FRAME_NUM][3] = { NULL };
+    EVC_PIC* tmp_pic[EVCE_TF_MAX_FRAME_NUM][3] = { NULL };
     int first_fr, end_fr, ret;
-    int search_range = EVCE_TF_RANGE;
-    int* map_error[EVCE_TF_FRAME_NUM] = { NULL };
-    int* map_noise[EVCE_TF_FRAME_NUM] = { NULL };
+    int search_p_range = ctx->param.tf_p_frames;
+    int search_f_range = ctx->param.tf_f_frames;
+    int * map_error[EVCE_TF_MAX_FRAME_NUM] = { NULL };
+    int * map_noise[EVCE_TF_MAX_FRAME_NUM] = { NULL };
+    first_fr = curr_fr - search_p_range;
+    end_fr = curr_fr + search_f_range;
 
-    first_fr = curr_fr - search_range;
-    end_fr   = curr_fr + search_range;
+    int fr_cnt = 0;
+    for (int i = 0; i < ctx->param.tf_frames; i++)
+    {
+        if (img_list[i] != NULL)
+        {
+            fr_cnt++;
+        }
+    }
+    if (fr_cnt < 2)
+    {
+        return;
+    }
 
+    int is_find = 0;
     double strength = 0;
+    for (int i = 0; i < ctx->param.tf_st_num; i++)
+    {
+        if (curr_fr % ctx->param.tf_st_frame[i] == 0)
+        {
+            strength = ctx->param.tf_st_value[i];
+            is_find = 1;
+            break;
+        }
+    }
 
-    if (curr_fr % ctx->param.gop_size == 0)
-    {
-        strength = 1.5;
-    }
-    else if (curr_fr % (ctx->param.gop_size >> 1) == 0)
-    {
-        strength = 0.95;
-    }
-    else
+    if (is_find == 0)
     {
         return;
     }
@@ -1013,8 +1028,8 @@ void evce_temporal_filter(EVCE_CTX * ctx, EVC_IMGB * img_list[EVCE_TF_FRAME_NUM]
     create_sub_pa(&sub_pa[2], &sub_pa[1], 1);
 
     /* get sub pic */
-    int curr_idx = EVCE_TF_CR, pic_cnt = 0;
-    for (int i = 0; i < EVCE_TF_FRAME_NUM; i++)
+    int curr_idx = ctx->param.tf_p_frames, pic_cnt = 0;
+    for (int i = 0; i < ctx->param.tf_frames; i++)
     {
         if (img_list[i] != NULL)
         {
@@ -1044,7 +1059,7 @@ void evce_temporal_filter(EVCE_CTX * ctx, EVC_IMGB * img_list[EVCE_TF_FRAME_NUM]
             }
             pic_cnt++;
         }
-        else if (i < EVCE_TF_CR)
+        else if (i < ctx->param.tf_p_frames)
         {
             curr_idx--;
         }

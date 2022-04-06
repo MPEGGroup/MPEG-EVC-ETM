@@ -78,7 +78,7 @@
 #define ME_LEV_QPEL              3
 
 /* maximum inbuf count */
-#define EVCE_MAX_INBUF_CNT      34
+#define EVCE_MAX_INBUF_CNT      38
 
 /* maximum cost value */
 #define MAX_COST                (1.7e+308)
@@ -445,7 +445,13 @@ typedef struct _EVCE_PARAM
     int                 tile_array_in_slice[2 * 600];
     int                 arbitrary_slice_flag;
     u32                 num_remaining_tiles_in_slice_minus1[600];
-
+    int                 temporal_filter;
+    int                 tf_p_frames;
+    int                 tf_f_frames;
+    int                 tf_frames;
+    int                 tf_st_frame[16];
+    float               tf_st_value[16];
+    int                 tf_st_num;
 } EVCE_PARAM;
 
 typedef struct _EVCE_SBAC
@@ -893,12 +899,11 @@ struct _EVCE_CTX
     int (*fn_enc_pic_prepare)(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
     int (*fn_enc_pic)(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
     int (*fn_enc_pic_finish)(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
-
-    int (*fn_push)(EVCE_CTX * ctx, EVC_IMGB * img_list[EVCE_TF_FRAME_NUM]);
+    int (*fn_push)(EVCE_CTX* ctx, EVC_IMGB* img_list[EVCE_TF_MAX_FRAME_NUM]);
     int (*fn_deblock)(EVCE_CTX * ctx, EVC_PIC * pic, int tile_idx, int filter_across_boundary, int is_hor_edge, EVCE_CORE * core);
 
     void* enc_alf;
-    int(*fn_alf)(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh, EVC_APS* aps);
+    int (*fn_alf)(EVCE_CTX * ctx, EVC_PIC * pic, EVC_SH* sh, EVC_APS* aps);
 
     void (*fn_picbuf_expand)(EVCE_CTX * ctx, EVC_PIC * pic);
 
@@ -950,7 +955,7 @@ int evce_enc_pic_finish(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
 int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
 int evce_deblock(EVCE_CTX * ctx, EVC_PIC * pic, int tile_idx, int filter_across_boundary, int is_hor_edge, EVCE_CORE * core);
 int evce_enc(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat);
-int evce_push_frm(EVCE_CTX * ctx, EVC_IMGB * img_list[EVCE_TF_FRAME_NUM]);
+int evce_push_frm(EVCE_CTX* ctx, EVC_IMGB* img_list[EVCE_TF_MAX_FRAME_NUM]);
 int evce_ready(EVCE_CTX * ctx);
 void evce_flush(EVCE_CTX * ctx);
 int evce_picbuf_get_inbuf(EVCE_CTX * ctx, EVC_IMGB ** img);

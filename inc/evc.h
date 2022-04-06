@@ -199,9 +199,7 @@ typedef enum _CHROMA_FORMAT
 /*****************************************************************************
  * temporal filter
  *****************************************************************************/
-#define EVCE_TF_RANGE 4
-#define EVCE_TF_CR EVCE_TF_RANGE
-#define EVCE_TF_FRAME_NUM ((EVCE_TF_RANGE << 1) + 1)
+#define EVCE_TF_MAX_FRAME_NUM 16
 
 /*****************************************************************************
  * config types for decoder
@@ -244,6 +242,8 @@ typedef enum _CHROMA_FORMAT
 #define EVCE_CFG_GET_HIERARCHICAL_GOP   (612)
 #define EVCE_CFG_GET_DEBLOCK_A_OFFSET   (613)
 #define EVCE_CFG_GET_DEBLOCK_B_OFFSET   (614)
+#define EVCE_CFG_GET_TF_P_FRAMES        (615)
+#define EVCE_CFG_GET_TF_F_FRAMES        (616)
 #define EVCE_CFG_GET_WIDTH              (701)
 #define EVCE_CFG_GET_HEIGHT             (702)
 #define EVCE_CFG_GET_RECON              (703)
@@ -639,7 +639,7 @@ typedef void  * EVCE;
 
 EVCE evce_create(EVCE_CDSC * cdsc, int * err);
 void evce_delete(EVCE id);
-int evce_push(EVCE id, EVC_IMGB * img_list[EVCE_TF_FRAME_NUM]);
+int evce_push(EVCE id, EVC_IMGB* img_list[EVCE_TF_MAX_FRAME_NUM]);
 int evce_encode(EVCE id, EVC_BITB * bitb, EVCE_STAT * stat);
 int evce_config(EVCE id, int cfg, void * buf, int * size);
 

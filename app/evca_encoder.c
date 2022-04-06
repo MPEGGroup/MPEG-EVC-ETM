@@ -2199,6 +2199,20 @@ static void imgb_list_make_used(IMGB_LIST *list, EVC_MTIME ts)
     list->ts = list->imgb->ts[0] = ts;
 }
 
+static int imgb_list_make_unused(IMGB_LIST* list, EVC_MTIME ts)
+{
+    for (int i = 0; i < MAX_BUMP_FRM_CNT; i++)
+    {
+        if (list[i].ts == ts)
+        {
+            list[i].used = 0;
+            return EVC_OK;
+        }
+    }
+
+    return EVC_ERR;
+}
+
 static int cal_psnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts, double psnr[3], double* ms_ssim, int hdr_metric_report)
 {
     int            i;
@@ -2245,12 +2259,6 @@ static int cal_psnr(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTIME ts,
                 find_ms_ssim(imgb_t, imgb_rec, ms_ssim, op_out_bit_depth);
                 imgb_free(imgb_t);
             }
-
-            if (!hdr_metric_report)
-            {
-                imgblist_inp[i].used = 0;
-            }
-
             return 0;
         }
     }
@@ -2759,8 +2767,6 @@ static int cal_hdr_metric(IMGB_LIST * imgblist_inp, EVC_IMGB * imgb_rec, EVC_MTI
                 imgb_free(imgb_rec_p4);
                 imgb_free(imgb_rec_copy);
             }
-            imgblist_inp[i].used = 0;
-
             return 0;
         }
     }
@@ -2863,23 +2869,15 @@ int setup_bumping(EVCE id)
     return 0;
 }
 
-int static push_frm_list(EVCE id, IMGB_LIST ilist_org[MAX_BUMP_FRM_CNT] , EVC_MTIME pic_icnt)
+int static push_frm_list(EVCE id, IMGB_LIST ilist_org[MAX_BUMP_FRM_CNT], EVC_MTIME pic_icnt
+                       , int p_frames, int f_frames)
 {
-    EVC_IMGB  * img_list[EVCE_TF_FRAME_NUM];
+    EVC_IMGB* img_list[EVCE_TF_MAX_FRAME_NUM];
     IMGB_LIST * ilist_t = NULL;
     int ret;
-    int img_cnt, range;
-    if (op_temporal_filter == 1)
-    {
-        img_cnt = 0;
-        range = EVCE_TF_RANGE;
-    }
-    else
-    {
-        img_cnt = EVCE_TF_CR;
-        range = 0;
-    }
-    for (EVC_MTIME ts = pic_icnt - range; ts <= pic_icnt + range; ts++)
+    int img_cnt = 0;
+
+    for (EVC_MTIME ts = pic_icnt - p_frames; ts <= pic_icnt + f_frames; ts++)
     {
         ilist_t = imgb_list_get_ts(ilist_org, ts);
         if (ilist_t == NULL)
@@ -3059,8 +3057,25 @@ int main(int argc, const char **argv)
     bitb.addr = bs_buf;
     bitb.bsize = MAX_BS_BUF;
 
-    int tf_range = op_temporal_filter ? EVCE_TF_RANGE : 0;
-    int skip_frames = op_skip_frames - tf_range > 0 ? op_skip_frames - tf_range : 0;;
+    int tf_p_frames = 0;
+    int tf_f_frames = 0;
+    if (op_temporal_filter)
+    {
+        int size = sizeof(int);
+        ret = evce_config(id, EVCE_CFG_GET_TF_P_FRAMES, (void*)&tf_p_frames, &size);
+        if (EVC_FAILED(ret))
+        {
+            v0print("failed to get tf parameter\n");
+            return -1;
+        }
+        ret = evce_config(id, EVCE_CFG_GET_TF_F_FRAMES, (void*)&tf_f_frames, &size);
+        if (EVC_FAILED(ret))
+        {
+            v0print("failed to get tf parameter\n");
+            return -1;
+        }
+    }
+    int skip_frames = op_skip_frames - tf_p_frames > 0 ? op_skip_frames - tf_p_frames : 0;;
 
     if (op_flag[OP_FLAG_SKIP_FRAMES] && skip_frames > 0)
     {
@@ -3071,7 +3086,7 @@ int main(int argc, const char **argv)
     pic_icnt = 0;
     pic_ocnt = 0;
     pic_skip = 0;
-    pic_rcnt = op_skip_frames > 0 ? (op_skip_frames - tf_range > 0 ? -tf_range : -op_skip_frames) : 0;
+    pic_rcnt = op_skip_frames > 0 ? (op_skip_frames - tf_p_frames > 0 ? -tf_p_frames : -op_skip_frames) : 0;
 
     /* encode pictures *******************************************************/
     while(1)
@@ -3117,7 +3132,7 @@ int main(int argc, const char **argv)
                 state = STATE_BUMPING;
                 while (pic_icnt < pic_rcnt && pic_icnt < op_max_frm_num)
                 {
-                    ret = push_frm_list(id, ilist_org, pic_icnt);
+                    ret = push_frm_list(id, ilist_org, pic_icnt, tf_p_frames, tf_f_frames);
                     if (EVC_FAILED(ret))
                     {
                         v0print("evce_push() failed\n");
@@ -3130,13 +3145,13 @@ int main(int argc, const char **argv)
             }
             imgb_list_make_used(ilist_t, pic_rcnt);
 
-            if (pic_rcnt++ < tf_range)
+            if (pic_rcnt++ < tf_f_frames)
             {
                 continue;
             }
             else
             {
-                ret = push_frm_list(id, ilist_org, pic_icnt);
+                ret = push_frm_list(id, ilist_org, pic_icnt, tf_p_frames, tf_f_frames);
                 if (EVC_FAILED(ret))
                 {
                     v0print("evce_push() failed\n");
@@ -3210,6 +3225,15 @@ int main(int argc, const char **argv)
                     v0print("cannot calculate DeltaE100 or PSNRL100\n");
                     return -1;
                 }
+            }
+
+            if (op_max_b_frames)
+            {
+                imgb_list_make_unused(ilist_org, ilist_t->ts);
+            }
+            else
+            {
+                imgb_list_make_unused(ilist_org, ilist_t->ts - tf_p_frames);
             }
 
             /* store reconstructed image */
