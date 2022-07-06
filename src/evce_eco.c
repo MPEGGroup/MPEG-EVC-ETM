@@ -420,7 +420,7 @@ int evce_eco_aps_gen(EVC_BSW * bs, EVC_APS_GEN * aps, int bit_depth)
     {
         EVC_APS local_aps;
         evc_AlfSliceParam * p_aps_dataDst = (evc_AlfSliceParam *)aps->aps_data;
-        memcpy(&(local_aps.alf_aps_param), p_aps_dataDst, sizeof(evc_AlfSliceParam));
+        evc_mcpy(&(local_aps.alf_aps_param), p_aps_dataDst, sizeof(evc_AlfSliceParam));
         evce_eco_alf_aps_param(bs, aps); // signal ALF filter parameter except ALF map
     }
     else if (aps->aps_type_id == 1)
@@ -435,7 +435,7 @@ int evce_eco_aps_gen(EVC_BSW * bs, EVC_APS_GEN * aps, int bit_depth)
     u8 aps_extension_flag = 0;
     evc_bsw_write1(bs, aps_extension_flag);
 
-    assert(aps_extension_flag == 0);
+    evc_assert(aps_extension_flag == 0);
     if (aps_extension_flag)
     {
         while (0/*more_rbsp_data()*/)
@@ -739,7 +739,7 @@ static void __imgb_cpy_plane(void *src, void *dst, int bw, int h, int s_src,
 
     for (i = 0; i < h; i++)
     {
-        memcpy(d, s, bw);
+        evc_mcpy(d, s, bw);
         s += s_src;
         d += s_dst;
     }
@@ -852,9 +852,9 @@ static void imgb_free1(EVC_IMGB * imgb)
     int i;
     for (i = 0; i < EVC_IMGB_MAX_PLANE; i++)
     {
-        if (imgb->baddr[i]) free(imgb->baddr[i]);
+        if (imgb->baddr[i]) evc_mfree(imgb->baddr[i]);
     }
-    free(imgb);
+    evc_mfree(imgb);
 }
 
 EVC_IMGB * imgb_alloc1(int w, int h, int cs)
@@ -862,13 +862,13 @@ EVC_IMGB * imgb_alloc1(int w, int h, int cs)
     int i;
     EVC_IMGB * imgb;
 
-    imgb = (EVC_IMGB *)malloc(sizeof(EVC_IMGB));
+    imgb = (EVC_IMGB *)evc_malloc(sizeof(EVC_IMGB));
     if (imgb == NULL)
     {
         printf("cannot create image buffer\n");
         return NULL;
     }
-    memset(imgb, 0, sizeof(EVC_IMGB));
+    evc_mset(imgb, 0, sizeof(EVC_IMGB));
 
     if (cs == EVC_COLORSPACE_YUV420)
     {
@@ -878,7 +878,7 @@ EVC_IMGB * imgb_alloc1(int w, int h, int cs)
             imgb->h[i] = imgb->ah[i] = imgb->e[i] = h;
             imgb->bsize[i] = imgb->s[i] * imgb->e[i];
 
-            imgb->a[i] = imgb->baddr[i] = malloc(imgb->bsize[i]);
+            imgb->a[i] = imgb->baddr[i] = evc_malloc(imgb->bsize[i]);
             if (imgb->a[i] == NULL)
             {
                 printf("cannot allocate picture buffer\n");
@@ -901,7 +901,7 @@ EVC_IMGB * imgb_alloc1(int w, int h, int cs)
             imgb->h[i] = imgb->ah[i] = imgb->e[i] = h;
             imgb->bsize[i] = imgb->s[i] * imgb->e[i];
 
-            imgb->a[i] = imgb->baddr[i] = malloc(imgb->bsize[i]);
+            imgb->a[i] = imgb->baddr[i] = evc_malloc(imgb->bsize[i]);
             if (imgb->a[i] == NULL)
             {
                 printf("cannot allocate picture buffer\n");
@@ -924,7 +924,7 @@ EVC_IMGB * imgb_alloc1(int w, int h, int cs)
             imgb->h[i] = imgb->ah[i] = imgb->e[i] = h;
             imgb->bsize[i] = imgb->s[i] * imgb->e[i];
 
-            imgb->a[i] = imgb->baddr[i] = malloc(imgb->bsize[i]);
+            imgb->a[i] = imgb->baddr[i] = evc_malloc(imgb->bsize[i]);
             if (imgb->a[i] == NULL)
             {
                 printf("cannot allocate picture buffer\n");
@@ -936,7 +936,7 @@ EVC_IMGB * imgb_alloc1(int w, int h, int cs)
     else
     {
         printf("unsupported color space\n");
-        if (imgb)free(imgb);
+        if (imgb)evc_mfree(imgb);
         return NULL;
     }
 
@@ -954,8 +954,8 @@ int evce_eco_udata_hdr(EVCE_CTX * ctx, EVC_BSW * bs, u8 pic_sign[N_C][16])
     evce_imgb_cpy(imgb_hdr_md5, PIC_CURR(ctx)->imgb);  // store copy of the reconstructed picture in DPB
 
     int effective_aps_id = ctx->pico->pic.imgb->imgb_active_aps_id;
-    assert(effective_aps_id == ctx->pps->pic_dra_aps_id);
-    assert(effective_aps_id >= 0 && effective_aps_id < APS_MAX_NUM);
+    evc_assert(effective_aps_id == ctx->pps->pic_dra_aps_id);
+    evc_assert(effective_aps_id >= 0 && effective_aps_id < APS_MAX_NUM);
     SignalledParamsDRA *p_pps_draParams = ctx->dra_array;
     evc_apply_dra_from_array(imgb_hdr_md5, imgb_hdr_md5, &(p_pps_draParams[0]), effective_aps_id, TRUE);
 
@@ -1992,7 +1992,7 @@ int evce_eco_ats_inter_info(EVC_BSW * bs, int log2_cuw, int log2_cuh, int ats_in
 
     if (num_ats_inter_mode_avail == 0)
     {
-        assert(ats_inter_info == 0);
+        evc_assert(ats_inter_info == 0);
         return EVC_OK;
     }
     else
@@ -2013,7 +2013,7 @@ int evce_eco_ats_inter_info(EVC_BSW * bs, int log2_cuw, int log2_cuh, int ats_in
         u8 ctx_ats_inter_hor = sbac->ctx.sps_cm_init_flag == 1 ? ((log2_cuw == log2_cuh) ? 0 : (log2_cuw < log2_cuh ? 1 : 2)) : 0;
 
         if (ats_inter_idx == 0)
-            assert(ats_inter_pos == 0);
+            evc_assert(ats_inter_pos == 0);
 
         evce_sbac_encode_bin(ats_inter_flag, sbac, sbac_ctx->ats_cu_inter_flag + ctx_ats_inter, bs);
         EVC_TRACE_STR("ats_inter_flag ");
@@ -2031,7 +2031,7 @@ int evce_eco_ats_inter_info(EVC_BSW * bs, int log2_cuw, int log2_cuh, int ats_in
             }
             else
             {
-                assert(ats_inter_quad == 0);
+                evc_assert(ats_inter_quad == 0);
             }
 
             if ((ats_inter_quad && mode_vert_quad && mode_hori_quad) || (!ats_inter_quad && mode_vert && mode_hori))
@@ -2043,7 +2043,7 @@ int evce_eco_ats_inter_info(EVC_BSW * bs, int log2_cuw, int log2_cuh, int ats_in
             }
             else
             {
-                assert(ats_inter_hor == ((ats_inter_quad && mode_hori_quad) || (!ats_inter_quad && mode_hori)));
+                evc_assert(ats_inter_hor == ((ats_inter_quad && mode_hori_quad) || (!ats_inter_quad && mode_hori)));
             }
 
             evce_sbac_encode_bin(ats_inter_pos, sbac, sbac_ctx->ats_cu_inter_pos_flag, bs);
@@ -2284,12 +2284,12 @@ int evce_eco_coef(EVC_BSW * bs, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log
             {
                 if (ats_inter_avail && cbf_all)
                 {
-                    assert(loop_w == 1 && loop_h == 1);
+                    evc_assert(loop_w == 1 && loop_h == 1);
                     evce_eco_ats_inter_info(bs, log2_cuw, log2_cuh, ats_inter_info, ats_inter_avail);
                 }
                 else
                 {
-                    assert(ats_inter_info == 0);
+                    evc_assert(ats_inter_info == 0);
                 }
             }
 
@@ -2371,12 +2371,12 @@ static void intra_mode_write_trunc_binary(int symbol, int max_symbol, EVCE_SBAC 
     {
         printf("val =%d max_symbol= %d", val, max_symbol);
     }
-    assert(val <= max_symbol);
-    assert((val << 1) > max_symbol);
-    assert(symbol < max_symbol);
+    evc_assert(val <= max_symbol);
+    evc_assert((val << 1) > max_symbol);
+    evc_assert(symbol < max_symbol);
 
     b = max_symbol - val;
-    assert(b < val);
+    evc_assert(b < val);
 
     if(symbol < val - b)
     {
@@ -2385,8 +2385,8 @@ static void intra_mode_write_trunc_binary(int symbol, int max_symbol, EVCE_SBAC 
     else
     {
         symbol += val - b;
-        assert(symbol < (val << 1));
-        assert((symbol >> 1) >= val - b);
+        evc_assert(symbol < (val << 1));
+        evc_assert((symbol >> 1) >= val - b);
         sbac_encode_bins_ep(symbol, threshold + 1, sbac, bs);
     }
 }
@@ -2588,7 +2588,7 @@ void evce_eco_inter_pred_idc(EVC_BSW *bs, s8 refi[REFP_NUM], int slice_type, int
 
     if(REFI_IS_VALID(refi[REFP_0]) && REFI_IS_VALID(refi[REFP_1])) /* PRED_BI */
     {
-        assert(check_bi_applicability(slice_type, cuw, cuh, is_sps_admvp));
+        evc_assert(check_bi_applicability(slice_type, cuw, cuh, is_sps_admvp));
         evce_sbac_encode_bin(0, sbac, sbac->ctx.inter_dir, bs);       
     }
     else
@@ -3102,41 +3102,49 @@ int evce_eco_split_mode(EVC_BSW *bs, EVCE_CTX *c, EVCE_CORE *core, int cud, int 
                     if(split_dir)
                         evce_sbac_encode_bin(split_typ, sbac, sbac->ctx.btt_split_type + ctx_typ, bs); /* btt_split_type */
                     else
-                        assert(split_typ == !HBT);
+                        evc_assert(split_typ == !HBT);
                 }
                 else// if(!VBT || !VTT)
                 {
                     if(!split_dir)
                         evce_sbac_encode_bin(split_typ, sbac, sbac->ctx.btt_split_type + ctx_typ, bs); /* btt_split_type */
                     else
-                        assert(split_typ == !VBT);
+                        evc_assert(split_typ == !VBT);
                 }
             }
             else if(sum == 2)
             {
                 if((HBT && HTT) || (VBT && VTT))
                 {
-                    assert(split_dir == !HBT);
+                    evc_assert(split_dir == !HBT);
                     evce_sbac_encode_bin(split_typ, sbac, sbac->ctx.btt_split_type + ctx_typ, bs); /* btt_split_type */
                 }
                 else
                 {
                     evce_sbac_encode_bin(split_dir, sbac, sbac->ctx.btt_split_dir + ctx_dir, bs); /* btt_split_dir */
 
-                    if(!HTT && !VTT)
-                        assert(split_typ == 0);
-                    else if(HBT && VTT)
-                        assert(split_typ == split_dir);
-                    else if(VBT && HTT)
-                        assert(split_typ == !split_dir);
+                    if (!HTT && !VTT)
+                    {
+                        evc_assert(split_typ == 0);
+                    }
+                    else if (HBT && VTT)
+                    {
+                        evc_assert(split_typ == split_dir);
+                    }
+                    else if (VBT && HTT)
+                    {
+                        evc_assert(split_typ == !split_dir);
+                    }
                     else
-                        assert(0);
+                    {
+                        evc_assert(0);
+                    }
                 }
             }
             else // if(sum==1)
             {
-                assert(split_dir == (VBT || VTT));
-                assert(split_typ == (HTT || VTT));
+                evc_assert(split_dir == (VBT || VTT));
+                evc_assert(split_typ == (HTT || VTT));
             }
         }
     }
@@ -3730,9 +3738,9 @@ int evce_eco_unit(EVCE_CTX * ctx, EVCE_CORE * core, int x, int y, int cup, int c
         }
         if (core->ats_inter_info)
         {
-            assert(core->nnz_sub[Y_C][0] == core->nnz[Y_C]);
-            assert(core->nnz_sub[U_C][0] == core->nnz[U_C]);
-            assert(core->nnz_sub[V_C][0] == core->nnz[V_C]);
+            evc_assert(core->nnz_sub[Y_C][0] == core->nnz[Y_C]);
+            evc_assert(core->nnz_sub[U_C][0] == core->nnz[U_C]);
+            evc_assert(core->nnz_sub[V_C][0] == core->nnz[V_C]);
             set_cu_cbf_flags(core->nnz[Y_C], core->ats_inter_info, core->log2_cuw, core->log2_cuh, ctx->map_scu + core->scup, ctx->w_scu);
         }
     }
@@ -4012,11 +4020,11 @@ void evce_xWriteTruncBinCode(EVC_BSW * bs, u32 uiSymbol, const int uiMaxSymbol)
     }
 
     int uiVal = 1 << uiThresh;
-    assert(uiVal <= uiMaxSymbol);
-    assert((uiVal << 1) > uiMaxSymbol);
-    assert(uiSymbol < uiMaxSymbol);
+    evc_assert(uiVal <= uiMaxSymbol);
+    evc_assert((uiVal << 1) > uiMaxSymbol);
+    evc_assert(uiSymbol < uiMaxSymbol);
     int b = uiMaxSymbol - uiVal;
-    assert(b < uiVal);
+    evc_assert(b < uiVal);
     if(uiSymbol < uiVal - b)
     {
         evc_bsw_write(bs, uiSymbol, uiThresh); //xWriteCode( uiSymbol, uiThresh );
@@ -4024,8 +4032,8 @@ void evce_xWriteTruncBinCode(EVC_BSW * bs, u32 uiSymbol, const int uiMaxSymbol)
     else
     {
         uiSymbol += uiVal - b;
-        assert(uiSymbol < (uiVal << 1));
-        assert((uiSymbol >> 1) >= uiVal - b);
+        evc_assert(uiSymbol < (uiVal << 1));
+        evc_assert((uiSymbol >> 1) >= uiVal - b);
         evc_bsw_write(bs, uiSymbol, uiThresh + 1); //xWriteCode( uiSymbol, uiThresh + 1 );
     }
 }
@@ -4050,7 +4058,7 @@ void evce_eco_alf_filter(EVC_BSW * bs, evc_AlfSliceParam asp, const BOOL isChrom
     init_AlfFilterShape( &alfShape, isChroma ? 5 : ( alfSliceParam->lumaFilterType == ALF_FILTER_5 ? 5 : 7 ) );
 
     int bitsCoeffScan[m_MAX_SCAN_VAL][m_MAX_EXP_GOLOMB];
-    memset(bitsCoeffScan, 0, m_MAX_SCAN_VAL*m_MAX_EXP_GOLOMB * sizeof(int));
+    evc_mset(bitsCoeffScan, 0, m_MAX_SCAN_VAL*m_MAX_EXP_GOLOMB * sizeof(int));
 
     const int maxGolombIdx = alfShape.filterType == 0 ? 2 : 3;
     const short* coeff = isChroma ? alfSliceParam->chromaCoeff : alfSliceParam->lumaCoeff;

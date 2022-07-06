@@ -1155,7 +1155,7 @@ void copy_tu_from_cu(s16 tu_resi[N_C][MAX_CU_DIM], s16 cu_resi[N_C][MAX_CU_DIM],
     //Y
     for (j = tu_offset_y; j < tu_offset_y + tuh; j++)
     {
-        memcpy(tu_resi[Y_C] + (j - tu_offset_y) * tuw, cu_resi[Y_C] + tu_offset_x + j * cuw, sizeof(s16)*tuw);
+        evc_mcpy(tu_resi[Y_C] + (j - tu_offset_y) * tuw, cu_resi[Y_C] + tu_offset_x + j * cuw, sizeof(s16)*tuw);
     }
 
     //UV
@@ -1169,8 +1169,8 @@ void copy_tu_from_cu(s16 tu_resi[N_C][MAX_CU_DIM], s16 cu_resi[N_C][MAX_CU_DIM],
     {
         for(j = tu_offset_y; j < tu_offset_y + tuh; j++)
         {
-            memcpy(tu_resi[U_C] + (j - tu_offset_y) * tuw, cu_resi[U_C] + tu_offset_x + j * cuw, sizeof(s16)*tuw);
-            memcpy(tu_resi[V_C] + (j - tu_offset_y) * tuw, cu_resi[V_C] + tu_offset_x + j * cuw, sizeof(s16)*tuw);
+            evc_mcpy(tu_resi[U_C] + (j - tu_offset_y) * tuw, cu_resi[U_C] + tu_offset_x + j * cuw, sizeof(s16)*tuw);
+            evc_mcpy(tu_resi[V_C] + (j - tu_offset_y) * tuw, cu_resi[V_C] + tu_offset_x + j * cuw, sizeof(s16)*tuw);
         }
     }
 }
@@ -1224,7 +1224,7 @@ void calc_min_cost_ats_inter(EVCE_CTX *ctx, EVCE_CORE *core, pel pred[N_C][MAX_C
     int ats_inter_rdo_idx_num = 0;
     int num_half_ats_inter = ((ats_inter_avail & 0x1) ? 2 : 0) + ((ats_inter_avail & 0x2) ? 2 : 0);
     int num_quad_ats_inter = ((ats_inter_avail & 0x4) ? 2 : 0) + ((ats_inter_avail & 0x8) ? 2 : 0);
-    assert(num_half_ats_inter + num_quad_ats_inter == *num_rdo - 1);
+    evc_assert(num_half_ats_inter + num_quad_ats_inter == *num_rdo - 1);
 
     if (!ats_inter_avail)
         return;
@@ -1240,7 +1240,7 @@ void calc_min_cost_ats_inter(EVCE_CTX *ctx, EVCE_CORE *core, pel pred[N_C][MAX_C
     int bit_depth_tbl[3] = {ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8+8 , ctx->sps.bit_depth_chroma_minus8 + 8 };
 
     //ATS_INTER fast algorithm 1.2: derive estimated minDist of ATS_INTER = zero-residual part distortion + non-zero residual part distortion / 16
-    memset(dist, 0, sizeof(s64) * 16);
+    evc_mset(dist, 0, sizeof(s64) * 16);
     for (comp = Y_C; comp < N_C; comp++)
     {
         if(comp!=Y_C && ctx->sps.chroma_format_idc == 0)
@@ -1269,7 +1269,7 @@ void calc_min_cost_ats_inter(EVCE_CTX *ctx, EVCE_CORE *core, pel pred[N_C][MAX_C
     }
 
 #if !ATS_INTER_LINUX_WA
-    assert(abs((int)(sum_dist - (dist_no_resi[Y_C] + dist_no_resi[U_C] * ctx->dist_chroma_weight[0] + dist_no_resi[V_C] * ctx->dist_chroma_weight[1]))) < 32);
+    evc_assert(abs((int)(sum_dist - (dist_no_resi[Y_C] + dist_no_resi[U_C] * ctx->dist_chroma_weight[0] + dist_no_resi[V_C] * ctx->dist_chroma_weight[1]))) < 32);
 #endif
 
     //estimate rd cost for each ATS_INTER mode
@@ -1297,7 +1297,7 @@ void calc_min_cost_ats_inter(EVCE_CTX *ctx, EVCE_CORE *core, pel pred[N_C][MAX_C
         ats_inter_est_dist[idx] = (dist_tu / 16) + (sum_dist - dist_tu);
     }
     //try 2 half ATS_INTER modes with the lowest distortion
-    memcpy(dist_temp, ats_inter_est_dist, sizeof(s64) * 9);
+    evc_mcpy(dist_temp, ats_inter_est_dist, sizeof(s64) * 9);
     if (num_half_ats_inter > 0)
     {
         for (i = ats_inter_rdo_idx_num; i < ats_inter_rdo_idx_num + 2; i++)
@@ -1333,8 +1333,8 @@ void calc_min_cost_ats_inter(EVCE_CTX *ctx, EVCE_CORE *core, pel pred[N_C][MAX_C
         ats_inter_rdo_idx_num += 2;
     }
     
-    memcpy(dist_temp, ats_inter_est_dist, sizeof(s64) * 9);
-    memcpy(ats_inter_info_list_temp, ats_inter_info_list, sizeof(u8) * 9);
+    evc_mcpy(dist_temp, ats_inter_est_dist, sizeof(s64) * 9);
+    evc_mcpy(ats_inter_info_list_temp, ats_inter_info_list, sizeof(u8) * 9);
     for (idx = 1; idx < 1 + ats_inter_rdo_idx_num; idx++)
     {
         ats_inter_info_list[idx] = ats_inter_info_list_temp[ats_inter_rdo_idx_list[idx - 1]];
@@ -1566,8 +1566,8 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
     for (ats_inter_mode_idx = 0; ats_inter_mode_idx < num_rdo; ats_inter_mode_idx++)
     {
         core->ats_inter_info = ats_inter_info_list[ats_inter_mode_idx];
-        assert(get_ats_inter_idx(core->ats_inter_info) >= 0 && get_ats_inter_idx(core->ats_inter_info) <= 4);
-        assert(get_ats_inter_pos(core->ats_inter_info) >= 0 && get_ats_inter_pos(core->ats_inter_info) <= 1);
+        evc_assert(get_ats_inter_idx(core->ats_inter_info) >= 0 && get_ats_inter_idx(core->ats_inter_info) <= 4);
+        evc_assert(get_ats_inter_pos(core->ats_inter_info) >= 0 && get_ats_inter_pos(core->ats_inter_info) <= 1);
 
         //early skp fast algorithm here
         if (ats_inter_info_match != 255 && core->ats_inter_info != ats_inter_info_match)
@@ -1576,7 +1576,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         }
         if (ats_inter_mode_idx > 0 && ats_inter_info_match == 255)
         {
-            assert(pidx == AFF_DIR || pidx == PRED_DIR || pidx == PRED_DIR_MMVD || root_cbf_ats_inter0 != 255);
+            evc_assert(pidx == AFF_DIR || pidx == PRED_DIR || pidx == PRED_DIR_MMVD || root_cbf_ats_inter0 != 255);
             if (skip_ats_inter_by_rd_cost(ctx, ats_inter_est_dist, ats_inter_info_list, ats_inter_mode_idx, core->cost_best, dist_ats_inter0, cost_ats_inter0, root_cbf_ats_inter0))
             {
                 continue;
@@ -1956,7 +1956,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
                     nnz_best[i] = nnz[i];
                     if (nnz[i] > 0)
                     {
-                        memcpy(pi->coff_save[i], coef[i], sizeof(s16) * ((cuw * cuh) >> (i == 0 ? 0 : ((GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc)) + (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))))));
+                        evc_mcpy(pi->coff_save[i], coef[i], sizeof(s16) * ((cuw * cuh) >> (i == 0 ? 0 : ((GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc)) + (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))))));
                     }
                 }
             }
@@ -2041,7 +2041,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
             SBAC_STORE(core->s_temp_best, core->s_temp_run);
             DQP_STORE(core->dqp_temp_best, core->dqp_temp_run);
 
-            assert(core->ats_inter_info == 0);
+            evc_assert(core->ats_inter_info == 0);
             ats_inter_info_best = core->ats_inter_info;
             nnz_best[Y_C] = nnz_best[U_C] = nnz_best[V_C] = 0;
             core->cost_best = cost_best < core->cost_best ? cost_best : core->cost_best;
@@ -2056,7 +2056,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 
     if (ats_inter_avail)
     {
-        assert(log2_cuw <= MAX_TR_LOG2 && log2_cuh <= MAX_TR_LOG2);
+        evc_assert(log2_cuw <= MAX_TR_LOG2 && log2_cuh <= MAX_TR_LOG2);
 
         if (ctx->sps.tool_admvp == 1 && (pidx == AFF_DIR || pidx == PRED_DIR_MMVD || pidx == PRED_DIR))
         {
@@ -2069,26 +2069,26 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
 
         //if no residual, the best mode shall not be ATS_INTER mode
         ats_inter_info_best = (nnz_best[Y_C] + nnz_best[U_C] + nnz_best[V_C] == 0) ? 0 : ats_inter_info_best;
-        assert(cost_best != MAX_COST);
-        assert(ats_inter_info_best != 255);
+        evc_assert(cost_best != MAX_COST);
+        evc_assert(ats_inter_info_best != 255);
         core->ats_inter_info = ats_inter_info_best;
         get_tu_size(core->ats_inter_info, log2_cuw, log2_cuh, &log2_tuw, &log2_tuh);
         for (i = 0; i < N_C; i++)
         {
             int tuw = 1 << log2_tuw;
             int tuh = 1 << log2_tuh;
-            assert(nnz_best[i] != -1);
+            evc_assert(nnz_best[i] != -1);
             core->nnz_sub[i][0] = nnz[i] = nnz_best[i];
             if (nnz[i] > 0)
             {
-                memcpy(coef[i], pi->coff_save[i], sizeof(s16) * ((tuw * tuh) >> (i == 0 ? 0 : ((GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc)) + (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))))));
+                evc_mcpy(coef[i], pi->coff_save[i], sizeof(s16) * ((tuw * tuh) >> (i == 0 ? 0 : ((GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc)) + (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))))));
 #if ATS_INTER_DEBUG
                 int num_coef = 0;
                 for (int a = 0; a < ((tuw * tuh) >> (i == 0 ? 0 : 2)); a++)
                 {
                     num_coef += coef[i][a] != 0;
                 }
-                assert(num_coef == nnz[i]);
+                evc_assert(num_coef == nnz[i]);
 #endif
             }
             else
@@ -2099,7 +2099,7 @@ static double pinter_residue_rdo(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, i
         //save the best to history memory
         if (ats_inter_info_match == 255 && num_rdo_tried > 1)
         {
-            assert(dist_idx != -1);
+            evc_assert(dist_idx != -1);
             save_ats_inter_info_pred(ctx, core, (u32)dist_idx, ats_inter_info_best, log2_cuw, log2_cuh, x, y);
         }
     }
@@ -2497,7 +2497,7 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
             SET_REFI(refi, pi->refi_pred[REFP_0][idx0], ctx->sh->slice_type == SLICE_B ? pi->refi_pred[REFP_1][idx1] : REFI_INVALID);
             if(!REFI_IS_VALID(refi[REFP_0]) && !REFI_IS_VALID(refi[REFP_1]))
             {
-                assert(0);
+                evc_assert(0);
             }
 
             evc_mc(x, y, ctx->w, ctx->h, cuw, cuh, refi, mvp, pi->refp, pi->pred[PRED_NUM], ctx->poc.poc_val, pi->dmvr_template, pi->dmvr_ref_pred_interpolated
@@ -2598,7 +2598,7 @@ static double analyze_skip(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, int log
 
     if(ctx->slice_type == SLICE_B)
     {
-        assert(ctx->slice_type == SLICE_B);
+        evc_assert(ctx->slice_type == SLICE_B);
         /* removes the cost above threshold and remove the duplicates */
 
         for (idx0 = 0; idx0 < (cuw * cuh <= NUM_SAMPLES_BLOCK ? MAX_NUM_MVP_SMALL_CU : MAX_NUM_MVP); idx0++)
@@ -3693,8 +3693,8 @@ static void scaled_horizontal_sobel_filter(pel *pred,
     __m128i mm_intermediates[4];
     __m128i mm_derivate[2];
 
-    assert(!(height % 2));
-    assert(!(width % 4));
+    evc_assert(!(height % 2));
+    evc_assert(!(width % 4));
 
     /* Derivates of the rows and columns at the boundary are done at the end of this function */
     /* The value of col and row indicate the columns and rows for which the derivates have already been computed */
@@ -3806,8 +3806,8 @@ static void scaled_vertical_sobel_filter(pel *pred,
     __m128i mm_intermediates[6];
     __m128i mm_derivate[2];
 
-    assert(!(height % 2));
-    assert(!(width % 4));
+    evc_assert(!(height % 2));
+    evc_assert(!(width % 4));
 
     /* Derivates of the rows and columns at the boundary are done at the end of this function */
     /* The value of col and row indicate the columns and rows for which the derivates have already been computed */
@@ -5016,7 +5016,7 @@ static double analyze_affine_merge(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y,
         }
         else
         {
-            assert(core->ats_inter_info == 0);
+            evc_assert(core->ats_inter_info == 0);
             evc_affine_mc(x, y, ctx->w, ctx->h, cuw, cuh, mrg_list_refi[idx], mrg_list_cp_mv[idx], pi->refp, pi->pred[PRED_NUM], mrg_list_cp_num[idx], core->eif_tmp_buffer
                           , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8, ctx->sps.chroma_format_idc);
 
@@ -5265,7 +5265,7 @@ static double pinter_analyze_cu_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, 
     core->ats_inter_info = pi->ats_inter_info_mode[best_idx];
     get_tu_size(get_ats_inter_idx(core->ats_inter_info), log2_cuw, log2_cuh, &log2_tuw, &log2_tuh);
 #if ATS_INTER_DEBUG
-    assert(core->cost_best == cost_inter[best_idx]);
+    evc_assert(core->cost_best == cost_inter[best_idx]);
     if( pi->nnz_best[best_idx][Y_C] && log2_cuw <= MAX_TR_LOG2 && log2_cuh <= MAX_TR_LOG2 )
     {
         int sum_y_coef = 0;
@@ -5273,7 +5273,7 @@ static double pinter_analyze_cu_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, 
         {
             sum_y_coef += coef[Y_C][a] != 0;
         }
-        assert(sum_y_coef == pi->nnz_best[best_idx][Y_C]);
+        evc_assert(sum_y_coef == pi->nnz_best[best_idx][Y_C]);
     }
 #endif
 
@@ -6205,7 +6205,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
     core->ats_inter_info = pi->ats_inter_info_mode[best_idx];
     get_tu_size(get_ats_inter_idx(core->ats_inter_info), log2_cuw, log2_cuh, &log2_tuw, &log2_tuh);
 #if ATS_INTER_DEBUG
-    assert(core->cost_best == cost_inter[best_idx]);
+    evc_assert(core->cost_best == cost_inter[best_idx]);
     if (pi->nnz_best[best_idx][Y_C] && log2_cuw <= MAX_TR_LOG2 && log2_cuh <= MAX_TR_LOG2 )
     {
         int sum_y_coef = 0;
@@ -6213,7 +6213,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
         {
             sum_y_coef += coef[Y_C][a] != 0;
         }
-        assert(sum_y_coef == pi->nnz_best[best_idx][Y_C]);
+        evc_assert(sum_y_coef == pi->nnz_best[best_idx][Y_C]);
     }
 #endif
 
@@ -6278,7 +6278,7 @@ static double pinter_analyze_cu(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y, in
 #if DMVR_LAG
         if(core->dmvr_flag)
         {
-            assert(core->cu_mode == MODE_SKIP || core->cu_mode == MODE_DIR);
+            evc_assert(core->cu_mode == MODE_SKIP || core->cu_mode == MODE_DIR);
             u16 idx = 0, i, j;
             for(j = 0; j < core->cuh >> MIN_CU_LOG2; j++)
             {

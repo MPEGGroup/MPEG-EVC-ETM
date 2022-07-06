@@ -43,7 +43,7 @@ extern "C" {
 #include "evc_def.h"
 #include "evcd_def.h"
 
-#define CHECK(a,b) assert((!(a)) && (b));
+#define CHECK(a,b) evc_assert((!(a)) && (b));
 #define DISTORTION_PRECISION_ADJUSTMENT(x)                0
 
 #define ALF_TEMPORAL_WITH_LINE_BUFFER                     6 // temporal buffer size

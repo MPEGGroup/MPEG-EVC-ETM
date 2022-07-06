@@ -691,9 +691,9 @@ static int sad_16b_sse_8x2(int w, int h, void * src1, void * src2, int s_src1, i
 
     int sad = 0;
 
-    assert(bit_depth <= 14);
-    assert(w == 8); /* fun usage expects w ==8, but assumption is width has to be multiple of 8 */
-    assert(h == 2); /* fun usage expects h ==2, but assumption is height has to be multiple of 2 */
+    evc_assert(bit_depth <= 14);
+    evc_assert(w == 8); /* fun usage expects w ==8, but assumption is width has to be multiple of 8 */
+    evc_assert(h == 2); /* fun usage expects h ==2, but assumption is height has to be multiple of 2 */
 
     pu2_inp = src1;
     pu2_ref = src2;
@@ -765,9 +765,9 @@ static int sad_16b_sse_8x4n(int w, int h, void * src1, void * src2, int s_src1, 
     int  i;
     int sad = 0;
 
-    assert(bit_depth <= 14);
-    assert(w == 8); /* fun usage expects w ==8, but assumption is width has to be multiple of 8 */
-    assert(!(h & 3)); /* height has to be multiple of 4 */
+    evc_assert(bit_depth <= 14);
+    evc_assert(w == 8); /* fun usage expects w ==8, but assumption is width has to be multiple of 8 */
+    evc_assert(!(h & 3)); /* height has to be multiple of 4 */
 
     pu2_inp = src1;
     pu2_ref = src2;
@@ -858,9 +858,9 @@ static int sad_16b_sse_16nx4n(int w, int h, void * src1, void * src2, int s_src1
     int  i, j;
     int sad = 0;
 
-    assert(bit_depth <= 14);
-    assert(!(w & 15)); /*fun used only for multiple of 16, but internal assumption is only 8 */
-    assert(!(h & 3)); /* height has to be multiple of 4 */
+    evc_assert(bit_depth <= 14);
+    evc_assert(!(w & 15)); /*fun used only for multiple of 16, but internal assumption is only 8 */
+    evc_assert(!(h & 3)); /* height has to be multiple of 4 */
 
     pu2_inp = src1;
     pu2_ref = src2;

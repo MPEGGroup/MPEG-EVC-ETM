@@ -256,8 +256,8 @@ static int sequence_init(EVCD_CTX * ctx, EVC_SPS * sps)
     }
     else
     {
-        memcpy(&(evc_tbl_qp_chroma_dynamic_ext[0][6 * sps->bit_depth_chroma_minus8]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
-        memcpy(&(evc_tbl_qp_chroma_dynamic_ext[1][6 * sps->bit_depth_chroma_minus8]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
+        evc_mcpy(&(evc_tbl_qp_chroma_dynamic_ext[0][6 * sps->bit_depth_chroma_minus8]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
+        evc_mcpy(&(evc_tbl_qp_chroma_dynamic_ext[1][6 * sps->bit_depth_chroma_minus8]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
     }
 
     return EVC_OK;
@@ -363,7 +363,7 @@ static void get_nbr_yuv(int x, int y, int cuw, int cuh, EVCD_CTX * ctx, EVCD_COR
 {
     int  s_rec;
     pel *rec;
-    int constrained_intra_flag = core->pred_mode == MODE_INTRA && ctx->pps->constrained_intra_pred_flag;
+    int  constrained_intra_flag = core->pred_mode == MODE_INTRA && ctx->pps->constrained_intra_pred_flag;
 
     if (evcd_check_luma(ctx, core))
     {
@@ -573,9 +573,9 @@ static void update_history_buffer_parse_affine(EVCD_CORE *core, int slice_type)
 
 void evcd_get_direct_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 {
-    s8            srefi[REFP_NUM][MAX_NUM_MVP];
-    s16           smvp[REFP_NUM][MAX_NUM_MVP][MV_D];
-    u32           cuw, cuh;
+    s8  srefi[REFP_NUM][MAX_NUM_MVP];
+    s16 smvp[REFP_NUM][MAX_NUM_MVP][MV_D];
+    u32 cuw, cuh;
 
     cuw = (1 << core->log2_cuw);
     cuh = (1 << core->log2_cuh);
@@ -616,8 +616,8 @@ void evcd_get_skip_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 {
     int REF_SET[3][MAX_NUM_ACTIVE_REF_FRAME] = { {0,0,}, };
     int cuw, cuh, inter_dir = 0;
-    s8            srefi[REFP_NUM][MAX_NUM_MVP];
-    s16           smvp[REFP_NUM][MAX_NUM_MVP][MV_D];
+    s8  srefi[REFP_NUM][MAX_NUM_MVP];
+    s16 smvp[REFP_NUM][MAX_NUM_MVP][MV_D];
 
     cuw = (1 << core->log2_cuw);
     cuh = (1 << core->log2_cuh);
@@ -662,8 +662,8 @@ void evcd_get_skip_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 void evcd_get_inter_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 {
     int cuw, cuh;
-    s16           mvp[MAX_NUM_MVP][MV_D];
-    s8            refi[MAX_NUM_MVP];
+    s16 mvp[MAX_NUM_MVP][MV_D];
+    s8  refi[MAX_NUM_MVP];
 
     cuw = (1 << core->log2_cuw);
     cuh = (1 << core->log2_cuh);
@@ -724,9 +724,9 @@ void evcd_get_inter_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 
 void evcd_get_affine_motion(EVCD_CTX * ctx, EVCD_CORE * core)
 {
-    int          cuw, cuh;
-    s16          affine_mvp[MAX_NUM_MVP][VER_NUM][MV_D];
-    s8           refi[MAX_NUM_MVP];
+    int cuw, cuh;
+    s16 affine_mvp[MAX_NUM_MVP][VER_NUM][MV_D];
+    s8  refi[MAX_NUM_MVP];
     
     cuw = (1 << core->log2_cuw);
     cuh = (1 << core->log2_cuh);
@@ -1128,7 +1128,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
                 }
                 else
                 {
-                    assert(0);
+                    evc_assert(0);
                 }
             }
             else
@@ -1253,7 +1253,7 @@ static int evcd_eco_tree(EVCD_CTX * ctx, EVCD_CORE * core, int x0, int y0, int l
 
         TREE_TYPE tree_type = mode_cons == eOnlyIntra ? TREE_L : TREE_LC;
 
-        assert( mode_cons != eOnlyInter || !( ctx->sps.tool_admvp && log2_cuw == 2 && log2_cuh == 2 ) );
+        evc_assert( mode_cons != eOnlyInter || !( ctx->sps.tool_admvp && log2_cuw == 2 && log2_cuh == 2 ) );
 
         if ( ctx->sh.slice_type == SLICE_I || ( ctx->sps.tool_admvp && log2_cuw == 2 && log2_cuh == 2 ) )
           mode_cons = eOnlyIntra;   
@@ -1674,7 +1674,7 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
     evc_stat_set_enc_state(FALSE);
 #endif
 
-    int k=0;
+    int k = 0;
     int i;
     int num_tiles_in_slice = ctx->num_tiles_in_slice;
     while(num_tiles_in_slice)
@@ -1757,7 +1757,7 @@ int evcd_dec_slice(EVCD_CTX * ctx, EVCD_CORE * core)
             if(lcu_cnt_in_tile == 0)
             {
                 ret = evcd_eco_tile_end_flag(bs, sbac);
-                assert(ret == 1);
+                evc_assert(ret == 1);
                 break;
             }
 
@@ -1883,7 +1883,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
         ret = evcd_eco_pps(bs, sps, &pps);
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
         int pps_id = pps.pps_pic_parameter_set_id;
-        memcpy(&(ctx->pps_array[pps_id]), &pps, sizeof(EVC_PPS));
+        evc_mcpy(&(ctx->pps_array[pps_id]), &pps, sizeof(EVC_PPS));
         ctx->pps = &(ctx->pps_array[pps_id]);
     }
     else if (nalu->nal_unit_type_plus1 - 1 == EVC_APS_NUT)
@@ -1914,13 +1914,13 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
             evc_AlfSliceParam * p_alf_paramDst = (evc_AlfSliceParam *)(p_g_aps->aps_data);
 
             p_alf_paramSrc->prevIdx = p_g_aps->aps_id;
-            memcpy(p_alf_paramDst, p_alf_paramSrc, sizeof(evc_AlfSliceParam));
+            evc_mcpy(p_alf_paramDst, p_alf_paramSrc, sizeof(evc_AlfSliceParam));
 
             // store in the old buffer
             aps->aps_id = p_l_aps->aps_id;
             aps->alf_aps_param.prevIdx = p_l_aps->aps_id;
             p_alf_paramDst = &(aps->alf_aps_param);
-            memcpy(p_alf_paramDst, p_alf_paramSrc, sizeof(evc_AlfSliceParam));
+            evc_mcpy(p_alf_paramDst, p_alf_paramSrc, sizeof(evc_AlfSliceParam));
             store_dec_aps_to_buffer(ctx);
         }
         else if ((local_aps_gen[1].aps_id != -1) && (local_aps_gen[0].aps_id == -1))
@@ -1933,10 +1933,12 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
 
             SignalledParamsDRA * p_alf_paramSrc = (SignalledParamsDRA *)(p_l_aps->aps_data);
             SignalledParamsDRA * p_alf_paramDst = (SignalledParamsDRA *)(p_g_aps->aps_data);
-            memcpy(p_alf_paramDst, p_alf_paramSrc, sizeof(SignalledParamsDRA));
+            evc_mcpy(p_alf_paramDst, p_alf_paramSrc, sizeof(SignalledParamsDRA));
         }
         else
+        {
             printf("This version of ETM doesnot support APS type\n");
+        }
 
         evc_assert_rv(EVC_SUCCEEDED(ret), ret);
     }
@@ -2143,12 +2145,12 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
                 SignalledParamsDRA *effective_dra_control;
                 if (ctx->pps->pic_dra_enabled_flag)
                 {
-                    assert(ctx->pic->imgb->imgb_active_aps_id == ctx->pps->pic_dra_aps_id);
+                    evc_assert(ctx->pic->imgb->imgb_active_aps_id == ctx->pps->pic_dra_aps_id);
                     effective_dra_control = (SignalledParamsDRA *)(ctx->g_void_dra_array) + ctx->pps->pic_dra_aps_id;
                 }
                 else
                 {
-                    assert(ctx->pic->imgb->imgb_active_aps_id == -1);
+                    evc_assert(ctx->pic->imgb->imgb_active_aps_id == -1);
                     effective_dra_control = NULL;
                 }
 
@@ -2176,12 +2178,12 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
                 SignalledParamsDRA *effective_dra_control;
                 if (ctx->pps->pic_dra_enabled_flag)
                 {
-                    assert(ctx->pic->imgb->imgb_active_aps_id == ctx->pps->pic_dra_aps_id);
+                    evc_assert(ctx->pic->imgb->imgb_active_aps_id == ctx->pps->pic_dra_aps_id);
                     effective_dra_control = (SignalledParamsDRA *)(ctx->g_void_dra_array) + ctx->pps->pic_dra_aps_id;
                 }
                 else
                 {
-                    assert(ctx->pic->imgb->imgb_active_aps_id == -1);
+                    evc_assert(ctx->pic->imgb->imgb_active_aps_id == -1);
                     effective_dra_control = NULL;
                 }
                 ret = evcd_picbuf_check_signature(ctx->pic, ctx->pic_sign, ctx->pps->pic_dra_enabled_flag, effective_dra_control, ctx->w, ctx->h, doCompareMd5, ctx->sps.bit_depth_luma_minus8 + 8);
@@ -2198,7 +2200,7 @@ int evcd_dec_nalu(EVCD_CTX * ctx, EVC_BITB * bitb, EVCD_STAT * stat)
     }
     else
     {
-        assert(!"wrong NALU type");
+        evc_assert(!"wrong NALU type");
     }
     
     make_stat(ctx, nalu->nal_unit_type_plus1 - 1, stat);
@@ -2237,7 +2239,7 @@ int evcd_pull_frm(EVCD_CTX *ctx, EVC_IMGB **imgb, EVCD_OPL * opl)
         }
 
         opl->poc = pic->poc;
-        memcpy(opl->digest, pic->digest, N_C * 16);
+        evc_mcpy(opl->digest, pic->digest, N_C * 16);
     }
     return ret;
 }

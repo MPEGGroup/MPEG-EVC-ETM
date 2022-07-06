@@ -94,10 +94,10 @@ struct AlfCovariance
     void reset()
     {
         pixAcc = 0;
-        memset(y, 0, sizeof(*y) * numCoeff);
+        evc_mset(y, 0, sizeof(*y) * numCoeff);
         for (int i = 0; i < numCoeff; i++)
         {
-            memset(E[i], 0, sizeof(*E[i]) * numCoeff);
+            evc_mset(E[i], 0, sizeof(*E[i]) * numCoeff);
         }
     }
 
@@ -105,9 +105,9 @@ struct AlfCovariance
     {
         for (int i = 0; i < numCoeff; i++)
         {
-            memcpy(E[i], src.E[i], sizeof(*E[i]) * numCoeff);
+            evc_mcpy(E[i], src.E[i], sizeof(*E[i]) * numCoeff);
         }
-        memcpy(y, src.y, sizeof(*y) * numCoeff);
+        evc_mcpy(y, src.y, sizeof(*y) * numCoeff);
         pixAcc = src.pixAcc;
 
         return *this;

@@ -49,7 +49,7 @@ int evcd_opl_md5_imgb(EVC_IMGB *imgb, u8 digest[N_C][16])
     EVC_MD5 md5[N_C];
     int i, j;
 
-    assert(EVC_COLORSPACE_IS_YUV_PLANAR(imgb->cs));
+    evc_assert(EVC_COLORSPACE_IS_YUV_PLANAR(imgb->cs));
     int scale = 2;
     for (i = 0; i < imgb->np; i++)
     {
@@ -92,7 +92,7 @@ static void __imgb_cpy_plane(void *src, void *dst, int bw, int h, int s_src,
 
     for (i = 0; i < h; i++)
     {
-        memcpy(d, s, bw);
+        evc_mcpy(d, s, bw);
         s += s_src;
         d += s_dst;
     }
@@ -203,7 +203,7 @@ int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[N_C][16], int tool_d
         WCGDDRAControl l_dra_control;
         WCGDDRAControl *local_g_dra_control = &l_dra_control;
         SignalledParamsDRA* p_pps_draParams = (SignalledParamsDRA*)pps_draParams;
-        memcpy(&(local_g_dra_control->m_signalledDRA), p_pps_draParams, sizeof(SignalledParamsDRA));
+        evc_mcpy(&(local_g_dra_control->m_signalledDRA), p_pps_draParams, sizeof(SignalledParamsDRA));
 
         local_g_dra_control->m_signalledDRA.m_internal_bd = bit_depth;
         local_g_dra_control->m_signalledDRA.m_idc = (CF_FROM_CS(pic->imgb->cs));
@@ -241,13 +241,13 @@ int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[N_C][16], int tool_d
     evc_assert_rv(EVC_SUCCEEDED(ret), ret);
     if (doCompare)
     {
-        if (memcmp(signature, pic_sign[0], N_C * 16) != 0)
+        if (evc_mcmp(signature, pic_sign[0], N_C * 16) != 0)
         {
             return EVC_ERR_BAD_CRC;
         }
     }
 
-    memcpy(pic->digest, opl_sign, N_C * 16);
+    evc_mcpy(pic->digest, opl_sign, N_C * 16);
 
     return EVC_OK;
 }
@@ -262,7 +262,7 @@ int evcd_picbuf_check_signature(EVC_PIC * pic, u8 signature[16], int bit_depth)
     /* execute MD5 digest here */
     ret = evc_picbuf_signature(pic, pic_sign);
     evc_assert_rv(EVC_SUCCEEDED(ret), ret);
-    if (memcmp(signature, pic_sign, 16) != 0)
+    if (evc_mcmp(signature, pic_sign, 16) != 0)
     {
         return EVC_ERR_BAD_CRC;
     }
@@ -559,9 +559,9 @@ void evcd_set_dec_info(EVCD_CTX * ctx, EVCD_CORE * core
 
         if (core->ats_inter_info)
         {
-            assert(core->is_coef_sub[Y_C][0] == core->is_coef[Y_C]);
-            assert(core->is_coef_sub[U_C][0] == core->is_coef[U_C]);
-            assert(core->is_coef_sub[V_C][0] == core->is_coef[V_C]);
+            evc_assert(core->is_coef_sub[Y_C][0] == core->is_coef[Y_C]);
+            evc_assert(core->is_coef_sub[U_C][0] == core->is_coef[U_C]);
+            evc_assert(core->is_coef_sub[V_C][0] == core->is_coef[V_C]);
             set_cu_cbf_flags(core->is_coef[Y_C], core->ats_inter_info, core->log2_cuw, core->log2_cuh, ctx->map_scu + core->scup, ctx->w_scu);
         }
 
@@ -685,11 +685,11 @@ void cpy_pic(EVC_PIC * pic_src, EVC_PIC * pic_dst)
         switch (i)
         {
         case 0:
-            memcpy(pic_dst->y, pic_src->y, bsize); break;
+            evc_mcpy(pic_dst->y, pic_src->y, bsize); break;
         case 1:
-            memcpy(pic_dst->u, pic_src->u, bsize); break;
+            evc_mcpy(pic_dst->u, pic_src->u, bsize); break;
         case 2:
-            memcpy(pic_dst->v, pic_src->v, bsize); break;
+            evc_mcpy(pic_dst->v, pic_src->v, bsize); break;
         default:
             break;
         }
@@ -710,7 +710,7 @@ int write_pic(char * fname, EVC_PIC * pic)
     cnt++;
     if (fp == NULL)
     {
-        assert(!"cannot open file");
+        evc_assert(!"cannot open file");
         return -1;
     }
 

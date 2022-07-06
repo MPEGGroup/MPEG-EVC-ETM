@@ -841,7 +841,7 @@ static int evcd_eco_xcoef(EVC_BSR *bs, EVCD_SBAC *sbac, s16 *coef, int log2_w, i
 {
     if (is_intra)
     {
-        assert(ats_inter_info == 0);
+        evc_assert(ats_inter_info == 0);
     }
     get_tu_size(ats_inter_info, log2_w, log2_h, &log2_w, &log2_h);
 
@@ -1240,7 +1240,7 @@ int evcd_eco_coef(EVCD_CTX * ctx, EVCD_CORE * core)
             }
             else
             {
-                assert(core->ats_inter_info == 0);
+                evc_assert(core->ats_inter_info == 0);
             }
 
             for (c = 0; c < N_C; c++)
@@ -1444,7 +1444,7 @@ static int intra_mode_read_trunc_binary(int max_symbol, EVCD_SBAC * sbac, EVC_BS
     int t0 = 0;
 
     b = max_symbol - val;
-    assert(b < val);
+    evc_assert(b < val);
     ipm = sbac_decode_bins_ep(bs, sbac, threshold);
     if(ipm >= val - b)
     {
@@ -2236,7 +2236,7 @@ int evcd_eco_cu(EVCD_CTX * ctx, EVCD_CORE * core)
                 else
                 {
                     int luma_cup = evc_get_luma_cup(core->x_scu, core->y_scu, PEL2SCU(cuw), PEL2SCU(cuh), ctx->w_scu);
-                    assert( MCU_GET_IF( ctx->map_scu[luma_cup] ) && "IBC is forbidden for this case (EIPD off)");
+                    evc_assert( MCU_GET_IF( ctx->map_scu[luma_cup] ) && "IBC is forbidden for this case (EIPD off)");
   
                     luma_ipm = ctx->map_ipm[luma_cup];
                 }
@@ -2539,7 +2539,7 @@ int evcd_eco_sps(EVC_BSR * bs, EVC_SPS * sps)
         }
         else
         {
-            assert(!"hasn't been implemented yet");
+            evc_assert(!"hasn't been implemented yet");
             //TBD: Basically copy everything from sps->rpls_l0 to sps->rpls_l1
         }
     }
@@ -2595,7 +2595,7 @@ int evcd_eco_pps(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps)
     EVC_TRACE_STR("************ PPS Start ************\n");
 #endif
     evc_bsr_read_ue(bs, &pps->pps_pic_parameter_set_id);
-    assert(pps->pps_pic_parameter_set_id >= 0 && pps->pps_pic_parameter_set_id < MAX_NUM_PPS);
+    evc_assert(pps->pps_pic_parameter_set_id >= 0 && pps->pps_pic_parameter_set_id < MAX_NUM_PPS);
     evc_bsr_read_ue(bs, &pps->pps_seq_parameter_set_id);
     evc_bsr_read_ue(bs, &pps->num_ref_idx_default_active_minus1[0]);
     evc_bsr_read_ue(bs, &pps->num_ref_idx_default_active_minus1[1]);
@@ -2687,7 +2687,7 @@ int evcd_eco_aps_gen(EVC_BSR * bs, EVC_APS_GEN * aps, int  bit_depth)
         evcd_eco_alf_aps_param(bs, &local_alf_aps); // parse ALF filter parameter (except ALF map)
         evc_AlfSliceParam * p_alf_data = &(local_alf_aps.alf_aps_param);
         evc_AlfSliceParam * p_aps_data = (evc_AlfSliceParam *)(aps->aps_data);
-        memcpy(p_aps_data, p_alf_data, sizeof(evc_AlfSliceParam));
+        evc_mcpy(p_aps_data, p_alf_data, sizeof(evc_AlfSliceParam));
     }
     else if (aps_type_id == 1)
     {
@@ -2704,7 +2704,7 @@ int evcd_eco_aps_gen(EVC_BSR * bs, EVC_APS_GEN * aps, int  bit_depth)
 
     u32 aps_extension_flag, aps_extension_data_flag, t0;
     evc_bsr_read1(bs, &aps_extension_flag);
-    assert(aps_extension_flag == 0);
+    evc_assert(aps_extension_flag == 0);
     if (aps_extension_flag)
     {
         while (0/*more_rbsp_data()*/)
@@ -2862,7 +2862,7 @@ int evcd_eco_alf_filter(EVC_BSR * bs, evc_AlfSliceParam* alfSliceParam, const BO
             }
             else
             {
-                memset(coeff + ind * MAX_NUM_ALF_LUMA_COEFF, 0, sizeof(*coeff) * alfShape.numCoeff);
+                evc_mset(coeff + ind * MAX_NUM_ALF_LUMA_COEFF, 0, sizeof(*coeff) * alfShape.numCoeff);
                 continue;
             }
         }
@@ -2981,19 +2981,19 @@ int evcd_eco_alf_aps_param(EVC_BSR * bs, EVC_APS * aps)
     alfSliceParam->prevIdxComp[1] = 0;
     alfSliceParam->tLayer = 0;
     alfSliceParam->isCtbAlfOn = 0;
-    memset(alfSliceParam->enabledFlag, 0, 3 * sizeof(BOOL));
+    evc_mset(alfSliceParam->enabledFlag, 0, 3 * sizeof(BOOL));
     alfSliceParam->lumaFilterType = ALF_FILTER_5;
-    memset(alfSliceParam->lumaCoeff, 0, sizeof(short) * 325);
-    memset(alfSliceParam->chromaCoeff, 0, sizeof(short) * 7);
-    memset(alfSliceParam->filterCoeffDeltaIdx, 0, sizeof(short)*MAX_NUM_ALF_CLASSES);
-    memset(alfSliceParam->filterCoeffFlag, 1, sizeof(BOOL) * 25);
+    evc_mset(alfSliceParam->lumaCoeff, 0, sizeof(short) * 325);
+    evc_mset(alfSliceParam->chromaCoeff, 0, sizeof(short) * 7);
+    evc_mset(alfSliceParam->filterCoeffDeltaIdx, 0, sizeof(short)*MAX_NUM_ALF_CLASSES);
+    evc_mset(alfSliceParam->filterCoeffFlag, 1, sizeof(BOOL) * 25);
     alfSliceParam->numLumaFilters = 1;
     alfSliceParam->coeffDeltaFlag = 0;
     alfSliceParam->coeffDeltaPredModeFlag = 0;
     alfSliceParam->chromaCtbPresentFlag = 0;
     alfSliceParam->fixedFilterPattern = 0;
-    memset(alfSliceParam->fixedFilterIdx, 0, sizeof(int) * 25);
-    memset(alfSliceParam->fixedFilterUsageFlag, 0, sizeof(u8) * 25);
+    evc_mset(alfSliceParam->fixedFilterIdx, 0, sizeof(int) * 25);
+    evc_mset(alfSliceParam->fixedFilterUsageFlag, 0, sizeof(u8) * 25);
 
     const int iNumFixedFilterPerClass = 16;
     int alf_luma_filter_signal_flag;
@@ -3005,8 +3005,8 @@ int evcd_eco_alf_aps_param(EVC_BSR * bs, EVC_APS * aps)
     u32 alf_luma_fixed_filter_usage_flag[MAX_NUM_ALF_CLASSES];
     int alf_luma_fixed_filter_set_idx[MAX_NUM_ALF_CLASSES];
 
-    memset(alf_luma_fixed_filter_set_idx, 0, sizeof(alf_luma_fixed_filter_set_idx));
-    memset(alf_luma_fixed_filter_usage_flag, 0, sizeof(alf_luma_fixed_filter_usage_flag));
+    evc_mset(alf_luma_fixed_filter_set_idx, 0, sizeof(alf_luma_fixed_filter_set_idx));
+    evc_mset(alf_luma_fixed_filter_usage_flag, 0, sizeof(alf_luma_fixed_filter_usage_flag));
 
     evc_bsr_read1(bs, &alf_luma_filter_signal_flag);
     alfSliceParam->enabledFlag[0] = alf_luma_filter_signal_flag;
@@ -3089,19 +3089,19 @@ int evcd_eco_alf_sh_param(EVC_BSR * bs, EVC_SH * sh)
     alfSliceParam->prevIdx = 0;
     alfSliceParam->tLayer = 0;
     alfSliceParam->isCtbAlfOn = 0;
-    memset(alfSliceParam->enabledFlag, 0, 3 * sizeof(BOOL));
+    evc_mset(alfSliceParam->enabledFlag, 0, 3 * sizeof(BOOL));
     alfSliceParam->lumaFilterType = ALF_FILTER_5;
-    memset(alfSliceParam->lumaCoeff, 0, sizeof(short) * 325);
-    memset(alfSliceParam->chromaCoeff, 0, sizeof(short) * 7);
-    memset(alfSliceParam->filterCoeffDeltaIdx, 0, sizeof(short)*MAX_NUM_ALF_CLASSES);
-    memset(alfSliceParam->filterCoeffFlag, 1, sizeof(BOOL) * 25);
+    evc_mset(alfSliceParam->lumaCoeff, 0, sizeof(short) * 325);
+    evc_mset(alfSliceParam->chromaCoeff, 0, sizeof(short) * 7);
+    evc_mset(alfSliceParam->filterCoeffDeltaIdx, 0, sizeof(short)*MAX_NUM_ALF_CLASSES);
+    evc_mset(alfSliceParam->filterCoeffFlag, 1, sizeof(BOOL) * 25);
     alfSliceParam->numLumaFilters = 1;
     alfSliceParam->coeffDeltaFlag = 0;
     alfSliceParam->coeffDeltaPredModeFlag = 0;
     alfSliceParam->chromaCtbPresentFlag = 0;
     alfSliceParam->fixedFilterPattern = 0;
-    memset(alfSliceParam->fixedFilterIdx, 0, sizeof(int) * 25);
-    memset(alfSliceParam->fixedFilterUsageFlag, 0, sizeof(u8) * 25);
+    evc_mset(alfSliceParam->fixedFilterIdx, 0, sizeof(int) * 25);
+    evc_mset(alfSliceParam->fixedFilterUsageFlag, 0, sizeof(u8) * 25);
 
     //decode map
     evc_bsr_read1(bs, &alfSliceParam->isCtbAlfOn);
@@ -3117,7 +3117,7 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
     int num_tiles_in_slice = 0;
 
     evc_bsr_read_ue(bs, &sh->slice_pic_parameter_set_id);
-    assert(sh->slice_pic_parameter_set_id >= 0 && sh->slice_pic_parameter_set_id < MAX_NUM_PPS);
+    evc_assert(sh->slice_pic_parameter_set_id >= 0 && sh->slice_pic_parameter_set_id < MAX_NUM_PPS);
  
     if (!pps->single_tile_in_pic_flag)
     {
@@ -3282,7 +3282,7 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
                 if (sps->num_ref_pic_lists_in_sps0 > 1)
                 {
                     evc_bsr_read_ue(bs, &sh->rpl_l0_idx);
-                    memcpy(&sh->rpl_l0, &sps->rpls_l0[sh->rpl_l0_idx], sizeof(sh->rpl_l0)); //TBD: temporal workaround, consider refactoring
+                    evc_mcpy(&sh->rpl_l0, &sps->rpls_l0[sh->rpl_l0_idx], sizeof(sh->rpl_l0)); //TBD: temporal workaround, consider refactoring
                     sh->rpl_l0.poc = sh->poc_lsb;
                 }
             }
@@ -3323,7 +3323,7 @@ int evcd_eco_sh(EVC_BSR * bs, EVC_SPS * sps, EVC_PPS * pps, EVC_SH * sh, int nut
                     sh->rpl_l1_idx = sh->rpl_l0_idx;
                 }
 
-                memcpy(&sh->rpl_l1, &sps->rpls_l1[sh->rpl_l1_idx], sizeof(sh->rpl_l1)); //TBD: temporal workaround, consider refactoring
+                evc_mcpy(&sh->rpl_l1, &sps->rpls_l1[sh->rpl_l1_idx], sizeof(sh->rpl_l1)); //TBD: temporal workaround, consider refactoring
                 sh->rpl_l1.poc = sh->poc_lsb;
             }
             else

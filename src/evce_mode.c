@@ -205,7 +205,7 @@ void evce_rdo_bit_cnt_cu_intra(EVCE_CTX * ctx, EVCE_CORE * core, s32 slice_type,
     int log2_cuh = core->log2_cuh;
     int* nnz = core->nnz;
 #if ATS_INTER_DEBUG
-    assert(core->ats_inter_info == 0);
+    evc_assert(core->ats_inter_info == 0);
 #endif
 
     if(slice_type != SLICE_I && (ctx->sps.tool_admvp == 0 || !(core->log2_cuw <= MIN_CU_LOG2 && core->log2_cuh <= MIN_CU_LOG2))
@@ -955,10 +955,10 @@ static int init_history_buffer(EVC_HISTORY_BUFFER *history_buffer)
 
 static int copy_history_buffer(EVC_HISTORY_BUFFER *dst, EVC_HISTORY_BUFFER *src)
 {
-    memcpy(dst->history_mv_table,   src->history_mv_table,   sizeof(s16)* ALLOWED_CHECKED_NUM * REFP_NUM * MV_D);
-    memcpy(dst->history_refi_table, src->history_refi_table, sizeof(s8)* ALLOWED_CHECKED_NUM * REFP_NUM);
+    evc_mcpy(dst->history_mv_table,   src->history_mv_table,   sizeof(s16)* ALLOWED_CHECKED_NUM * REFP_NUM * MV_D);
+    evc_mcpy(dst->history_refi_table, src->history_refi_table, sizeof(s8)* ALLOWED_CHECKED_NUM * REFP_NUM);
 #if TRACE_ENC_CU_DATA
-    memcpy(dst->history_cu_table, src->history_cu_table, sizeof(src->history_cu_table[0])* ALLOWED_CHECKED_NUM);
+    evc_mcpy(dst->history_cu_table, src->history_cu_table, sizeof(src->history_cu_table[0])* ALLOWED_CHECKED_NUM);
 #endif
 
     dst->currCnt = src->currCnt;
@@ -3046,7 +3046,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
                              , &remaining_split, ctx->sps.sps_btt_flag
                              , core->tree_cons.mode_cons);
         //save normatively allowed split modes, as it will be used in in child nodes for entropy coding of split mode
-        memcpy(curr_split_allow, split_allow, sizeof(int)*MAX_SPLIT_NUM);
+        evc_mcpy(curr_split_allow, split_allow, sizeof(int)*MAX_SPLIT_NUM);
         for(int i = 1; i < MAX_SPLIT_NUM; i++)
             num_split_to_try += split_allow[i];
 
@@ -3592,7 +3592,7 @@ static double mode_coding_tree(EVCE_CTX *ctx, EVCE_CORE *core, int x0, int y0, i
 
 #if ET_BY_RDC_CHILD_SPLIT
                 split_cost[split_mode] = cost_temp;
-                memcpy(split_mode_child_rdo[split_mode], split_mode_child, sizeof(int) * 4);
+                evc_mcpy(split_mode_child_rdo[split_mode], split_mode_child, sizeof(int) * 4);
 #endif
                 if(!core->bef_data[log2_cuw - 2][log2_cuh - 2][cup][bef_data_idx].split_visit)
                 {

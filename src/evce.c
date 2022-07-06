@@ -186,8 +186,8 @@ void evce_copy_chroma_qp_mapping_params(EVC_CHROMA_TABLE *dst, EVC_CHROMA_TABLE 
     dst->global_offset_flag = src->global_offset_flag;
     dst->num_points_in_qp_table_minus1[0] = src->num_points_in_qp_table_minus1[0];
     dst->num_points_in_qp_table_minus1[1] = src->num_points_in_qp_table_minus1[1];
-    memcpy(&(dst->delta_qp_in_val_minus1), &(src->delta_qp_in_val_minus1), sizeof(int) * 2 * MAX_QP_TABLE_SIZE);
-    memcpy(&(dst->delta_qp_out_val), &(src->delta_qp_out_val), sizeof(int) * 2 * MAX_QP_TABLE_SIZE);
+    evc_mcpy(&(dst->delta_qp_in_val_minus1), &(src->delta_qp_in_val_minus1), sizeof(int) * 2 * MAX_QP_TABLE_SIZE);
+    evc_mcpy(&(dst->delta_qp_out_val), &(src->delta_qp_out_val), sizeof(int) * 2 * MAX_QP_TABLE_SIZE);
 }
 
 static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
@@ -239,7 +239,7 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
 
             param->tf_st_num      = 1;
             param->tf_st_frame[0] = 8;
-            param->tf_st_value[0] = 0.1;
+            param->tf_st_value[0] = 0.1f;
         }
     }
     else
@@ -251,9 +251,9 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
 
             param->tf_st_num      = 2;
             param->tf_st_frame[1] = 8;
-            param->tf_st_value[1] = 0.95;
+            param->tf_st_value[1] = 0.95f;
             param->tf_st_frame[0] = 16;
-            param->tf_st_value[0] = 1.5;
+            param->tf_st_value[0] = 1.5f;
         }
     }
     param->tf_frames = param->tf_p_frames + param->tf_f_frames + 1;
@@ -307,8 +307,8 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
     }
     else
     {
-        memcpy(&(evc_tbl_qp_chroma_dynamic_ext[0][6 *( cdsc->codec_bit_depth - 8)]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
-        memcpy(&(evc_tbl_qp_chroma_dynamic_ext[1][6 * (cdsc->codec_bit_depth - 8)]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
+        evc_mcpy(&(evc_tbl_qp_chroma_dynamic_ext[0][6 *( cdsc->codec_bit_depth - 8)]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
+        evc_mcpy(&(evc_tbl_qp_chroma_dynamic_ext[1][6 * (cdsc->codec_bit_depth - 8)]), evc_tbl_qp_chroma_ajudst, MAX_QP_TABLE_SIZE * sizeof(int));
     }
 
     param->tile_columns = cdsc->tile_columns;
@@ -397,9 +397,9 @@ static void set_vui(EVCE_CTX * ctx, EVC_VUI * vui)
     vui->hrd_parameters.cpb_cnt_minus1 = 1;
     vui->hrd_parameters.bit_rate_scale = 1;
     vui->hrd_parameters.cpb_size_scale = 1;
-    memset(&(vui->hrd_parameters.bit_rate_value_minus1), 0, sizeof(int)*NUM_CPB);
-    memset(&(vui->hrd_parameters.cpb_size_value_minus1), 0, sizeof(int)*NUM_CPB);
-    memset(&(vui->hrd_parameters.cbr_flag), 0, sizeof(int)*NUM_CPB);
+    evc_mset(&(vui->hrd_parameters.bit_rate_value_minus1), 0, sizeof(int)*NUM_CPB);
+    evc_mset(&(vui->hrd_parameters.cpb_size_value_minus1), 0, sizeof(int)*NUM_CPB);
+    evc_mset(&(vui->hrd_parameters.cbr_flag), 0, sizeof(int)*NUM_CPB);
     vui->hrd_parameters.initial_cpb_removal_delay_length_minus1 = 1;
     vui->hrd_parameters.cpb_removal_delay_length_minus1 = 1;
     vui->hrd_parameters.dpb_output_delay_length_minus1 = 1;
@@ -475,8 +475,8 @@ static void set_sps(EVCE_CTX * ctx, EVC_SPS * sps)
         sps->rpl1_same_as_rpl0_flag = 0;
     }
 
-    memcpy(sps->rpls_l0, ctx->cdsc.rpls_l0, ctx->cdsc.rpls_l0_cfg_num * sizeof(sps->rpls_l0[0]));
-    memcpy(sps->rpls_l1, ctx->cdsc.rpls_l1, ctx->cdsc.rpls_l1_cfg_num * sizeof(sps->rpls_l1[0]));
+    evc_mcpy(sps->rpls_l0, ctx->cdsc.rpls_l0, ctx->cdsc.rpls_l0_cfg_num * sizeof(sps->rpls_l0[0]));
+    evc_mcpy(sps->rpls_l1, ctx->cdsc.rpls_l1, ctx->cdsc.rpls_l1_cfg_num * sizeof(sps->rpls_l1[0]));
 
     sps->vui_parameters_present_flag = 0;
     set_vui(ctx, &(sps->vui_parameters));
@@ -537,7 +537,6 @@ static void set_pps(EVCE_CTX * ctx, EVC_PPS * pps)
         {
             pps->tile_column_width_minus1[i] = ctx->cdsc.tile_column_width_array[i] - 1;
             pps->tile_column_width_minus1[pps->num_tile_columns_minus1] -= (pps->tile_column_width_minus1[i] + 1);
-
         }
         for (int i = 0; i < pps->num_tile_rows_minus1; i++)
         {
@@ -629,7 +628,7 @@ QP_ADAPT_PARAM qp_adapt_param_ai[8] =
     { 0,  0.0000, 0.0000},
 };
 
-  //Implementation for selecting and assigning RPL0 & RPL1 candidates in the SPS to SH
+//Implementation for selecting and assigning RPL0 & RPL1 candidates in the SPS to SH
 static void select_assign_rpl_for_sh(EVCE_CTX *ctx, EVC_SH *sh)
 {
     //TBD: when NALU types are implemented; if the current picture is an IDR, simply return without doing the rest of the codes for this function
@@ -1054,14 +1053,18 @@ static int set_tile_info(EVCE_CTX * ctx, int is_ctx0)
         for (i = 0; i<w_tile; i++)
         {
             col_w[i] = ((i + 1) * w_lcu) / w_tile - (i * w_lcu) / w_tile;
-            if (col_w[i] < 1 )
+            if (col_w[i] < 1)
+            {
                 evc_assert_rv(0, EVC_ERR_UNSUPPORTED);
+            }
         }
         for (j = 0; j<h_tile; j++)
         {
             row_h[j] = ((j + 1) * h_lcu) / h_tile - (j * h_lcu) / h_tile;
-            if (row_h[j] < 1 )
+            if (row_h[j] < 1)
+            {
                 evc_assert_rv(0, EVC_ERR_UNSUPPORTED);
+            }
         }
     }
     else
@@ -1071,23 +1074,31 @@ static int set_tile_info(EVCE_CTX * ctx, int is_ctx0)
         {
             col_w[i] = ctx->cdsc.tile_column_width_array[i];
             t0 += col_w[i];
-            if (col_w[i] < 1 )
+            if (col_w[i] < 1)
+            {
                 evc_assert_rv(0, EVC_ERR_UNSUPPORTED);
+            }
         }
         col_w[i] = w_lcu - t0;
         if (col_w[i] < 1)
+        {
             evc_assert_rv(0, EVC_ERR_UNSUPPORTED);
+        }
 
         for (j = 0, t0 = 0; j<(h_tile - 1); j++)
         {
             row_h[j] = ctx->cdsc.tile_row_height_array[j];
-            if (row_h[j] < 1 )
+            if (row_h[j] < 1)
+            {
                 evc_assert_rv(0, EVC_ERR_UNSUPPORTED);
+            }
             t0 += row_h[j];
         }
         row_h[j] = h_lcu - t0;
         if (row_h[j] < 1)
+        {
             evc_assert_rv(0, EVC_ERR_UNSUPPORTED);
+        }
     }
 
     /* update tile information - Tile width, height, First ctb address */
@@ -1929,7 +1940,7 @@ int evce_enc_header(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         {
             if (ctx->sps.tool_dra)
             {
-                evce_set_active_pps_dra_info(ctx, i);  
+                evce_set_active_pps_dra_info(ctx, i);
                 /* Signal reffered DRA APS */
                 if (ctx->aps_gen_array[1].signal_flag == 1)
                 {
@@ -2525,7 +2536,6 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
                 int delta_poc0 = (int)(ctx->poc.poc_val) - (int)(ctx->refp[0][REFP_0].poc);
                 int delta_poc1 = (int)(ctx->poc.poc_val) - (int)(ctx->refp[0][REFP_1].poc);
                 sh->temporal_mvp_asigned_flag = !(((delta_poc0 > 0) && (delta_poc1 > 0)) || ((delta_poc0 < 0) && (delta_poc1 < 0)));
-                //printf("tmvp: %d %d %d %d\n", ctx->poc, ctx->refp[0][REFP_0].poc, ctx->refp[0][REFP_1].poc, sh->temporal_mvp_asigned_flag);
             }
         }
         evc_assert_rv(ret == EVC_OK, ret);
@@ -2902,7 +2912,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
                 /* Write ALF-APS */
                 evc_AlfSliceParam* p_aps_data = (evc_AlfSliceParam*)aps_alf->aps_data;
                 aps_alf->aps_id = aps->aps_id;
-                memcpy(p_aps_data, &(aps->alf_aps_param), sizeof(evc_AlfSliceParam));
+                evc_mcpy(p_aps_data, &(aps->alf_aps_param), sizeof(evc_AlfSliceParam));
                 evc_assert_rv(evce_eco_aps_gen(bs, aps_alf, ctx->sps.bit_depth_luma_minus8+8) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
 
                 evc_bsw_deinit(bs);
@@ -3124,7 +3134,6 @@ int evce_push_frm(EVCE_CTX* ctx, EVC_IMGB* img_list[EVCE_TF_MAX_FRAME_NUM])
     EVC_IMGB   * imgb = NULL;
 
     /* get encodng buffer */
-    
     if (EVC_OK != ctx->fn_get_inbuf(ctx, &imgb))
     {
         return EVC_ERR;
@@ -3383,7 +3392,7 @@ int evce_generate_pps_array(EVCE_CTX * ctx)
             {
                 ctx->pps->pic_dra_enabled_flag = 1;
                 ctx->pps->pic_dra_aps_id = i % APS_MAX_NUM;
-                memcpy(&(ctx->pps_array[i]), ctx->pps, sizeof(EVC_PPS));
+                evc_mcpy(&(ctx->pps_array[i]), ctx->pps, sizeof(EVC_PPS));
             }
         }
     }
@@ -3711,7 +3720,6 @@ void evce_malloc_2d(s8*** dst, int size_1d, int size_2d, int type_size)
     {
         *dst = evc_malloc_fast(size_1d * sizeof(s8*));
         evc_mset(*dst, 0, size_1d * sizeof(s8*));
-
 
         (*dst)[0] = evc_malloc_fast(size_1d * size_2d * type_size);
         evc_mset((*dst)[0], 0, size_1d * size_2d * type_size);

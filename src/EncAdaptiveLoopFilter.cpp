@@ -119,17 +119,17 @@ void alf_aps_enc_opt_process(EncAdaptiveLoopFilter* p, const double* lambdas, EV
     }
 
     AlfSliceParam alfSliceParam;
-    alfSliceParam.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
-    iAlfSliceParam->alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
-    memset(alfSliceParam.alfCtuEnableFlag, 0, N_C * ctx->f_lcu * sizeof(u8));
-    memset(iAlfSliceParam->alfCtuEnableFlag, 0, N_C * ctx->f_lcu * sizeof(u8));
+    alfSliceParam.alfCtuEnableFlag = (u8 *)evc_malloc(N_C * ctx->f_lcu * sizeof(u8));
+    iAlfSliceParam->alfCtuEnableFlag = (u8 *)evc_malloc(N_C * ctx->f_lcu * sizeof(u8));
+    evc_mset(alfSliceParam.alfCtuEnableFlag, 0, N_C * ctx->f_lcu * sizeof(u8));
+    evc_mset(iAlfSliceParam->alfCtuEnableFlag, 0, N_C * ctx->f_lcu * sizeof(u8));
     p->Enc_ALFProcess(cs, lambdas, &alfSliceParam);
 
     if (alfSliceParam.enabledFlag[0] && m_store2ALFBufferFlag)
     {
         const unsigned tidxMAX = MAX_NUM_TLAYER - 1u;
         const unsigned tidx = ctx->nalu.nuh_temporal_id;
-        assert(tidx <= tidxMAX);
+        evc_assert(tidx <= tidxMAX);
         storeEncALFParamLineAPS(&alfSliceParam, tidx);
         alfSliceParam.store2ALFBufferFlag = m_store2ALFBufferFlag;
     }
@@ -148,7 +148,7 @@ void alf_aps_enc_opt_process(EncAdaptiveLoopFilter* p, const double* lambdas, EV
     }
 
     iAlfSliceParam->isCtbAlfOn = BOOL(alfSliceParam.isCtbAlfOn ? 1 : 0);
-    memcpy(iAlfSliceParam->alfCtuEnableFlag, alfSliceParam.alfCtuEnableFlag, N_C * ctx->f_lcu * sizeof(u8));
+    evc_mcpy(iAlfSliceParam->alfCtuEnableFlag, alfSliceParam.alfCtuEnableFlag, N_C * ctx->f_lcu * sizeof(u8));
     iAlfSliceParam->enabledFlag[0] = BOOL(alfSliceParam.enabledFlag[COMPONENT_Y]);
     iAlfSliceParam->enabledFlag[1] = BOOL(alfSliceParam.enabledFlag[COMPONENT_Cb]);
     iAlfSliceParam->enabledFlag[2] = BOOL(alfSliceParam.enabledFlag[COMPONENT_Cr]);
@@ -156,11 +156,11 @@ void alf_aps_enc_opt_process(EncAdaptiveLoopFilter* p, const double* lambdas, EV
     iAlfSliceParam->numLumaFilters = alfSliceParam.numLumaFilters;
     iAlfSliceParam->lumaFilterType = int(alfSliceParam.lumaFilterType);
 
-    memcpy(iAlfSliceParam->filterCoeffDeltaIdx, alfSliceParam.filterCoeffDeltaIdx, MAX_NUM_ALF_CLASSES * sizeof(short));
-    memcpy(iAlfSliceParam->lumaCoeff, alfSliceParam.lumaCoeff, sizeof(short)*MAX_NUM_ALF_CLASSES*MAX_NUM_ALF_LUMA_COEFF);
-    memcpy(iAlfSliceParam->chromaCoeff, alfSliceParam.chromaCoeff, sizeof(short)*MAX_NUM_ALF_CHROMA_COEFF);
-    memcpy(iAlfSliceParam->fixedFilterIdx, alfSliceParam.fixedFilterIdx, MAX_NUM_ALF_CLASSES * sizeof(int));
-    memcpy(iAlfSliceParam->fixedFilterUsageFlag, alfSliceParam.fixedFilterUsageFlag, MAX_NUM_ALF_CLASSES * sizeof(u8));
+    evc_mcpy(iAlfSliceParam->filterCoeffDeltaIdx, alfSliceParam.filterCoeffDeltaIdx, MAX_NUM_ALF_CLASSES * sizeof(short));
+    evc_mcpy(iAlfSliceParam->lumaCoeff, alfSliceParam.lumaCoeff, sizeof(short)*MAX_NUM_ALF_CLASSES*MAX_NUM_ALF_LUMA_COEFF);
+    evc_mcpy(iAlfSliceParam->chromaCoeff, alfSliceParam.chromaCoeff, sizeof(short)*MAX_NUM_ALF_CHROMA_COEFF);
+    evc_mcpy(iAlfSliceParam->fixedFilterIdx, alfSliceParam.fixedFilterIdx, MAX_NUM_ALF_CLASSES * sizeof(int));
+    evc_mcpy(iAlfSliceParam->fixedFilterUsageFlag, alfSliceParam.fixedFilterUsageFlag, MAX_NUM_ALF_CLASSES * sizeof(u8));
 
     iAlfSliceParam->fixedFilterPattern = alfSliceParam.fixedFilterPattern;
     iAlfSliceParam->coeffDeltaFlag = BOOL(alfSliceParam.coeffDeltaFlag);
@@ -193,12 +193,12 @@ u8 alf_aps_get_current_alf_idx()
 void AlfSliceParam_reset(AlfSliceParam* p)
 {
     p->isCtbAlfOn = false;
-    memset(p->alfCtuEnableFlag, 1, (size_t)m_numCTUsInPic * sizeof(u8));
-    memset(p->enabledFlag, 0, sizeof(p->enabledFlag)); //false is still 0
+    evc_mset(p->alfCtuEnableFlag, 1, (size_t)m_numCTUsInPic * sizeof(u8));
+    evc_mset(p->enabledFlag, 0, sizeof(p->enabledFlag)); //false is still 0
     p->lumaFilterType = ALF_FILTER_5;
-    memset(p->lumaCoeff, 0, sizeof(p->lumaCoeff));
-    memset(p->chromaCoeff, 0, sizeof(p->chromaCoeff));
-    memset(p->filterCoeffDeltaIdx, 0, sizeof(p->filterCoeffDeltaIdx));
+    evc_mset(p->lumaCoeff, 0, sizeof(p->lumaCoeff));
+    evc_mset(p->chromaCoeff, 0, sizeof(p->chromaCoeff));
+    evc_mset(p->filterCoeffDeltaIdx, 0, sizeof(p->filterCoeffDeltaIdx));
     for (int i = 0; i < MAX_NUM_ALF_CLASSES; i++)
         p->filterCoeffFlag[i] = TRUE;
     p->numLumaFilters = 1;
@@ -206,8 +206,8 @@ void AlfSliceParam_reset(AlfSliceParam* p)
     p->coeffDeltaPredModeFlag = false;
     p->chromaCtbPresentFlag = false;
     p->fixedFilterPattern = 0;
-    memset(p->fixedFilterIdx, 0, sizeof(p->fixedFilterIdx));
-    memset(p->fixedFilterUsageFlag, 0, sizeof(p->fixedFilterUsageFlag));
+    evc_mset(p->fixedFilterIdx, 0, sizeof(p->fixedFilterIdx));
+    evc_mset(p->fixedFilterUsageFlag, 0, sizeof(p->fixedFilterUsageFlag));
     p->temporalAlfFlag = false;
     p->prevIdx = 0;
     p->prevIdxComp[0] = 0;
@@ -267,11 +267,11 @@ void EncAdaptiveLoopFilter::create(const int picWidth, const int picHeight, cons
         m_alfCovarianceFrame[MAX_NUM_COMPONENT][0][k].create(m_filterShapes[1][0].numCoeff);
     }
 
-    m_alfSliceParamTemp.alfCtuEnableFlag = (u8 *)malloc(N_C * m_numCTUsInPic * sizeof(u8));
-    memset(m_alfSliceParamTemp.alfCtuEnableFlag, 0, N_C * m_numCTUsInPic * sizeof(u8));
+    m_alfSliceParamTemp.alfCtuEnableFlag = (u8 *)evc_malloc(N_C * m_numCTUsInPic * sizeof(u8));
+    evc_mset(m_alfSliceParamTemp.alfCtuEnableFlag, 0, N_C * m_numCTUsInPic * sizeof(u8));
 
-    m_ctuEnableFlagTmpLuma = (u8 *)malloc(N_C * m_numCTUsInPic * sizeof(u8));
-    memset(m_ctuEnableFlagTmpLuma, 0, N_C * m_numCTUsInPic * sizeof(u8));
+    m_ctuEnableFlagTmpLuma = (u8 *)evc_malloc(N_C * m_numCTUsInPic * sizeof(u8));
+    evc_mset(m_ctuEnableFlagTmpLuma, 0, N_C * m_numCTUsInPic * sizeof(u8));
 
     for (int compIdx = 0; compIdx < MAX_NUM_COMPONENT; compIdx++)
     {
@@ -343,8 +343,8 @@ void EncAdaptiveLoopFilter::destroy()
     m_alfCovarianceFrame[MAX_NUM_COMPONENT][0] = nullptr;
     delete[] m_alfCovarianceFrame[MAX_NUM_COMPONENT];
     m_alfCovarianceFrame[MAX_NUM_COMPONENT] = nullptr;
-    free(m_alfSliceParamTemp.alfCtuEnableFlag);
-    free(m_ctuEnableFlagTmpLuma);
+    evc_mfree(m_alfSliceParamTemp.alfCtuEnableFlag);
+    evc_mfree(m_ctuEnableFlagTmpLuma);
 
     m_ctuEnableFlagTmpLuma = nullptr;
 
@@ -943,7 +943,7 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
         recBuf = recPic->v;
         break;
     default:
-        assert(0);
+        evc_assert(0);
     }
 
     const int m = MAX_ALF_FILTER_LENGTH >> 1;
@@ -991,7 +991,7 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
                         int dstPos = i * l_stride - l_zero_offset;
                         int srcPos_offset = xPos + yPos * recStride;
                         int stride = (width == ctx->max_cuwh ? l_stride : width + m + m);
-                        memcpy(p_buffer + dstPos + m, recExtBuf + srcPos_offset + (i - m) * recStride, sizeof(pel) * (stride - 2 * m));
+                        evc_mcpy(p_buffer + dstPos + m, recExtBuf + srcPos_offset + (i - m) * recStride, sizeof(pel) * (stride - 2 * m));
                         for (int j = 0; j < m; j++)
                         {
                             if (availableL)
@@ -1010,9 +1010,9 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
                         int srcPos_offset = xPos + yPos * recStride;
                         int stride = (width == ctx->max_cuwh ? l_stride : width + m + m);
                         if (availableT)
-                            memcpy(p_buffer + dstPos, recExtBuf + srcPos_offset - (m - i) * recStride - m, sizeof(pel) * stride);
+                            evc_mcpy(p_buffer + dstPos, recExtBuf + srcPos_offset - (m - i) * recStride - m, sizeof(pel) * stride);
                         else
-                            memcpy(p_buffer + dstPos, p_buffer + dstPos + (2 * m - 2 * i) * l_stride, sizeof(pel) * stride);
+                            evc_mcpy(p_buffer + dstPos, p_buffer + dstPos + (2 * m - 2 * i) * l_stride, sizeof(pel) * stride);
                     }
                     for (int i = height + m; i < height + m + m; i++)
                     {
@@ -1020,9 +1020,9 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
                         int srcPos_offset = xPos + yPos * recStride;
                         int stride = (width == ctx->max_cuwh ? l_stride : width + m + m);
                         if (availableB)
-                            memcpy(p_buffer + dstPos, recExtBuf + srcPos_offset + (i - m) * recStride - m, sizeof(pel) * stride);
+                            evc_mcpy(p_buffer + dstPos, recExtBuf + srcPos_offset + (i - m) * recStride - m, sizeof(pel) * stride);
                         else
-                            memcpy(p_buffer + dstPos, p_buffer + dstPos - (2 * (i - height - m) + 2) * l_stride, sizeof(pel) * stride);
+                            evc_mcpy(p_buffer + dstPos, p_buffer + dstPos - (2 * (i - height - m) + 2) * l_stride, sizeof(pel) * stride);
                     }
                 }
                 else if (compID == COMPONENT_Cb)
@@ -1032,7 +1032,7 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
                         int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
                         int srcPos_offset = (xPos >> chromaScaleX) + (yPos >> chromaScaleY) * recStride;
                         int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> chromaScaleX) + m + m);
-                        memcpy(p_buffer_cb + dstPos + m, recExtBuf + srcPos_offset + (i - m) * recStride, sizeof(pel) * (stride - 2 * m));
+                        evc_mcpy(p_buffer_cb + dstPos + m, recExtBuf + srcPos_offset + (i - m) * recStride, sizeof(pel) * (stride - 2 * m));
                         for (int j = 0; j < m; j++)
                         {
                             if (availableL)
@@ -1052,9 +1052,9 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
                         int srcPos_offset = (xPos >> chromaScaleX) + (yPos >> chromaScaleY) * recStride;
                         int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> chromaScaleX) + m + m);
                         if (availableT)
-                            memcpy(p_buffer_cb + dstPos, recExtBuf + srcPos_offset - (m - i) * recStride - m, sizeof(pel) * stride);
+                            evc_mcpy(p_buffer_cb + dstPos, recExtBuf + srcPos_offset - (m - i) * recStride - m, sizeof(pel) * stride);
                         else
-                            memcpy(p_buffer_cb + dstPos, p_buffer_cb + dstPos + (2 * m - 2 * i) * l_stride_chroma, sizeof(pel) * stride);
+                            evc_mcpy(p_buffer_cb + dstPos, p_buffer_cb + dstPos + (2 * m - 2 * i) * l_stride_chroma, sizeof(pel) * stride);
                     }
 
                     for (int i = ((height >> chromaScaleY) + m); i < ((height >> chromaScaleY) + m + m); i++)
@@ -1063,9 +1063,9 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
                         int srcPos_offset = (xPos >> chromaScaleX) + (yPos >> chromaScaleY) * recStride;
                         int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> chromaScaleX) + m + m);
                         if (availableB)
-                            memcpy(p_buffer_cb + dstPos, recExtBuf + srcPos_offset + (i - m) * recStride - m, sizeof(pel) * stride);
+                            evc_mcpy(p_buffer_cb + dstPos, recExtBuf + srcPos_offset + (i - m) * recStride - m, sizeof(pel) * stride);
                         else
-                            memcpy(p_buffer_cb + dstPos, p_buffer_cb + dstPos - (2 * (i - (height >> chromaScaleY) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
+                            evc_mcpy(p_buffer_cb + dstPos, p_buffer_cb + dstPos - (2 * (i - (height >> chromaScaleY) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
                     }
                 }
                 else
@@ -1075,7 +1075,7 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
                         int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
                         int srcPos_offset = (xPos >> chromaScaleX) + (yPos >> chromaScaleY) * recStride;
                         int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> chromaScaleX) + m + m);
-                        memcpy(p_buffer_cr + dstPos + m, recExtBuf + srcPos_offset + (i - m) * recStride, sizeof(pel) * (stride - 2 * m));
+                        evc_mcpy(p_buffer_cr + dstPos + m, recExtBuf + srcPos_offset + (i - m) * recStride, sizeof(pel) * (stride - 2 * m));
                         for (int j = 0; j < m; j++)
                         {
                             if (availableL)
@@ -1095,9 +1095,9 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
                         int srcPos_offset = (xPos >> chromaScaleX) + (yPos >> chromaScaleY) * recStride;
                         int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> chromaScaleX) + m + m);
                         if (availableT)
-                            memcpy(p_buffer_cr + dstPos, recExtBuf + srcPos_offset - (m - i) * recStride - m, sizeof(pel) * stride);
+                            evc_mcpy(p_buffer_cr + dstPos, recExtBuf + srcPos_offset - (m - i) * recStride - m, sizeof(pel) * stride);
                         else
-                            memcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos + (2 * m - 2 * i) * l_stride_chroma, sizeof(pel) * stride);
+                            evc_mcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos + (2 * m - 2 * i) * l_stride_chroma, sizeof(pel) * stride);
                     }
 
                     for (int i = ((height >> chromaScaleY) + m); i < ((height >> chromaScaleY) + m + m); i++)
@@ -1106,9 +1106,9 @@ void EncAdaptiveLoopFilter::alfReconstructor(CodingStructure& cs, AlfSliceParam*
                         int srcPos_offset = (xPos >> chromaScaleX) + (yPos >> chromaScaleY) * recStride;
                         int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> chromaScaleX) + m + m);
                         if (availableB)
-                            memcpy(p_buffer_cr + dstPos, recExtBuf + srcPos_offset + (i - m) * recStride - m, sizeof(pel) * stride);
+                            evc_mcpy(p_buffer_cr + dstPos, recExtBuf + srcPos_offset + (i - m) * recStride - m, sizeof(pel) * stride);
                         else
-                            memcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos - (2 * (i - (height >> chromaScaleY) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
+                            evc_mcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos - (2 * (i - (height >> chromaScaleY) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
                     }
                 }
                 Area blk = { 0, 0, width >> chromaScaleX, height >> chromaScaleY };
@@ -1463,16 +1463,16 @@ void EncAdaptiveLoopFilter::copyAlfSliceParam(AlfSliceParam* alfSliceParamDst, A
     if (isLuma(channel))
     {
         u8* temp = alfSliceParamDst->alfCtuEnableFlag;
-        memcpy(alfSliceParamDst, alfSliceParamSrc, sizeof(AlfSliceParam));
+        evc_mcpy(alfSliceParamDst, alfSliceParamSrc, sizeof(AlfSliceParam));
         alfSliceParamDst->alfCtuEnableFlag = temp;
-        memcpy(alfSliceParamDst->alfCtuEnableFlag, alfSliceParamSrc->alfCtuEnableFlag, m_numCTUsInPic * sizeof(u8));
+        evc_mcpy(alfSliceParamDst->alfCtuEnableFlag, alfSliceParamSrc->alfCtuEnableFlag, m_numCTUsInPic * sizeof(u8));
     }
     else
     {
         alfSliceParamDst->enabledFlag[COMPONENT_Cb] = alfSliceParamSrc->enabledFlag[COMPONENT_Cb];
         alfSliceParamDst->enabledFlag[COMPONENT_Cr] = alfSliceParamSrc->enabledFlag[COMPONENT_Cr];
         alfSliceParamDst->chromaCtbPresentFlag = alfSliceParamSrc->chromaCtbPresentFlag;
-        memcpy(alfSliceParamDst->chromaCoeff, alfSliceParamSrc->chromaCoeff, sizeof(short)*MAX_NUM_ALF_CHROMA_COEFF);
+        evc_mcpy(alfSliceParamDst->chromaCoeff, alfSliceParamSrc->chromaCoeff, sizeof(short)*MAX_NUM_ALF_CHROMA_COEFF);
     }
 }
 
@@ -1498,7 +1498,7 @@ double EncAdaptiveLoopFilter::getFilterCoeffAndCost(CodingStructure& cs, double 
     else if (compID == COMPONENT_Cb || compID == COMPONENT_Cr)
     {
         dist += m_alfCovarianceFrame[compID][iShapeIdx][0].pixAcc + deriveCoeffQuant(m_filterCoeffQuant, m_alfCovarianceFrame[compID][iShapeIdx][0].E, m_alfCovarianceFrame[compID][iShapeIdx][0].y, alfFilterShape.numCoeff, alfFilterShape.weights, m_NUM_BITS, true);
-        memcpy(m_filterCoeffSet[0], m_filterCoeffQuant, sizeof(*m_filterCoeffQuant) * alfFilterShape.numCoeff);
+        evc_mcpy(m_filterCoeffSet[0], m_filterCoeffQuant, sizeof(*m_filterCoeffQuant) * alfFilterShape.numCoeff);
         const int alfChromaIdc = m_alfSliceParamTemp.enabledFlag[COMPONENT_Cb] * 2 + m_alfSliceParamTemp.enabledFlag[COMPONENT_Cr];
         for (int i = 0; i < MAX_NUM_ALF_CHROMA_COEFF; i++)
         {
@@ -1548,7 +1548,7 @@ void EncAdaptiveLoopFilter::getFilterCoeffAndCost_Chroma(CodingStructure& cs, do
     m_alfCovarianceFrame[MAX_NUM_COMPONENT][iShapeIdx][0] += m_alfCovarianceFrame[1][iShapeIdx][0];
     m_alfCovarianceFrame[MAX_NUM_COMPONENT][iShapeIdx][0] += m_alfCovarianceFrame[2][iShapeIdx][0];
     dist += m_alfCovarianceFrame[MAX_NUM_COMPONENT][iShapeIdx][0].pixAcc + deriveCoeffQuant(m_filterCoeffQuant, m_alfCovarianceFrame[MAX_NUM_COMPONENT][0][0].E, m_alfCovarianceFrame[MAX_NUM_COMPONENT][0][0].y, alfFilterShape.numCoeff, alfFilterShape.weights, m_NUM_BITS, true);
-    memcpy(m_filterCoeffSet[0], m_filterCoeffQuant, sizeof(*m_filterCoeffQuant) * alfFilterShape.numCoeff);
+    evc_mcpy(m_filterCoeffSet[0], m_filterCoeffQuant, sizeof(*m_filterCoeffQuant) * alfFilterShape.numCoeff);
 
     u8 filter_conformance_flag = 0;
     int sum = 0;
@@ -1603,7 +1603,7 @@ int EncAdaptiveLoopFilter::getCoeffRate(AlfSliceParam* alfSliceParam, bool isChr
         }
     }
 
-    memset(m_bitsCoeffScan, 0, sizeof(m_bitsCoeffScan));
+    evc_mset(m_bitsCoeffScan, 0, sizeof(m_bitsCoeffScan));
     AlfFilterShape alfShape;
     init_AlfFilterShape(&alfShape, isChroma ? 5 : (alfSliceParam->lumaFilterType == ALF_FILTER_5 ? 5 : 7));
     const int maxGolombIdx = getMaxGolombIdx((AlfFilterType)alfShape.filterType);
@@ -1851,7 +1851,7 @@ double EncAdaptiveLoopFilter::mergeFiltersAndCost(AlfSliceParam* alfSliceParam, 
         {
             if (codedVarBins[varInd] == 0)
             {
-                memset(m_filterCoeffSet[varInd], 0, sizeof(int)*MAX_NUM_ALF_LUMA_COEFF);
+                evc_mset(m_filterCoeffSet[varInd], 0, sizeof(int)*MAX_NUM_ALF_LUMA_COEFF);
             }
         }
     }
@@ -1870,7 +1870,7 @@ double EncAdaptiveLoopFilter::mergeFiltersAndCost(AlfSliceParam* alfSliceParam, 
         }
     }
 
-    memcpy(alfSliceParam->filterCoeffDeltaIdx, m_filterIndices[numFiltersBest - 1], sizeof(short) * MAX_NUM_ALF_CLASSES);
+    evc_mcpy(alfSliceParam->filterCoeffDeltaIdx, m_filterIndices[numFiltersBest - 1], sizeof(short) * MAX_NUM_ALF_CLASSES);
     const int iNumFixedFilterPerClass = ALF_FIXED_FILTER_NUM;
     if (iNumFixedFilterPerClass > 0)
     {
@@ -1979,11 +1979,11 @@ int EncAdaptiveLoopFilter::getTBlength(int uiSymbol, const int uiMaxSymbol)
     }
 
     int uiVal = 1 << uiThresh;
-    assert(uiVal <= uiMaxSymbol);
-    assert((uiVal << 1) > uiMaxSymbol);
-    assert(uiSymbol < uiMaxSymbol);
+    evc_assert(uiVal <= uiMaxSymbol);
+    evc_assert((uiVal << 1) > uiMaxSymbol);
+    evc_assert(uiSymbol < uiMaxSymbol);
     int b = uiMaxSymbol - uiVal;
-    assert(b < uiVal);
+    evc_assert(b < uiVal);
     if (uiSymbol < uiVal - b)
     {
         return uiThresh;
@@ -1997,7 +1997,7 @@ int EncAdaptiveLoopFilter::getTBlength(int uiSymbol, const int uiMaxSymbol)
 int EncAdaptiveLoopFilter::getCostFilterCoeffForce0(AlfFilterShape& alfShape, int **pDiffQFilterCoeffIntPP, const int numFilters, bool* codedVarBins)
 {
     const int maxGolombIdx = getMaxGolombIdx((AlfFilterType)alfShape.filterType);
-    memset(m_bitsCoeffScan, 0, sizeof(m_bitsCoeffScan));
+    evc_mset(m_bitsCoeffScan, 0, sizeof(m_bitsCoeffScan));
 
     for (int ind = 0; ind < numFilters; ++ind)
     {
@@ -2045,7 +2045,7 @@ int EncAdaptiveLoopFilter::deriveFilterCoefficientsPredictionMode(AlfFilterShape
     {
         if (ind == 0)
         {
-            memcpy(filterCoeffDiff[ind], filterSet[ind], sizeof(int) * alfShape.numCoeff);
+            evc_mcpy(filterCoeffDiff[ind], filterSet[ind], sizeof(int) * alfShape.numCoeff);
         }
         else
         {
@@ -2068,7 +2068,7 @@ int EncAdaptiveLoopFilter::getCostFilterCoeff(AlfFilterShape& alfShape, int **pD
 {
     const int maxGolombIdx = getMaxGolombIdx((AlfFilterType)alfShape.filterType);
 
-    memset(m_bitsCoeffScan, 0, sizeof(m_bitsCoeffScan));
+    evc_mset(m_bitsCoeffScan, 0, sizeof(m_bitsCoeffScan));
 
     for (int ind = 0; ind < numFilters; ++ind)
     {
@@ -2110,7 +2110,7 @@ double EncAdaptiveLoopFilter::getDistForce0(AlfFilterShape& alfShape, const int 
 {
     static int bitsVarBin[MAX_NUM_ALF_CLASSES];
 
-    memset(m_bitsCoeffScan, 0, sizeof(m_bitsCoeffScan));
+    evc_mset(m_bitsCoeffScan, 0, sizeof(m_bitsCoeffScan));
     for (int ind = 0; ind < numFilters; ++ind)
     {
         for (int i = 0; i < alfShape.numCoeff - 1; i++)
@@ -2192,7 +2192,7 @@ int EncAdaptiveLoopFilter::getGolombKMin(AlfFilterShape& alfShape, const int num
 double EncAdaptiveLoopFilter::getDistCoeffForce0(bool* codedVarBins, double errorForce0CoeffTab[MAX_NUM_ALF_CLASSES][2], int* bitsVarBin, const int numFilters)
 {
     double distForce0 = 0;
-    memset(codedVarBins, 0, sizeof(*codedVarBins) * MAX_NUM_ALF_CLASSES);
+    evc_mset(codedVarBins, 0, sizeof(*codedVarBins) * MAX_NUM_ALF_CLASSES);
 
     for (int filtIdx = 0; filtIdx < numFilters; filtIdx++)
     {
@@ -2257,7 +2257,7 @@ double EncAdaptiveLoopFilter::deriveFilterCoeffs(AlfCovariance* cov, AlfCovarian
         error += errorTabForce0Coeff[filtIdx][1];
 
         // store coeff
-        memcpy(m_filterCoeffSet[filtIdx], m_filterCoeffQuant, sizeof(int)*alfShape.numCoeff);
+        evc_mcpy(m_filterCoeffSet[filtIdx], m_filterCoeffQuant, sizeof(int)*alfShape.numCoeff);
     }
     return error;
 }
@@ -2290,7 +2290,7 @@ double EncAdaptiveLoopFilter::deriveCoeffQuant(int *filterCoeffQuant, double **E
         {
             if (weights[k] <= diff)
             {
-                memcpy(filterCoeffQuantMod, filterCoeffQuant, sizeof(int) * numCoeff);
+                evc_mcpy(filterCoeffQuantMod, filterCoeffQuant, sizeof(int) * numCoeff);
 
                 filterCoeffQuantMod[k] -= sign;
                 double error = calcErrorForCoeffs(E, y, filterCoeffQuantMod, numCoeff, bitDepth);
@@ -2317,7 +2317,7 @@ double EncAdaptiveLoopFilter::deriveCoeffQuant(int *filterCoeffQuant, double **E
     }
     if (count == 10)
     {
-        memset(filterCoeffQuant, 0, sizeof(int) * numCoeff);
+        evc_mset(filterCoeffQuant, 0, sizeof(int) * numCoeff);
     }
 
     //512 -> 1, (64+32+4+2)->0.199
@@ -2416,7 +2416,7 @@ void EncAdaptiveLoopFilter::mergeClasses(AlfCovariance* cov, AlfCovariance* covM
     static uint8_t indexListTemp[MAX_NUM_ALF_CLASSES];
     int numRemaining = numClasses;
 
-    memset(filterIndices, 0, sizeof(short) * MAX_NUM_ALF_CLASSES * MAX_NUM_ALF_CLASSES);
+    evc_mset(filterIndices, 0, sizeof(short) * MAX_NUM_ALF_CLASSES * MAX_NUM_ALF_CLASSES);
 
     for (int i = 0; i < numClasses; i++)
     {
@@ -2475,7 +2475,7 @@ void EncAdaptiveLoopFilter::mergeClasses(AlfCovariance* cov, AlfCovariance* covM
         numRemaining--;
         if (numRemaining <= numClasses)
         {
-            memcpy(indexListTemp, indexList, sizeof(uint8_t) * numClasses);
+            evc_mcpy(indexListTemp, indexList, sizeof(uint8_t) * numClasses);
 
             bool exist = false;
             int ind = 0;
@@ -2658,7 +2658,7 @@ void EncAdaptiveLoopFilter::getBlkStats(int ch, AlfCovariance* alfCovariace, con
     {
         for (int j = 0; j < width; j++)
         {
-            memset(ELocal, 0, shape.numCoeff * sizeof(int));
+            evc_mset(ELocal, 0, shape.numCoeff * sizeof(int));
             if (classifier /* && ( (i & 3) == 0) && ((j & 3) == 0) */) //todo: here addressing is for full frame classifier, to be changed to x16 times smaller
             {
                 int x2 = ch ? (x << (GET_CHROMA_W_SHIFT(idc))) : x;
@@ -2906,7 +2906,7 @@ int EncAdaptiveLoopFilter::gnsSolveByChol(double **LHS, double *rhs, double *x, 
 
         if (!res)
         {
-            memset(x, 0, sizeof(double)*numEq);
+            evc_mset(x, 0, sizeof(double)*numEq);
             return 0;
         }
 
@@ -2952,15 +2952,15 @@ void EncAdaptiveLoopFilter::copyCtuEnableFlag(uint8_t** ctuFlagsDst, uint8_t** c
 {
     if (channel == COMPONENT_Y)
     {
-        memcpy(ctuFlagsDst[COMPONENT_Y], ctuFlagsSrc[COMPONENT_Y], sizeof(uint8_t) * m_numCTUsInPic);
+        evc_mcpy(ctuFlagsDst[COMPONENT_Y], ctuFlagsSrc[COMPONENT_Y], sizeof(uint8_t) * m_numCTUsInPic);
     }
     else if (channel == COMPONENT_Cb)
     {
-        memcpy(ctuFlagsDst[COMPONENT_Cb], ctuFlagsSrc[COMPONENT_Cb], sizeof(uint8_t) * m_numCTUsInPic);
+        evc_mcpy(ctuFlagsDst[COMPONENT_Cb], ctuFlagsSrc[COMPONENT_Cb], sizeof(uint8_t) * m_numCTUsInPic);
     }
     else if (channel == COMPONENT_Cr)
     {
-        memcpy(ctuFlagsDst[COMPONENT_Cr], ctuFlagsSrc[COMPONENT_Cr], sizeof(uint8_t) * m_numCTUsInPic);
+        evc_mcpy(ctuFlagsDst[COMPONENT_Cr], ctuFlagsSrc[COMPONENT_Cr], sizeof(uint8_t) * m_numCTUsInPic);
     }
 }
 
@@ -2968,14 +2968,14 @@ void EncAdaptiveLoopFilter::setCtuEnableFlag(uint8_t** ctuFlags, ComponentID cha
 {
     if (channel == COMPONENT_Y)
     {
-        memset(ctuFlags[COMPONENT_Y], val, sizeof(uint8_t) * m_numCTUsInPic);
+        evc_mset(ctuFlags[COMPONENT_Y], val, sizeof(uint8_t) * m_numCTUsInPic);
     }
     else if (channel == COMPONENT_Cb)
     {
-        memset(ctuFlags[COMPONENT_Cb], val, sizeof(uint8_t) * m_numCTUsInPic);
+        evc_mset(ctuFlags[COMPONENT_Cb], val, sizeof(uint8_t) * m_numCTUsInPic);
     }
     else if (channel == COMPONENT_Cr)
     {
-        memset(ctuFlags[COMPONENT_Cr], val, sizeof(uint8_t) * m_numCTUsInPic);
+        evc_mset(ctuFlags[COMPONENT_Cr], val, sizeof(uint8_t) * m_numCTUsInPic);
     }
 }

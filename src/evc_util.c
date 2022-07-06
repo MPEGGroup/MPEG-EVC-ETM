@@ -737,7 +737,7 @@ void evc_check_motion_availability(int scup, int cuw, int cuh, int w_scu, int h_
     int y_scu = scup / w_scu;
     int scuw = cuw >> MIN_CU_LOG2;
     int scuh = cuh >> MIN_CU_LOG2;
-    memset(valid_flag, 0, 5 * sizeof(int));
+    evc_mset(valid_flag, 0, 5 * sizeof(int));
     
     if (avail_lr == LR_11)
     {
@@ -933,7 +933,7 @@ s8 evc_get_first_refi(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[
                            , hmvp_flag
     );
 
-    assert(mvr_idx < 5);
+    evc_assert(mvr_idx < 5);
     //neb-position is coupled with mvr index
     if(valid_flag[mvr_idx])
     {
@@ -1095,7 +1095,7 @@ void evc_get_motion_from_mvr(u8 mvr_idx, int poc, int scup, int lidx, s8 cur_ref
         ratio[i] = ((poc - poc_refi_cur) << MVP_SCALING_PRECISION) / t0;
     }
 
-    assert(mvr_idx < 5);
+    evc_assert(mvr_idx < 5);
 
     if(valid_flag[mvr_idx])
     {
@@ -2163,7 +2163,7 @@ int evc_md5_imgb(EVC_IMGB *imgb, u8 digest[N_C][16])
     EVC_MD5 md5[N_C];
     int i, j;
 
-    assert(EVC_COLORSPACE_IS_YUV_PLANAR(imgb->cs));
+    evc_assert(EVC_COLORSPACE_IS_YUV_PLANAR(imgb->cs));
 
     for(i = 0; i < imgb->np; i++)
     {
@@ -2262,12 +2262,12 @@ int evc_scan_tbl_delete()
             {
                 if(evc_scan_tbl[scan_type][x][y] != NULL)
                 {
-                    free(evc_scan_tbl[scan_type][x][y]);
+                    evc_mfree(evc_scan_tbl[scan_type][x][y]);
                 }
 
                 if (evc_inv_scan_tbl[scan_type][x][y] != NULL)
                 {
-                    free(evc_inv_scan_tbl[scan_type][x][y]);
+                    evc_mfree(evc_inv_scan_tbl[scan_type][x][y]);
                 }
             }
         }
@@ -2738,8 +2738,8 @@ void derive_affine_subblock_size(s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int
 
 void calculate_affine_motion_model_parameters(s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int vertex_num, int d_hor[MV_D], int d_ver[MV_D], int mv_additional_precision)
 {
-    assert(MV_X == 0 && MV_Y == 1);
-    assert(vertex_num == 2 || vertex_num == 3);
+    evc_assert(MV_X == 0 && MV_Y == 1);
+    evc_assert(vertex_num == 2 || vertex_num == 3);
 
     // convert to 2^(storeBit + bit) precision
 
@@ -2797,7 +2797,7 @@ BOOL check_eif_num_fetched_lines_restrictions( s16 ac_mv[VER_NUM][MV_D], int d_h
 
 BOOL check_eif_applicability_uni(s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int vertex_num, BOOL* mem_band_conditions_are_satisfied)
 {
-    assert(mem_band_conditions_are_satisfied);
+    evc_assert(mem_band_conditions_are_satisfied);
 
     int mv_additional_precision = MAX_CU_LOG2;
     int mv_precision = 2 + mv_additional_precision;
@@ -4262,8 +4262,8 @@ void evc_init_inverse_scan_sr(u16 *scan_inv, u16 *scan_orig, int width, int heig
         for ( x = 0; x < num_line; x++)
         {
             int scan_pos = scan_orig[x];
-            assert(scan_pos >= 0);
-            assert(scan_pos < num_line);
+            evc_assert(scan_pos >= 0);
+            evc_assert(scan_pos < num_line);
             scan_inv[scan_pos] = x;
         }
     }
@@ -4573,7 +4573,7 @@ void evc_block_copy(s16 * src, int src_stride, s16 * dst, int dst_stride, int lo
     s16 *tmp_dst = dst;
     for (h = 0; h < (1<< log2_copy_h); h++)
     {
-        memcpy(tmp_dst, tmp_src, copy_size);
+        evc_mcpy(tmp_dst, tmp_src, copy_size);
         tmp_dst += dst_stride;
         tmp_src += src_stride;
     }
@@ -4609,7 +4609,7 @@ void get_tu_size(u8 ats_inter_info, int log2_cuw, int log2_cuh, int* log2_tuw, i
         return;
     }
 
-    assert(ats_inter_idx <= 4);
+    evc_assert(ats_inter_idx <= 4);
     if (is_ats_inter_horizontal(ats_inter_idx))
     {
         *log2_tuw = log2_cuw;
@@ -4668,7 +4668,7 @@ void get_ats_inter_trs(u8 ats_inter_info, int log2_cuw, int log2_cuh, u8* ats_cu
 
         //Note: 1 is DCT8 and 0 is DST7
 #if ATS_INTER_DEBUG
-        assert(evc_tbl_tr_subset_intra[0] == DST7 && evc_tbl_tr_subset_intra[1] == DCT8);
+        evc_assert(evc_tbl_tr_subset_intra[0] == DST7 && evc_tbl_tr_subset_intra[1] == DCT8);
 #endif
         if (is_ats_inter_horizontal(ats_inter_idx))
         {
@@ -4728,7 +4728,7 @@ void set_cu_cbf_flags(u8 cbf_y, u8 ats_inter_info, int log2_cuw, int log2_cuh, u
     }
     else
     {
-        assert(0);
+        evc_assert(0);
     }
 }
 
@@ -4766,7 +4766,7 @@ void evc_get_mv_collocated(EVC_REFP(*refp)[REFP_NUM], u32 poc, int scup, int c_s
     int dpoc_co[REFP_NUM] = { 0, 0 };
     int dpoc[REFP_NUM] = { 0, 0 };
     int ver_refi[REFP_NUM] = { -1, -1 };
-    memset(mvp, 0, sizeof(s16) * REFP_NUM * MV_D);
+    evc_mset(mvp, 0, sizeof(s16) * REFP_NUM * MV_D);
 
     s8(*map_refi_co)[REFP_NUM] = colPic.map_refi;
     dpoc[REFP_0] = poc - refp[0][REFP_0].poc;

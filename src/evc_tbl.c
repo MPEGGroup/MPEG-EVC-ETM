@@ -397,8 +397,8 @@ void evc_derived_chroma_qp_mapping_tables(EVC_CHROMA_TABLE *structChromaQP, int 
 
         for (int j = 0; j <= structChromaQP->num_points_in_qp_table_minus1[i]; j++)
         {
-            assert(qpInVal[j] >= -qpBdOffsetC && qpInVal[j]  <= MAX_QP);
-            assert(qpOutVal[j] >= -qpBdOffsetC && qpOutVal[j] <= MAX_QP);
+            evc_assert(qpInVal[j] >= -qpBdOffsetC && qpInVal[j]  <= MAX_QP);
+            evc_assert(qpOutVal[j] >= -qpBdOffsetC && qpOutVal[j] <= MAX_QP);
         }
 
         p_evc_tbl_qp_chroma_dynamic[i][qpInVal[0]] = qpOutVal[0];
@@ -422,7 +422,7 @@ void evc_derived_chroma_qp_mapping_tables(EVC_CHROMA_TABLE *structChromaQP, int 
     }
     if (structChromaQP->same_qp_table_for_chroma)
     {
-        memcpy(&(p_evc_tbl_qp_chroma_dynamic[1][-qpBdOffsetC]), &(p_evc_tbl_qp_chroma_dynamic[0][-qpBdOffsetC]), MAX_QP_TABLE_SIZE_EXT * sizeof(int));
+        evc_mcpy(&(p_evc_tbl_qp_chroma_dynamic[1][-qpBdOffsetC]), &(p_evc_tbl_qp_chroma_dynamic[0][-qpBdOffsetC]), MAX_QP_TABLE_SIZE_EXT * sizeof(int));
     }
 }
 

@@ -237,7 +237,7 @@ int evc_getDraRangeIdx_gen(WCGDDRAControl *p_DRAMapping, int sample, int *chroma
 int evc_correctLocalChromaScale(WCGDDRAControl *p_DRAMapping, int intScaleLumaDra, int chId)
 {
     int l_array[NUM_CHROMA_QP_OFFSET_LOG];
-    memcpy(l_array, g_dra_chroma_qp_offset_tbl, NUM_CHROMA_QP_OFFSET_LOG * sizeof(int));
+    evc_mcpy(l_array, g_dra_chroma_qp_offset_tbl, NUM_CHROMA_QP_OFFSET_LOG * sizeof(int));
     int SCALE_OFFSET = 1 << QC_SCALE_NUMFBITS;
     int TABLE0_SHIFT = NUM_CHROMA_QP_SCALE_EXP >> 1;
     int outChromaScale = 1;
@@ -650,7 +650,7 @@ void evce_setSignalledParamsDRA(WCGDDRAControl *p_DRAMapping)
     {
         p_DRAMapping->m_signalledDRA.m_dra_scale_value[i] = p_DRAMapping->m_atfIntDraScales[i];
     }
-    assert(QC_SCALE_NUMFBITS >= p_DRAMapping->m_dra_descriptor2); 
+    evc_assert(QC_SCALE_NUMFBITS >= p_DRAMapping->m_dra_descriptor2);
     p_DRAMapping->m_signalledDRA.m_dra_cb_scale_value = p_DRAMapping->m_dra_cb_scale_value >> (QC_SCALE_NUMFBITS - p_DRAMapping->m_dra_descriptor2);
     p_DRAMapping->m_signalledDRA.m_dra_cr_scale_value = p_DRAMapping->m_dra_cr_scale_value >> (QC_SCALE_NUMFBITS - p_DRAMapping->m_dra_descriptor2);
 
@@ -884,7 +884,7 @@ int evce_generate_dra_array(SignalledParamsDRA * p_dra_control_array, WCGDDRACon
         evce_analyzeInputPic(p_g_dra_control);
         if (p_g_dra_control->m_flagEnabled == 1)
         {
-            memcpy(p_dra_control_array + i, &(p_g_dra_control->m_signalledDRA), sizeof(SignalledParamsDRA));
+            evc_mcpy(p_dra_control_array + i, &(p_g_dra_control->m_signalledDRA), sizeof(SignalledParamsDRA));
         }
     }
     return EVC_OK;
@@ -892,10 +892,10 @@ int evce_generate_dra_array(SignalledParamsDRA * p_dra_control_array, WCGDDRACon
 
 int evce_construct_dra_from_array(SignalledParamsDRA * p_dra_control_array, WCGDDRAControl * p_g_dra_control, int effective_aps_id)
 {
-    assert(effective_aps_id >= 0 && effective_aps_id < APS_MAX_NUM);
+    evc_assert(effective_aps_id >= 0 && effective_aps_id < APS_MAX_NUM);
 
     SignalledParamsDRA* p_pps_draParams = p_dra_control_array + effective_aps_id;
-    memcpy(&(p_g_dra_control->m_signalledDRA), p_pps_draParams, sizeof(SignalledParamsDRA));
+    evc_mcpy(&(p_g_dra_control->m_signalledDRA), p_pps_draParams, sizeof(SignalledParamsDRA));
     evcd_initDRA(p_g_dra_control);
     evce_buildFwdDraLutFromDec(p_g_dra_control);
     return EVC_OK;
@@ -1068,14 +1068,14 @@ void evc_resetApsGenReadBuffer(EVC_APS_GEN *p_aps_gen_array)
 void evc_addDraApsToBuffer(SignalledParamsDRA* p_g_dra_control_array, EVC_APS_GEN *p_aps_gen_array)
 {
     int dra_id = (p_aps_gen_array + 1)->aps_id;
-    assert((dra_id >-2) && (dra_id < APS_MAX_NUM));
+    evc_assert((dra_id >-2) && (dra_id < APS_MAX_NUM));
     if (dra_id != -1)
     {
         SignalledParamsDRA* pDraBuffer = p_g_dra_control_array + dra_id;
         SignalledParamsDRA* pDraSrc = (SignalledParamsDRA*)((p_aps_gen_array + 1)->aps_data);
         if (pDraBuffer->m_signal_dra_flag == -1)
         {
-            memcpy(pDraBuffer, pDraSrc, sizeof(SignalledParamsDRA));
+            evc_mcpy(pDraBuffer, pDraSrc, sizeof(SignalledParamsDRA));
             (p_aps_gen_array + 1)->aps_id = -1;
         }
         else

@@ -58,7 +58,7 @@ void evc_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, p
         {
             u8  ats_inter_idx = get_ats_inter_idx(ats_inter_info);
             u8  ats_inter_pos = get_ats_inter_pos(ats_inter_info);
-            assert(ats_inter_idx >= 1 && ats_inter_idx <= 4);
+            evc_assert(ats_inter_idx >= 1 && ats_inter_idx <= 4);
             int tu0_w, tu0_h;
             int tu1_w;
             pel resi;
@@ -285,7 +285,7 @@ void filter_block_luma(pel *block, const u8 HTDF_table[HTDF_LUT_QP_NUM][1 << HTD
 {
     pel acc_block[(MAX_CU_SIZE + 2)*(MAX_CU_SIZE + 2)];
 
-    memset(acc_block, 0, stride*height * sizeof(*acc_block));
+    evc_mset(acc_block, 0, stride*height * sizeof(*acc_block));
 
     int idx = (qp - HTDF_LUT_MIN_QP + (1 << (HTDF_LUT_STEP_QP_LOG2 - 1))) >> HTDF_LUT_STEP_QP_LOG2;
     idx = max(idx, 0);
@@ -333,7 +333,7 @@ void evc_htdf(s16* rec, int qp, int w, int h, int s, BOOL intra_block_flag, pel*
     int height_ext = h + 2;
 
     for (int i = 0; i < h; ++i)
-        memcpy(tempblock + (i + 1) * width_ext + 1, rec + i * s, w * sizeof(rec[0]));
+        evc_mcpy(tempblock + (i + 1) * width_ext + 1, rec + i * s, w * sizeof(rec[0]));
 
     if(IS_AVAIL(avail_cu, AVAIL_LE))
     {
@@ -393,10 +393,10 @@ void evc_htdf(s16* rec, int qp, int w, int h, int s, BOOL intra_block_flag, pel*
     }
     else
     {
-        memcpy(tempblock + 1, rec, w * sizeof(rec[0]));
+        evc_mcpy(tempblock + 1, rec, w * sizeof(rec[0]));
     }
 
-    memcpy(tempblock + 1 + (height_ext - 1) * width_ext, rec + (h - 1) * s, w * sizeof(rec[0]));
+    evc_mcpy(tempblock + 1 + (height_ext - 1) * width_ext, rec + (h - 1) * s, w * sizeof(rec[0]));
 
     tempblock[0] = IS_AVAIL(avail_cu, AVAIL_UP_LE) ? rec_pic[-1 - 1 * s_pic] : rec[0];
     tempblock[width_ext - 1] = IS_AVAIL(avail_cu, AVAIL_UP_RI) ? rec_pic[w - 1 * s_pic] : rec[w - 1];
@@ -406,5 +406,5 @@ void evc_htdf(s16* rec, int qp, int w, int h, int s, BOOL intra_block_flag, pel*
     filter_block_luma(tempblock, HTDF_table, width_ext, height_ext, width_ext, qp, bit_depth);
 
     for (int i = 0; i < h; ++i)
-        memcpy(rec + i * s, tempblock + (i + 1) * width_ext + 1, w * sizeof(rec[0]));
+        evc_mcpy(rec + i * s, tempblock + (i + 1) * width_ext + 1, w * sizeof(rec[0]));
 }

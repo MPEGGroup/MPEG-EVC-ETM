@@ -34,7 +34,6 @@
 #include "evc_tbl.h"
 #include "evc_mc.h"
 #include "evc_util.h"
-#include <assert.h>
 
 #define MC_FILTER_BASE        0
 #define MC_FILTER_MAIN        1
@@ -1079,7 +1078,7 @@ void average_16b_no_clip_sse(s16 *src, s16 *ref, s16 *dst, int s_src, int s_ref,
     int offset = 1;
     int shift = 1;
 
-    assert(bit_depth <= 14);
+    evc_assert(bit_depth <= 14);
 
     p0 = src;
     p1 = ref;
@@ -4972,7 +4971,7 @@ static int dmvr_sad_mr_16b_sse(int w, int h, void * src1, void * src2, int s_src
 
     __m128i /*mm_zero, */mm_result1, mm_result2, mm_delta;
 
-    assert(bit_depth <= 14);
+    evc_assert(bit_depth <= 14);
 
     mm_delta = _mm_set1_epi16(delta);
 
@@ -5462,7 +5461,7 @@ s32 simple_sad(int w, int h, pel *src1, pel *src2, int s_src1, int s_src2, s32(*
             avg2 -= *src2;
             break;
         default:
-            assert(!"Undefined case");
+            evc_assert(!"Undefined case");
             break;
         }
         average_for_next_interation[SRC2][point_index] = avg2;
@@ -5636,7 +5635,7 @@ pel* refinement_motion_vectors_in_one_ref(int x, int y, int pic_w, int pic_h, in
             break;
 
         default:
-            assert(!"Undefined case");
+            evc_assert(!"Undefined case");
             break;
         }
     }
@@ -5756,7 +5755,7 @@ pel* refinement_motion_vectors_in_one_ref(int x, int y, int pic_w, int pic_h, in
         break;
 
     default:
-        assert(!"Undefined case");
+        evc_assert(!"Undefined case");
         break;
     }
 
@@ -6005,7 +6004,7 @@ void copy_buffer(pel *src, int src_stride, pel *dst, int dst_stride, int width, 
     int numBytes = width * sizeof(pel);
     for (int i = 0; i < height; i++)
     {
-        memcpy(dst + i * dst_stride, src + i * src_stride, numBytes);
+        evc_mcpy(dst + i * dst_stride, src + i * src_stride, numBytes);
     }
 }
 
@@ -6037,14 +6036,14 @@ void padding(pel *ptr, int iStride, int iWidth, int iHeight, int PadLeftsize, in
     ptr_temp = (ptr - PadLeftsize);
     for (int i = 1; i <= PadTopsize; i++)
     {
-        memcpy(ptr_temp - (i * iStride), (ptr_temp), numBytes);
+        evc_mcpy(ptr_temp - (i * iStride), (ptr_temp), numBytes);
     }
     /*Bottom padding*/
     numBytes = (iWidth + PadLeftsize + PadRightsize) * sizeof(pel);
     ptr_temp = (ptr + (iStride * (iHeight - 1)) - PadLeftsize);
     for (int i = 1; i <= PadBottomSize; i++)
     {
-        memcpy(ptr_temp + (i * iStride), (ptr_temp), numBytes);
+        evc_mcpy(ptr_temp + (i * iStride), (ptr_temp), numBytes);
     }
 }
 
@@ -6964,7 +6963,7 @@ BOOL can_mv_clipping_occurs(int block_width, int block_height, int mv0[MV_D], in
     block_width = block_width + 1;
     block_height = block_height + 1;
 
-    assert(MV_Y - MV_X == 1);
+    evc_assert(MV_Y - MV_X == 1);
 
     for (int coord = MV_X; coord <= MV_Y; ++coord)
     {
@@ -7119,8 +7118,8 @@ void evc_eif_mc(int block_width, int block_height, int x, int y, int mv_scale_ho
                 int hor_max, int ver_max, int hor_min, int ver_min, pel* p_ref, int ref_stride, pel *p_dst, int dst_stride, pel* p_tmp_buf, char affine_mv_prec, s8 comp
                 , int bit_depth, int chroma_format_idc)
 {
-    assert(EIF_MV_PRECISION_INTERNAL >= affine_mv_prec);  //For current affine internal MV precision is (2 + bit) bits; 2 means qpel
-    assert(EIF_MV_PRECISION_INTERNAL >= 4);  //For current affine internal MV precision is (2 + bit) bits; 2 means qpel
+    evc_assert(EIF_MV_PRECISION_INTERNAL >= affine_mv_prec);  //For current affine internal MV precision is (2 + bit) bits; 2 means qpel
+    evc_assert(EIF_MV_PRECISION_INTERNAL >= 4);  //For current affine internal MV precision is (2 + bit) bits; 2 means qpel
 
     int mv0[MV_D] = { mv_scale_hor << (EIF_MV_PRECISION_INTERNAL - affine_mv_prec),
                       mv_scale_ver << (EIF_MV_PRECISION_INTERNAL - affine_mv_prec) };
@@ -7150,7 +7149,7 @@ void evc_eif_mc(int block_width, int block_height, int x, int y, int mv_scale_ho
 
     const int tmp_buf_stride = MAX_CU_SIZE + 2;
 
-    assert(bit_depth < 16);
+    evc_assert(bit_depth < 16);
 
 #if EIF_MV_PRECISION_BILINEAR == 4 || EIF_MV_PRECISION_BILINEAR == 5
     int shifts[4] = { 0, 0, max(bit_depth + 5 - 16, 0), 6 - max(bit_depth + 5 - 16, 0) };

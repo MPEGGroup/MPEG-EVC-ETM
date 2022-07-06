@@ -82,14 +82,14 @@ BOOL m_resetALFBufferFlag;
 
 AdaptiveLoopFilter* new_ALF()
 {
-    AdaptiveLoopFilter* r = (AdaptiveLoopFilter*)malloc(sizeof(AdaptiveLoopFilter));
+    AdaptiveLoopFilter* r = (AdaptiveLoopFilter*)evc_malloc(sizeof(AdaptiveLoopFilter));
     init_AdaptiveLoopFilter(r);
     return r;
 }
 
 void delete_ALF(AdaptiveLoopFilter* p)
 {
-    free(p);
+    evc_mfree(p);
 }
 
 void call_create_ALF(AdaptiveLoopFilter* p, const int picWidth, const int picHeight, const int maxCUWidth, const int maxCUHeight, const int maxCUDepth, int idc)
@@ -116,11 +116,11 @@ void store_dec_aps_to_buffer(EVCD_CTX * ctx)
     alfSliceParam.numLumaFilters = iAlfSliceParam.numLumaFilters;
     alfSliceParam.lumaFilterType = (AlfFilterType)(iAlfSliceParam.lumaFilterType);
     alfSliceParam.chromaCtbPresentFlag = (iAlfSliceParam.chromaCtbPresentFlag);
-    memcpy(alfSliceParam.filterCoeffDeltaIdx, iAlfSliceParam.filterCoeffDeltaIdx, MAX_NUM_ALF_CLASSES * sizeof(short));
-    memcpy(alfSliceParam.lumaCoeff, iAlfSliceParam.lumaCoeff, sizeof(short)*MAX_NUM_ALF_CLASSES*MAX_NUM_ALF_LUMA_COEFF);
-    memcpy(alfSliceParam.chromaCoeff, iAlfSliceParam.chromaCoeff, sizeof(short)*MAX_NUM_ALF_CHROMA_COEFF);
-    memcpy(alfSliceParam.fixedFilterIdx, iAlfSliceParam.fixedFilterIdx, MAX_NUM_ALF_CLASSES * sizeof(int));
-    memcpy(alfSliceParam.fixedFilterUsageFlag, iAlfSliceParam.fixedFilterUsageFlag, MAX_NUM_ALF_CLASSES * sizeof(u8));
+    evc_mcpy(alfSliceParam.filterCoeffDeltaIdx, iAlfSliceParam.filterCoeffDeltaIdx, MAX_NUM_ALF_CLASSES * sizeof(short));
+    evc_mcpy(alfSliceParam.lumaCoeff, iAlfSliceParam.lumaCoeff, sizeof(short)*MAX_NUM_ALF_CLASSES*MAX_NUM_ALF_LUMA_COEFF);
+    evc_mcpy(alfSliceParam.chromaCoeff, iAlfSliceParam.chromaCoeff, sizeof(short)*MAX_NUM_ALF_CHROMA_COEFF);
+    evc_mcpy(alfSliceParam.fixedFilterIdx, iAlfSliceParam.fixedFilterIdx, MAX_NUM_ALF_CLASSES * sizeof(int));
+    evc_mcpy(alfSliceParam.fixedFilterUsageFlag, iAlfSliceParam.fixedFilterUsageFlag, MAX_NUM_ALF_CLASSES * sizeof(u8));
     alfSliceParam.fixedFilterPattern = iAlfSliceParam.fixedFilterPattern;
     alfSliceParam.coeffDeltaFlag = (iAlfSliceParam.coeffDeltaFlag);
     alfSliceParam.coeffDeltaPredModeFlag = (iAlfSliceParam.coeffDeltaPredModeFlag);
@@ -153,14 +153,14 @@ void call_dec_alf_process_aps(AdaptiveLoopFilter* p, EVCD_CTX * ctx, EVC_PIC * p
     cs.pPic = pic;
 
     AlfSliceParam alfSliceParam;
-    alfSliceParam.alfCtuEnableFlag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
-    memset(alfSliceParam.alfCtuEnableFlag, 0, N_C * ctx->f_lcu * sizeof(u8));
+    alfSliceParam.alfCtuEnableFlag = (u8 *)evc_malloc(N_C * ctx->f_lcu * sizeof(u8));
+    evc_mset(alfSliceParam.alfCtuEnableFlag, 0, N_C * ctx->f_lcu * sizeof(u8));
     // load filter from buffer
     load_alf_paramline_from_aps_buffer2(&(alfSliceParam), ctx->sh.aps_id_y, ctx->sh.aps_id_ch, ctx->sh.alfChromaIdc);
 
     // load filter map buffer
     alfSliceParam.isCtbAlfOn = ctx->sh.alf_sh_param.isCtbAlfOn;
-    memcpy(alfSliceParam.alfCtuEnableFlag, ctx->sh.alf_sh_param.alfCtuEnableFlag, N_C * ctx->f_lcu * sizeof(u8));
+    evc_mcpy(alfSliceParam.alfCtuEnableFlag, ctx->sh.alf_sh_param.alfCtuEnableFlag, N_C * ctx->f_lcu * sizeof(u8));
     ALFProcess(p, &cs, &alfSliceParam);
 }
 
@@ -194,18 +194,18 @@ void init_AlfFilterShape(void* _th, int size)
 
     if(size == 5)
     {
-        memcpy(th->pattern, pattern5, sizeof(pattern5));
-        memcpy(th->weights, weights5, sizeof(weights5));
-        memcpy(th->golombIdx, golombIdx5, sizeof(golombIdx5));
-        memcpy(th->patternToLargeFilter, patternToLargeFilter5, sizeof(patternToLargeFilter5));
+        evc_mcpy(th->pattern, pattern5, sizeof(pattern5));
+        evc_mcpy(th->weights, weights5, sizeof(weights5));
+        evc_mcpy(th->golombIdx, golombIdx5, sizeof(golombIdx5));
+        evc_mcpy(th->patternToLargeFilter, patternToLargeFilter5, sizeof(patternToLargeFilter5));
         th->filterType = ALF_FILTER_5;
     }
     else if(size == 7)
     {
-        memcpy(th->pattern, pattern7, sizeof(pattern7));
-        memcpy(th->weights, weights7, sizeof(weights7));
-        memcpy(th->golombIdx, golombIdx7, sizeof(golombIdx7));
-        memcpy(th->patternToLargeFilter, patternToLargeFilter7, sizeof(patternToLargeFilter7));
+        evc_mcpy(th->pattern, pattern7, sizeof(pattern7));
+        evc_mcpy(th->weights, weights7, sizeof(weights7));
+        evc_mcpy(th->golombIdx, golombIdx7, sizeof(golombIdx7));
+        evc_mcpy(th->patternToLargeFilter, patternToLargeFilter7, sizeof(patternToLargeFilter7));
         th->filterType = ALF_FILTER_7;
     }
     else
@@ -229,7 +229,7 @@ void copy_and_extend_tile(pel* tmpYuv, const int s, const pel* recYuv, const int
 {
     //copy
     for (int j = 0; j < h; j++)
-        memcpy(tmpYuv + j * s, recYuv + j * s2, sizeof(pel) * w);
+        evc_mcpy(tmpYuv + j * s, recYuv + j * s2, sizeof(pel) * w);
 
     //extend
     pel * p = tmpYuv;
@@ -249,7 +249,7 @@ void copy_and_extend_tile(pel* tmpYuv, const int s, const pel* recYuv, const int
     // p is now the (-margin, height-1)
     for (int y = 0; y < m; y++)
     {
-        memcpy(p + (y + 1) * s, p, sizeof(pel) * (w + (m << 1)));
+        evc_mcpy(p + (y + 1) * s, p, sizeof(pel) * (w + (m << 1)));
     }
 
     // pi is still (-marginX, height-1)
@@ -257,7 +257,7 @@ void copy_and_extend_tile(pel* tmpYuv, const int s, const pel* recYuv, const int
     // pi is now (-marginX, 0)
     for (int y = 0; y < m; y++)
     {
-        memcpy(p - (y + 1) * s, p, sizeof(pel) * (w + (m << 1)));
+        evc_mcpy(p - (y + 1) * s, p, sizeof(pel) * (w + (m << 1)));
     }
 }
 
@@ -275,7 +275,7 @@ void copy_and_extend( pel* tmpYuv, const int s, const pel* recYuv, const int s2,
 {
 //copy
     for (int j = 0; j < h; j++)
-        memcpy(tmpYuv + j * s, recYuv + j * s2, sizeof(pel) * w);
+        evc_mcpy(tmpYuv + j * s, recYuv + j * s2, sizeof(pel) * w);
 
 //extend
 
@@ -296,7 +296,7 @@ void copy_and_extend( pel* tmpYuv, const int s, const pel* recYuv, const int s2,
 // p is now the (-margin, height-1)
     for (int y = 0; y < m; y++)
     {
-        memcpy(p + (y + 1) * s, p, sizeof(pel) * (w + (m << 1)));
+        evc_mcpy(p + (y + 1) * s, p, sizeof(pel) * (w + (m << 1)));
     }
 
 // pi is still (-marginX, height-1)
@@ -304,7 +304,7 @@ void copy_and_extend( pel* tmpYuv, const int s, const pel* recYuv, const int s2,
 // pi is now (-marginX, 0)
     for (int y = 0; y < 3; y++)
     {
-        memcpy(p - (y + 1) * s, p, sizeof(pel) * (w + (m << 1)));
+        evc_mcpy(p - (y + 1) * s, p, sizeof(pel) * (w + (m << 1)));
     }
 
 } // <-- end of copy and extend
@@ -545,7 +545,7 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
                     int dstPos = i * l_stride - l_zero_offset;
                     int srcPos_offset = xPos + yPos * s;
                     int stride = (width == ctx->max_cuwh ? l_stride : width + m + m);
-                    memcpy(p_buffer + dstPos + m, tmpYuv + srcPos_offset + (i - m) * s, sizeof(pel) * (stride - 2 * m));
+                    evc_mcpy(p_buffer + dstPos + m, tmpYuv + srcPos_offset + (i - m) * s, sizeof(pel) * (stride - 2 * m));
                     for (int j = 0; j < m; j++)
                     {
                         if (availableL)
@@ -574,9 +574,9 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
                     int srcPos_offset = xPos + yPos * s;
                     int stride = (width == ctx->max_cuwh ? l_stride : width + m + m);
                     if (availableT)
-                        memcpy(p_buffer + dstPos, tmpYuv + srcPos_offset - (m - i) * s - m, sizeof(pel) * stride);
+                        evc_mcpy(p_buffer + dstPos, tmpYuv + srcPos_offset - (m - i) * s - m, sizeof(pel) * stride);
                     else
-                        memcpy(p_buffer + dstPos, p_buffer + dstPos + (2 * m - 2 * i) * l_stride, sizeof(pel) * stride);
+                        evc_mcpy(p_buffer + dstPos, p_buffer + dstPos + (2 * m - 2 * i) * l_stride, sizeof(pel) * stride);
                 }
 
                 for (int i = height + m; i < height + m + m; i++)
@@ -586,11 +586,11 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
                     int stride = (width == ctx->max_cuwh ? l_stride : width + m + m);
                     if (availableB)
                     {
-                        memcpy(p_buffer + dstPos, tmpYuv + srcPos_offset + (i - m) * s - m, sizeof(pel) * stride);
+                        evc_mcpy(p_buffer + dstPos, tmpYuv + srcPos_offset + (i - m) * s - m, sizeof(pel) * stride);
                     }
                     else
                     {
-                        memcpy(p_buffer + dstPos, p_buffer + dstPos - (2 * (i - height - m) + 2) * l_stride, sizeof(pel) * stride);
+                        evc_mcpy(p_buffer + dstPos, p_buffer + dstPos - (2 * (i - height - m) + 2) * l_stride, sizeof(pel) * stride);
                     }
                 }
 
@@ -611,8 +611,8 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
                         int srcPos_offset = (xPos >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + (yPos >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) * s1;
                         int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> (GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + m + m);
 
-                        memcpy(p_buffer_cb + dstPos + m, tmpYuv1 + srcPos_offset + (i - m) * s1, sizeof(pel) * (stride - 2 * m));
-                        memcpy(p_buffer_cr + dstPos + m, tmpYuv2 + srcPos_offset + (i - m) * s1, sizeof(pel) * (stride - 2 * m));
+                        evc_mcpy(p_buffer_cb + dstPos + m, tmpYuv1 + srcPos_offset + (i - m) * s1, sizeof(pel) * (stride - 2 * m));
+                        evc_mcpy(p_buffer_cr + dstPos + m, tmpYuv2 + srcPos_offset + (i - m) * s1, sizeof(pel) * (stride - 2 * m));
                         for(int j = 0; j < m; j++)
                         {
                             if(availableL)
@@ -647,19 +647,19 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
 
                         if(availableT)
                         {
-                            memcpy(p_buffer_cb + dstPos, tmpYuv1 + srcPos_offset - (m - i) * s1 - m, sizeof(pel) * stride);
+                            evc_mcpy(p_buffer_cb + dstPos, tmpYuv1 + srcPos_offset - (m - i) * s1 - m, sizeof(pel) * stride);
                         }
                         else
                         {
-                            memcpy(p_buffer_cb + dstPos, p_buffer_cb + dstPos + (2 * m - 2 * i) * l_stride_chroma, sizeof(pel) * stride);
+                            evc_mcpy(p_buffer_cb + dstPos, p_buffer_cb + dstPos + (2 * m - 2 * i) * l_stride_chroma, sizeof(pel) * stride);
                         }
                         if(availableT)
                         {
-                            memcpy(p_buffer_cr + dstPos, tmpYuv2 + srcPos_offset - (m - i) * s1 - m, sizeof(pel) * stride);
+                            evc_mcpy(p_buffer_cr + dstPos, tmpYuv2 + srcPos_offset - (m - i) * s1 - m, sizeof(pel) * stride);
                         }
                         else
                         {
-                            memcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos + (2 * m - 2 * i) * l_stride_chroma, sizeof(pel) * stride);
+                            evc_mcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos + (2 * m - 2 * i) * l_stride_chroma, sizeof(pel) * stride);
                         }
                     }
 
@@ -671,20 +671,20 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
 
                         if(availableB)
                         {
-                            memcpy(p_buffer_cb + dstPos, tmpYuv1 + srcPos_offset + (i - m) * s1 - m, sizeof(pel) * stride);
+                            evc_mcpy(p_buffer_cb + dstPos, tmpYuv1 + srcPos_offset + (i - m) * s1 - m, sizeof(pel) * stride);
                         }
                         else
                         {
-                            memcpy(p_buffer_cb + dstPos, p_buffer_cb + dstPos - (2 * (i - (height >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
+                            evc_mcpy(p_buffer_cb + dstPos, p_buffer_cb + dstPos - (2 * (i - (height >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
                         }
 
                         if(availableB)
                         {
-                            memcpy(p_buffer_cr + dstPos, tmpYuv2 + srcPos_offset + (i - m) * s1 - m, sizeof(pel) * stride);
+                            evc_mcpy(p_buffer_cr + dstPos, tmpYuv2 + srcPos_offset + (i - m) * s1 - m, sizeof(pel) * stride);
                         }
                         else
                         {
-                            memcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos - (2 * (i - (height >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
+                            evc_mcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos - (2 * (i - (height >> (GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
                         }
                     }
                 }
@@ -697,7 +697,7 @@ void ALFProcess(AdaptiveLoopFilter *p, CodingStructure* cs, AlfSliceParam* alfSl
 
                     if(alfSliceParam->enabledFlag[compIdx])
                     {
-                        assert(m_ctuEnableFlag[compIdx][ctuIdx] == 1);
+                        evc_assert(m_ctuEnableFlag[compIdx][ctuIdx] == 1);
                         Area blk = {0, 0, width >> chromaScaleX, height >> chromaScaleY};
                         if(compIdx == 1)
                             p->m_filter5x5Blk(m_classifier, recYuv1 + (xPos >> chromaScaleX) + (yPos >> chromaScaleY) * (cs->pPic->s_c), cs->pPic->s_c, p_buffer_cb, l_stride_chroma, &blk, compID, alfSliceParam->chromaCoeff, &(m_clpRngs.comp[compIdx]));
@@ -740,7 +740,7 @@ void reconstructCoeff(AlfSliceParam* alfSliceParam, ChannelType channel, const B
             }
         }
 
-        memset(m_coeffFinal, 0, sizeof(m_coeffFinal));
+        evc_mset(m_coeffFinal, 0, sizeof(m_coeffFinal));
         int numCoeffLargeMinus1 = MAX_NUM_ALF_LUMA_COEFF - 1;
         for (int classIdx = 0; classIdx < numClasses; classIdx++)
         {
@@ -820,7 +820,7 @@ void AdaptiveLoopFilter_create(const int picWidth, const int picHeight, const in
     const ChromaFormat format = idc;
     const int inputBitDepth[MAX_NUM_CHANNEL_TYPE] = {INTERNAL_CODEC_BIT_DEPTH, INTERNAL_CODEC_BIT_DEPTH_CHROMA};
 
-    memcpy(m_inputBitDepth, inputBitDepth, sizeof(m_inputBitDepth));
+    evc_mcpy(m_inputBitDepth, inputBitDepth, sizeof(m_inputBitDepth));
     m_picWidth = picWidth;
     m_picHeight = picHeight;
     m_maxCUWidth = maxCUWidth;
@@ -836,34 +836,34 @@ void AdaptiveLoopFilter_create(const int picWidth, const int picHeight, const in
     init_AlfFilterShape(&m_filterShapes[CHANNEL_TYPE_LUMA][1], 7);
     init_AlfFilterShape(&m_filterShapes[CHANNEL_TYPE_CHROMA][0], 5);
 
-    m_tempBuf = (pel*)malloc((picWidth + 7)*(picHeight + 7) * sizeof(pel)); // +7 is of filter diameter //todo: check this
-    m_tempBuf1 = (pel*)malloc(((picWidth >> (GET_CHROMA_W_SHIFT(idc))) + 7)*((picHeight >> (GET_CHROMA_H_SHIFT(idc))) + 7) * sizeof(pel)); // for chroma just left for unification
-    m_tempBuf2 = (pel*)malloc(((picWidth >> (GET_CHROMA_W_SHIFT(idc))) + 7)*((picHeight >> (GET_CHROMA_H_SHIFT(idc))) + 7) * sizeof(pel));
+    m_tempBuf = (pel*)evc_malloc((picWidth + 7)*(picHeight + 7) * sizeof(pel)); // +7 is of filter diameter //todo: check this
+    m_tempBuf1 = (pel*)evc_malloc(((picWidth >> (GET_CHROMA_W_SHIFT(idc))) + 7)*((picHeight >> (GET_CHROMA_H_SHIFT(idc))) + 7) * sizeof(pel)); // for chroma just left for unification
+    m_tempBuf2 = (pel*)evc_malloc(((picWidth >> (GET_CHROMA_W_SHIFT(idc))) + 7)*((picHeight >> (GET_CHROMA_H_SHIFT(idc))) + 7) * sizeof(pel));
 
     // Classification
-    m_classifier = (AlfClassifier**)malloc(picHeight * sizeof(AlfClassifier*));
+    m_classifier = (AlfClassifier**)evc_malloc(picHeight * sizeof(AlfClassifier*));
     for(int i = 0; i < picHeight; i++)
     {
-        m_classifier[i] = (AlfClassifier*)malloc(picWidth * sizeof(AlfClassifier));
-        memset(m_classifier[i], 0, picWidth * sizeof(AlfClassifier));
+        m_classifier[i] = (AlfClassifier*)evc_malloc(picWidth * sizeof(AlfClassifier));
+        evc_mset(m_classifier[i], 0, picWidth * sizeof(AlfClassifier));
     }
 }
 
 void AdaptiveLoopFilter_destroy()
 {
-    free(m_tempBuf);
-    free(m_tempBuf1);
-    free(m_tempBuf2);
+    evc_mfree(m_tempBuf);
+    evc_mfree(m_tempBuf1);
+    evc_mfree(m_tempBuf2);
 
     if(m_classifier)
     {
         for(int i = 0; i < m_picHeight; i++)
         {
-            free(m_classifier[i]);
+            evc_mfree(m_classifier[i]);
             m_classifier[i] = NULL;
         }
 
-        free(m_classifier);
+        evc_mfree(m_classifier);
         m_classifier = NULL;
     }
 }
@@ -1276,7 +1276,7 @@ void filterBlk_5(AlfClassifier** classifier, pel * recDst, const int dstStride, 
 
 void copyAlfParamChroma(AlfSliceParam* dst, AlfSliceParam* src)
 {
-    memcpy(dst->chromaCoeff, src->chromaCoeff, sizeof(short)*MAX_NUM_ALF_CHROMA_COEFF);
+    evc_mcpy(dst->chromaCoeff, src->chromaCoeff, sizeof(short)*MAX_NUM_ALF_CHROMA_COEFF);
 
     dst->chromaFilterPresent = src->chromaFilterPresent;
     dst->chromaCtbPresentFlag = src->chromaCtbPresentFlag;
@@ -1286,14 +1286,14 @@ void copyAlfParamChroma(AlfSliceParam* dst, AlfSliceParam* src)
 
 void copyAlfParam(AlfSliceParam* dst, AlfSliceParam* src)
 {
-    memcpy(dst->enabledFlag, src->enabledFlag, sizeof(BOOL)*MAX_NUM_COMPONENT);
+    evc_mcpy(dst->enabledFlag, src->enabledFlag, sizeof(BOOL)*MAX_NUM_COMPONENT);
     dst->chromaFilterPresent = src->chromaFilterPresent;
-    memcpy(dst->lumaCoeff, src->lumaCoeff, sizeof(short)*MAX_NUM_ALF_CLASSES * MAX_NUM_ALF_LUMA_COEFF);
-    memcpy(dst->chromaCoeff, src->chromaCoeff, sizeof(short)*MAX_NUM_ALF_CHROMA_COEFF);
-    memcpy(dst->filterCoeffDeltaIdx, src->filterCoeffDeltaIdx, sizeof(short)*MAX_NUM_ALF_CLASSES);
-    memcpy(dst->filterCoeffFlag, src->filterCoeffFlag, sizeof(BOOL)*MAX_NUM_ALF_CLASSES);
-    memcpy(dst->fixedFilterIdx, src->fixedFilterIdx, sizeof(int)*MAX_NUM_ALF_CLASSES);
-    memcpy(dst->fixedFilterUsageFlag, src->fixedFilterUsageFlag, sizeof(u8)*MAX_NUM_ALF_CLASSES);
+    evc_mcpy(dst->lumaCoeff, src->lumaCoeff, sizeof(short)*MAX_NUM_ALF_CLASSES * MAX_NUM_ALF_LUMA_COEFF);
+    evc_mcpy(dst->chromaCoeff, src->chromaCoeff, sizeof(short)*MAX_NUM_ALF_CHROMA_COEFF);
+    evc_mcpy(dst->filterCoeffDeltaIdx, src->filterCoeffDeltaIdx, sizeof(short)*MAX_NUM_ALF_CLASSES);
+    evc_mcpy(dst->filterCoeffFlag, src->filterCoeffFlag, sizeof(BOOL)*MAX_NUM_ALF_CLASSES);
+    evc_mcpy(dst->fixedFilterIdx, src->fixedFilterIdx, sizeof(int)*MAX_NUM_ALF_CLASSES);
+    evc_mcpy(dst->fixedFilterUsageFlag, src->fixedFilterUsageFlag, sizeof(u8)*MAX_NUM_ALF_CLASSES);
 
     dst->lumaFilterType = src->lumaFilterType;
     dst->numLumaFilters = src->numLumaFilters;
@@ -1317,11 +1317,11 @@ void resetAlfParam(AlfSliceParam* dst)
 {
     //Reset destination
     dst->isCtbAlfOn = FALSE;
-    memset(dst->enabledFlag, 0, sizeof(dst->enabledFlag)); //false is still 0
+    evc_mset(dst->enabledFlag, 0, sizeof(dst->enabledFlag)); //false is still 0
     dst->lumaFilterType = ALF_FILTER_5;
-    memset(dst->lumaCoeff, 0, sizeof(dst->lumaCoeff));
-    memset(dst->chromaCoeff, 0, sizeof(dst->chromaCoeff));
-    memset(dst->filterCoeffDeltaIdx, 0, sizeof(dst->filterCoeffDeltaIdx));
+    evc_mset(dst->lumaCoeff, 0, sizeof(dst->lumaCoeff));
+    evc_mset(dst->chromaCoeff, 0, sizeof(dst->chromaCoeff));
+    evc_mset(dst->filterCoeffDeltaIdx, 0, sizeof(dst->filterCoeffDeltaIdx));
     for(int i = 0; i < MAX_NUM_ALF_CLASSES; i++)
         dst->filterCoeffFlag[i] = TRUE;
     dst->numLumaFilters = 1;
@@ -1329,8 +1329,8 @@ void resetAlfParam(AlfSliceParam* dst)
     dst->coeffDeltaPredModeFlag = FALSE;
     dst->chromaCtbPresentFlag = FALSE;
     dst->fixedFilterPattern = 0;
-    memset(dst->fixedFilterIdx, 0, sizeof(dst->fixedFilterIdx));
-    memset(dst->fixedFilterUsageFlag, 0, sizeof(dst->fixedFilterUsageFlag));
+    evc_mset(dst->fixedFilterIdx, 0, sizeof(dst->fixedFilterIdx));
+    evc_mset(dst->fixedFilterUsageFlag, 0, sizeof(dst->fixedFilterUsageFlag));
     dst->temporalAlfFlag = FALSE;
     dst->prevIdx = 0;
     dst->prevIdxComp[0] = 0;
@@ -1438,7 +1438,7 @@ void storeEncALFParamLineAPS(AlfSliceParam* pAlfParam, unsigned tLayer)
 
 void store_alf_paramline_from_aps(AlfSliceParam* pAlfParam, u8 idx)
 {
-    assert(idx < APS_MAX_NUM);
+    evc_assert(idx < APS_MAX_NUM);
     copyAlfParam(&(m_acAlfLineBuffer[idx]), pAlfParam);
     m_acAlfLineBufferCurrentSize++;
     m_acAlfLineBufferCurrentSize = m_acAlfLineBufferCurrentSize > APS_MAX_NUM ? APS_MAX_NUM : m_acAlfLineBufferCurrentSize;  // Increment used ALF circular buffer size 
@@ -1447,12 +1447,12 @@ void store_alf_paramline_from_aps(AlfSliceParam* pAlfParam, u8 idx)
 void load_alf_paramline_from_aps_buffer2(AlfSliceParam* pAlfParam, u8 idxY, u8 idxUV, u8 alfChromaIdc)
 {
     copyAlfParam(pAlfParam, &(m_acAlfLineBuffer[idxY]));
-    assert(pAlfParam->enabledFlag[0] == 1);
+    evc_assert(pAlfParam->enabledFlag[0] == 1);
 
     if (alfChromaIdc)
     {
         copyAlfParamChroma(pAlfParam, &(m_acAlfLineBuffer[idxUV]));
-        assert(pAlfParam->chromaFilterPresent == 1);
+        evc_assert(pAlfParam->chromaFilterPresent == 1);
         pAlfParam->enabledFlag[1] = alfChromaIdc & 1;
         pAlfParam->enabledFlag[2] = (alfChromaIdc >> 1) & 1;
     }

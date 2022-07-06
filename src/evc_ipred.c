@@ -1402,5 +1402,5 @@ void evc_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_i
             mode_idx++;
         }
     }
-    assert(mode_idx == IPD_CNT);
+    evc_assert(mode_idx == IPD_CNT);
 }
