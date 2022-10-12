@@ -432,7 +432,7 @@ typedef struct _EVCD_OPL
 
 #define MAX_NUM_REF_PICS                   21
 #define MAX_NUM_ACTIVE_REF_FRAME           5
-#define MAX_NUM_RPLS                       32
+#define MAX_NUM_RPLS                       64
 
 /* rpl structure */
 typedef struct _EVC_RPL

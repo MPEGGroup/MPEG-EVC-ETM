@@ -42,8 +42,8 @@
 #define VERBOSE_NONE               VERBOSE_0
 #define VERBOSE_FRAME              VERBOSE_1
 #define VERBOSE_ALL                VERBOSE_2
-#define MAX_BUMP_FRM_CNT           (16 <<1)
 
+#define MAX_BUMP_FRM_CNT           (16 << 2)
 #define MAX_BS_BUF                 (16*1024*1024)
 
 typedef enum _STATES
@@ -297,8 +297,22 @@ typedef enum _OP_FLAGS
     OP_FLAG_RPL0_23,
     OP_FLAG_RPL0_24,
     OP_FLAG_RPL0_25,
-    //...
+    OP_FLAG_RPL0_26,
+    OP_FLAG_RPL0_27,
+    OP_FLAG_RPL0_28,
+    OP_FLAG_RPL0_29,
+    OP_FLAG_RPL0_30,
     OP_FLAG_RPL0_31,
+    OP_FLAG_RPL0_32,
+    OP_FLAG_RPL0_33,
+    OP_FLAG_RPL0_34,
+    OP_FLAG_RPL0_35,
+    OP_FLAG_RPL0_36,
+    OP_FLAG_RPL0_37,
+    OP_FLAG_RPL0_38,
+    OP_FLAG_RPL0_39,
+    //...
+    OP_FLAG_RPL0_63,
 
     OP_FLAG_RPL1_0,
     OP_FLAG_RPL1_1,
@@ -326,8 +340,23 @@ typedef enum _OP_FLAGS
     OP_FLAG_RPL1_23,
     OP_FLAG_RPL1_24,
     OP_FLAG_RPL1_25,
-    //...
+    OP_FLAG_RPL1_26,
+    OP_FLAG_RPL1_27,
+    OP_FLAG_RPL1_28,
+    OP_FLAG_RPL1_29,
+    OP_FLAG_RPL1_30,
     OP_FLAG_RPL1_31,
+    OP_FLAG_RPL1_32,
+    OP_FLAG_RPL1_33,
+    OP_FLAG_RPL1_34,
+    OP_FLAG_RPL1_35,
+    OP_FLAG_RPL1_36,
+    OP_FLAG_RPL1_37,
+    OP_FLAG_RPL1_38,
+    OP_FLAG_RPL1_39,
+    //...
+    OP_FLAG_RPL1_63,
+
     OP_INTER_SLICE_TYPE,
     OP_PIC_CROP_FLAG,
     OP_PIC_CROP_LEFT,
@@ -401,7 +430,7 @@ static EVC_ARGS_OPTION options[] = \
     {
         'g',  "max_b_frames", EVC_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_FLAG_MAX_B_FRAMES], &op_max_b_frames,
-        "Number of maximum B frames (1,3,7,15)\n"
+        "Number of maximum B frames (1,3,7,15,31)\n"
     },
     {
         EVC_ARGS_NO_KEY,  "max_num_ref_pics", EVC_ARGS_VAL_TYPE_INTEGER,
@@ -946,6 +975,76 @@ static EVC_ARGS_OPTION options[] = \
         "RPL0_25"
     },
     {
+        EVC_ARGS_NO_KEY,  "RPL0_26", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL0_26], &op_rpl0[26],
+        "RPL0_26"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL0_27", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL0_27], &op_rpl0[27],
+        "RPL0_27"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL0_28", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL0_28], &op_rpl0[28],
+        "RPL0_28"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL0_29", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL0_29], &op_rpl0[29],
+        "RPL0_29"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL0_30", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL0_30], &op_rpl0[30],
+        "RPL0_30"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL0_31", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL0_31], &op_rpl0[31],
+        "RPL0_31"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL0_32", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL0_32], &op_rpl0[32],
+        "RPL0_32"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL0_33", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL0_33], &op_rpl0[33],
+        "RPL0_33"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL0_34", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL0_34], &op_rpl0[34],
+        "RPL0_34"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL0_35", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL0_35], &op_rpl0[35],
+        "RPL0_35"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL0_36", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL0_36], &op_rpl0[36],
+        "RPL0_36"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL0_37", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL0_37], &op_rpl0[37],
+        "RPL0_37"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL0_38", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL0_38], &op_rpl0[38],
+        "RPL0_38"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL0_39", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL0_39], &op_rpl0[39],
+        "RPL0_39"
+    },
+    {
         EVC_ARGS_NO_KEY,  "RPL1_0", EVC_ARGS_VAL_TYPE_STRING,
         &op_flag[OP_FLAG_RPL1_0], &op_rpl1[0],
         "RPL1_0"
@@ -1074,6 +1173,76 @@ static EVC_ARGS_OPTION options[] = \
         EVC_ARGS_NO_KEY,  "RPL1_25", EVC_ARGS_VAL_TYPE_STRING,
         &op_flag[OP_FLAG_RPL1_25], &op_rpl1[25],
         "RPL1_25"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL1_26", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL1_26], &op_rpl1[26],
+        "RPL1_26"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL1_27", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL1_27], &op_rpl1[27],
+        "RPL1_27"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL1_28", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL1_28], &op_rpl1[28],
+        "RPL1_28"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL1_29", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL1_29], &op_rpl1[29],
+        "RPL1_29"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL1_30", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL1_30], &op_rpl1[30],
+        "RPL1_30"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL1_31", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL1_31], &op_rpl1[31],
+        "RPL1_31"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL1_32", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL1_32], &op_rpl1[32],
+        "RPL1_32"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL1_33", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL1_33], &op_rpl1[33],
+        "RPL1_33"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL1_34", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL1_34], &op_rpl1[34],
+        "RPL1_34"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL1_35", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL1_35], &op_rpl1[35],
+        "RPL1_35"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL1_36", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL1_36], &op_rpl1[36],
+        "RPL1_36"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL1_37", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL1_37], &op_rpl1[37],
+        "RPL1_37"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL1_38", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL1_38], &op_rpl1[38],
+        "RPL1_38"
+    },
+    {
+        EVC_ARGS_NO_KEY,  "RPL1_39", EVC_ARGS_VAL_TYPE_STRING,
+        &op_flag[OP_FLAG_RPL1_39], &op_rpl1[39],
+        "RPL1_39"
     },
     {
         EVC_ARGS_NO_KEY,  "inter_slice_type", EVC_ARGS_VAL_TYPE_INTEGER,
