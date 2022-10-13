@@ -40,11 +40,6 @@
 #define ITX_SHIFT2(bit_depth)                (12 - (bit_depth - 8))  /* shift after 2nd IT stage */
 #define ITX_CLIP(x) \
     (s16)(((x)<MIN_TX_VAL)? MIN_TX_VAL: (((x)>MAX_TX_VAL)? MAX_TX_VAL: (x)))
-#define MAX_TX_DYNAMIC_RANGE_32               31
-#define MAX_TX_VAL_32                       2147483647
-#define MIN_TX_VAL_32                      (-2147483647-1)
-#define ITX_CLIP_32(x) \
-    (s32)(((x)<=MIN_TX_VAL_32)? MIN_TX_VAL_32: (((x)>=MAX_TX_VAL_32)? MAX_TX_VAL_32: (x)))
 #if X86_SSE
 #define MAC_8PEL_MEM(src1, src2, m01, m02, m03, m04, mac) \
     m01 = _mm_loadu_si128((__m128i*)(src1)); \
@@ -162,8 +157,8 @@ static void itx_pb2b(void *src, void *dst, int shift, int line, int step)
         \
         if(step == 0)\
         {\
-            *((type_dst *)dst + j * 2 + 0) = ITX_CLIP_32((evc_tbl_tm2[0][0] * E + add) >> shift); \
-            *((type_dst *)dst + j * 2 + 1) = ITX_CLIP_32((evc_tbl_tm2[1][0] * O + add) >> shift); \
+            *((type_dst *)dst + j * 2 + 0) = (s32)(evc_tbl_tm2[0][0] * E); \
+            *((type_dst *)dst + j * 2 + 1) = (s32)(evc_tbl_tm2[1][0] * O); \
         }\
         else\
         {\
@@ -199,10 +194,10 @@ static void itx_pb4b(void *src, void *dst, int shift, int line, int step)
         /* Combining even and odd terms at each hierarchy levels to calculate the final spatial domain vector */\
         if (step == 0)\
         {\
-            *((type_dst * )dst + j * 4 + 0) = ITX_CLIP_32((E[0] + O[0] + add) >> shift);\
-            *((type_dst * )dst + j * 4 + 1) = ITX_CLIP_32((E[1] + O[1] + add) >> shift);\
-            *((type_dst * )dst + j * 4 + 2) = ITX_CLIP_32((E[1] - O[1] + add) >> shift);\
-            *((type_dst * )dst + j * 4 + 3) = ITX_CLIP_32((E[0] - O[0] + add) >> shift);\
+            *((type_dst * )dst + j * 4 + 0) = (s32)(E[0] + O[0]);\
+            *((type_dst * )dst + j * 4 + 1) = (s32)(E[1] + O[1]);\
+            *((type_dst * )dst + j * 4 + 2) = (s32)(E[1] - O[1]);\
+            *((type_dst * )dst + j * 4 + 3) = (s32)(E[0] - O[0]);\
         }\
         else\
         {\
@@ -254,8 +249,8 @@ static void itx_pb8b(void *src, void *dst, int shift, int line, int step)
         {\
             for (k = 0; k < 4; k++)\
             {\
-                *((type_dst * )dst + j * 8 + k    ) = ITX_CLIP_32((E[k] + O[k] + add) >> shift);\
-                *((type_dst * )dst + j * 8 + k + 4) = ITX_CLIP_32((E[3 - k] - O[3 - k] + add) >> shift);\
+                *((type_dst * )dst + j * 8 + k    ) = (s32)(E[k] + O[k]);\
+                *((type_dst * )dst + j * 8 + k + 4) = (s32)(E[3 - k] - O[3 - k]);\
             }\
         }\
         else\
@@ -323,8 +318,8 @@ static void itx_pb16b(void *src, void *dst, int shift, int line, int step)
         {\
             for (k = 0; k < 8; k++)\
             {\
-                *((type_dst * )dst + j * 16 + k    ) = ITX_CLIP_32((E[k] + O[k] + add) >> shift); \
-                *((type_dst * )dst + j * 16 + k + 8) = ITX_CLIP_32((E[7 - k] - O[7 - k] + add) >> shift); \
+                *((type_dst * )dst + j * 16 + k    ) = (s32)(E[k] + O[k]); \
+                *((type_dst * )dst + j * 16 + k + 8) = (s32)(E[7 - k] - O[7 - k]); \
             }\
         }\
         else\
@@ -421,8 +416,8 @@ static void itx_pb32b(void *src, void *dst, int shift, int line, int step)
         {\
             for (k = 0; k < 16; k++)\
             {\
-                *((type_dst * )dst + j * 32 + k     ) = ITX_CLIP_32((E[k] + O[k] + add) >> shift);\
-                *((type_dst * )dst + j * 32 + k + 16) = ITX_CLIP_32((E[15 - k] - O[15 - k] + add) >> shift);\
+                *((type_dst * )dst + j * 32 + k     ) = (s32)(E[k] + O[k]);\
+                *((type_dst * )dst + j * 32 + k + 16) = (s32)(E[15 - k] - O[15 - k]);\
             }\
         }\
         else\
@@ -533,8 +528,8 @@ static void itx_pb64b(void *src, void *dst, int shift, int line, int step)
         {\
             for (k = 0; k < 32; k++)\
             {\
-                *((type_dst * )dst + k     ) = ITX_CLIP_32((E[k] + O[k] + add) >> shift);\
-                *((type_dst * )dst + k + 32) = ITX_CLIP_32((E[31 - k] - O[31 - k] + add) >> shift);\
+                *((type_dst * )dst + k     ) = (s32)(E[k] + O[k]);\
+                *((type_dst * )dst + k + 32) = (s32)(E[31 - k] - O[31 - k]);\
             }\
         }\
         else\
