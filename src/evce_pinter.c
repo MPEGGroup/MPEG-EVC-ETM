@@ -2149,12 +2149,45 @@ static double analyze_skip_baseline(EVCE_CTX *ctx, EVCE_CORE *core, int x, int y
 
     for(idx0 = 0; idx0 < 4; idx0++)
     {
+        if (idx0)
+        {
+            /* encoder side pruning */
+            int found_same_mvp = 0;
+            for (int tmp_idx = idx0 - 1; tmp_idx >= 0; tmp_idx--)
+            {
+                if (pi->mvp[REFP_0][tmp_idx][MV_X] == pi->mvp[REFP_0][idx0][MV_X] &&
+                    pi->mvp[REFP_0][tmp_idx][MV_Y] == pi->mvp[REFP_0][idx0][MV_Y])
+                {
+                    found_same_mvp = 1;
+                    break;
+                }
+            }
+            if (found_same_mvp)
+            {
+                continue;
+            }
+        }
+
         cnt = (ctx->slice_type == SLICE_B ? 4 : 1);
         for(idx1 = 0; idx1 < cnt; idx1++)
         {
-            if(idx0 != idx1)
+            if (idx1)
             {
-                continue;
+                /* encoder side pruning */
+                int found_same_mvp = 0;
+                for (int tmp_idx = idx1 - 1; tmp_idx >= 0; tmp_idx--)
+                {
+                    if (pi->mvp[REFP_1][tmp_idx][MV_X] == pi->mvp[REFP_1][idx1][MV_X] &&
+                        pi->mvp[REFP_1][tmp_idx][MV_Y] == pi->mvp[REFP_1][idx1][MV_Y])
+                    {
+                        found_same_mvp = 1;
+                        break;
+                    }
+                }
+                if (found_same_mvp)
+                {
+                    continue;
+                }
             }
 
             mvp[REFP_0][MV_X] = pi->mvp[REFP_0][idx0][MV_X];
@@ -3654,9 +3687,23 @@ static void check_best_mvp(EVCE_CTX *ctx, EVCE_CORE *core, s32 slice_type, s8 re
 
     for(idx = 0; idx < ORG_MAX_NUM_MVP; idx++)
     {
-        if(idx == *mvp_idx)
+        if (idx)
         {
-            continue;
+            int found_same_mvp = 0;
+            for (int tmp_idx = idx - 1; tmp_idx >= 0; tmp_idx--)
+            {
+                /* encoder side pruning */
+                if (mvp[idx][MV_X] == mvp[tmp_idx][MV_X] &&
+                    mvp[idx][MV_Y] == mvp[tmp_idx][MV_Y])
+                {
+                    found_same_mvp = 1;
+                    break;
+                }
+            }
+            if (found_same_mvp)
+            {
+                continue;
+            }
         }
 
         SBAC_LOAD(core->s_temp_run, core->s_curr_best[core->log2_cuw - 2][core->log2_cuh - 2]);
