@@ -44,7 +44,8 @@ extern "C"
 extern const u8 *evce_tbl_mv_bits;
 extern const u8 evce_tbl_refi_bits[17][16];
 extern const u8 evce_tbl_mvp_idx_bits[5][4];
-extern const int quant_scale[6];
+extern const int evce_tbl_quant_scale[2][6];
+extern const int * evce_quant_scale;
 
 #define RATE_TO_COST_LAMBDA(l, r)       ((double)r * l)
 #define RATE_TO_COST_SQRT_LAMBDA(l, r)  ((double)r * l)

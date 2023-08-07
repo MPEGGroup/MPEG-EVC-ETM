@@ -437,10 +437,12 @@ static int set_init_param(EVCE_CDSC * cdsc, EVCE_PARAM * param)
     if(cdsc->tool_iqt == 0)
     {
         evc_tbl_qp_chroma_ajudst = evc_tbl_qp_chroma_ajudst_base;
+        evce_quant_scale = evce_tbl_quant_scale[0];
     }
     else
     {
         evc_tbl_qp_chroma_ajudst = evc_tbl_qp_chroma_ajudst_main;
+        evce_quant_scale = evce_tbl_quant_scale[1];
     }
 
     if (cdsc->chroma_qp_table_struct.chroma_qp_table_present_flag)

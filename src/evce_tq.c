@@ -39,8 +39,9 @@
 
 static s64 err_scale_tbl[6][MAX_CU_DEPTH];
 
-const int quant_scale[6] = {26214, 23302, 20560, 18396, 16384, 14564};
-
+const int* evce_quant_scale;
+const int evce_tbl_quant_scale[2][6] = { {26214, 23302, 20560, 18396, 16384, 14768},
+                                         {26214, 23302, 20560, 18396, 16384, 14564} };
 void evce_trans_DST7_B4(s16* block, s16* coeff, s32 shift, s32 line, int skip_line, int skip_line_2);
 void evce_trans_DST7_B8(s16* block, s16* coeff, s32 shift, s32 line, int skip_line, int skip_line_2);
 void evce_trans_DST7_B16(s16* block, s16* coeff, s32 shift, s32 line, int skip_line, int skip_line_2);
@@ -1091,7 +1092,7 @@ void evce_init_err_scale(int bit_depth)
 
     for (qp = 0; qp < 6; qp++)
     {
-        int q_value = quant_scale[qp];
+        int q_value = evce_quant_scale[qp];
 
         for (i = 0; i < MAX_CU_DEPTH; i++)
         {
@@ -1462,7 +1463,7 @@ int evce_rdoq_run_length_cc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, 
     const int ns_shift = ((log2_cuw + log2_cuh) & 1) ? 7 : 0;
     const int ns_scale = ((log2_cuw + log2_cuh) & 1) ? 181 : 1;
     const int ns_offset = ((log2_cuw + log2_cuh) & 1) ? (1 << (ns_shift - 1)) : 0;
-    const int q_value = (quant_scale[qp_rem] * ns_scale + ns_offset) >> ns_shift;
+    const int q_value = (evce_quant_scale[qp_rem] * ns_scale + ns_offset) >> ns_shift;
     const int log2_size = (log2_cuw + log2_cuh) >> 1;
     const int tr_shift = MAX_TX_DYNAMIC_RANGE - bit_depth - (log2_size);
     const u32 max_num_coef = 1 << (log2_cuw + log2_cuh);
@@ -1611,7 +1612,7 @@ int evce_rdoq_method_adcc(u8 qp, double d_lambda, u8 is_intra, s16 *src_coef, s1
     const int ns_shift = ((log2_cuw + log2_cuh) & 1) ? 7 : 0;
     const int ns_scale = ((log2_cuw + log2_cuh) & 1) ? 181 : 1;
     const int qp_rem = qp % 6;
-    const int q_value = (quant_scale[qp_rem] * ns_scale) >> ns_shift;
+    const int q_value = (evce_quant_scale[qp_rem] * ns_scale) >> ns_shift;
     const int log2_size = (log2_cuw + log2_cuh) >> 1;
     const int tr_shift = MAX_TX_DYNAMIC_RANGE - bit_depth - (log2_size);
     s64 err_scale = err_scale_tbl[qp_rem][log2_size - 1];
@@ -2048,7 +2049,7 @@ int evce_sub_block_tq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 
                         coef_temp[c] = coef[c];
                     }
 
-                    int scale = quant_scale[qp[c] % 6];
+                    int scale = evce_quant_scale[qp[c] % 6];
 
                     if(c == 0)
                     {
