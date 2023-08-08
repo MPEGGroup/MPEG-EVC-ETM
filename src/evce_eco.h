@@ -45,6 +45,7 @@ extern "C"
 #if GRAB_STAT
 void ence_stat_cu(int x, int y, int cuw, int cuh, int cup, void *ctx, void *core, TREE_CONS tree_cons);
 #endif
+int evce_eco_nalu_len(void* len_buf, int size);
 int evce_eco_nalu(EVC_BSW * bs, EVC_NALU * nalu);
 int evce_eco_sps(EVC_BSW * bs, EVC_SPS * sps);
 int evce_eco_pps(EVC_BSW * bs, EVC_SPS * sps, EVC_PPS * pps);

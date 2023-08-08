@@ -43,6 +43,17 @@
 #endif
 #pragma warning(disable:4018)
 
+int evce_eco_nalu_len(void* len_buf, int size)
+{
+  int i;
+  u8* p = len_buf;
+  for (i = 0; i < 4; i++)
+  {
+      p[i] = (size >> (24 - (i * 8))) & 0xFF;
+  }
+  return 0;
+}
+
 int evce_eco_nalu(EVC_BSW * bs, EVC_NALU * nalu)
 {
 #if TRACE_HLS

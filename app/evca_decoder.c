@@ -130,10 +130,21 @@ static void print_usage(void)
     }
 }
 
+static int read_nalu_len(void* len_buf)
+{
+    int i, len = 0;
+    unsigned char* p = (unsigned char*)len_buf;
+    for (i = 0; i < 4; i++)
+    {
+        len = (len << 8) | p[i];
+    }
+    return len;
+}
+
 static int read_nalu(FILE * fp, int * pos, unsigned char * bs_buf)
 {
     int read_size, bs_size;
-    unsigned char b = 0;
+    unsigned char b = 0, nalu_len[4];
 
     bs_size = 0;
     read_size = 0;
@@ -141,8 +152,10 @@ static int read_nalu(FILE * fp, int * pos, unsigned char * bs_buf)
     if(!fseek(fp, *pos, SEEK_SET))
     {
         /* read size first */
-        if(4 == fread(&bs_size, 1, 4, fp)) //@TBC(Chernyak): is it ok from endianness perspective?
+        if(4 == fread(nalu_len, 1, 4, fp))
         {
+            bs_size = read_nalu_len(nalu_len);
+
             if(bs_size <= 0)
             {
                 v0print("Invalid bitstream size![%d]\n", bs_size);

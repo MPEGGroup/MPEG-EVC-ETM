@@ -2424,7 +2424,7 @@ int evce_enc_pic_finish(EVCE_CTX *ctx, EVC_BITB *bitb, EVCE_STAT *stat)
 
         evc_bsw_deinit(bs);
         stat->sei_size = (int)(bs->cur - cur_tmp);
-        *size_field = stat->sei_size - 4;
+        evce_eco_nalu_len(size_field, stat->sei_size - 4);
     }
 
     /* expand current encoding picture, if needs */
@@ -3085,7 +3085,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
                 evc_assert_rv(evce_eco_aps_gen(bs, aps_alf, ctx->sps.bit_depth_luma_minus8+8) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
 
                 evc_bsw_deinit(bs);
-                *size_field = (int)(bs->cur - cur_tmp) - 4;
+                evce_eco_nalu_len(size_field, (int)(bs->cur - cur_tmp) - 4);
             }
         }
         int* size_field = (int*)(*(&bs->cur));
@@ -3260,7 +3260,7 @@ int evce_enc_pic(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
         fseek(fp_trace, tmp_fp_point2, SEEK_SET);
 #endif
         evc_bsw_deinit(bs);
-        *size_field = (int)(bs->cur - cur_tmp) - 4;
+        evce_eco_nalu_len(size_field, (int)(bs->cur - cur_tmp) - 4);
         curr_temp = bs->cur;
     }  // End of slice loop
     return EVC_OK;
@@ -3538,7 +3538,7 @@ int evce_encode_sps(EVCE_CTX *ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     evc_bsw_deinit(bs);
 
     /* write the bitstream size */
-    *size_field = (int)(bs->cur - cur_tmp) - 4;
+    evce_eco_nalu_len(size_field, (int)(bs->cur - cur_tmp) - 4);
 
     return EVC_OK;
 }
@@ -3591,7 +3591,7 @@ int evce_encode_aps(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat, int aps_t
     evc_assert_rv(evce_eco_aps_gen(bs, aps_dra, ctx->sps.bit_depth_luma_minus8 + 8) == EVC_OK, EVC_ERR_INVALID_ARGUMENT);
 
     evc_bsw_deinit(bs);
-    *size_field = (int)(bs->cur - cur_tmp) - 4;
+    evce_eco_nalu_len(size_field, (int)(bs->cur - cur_tmp) - 4);
     aps_dra->signal_flag = 0;
 
     return EVC_OK;
@@ -3623,7 +3623,7 @@ int evce_encode_pps(EVCE_CTX * ctx, EVC_BITB * bitb, EVCE_STAT * stat)
     evc_bsw_deinit(bs);
 
     /* write the bitstream size */
-    *size_field = (int)(bs->cur - cur_tmp) - 4;
+    evce_eco_nalu_len(size_field, (int)(bs->cur - cur_tmp) - 4);
 
     return EVC_OK;
 }
