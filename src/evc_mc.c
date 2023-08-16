@@ -6813,8 +6813,8 @@ void evc_affine_mc_l(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 a
     {
         for (w = 0; w < cuw; w += sub_w)
         {
-            mv_scale_tmp_hor = (mv_scale_hor + dmv_hor_x * half_w + dmv_ver_x * half_h);
-            mv_scale_tmp_ver = (mv_scale_ver + dmv_hor_y * half_w + dmv_ver_y * half_h);
+            mv_scale_tmp_hor = (mv_scale_hor + dmv_hor_x * (half_w + w) + dmv_ver_x * (half_h + h));
+            mv_scale_tmp_ver = (mv_scale_ver + dmv_hor_y * (half_w + w) + dmv_ver_y * (half_h + h));
             evc_mv_rounding_s32(mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, shift, 0);
             mv_scale_tmp_hor = EVC_CLIP3(-(1 << 17), (1 << 17) - 1, mv_scale_tmp_hor);
             mv_scale_tmp_ver = EVC_CLIP3(-(1 << 17), (1 << 17) - 1, mv_scale_tmp_ver);
@@ -6912,8 +6912,8 @@ void evc_affine_mc_lc(int x, int y, int pic_w, int pic_h, int cuw, int cuh, s16 
     {
         for (w = 0; w < cuw; w += sub_w)
         {
-            mv_scale_tmp_hor = (mv_scale_hor + dmv_hor_x * half_w + dmv_ver_x * half_h);
-            mv_scale_tmp_ver = (mv_scale_ver + dmv_hor_y * half_w + dmv_ver_y * half_h);
+            mv_scale_tmp_hor = (mv_scale_hor + dmv_hor_x * (half_w + w) + dmv_ver_x * (half_h + h));
+            mv_scale_tmp_ver = (mv_scale_ver + dmv_hor_y * (half_w + w) + dmv_ver_y * (half_h + h));
             evc_mv_rounding_s32(mv_scale_tmp_hor, mv_scale_tmp_ver, &mv_scale_tmp_hor, &mv_scale_tmp_ver, shift, 0);
             mv_scale_tmp_hor = EVC_CLIP3(-(1 << 17), (1 << 17) - 1, mv_scale_tmp_hor);
             mv_scale_tmp_ver = EVC_CLIP3(-(1 << 17), (1 << 17) - 1, mv_scale_tmp_ver);
