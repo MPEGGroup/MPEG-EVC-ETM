@@ -736,8 +736,46 @@ typedef struct _QP_ADAPT_PARAM
     double qp_offset_model_scale;
 } QP_ADAPT_PARAM;
 
-QP_ADAPT_PARAM qp_adapt_param_ra[3][8] =
+QP_ADAPT_PARAM qp_adapt_param_ra[2][3][8] =
 {
+    /* Baseline */
+    {
+    /* gop size = 8 */
+    {
+        { 0,  0.0000, 0.0000 },
+        { 1,  0.0000, 0.0000 },
+        { 4, -5.7476, 0.2286 },
+        { 5, -5.9000, 0.2333 },
+        { 6, -7.1444, 0.3000 },
+        { 6, -7.1444, 0.3000 },
+        { 6, -7.1444, 0.3000 },
+        { 6, -7.1444, 0.3000 },
+    },
+    /* gop size = 16 */
+    {
+        {-3,  0.0000, 0.0000 },
+        { 1,  0.0000, 0.0000 },
+        { 1, -4.8848, 0.2061 },
+        { 4, -5.7476, 0.2286 },
+        { 5, -5.9000, 0.2333 },
+        { 6, -7.1444, 0.3000 },
+        { 7, -7.1444, 0.3000 },
+        { 8, -7.1444, 0.3000 },
+    },
+    /* gop size = 32 */
+    {
+        {-3,  0.0000, 0.0000 },
+        {-1,  0.0000, 0.0000 },
+        { 0, -4.9309, 0.2265 },
+        { 1, -4.5000, 0.1900 },
+        { 3, -5.4095, 0.2571 },
+        { 5, -4.4895, 0.1947 },
+        { 6, -5.4429, 0.2429 },
+        { 8, -5.4429, 0.2429 },
+    },
+    },
+    /* Main */
+    {
     /* gop size = 8 */
     {
         { 0,  0.0000, 0.0000 },
@@ -770,6 +808,7 @@ QP_ADAPT_PARAM qp_adapt_param_ra[3][8] =
         { 5, -4.4895, 0.1947 },
         { 6, -5.4429, 0.2429 },
         { 8, -5.4429, 0.2429 },
+    },
     },
 };
 
@@ -1020,7 +1059,7 @@ static void set_sh(EVCE_CTX *ctx, EVC_SH *sh)
     int qp_c_i;
     int gop_size_idx = ctx->param.gop_size == 32 ? 2 : ctx->param.gop_size == 16 ? 1 : 0;
     QP_ADAPT_PARAM *qp_adapt_param = ctx->param.max_b_frames == 0 ?
-        (ctx->param.i_period == 1 ? qp_adapt_param_ai : qp_adapt_param_ld) : qp_adapt_param_ra[gop_size_idx];
+        (ctx->param.i_period == 1 ? qp_adapt_param_ai : qp_adapt_param_ld) : qp_adapt_param_ra[ctx->sps.tool_pocs == 0 ? 0 : 1][gop_size_idx];
 
     if (ctx->sps.tool_pocs)
     {
